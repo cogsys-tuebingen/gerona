@@ -1,0 +1,23 @@
+<launch>
+	<node name="karto" type="slam_karto" pkg="karto" output="screen">
+	</node>
+
+	<node name="path_control" type="path_control_node" pkg="path_control" output="screen" respawn="true"/>
+	
+	<node name="path_planner" type="sbpl_planner_node" pkg="path_planner" output="screen" respawn="true">
+		<param name="use_map_topic" value="false" />
+		<param name="map_service" value="/dynamic_map" />
+	</node>
+
+	<node name="path_follower" type="path_follower_node" pkg="path_follower" output="screen" respawn="true">
+		<param name="min_velocity" value="0.45" />""    
+		<param name="max_velocity" value="0.45" />
+		<param name="pid/kp" value="0.35" />
+		<param name="pid/ki" value="0" />
+		<param name="stuck_pos_tolerance" value="0.0" />
+		<param name="max_distance_to_path" value="100.0" />
+		<param name="stuck_timeout" value="60.0" />
+		<param name="collision_box_width" value="0.4" />
+		<param name="collision_box_length" value="0.3" />
+	</node>		
+</launch>

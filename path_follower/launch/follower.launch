@@ -4,8 +4,8 @@
     <param name="use_obstacle_map" value="true" />
     <param name="use_vfh" value="false" />
     
-    <param name="min_velocity" value="0.7" />
-    <param name="max_velocity" value="2.0" />
+    <param name="min_velocity" value="0.5" />
+    <param name="max_velocity" value="1.2" />
     <param name="collision_box_width" value="0.4" />
     <param name="collision_box_min_length" value="0.5" />
     <param name="collision_box_max_length" value="1.5" />
