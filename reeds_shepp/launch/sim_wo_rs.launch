@@ -1,0 +1,37 @@
+<launch>
+  <node name="Stage" pkg="stage" type="stageros" args="$(env RABOT)/Config/Simulation/rs_test.world" />
+
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0 0 0 0 0 3.141592654   /base_link /laser 100" />
+
+  <node name="Gmapping" pkg="gmapping" type="slam_gmapping" args="scan:=/base_scan" output="screen">
+    <param name="~particles" type="int" value="5" />
+    <param name="~map_update_interval" type="double" value="0.1" />
+    <param name="~iterations" type="int" value="15" />
+    <param name="~srr" type="double" value="0.5" />
+    <param name="~srt" type="double" value="0.5" />
+    <param name="~str" type="double" value="0.5" />
+    <param name="~stt" type="double" value="0.5" />
+    <param name="~delta" type="double" value="0.02" />
+    <!-- lstep = initial scan match max possible translation astep max angle displacement -->
+    <param name="~lstep" type="double" value="0.2" />
+    <param name="~astep" type="double" value="0.2" />
+    <param name="~xmin" type="double" value="-10.0" />
+    <param name="~ymin" type="double" value="-10.0" />
+    <param name="~xmax" type="double" value="10.0" />
+    <param name="~ymax" type="double" value="10.0" />
+ <!--   <param name="~maxUrange" type="double" value="5.5" />
+
+    <param name="~linearUpdate" type="double" value="0.01" />
+    <param name="~angularUpdate" type="double" value="0.01" />
+
+    <param name="~temporalUpdate" type="double" value="1.0" />
+-->
+
+    <param name="lskip" type="int" value="0" />
+    <param name="~resampleThreshold" type="double" value="0.5" />
+  </node>
+
+  <node name="rviz" pkg="rviz" type="rviz" respawn="false" output="screen" />
+
+  <!--<node pkg="reeds_shepp" type="path_reeds_shepp_node" name="reeds_shepp" />-->
+</launch>

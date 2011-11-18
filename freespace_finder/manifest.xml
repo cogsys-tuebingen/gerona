@@ -1,0 +1,19 @@
+<package>
+  <description brief="voronoi">
+
+     voronoi
+
+  </description>
+  <author>buck</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/voronoi</url>
+  
+  <depend package="roscpp"/>
+  <depend package="nav_msgs" />
+  <depend package="visualization_msgs" />
+  <depend package="opencv2" />
+
+</package>
+
+

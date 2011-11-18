@@ -1,0 +1,21 @@
+<package>
+  <description brief="reeds_shepp">
+
+     Path planning using Reeds-Shepp curves.
+
+  </description>
+  <author>buck</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>https://rarepos.cs.uni-tuebingen.de/trac/sickday/</url>
+  
+  <depend package="roscpp" />
+  <depend package="std_msgs" />
+  <depend package="nav_msgs" />
+  <depend package="costmap_2d" />
+  <depend package="tf" />
+  <depend package="geometry_msgs" />
+  <depend package="visualization_msgs" />
+</package>
+
+

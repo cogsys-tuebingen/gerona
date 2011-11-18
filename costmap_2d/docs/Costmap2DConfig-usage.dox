@@ -1,0 +1,35 @@
+\subsubsection usage Usage
+\verbatim
+<node name="costmap_2d" pkg="costmap_2d" type="costmap_2d">
+  <param name="transform_tolerance" type="double" value="0.3" />
+  <param name="update_frequency" type="double" value="5.0" />
+  <param name="publish_frequency" type="double" value="0.0" />
+  <param name="max_obstacle_height" type="double" value="2.0" />
+  <param name="max_obstacle_range" type="double" value="2.5" />
+  <param name="raytrace_range" type="double" value="3.0" />
+  <param name="cost_scaling_factor" type="double" value="10.0" />
+  <param name="inflation_radius" type="double" value="0.55" />
+  <param name="footprint" type="str" value="[]" />
+  <param name="robot_radius" type="double" value="0.46" />
+  <param name="static_map" type="bool" value="True" />
+  <param name="rolling_window" type="bool" value="False" />
+  <param name="unknown_cost_value" type="int" value="0" />
+  <param name="width" type="int" value="0" />
+  <param name="height" type="int" value="10" />
+  <param name="resolution" type="double" value="0.05" />
+  <param name="origin_x" type="double" value="0.0" />
+  <param name="origin_y" type="double" value="0.0" />
+  <param name="publish_voxel_map" type="bool" value="False" />
+  <param name="lethal_cost_threshold" type="int" value="100" />
+  <param name="map_topic" type="str" value="map" />
+  <param name="map_type" type="str" value="costmap" />
+  <param name="origin_z" type="double" value="0.0" />
+  <param name="z_resolution" type="double" value="0.2" />
+  <param name="z_voxels" type="int" value="10" />
+  <param name="unknown_threshold" type="int" value="15" />
+  <param name="mark_threshold" type="int" value="0" />
+  <param name="track_unknown_space" type="bool" value="False" />
+  <param name="restore_defaults" type="bool" value="False" />
+</node>
+\endverbatim
+
