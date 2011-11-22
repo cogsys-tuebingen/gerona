@@ -14,6 +14,8 @@ rosbuild_init()
 # TODO: This is ugly. Find a better way to do this
 include_directories (
     $ENV{RABOT}/Utils/LibUtil
+    $ENV{RABOT}/ros/eigen/include
+
 )
 
 link_directories(
@@ -34,5 +36,9 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
-rosbuild_add_executable(follow_path src/PathFollowing.cpp)
+rosbuild_add_executable(follow_path
+src/PathFollowing.cpp
+src/DualAxisDriver.cpp
+src/DualPidCtrl.cpp
+)
 target_link_libraries(follow_path LibUtil)

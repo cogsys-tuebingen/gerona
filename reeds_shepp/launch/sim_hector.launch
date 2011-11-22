@@ -1,7 +1,7 @@
 <launch>
   <param name="use_sim_time" value="true" />
   
-  <node name="Stage" pkg="stage" type="stageros" args="$(env RABOT)/Config/Simulation/rs_test.world">
+  <node name="xstage" pkg="xstage" type="xstage" args="$(env RABOT)/Config/Simulation/largelab.world">
     <remap from="/base_scan" to="/scan"/>
   </node>
 
@@ -32,6 +32,8 @@
   
 <!--<node name="map_server" pkg="map_server" type="map_server" args="$(find path_following)/map.yaml" />-->
 <!--<node name="amcl" pkg="amcl" type="amcl" />-->
+<!--
 <node name="rviz" pkg="rviz" type="rviz" respawn="false" />
+-->
 
 </launch>

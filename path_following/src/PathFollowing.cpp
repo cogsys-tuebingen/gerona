@@ -3,41 +3,108 @@
 #include <ramaxxbase/RamaxxMsg.h>
 #include <visualization_msgs/Marker.h>
 #include <tf/tf.h>
+#include "DualAxisDriver.h"
 
-PathFollowing::PathFollowing(ros::NodeHandle& n)
-  : m_has_path(false), m_has_odom(false), kp(1.0f), ki(0.0f), kd(0.0f), m_state(INVALID)
+PathFollowing::PathFollowing(ros::NodeHandle& node)
+  : m_has_path(false), m_has_odom(false), has_goal_(false), kp(1.0f), ki(0.0f), kd(0.0f), m_state(INVALID)
 {
-  m_path_subscriber = n.subscribe<nav_msgs::Path>
+  m_path_subscriber = node.subscribe<nav_msgs::Path>
       ("/rs_path", 2, boost::bind(&PathFollowing::update_path, this, _1));
 
-  m_odom_subscriber = n.subscribe<nav_msgs::Odometry>
+  m_odom_subscriber = node.subscribe<nav_msgs::Odometry>
       ("/odom", 100, boost::bind(&PathFollowing::update_odometry, this, _1));
 
-  m_command_ramaxx_publisher = n.advertise<ramaxxbase::RamaxxMsg>
+  m_command_ramaxx_publisher = node.advertise<ramaxxbase::RamaxxMsg>
       ("/ramaxx_cmd", 100);
 
-  m_marker_publisher = n.advertise<visualization_msgs::Marker> ("/path_following_marker", 10);
+  m_goal_subscriber = node.subscribe<geometry_msgs::PoseStamped>
+      ("/goal",1, boost::bind(&PathFollowing::update_goal, this, _1));
+
+  m_marker_publisher = node.advertise<visualization_msgs::Marker> ("/path_following_marker", 10);
 
   m_last_time = ros::Time::now().toSec();
 
-  n.param<double> ("kp", kp, 1.0);
-  n.param<double> ("ki", ki, 0.0);
-  n.param<double> ("kd", kd, 0.0);
 
-  n.param<double> ("forward_speed", m_forward_speed, 0.1);
-  n.param<double> ("backward_speed", m_backward_speed, 0.1);
-  n.param<double> ("waypoint_threshold", m_waypoint_threshold, 0.1);
-  n.param<double> ("steer_max", m_steer_max, 20.0f);
+  node.param<double> ("forward_speed", m_forward_speed, 0.5);
+  node.param<double> ("backward_speed", m_backward_speed, -0.4);
+  node.param<double> ("waypoint_threshold", m_waypoint_threshold, 0.1);
+  node.param<double> ("steer_max", m_steer_max, 20.0f);
 
-  ROS_WARN_STREAM("kp: " << kp << ", ki: " << ki << ", kd: " << kd);
 
-  m_pid = new attempto::PID<double> (0.0, kp, ki, kd);
+  driver_=new DualAxisDriver(node);
+
 }
 
 PathFollowing::~PathFollowing()
 {
-  delete m_pid;
+  delete(driver_);
 }
+
+
+void PathFollowing::update_goal (const geometry_msgs::PoseStampedConstPtr &goal)
+{
+  if (!goal->header.frame_id.compare("/base_link")||!goal->header.frame_id.compare("base_link")) {
+    // transform to global pose
+    ROS_INFO("pathfollower: new local goal %f %f %f",goal->pose.position.x,goal->pose.position.y,
+                 RTOD(tf::getYaw(goal->pose.orientation)));
+
+    listener_.transformPose("/map",ros::Time(0),*goal,"/base_link",goal_pose_global_);
+
+    ROS_INFO("pathfollower: new global goal %f %f %f",goal_pose_global_.pose.position.x,
+             goal_pose_global_.pose.position.y,
+             RTOD(tf::getYaw(goal_pose_global_.pose.orientation)));
+    has_goal_=true;
+
+  } else {
+    ROS_WARN("pathfollower: unknown frame id %s",goal->header.frame_id.c_str());
+  }
+
+
+}
+
+
+void PathFollowing::update ()
+{
+  double speed=0;
+  double front_rad=0.0,rear_rad=0.0;
+  if (has_goal_) {
+    // transform goal point into local cs
+    geometry_msgs::PoseStamped goal_pose_local;
+    listener_.transformPose("/base_link",ros::Time(0),goal_pose_global_,"/map",goal_pose_local);
+    // check distance to goal
+    Vector3d goal_vec;
+    goal_vec.x()=goal_pose_local.pose.position.x;
+    goal_vec.y()=goal_pose_local.pose.position.y;
+
+    // goal in reach for 4ws driver?
+
+    if ((goal_vec.head<2>().norm()<0.3) || (goal_vec.x()<0.0)) {
+      // goal reached or goal behind us
+      ROS_INFO("path follower: goal reached");
+      has_goal_=false;
+    } else {
+      // driver drives towards goal
+      goal_vec.z()=tf::getYaw(goal_pose_local.pose.orientation);
+      driver_->Update(goal_vec);
+      driver_->GetCmd(speed, front_rad, rear_rad);
+    }
+  }
+  // publish command to robot
+  ramaxxbase::RamaxxMsg msg;
+  msg.data.resize(3);
+  msg.data[0].key=ramaxxbase::RamaxxMsg::CMD_SPEED;
+  msg.data[1].key=ramaxxbase::RamaxxMsg::CMD_STEER_FRONT_DEG;
+  msg.data[2].key=ramaxxbase::RamaxxMsg::CMD_STEER_REAR_DEG;
+  msg.data[0].value=speed;
+  msg.data[1].value=RTOD(front_rad);
+  msg.data[2].value=RTOD(rear_rad);
+
+  m_command_ramaxx_publisher.publish(msg);
+
+}
+
+
+
 
 void PathFollowing::update_odometry(const nav_msgs::OdometryConstPtr &odom)
 {
@@ -65,6 +132,7 @@ void PathFollowing::update_path(const nav_msgs::PathConstPtr &path)
 {
   m_path = *path;
   m_has_path = true;
+  ROS_INFO("pathfollower: path received with %d poses",m_path.poses.size());
 
   m_poses.clear();
   for(int i = 0; i < (int) path->poses.size(); ++i){
@@ -236,13 +304,12 @@ int main(int argc, char** argv)
 
   PathFollowing node(n);
 
-  ros::Rate rate(200);
+  ros::Rate rate(50);
 
   while( ros::ok() )
   {
     ros::spinOnce();
-
-    node.publish();
+    node.update();
     rate.sleep();
   }
 
