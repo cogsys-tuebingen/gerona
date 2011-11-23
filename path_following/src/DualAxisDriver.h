@@ -49,7 +49,7 @@ private:
     double default_v_, default_turn_v_;
     double K_v_;
     double cmd_v_;
-    double cmd_front_deg_,cmd_rear_deg_;
+    double cmd_front_rad_,cmd_rear_rad_;
 
     bool mLeftTurn;
 

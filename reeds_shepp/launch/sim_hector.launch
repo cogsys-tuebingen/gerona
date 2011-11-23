@@ -3,6 +3,7 @@
   
   <node name="xstage" pkg="xstage" type="xstage" args="$(env RABOT)/Config/Simulation/largelab.world">
     <remap from="/base_scan" to="/scan"/>
+    <remap from="/cmd_robot" to="/ramaxx_cmd"/>
   </node>
 
   <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0 0 0 0 0 3.141592654   /base_link /laser 100" />

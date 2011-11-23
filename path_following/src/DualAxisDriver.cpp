@@ -23,11 +23,12 @@ DualAxisDriver::DualAxisDriver(ros::NodeHandle& node)
   : pose_listener_(0) {
     mState = DRIVE_STRAIGHT;
     ctrl_.reset();
+    default_v_ = 0.5;
     default_turn_v_ = 0.5;
     K_v_ = 1.0;
     cmd_v_ = default_v_;
-    cmd_front_deg_ =0.0;
-    cmd_rear_deg_= 0.0;
+    cmd_front_rad_ =0.0;
+    cmd_rear_rad_= 0.0;
     configure(node);
 }
 
@@ -41,9 +42,9 @@ void DualAxisDriver::configure(ros::NodeHandle& node)
 
       mission_timer_.restart();
       pose_listener_=new tf::TransformListener() ;
+      ROS_INFO("opening logfile %s",log_fname_.c_str());
 
   }
-  ROS_INFO("opening logfile %s",log_fname_.c_str());
   double Ta,Kp,e_max,delta_max_deg;
   // configure dual pid control
   node.param<double>("rowdetect/dualpid/v",default_v_,0.7);
@@ -67,11 +68,11 @@ void DualAxisDriver::configure(ros::NodeHandle& node)
 }
 
 
-void DualAxisDriver::GetCmd(double &speed, double &frontDeg, double &rearDeg) const
+void DualAxisDriver::GetCmd(double &speed, double &front_rad, double &rear_rad) const
 {
   speed = cmd_v_;
-  frontDeg = cmd_front_deg_;
-  rearDeg = cmd_rear_deg_;
+  front_rad = cmd_front_rad_;
+  rear_rad = cmd_rear_rad_;
 }
 
 
@@ -134,10 +135,10 @@ void DualAxisDriver::driveInRow( const Vector3d &target )
 {
   Vector2d front_pred,rear_pred;
 
-  predictPose(Tt_,cmd_front_deg_*M_PI/180.0,cmd_rear_deg_*M_PI/180.0,default_v_*K_v_,
+  predictPose(Tt_,cmd_front_rad_,cmd_rear_rad_,default_v_*K_v_,
                 front_pred, rear_pred);
   ROS_INFO("predict pose %f %f deltaf=%fdeg deltar=%fdeg",front_pred.x(),front_pred.y(),
-             cmd_front_deg_, cmd_rear_deg_);
+             cmd_front_rad_*180.0/M_PI, cmd_rear_rad_*180.0/M_PI);
 
   Line2d target_line;
   Vector2d target_pos( target[0], target[1] );
@@ -148,9 +149,10 @@ void DualAxisDriver::driveInRow( const Vector3d &target )
   bool controlled=ctrl_.execute(ef,er,deltaf,deltar);
   if (controlled) {
     cmd_v_=K_v_*default_v_;
-    cmd_front_deg_=-180.0*deltaf/M_PI;
-    cmd_rear_deg_=-180.0*deltar/M_PI;
+    cmd_front_rad_=-deltaf;
+    cmd_rear_rad_=-deltar;
   }
+  ROS_INFO("ef=%f er=%f deltaf=%fgrad deltar=%fgrad",ef,er,deltaf*180.0/M_PI,deltar*180.0/M_PI);
   if (log_stream_.is_open()) {
     Vector3d pose;
     if (pose_listener_!=NULL) {
@@ -158,8 +160,8 @@ void DualAxisDriver::driveInRow( const Vector3d &target )
     }
     log_stream_ << mission_timer_.msElapsed()<< " " <<pose.x()<< " " <<pose.y()<< " " << pose(2) << " 0 0 0 "
                 << target.x() << " "<< target.y() << " "
-                << target[2]<< " 0 0 "<<ef << " "<<er << " "<<cmd_front_deg_*M_PI/180.0 << " "
-                << cmd_rear_deg_*M_PI/180.0<< cmd_v_<< endl;
+                << target[2]<< " 0 0 "<<ef << " "<<er << " "<<cmd_front_rad_ << " "
+                << cmd_rear_rad_<< cmd_v_<< endl;
 
   }
 
