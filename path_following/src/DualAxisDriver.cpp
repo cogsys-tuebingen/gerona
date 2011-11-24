@@ -143,9 +143,9 @@ void DualAxisDriver::driveInRow( const Vector3d &target )
   }
   predictPose(Tt_,cmd_front_rad_,cmd_rear_rad_,direction*default_v_*K_v_,
                 front_pred, rear_pred);
-  ROS_INFO("predict pose %f %f deltaf=%fdeg deltar=%fdeg",front_pred.x(),front_pred.y(),
+  /*ROS_INFO("predict pose %f %f deltaf=%fdeg deltar=%fdeg",front_pred.x(),front_pred.y(),
              cmd_front_rad_*180.0/M_PI, cmd_rear_rad_*180.0/M_PI);
-
+*/
   Line2d target_line;
   Vector2d target_pos( target[0], target[1] );
   target_line.FromAngle( target_pos, target[2] );
@@ -157,10 +157,10 @@ void DualAxisDriver::driveInRow( const Vector3d &target )
     cmd_v_=direction*K_v_*default_v_;
     cmd_front_rad_=-1.0*direction*deltaf;
     cmd_rear_rad_=-1.0*direction*deltar;
-    ROS_INFO("ef=%f er=%f deltaf=%fgrad deltar=%fgrad",ef,er,deltaf*180.0/M_PI,deltar*180.0/M_PI);
-  } else
+  //  ROS_INFO("ef=%f er=%f deltaf=%fgrad deltar=%fgrad",ef,er,deltaf*180.0/M_PI,deltar*180.0/M_PI);
+  } else {
       ROS_INFO("uncontrolled");
-
+  }
   if (log_stream_.is_open()) {
     Vector3d pose;
     if (pose_listener_!=NULL) {
