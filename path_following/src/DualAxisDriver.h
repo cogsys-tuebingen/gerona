@@ -50,7 +50,7 @@ private:
     double K_v_;
     double cmd_v_;
     double cmd_front_rad_,cmd_rear_rad_;
-
+    double delta_max_;
     bool mLeftTurn;
 
     Stopwatch mission_timer_;

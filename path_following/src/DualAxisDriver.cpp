@@ -29,6 +29,7 @@ DualAxisDriver::DualAxisDriver(ros::NodeHandle& node)
     cmd_v_ = default_v_;
     cmd_front_rad_ =0.0;
     cmd_rear_rad_= 0.0;
+
     configure(node);
 }
 
@@ -134,8 +135,13 @@ void DualAxisDriver::predictPose(double dt, double deltaf, double deltar, double
 void DualAxisDriver::driveInRow( const Vector3d &target )
 {
   Vector2d front_pred,rear_pred;
-
-  predictPose(Tt_,cmd_front_rad_,cmd_rear_rad_,default_v_*K_v_,
+  double direction;
+  if (target.x()<0) {
+      direction = -1.0;
+  } else {
+      direction = +1.0;
+  }
+  predictPose(Tt_,cmd_front_rad_,cmd_rear_rad_,direction*default_v_*K_v_,
                 front_pred, rear_pred);
   ROS_INFO("predict pose %f %f deltaf=%fdeg deltar=%fdeg",front_pred.x(),front_pred.y(),
              cmd_front_rad_*180.0/M_PI, cmd_rear_rad_*180.0/M_PI);
@@ -145,14 +151,16 @@ void DualAxisDriver::driveInRow( const Vector3d &target )
   target_line.FromAngle( target_pos, target[2] );
   double ef =target_line.GetSignedDistance(front_pred);
   double er =target_line.GetSignedDistance(rear_pred);
-  float deltaf,deltar;
+  double deltaf,deltar;
   bool controlled=ctrl_.execute(ef,er,deltaf,deltar);
   if (controlled) {
-    cmd_v_=K_v_*default_v_;
-    cmd_front_rad_=-deltaf;
-    cmd_rear_rad_=-deltar;
-  }
-  ROS_INFO("ef=%f er=%f deltaf=%fgrad deltar=%fgrad",ef,er,deltaf*180.0/M_PI,deltar*180.0/M_PI);
+    cmd_v_=direction*K_v_*default_v_;
+    cmd_front_rad_=-1.0*direction*deltaf;
+    cmd_rear_rad_=-1.0*direction*deltar;
+    ROS_INFO("ef=%f er=%f deltaf=%fgrad deltar=%fgrad",ef,er,deltaf*180.0/M_PI,deltar*180.0/M_PI);
+  } else
+      ROS_INFO("uncontrolled");
+
   if (log_stream_.is_open()) {
     Vector3d pose;
     if (pose_listener_!=NULL) {

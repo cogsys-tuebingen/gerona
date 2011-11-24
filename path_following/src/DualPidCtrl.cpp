@@ -3,7 +3,9 @@
   @date early 21st century
 
   */
+#include <stdio.h>
 #include <math.h>
+#include <MathHelper.h>
 #include "DualPidCtrl.h"
 
 DualPidCtrl::DualPidCtrl()
@@ -25,12 +27,15 @@ void DualPidCtrl::reset()
 }
 
 
-bool DualPidCtrl::execute(double ef, double er, float &deltaf, float &deltar)
+bool DualPidCtrl::execute(double ef, double er, double &deltaf, double &deltar)
 {
+    printf("deltamax=%fgrad\n",delta_max_);
     if (timer_.msElapsed()>=Ta_*1000.0) {
         timer_.restart();
         deltaf = Kp_*delta_max_*ef/e_max_;
         deltar = Kp_*delta_max_*er/e_max_;
+        deltaf=MathHelper::clamp(deltaf,-delta_max_,+delta_max_);
+        deltar = MathHelper::clamp(deltar,-delta_max_,+delta_max_);
         return true;
     } else {
         return false;

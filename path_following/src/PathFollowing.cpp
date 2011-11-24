@@ -78,8 +78,8 @@ void PathFollowing::update ()
 
     // goal in reach for 4ws driver?
 
-    if ((goal_vec.head<2>().norm()<0.3) || (goal_vec.x()<0.0)) {
-      // goal reached or goal behind us
+    if ((goal_vec.head<2>().norm()<0.3) ) {
+      // goal reached
       ROS_INFO("path follower: goal reached");
       has_goal_=false;
     } else {

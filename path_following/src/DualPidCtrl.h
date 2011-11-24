@@ -14,7 +14,7 @@ public:
       @param deltaf result steer angle front in rad
       @param deltar result steer angle rear in rad
       */
-    bool execute (double ef, double er, float& deltaf, float& deltar);
+    bool execute (double ef, double er, double& deltaf, double& deltar);
 
     /**
       set sampling time (abtastzeit)
