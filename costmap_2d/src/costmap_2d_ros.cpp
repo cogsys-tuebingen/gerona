@@ -1150,8 +1150,6 @@ namespace costmap_2d {
 
               int x_index = (x - costmap_->getOriginX()) / r;
               int y_index = (y - costmap_->getOriginY()) / r;
-              int idx = y_index * static_grid_map_.info.width + x_index;
-              idx = 0;
 
               // circle around origin is not set
               if(pow(x, 2) + pow(y, 2) > origin_bubble_radius_)
@@ -1181,7 +1179,28 @@ namespace costmap_2d {
         	const uint32_t size = map.info.width * map.info.height;
         	map.data.assign (data, data + size);
 
-            nav_map_pub_.publish(map);
+
+          double r = costmap_->getResolution();
+
+          int bubble_radius_pxl = ceil(origin_bubble_radius_ / r);
+          unsigned int ox, oy;
+          costmap_->worldToMap(0., 0., ox, oy);
+
+          double br = pow(bubble_radius_pxl, 2);
+
+          uint32_t FREE = 0;
+
+          ROS_INFO_STREAM("d: " << ox << "; " << oy);
+          for(int x = -bubble_radius_pxl; x <= bubble_radius_pxl; ++x){
+            for(int y = -bubble_radius_pxl; y <= bubble_radius_pxl; ++y){
+              if(pow(x,2) + pow(y, 2) <= br){
+                int x_index = (x + ox);
+                int y_index = (y + oy);
+                map.data[y_index * map.info.width + x_index] = FREE;
+              }
+            }
+          }
+          nav_map_pub_.publish(map);
         }
     }
   }

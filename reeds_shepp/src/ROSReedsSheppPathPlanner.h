@@ -55,6 +55,9 @@ private:
   double m_cost_curve;
   double m_cost_straight;
 
+  int m_threshold_min;
+  int m_threshold_max;
+
   bool m_has_curve;
 
   bool m_has_goal;

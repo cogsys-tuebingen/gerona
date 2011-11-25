@@ -28,6 +28,8 @@
     <param name="cost_forwards" value="1.0" />
     <param name="cost_curve" value="1.3" />
     <param name="cost_straight" value="1.0" />
+    <param name="threshold_min" value="0" />
+    <param name="threshold_max" value="10" />
     <param name="map_topic" value="/costmap_2d/costmap/map_inflated" />
   </node>
   

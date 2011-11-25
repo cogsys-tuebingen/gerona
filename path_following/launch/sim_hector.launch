@@ -1,0 +1,15 @@
+<launch>
+  <include file="$(find reeds_shepp)/launch/sim_hector.launch" />
+  
+  <node name="path_following" pkg="path_following" type="follow_path" respawn="false" output="screen">
+    <param name="kp" value="0.8" />
+    <param name="ki" value="0.00001" />
+    <param name="kd" value="0.1" />
+    <param name="forward_speed" value="0.15" />
+    <param name="backward_speed" value="0.1" />
+    <param name="waypoint_threshold" value="0.1" />
+    <param name="steer_max" value="20.0f" />
+  </node>
+  
+  <node name="ramaxx_proxy" pkg="ramaxxbase" type="ramaxx_proxy" respawn="false" output="screen" />
+</launch>

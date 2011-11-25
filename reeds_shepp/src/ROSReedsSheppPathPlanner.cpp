@@ -105,6 +105,8 @@ ROSReedsSheppPathPlanner::ROSReedsSheppPathPlanner(ros::NodeHandle &n)
   n.param<double> ("cost_forwards", m_cost_forwards, 1.0f);
   n.param<double> ("cost_curve", m_cost_curve, 1.0f);
   n.param<double> ("cost_straight", m_cost_straight, 1.0f);
+  n.param<int> ("threshold_min", m_threshold_min, 0);
+  n.param<int> ("threshold_max", m_threshold_max, 100);
   n.param<std::string> ("map_topic", m_map_topic, "/map");
 
 
@@ -172,7 +174,8 @@ void ROSReedsSheppPathPlanner::update_map(const nav_msgs::OccupancyGridConstPtr 
   m_map.origin.y = map->info.origin.position.y;
   m_map.resolution = map->info.resolution;
   m_map.data = map->data;
-  m_map.threshold = 1;
+  m_map.threshold_min = m_threshold_min;
+  m_map.threshold_max = m_threshold_max;
   m_has_map = true;
 }
 
