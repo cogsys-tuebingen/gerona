@@ -175,11 +175,3 @@ void DualAxisDriver::driveInRow( const Vector3d &target )
 
 }
 
-
-void DualAxisDriver::CheckSteerRange( double &steer ) {
-  const double steerMax = 30.0*M_PI/180.0;
-  if ( steer > steerMax )
-    steer = steerMax;
-  else if ( steer < -steerMax )
-    steer = -steerMax;
-}

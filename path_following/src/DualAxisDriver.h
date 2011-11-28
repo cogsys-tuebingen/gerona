@@ -39,7 +39,6 @@ private:
 
     bool getRobotPose(Vector3d& pose);
     void driveInRow( const Eigen::Vector3d &target );
-    void CheckSteerRange( double &steer );
     void predictPose (double dt, double deltaf, double deltar, double v,
                       Vector2d& front_pred, Vector2d& rear_pred);
     DualPidCtrl ctrl_;
