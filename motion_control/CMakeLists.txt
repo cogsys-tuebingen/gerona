@@ -18,9 +18,13 @@ rosbuild_init()
 # TODO: This is ugly. Find a better way to do this
 include_directories (
     $ENV{RABOT}/Utils/LibUtil
+    $ENV{RABOT}/Utils/LibRobot
+    $ENV{RABOT}/Utils/LibOdoCalib
+    $ENV{RABOT}/Utils/LibBotHardware
     $ENV{RABOT}/ros/eigen/include
 
 )
+
 
 link_directories(
     $ENV{RABOT}/lib
@@ -41,10 +45,24 @@ rosbuild_genmsg()
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 rosbuild_add_executable(follow_path
-src/CarLikeDriveNode.cpp
 src/DualPidCtrl.cpp
 src/PathFollowing.cpp
 src/DualAxisDriver.cpp
-
 )
+
 target_link_libraries(follow_path LibUtil)
+
+rosbuild_add_executable(motion_control
+src/DualPidCtrl.cpp
+src/MotionControlNode.cpp
+src/MotionController.cpp
+src/CalibDriver.cpp
+)
+
+target_link_libraries(motion_control
+LibOdoCalib
+LibBotHardware
+LibRobot
+LibUtil
+Gnuplot gsl gslcblas
+)
