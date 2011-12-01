@@ -1,6 +1,6 @@
 #include <ramaxxbase/RamaxxMsg.h>
 #include "CalibDriver.h"
-
+#include "MotionController.h"
 #include "MotionControlNode.h"
 
 MotionControlNode::MotionControlNode(ros::NodeHandle& node, const std::string& name)
@@ -29,11 +29,11 @@ MotionControlNode::~MotionControlNode()
 void MotionControlNode::goalCallback()
 {
   boost::shared_ptr<const motion_control::MotionGoal_<std::allocator<void> > >
-    goal = action_server_.acceptNewGoal();
-  if (active_ctrl_!=NULL && goal->mode!=active_ctrl_->getType()) {
+    goalptr = action_server_.acceptNewGoal();
+  if (active_ctrl_!=NULL && goalptr->mode!=active_ctrl_->getType()) {
     active_ctrl_->stop();
   }
-  switch (goal->mode) {
+  switch (goalptr->mode) {
     case motion_control::MotionGoal::MOTION_ODO_CALIB:
       active_ctrl_=drive_calib_;
 
@@ -45,7 +45,7 @@ void MotionControlNode::goalCallback()
 void MotionControlNode::laserCallback(const sensor_msgs::LaserScanConstPtr& scan)
 {
   if (active_ctrl_!=NULL) {
-    active_ctrl_->laserCallBack(scan);
+    active_ctrl_->laserCallback(scan);
   }
 }
 
@@ -60,7 +60,23 @@ void MotionControlNode::preemptCallback()
 void MotionControlNode::update()
 {
   if (active_ctrl_!=NULL) {
-    active_ctrl_->execute();
+    MotionFeedback feedback;
+    MotionResult result;
+    int status=active_ctrl_->execute(feedback,result);
+    switch (status) {
+    case MOTION_RUN:
+      action_server_.publishFeedback(feedback);
+      break;
+    case MOTION_DONE:
+      if (result.status==MotionResult::MOTION_STATUS_OK)
+        action_server_.setSucceeded(result);
+      else
+        action_server_.setAborted(result);
+      break;
+    default:
+      action_server_.setAborted(result);
+      break;
+    }
   }
 }
 

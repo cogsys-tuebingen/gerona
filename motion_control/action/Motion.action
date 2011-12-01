@@ -16,6 +16,7 @@ float32 deltar
 #result definition
 int32 MOTION_STATUS_OK=         0
 int32 MOTION_STATUS_COLLISION=  1
+int32 MOTION_STATUS_INTERNAL_ERROR=  2
 int32 mode
 int32 status
 float32 dist_driven

@@ -7,9 +7,18 @@
 #include "Misc.h"
 #include "CalibDriver.h"
 
+const double MIN_START_MOVE_DIST = 0.3;
+const int    START_MOVE_TIMEOUT_MSEC = 5000;
+
 CalibDriver::CalibDriver(ros::Publisher& cmd_pub)
   :state_(CALIB_STATE_STOP)
 {
+}
+
+void CalibDriver::configure(ros::NodeHandle &node)
+{
+  node.param<int>("servoMidFront",servo_front_mid_,2250);
+  node.param<int>("servoMidRear",servo_rear_mid_,2250);
 }
 
 
@@ -26,15 +35,19 @@ void CalibDriver::start()
   if (state_==CALIB_STATE_STOP) {
     move_timer_.restart();
     getSlamPose(start_pose_);
+    cmd_servof_=servo_front_mid_;
+    cmd_servor_=servo_rear_mid_;
+    cmd_v_=speed_;
     state_=CALIB_STATE_STARTMOVE;
   }
 }
 
 
-
-int CalibDriver::execute()
+int CalibDriver::execute(motion_control::MotionFeedback& feedback,
+                         motion_control::MotionResult& result)
 {
-  switch(state) {
+  int status=MOTION_DONE;
+  switch(state_) {
   case CALIB_STATE_STOP:
   {
     cmd_v_=0;
@@ -42,16 +55,22 @@ int CalibDriver::execute()
   }
   case CALIB_STATE_STARTMOVE:
   {
-
+    status=doStartMove(feedback,result);
+    break;
   }
+  case CALIB_STATE_CTRL:
+  {
+    status=doCtrlDrive(feedback,result);
+    break;
   }
-
-
-
-    //return motion_control::MotionFeedback::
-    return 1;
+  default:
+    // unknown state
+    status = MOTION_DONE;
+    result.status=MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+    break;
   }
-
+  return status;
+}
 
 
   double CalibDriver::calcLsBetaAngle(Vector2dVec& ps,double theta, int direction)

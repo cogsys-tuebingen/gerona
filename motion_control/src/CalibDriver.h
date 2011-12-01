@@ -29,11 +29,14 @@ public:
     virtual int getType () {
       return motion_control::MotionGoal::MOTION_ODO_CALIB;
     }
-    virtual int execute ();
+    virtual int execute (MotionFeedback& fb, MotionResult& result);
+    virtual void configure (ros::NodeHandle &node);
     virtual void setGoal (const motion_control::MotionGoal& goal);
 
 private:
     void publish ();
+    int doStartMove(MotionFeedback& fb, MotionResult& result);
+    int doCtrlDrive(MotionFeedback& fb, MotionResult& result);
 
     double  calcBetaAngle(const Vector3d& p1, const Vector3d& p2, int direction);
 

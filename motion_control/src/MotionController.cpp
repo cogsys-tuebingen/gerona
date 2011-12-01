@@ -24,3 +24,17 @@ bool MotionController::getSlamPose( Vector3d &pose ) const
 }
 
 
+void MotionController::laserCallback(const sensor_msgs::LaserScanConstPtr& scan)
+{
+
+  laser_scan_=*scan;
+}
+
+
+bool MotionController::checkCollision(double course,double threshold)
+{
+
+
+  laser_env_.ProcessLaserScan(laser_scan_.ranges,laser_scan_.angle_min,laser_scan_.angle_max);
+  return laser_env_.CheckCollision(course,0.50,threshold);
+}
