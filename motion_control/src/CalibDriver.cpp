@@ -43,6 +43,32 @@ void CalibDriver::start()
 }
 
 
+int CalibDriver::doStartMove(MotionFeedback& fb, MotionResult& result)
+{
+
+}
+
+
+int CalibDriver::doCtrlDrive(MotionFeedback& fb, MotionResult& result)
+{
+  bool colliding=checkCollision(0,0.3);
+  if (colliding) {
+    result.status=MotionResult::MOTION_STATUS_COLLISION;
+    cmd_v_=0.0;
+    return MOTION_DONE;
+  } else {
+    cmd_v_=speed_;
+    Vector3d pose;
+    getSlamPose(pose);
+    double dist=(pose.head<2>()-start_pose_.head<2>()).norm();
+    if (dist>MIN_START_MOVE_DIST) {
+      state_=CALIB_STATE_CTRL;
+    }
+    return MOTION_RUN;
+  }
+}
+
+
 int CalibDriver::execute(motion_control::MotionFeedback& feedback,
                          motion_control::MotionResult& result)
 {
