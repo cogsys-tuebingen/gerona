@@ -1,5 +1,6 @@
 #include <ramaxxbase/RamaxxMsg.h>
 #include "CalibDriver.h"
+#include "SimpleGoalDriver.h"
 #include "MotionController.h"
 #include "MotionControlNode.h"
 
@@ -14,16 +15,16 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& node, const std::string& n
   scan_sub_ = node.subscribe<sensor_msgs::LaserScan>( "/scan", 1, boost::bind(&MotionControlNode::laserCallback, this, _1 ));
 
   active_ctrl_ = NULL;
-  drive_calib_ = new CalibDriver (cmd_ramaxx_pub_);
-  //drive_to_goal_ = new DriveToGoal ();
+  calib_driver_ = new CalibDriver (cmd_ramaxx_pub_);
+  simple_goal_driver_ = new SimpleGoalDriver (cmd_ramaxx_pub_);
 }
 
 
 MotionControlNode::~MotionControlNode()
 {
 
-  delete drive_calib_;
-  //delete drive_to_goal_;
+  delete calib_driver_;
+  delete simple_goal_driver_;
 }
 
 void MotionControlNode::goalCallback()
@@ -35,8 +36,13 @@ void MotionControlNode::goalCallback()
   }
   switch (goalptr->mode) {
     case motion_control::MotionGoal::MOTION_ODO_CALIB:
-      active_ctrl_=drive_calib_;
-
+      active_ctrl_=calib_driver_;
+      break;
+    case motion_control::MotionGoal::MOTION_TO_GOAL:
+      active_ctrl_=simple_goal_driver_;
+      break;
+    default:
+      active_ctrl_=0;
   }
 
 

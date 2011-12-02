@@ -48,7 +48,8 @@ private:
   std::string action_name_;
 
   MotionController *active_ctrl_;
-  CalibDriver *drive_calib_;
+  CalibDriver *calib_driver_;
+  SimpleGoalDriver *drive_to_goal;
 };
 
 #endif // MOTIONCONTROLNODE_H

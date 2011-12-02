@@ -57,6 +57,7 @@ src/DualPidCtrl.cpp
 src/MotionControlNode.cpp
 src/MotionController.cpp
 src/CalibDriver.cpp
+src/SimpleGoalDriver.cpp
 )
 
 target_link_libraries(motion_control
