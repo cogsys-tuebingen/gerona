@@ -23,7 +23,8 @@ enum
 class CalibDriver : public MotionController
 {
 public:
-    CalibDriver(ros::Publisher& cmd_pub);
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    CalibDriver(ros::Publisher& cmd_pub,ros::NodeHandle& node);
     virtual void start ();
     virtual void stop ();
     virtual int getType () {
@@ -70,7 +71,7 @@ private:
 
     Stopwatch           move_timer_;
     Vector3d            start_pose_;
-    ros::Publisher cmd_pub_;
+    ros::Publisher&     cmd_pub_;
     double cmd_v_;
     double cmd_servof_,cmd_servor_;
 

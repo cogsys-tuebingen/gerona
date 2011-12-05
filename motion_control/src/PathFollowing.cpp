@@ -43,6 +43,7 @@ PathFollowing::~PathFollowing()
 
 void PathFollowing::update_goal (const geometry_msgs::PoseStampedConstPtr &goal)
 {
+  ROS_INFO("Pathfollowing:GOAL recieved");
   if (!goal->header.frame_id.compare("/base_link")||!goal->header.frame_id.compare("base_link")) {
     // transform to global pose
     ROS_INFO("pathfollower: new local goal %f %f %f",goal->pose.position.x,goal->pose.position.y,

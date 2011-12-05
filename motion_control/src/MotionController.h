@@ -10,10 +10,7 @@
 #include "LaserEnvironment.h"
 using namespace Eigen;
 using namespace motion_control;
-enum {
-  MOTION_RUN=0,
-  MOTION_DONE=1
-};
+
 class MotionController
 {
 public:
@@ -22,7 +19,7 @@ public:
   virtual int getType ()=0;
 
   /**
-    @return MOTION_RUN (still running, feedback) or MOTION_DONE (results in result)
+    @return state
     */
   virtual int execute (MotionFeedback& fb, MotionResult& result)=0;
   virtual void configure (ros::NodeHandle &node)=0;

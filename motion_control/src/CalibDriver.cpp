@@ -10,9 +10,10 @@
 const double MIN_START_MOVE_DIST = 0.3;
 const int    START_MOVE_TIMEOUT_MSEC = 5000;
 
-CalibDriver::CalibDriver(ros::Publisher& cmd_pub)
-  :state_(CALIB_STATE_STOP)
+CalibDriver::CalibDriver(ros::Publisher& cmd_pub,ros::NodeHandle& node)
+  :cmd_pub_(cmd_pub),state_(CALIB_STATE_STOP)
 {
+  configure(node);
 }
 
 void CalibDriver::configure(ros::NodeHandle &node)
@@ -55,7 +56,7 @@ int CalibDriver::doCtrlDrive(MotionFeedback& fb, MotionResult& result)
   if (colliding) {
     result.status=MotionResult::MOTION_STATUS_COLLISION;
     cmd_v_=0.0;
-    return MOTION_DONE;
+    return MotionResult::MOTION_STATUS_COLLISION;
   } else {
     cmd_v_=speed_;
     Vector3d pose;
@@ -64,7 +65,7 @@ int CalibDriver::doCtrlDrive(MotionFeedback& fb, MotionResult& result)
     if (dist>MIN_START_MOVE_DIST) {
       state_=CALIB_STATE_CTRL;
     }
-    return MOTION_RUN;
+    return MotionResult::MOTION_STATUS_MOVING;
   }
 }
 
@@ -72,7 +73,7 @@ int CalibDriver::doCtrlDrive(MotionFeedback& fb, MotionResult& result)
 int CalibDriver::execute(motion_control::MotionFeedback& feedback,
                          motion_control::MotionResult& result)
 {
-  int status=MOTION_DONE;
+  int status;
   switch(state_) {
   case CALIB_STATE_STOP:
   {
@@ -91,7 +92,7 @@ int CalibDriver::execute(motion_control::MotionFeedback& feedback,
   }
   default:
     // unknown state
-    status = MOTION_DONE;
+    status = MotionResult::MOTION_STATUS_INTERNAL_ERROR;
     result.status=MotionResult::MOTION_STATUS_INTERNAL_ERROR;
     break;
   }

@@ -12,6 +12,7 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 # TODO: This is ugly. Find a better way to do this
 include_directories (
     $ENV{RABOT}/Utils/LibPath
+    $ENV{RABOT}/Utils/LibUtil
 )
 
 link_directories(

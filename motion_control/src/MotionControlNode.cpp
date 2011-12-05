@@ -15,8 +15,9 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& node, const std::string& n
   scan_sub_ = node.subscribe<sensor_msgs::LaserScan>( "/scan", 1, boost::bind(&MotionControlNode::laserCallback, this, _1 ));
 
   active_ctrl_ = NULL;
-  calib_driver_ = new CalibDriver (cmd_ramaxx_pub_);
-  simple_goal_driver_ = new SimpleGoalDriver (cmd_ramaxx_pub_);
+  calib_driver_ = new CalibDriver (cmd_ramaxx_pub_, node);
+  simple_goal_driver_ = new SimpleGoalDriver (cmd_ramaxx_pub_, node);
+  action_server_.start();
 }
 
 
@@ -29,6 +30,7 @@ MotionControlNode::~MotionControlNode()
 
 void MotionControlNode::goalCallback()
 {
+  ROS_INFO("motion control: received goal");
   boost::shared_ptr<const motion_control::MotionGoal_<std::allocator<void> > >
     goalptr = action_server_.acceptNewGoal();
   if (active_ctrl_!=NULL && goalptr->mode!=active_ctrl_->getType()) {
@@ -40,6 +42,7 @@ void MotionControlNode::goalCallback()
       break;
     case motion_control::MotionGoal::MOTION_TO_GOAL:
       active_ctrl_=simple_goal_driver_;
+      active_ctrl_->setGoal(*goalptr);
       break;
     default:
       active_ctrl_=0;
@@ -70,18 +73,20 @@ void MotionControlNode::update()
     MotionResult result;
     int status=active_ctrl_->execute(feedback,result);
     switch (status) {
-    case MOTION_RUN:
+    case MotionResult::MOTION_STATUS_STOP:
+      // nothing to do
+      break;
+    case MotionResult::MOTION_STATUS_MOVING:
       action_server_.publishFeedback(feedback);
       break;
-    case MOTION_DONE:
-      if (result.status==MotionResult::MOTION_STATUS_OK)
+    case MotionResult::MOTION_STATUS_SUCCESS:
         action_server_.setSucceeded(result);
-      else
-        action_server_.setAborted(result);
-      break;
+        break;
+    case MotionResult::MOTION_STATUS_COLLISION:
+    case MotionResult::MOTION_STATUS_INTERNAL_ERROR:
     default:
-      action_server_.setAborted(result);
-      break;
+        action_server_.setAborted(result);
+        break;
     }
   }
 }
@@ -89,9 +94,9 @@ void MotionControlNode::update()
 
 int main(int argc, char** argv)
 {
-  ros::init(argc,argv,"motion_control");
-  ros::NodeHandle nh("~");
-
+  ros::init(argc,argv,"");
+  //ros::NodeHandle nh("~");
+  ros::NodeHandle nh;
   MotionControlNode node(nh,"motion_control");
 
   ros::Rate rate(50);

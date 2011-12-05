@@ -49,7 +49,7 @@ private:
 
   MotionController *active_ctrl_;
   CalibDriver *calib_driver_;
-  SimpleGoalDriver *drive_to_goal;
+  SimpleGoalDriver *simple_goal_driver_;
 };
 
 #endif // MOTIONCONTROLNODE_H

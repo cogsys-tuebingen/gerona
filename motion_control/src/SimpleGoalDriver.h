@@ -1,6 +1,7 @@
 #ifndef SIMPLEGOALDRIVER_H
 #define SIMPLEGOALDRIVER_H
 #include <ros/ros.h>
+#include <geometry_msgs/PoseStamped.h>
 #include "LaserEnvironment.h"
 #include "StatsEstimator.h"
 #include "EncoderEstimator.h"
@@ -11,7 +12,9 @@
 class SimpleGoalDriver : public MotionController
 {
 public:
-    SimpleGoalDriver(ros::Publisher& cmd_pub);
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+    SimpleGoalDriver(ros::Publisher& cmd_pub,ros::NodeHandle& node);
     virtual void start ();
     virtual void stop ();
     virtual int getType () {
@@ -23,13 +26,25 @@ public:
 
 private:
     void publish ();
+    void predictPose (double dt, double deltaf, double deltar, double v,
+                      Vector2d& front_pred, Vector2d& rear_pred);
+    int driveToGoal (const Vector3d& goal,MotionFeedback& fb, MotionResult& result);
+    ros::Publisher&     cmd_pub_;
     double cmd_v_;
     double cmd_front_rad_,cmd_rear_rad_;
     double theta_target_;
+    double v_target_;
     Vector2d pos_target_;
     int state_;
     Stopwatch move_timer_;
+    geometry_msgs::PoseStamped goal_pose_global_;
     Vector3d start_pose_;
+    DualPidCtrl ctrl_;
+    double L_; // wheelbase
+    double Tt_; // system dead time / latency
+    double delta_max_;
+    tf::TransformListener listener_;
+
 };
 
 #endif // SIMPLEGOALDRIVER_H
