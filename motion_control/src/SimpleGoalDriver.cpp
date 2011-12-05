@@ -47,6 +47,7 @@ void SimpleGoalDriver::setGoal(const motion_control::MotionGoal &goal)
   goal_pose_global_.pose.position.z=0;
   goal_pose_global_.pose.orientation=
     tf::createQuaternionMsgFromRollPitchYaw(0.0,0.0,goal.theta);
+  v_target_ = goal.v;
   start();
 }
 
@@ -94,7 +95,7 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
   if (colliding) {
     result.status=MotionResult::MOTION_STATUS_COLLISION;
     cmd_v_=0.0;
-    return MotionResult::MOTION_STATUS_STOP;
+    return MotionResult::MOTION_STATUS_COLLISION;
   } else {
     Vector2d front_pred,rear_pred;
     double direction;
@@ -138,6 +139,10 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
     state_=  MotionResult::MOTION_STATUS_STOP;
 
     break;
+  case MotionResult::MOTION_STATUS_SUCCESS:
+    state_=MotionResult::MOTION_STATUS_STOP;
+    cmd_v_=0;
+    break;
   case MotionResult::MOTION_STATUS_STOP:
     cmd_v_=0;
     result.status=MotionResult::MOTION_STATUS_STOP;
@@ -168,7 +173,7 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
     if ((dist_goal<0.3) ) {
       // goal reached
       result.status=MotionResult::MOTION_STATUS_SUCCESS;
-      state_=MotionResult::MOTION_STATUS_STOP;
+      state_=MotionResult::MOTION_STATUS_SUCCESS;
       cmd_v_=0;
       ROS_INFO("simplegoaldriver: goal reached");
     } else {

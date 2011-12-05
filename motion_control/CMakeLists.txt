@@ -49,8 +49,14 @@ src/DualPidCtrl.cpp
 src/PathFollowing.cpp
 src/DualAxisDriver.cpp
 )
-
 target_link_libraries(follow_path LibUtil)
+
+
+rosbuild_add_executable(drive_test
+src/DriveTestNode.cpp
+)
+
+target_link_libraries(drive_test LibUtil)
 
 rosbuild_add_executable(motion_control
 src/DualPidCtrl.cpp

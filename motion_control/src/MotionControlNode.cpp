@@ -45,6 +45,10 @@ void MotionControlNode::goalCallback()
       active_ctrl_->setGoal(*goalptr);
       break;
     default:
+      ROS_WARN("Motioncontrol invalid motion mode %d requested",goalptr->mode);
+      MotionResult result;
+      result.status=MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+      action_server_.setAborted(result);
       active_ctrl_=0;
   }
 
