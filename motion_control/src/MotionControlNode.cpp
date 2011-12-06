@@ -86,8 +86,10 @@ void MotionControlNode::update()
       break;
     case MotionResult::MOTION_STATUS_SUCCESS:
         action_server_.setSucceeded(result);
+        ROS_INFO("motioncontrolnode: MOTION_STATUS_SUCCESS");
         break;
     case MotionResult::MOTION_STATUS_COLLISION:
+      ROS_INFO("motioncontrolnode: MOTION_STATUS_COLLISION");
     case MotionResult::MOTION_STATUS_INTERNAL_ERROR:
     default:
         action_server_.setAborted(result);

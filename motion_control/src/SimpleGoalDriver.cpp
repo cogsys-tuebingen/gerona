@@ -1,6 +1,7 @@
 #include <geometry_msgs/Quaternion.h>
 #include "ramaxxbase/RamaxxMsg.h"
 #include "Line2d.h"
+#include "MathHelper.h"
 #include "SimpleGoalDriver.h"
 
 
@@ -90,41 +91,48 @@ void SimpleGoalDriver::start()
 int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFeedback& feedback,
                                   motion_control::MotionResult& result)
 {
-  // check collision
-  bool colliding=checkCollision(0,0.3);
+
+  Vector2d front_pred,rear_pred;
+  double direction;
+  if (goal.x()<0) {
+      direction = -1.0;
+  } else {
+      direction = +1.0;
+  }
+  predictPose(Tt_,cmd_front_rad_,cmd_rear_rad_,direction*v_target_,
+                front_pred, rear_pred);
+  ROS_INFO("predict pose %f %f deltaf=%fdeg deltar=%fdeg",front_pred.x(),front_pred.y(),
+             cmd_front_rad_*180.0/M_PI, cmd_rear_rad_*180.0/M_PI);
+
+  Line2d target_line;
+  Vector2d target_pos( goal[0], goal[1] );
+  target_line.FromAngle( target_pos, goal[2] );
+  double ef =target_line.GetSignedDistance(front_pred);
+  double er =target_line.GetSignedDistance(rear_pred);
+  double deltaf,deltar;
+  bool controlled=ctrl_.execute(ef,er,deltaf,deltar);
+  if (controlled) {
+    cmd_v_=direction*v_target_;
+    cmd_front_rad_=-1.0*direction*deltaf;
+    cmd_rear_rad_=-1.0*direction*deltar;
+    ROS_INFO("ef=%f er=%f deltaf=%fgrad deltar=%fgrad",ef,er,deltaf*180.0/M_PI,deltar*180.0/M_PI);
+  } else {
+      ROS_INFO("uncontrolled");
+  }
+  // estimate course
+  double beta=atan(0.5*(tan(deltaf)+tan(deltar)));
+  // add pi to direction if driving backwards
+  beta+=direction<0?M_PI:0.0;
+  beta=MathHelper::NormalizeAngle(beta);
+    // check collision
+  bool colliding=checkCollision(beta,0.3);
   if (colliding) {
     result.status=MotionResult::MOTION_STATUS_COLLISION;
     cmd_v_=0.0;
     return MotionResult::MOTION_STATUS_COLLISION;
   } else {
-    Vector2d front_pred,rear_pred;
-    double direction;
-    if (goal.x()<0) {
-        direction = -1.0;
-    } else {
-        direction = +1.0;
-    }
-    predictPose(Tt_,cmd_front_rad_,cmd_rear_rad_,direction*v_target_,
-                  front_pred, rear_pred);
-    ROS_INFO("predict pose %f %f deltaf=%fdeg deltar=%fdeg",front_pred.x(),front_pred.y(),
-               cmd_front_rad_*180.0/M_PI, cmd_rear_rad_*180.0/M_PI);
-
-    Line2d target_line;
-    Vector2d target_pos( goal[0], goal[1] );
-    target_line.FromAngle( target_pos, goal[2] );
-    double ef =target_line.GetSignedDistance(front_pred);
-    double er =target_line.GetSignedDistance(rear_pred);
-    double deltaf,deltar;
-    bool controlled=ctrl_.execute(ef,er,deltaf,deltar);
-    if (controlled) {
-      cmd_v_=direction*v_target_;
-      cmd_front_rad_=-1.0*direction*deltaf;
-      cmd_rear_rad_=-1.0*direction*deltar;
-      ROS_INFO("ef=%f er=%f deltaf=%fgrad deltar=%fgrad",ef,er,deltaf*180.0/M_PI,deltar*180.0/M_PI);
-    } else {
-        ROS_INFO("uncontrolled");
-    }
     cmd_v_=v_target_;
+    result.status=MotionResult::MOTION_STATUS_MOVING;
     return MotionResult::MOTION_STATUS_MOVING;
   }
 }

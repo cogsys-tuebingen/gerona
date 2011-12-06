@@ -171,14 +171,17 @@ int CalibDriver::doCtrlDrive(MotionFeedback& fb, MotionResult& result)
     // we just continue to drive and hope for slam
     fb.dist_driven=dist_driven_;
     cmd_v_=speed_;
+    result.status=MotionResult::MOTION_STATUS_MOVING;
     return MotionResult::MOTION_STATUS_MOVING;
   }
   dist_driven_=(current_pose.head<2>()-start_pose_.head<2>()).norm();
+  fb.dist_driven=dist_driven_;
   if (colliding) {
     if (dist_driven_>MIN_CALIB_DRIVE_DIST) {
       // success
       state_=CALIB_STATE_STOP;
       cmd_v_=0;
+      result.status=MotionResult::MOTION_STATUS_SUCCESS;
       return MotionResult::MOTION_STATUS_SUCCESS;
     } else {
       result.status=MotionResult::MOTION_STATUS_COLLISION;
@@ -202,10 +205,12 @@ int CalibDriver::doCtrlDrive(MotionFeedback& fb, MotionResult& result)
       ROS_WARN("failed to get a valid beta estimation for %f seconds. Stopping",ctrl_time_ms/1000.0);
       cmd_v_=0;
       state_=CALIB_STATE_STOP;
+      result.status=MotionResult::MOTION_STATUS_SLAM_FAIL;
       return MotionResult::MOTION_STATUS_SLAM_FAIL;
     }
     if (!has_beta) {
       // continue driving wait for better beta estimation
+      result.status=MotionResult::MOTION_STATUS_MOVING;
       return MotionResult::MOTION_STATUS_MOVING;
     }
     if (ctrl_time_ms>ctrl_sleep_ms_) {
@@ -216,6 +221,7 @@ int CalibDriver::doCtrlDrive(MotionFeedback& fb, MotionResult& result)
                beta_target_,beta_is,theta_target_,current_pose.z(),cmd_servof_,cmd_servor_);
       ctrl_timer_.restart();
     }
+    result.status=MotionResult::MOTION_STATUS_MOVING;
     return MotionResult::MOTION_STATUS_MOVING;
   }
 
