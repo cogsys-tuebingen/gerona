@@ -39,6 +39,7 @@ void MotionControlNode::goalCallback()
   switch (goalptr->mode) {
     case motion_control::MotionGoal::MOTION_ODO_CALIB:
       active_ctrl_=calib_driver_;
+      active_ctrl_->setGoal(*goalptr);
       break;
     case motion_control::MotionGoal::MOTION_TO_GOAL:
       active_ctrl_=simple_goal_driver_;

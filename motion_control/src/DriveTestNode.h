@@ -35,6 +35,7 @@ public:
     AT_GOAL,
     FAILED
   };
+
 private:
   actionlib::SimpleActionClient<motion_control::MotionAction> action_client_;
   ros::NodeHandle& n_;
@@ -47,6 +48,7 @@ private:
 
   geometry_msgs::PoseStamped goal_pose_global_;
   bool has_goal_;
+
 
 };
 
