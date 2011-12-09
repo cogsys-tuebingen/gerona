@@ -33,8 +33,6 @@ void MotionController::laserCallback(const sensor_msgs::LaserScanConstPtr& scan)
 
 bool MotionController::checkCollision(double course,double threshold)
 {
+  return laser_env_.CheckCollision(laser_scan_.ranges,laser_scan_.angle_min,laser_scan_.angle_max,course,0.5,0.5,0.5);
 
-
-  laser_env_.ProcessLaserScan(laser_scan_.ranges,laser_scan_.angle_min,laser_scan_.angle_max);
-  return laser_env_.CheckCollision(course,0.50,threshold);
 }
