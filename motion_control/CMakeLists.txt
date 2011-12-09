@@ -16,14 +16,14 @@ genaction()
 rosbuild_init()
 
 # TODO: This is ugly. Find a better way to do this
-include_directories (
-    $ENV{RABOT}/Utils/LibUtil
-    $ENV{RABOT}/Utils/LibRobot
-    $ENV{RABOT}/Utils/LibOdoCalib
-    $ENV{RABOT}/Utils/LibBotHardware
-    $ENV{RABOT}/ros/eigen/include
-
-)
+#include_directories (
+ #   $ENV{RABOT}/Utils/LibUtil
+ #   $ENV{RABOT}/Utils/LibRobot
+ #   $ENV{RABOT}/Utils/LibOdoCalib
+ #   $ENV{RABOT}/Utils/LibBotHardware
+ #   $ENV{RABOT}/ros/eigen/include
+#
+#)
 
 
 link_directories(

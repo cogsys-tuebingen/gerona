@@ -8,8 +8,8 @@
 #ifndef REEDSSHEPPPATHPLANNER_H
 #define REEDSSHEPPPATHPLANNER_H
 
-#include <ReedsShepp/CurveGenerator.h>
-#include <common/Map.h>
+#include <utils/LibPath/ReedsShepp/CurveGenerator.h>
+#include <utils/LibPath/common/Map.h>
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>

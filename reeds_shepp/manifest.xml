@@ -9,6 +9,7 @@
   <review status="unreviewed" notes=""/>
   <url>https://rarepos.cs.uni-tuebingen.de/trac/sickday/</url>
   
+  <depend package="utils" />
   <depend package="roscpp" />
   <depend package="std_msgs" />
   <depend package="nav_msgs" />

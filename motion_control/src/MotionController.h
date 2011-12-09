@@ -7,7 +7,7 @@
 #include "motion_control/MotionGoal.h"
 #include "motion_control/MotionFeedback.h"
 #include "motion_control/MotionResult.h"
-#include "LaserEnvironment.h"
+#include <utils/LibRobot/LaserEnvironment.h>
 using namespace Eigen;
 using namespace motion_control;
 

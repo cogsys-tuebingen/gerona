@@ -9,6 +9,7 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/path_following</url>
 
+  <depend package="utils" />
   <depend package="roscpp" />
   <depend package="std_msgs" />
   <depend package="nav_msgs" />

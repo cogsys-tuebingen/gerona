@@ -10,14 +10,14 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #set(ROS_BUILD_TYPE RelWithDebInfo)
 
 # TODO: This is ugly. Find a better way to do this
-include_directories (
-    $ENV{RABOT}/Utils/LibPath
-    $ENV{RABOT}/Utils/LibUtil
-)
+#include_directories (
+#    $ENV{RABOT}/Utils/LibPath
+#    $ENV{RABOT}/Utils/LibUtil
+#)
 
-link_directories(
-    $ENV{RABOT}/lib
-)
+#link_directories(
+#    $ENV{RABOT}/lib
+#)
 
 rosbuild_init()
 
