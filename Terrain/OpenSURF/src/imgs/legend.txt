@@ -1,0 +1,8 @@
+asphalt	100	0	0
+gravel	0	0	100
+grass	0	100	0
+big_tiles	50	0	0
+small_tiles	0	0	50
+bush	0	50	0
+tree	0	150	0
+

@@ -1,0 +1,285 @@
+--------------------------------------------------------------------------------
+
+AUTHOR:
+
+Engin Tola
+
+--------------------------------------------------------------------------------
+
+CONTACT:
+
+web   : http://cvlab.epfl.ch/~tola
+email : engin.tola@epfl.ch
+
+--------------------------------------------------------------------------------
+
+LICENCE:
+
+See licence.txt file.
+
+--------------------------------------------------------------------------------
+
+CONTEXT
+
+DAISY is a local image descriptor designed for dense wide-baseline matching
+purposes. For more details about the descriptor please read the papers:
+
+'A fast local descriptor for dense matching' from
+http://cvlab/~tola/publications.html#daisy
+
+and
+
+'Daisy: An efficient dense descriptor applied to wide baseline stereo' from
+http://cvlab/~tola/publications.html#daisy-pami
+
+--------------------------------------------------------------------------------
+
+SOFTWARE
+
+There's a main.cpp file under ./src/ directory for an example code. You can
+inspect it on how to use the daisy class. However, this software is intended to
+be used as a library and has more various operation modes in that form.
+
+1. To build the example application code run
+
+   make
+   ./daisy
+
+   (look at EXAMPLES section below)
+
+2. To build the library, remove src/main.cpp from the 'sources' list in the
+makefile. Run 'make library' for a static library and 'make slib' for a shared
+library.
+
+This will generate the libdaisy.a (libdaisy.so for shared library) file under
+./lib directory. To install this to your system, run
+
+   make install-lib  ( or make install-slib for shared library)
+
+This will install the library to 'installdir' in your makefile. This command
+also generates the daisy.pc file which is installed to
+'$(installdir)/lib/pkgconfig/'. The pkg-config[1] utility can be used to include
+daisy to your projects with
+
+   CFLAGS+=`pkg-config --cflags daisy`
+   LDFLAGS+=`pkg-config --libs daisy`.
+
+In your source file, include 'daisy/daisy.h' to use the library.
+
+3. The code is documented as per Doxygen[3] standards and a Doxyfile is supplied
+in the library. To generate the documentation, run
+
+   doxygen Doxyfile
+   or
+   make dox
+
+You can reach the html documentation under './doc/html/index.html'
+
+It is possible to use opencv[2] with daisy. Opencv implementation of the
+convolution is faster than the one used by default in the library. Apart from
+this, the library is free of opencv. Opencv is included/linked using the
+pkg-config utility and if you don't have pkg-config you should either install it
+or change the makefile accordingly. To enable opencv, uncomment the
+'define_flags' and 'external_library' lines in the makefile.
+
+4. To enable debugging for the library change the 'optimize = true' to
+'optimize=false' in the makefile.
+
+5. Library can be compiled with OpenMP[4] for parallel processing. To enable
+this, change 'parallelize = false' to 'parallelize = true' in the makefile and
+enable -DUSE_OPENMP flag for 'define_flags'. When the optimize flag is set to
+false then parallelization is disabled also.
+
+[1] pkg-config : http://pkg-config.freedesktop.org/wiki/
+[2] opencv     : http://sourceforge.net/projects/opencvlibrary/
+[3] doxygen    : http://www.stack.nl/~dimitri/doxygen/
+[4] openmp     : http://www.openmp.org/
+
+--------------------------------------------------------------------------------
+
+USAGE
+
+----
+
+The library has two operation modes:
+
+MODE 1. In the first case, you can precompute the descriptors at every point with
+
+   daisy* desc = new daisy();
+   desc->set_image(im,h,w);
+   desc->verbose( verbose_level ); // 0,1,2,3 -> how much output do you want while running
+   desc->set_parameters(rad, radq, thq, histq); // default values are 15,3,8,8
+   desc->initialize_single_descriptor_mode();
+   desc->compute_descriptors(); // precompute all the descriptors (NOT NORMALIZED!)
+   // the descriptors are not normalized yet
+   desc->normalize_descriptors();
+
+and get the specific descriptor at a point (y,x) with
+
+   float* thor = NULL;
+   desc->get_descriptor(y,x,thor);
+
+Here, you can get the descriptors at only integer y,x values.
+
+MODE 2. You can also precompute orientation layers with
+
+   daisy* desc = new daisy();
+   desc->set_image(im,h,w);
+   desc->verbose( verbose_level ); // 0,1,2,3 -> how much output do you want while running
+   desc->set_parameters(rad, radq, thq, histq); // we use 15,3,8,8 for wide baseline stereo.
+   desc->initialize_single_descriptor_mode();
+
+a) get the descriptor at floating point locations with any orientation as
+
+   float* thor = new thor[desc->descriptor_size()];
+
+   desc->get_descriptor(y,x,orientation,thor); // returns normalized descriptor
+
+   or
+
+   desc->get_unnormalized_descriptor(y,x,orientation,thor); // unnormalized
+
+   see NORMALIZATION section for details on normalization.
+
+   orientation in [0 360)
+
+b) or get the descriptor with a warped grid
+
+   float* thor = new thor[desc->descriptor_size()];
+   desc->get_descriptor(y,x,orientation, H, thor);
+
+   here H (float H[9]) is a homography matrix used to warp the grid of daisy and
+   (y,x) is on the unwarped image. You can use this function in the case where
+   you have two images and you want to compare the descriptors of two
+   corresponding points which are related with a planar transformation. The
+   transformation is encoded with a Homography matrix.
+
+   orientation in [0 360)
+
+--------------------------------------------------------------------------------
+
+NORMALIZATION :
+
+--------------------------------------------------------------------------------
+
+As of version 1.5, by default, descriptors are not normalized in MODE 1. You
+need to call normalize_descriptors() in order to apply normalization. For MODE
+2, you have two options:
+
+(a) get_unnormalized_descriptor
+(b) get_descriptor
+
+function (a), as per its name, returns an unnormalized descriptor and function
+(b) returns the normalized descriptor.
+
+You can call set_normalization() function with NRM_PARTIAL, NRM_FULL and
+NRM_SIFT flags to change the applied normalization algoritm. For example,
+
+   desc->set_normalization(NRM_SIFT);
+   desc->get_descriptor(y,x,orientation,thor);
+
+is equivalent to
+
+   desc->get_unnormalized_descriptor(y,x,orientation,thor);
+   desc->normalize_descriptor(thor,NRM_SIFT);
+
+which is equivalent to
+
+   desc->get_unnormalized_descriptor(y,x,orientation,thor);
+   desc->set_normalization(NRM_SIFT);
+   desc->normalize_descriptor(thor);
+
+set_normalization() function changes the used algorithm globally whereas you can
+apply individual normalizations using normalize_descriptor() function.
+
+The default algorith is NRM_PARTIAL. Possibilities are:
+
+NRM_PARTIAL: Each histogram is normalized independently so that their L2 norm is 1.
+NRM_FULL   : The whole descriptor is normalized so that its L2 norm is 1.
+NRM_SIFT   : The whole descriptor is normalized recursively so that its L2 norm is
+1 and no individual value is bigger than m_descriptor_normalization_threshold =
+0.154 as in SIFT.
+
+
+--------------------------------------------------------------------------------
+
+ADVANCED DETAILS ON OPERATION:
+
+--------------------------------------------------------------------------------
+
+Interpolation:
+--------------
+While computing the descriptors, by default, interpolation is used. However, it
+is possible to disable the interpolation using the disable_interpolation()
+function. This will decrease the computation time at the expense of some minor
+performance loss. You can alleviate this by using the extra_sub_layers() and
+upscale_image() functions. I recommend to disable the interpolation in only
+cases where you run DAISY in MODE 2 and you have to compute the same descriptor
+at many different orientations many times ( i.e. in a dense stereo problem, we
+test many different depths at many different orientations due to epipole
+change. this causes the use of excessive interpolation and it starts to become a
+performance issue. )
+
+--------------------------------------------------------------------------------
+
+MEMORY MANAGEMENT:
+
+--------------------------------------------------------------------------------
+
+It is possible to set the memory of the library from outside to let the user
+call the library in a loop without allocating/deallocating the necessary
+space. The functions for this are :
+
+  void set_descriptor_memory(float *descriptor, long int d_size)
+  void set_workspace_memory (float *workspace,  long int w_size)
+
+you can use compute_workspace_memory() and compute_descriptor_memory() functions
+to get the required memory; i.e,
+
+  wsz = desc->compute_workspace_memory();
+  float* workspace = new float[ wsz ];
+  desc->set_workspace_memory( workspace, wsz );
+
+if you're not running the library in MODE_1 you don't need to set the descriptor
+memory. In fact, you should not set it cause it'll be a waste.  YOU SHOULD CALL
+THESE FUNCTIONS BEFORE CALLING INITIALIZE AND AFTER SETTING PARAMETERS!
+
+--------------------------------------------------------------------------------
+
+EXAMPLES
+
+----
+
+You can use the executable for
+
+1.a. computing the descriptor of a single point y,x=(45,132) with orientation 35
+
+   ./daisy -i image.png -d 45 132 35
+
+1.b. computing the descriptor of a single point y,x=(45,132) with orientation 35
+without using interpolation
+
+   ./daisy -i image.png -di -d 45 132 35
+
+2. computing all of the descriptors and saving them in ascii
+
+   ./daisy -i image.png -sa
+
+3. computing all of the descriptors and saving in binary with NRM_FULL normalization
+
+   ./daisy -i image.png -sb -nt 1
+
+   ps: you can use the load_binary function in kutility/fileio.h to load the
+   saved descriptors like
+      float* descriptors = 0;
+      int h,w,nb;
+      load_binary(file, descriptors, h, w, nb);
+
+4. making a time run
+
+   ./daisy -i image.png -tr
+
+----
+
+Have Fun!
+Tuesday, August 18, 2009 13:27:58 +0200

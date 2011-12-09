@@ -1,0 +1,69 @@
+v.1.8.1 - Sunday, October 11, 2009 11:38:26 +0200
+	+ bugfix for unnecessary memcpy bug - valgrind catch
+v.1.8.0 - Wednesday, August  5, 2009 12:13:14 +0200
+	+ licence is changed from GPL to BSD
+	+ new function: float* get_histogram( int y, int x, int r ) :
+	returns the (pointer to) histogram at y,x of the rth cube
+	+ quantize_radius implementation changed: returns the closest cube
+	now instead of the containing interval.
+	+ new function update_selected_cubes(): allows update of
+	g_selected_cubes whenever the parameters of the grid is changed.
+	+ rename: set_level_gaussians() -> set_cube_gaussians()
+	+ rename: compute_level_sigmas() -> compute_cube_sigmas()
+	+ rename: g_grid_radius  -> g_selected_cubes
+	+ rename: m_level_sigmas -> m_cube_sigmas
+	+ rename: MAX_LAYER_NO -> MAX_CUBE_NO
+v.1.7.0	- Monday, July 13, 2009 14:34:53 +0200
+	+ new versioning system: first digit (1) for major structure changes,
+	middle digit(7) for changes in the function interfaces and the
+	last digit(0) for minor changes and bug fixes.
+	+ shared library support. you can build a 'so' file now by running
+	make slib && make install-slib ( see usage document )
+	+ fix for (SAVE_SINGLE) filename generation in main.cpp file.
+v.1.6.1 - Friday, July 10, 2009 10:40:05 +0200
+	+ fix for missing header errors in some systems.
+v.1.6 - Tuesday, March 17, 2009 18:38:22 +0100
+	+ speed improvement(~30%): rearranging cubes so that histograms
+	stay sequential in memory.
+	+ bugfix: initialize m_dense_descriptors[.] = 0 in order not to
+	get weird numbers near the image boundary.
+v.1.5 - Thursday, February 19, 2009 11:47:46 +0100
+	+ IMPORTANT CHANGE: As of this version, compute_descriptors() does not
+	return normalized descriptors. If you want the normalized version,
+	call normalize_descriptors() afterwards. I RECOMMEND USERS TO READ
+	USAGE DOCUMENT.
+	+ 2 new functions: get_unnormalized_descriptor() to get access to
+	unnormalized descriptors.
+	- To set which normalization scheme to use, call
+	set_normalization() function with one of NRM_PARTIAL, NRM_FULL,
+	NRM_SIFT flags
+	+ normalize_sift_way is made recursive upto N iterations.
+	+ normalize_descriptor() may get the function for normalization as
+	input.
+	+ new option (-nt) to select normalization from the command line.
+v.1.4 - Wednesday, February 11, 2009 22:15:49 +0100
+	+ convolution module is changed. it's now also possible to use
+	opencv's convolution by using -DWITH_OPENCV and
+	-DWITH_OPENCV_EXTRAS flags.
+	+ save_descriptors() is deprecated. Use save_descriptors_ascii()
+	or save_descriptors_binary() functions.
+v1.3 - Saturday, July 12, 2008  0:03:06 +0200
+        + float to double -> coordinates are in double now.
+	+ possible to disable interpolation at descriptor computation with
+	disable_interpolation()
+	+ defined 2 functions:
+		- extra_sub_layers(N) -> check USAGE for explanation
+		- upscale_image (M) -> check USAGE for explanation
+	+ defined m_orientation_shift_table for look-up orientation shifts
+v1.2 - Thursday, July 3, 2008 14:43:34 +0200
+	+ 'normalize_descriptor' is made public
+	+ 2 new functions that return the size of memory needed for
+		- descriptor memory = compute_descriptor_memory()
+		- workspace memory  = compute_workspace_memory()
+v1.1 - Wednesday, May 28, 2008 14:24:56 +0200
+	+ daisy::set_image first casts then normalizes: when trying to set
+	images of type 'const' gcc was complaining
+	+ bug fix for 'makefile install-lib' rule: it now installs
+	kutility headers as well.
+	+ convolution made simpler: left parameter unrolling to gcc
+v1.0 - Sunday, April 20, 2008 21:28:14 +0200
