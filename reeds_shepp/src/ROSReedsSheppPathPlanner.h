@@ -65,6 +65,7 @@ private:
   bool m_has_map;
 
   std::string m_map_topic;
+  std::string m_publish_frame;
 
   ros::Subscriber m_goal_pos_subscriber;
   ros::Subscriber m_odom_subscriber;

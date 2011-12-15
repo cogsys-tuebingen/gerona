@@ -1157,7 +1157,7 @@ namespace costmap_2d {
             }
 
             nav_map_pub_.publish(map);
-        } else if (rolling_window_){
+        } else if (rolling_window_) {
         	nav_msgs::OccupancyGrid map;
         	map.header.frame_id = global_frame_;
         	map.header.stamp = ros::Time::now ();
@@ -1179,29 +1179,32 @@ namespace costmap_2d {
         	const uint32_t size = map.info.width * map.info.height;
         	map.data.assign (data, data + size);
 
+			double r = costmap_->getResolution();
 
-          double r = costmap_->getResolution();
+			unsigned int ox, oy;
+			if (!costmap_->worldToMap(0., 0., ox, oy))
+			{
+				ROS_WARN ("Bubble origin is out of bounds!");
+			}
+			else
+			{
+				int bubble_radius_pxl = ceil(origin_bubble_radius_ / r);
+				double br = pow(bubble_radius_pxl, 2);
 
-          int bubble_radius_pxl = ceil(origin_bubble_radius_ / r);
-          unsigned int ox, oy;
-          costmap_->worldToMap(0., 0., ox, oy);
-
-          double br = pow(bubble_radius_pxl, 2);
-
-          uint32_t FREE = 0;
-
-          ROS_INFO_STREAM("d: " << ox << "; " << oy);
-          for(int x = -bubble_radius_pxl; x <= bubble_radius_pxl; ++x){
-            for(int y = -bubble_radius_pxl; y <= bubble_radius_pxl; ++y){
-              if(pow(x,2) + pow(y, 2) <= br){
-                int x_index = (x + ox);
-                int y_index = (y + oy);
-                map.data[y_index * map.info.width + x_index] = FREE;
-              }
-            }
-          }
-          nav_map_pub_.publish(map);
-        }
+				ROS_INFO_STREAM("d: " << ox << "; " << oy);
+				for(int x = -bubble_radius_pxl; x <= bubble_radius_pxl; ++x){
+					for(int y = -bubble_radius_pxl; y <= bubble_radius_pxl; ++y){
+						if(pow(x,2) + pow(y, 2) <= br)
+						{
+							int x_index = (x + ox);
+							int y_index = (y + oy);
+							map.data[y_index * map.info.width + x_index] = FREE_SPACE;
+						}
+					}
+				}
+			}
+			nav_map_pub_.publish(map);
+		}
     }
   }
 

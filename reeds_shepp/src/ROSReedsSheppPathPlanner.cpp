@@ -108,6 +108,7 @@ ROSReedsSheppPathPlanner::ROSReedsSheppPathPlanner(ros::NodeHandle &n)
   n.param<int> ("threshold_min", m_threshold_min, 0);
   n.param<int> ("threshold_max", m_threshold_max, 100);
   n.param<std::string> ("map_topic", m_map_topic, "/map");
+  n.param<std::string> ("publish_frame", m_publish_frame, "/map");
 
 
   m_rs_generator.set_circle_radius(m_circle_radius);
@@ -193,6 +194,17 @@ void ROSReedsSheppPathPlanner::calculate()
     ROS_INFO ("world: from: (%2.2f, %2.2f) to: (%2.2f, %2.2f)", m_odom_world.x, m_odom_world.y, m_goal_world.x, m_goal_world.y);
     ROS_INFO ("map:   from: (%2.2f, %2.2f) to: (%2.2f, %2.2f)", odom_map.x, odom_map.y , goal_map.x, goal_map.y);
 
+    // Check if goal coordinates inside map bounds
+    // TODO: is x dimension = width dimension? or y dim = width dim?
+    if (min<double> (odom_map.x, goal_map.x) < 0.0 ||
+    	min<double> (odom_map.y, goal_map.y) < 0.0 ||
+    	max<double> (odom_map.x, goal_map.x) > m_map.width ||
+    	max<double> (odom_map.y, goal_map.y) > m_map.height)
+    {
+    	ROS_WARN ("Path search not possible, coordinates violate map borders.");
+    	return;
+    }
+
     ReedsShepp::Curve * curve = m_rs_generator.find_path(odom_map, goal_map, &m_map);
 
     if(curve->is_valid()){
@@ -211,7 +223,7 @@ void ROSReedsSheppPathPlanner::calculate()
 
       // paths
       nav_msgs::Path path;
-      path.header.frame_id = "/map";
+      path.header.frame_id = m_publish_frame;
       int id = 2;
 
       curve->reset_iteration();
@@ -275,7 +287,7 @@ void ROSReedsSheppPathPlanner::send_arrow_marker(int id, Pose2d &pose,
                                                  float r, float g, float b, float a)
 {
   visualization_msgs::Marker marker;
-  marker.header.frame_id = "/map";
+  marker.header.frame_id = m_publish_frame;
 
   marker.ns = "path";
   marker.id = id;
