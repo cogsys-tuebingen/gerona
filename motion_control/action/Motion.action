@@ -30,8 +30,10 @@ float32 dist_driven
 float32 dist_goal
 ---
 #feedback
-int32 MOTION_STATUS_OK=         0
-int32 MOTION_CALIB_OK=         0
+int32 MOTION_STOP   =        0
+int32 MOTION_MOVING =        1
+int32 MOTION_CALIB  =        2
 int32 mode
+int32 status
 float32 dist_driven
 float32 dist_goal

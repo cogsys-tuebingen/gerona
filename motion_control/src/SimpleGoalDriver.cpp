@@ -131,7 +131,7 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
     cmd_v_=0.0;
     return MotionResult::MOTION_STATUS_COLLISION;
   } else {
-    cmd_v_=v_target_;
+    cmd_v_=direction*v_target_;
     result.status=MotionResult::MOTION_STATUS_MOVING;
     return MotionResult::MOTION_STATUS_MOVING;
   }

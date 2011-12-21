@@ -150,6 +150,7 @@ int CalibDriver::doStartMove(MotionFeedback& fb, MotionResult& result)
     cmd_v_=speed_;
     cmd_servof_=servo_front_mid_;
     cmd_servor_=servo_rear_mid_;
+    fb.status=MotionFeedback::MOTION_MOVING;
     return MotionResult::MOTION_STATUS_MOVING;
   }
 }
@@ -160,6 +161,7 @@ int CalibDriver::doCtrlDrive(MotionFeedback& fb, MotionResult& result)
   Vector3d current_pose;
   bool has_slam=getSlamPose(current_pose);
   bool colliding=checkCollision(0,0.3);
+  fb.status=MotionFeedback::MOTION_CALIB;
   if (!has_slam) {
     if (colliding) {
       result.status=MotionResult::MOTION_STATUS_COLLISION;
