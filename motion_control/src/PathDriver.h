@@ -27,7 +27,9 @@ public:
 
   virtual void start ();
   virtual void stop ();
-  virtual int getType ();
+  virtual int getType () {
+    return motion_control::MotionGoal::MOTION_FOLLOW_PATH;
+  }
 
   /**
     @return state
@@ -36,7 +38,6 @@ public:
   virtual void configure (ros::NodeHandle &node);
   virtual void setGoal (const motion_control::MotionGoal& goal);
 
-  void update_odometry (const nav_msgs::OdometryConstPtr &odom);
   void update_path (const nav_msgs::PathConstPtr &path);
 
 private:
@@ -45,7 +46,6 @@ private:
                          float r, float g, float b, float a);
 
   ros::Subscriber m_path_subscriber;
-  ros::Subscriber m_odom_subscriber;
 
   ros::Publisher m_rs_goal_publisher;
   ros::Publisher m_command_ramaxx_publisher;
@@ -53,8 +53,8 @@ private:
 
   tf::TransformListener listener_;
 
-  nav_msgs::Odometry m_odometry;
   nav_msgs::Path m_path;
+  int m_nodes;
   std::deque<geometry_msgs::PoseStamped> m_poses;
 
 
@@ -69,17 +69,8 @@ private:
   bool m_planning_done_;
   bool m_forward;
 
-  double m_last_time;
-
-  double kp;
-  double ki;
-  double kd;
-  attempto::PID<double> * m_pid;
-
-  double m_forward_speed;
-  double m_backward_speed;
   double m_waypoint_threshold;
-  double m_steer_max;
+  double m_max_waypoint_distance;
 
   int state_;
 };

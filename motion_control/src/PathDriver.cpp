@@ -7,20 +7,15 @@
 #include <utils/LibUtil/MathHelper.h>
 
 PathDriver::PathDriver(ros::Publisher& cmd_pub, ros::NodeHandle& node)
-  : m_has_subgoal(false), m_has_path(false), m_has_odom(false), m_planning_done_(false), kp(1.0f), ki(0.0f), kd(0.0f)
+  : m_has_subgoal(false), m_has_path(false), m_has_odom(false), m_planning_done_(false)
 {
   m_path_subscriber = node.subscribe<nav_msgs::Path>
       ("/rs_path", 2, boost::bind(&PathDriver::update_path, this, _1));
-
-  m_odom_subscriber = node.subscribe<nav_msgs::Odometry>
-      ("/odom", 100, boost::bind(&PathDriver::update_odometry, this, _1));
 
   m_command_ramaxx_publisher = cmd_pub;
   m_rs_goal_publisher = node.advertise<geometry_msgs::PoseStamped> ("/rs/goal", 10);
 
   m_marker_publisher = node.advertise<visualization_msgs::Marker> ("/path_following_marker", 10);
-
-  m_last_time = ros::Time::now().toSec();
 
   driver_=new DualAxisDriver(node);
 
@@ -36,24 +31,20 @@ PathDriver::~PathDriver()
 void PathDriver::start (){
   if(m_planning_done_){
     m_poses.clear();
-    for(int i = 0; i < (int) m_path.poses.size(); ++i){
+    m_nodes = m_path.poses.size();
+
+    for(int i = 0; i < m_nodes; ++i){
       m_poses.push_back(m_path.poses[i]);
     }
-
-    m_has_path = m_path.poses.size() > 0;
+    m_has_path = m_nodes > 0;
 
     m_has_subgoal = false;
   }
 }
 
 void PathDriver::stop (){
-
+  m_has_path = false;
 }
-
-int PathDriver::getType (){
-  return 01337;
-}
-
 
 /**
   @return state
@@ -105,7 +96,7 @@ int PathDriver::execute (MotionFeedback& fb, MotionResult& result){
 
   // goal in reach for 4ws driver?
 
-  if ((goal_vec.head<2>().norm()<0.15) ) {
+  if ((goal_vec.head<2>().norm()<m_waypoint_threshold) ) {
     m_has_subgoal = false;
     return execute(fb, result);
 
@@ -131,14 +122,15 @@ int PathDriver::execute (MotionFeedback& fb, MotionResult& result){
 
   m_command_ramaxx_publisher.publish(msg);
 
+  fb.dist_driven = (m_nodes - m_poses.size()) * m_max_waypoint_distance;
+  fb.dist_goal = m_poses.size() * m_max_waypoint_distance;
+
   return state_;
 }
 
 void PathDriver::configure (ros::NodeHandle &node){
-  node.param<double> ("forward_speed", m_forward_speed, 0.5);
-  node.param<double> ("backward_speed", m_backward_speed, -0.4);
-  node.param<double> ("waypoint_threshold", m_waypoint_threshold, 0.1);
-  node.param<double> ("steer_max", m_steer_max, 20.0f);
+  node.param<double> ("waypoint_threshold", m_waypoint_threshold, 0.15);
+  node.param<double> ("max_waypoint_distance", m_max_waypoint_distance, 0.25);
 }
 
 void PathDriver::setGoal (const motion_control::MotionGoal& goal){
@@ -162,28 +154,6 @@ void PathDriver::update_path(const nav_msgs::PathConstPtr &path)
   ROS_INFO("pathfollower: path received with %d poses",m_path.poses.size());
 
   start();
-}
-
-void PathDriver::update_odometry(const nav_msgs::OdometryConstPtr &odom)
-{
-
-  tf::StampedTransform transform_map;
-  try {
-    listener_.lookupTransform("/map", "/odom", ros::Time(0), transform_map);
-  }
-  catch (tf::TransformException ex){
-    ROS_ERROR("Cannot transform point");
-    return;
-  }
-
-  tf::Vector3 pt;
-  pt.setX(odom->pose.pose.position.x);
-  pt.setY(odom->pose.pose.position.y);
-  tf::Vector3 map_pt = transform_map(pt);
-  m_odometry.pose.pose.position.x = map_pt.x();
-  m_odometry.pose.pose.position.y = map_pt.y();
-  m_odometry.pose.pose.orientation = odom->pose.pose.orientation;
-  m_has_odom = true;
 }
 
 void PathDriver::send_arrow_marker(int id, std::string name_space, geometry_msgs::Pose &pose,

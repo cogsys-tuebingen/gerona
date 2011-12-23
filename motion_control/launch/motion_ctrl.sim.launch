@@ -67,7 +67,10 @@
     <param name="goal_topic" value="/rs/goal" />
   </node>
     
-  <node name="motion_control" pkg="motion_control" type="motion_control" respawn="false" output="screen" />  
+  <node name="motion_control" pkg="motion_control" type="motion_control" respawn="false" output="screen" >  
+    <param name="waypoint_threshold" value="0.15" />
+    <param name="max_waypoint_distance" value="0.25" />
+  </node>
   <node name="drive_test" pkg="motion_control" type="drive_test" respawn="false" output="screen" />
   <node name="rviz" pkg="rviz" type="rviz" respawn="false" />
 </launch>
