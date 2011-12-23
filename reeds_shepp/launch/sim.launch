@@ -42,7 +42,7 @@
   </group>
 
   <node pkg="reeds_shepp" type="path_reeds_shepp_node" name="reeds_shepp" output="screen">
-    <param name="circle_radius" value="2.0" />
+    <param name="circle_radius" value="0.70" />
     <param name="max_waypoint_distance" value="0.25" />
     <param name="cost_backwards" value="2.5" />
     <param name="cost_forwards" value="1.0" />

@@ -42,6 +42,7 @@ private:
                          float scale_x, float scale_y, float scale_z,
                          float r, float g, float b, float a);
 
+  void send_empty_path();
   void start_timer();
   double stop_timer();
 
@@ -65,6 +66,7 @@ private:
   bool m_has_map;
 
   std::string m_map_topic;
+  std::string m_goal_topic;
   std::string m_publish_frame;
 
   ros::Subscriber m_goal_pos_subscriber;

@@ -22,6 +22,7 @@ ROSReedsSheppPathPlanner::ROSReedsSheppPathPlanner(ros::NodeHandle &n)
   //  S - straight
   //  | - change driving direction (forward <-> backward)
 
+  // TODO: bug in lines
   m_rs_generator.parse("LSL");
   m_rs_generator.parse("LSR");
   m_rs_generator.parse("RSL");
@@ -109,6 +110,7 @@ ROSReedsSheppPathPlanner::ROSReedsSheppPathPlanner(ros::NodeHandle &n)
   n.param<int> ("threshold_max", m_threshold_max, 100);
   n.param<std::string> ("map_topic", m_map_topic, "/map");
   n.param<std::string> ("publish_frame", m_publish_frame, "/map");
+  n.param<std::string> ("goal_topic", m_goal_topic, "/goal");
 
 
   m_rs_generator.set_circle_radius(m_circle_radius);
@@ -121,7 +123,7 @@ ROSReedsSheppPathPlanner::ROSReedsSheppPathPlanner(ros::NodeHandle &n)
 
 
   m_goal_pos_subscriber = m_node_handle.subscribe<geometry_msgs::PoseStamped>
-      ("/goal", 10, boost::bind(&ROSReedsSheppPathPlanner::update_goal, this, _1));
+      (m_goal_topic, 10, boost::bind(&ROSReedsSheppPathPlanner::update_goal, this, _1));
 
   m_odom_subscriber = m_node_handle.subscribe<nav_msgs::Odometry>
       ("/odom", 100, boost::bind(&ROSReedsSheppPathPlanner::update_odometry, this, _1));
@@ -255,6 +257,8 @@ void ROSReedsSheppPathPlanner::calculate()
 
     } else {
       ROS_WARN("couldn't find a path");
+
+      send_empty_path();
     }
 
     ROS_INFO("RSPath generation time: %.4fms", stop_timer());
@@ -264,7 +268,16 @@ void ROSReedsSheppPathPlanner::calculate()
       ROS_ERROR("RS SEARCH NOT POSSIBLE, BECAUSE ODOM IS MISSING");
     if(!m_has_map)
       ROS_ERROR("RS SEARCH NOT POSSIBLE, BECAUSE MAP IS MISSING");
+
+    send_empty_path();
   }
+}
+
+void ROSReedsSheppPathPlanner::send_empty_path()
+{
+  nav_msgs::Path empty_path;
+  empty_path.header.frame_id = m_publish_frame;
+  m_path_publisher.publish(empty_path);
 }
 
 void ROSReedsSheppPathPlanner::start_timer()
