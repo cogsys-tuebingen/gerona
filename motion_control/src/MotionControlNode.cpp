@@ -3,6 +3,7 @@
 #include "SimpleGoalDriver.h"
 #include "MotionController.h"
 #include "MotionControlNode.h"
+#include "PathDriver.h"
 
 MotionControlNode::MotionControlNode(ros::NodeHandle& node, const std::string& name)
   :action_server_(node,name, false), action_name_(name)
@@ -17,13 +18,16 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& node, const std::string& n
   active_ctrl_ = NULL;
   calib_driver_ = new CalibDriver (cmd_ramaxx_pub_, node);
   simple_goal_driver_ = new SimpleGoalDriver (cmd_ramaxx_pub_, node);
+  path_driver_ = new PathDriver(cmd_ramaxx_pub_, node);
   action_server_.start();
+
+  path_driver_->configure(node);
 }
 
 
 MotionControlNode::~MotionControlNode()
 {
-
+  delete path_driver_;
   delete calib_driver_;
   delete simple_goal_driver_;
 }
@@ -43,6 +47,10 @@ void MotionControlNode::goalCallback()
       break;
     case motion_control::MotionGoal::MOTION_TO_GOAL:
       active_ctrl_=simple_goal_driver_;
+      active_ctrl_->setGoal(*goalptr);
+      break;      
+    case motion_control::MotionGoal::MOTION_FOLLOW_PATH:
+      active_ctrl_=path_driver_;
       active_ctrl_->setGoal(*goalptr);
       break;
     default:
@@ -91,8 +99,10 @@ void MotionControlNode::update()
     case MotionResult::MOTION_STATUS_COLLISION:
       ROS_INFO("motioncontrolnode: MOTION_STATUS_COLLISION");
     case MotionResult::MOTION_STATUS_INTERNAL_ERROR:
+    case MotionResult::MOTION_STATUS_SLAM_FAIL:
     default:
         action_server_.setAborted(result);
+        active_ctrl_ = NULL;
         break;
     }
   }

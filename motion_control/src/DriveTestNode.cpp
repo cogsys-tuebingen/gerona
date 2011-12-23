@@ -62,7 +62,21 @@ void DriveTestNode::activeCallback()
 void DriveTestNode::update_goal(const geometry_msgs::PoseStampedConstPtr &goal_pose)
 {
   ROS_INFO("DriveTest:GOAL received");
-  if (!goal_pose->header.frame_id.compare("/base_link")||!goal_pose->header.frame_id.compare("base_link")) {
+
+  motion_control::MotionGoal goal;
+  goal.v=default_v_;
+  goal.beta=0;
+
+  if (!goal_pose->header.frame_id.compare("/map")||!goal_pose->header.frame_id.compare("map")) {
+    // transform to global pose
+    goal_pose_global_ = *goal_pose;
+    ROS_INFO("pathfollower: new map goal %f %f %f",goal_pose_global_.pose.position.x,
+           goal_pose_global_.pose.position.y,
+           RTOD(tf::getYaw(goal_pose_global_.pose.orientation)));
+
+    goal.mode=motion_control::MotionGoal::MOTION_FOLLOW_PATH;
+
+  } else if (!goal_pose->header.frame_id.compare("/base_link")||!goal_pose->header.frame_id.compare("base_link")) {
     // transform to global pose
     ROS_INFO("pathfollower: new local goal %f %f %f",goal_pose->pose.position.x,goal_pose->pose.position.y,
           RTOD(tf::getYaw(goal_pose->pose.orientation)));
@@ -70,18 +84,19 @@ void DriveTestNode::update_goal(const geometry_msgs::PoseStampedConstPtr &goal_p
     ROS_INFO("pathfollower: new global goal %f %f %f",goal_pose_global_.pose.position.x,
            goal_pose_global_.pose.position.y,
            RTOD(tf::getYaw(goal_pose_global_.pose.orientation)));
-    motion_control::MotionGoal goal;
-    goal.x=goal_pose_global_.pose.position.x;
-    goal.y=goal_pose_global_.pose.position.y;
-    goal.theta=tf::getYaw(goal_pose_global_.pose.orientation);
-    goal.v=default_v_;
-    goal.beta=0;
     goal.mode=motion_control::MotionGoal::MOTION_TO_GOAL;
-    action_client_.sendGoal(goal,boost::bind(&DriveTestNode::doneCallback,this,_1,_2),boost::bind(&DriveTestNode::activeCallback,this),
-                          boost::bind(&DriveTestNode::feedbackCallback,this,_1));
+
   } else {
     ROS_WARN("pathfollower: unknown frame id %s",goal_pose->header.frame_id.c_str());
+    return;
   }
+
+  goal.x=goal_pose_global_.pose.position.x;
+  goal.y=goal_pose_global_.pose.position.y;
+  goal.theta=tf::getYaw(goal_pose_global_.pose.orientation);
+
+  action_client_.sendGoal(goal,boost::bind(&DriveTestNode::doneCallback,this,_1,_2),boost::bind(&DriveTestNode::activeCallback,this),
+                        boost::bind(&DriveTestNode::feedbackCallback,this,_1));
 
 }
 
