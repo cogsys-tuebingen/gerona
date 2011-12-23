@@ -311,6 +311,9 @@ void invertMatrix3D(double& t11, double& t12, double& t13, double& t21, double& 
 /// Calculates the angle in degrees from an angle in radians.
 double angleDeg(double angleRad);
 
+/// Calculates the angle in radians from an angle in degrees.
+double angleRad(double angleDeg);
+
 /// Clamps the angle in radians into the interval [-pi, pi)
 double angleClampMpiPi(double angleRad);
 

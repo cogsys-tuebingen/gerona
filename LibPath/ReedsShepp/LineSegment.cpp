@@ -34,10 +34,10 @@ float LineSegment::weight()
 {
   bool is_free = true;
 
-  int x0 = m_start.x - m_map->origin.x;
-  int y0 = m_start.y - m_map->origin.y;
-  int x1 = m_end.x - m_map->origin.x;
-  int y1 = m_end.y - m_map->origin.y;
+  int x0 = m_start.x;
+  int y0 = m_start.y;
+  int x1 = m_end.x;
+  int y1 = m_end.y;
 
   if(x0 < 0 || x0 >= m_map->width || y0 < 0 || y0 >= m_map->height)
     return NOT_FREE;

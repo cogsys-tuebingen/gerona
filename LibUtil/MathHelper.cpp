@@ -1126,7 +1126,12 @@ void invertMatrix3D(double& t11, double& t12, double& t13, double& t21, double& 
 
 double angleDeg(double angleRad)
 {
-	return (180.0 / M_PI) * angleRad;
+  return (180.0 / M_PI) * angleRad;
+}
+
+double angleRad(double angleDeg)
+{
+  return (M_PI / 180.0) * angleDeg;
 }
 
 double angleClampMpiPi(double angleRad)
