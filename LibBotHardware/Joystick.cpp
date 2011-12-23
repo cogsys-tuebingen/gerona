@@ -225,11 +225,11 @@ bool JoystickCarDriver::update() {
         assert(mShootingStrength >= 0.0);
         assert(mShootingStrength <= 1.0);
 
-        mRamaxx->getActuators()->setActuator(Actuators::ACTUATOR_EXT, (int) (1000 + mShootingStrength * 2000));
+        mRamaxx->getActuators()->setPosition(Actuators::ACTUATOR_EXT, (int) (1000 + mShootingStrength * 2000));
 
     } else if(mShooting) {
         mShooting = false;
-        mRamaxx->getActuators()->setActuator(Actuators::ACTUATOR_EXT, (int) (1000));
+        mRamaxx->getActuators()->setPosition(Actuators::ACTUATOR_EXT, (int) (1000));
     }
 
     Uint pc = mJoy.getButton( JOY_BUTTON_RELATIVE_PTZ ).getPressCount();
