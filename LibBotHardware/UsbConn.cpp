@@ -362,7 +362,6 @@ void RamaxxConnection::addQuMsgHandler( QuMsgHandler &handler ) {
 }
 
 void RamaxxConnection::relayQuMessage( const QuMessage &msg ) {
-    //cout << (int)msg.type << endl;
     QuMsgListenerMap::iterator iter = mListenerMap.find( msg.type );
     if ( iter != mListenerMap.end()) {
         vector<QuMsgHandler*> lis = *iter->second;

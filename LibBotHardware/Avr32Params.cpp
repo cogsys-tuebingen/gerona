@@ -61,11 +61,11 @@ void Avr32Params::sendAllParams() {
     // Actuator min, max, default and speed
     ActuatorConfig actuConf;
     for ( int i = 0;  i < Actuators::ACTUATOR_COUNT; ++i ) {
-        actuConf = mActuators->getActuatorConfig((Actuators::ActuatorId)i);
+        actuConf = mActuators->getConfig((Actuators::ActuatorId)i);
         sendParam( MSG_PARAM_ACTUATOR + i, MSG_PARAM_ACTU_MIN, actuConf.min );
         sendParam( MSG_PARAM_ACTUATOR + i, MSG_PARAM_ACTU_MAX, actuConf.max );
         sendParam( MSG_PARAM_ACTUATOR + i, MSG_PARAM_ACTU_DEFAULT, actuConf.zero );
-        sendParam( MSG_PARAM_ACTUATOR + i, MSG_PARAM_ACTU_SPEED, actuConf.speed );
+        sendParam( MSG_PARAM_ACTUATOR + i, MSG_PARAM_ACTU_SPEED, actuConf.speed * 1000 );
     }
 
     // Send write to flash request

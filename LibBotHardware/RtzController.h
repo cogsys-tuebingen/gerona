@@ -17,6 +17,7 @@
 
 // Project
 #include "Actuators.h"
+#include "QuMessage.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // DECLARATIONS
@@ -49,6 +50,14 @@ public:
      * Call this method at least every 20 ms!
      */
     void update();
+
+    /**
+     * Set the angular velocity of the roll/tilt actuators.
+     *
+     * @param radPerSec Angular velocity rad/sec. Set this parameter to zero
+     *      for maximum speed.
+     */
+    void setMovingSpeed( double radPerSec );
 
     /**
      * Sets the roll/tilt angles in degree.
@@ -120,9 +129,13 @@ private:
     Actuators *     mActuators;
     /// Requested roll/tilt angle in radian.
     double mRollRequest, mTiltRequest;
+    /// Reported roll/tilt angles in radian.
+    double mReportedRoll, mReportedTilt;
     /// Flag if there was a new request
     bool mNewRequest;
-    /// Used to send the current servo valuies every n ms.
+    /// Flag if we received at least one position message from the Avr32
+    bool mReceivedPosMsg;
+    /// Used to send the current servo values every n ms.
     Stopwatch mUpdateStopwatch;
 };
 

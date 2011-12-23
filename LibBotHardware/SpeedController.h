@@ -37,6 +37,7 @@ struct SpeedCtrlCalibration {
     double kp;
     double ki;
     double kd;
+    double maxSpeed;
     double updateIntervalMs; // update interval in milliseconds
 };
 

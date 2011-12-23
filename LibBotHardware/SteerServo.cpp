@@ -198,13 +198,13 @@ void FrontSteerServo::setValue( const S32 value ) {
 }
 
 void FrontSteerServo::setServoZero( const S32 zeroValue ) {
-    ActuatorConfig config = mActuators->getActuatorConfig( Actuators::ACTUATOR_STEER_FRONT );
+    ActuatorConfig config = mActuators->getConfig( Actuators::ACTUATOR_STEER_FRONT );
     config.zero = zeroValue;
-    mActuators->setActuatorConfig( Actuators::ACTUATOR_STEER_FRONT, config );
+    mActuators->setConfig( Actuators::ACTUATOR_STEER_FRONT, config );
 }
 
 S32 FrontSteerServo::getServoZero() const {
-    return mActuators->getActuatorZero( Actuators::ACTUATOR_STEER_FRONT );
+    return mActuators->getZero( Actuators::ACTUATOR_STEER_FRONT );
 }
 
 void FrontSteerServo::getHallVoltages( Voltage *sensor, double &outVoltage1, double &outVoltage2 ) {
@@ -228,13 +228,13 @@ void BackSteerServo::setValue( const S32 value ) {
 }
 
 void BackSteerServo::setServoZero( const S32 zeroValue ) {
-    ActuatorConfig config = mActuators->getActuatorConfig( Actuators::ACTUATOR_STEER_REAR );
+    ActuatorConfig config = mActuators->getConfig( Actuators::ACTUATOR_STEER_REAR );
     config.zero = zeroValue;
-    mActuators->setActuatorConfig( Actuators::ACTUATOR_STEER_REAR, config );
+    mActuators->setConfig( Actuators::ACTUATOR_STEER_REAR, config );
 }
 
 S32 BackSteerServo::getServoZero() const {
-    return mActuators->getActuatorZero( Actuators::ACTUATOR_STEER_REAR );
+    return mActuators->getZero( Actuators::ACTUATOR_STEER_REAR );
 }
 
 void BackSteerServo::getHallVoltages( Voltage *sensor, double &outVoltage1, double &outVoltage2 ) {

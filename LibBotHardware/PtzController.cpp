@@ -56,15 +56,15 @@ void PtzController::update() {
         U16 servoValue;
         if ( !mFixedPan ) {
             servoValue = ((S32)( mPanRequest*180.0*mCalibration.panDegToServo/M_PI))
-                         + mActuators->getActuatorZero( mPanId );
-            fireUpdate = servoValue != mActuators->getActuator( mPanId );
-            mActuators->setActuator( mPanId, servoValue );
+                         + mActuators->getZero( mPanId );
+            fireUpdate = servoValue != mActuators->getRequestedPosition( mPanId );
+            mActuators->setPosition( mPanId, servoValue );
         }
         if ( !mFixedTilt ) {
             servoValue = ((S32)( mTiltRequest*180.0*mCalibration.tiltDegToServo/M_PI))
-                         + mActuators->getActuatorZero( mTiltId );
-            fireUpdate = fireUpdate || servoValue != mActuators->getActuator( mTiltId );
-            mActuators->setActuator( mTiltId, servoValue );
+                         + mActuators->getZero( mTiltId );
+            fireUpdate = fireUpdate || servoValue != mActuators->getRequestedPosition( mTiltId );
+            mActuators->setPosition( mTiltId, servoValue );
         }
         if ( fireUpdate )
             fireDataChanged();
@@ -122,7 +122,7 @@ float PtzController::getPanRad() const {
         return mPan;
     } else {
         // ADC does not have valid data
-        return ((float)( mActuators->getActuator( mPanId ) - mActuators->getActuatorZero( mPanId )))
+        return ((float)( mActuators->getRequestedPosition( mPanId ) - mActuators->getZero( mPanId )))
                 / M_PI*mCalibration.panDegToServo/180.0;
     }
 }
@@ -133,7 +133,7 @@ float PtzController::getTiltRad() const {
               && mSensors->getPanTiltVoltage()->hasValidData())) {
         return mTilt;
     } else {
-        return ((float)( mActuators->getActuator( mTiltId ) - mActuators->getActuatorZero( mTiltId )))
+        return ((float)( mActuators->getRequestedPosition( mTiltId ) - mActuators->getZero( mTiltId )))
                 / M_PI*mCalibration.tiltDegToServo/180.0;
     }
 }
@@ -145,16 +145,16 @@ void PtzController::setCalibration( const PtzCalibration &calib ) {
 }
 
 void PtzController::adjustPanServoZero( int delta ) {
-    ActuatorConfig conf = mActuators->getActuatorConfig( mPanId );
+    ActuatorConfig conf = mActuators->getConfig( mPanId );
     conf.zero += delta;
-    mActuators->setActuatorConfig( mPanId, conf );
+    mActuators->setConfig( mPanId, conf );
     setPanRad( 0 );
 }
 
 void PtzController::adjustTiltServoZero( int delta ) {
-    ActuatorConfig conf = mActuators->getActuatorConfig( mTiltId );
+    ActuatorConfig conf = mActuators->getConfig( mTiltId );
     conf.zero += delta;
-    mActuators->setActuatorConfig( mTiltId, conf );
+    mActuators->setConfig( mTiltId, conf );
     setTiltRad( 0 );
 }
 

@@ -90,7 +90,12 @@ void PidSpeedController::setSpeed( float newTargetSpeed ) {
         return;
     }
 
-    mTargetSpeed = newTargetSpeed;
+    if ( mCalib.maxSpeed > ZERO_SPEED && fabs( newTargetSpeed ) > mCalib.maxSpeed ) {
+        mTargetSpeed = newTargetSpeed > 0 ? mCalib.maxSpeed : -mCalib.maxSpeed;
+    } else {
+        mTargetSpeed = newTargetSpeed;
+    }
+
     if ( mSpeedFilter.GetValue() >= 0.0) {
         // Current speed > 0
         if ( newTargetSpeed <= -ZERO_SPEED ) {

@@ -64,6 +64,8 @@
 #define MT_HOST_DATA_LINE       40
 #define MT_PARAM                41
 #define MT_SPEEDCTRL            42
+#define MT_ACTUATOR_SPEED       43
+#define MT_ACTUATOR_PRESENT_POS 44
 #define MT_FLASH_SAVE_DATA      253
 #define MT_FLASH_LOAD_DATA      254
 #define MT_FLASH_LOAD_DEFAULT   255
@@ -158,7 +160,7 @@ public:
      *
      * @param msg The message.
      */
-    virtual void processQuMessage( const QuMessage &msg ) { /* Empty */ };
+    virtual void processQuMessage( const QuMessage &msg ) { /* Empty */ }
 
     /**
      * Called if the connection to the microcontroller is

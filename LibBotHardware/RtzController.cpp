@@ -9,7 +9,11 @@
 // INCLUDES
 ///////////////////////////////////////////////////////////////////////////////
 
+// Workspace
+#include <Global.h>
+
 // Project
+#include "MsgPrint.h"
 #include "RtzController.h"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -36,16 +40,48 @@ RtzController::RtzController(Actuators *act) :
 
 void RtzController::update() {
     if ( mUpdateStopwatch.msElapsed() < 15 )
-        return; // Nothing to do. Update only every 15 msec
+        return; // Nothing to do. Update only every 15 msecc
 
-    if ( true /* mNewRequest */ ) { // TODO What happens is we are not connected to the Avr32?!?
-        mActuators->setActuator( mRollId, mActuators->getActuatorZero( mRollId )
-                                + mCalib.rollDegToServo*180.0*mRollRequest/M_PI);
-        mActuators->setActuator( mTiltId, mActuators->getActuatorZero( mTiltId )
-                                + mCalib.tiltDegToServo*180.0*mTiltRequest/M_PI);
+    if ( true /* mNewRequest */ ) { // TODO What happens if there is no connection to the Avr32?
+        mActuators->setPosition( mRollId, mActuators->getZero( mRollId )
+                                + (S32)(mCalib.rollDegToServo*180.0*mRollRequest/M_PI));
+        mActuators->setPosition( mTiltId, mActuators->getZero( mTiltId )
+                                + (S32)(mCalib.tiltDegToServo*180.0*mTiltRequest/M_PI));
         mUpdateStopwatch.restart();
         mNewRequest = false;
     }
+}
+
+void RtzController::setMovingSpeed( double radPerSec ) {
+    mActuators->setMovingSpeed( mRollId, radPerSec );
+    mActuators->setMovingSpeed( mTiltId, radPerSec );
+}
+
+double RtzController::getRollRad() const {
+    S32 rawValue;
+
+    // Servo reports ist present position? Use it!
+    if ( mActuators->hasPositionFeedback( mRollId ))
+        rawValue = mActuators->getPresentPosition( mRollId );
+    else
+        rawValue = mActuators->getRequestedPosition( mRollId );
+
+    rawValue -= mActuators->getZero( mRollId );
+    return (M_PI/180.0)*(double)rawValue/mCalib.rollDegToServo;
+}
+
+double RtzController::getTiltRad() const {
+    S32 rawValue;
+
+    // Servo reports ist present position? Use it!
+    if ( mActuators->hasPositionFeedback( mTiltId ))
+        rawValue = mActuators->getPresentPosition( mTiltId );
+    else
+        rawValue = mActuators->getRequestedPosition( mTiltId );
+
+    rawValue -= mActuators->getZero( mTiltId );
+
+    return (M_PI/180.0)*(double)rawValue/mCalib.tiltDegToServo;
 }
 
 void RtzController::setRollTiltDegree( const double &roll, const double &tilt ) {
