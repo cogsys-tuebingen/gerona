@@ -1179,26 +1179,23 @@ namespace costmap_2d {
         	const uint32_t size = map.info.width * map.info.height;
         	map.data.assign (data, data + size);
 
-			double r = costmap_->getResolution();
+			const double r = costmap_->getResolution();
+			const double origin_x = costmap_->getOriginX () + costmap_->getSizeInMetersX() / 2;
+			const double origin_y = costmap_->getOriginY () + costmap_->getSizeInMetersY() / 2;
 
 			unsigned int ox, oy;
-			if (!costmap_->worldToMap(0., 0., ox, oy))
-			{
-				ROS_WARN ("Bubble origin is out of bounds!");
-			}
-			else
+			if (origin_bubble_radius_ && costmap_->worldToMap(origin_x, origin_y, ox, oy))
 			{
 				int bubble_radius_pxl = ceil(origin_bubble_radius_ / r);
 				double br = pow(bubble_radius_pxl, 2);
 
-				ROS_INFO_STREAM("d: " << ox << "; " << oy);
 				for(int x = -bubble_radius_pxl; x <= bubble_radius_pxl; ++x){
 					for(int y = -bubble_radius_pxl; y <= bubble_radius_pxl; ++y){
 						if(pow(x,2) + pow(y, 2) <= br)
 						{
-							int x_index = (x + ox);
-							int y_index = (y + oy);
-							map.data[y_index * map.info.width + x_index] = FREE_SPACE;
+							const uint32_t arr_index = (y + oy) * map.info.width + (x + ox);
+							if (arr_index < size)
+								map.data[arr_index] = FREE_SPACE;
 						}
 					}
 				}

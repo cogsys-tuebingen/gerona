@@ -43,19 +43,26 @@ PathFollowing::~PathFollowing()
 
 void PathFollowing::update_goal (const geometry_msgs::PoseStampedConstPtr &goal)
 {
+  bool valid = false;
   ROS_INFO("Pathfollowing:GOAL recieved");
+
   if (!goal->header.frame_id.compare("/base_link")||!goal->header.frame_id.compare("base_link")) {
     // transform to global pose
     ROS_INFO("pathfollower: new local goal %f %f %f",goal->pose.position.x,goal->pose.position.y,
                  RTOD(tf::getYaw(goal->pose.orientation)));
 
     listener_.transformPose("/map",ros::Time(0),*goal,"/base_link",goal_pose_global_);
+    valid = true;
+  } else if (!goal->header.frame_id.compare("/map")||!goal->header.frame_id.compare("map")) {
+	goal_pose_global_ = *goal;
+	valid = true;
+  }
 
+  if (valid) {
     ROS_INFO("pathfollower: new global goal %f %f %f",goal_pose_global_.pose.position.x,
              goal_pose_global_.pose.position.y,
              RTOD(tf::getYaw(goal_pose_global_.pose.orientation)));
     has_goal_=true;
-
   } else {
     ROS_WARN("pathfollower: unknown frame id %s",goal->header.frame_id.c_str());
   }
