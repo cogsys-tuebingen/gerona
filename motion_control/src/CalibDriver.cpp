@@ -160,7 +160,7 @@ int CalibDriver::doCtrlDrive(MotionFeedback& fb, MotionResult& result)
 {
   Vector3d current_pose;
   bool has_slam=getSlamPose(current_pose);
-  bool colliding=checkCollision(0,0.3);
+  bool colliding=checkCollision(beta_target_,0.3);
   fb.status=MotionFeedback::MOTION_CALIB;
   if (!has_slam) {
     if (colliding) {
