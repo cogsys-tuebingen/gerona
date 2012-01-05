@@ -101,8 +101,6 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
   }
   predictPose(Tt_,cmd_front_rad_,cmd_rear_rad_,direction*v_target_,
                 front_pred, rear_pred);
-  ROS_INFO("predict pose %f %f deltaf=%fdeg deltar=%fdeg",front_pred.x(),front_pred.y(),
-             cmd_front_rad_*180.0/M_PI, cmd_rear_rad_*180.0/M_PI);
 
   Line2d target_line;
   Vector2d target_pos( goal[0], goal[1] );
@@ -115,9 +113,9 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
     cmd_v_=direction*v_target_;
     cmd_front_rad_=-1.0*direction*deltaf;
     cmd_rear_rad_=-1.0*direction*deltar;
-    ROS_INFO("ef=%f er=%f deltaf=%fgrad deltar=%fgrad",ef,er,deltaf*180.0/M_PI,deltar*180.0/M_PI);
+
   } else {
-      ROS_INFO("uncontrolled");
+
   }
   // estimate course
   double beta=atan(0.5*(tan(deltaf)+tan(deltar)));
@@ -162,7 +160,6 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
 
     Vector3d robot_pose;
     goal_pose_global_.header.stamp=ros::Time::now();
-    ROS_INFO("received robot pose");
     try {
       goal_pose_global_.header.frame_id="/map";
       pose_listener_.transformPose("/base_link",ros::Time(0),goal_pose_global_,"/map",goal_pose_local);
@@ -175,7 +172,6 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
     Vector3d goal_vec;
     goal_vec.x()=goal_pose_local.pose.position.x;
     goal_vec.y()=goal_pose_local.pose.position.y;
-    ROS_INFO("moving to goal: %f %f",goal_vec.x(),goal_vec.y());
     // goal in reach for 4ws driver?
     double dist_goal=goal_vec.head<2>().norm();
     if ((dist_goal<0.3) ) {
@@ -187,7 +183,6 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
     } else {
       // driver drives towards goal
       goal_vec.z()=tf::getYaw(goal_pose_local.pose.orientation);
-      ROS_INFO("moving to goal: %f %f %f",goal_vec.x(),goal_vec.y(),goal_vec.z()*180.0/M_PI);
       state_=driveToGoal(goal_vec,feedback,result);
 
     }

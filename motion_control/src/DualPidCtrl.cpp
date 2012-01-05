@@ -29,7 +29,6 @@ void DualPidCtrl::reset()
 
 bool DualPidCtrl::execute(double ef, double er, double &deltaf, double &deltar)
 {
-    printf("deltamax=%fgrad\n",delta_max_);
     if (timer_.msElapsed()>=Ta_*1000.0) {
         timer_.restart();
         deltaf = Kp_*delta_max_*ef/e_max_;

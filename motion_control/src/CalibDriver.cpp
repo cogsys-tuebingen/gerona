@@ -1,5 +1,15 @@
+/**
+   (c) 2011 Karsten Bohlmann bohlmann@gmail.com
 
-#define EIGEN2_SUPPORT
+   @author Karsten Bohlmann
+   @date   12/2011
+   @file   CalibDriver.cpp
+
+*/
+
+#ifndef EIGEN2_SUPPORT
+  #define EIGEN2_SUPPORT
+#endif
 #include "Eigen/Core"
 #include <Eigen/Dense>
 #include <Eigen/LeastSquares>
@@ -26,14 +36,14 @@ void CalibDriver::configure(ros::NodeHandle &node)
 {
   node.param<int>("servoMidFront",servo_front_mid_,2250);
   node.param<int>("servoMidRear",servo_rear_mid_,2250);
-  node.param<int>("controlSleepMs",ctrl_sleep_ms_,300);
-  node.param<double>("tuningA",tuning_a_,0.6);
+  node.param<int>("controlSleepMs",ctrl_sleep_ms_,200);
+  node.param<double>("tuningA",tuning_a_,0.8);
   double ks11,ks12,ks21,ks22,kp_yaw;
   node.param<double>("ks11",ks11,1.0);
   node.param<double>("ks12",ks12,0.6787);
   node.param<double>("ks21",ks21,1);
-  node.param<double>("ks22",ks22,0.6);
-  node.param<double>("kpyaw",kp_yaw,1.2);
+  node.param<double>("ks22",ks22,-0.994);
+  node.param<double>("kpyaw",kp_yaw,1.0);
   Matrix2d ksinv;
   ksinv << ks11,ks12,ks21,ks22;
   dual_axis_calib_.SetKSinv(ksinv);
@@ -219,8 +229,8 @@ int CalibDriver::doCtrlDrive(MotionFeedback& fb, MotionResult& result)
 
       dual_axis_calib_.Execute(ctrl_time_ms/1000.0,beta_target_,beta_is,theta_target_,current_pose.z(),
                              cmd_servof_,cmd_servor_);
-      ROS_INFO("ctrl: betaset=%f betais=%f thetaset=%f thetais=%f servof=%f servor=%f",
-               beta_target_,beta_is,theta_target_,current_pose.z(),cmd_servof_,cmd_servor_);
+      ROS_INFO("ctrl: betaset=%fdeg betais=%fdeg thetaset=%f thetais=%f servof=%f servor=%f",
+               beta_target_*180.0/M_PI,beta_is*180.0/M_PI,theta_target_,current_pose.z(),cmd_servof_,cmd_servor_);
       ctrl_timer_.restart();
     }
     result.status=MotionResult::MOTION_STATUS_MOVING;
