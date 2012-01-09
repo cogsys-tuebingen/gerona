@@ -17,6 +17,7 @@
   <depend package="navfn"/>
   <depend package="visualization_msgs"/>
   <depend package="geometry_msgs"/>
+  <depend package="a_star"/>
 
 </package>
 

@@ -63,7 +63,7 @@ ExploreFrontier::ExploreFrontier() :
 ExploreFrontier::~ExploreFrontier()
 { /* Nothing to do */ }
 
-bool ExploreFrontier::getFrontiers( const nav_msgs::OccupancyGrid& map, std::vector<geometry_msgs::Pose>& frontiers ) {
+bool ExploreFrontier::getFrontiers( const CvMap& map, std::vector<geometry_msgs::Pose>& frontiers ) {
     findFrontiers( map );
     if ( frontiers_.size() == 0 )
         return false;
@@ -98,31 +98,11 @@ float ExploreFrontier::getFrontierGain( const Frontier& frontier, double map_res
     return frontier.size * map_resolution;
 }
 
-bool ExploreFrontier::isOpenCell( const nav_msgs::OccupancyGrid& map, unsigned int idx ) const {
-    return map.data[idx] != MAP_NO_INFORMATION && map.data[idx] < MAP_LETHAL_OBSTACLE;
-}
-
-double ExploreFrontier::getCellDistance( const nav_msgs::OccupancyGrid& map, const unsigned int idx1, const unsigned int idx2 ) const {
-    double x1, y1, x2, y2;
-    cellIdxToPosition( map, idx1, x1, y1 );
-    cellIdxToPosition( map, idx2, x2, y2 );
-    return std::sqrt( std::pow( x1 - x2, 2 ) + std::pow( y1 - y2, 2 ));
-}
-
-void ExploreFrontier::cellIdxToPosition( const nav_msgs::OccupancyGrid& map, unsigned int idx, double& x, double &y ) const {
-    x = map.info.origin.position.x + map.info.resolution * (double)(idx % map.info.width);
-    y = map.info.origin.position.y + map.info.resolution * (double)(idx / map.info.height);
-    /*if ( x < 0 ) x += 0.5*map.info.resolution;
-    else if ( x > 0 ) x -= 0.5*map.info.resolution;
-    if ( y < 0 ) y += 0.5*map.info.resolution;
-    else if ( y < 0 ) y -= 0.5*map.info.resolution;*/
-}
-
-void ExploreFrontier::findFrontiers( const nav_msgs::OccupancyGrid& map ) {
+void ExploreFrontier::findFrontiers( const CvMap& map ) {
     frontiers_.clear();
 
-    int w = map.info.width;
-    int h = map.info.height;
+    int w = map.image->width;
+    int h = map.image->height;
     unsigned int size = ( w * h );
 
     bool visited[size];
@@ -134,7 +114,7 @@ void ExploreFrontier::findFrontiers( const nav_msgs::OccupancyGrid& map ) {
 
     // For all cells
     for ( unsigned int i = 0; i < size; ++i ) {
-        if ( !isOpenCell( map, i ) || visited[i] )
+        if ( !map.isOpen( i ) || visited[i] )
             continue;
 
         frontier.clear();
@@ -153,19 +133,19 @@ void ExploreFrontier::findFrontiers( const nav_msgs::OccupancyGrid& map ) {
 
             unsigned int count = 0.0;
             btVector3 dir(0,0,0);
-            if ( left && map.data[cell-1] == MAP_NO_INFORMATION ) {
+            if ( left && map.isNoInformation( cell-1 )) {
                 count++;
                 dir += btVector3(-1, 0, 0);
             }
-            if ( right && map.data[cell+1] == MAP_NO_INFORMATION ) {
+            if ( right && map.isNoInformation( cell+1 )) {
                 ++count;
                 dir += btVector3(1, 0, 0);
             }
-            if ( top && map.data[cell-w] == MAP_NO_INFORMATION ) {
+            if ( top && map.isNoInformation( cell-w )) {
                 ++count;
                 dir += btVector3(0, -1, 0);
             }
-            if ( bottom && map.data[cell+w] == MAP_NO_INFORMATION ) {
+            if ( bottom && map.isNoInformation( cell+w )) {
                 ++count;
                 dir += btVector3(0, 1, 0);
             }
@@ -180,21 +160,21 @@ void ExploreFrontier::findFrontiers( const nav_msgs::OccupancyGrid& map ) {
             maxRowIdx = std::max((int)cell % w, maxRowIdx );
 
             // Current cell is a frontier cell. Visited all open and unvisited neighbor cells
-            if ( top && left && !visited[cell-w-1] && isOpenCell( map, cell-w-1 ))
+            if ( top && left && !visited[cell-w-1] && map.isOpen( cell-w-1 ))
                 toVisit.push_back( cell-w-1 );
-            if ( top && !visited[cell-w] && isOpenCell( map, cell-w ))
+            if ( top && !visited[cell-w] && map.isOpen( cell-w ))
                 toVisit.push_back( cell-w );
-            if ( top && right && !visited[cell-w+1] && isOpenCell( map, cell-w+1 ))
+            if ( top && right && !visited[cell-w+1] && map.isOpen( cell-w+1 ))
                 toVisit.push_back( cell-w+1 );
-            if ( left && !visited[cell-1] && isOpenCell( map, cell-1 ))
+            if ( left && !visited[cell-1] && map.isOpen( cell-1 ))
                 toVisit.push_back( cell-1 );
-            if ( right && !visited[cell+1] && isOpenCell( map, cell+1 ))
+            if ( right && !visited[cell+1] && map.isOpen( cell+1 ))
                 toVisit.push_back( cell+1 );
-            if ( bottom && left && !visited[cell+w-1] && isOpenCell( map, cell+w-1 ))
+            if ( bottom && left && !visited[cell+w-1] && map.isOpen( cell+w-1 ))
                 toVisit.push_back( cell+w-1 );
-            if ( bottom && !visited[cell+w] && isOpenCell( map, cell+w ))
+            if ( bottom && !visited[cell+w] && map.isOpen( cell+w ))
                 toVisit.push_back( cell+w );
-            if ( bottom && right && !visited[cell+w+1] && isOpenCell( map, cell+w+1 ))
+            if ( bottom && right && !visited[cell+w+1] && map.isOpen( cell+w+1 ))
                 toVisit.push_back( cell+w+1 );
         }
 
@@ -203,8 +183,8 @@ void ExploreFrontier::findFrontiers( const nav_msgs::OccupancyGrid& map ) {
             continue;
 
         // Check frontier length
-        if ( std::max( getCellDistance( map, minIdx, maxIdx ),
-                       getCellDistance( map, minRowIdx, maxRowIdx ))
+        if ( std::max( map.getDistance( minIdx, maxIdx ),
+                       map.getDistance( minRowIdx, maxRowIdx ))
              < min_frontier_length_ )
             continue;
 
@@ -219,7 +199,7 @@ void ExploreFrontier::findFrontiers( const nav_msgs::OccupancyGrid& map ) {
         if ( frontier.size() < 2 )
             middle = 0;
         double x, y;
-        cellIdxToPosition( map, frontier[middle].idx, x, y );
+        map.toWorld( frontier[middle].idx, x, y );
 
         // Create and store detected frontier
         Frontier newFrontier;
@@ -230,128 +210,6 @@ void ExploreFrontier::findFrontiers( const nav_msgs::OccupancyGrid& map ) {
         newFrontier.size = frontier.size();
         frontiers_.push_back( newFrontier );
     }
-
-    /*int idx;
-    int w = map.info.width;
-    int h = map.info.height;
-    int size = ( w * h );
-    char mapBuffer[size];
-
-    // Find all frontiers (open cells next to unknown cells)
-    for ( idx = 0; idx < size; ++idx ) {
-        if ((map.data[idx] < MAP_LETHAL_OBSTACLE && map.data[idx] != MAP_NO_INFORMATION ) &&
-                (((idx+1 < size) && (map.data[idx+1] == MAP_NO_INFORMATION)) ||
-                    ((idx-1 >= 0) && (map.data[idx-1] == MAP_NO_INFORMATION)) ||
-                    ((idx+w < size) && (map.data[idx+w] == MAP_NO_INFORMATION)) ||
-                    ((idx-w >= 0) && (map.data[idx-w] == MAP_NO_INFORMATION)))) {
-            mapBuffer[idx] = -128;
-        } else {
-            mapBuffer[idx] = -127;
-        }
-    }
-
-    // Clean up frontiers detected on separate rows of the map
-    // TODO I don't understand this. Wtf?
-    idx = h - 1;
-    for ( int y = 0; y < w; ++y ) {
-        mapBuffer[idx] = -127;
-        idx += h;
-    }
-
-    // Group adjoining map_ pixels
-    int segment_id = 127;
-    std::vector< std::vector<FrontierPoint> > segments;
-    for ( int i = 0; i < size; ++i ) {
-        if ( mapBuffer[i] == -128 ) {
-            std::vector<int> neighbors;
-            std::vector<FrontierPoint> segment;
-            neighbors.push_back(i);
-
-            // Claim all neighbors
-            while ( neighbors.size() > 0 ) {
-                int idx = neighbors.back();
-                neighbors.pop_back();
-                mapBuffer[idx] = segment_id;
-
-                btVector3 tot(0,0,0);
-                int c = 0;
-                if ((idx+1 < size) && (map.data[idx+1] == MAP_NO_INFORMATION)) {
-                    tot += btVector3(1,0,0);
-                    c++;
-                }
-                if ((idx-1 >= 0) && (map.data[idx-1] == MAP_NO_INFORMATION)) {
-                    tot += btVector3(-1,0,0);
-                    c++;
-                }
-                if ((idx+w < size) && (map.data[idx+w] == MAP_NO_INFORMATION)) {
-                    tot += btVector3(0,1,0);
-                    c++;
-                }
-                if ((idx-w >= 0) && (map.data[idx-w] == MAP_NO_INFORMATION)) {
-                    tot += btVector3(0,-1,0);
-                    c++;
-                }
-                assert(c > 0);
-                segment.push_back(FrontierPoint(idx, tot / c));
-
-                // Consider 8 neighborhood cells
-                if (((idx-1) > 0) && (mapBuffer[idx-1] == -128))
-                    neighbors.push_back(idx-1);
-                if (((idx + 1) < size) && (mapBuffer[idx+1] == -128))
-                    neighbors.push_back(idx+1);
-                if (((idx - w) > 0) && (mapBuffer[idx-w] == -128))
-                    neighbors.push_back(idx - w);
-                if (((idx - w + 1) > 0) && (mapBuffer[idx-w+1] == -128))
-                    neighbors.push_back(idx - w + 1);
-                if (((idx - w - 1) > 0) && (mapBuffer[idx-w-1] == -128))
-                    neighbors.push_back(idx - w - 1);
-                if (((idx + w) < size) && (mapBuffer[idx+w] == -128))
-                    neighbors.push_back(idx + w);
-                if (((idx + w + 1) < size) && (mapBuffer[idx+w+1] == -128))
-                    neighbors.push_back(idx + w + 1);
-                if (((idx + w - 1) < size) && (mapBuffer[idx+w-1] == -128))
-                    neighbors.push_back(idx + w - 1);
-            }
-
-            segments.push_back(segment);
-            segment_id--;
-            if ( segment_id < -127 )
-                break;
-        }
-    }
-
-    int num_segments = 127 - segment_id;
-    if ( num_segments <= 0 )
-        return;
-
-    for ( unsigned int i = 0; i < segments.size(); ++i ) {
-        Frontier frontier;
-        std::vector<FrontierPoint>& segment = segments[i];
-        std::size_t size = segment.size();
-
-        // Check min frontier length
-        if ( size * map.info.resolution < min_frontier_length_ )
-            continue;
-
-        float x = 0, y = 0;
-        btVector3 d(0,0,0);
-
-        for ( std::size_t j = 0; j < size; ++j ) {
-            d += segment[j].d;
-            int idx = segment[j].idx;
-            x += (idx % w);
-            y += (idx / w);
-        }
-        d = d / size;
-        frontier.pose.position.x = map.info.origin.position.x + map.info.resolution * (x / size);
-        frontier.pose.position.y = map.info.origin.position.y + map.info.resolution * (y / size);
-        frontier.pose.position.z = 0.0;
-
-        frontier.pose.orientation = tf::createQuaternionMsgFromYaw(btAtan2(d.y(), d.x()));
-        frontier.size = size;
-
-        frontiers_.push_back(frontier);
-    }*/
 
 }
 

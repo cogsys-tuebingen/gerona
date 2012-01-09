@@ -1,0 +1,24 @@
+<package>
+  <description brief="a_star">
+
+     a_star
+
+  </description>
+  <author>Henrik Marks</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url></url>
+
+  <depend package="roscpp"/>
+
+  <export>
+    <cpp cflags="-I${prefix}/include/"
+                 
+         lflags="-L${prefix}/lib
+                 -lcv" />
+  </export>
+
+
+</package>
+
+

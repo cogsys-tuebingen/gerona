@@ -37,16 +37,17 @@
 #ifndef EXPLORE_FRONTIER_H_
 #define EXPLORE_FRONTIER_H_
 
-#include <nav_msgs/GetMap.h>
-#include <nav_msgs/OccupancyGrid.h>
 #include <geometry_msgs/Pose.h>
 #include <visualization_msgs/Marker.h>
 
 #include <LinearMath/btVector3.h>
 
-#include <costmap_2d/costmap_2d_ros.h>
 #include <navfn/navfn_ros.h>
 #include <tf/transform_listener.h>
+
+#include "CvMap.h"
+
+//#include <a_star/AStar.h>
 
 namespace frontier_explore {
 
@@ -82,6 +83,7 @@ struct WeightedFrontier {
 class ExploreFrontier {
 private:
     double min_frontier_length_;
+    IplImage* map_;
 
     uint lastMarkerCount_;
     float costmapResolution_;
@@ -95,7 +97,7 @@ protected:
     * @brief Finds frontiers and populates frontiers_
     * @param map The map to search for frontiers
     */
-    virtual void findFrontiers( const nav_msgs::OccupancyGrid& map );
+    virtual void findFrontiers( const CvMap& map );
 
    /**
     * @brief Calculates cost to explore frontier
@@ -116,10 +118,6 @@ protected:
     */
     virtual float getFrontierGain(const Frontier& frontier, double map_resolution);
 
-    inline bool isOpenCell( const nav_msgs::OccupancyGrid& map, unsigned int idx ) const;
-    void cellIdxToPosition( const nav_msgs::OccupancyGrid& map, unsigned int idx, double &x, double &y ) const;
-    double getCellDistance( const nav_msgs::OccupancyGrid& map, const unsigned int idx1, const unsigned int idx2 ) const;
-
 public:
     ExploreFrontier();
     virtual ~ExploreFrontier();
@@ -130,7 +128,7 @@ public:
     * @param frontiers Will be filled with current frontiers
     * @return True if at least one frontier was found
     */
-    virtual bool getFrontiers( const nav_msgs::OccupancyGrid &map, std::vector<geometry_msgs::Pose>& frontiers );
+    virtual bool getFrontiers( const CvMap &map, std::vector<geometry_msgs::Pose>& frontiers );
 
         /**
    * @brief Returns a list of frontiers, sorted by the planners estimated cost to visit each frontier

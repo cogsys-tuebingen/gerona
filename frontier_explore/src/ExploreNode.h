@@ -18,8 +18,12 @@
 #include <ros/service_client.h>
 #include <nav_msgs/GetMap.h>
 
+// OpenCV
+#include <cv.h>
+
 // Project
 #include "ExploreFrontier.h"
+#include "CvMap.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // D E C L A R A T I O N S
@@ -36,7 +40,11 @@ public:
 
     bool calculateFrontiers();
 
+    void mapToCvMap( const nav_msgs::OccupancyGrid& map, CvMap& cvmap );
+
 private:
+    /// Map as cv image
+    CvMap cvmap_;
 
     /// Service client to get the current map
     ros::ServiceClient map_service_client_;
