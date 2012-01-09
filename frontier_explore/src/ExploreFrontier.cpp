@@ -47,13 +47,13 @@
 using namespace visualization_msgs;
 using namespace costmap_2d;
 
-#define MAP_LETHAL_OBSTACLE 50
+#define MAP_LETHAL_OBSTACLE 100
 #define MAP_NO_INFORMATION -1
 
 namespace frontier_explore {
 
 ExploreFrontier::ExploreFrontier() :
-    min_frontier_length_( 0.5 ),
+    min_frontier_length_( 0.6 ),
         lastMarkerCount_(0),
         planner_(NULL),
         frontiers_()
@@ -102,6 +102,13 @@ bool ExploreFrontier::isOpenCell( const nav_msgs::OccupancyGrid& map, unsigned i
     return map.data[idx] != MAP_NO_INFORMATION && map.data[idx] < MAP_LETHAL_OBSTACLE;
 }
 
+double ExploreFrontier::getCellDistance( const nav_msgs::OccupancyGrid& map, const unsigned int idx1, const unsigned int idx2 ) const {
+    double x1, y1, x2, y2;
+    cellIdxToPosition( map, idx1, x1, y1 );
+    cellIdxToPosition( map, idx2, x2, y2 );
+    return std::sqrt( std::pow( x1 - x2, 2 ) + std::pow( y1 - y2, 2 ));
+}
+
 void ExploreFrontier::cellIdxToPosition( const nav_msgs::OccupancyGrid& map, unsigned int idx, double& x, double &y ) const {
     x = map.info.origin.position.x + map.info.resolution * (double)(idx % map.info.width);
     y = map.info.origin.position.y + map.info.resolution * (double)(idx / map.info.height);
@@ -123,7 +130,7 @@ void ExploreFrontier::findFrontiers( const nav_msgs::OccupancyGrid& map ) {
     std::list<unsigned int> toVisit;
     bool left, right, top, bottom;
     std::vector<FrontierPoint> frontier;
-    int minIdx, maxIdx;
+    int minIdx, maxIdx, minRowIdx, maxRowIdx;
 
     // For all cells
     for ( unsigned int i = 0; i < size; ++i ) {
@@ -132,8 +139,8 @@ void ExploreFrontier::findFrontiers( const nav_msgs::OccupancyGrid& map ) {
 
         frontier.clear();
         toVisit.push_back( i );
-        minIdx = size;
-        maxIdx = -1;
+        minIdx = minRowIdx = size;
+        maxIdx = maxRowIdx = -1;
         while ( !toVisit.empty()) {
             unsigned int cell = toVisit.back();
             toVisit.pop_back();
@@ -167,10 +174,10 @@ void ExploreFrontier::findFrontiers( const nav_msgs::OccupancyGrid& map ) {
             if ( count == 0 )
                 continue;
             frontier.push_back( FrontierPoint( cell, dir / (double)count ));
-            if ((int)cell < minIdx )
-                minIdx = cell;
-            if ((int)cell > maxIdx )
-                maxIdx = cell;
+            minIdx = std::min((int)cell, minIdx );
+            maxIdx = std::max((int)cell, maxIdx );
+            minRowIdx = std::min((int)cell % w, minRowIdx );
+            maxRowIdx = std::max((int)cell % w, maxRowIdx );
 
             // Current cell is a frontier cell. Visited all open and unvisited neighbor cells
             if ( top && left && !visited[cell-w-1] && isOpenCell( map, cell-w-1 ))
@@ -196,11 +203,10 @@ void ExploreFrontier::findFrontiers( const nav_msgs::OccupancyGrid& map ) {
             continue;
 
         // Check frontier length
-        double xMin, yMin, xMax, yMax;
-        cellIdxToPosition( map, minIdx, xMin, yMin );
-        cellIdxToPosition( map, maxIdx, xMax, yMax);
-        if ( sqrt( pow( xMin - xMax, 2 ) + pow( yMin - yMax, 2 )) < min_frontier_length_ )
-            continue; // Too short
+        if ( std::max( getCellDistance( map, minIdx, maxIdx ),
+                       getCellDistance( map, minRowIdx, maxRowIdx ))
+             < min_frontier_length_ )
+            continue;
 
         // Compute frontier orientation
         btVector3 d( 0, 0, 0 );

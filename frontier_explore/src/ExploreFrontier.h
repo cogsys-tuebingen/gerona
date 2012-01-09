@@ -118,6 +118,7 @@ protected:
 
     inline bool isOpenCell( const nav_msgs::OccupancyGrid& map, unsigned int idx ) const;
     void cellIdxToPosition( const nav_msgs::OccupancyGrid& map, unsigned int idx, double &x, double &y ) const;
+    double getCellDistance( const nav_msgs::OccupancyGrid& map, const unsigned int idx1, const unsigned int idx2 ) const;
 
 public:
     ExploreFrontier();
