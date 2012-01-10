@@ -23,19 +23,24 @@
 class ROSReedsSheppPathPlanner
 {
 public:
-  ROSReedsSheppPathPlanner(ros::NodeHandle& n);
+  ROSReedsSheppPathPlanner(ros::NodeHandle& n, bool silent_mode = false);
 
   /**
-     * Callbacks
-     */
+   * Callbacks
+   */
   void update_goal (const geometry_msgs::PoseStampedConstPtr &goal);
   void update_odometry (const nav_msgs::OdometryConstPtr &odom);
   void update_map (const nav_msgs::OccupancyGridConstPtr &map);
 
   /**
-     * Calculate the shortest path and publish it
-     */
+   * Calculate the shortest path and publish it
+   */
   void calculate();
+
+  /**
+   * Retrieves last calculated path (empty path if calculation unsuccessful)
+   */
+  bool get_last_path(nav_msgs::PathConstPtr &dest);
 
 private:
   void send_arrow_marker(int id, Pose2d &pose,
@@ -46,6 +51,15 @@ private:
   void start_timer();
   double stop_timer();
 
+
+  // Initialization functions during constructor
+  void init_parameters();
+  void generate_rs_patterns();
+  void set_generator_parameters();
+  void init_subscribers();
+  void init_publishers();
+
+  // Member variables
   ros::NodeHandle m_node_handle;
 
   ReedsShepp::CurveGenerator m_rs_generator;
@@ -59,11 +73,15 @@ private:
   int m_threshold_min;
   int m_threshold_max;
 
+  bool m_silent_mode;
+
   bool m_has_curve;
 
   bool m_has_goal;
   bool m_has_odom;
   bool m_has_map;
+
+  nav_msgs::PathConstPtr m_last_path;
 
   std::string m_map_topic;
   std::string m_goal_topic;
