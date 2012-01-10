@@ -110,7 +110,8 @@ void CalibDriver::setGoal(const motion_control::MotionGoal &goal)
   beta_target_=goal.beta;
   speed_=goal.v;
   theta_target_=goal.theta;
-  ROS_INFO("calibration start: beta=%f speed=%f theta=%f",beta_target_*180.0/M_PI,speed_,theta_target_*180.0/M_PI);
+  ROS_INFO("calibration start: beta=%f speed=%f theta=%f v=%f",beta_target_*180.0/M_PI,speed_,theta_target_*180.0/M_PI,
+           speed_);
 
   start();
 }
@@ -120,6 +121,7 @@ void CalibDriver::start()
 {
   if (state_==CALIB_STATE_STOP) {
     move_timer_.restart();
+    beta_estimator_.reset();
     getSlamPose(start_pose_);
     cmd_servof_=servo_front_mid_;
     cmd_servor_=servo_rear_mid_;
@@ -133,6 +135,7 @@ int CalibDriver::doStartMove(MotionFeedback& fb, MotionResult& result)
 {
   bool colliding=checkCollision(0,0.3);
   if (colliding) {
+    ROS_INFO("collsion in calib start move");
     result.status=MotionResult::MOTION_STATUS_COLLISION;
     cmd_v_=0.0;
     return MotionResult::MOTION_STATUS_COLLISION;
@@ -149,6 +152,7 @@ int CalibDriver::doStartMove(MotionFeedback& fb, MotionResult& result)
     }
     bool has_slam=getSlamPose(current_pose);
     if (has_slam) {
+      beta_estimator_.update(current_pose);
       double dist_driven=(current_pose.head<2>()-start_pose_.head<2>()).norm();
       fb.dist_driven=dist_driven;
       if (dist_driven>0.3) {
@@ -214,7 +218,7 @@ int CalibDriver::doCtrlDrive(MotionFeedback& fb, MotionResult& result)
     // do ctrl
     int ctrl_time_ms=ctrl_timer_.msElapsed();
     if (ctrl_time_ms>MAX_BETA_WAIT_TIME_MS) {
-      ROS_WARN("failed to get a valid beta estimation for %f seconds. Stopping",ctrl_time_ms/1000.0);
+      ROS_WARN("failed to get a valid beta estimation for %f seconds.hasbeta=%d Stopping",ctrl_time_ms/1000.0,has_beta);
       cmd_v_=0;
       state_=CALIB_STATE_STOP;
       result.status=MotionResult::MOTION_STATUS_SLAM_FAIL;

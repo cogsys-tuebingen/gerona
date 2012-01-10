@@ -104,6 +104,7 @@ void MotionControlNode::update()
     default:
         action_server_.setAborted(result);
         active_ctrl_ = NULL;
+        status=MotionResult::MOTION_STATUS_STOP;
         break;
     }
   }
