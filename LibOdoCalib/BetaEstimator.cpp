@@ -31,18 +31,25 @@ void BetaEstimator::update (const Vector3d& p)
 }
 
 
+void BetaEstimator::reset()
+{
+  points_.clear();
+  dists_.clear();
+}
+
+
 bool BetaEstimator::getPointsToDist(double min_dist, Vector2dVec &ps, int theta_delta,double& theta)
 {
     // count how many points to go back to reach min_dist
     DList::reverse_iterator ritd=dists_.rbegin();
     double dist_sum=0.0;
     int cnt=0;
-    while (ritd!=dists_.rend()&&dist_sum<min_dist_) {
+    while (ritd!=dists_.rend()&& !(dist_sum>=min_dist_ && cnt>=3)) {
         dist_sum+=*ritd;
         ++ritd;
         ++cnt;
     }
-    if (dist_sum<min_dist_) {
+    if (dist_sum<min_dist_ || cnt<3) {
         return false;
     }
     ps.resize(cnt);
@@ -133,8 +140,13 @@ bool BetaEstimator::calcLsBetaAngle (int theta_delta, int direction, double& bet
     double theta;
     bool success=getPointsToDist(min_dist_,ps,theta_delta,theta);
     if (!success) return false;
+    if (ps.size()<3) {
+      std::cout << "too few points for beta estimation n="<<ps.size()<< std::endl;
+
+      return false;
+    }
     vector<Vector2d*> ptrs(ps.size());
-    for (int i = 0;i<ps.size();++i) {
+    for (unsigned int i = 0;i<ps.size();++i) {
         ptrs[i]=&(ps[i]);
     }
     Vector2d res;
@@ -177,6 +189,9 @@ bool BetaEstimator::calcLsBetaAngle (int theta_delta, int direction, double& bet
     }
     if (isnan(beta)) {
         std::cout << "beta is nan d="<<d<<" BA="<<BA <<" CA="<<CA<<std::endl;
+        for (unsigned int i=0;i<ps.size();++i) {
+          std::cout << ps[i]<<endl;
+        }
         return false;
     }
 
@@ -241,7 +256,7 @@ bool BetaEstimator::getConsensusSet(const Vector2dVec& points, double threshold,
     if (set.size()<quota*n) {
         return false;
     }
-    for (int i=0;i<set.size();++i) {
+    for (unsigned int i=0;i<set.size();++i) {
         conset.push_back(points[set[i]]);
     }
     return true;

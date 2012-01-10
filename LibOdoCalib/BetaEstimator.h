@@ -26,7 +26,7 @@ public:
     */
     BetaEstimator(double min_dist,double threshold, double quota);
 
-
+    void reset ();
     void update (const Vector3d& p);
     //double calcBetaAngle ();
     bool calcLsBetaAngle (int delta, int direction, double& beta);
