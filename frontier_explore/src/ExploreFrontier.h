@@ -55,7 +55,7 @@ struct FrontierPoint{
     int idx;     //position
     btVector3 d; //direction
 
-    FrontierPoint(int idx_, btVector3 d_) : idx(idx_), d(d_) {};
+    FrontierPoint(int idx_, btVector3 d_) : idx(idx_), d(d_) {}
 };
 
 struct Frontier {
@@ -69,7 +69,7 @@ struct Frontier {
 
 struct WeightedFrontier {
     Frontier frontier;
-    float cost;
+    double cost;
 
     bool operator<(const WeightedFrontier& o) const { return cost < o.cost; }
     WeightedFrontier():frontier(),cost(1e9) {}
@@ -100,7 +100,12 @@ protected:
     * @brief Calculates cost to explore frontier
     * @param frontier to evaluate
     */
-    virtual double getFrontierCost( const CvMap& map, const Frontier& frontier, const geometry_msgs::Pose& robot_pose );
+    virtual bool getFrontierCost( const CvMap& map,
+                                    const Frontier& frontier,
+                                    const geometry_msgs::Pose& robot_pose,
+                                    const double path_length_gain,
+                                    const double orientation_change_gain,
+                                    const double frontier_size_gain, double &cost );
 
    /**
     * @brief Calculates how much the robot would have to turn to face this frontier
