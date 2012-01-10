@@ -30,19 +30,33 @@ void CvMap::erode(unsigned int iterations) {
 }
 
 void CvMap::downsample() {
-    IplImage* dest = cvCreateImage( cvSize((image->width+1)/2, (image->height+1)/2), IPL_DEPTH_8U, 1 );
-
+    //IplImage* dest = cvCreateImage( cvSize((image->width+1)/2, (image->height+1)/2), IPL_DEPTH_8U, 1 );
+    // TODO
 }
 
-void CvMap::toWorld(const unsigned int idx, double &x, double &y) const {
-    x = origin_x + resolution * (double)(idx % image->width);
-    y = origin_y + resolution * (double)(idx / image->height);
+void CvMap::celltoWorld(const unsigned int cell, double &x, double &y) const {
+    x = origin_x + resolution * (double)(cell % image->width) + 0.5 * resolution;
+    y = origin_y + resolution * (double)(cell / image->height) + 0.5 * resolution;
+}
+
+void CvMap::cellToXY(const unsigned int cell, int &x, int &y) const {
+    x = cell % image->width;
+    y = cell / image->height;
+}
+
+bool CvMap::worldToCell(const double x, const double y, unsigned int &cell) const {
+    if ( x >= origin_x + image->width * resolution || y >= origin_y + image->height * resolution )
+        return false;
+
+    cell = (unsigned int)((x - origin_x)/resolution);
+    cell += image->width * (unsigned int)((y - origin_y)/resolution);
+    return true;
 }
 
 double CvMap::getDistance(const unsigned int idx1, const unsigned int idx2) const {
     double x1, y1, x2, y2;
-    toWorld( idx1, x1, y1 );
-    toWorld( idx2, x2, y2 );
+    celltoWorld( idx1, x1, y1 );
+    celltoWorld( idx2, x2, y2 );
     return std::sqrt( std::pow( x1 - x2, 2 ) + std::pow( y1 - y2, 2 ));
 }
 

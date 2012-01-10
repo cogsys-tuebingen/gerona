@@ -20,9 +20,11 @@ public:
 
     void resize( const unsigned int width, const unsigned int height );
     double getDistance( const unsigned int idx1, const unsigned int idx2 ) const;
-    void toWorld( const unsigned int idx, double &x, double& y ) const;
     void erode( unsigned int iterations = 1 );
     void downsample();
+    void cellToXY( const unsigned int cell, int &x, int &y ) const;
+    void celltoWorld( const unsigned int cell, double &x, double& y ) const;
+    bool worldToCell( const double x, const double y, unsigned int& cell ) const;
 
     bool isOpen( const unsigned int idx ) const;
     bool isNoInformation( const unsigned int idx ) const;

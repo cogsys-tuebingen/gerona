@@ -15,6 +15,7 @@
 
 // ROS
 #include <ros/ros.h>
+#include <tf/tf.h>
 #include <ros/service_client.h>
 #include <nav_msgs/GetMap.h>
 
@@ -42,12 +43,22 @@ public:
 
     void mapToCvMap( const nav_msgs::OccupancyGrid& map, CvMap& cvmap );
 
+protected:
+
+    bool getRobotPose(geometry_msgs::Pose &pose);
+
+    void publishFrontierVisu( const std::vector<frontier_explore::Frontier>& frontiers ) const;
+    void publishGoalsVisu( const std::vector<geometry_msgs::Pose>& goals );
+
 private:
     /// Map as cv image
     CvMap cvmap_;
 
     /// Service client to get the current map
     ros::ServiceClient map_service_client_;
+
+    /// Used to get the robot position
+    tf::TransformListener tf_;
 
     /// Visualization publisher
     ros::Publisher  visu_pub_;
@@ -58,6 +69,8 @@ private:
     /// Publish visualization?
     bool visualize_;
 
+    /// Number of publishe goal markers (used to delete old markers)
+    unsigned int goals_marker_count_;
 };
 
 

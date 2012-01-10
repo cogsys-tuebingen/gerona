@@ -45,18 +45,14 @@
 
 
 using namespace visualization_msgs;
-using namespace costmap_2d;
-
-#define MAP_LETHAL_OBSTACLE 100
-#define MAP_NO_INFORMATION -1
 
 namespace frontier_explore {
 
 ExploreFrontier::ExploreFrontier() :
     min_frontier_length_( 0.6 ),
-        lastMarkerCount_(0),
-        planner_(NULL),
-        frontiers_()
+    planner_(NULL),
+    lastMarkerCount_(0),
+    frontiers_()
 {
 }
 
@@ -75,23 +71,30 @@ bool ExploreFrontier::getFrontiers( const CvMap& map, std::vector<geometry_msgs:
     return (frontiers.size() > 0);
 }
 
-float ExploreFrontier::getFrontierCost( const Frontier& frontier ) {
-//    ROS_DEBUG("cost of frontier: %f, at position: (%.2f, %.2f, %.2f)", planner_->getPointPotential(frontier.pose.position),
-//              frontier.pose.position.x, frontier.pose.position.y, tf::getYaw(frontier.pose.orientation));
-    if ( planner_ != NULL )
-        return planner_->getPointPotential(frontier.pose.position);
-    else
-        return 1.0;
+double ExploreFrontier::getFrontierCost( const CvMap& map, const Frontier& frontier, const geometry_msgs::Pose& robot_pose ) {
+    if ( planner_ != NULL ) {
+        waypoint_t start, end;
+        unsigned int cell = 0;
+        map.worldToCell( robot_pose.position.x, robot_pose.position.y, cell );
+        map.cellToXY( cell, start.x, start.y );
+        map.worldToCell( frontier.pose.position.x, frontier.pose.position.y, cell );
+        map.cellToXY( cell, end.x, end.y );
+        path_t* path = planner_->planPath( start, end );
+
+        if ( path->size() <= 0 )
+            return -1.0;
+        //ROS_INFO( "Cost from (%d %d) to (%d %d): %f", start.x, start.y, end.x, end.y, (double)path->size());
+        return (double)path->size();
+    }
+
+    return 1.0;
 }
 
-double ExploreFrontier::getOrientationChange( const Frontier& frontier, const tf::Stamped<tf::Pose>& robot_pose ) {
-    double robot_yaw = tf::getYaw(robot_pose.getRotation());
-    double robot_atan2 = atan2(robot_pose.getOrigin().y() + sin(robot_yaw), robot_pose.getOrigin().x() + cos(robot_yaw));
+double ExploreFrontier::getOrientationChange( const Frontier& frontier, const geometry_msgs::Pose& robot_pose ) {
+    double robot_yaw = tf::getYaw( robot_pose.orientation );
+    double robot_atan2 = atan2(robot_pose.position.y + sin(robot_yaw), robot_pose.position.x + cos(robot_yaw));
     double frontier_atan2 = atan2(frontier.pose.position.x, frontier.pose.position.y);
-    double orientation_change = robot_atan2 - frontier_atan2;
-
-//    ROS_DEBUG("Orientation change: %.3f degrees, (%.3f radians)", orientation_change * (180.0 / M_PI), orientation_change);
-    return orientation_change;
+    return robot_atan2 - frontier_atan2;
 }
 
 float ExploreFrontier::getFrontierGain( const Frontier& frontier, double map_resolution ) {
@@ -199,7 +202,7 @@ void ExploreFrontier::findFrontiers( const CvMap& map ) {
         if ( frontier.size() < 2 )
             middle = 0;
         double x, y;
-        map.toWorld( frontier[middle].idx, x, y );
+        map.celltoWorld( frontier[middle].idx, x, y );
 
         // Create and store detected frontier
         Frontier newFrontier;
@@ -210,7 +213,60 @@ void ExploreFrontier::findFrontiers( const CvMap& map ) {
         newFrontier.size = frontier.size();
         frontiers_.push_back( newFrontier );
     }
+}
 
+bool ExploreFrontier::getExplorationGoals(
+        const CvMap& map,
+        geometry_msgs::Pose robot_pose,
+        std::vector<geometry_msgs::Pose>& goals,
+        double potential_scale,
+        double orientation_scale,
+        double gain_scale )
+{
+    // Calculate frontiers
+    findFrontiers( map );
+    ROS_INFO( "Found %d frontiers", (int)frontiers_.size());
+    if (frontiers_.size() == 0)
+        return false;
+
+    // Robot pose on map?
+    unsigned int cell = 0;
+    if ( !map.worldToCell( robot_pose.position.x, robot_pose.position.y, cell )) {
+        ROS_WARN( "Robot position (%f %f) not on map.", robot_pose.position.x, robot_pose.position.y );
+        return false;
+    }
+
+    // Initialize planner
+    if ( planner_ == NULL ) {
+        planner_ = new AStar( map.image, CVMAP_OPEN, 2, 0, false );
+    } else {
+        planner_->setNewMap( map.image );
+    }
+
+    // Compute weighted frontiers
+    std::vector<WeightedFrontier> weightedFrontiers;
+    WeightedFrontier goal;
+    double gain, cost, ori;
+    for ( std::size_t i = 0; i < frontiers_.size(); ++i ) {
+        goal.frontier = frontiers_[i];
+        gain = getFrontierGain( goal.frontier, map.resolution );
+        cost = getFrontierCost( map, goal.frontier, robot_pose );
+        ori = getOrientationChange( goal.frontier, robot_pose );
+        if ( cost < 0 )
+            continue; // Goal unreachable
+
+        goal.cost = potential_scale * cost + gain_scale * gain + orientation_scale * ori;
+        weightedFrontiers.push_back( goal );
+    }
+
+    goals.clear();
+    goals.reserve( weightedFrontiers.size());
+    std::sort( weightedFrontiers.begin(), weightedFrontiers.end());
+    for ( std::size_t i = 0; i < weightedFrontiers.size(); ++i ) {
+        goals.push_back(weightedFrontiers[i].frontier.pose);
+    }
+    ROS_INFO( "Found %d possible goals", (int)goals.size());
+    return goals.size() > 0;
 }
 
 void ExploreFrontier::getVisualizationMarkers(std::vector<Marker>& markers)

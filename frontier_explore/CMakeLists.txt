@@ -37,4 +37,4 @@ rosbuild_add_executable(ExploreNode
 )
 
 #link against OpenCV
-target_link_libraries(ExploreNode ${OpenCV_LIBS})
+target_link_libraries(ExploreNode ${OpenCV_LIBS} a_star)

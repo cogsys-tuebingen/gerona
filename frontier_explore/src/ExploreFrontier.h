@@ -45,9 +45,9 @@
 #include <navfn/navfn_ros.h>
 #include <tf/transform_listener.h>
 
-#include "CvMap.h"
+#include <a_star/AStar.h>
 
-//#include <a_star/AStar.h>
+#include "CvMap.h"
 
 namespace frontier_explore {
 
@@ -83,12 +83,9 @@ struct WeightedFrontier {
 class ExploreFrontier {
 private:
     double min_frontier_length_;
-    IplImage* map_;
+    AStar* planner_;
 
     uint lastMarkerCount_;
-    float costmapResolution_;
-
-    navfn::NavfnROS* planner_;
 
 protected:
     std::vector<Frontier> frontiers_;
@@ -103,14 +100,14 @@ protected:
     * @brief Calculates cost to explore frontier
     * @param frontier to evaluate
     */
-    virtual float getFrontierCost(const Frontier& frontier);
+    virtual double getFrontierCost( const CvMap& map, const Frontier& frontier, const geometry_msgs::Pose& robot_pose );
 
    /**
     * @brief Calculates how much the robot would have to turn to face this frontier
     * @param frontier to evaluate
     * @param robot_pose current pose
     */
-    virtual double getOrientationChange(const Frontier& frontier, const tf::Stamped<tf::Pose>& robot_pose);
+    virtual double getOrientationChange(const Frontier& frontier, const geometry_msgs::Pose& robot_pose);
 
    /**
     * @brief Calculates potential information gain of exploring frontier
@@ -149,7 +146,13 @@ public:
    * improves the robustness of goals which may lie near other obstacles
    * which would prevent planning.
    */
-        //virtual bool getExplorationGoals(costmap_2d::Costmap2DROS& costmap, tf::Stamped<tf::Pose> robot_pose, navfn::NavfnROS* planner, std::vector<geometry_msgs::Pose>& goals, double cost_scale, double orientation_scale, double gain_scale);
+    virtual bool getExplorationGoals(
+            const CvMap& map,
+            geometry_msgs::Pose robot_pose,
+            std::vector<geometry_msgs::Pose>& goals,
+            double potential_scale,
+            double orientation_scale,
+            double gain_scale );
 
    /**
     * @brief  Returns markers representing all frontiers

@@ -10,6 +10,9 @@
 // I N C L U D E S
 ///////////////////////////////////////////////////////////////////////////////
 
+// ROS
+#include <visualization_msgs/Marker.h>
+
 // OpenCv
 #include <highgui.h>
 
@@ -22,7 +25,9 @@
 
 ExploreNode::ExploreNode( ros::NodeHandle n ) :
     cvmap_( 10, 10, 0.1 ),
-    visualize_( true )
+    tf_( ros::Duration( 5.0 )),
+    visualize_( true ),
+    goals_marker_count_( 0 )
 {
     map_service_client_ = n.serviceClient<nav_msgs::GetMap>( "/dynamic_map" );
     visu_pub_ = n.advertise<visualization_msgs::Marker>( "visualization_markers", 100 );
@@ -41,23 +46,44 @@ bool ExploreNode::calculateFrontiers() {
     // Create cv image
     mapToCvMap( srv_map.response.map, cvmap_ );
     cvmap_.erode( 2 );
-    cvShowImage( "ExploreDebug", cvmap_.image );
-    cvWaitKey( 100 );
+    //cvShowImage( "ExploreDebug", cvmap_.image );
+    //cvWaitKey( 100 );
+
+    // Get the robot position
+    geometry_msgs::Pose robot_pose;
+    if ( !getRobotPose( robot_pose )) {
+        ROS_ERROR( "Cannot get robot position." );
+        return false;
+    }
 
     // Caluclate the frontiers
-    ROS_INFO( "Calculation frontiers" );
-    std::vector<geometry_msgs::Pose> frontiers;
-    explorer_.getFrontiers( cvmap_, frontiers );
-    ROS_INFO( "Found %d frontiers", (int)frontiers.size());
+    ROS_INFO( "Calculation exploration goals" );
+    std::vector<geometry_msgs::Pose> goals;
+    explorer_.getExplorationGoals( cvmap_, robot_pose, goals, 1.0, 5.0, 1.0);
 
     // Visualize detected frontiers
     if ( visualize_ ) {
         ROS_INFO( "Publishing markers" );
-        std::vector<visualization_msgs::Marker> markers;
-        explorer_.getVisualizationMarkers( markers );
-        for ( std::size_t i = 0; i < markers.size(); i++)
-            visu_pub_.publish( markers[i] );
+        publishGoalsVisu( goals );
     }
+
+    return true;
+}
+
+bool ExploreNode::getRobotPose( geometry_msgs::Pose& pose ) {
+    tf::StampedTransform trafo;
+    geometry_msgs::TransformStamped msg;
+    try {
+        tf_.lookupTransform( "/map", "/base_link", ros::Time(0), trafo );
+    } catch (tf::TransformException& ex) {
+        return false;
+    }
+
+    tf::transformStampedTFToMsg( trafo, msg );
+    pose.position.x = msg.transform.translation.x;
+    pose.position.y = msg.transform.translation.y;
+    pose.position.z = 0;
+    pose.orientation = msg.transform.rotation;
 
     return true;
 }
@@ -84,12 +110,49 @@ void ExploreNode::mapToCvMap( const nav_msgs::OccupancyGrid &map, CvMap& cvmap )
     }
 }
 
+void ExploreNode::publishGoalsVisu(const std::vector<geometry_msgs::Pose>& goals ) {
+    visualization_msgs::Marker m;
+    m.header.frame_id = "/map";
+    m.header.stamp = ros::Time::now();
+    m.id = 0;
+    m.ns = "exploration_goals";
+    m.type = visualization_msgs::Marker::ARROW;
+    m.scale.x = 1.5;
+    m.scale.y = 1.5;
+    m.scale.z = 1.5;
+    m.color.r = 255;
+    m.color.g = 0;
+    m.color.b = 0;
+    m.color.a = 200;
+    m.lifetime = ros::Duration(0);
+
+    m.action = visualization_msgs::Marker::ADD;
+    uint id = 0;
+    unsigned int count = 0;
+    for ( std::size_t i = 0; i < goals.size(); ++i ) {
+        m.id = id;
+        m.pose = goals[i];
+        visu_pub_.publish( m );
+        m.color.r = 0; // Only the first goal red
+        m.color.b = 255;
+        ++id;
+        ++count;
+    }
+
+    m.action = visualization_msgs::Marker::DELETE;
+    for (; id < goals_marker_count_; id++) {
+        m.id = id;
+        visu_pub_.publish( m );
+    }
+    goals_marker_count_ = count;
+}
+
 int main( int argc, char* argv[] ) {
 
     ros::init(argc,argv, "frontier_explore");
     ros::NodeHandle n("~");
     ExploreNode explore_node( n );
-    ros::Rate rate( 0.5 );
+    ros::Rate rate( 2 );
 
     cvInitSystem( argc, argv );
 

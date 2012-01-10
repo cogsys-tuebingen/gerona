@@ -94,10 +94,10 @@ path_t* AStar::planPath(waypoint_t start, waypoint_t goal){
 	else if(!isInMap(mGoal))
         cout << ("AStar: Goal is out of map.") << endl;
 	else {
-		if (getMapValue(mStart) < mThreshold)
+        if (getMapValue(mStart) < mThreshold)
 			mThreshold = getMapValue(mStart);
-		if (getMapValue(mGoal) < mThreshold)
-			mThreshold = getMapValue(mGoal);
+        /*if (getMapValue(mGoal) < mThreshold)
+            mThreshold = getMapValue(mGoal);*/
 		search();
 	}
 
