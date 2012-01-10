@@ -48,7 +48,19 @@ void SimpleGoalDriver::setGoal(const motion_control::MotionGoal &goal)
   goal_pose_global_.pose.position.z=0;
   goal_pose_global_.pose.orientation=
     tf::createQuaternionMsgFromRollPitchYaw(0.0,0.0,goal.theta);
-  v_target_ = goal.v;
+  default_v_ = goal.v;
+  if (fabs(default_v_)<0.01) {
+    ROS_ERROR("motion_planner:simplegoaldriver robot speed set to %fm/sec - speed too slow",default_v_);
+    state_=MotionResult::MOTION_STATUS_MOVE_FAIL;
+    return;
+  }
+  if (goal.mode==motion_control::MotionGoal::MOTION_FOLLOW_TARGET) {
+    goal_v_=goal.target_v;
+  } else {
+    goal_v_=0.0;
+  }
+  ROS_INFO("simplegoaldriver::setgoal: x=%f y=%f v=%f",goal_pose_global_.pose.position.x,
+           goal_pose_global_.pose.position.y,goal_v_);
   start();
 }
 
@@ -99,7 +111,7 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
   } else {
       direction = +1.0;
   }
-  predictPose(Tt_,cmd_front_rad_,cmd_rear_rad_,direction*v_target_,
+  predictPose(Tt_,cmd_front_rad_,cmd_rear_rad_,direction*default_v_,
                 front_pred, rear_pred);
 
   Line2d target_line;
@@ -110,12 +122,10 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
   double deltaf,deltar;
   bool controlled=ctrl_.execute(ef,er,deltaf,deltar);
   if (controlled) {
-    cmd_v_=direction*v_target_;
+    cmd_v_=direction*default_v_;
     cmd_front_rad_=-1.0*direction*deltaf;
     cmd_rear_rad_=-1.0*direction*deltar;
-
   } else {
-
   }
   // estimate course
   double beta=atan(0.5*(tan(deltaf)+tan(deltar)));
@@ -129,7 +139,7 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
     cmd_v_=0.0;
     return MotionResult::MOTION_STATUS_COLLISION;
   } else {
-    cmd_v_=direction*v_target_;
+    cmd_v_=direction*default_v_;
     result.status=MotionResult::MOTION_STATUS_MOVING;
     return MotionResult::MOTION_STATUS_MOVING;
   }
@@ -178,7 +188,7 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
       // goal reached
       result.status=MotionResult::MOTION_STATUS_SUCCESS;
       state_=MotionResult::MOTION_STATUS_SUCCESS;
-      cmd_v_=0;
+      cmd_v_=goal_v_;
       ROS_INFO("simplegoaldriver: goal reached");
     } else {
       // driver drives towards goal

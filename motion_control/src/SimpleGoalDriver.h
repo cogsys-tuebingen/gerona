@@ -33,11 +33,12 @@ private:
     double cmd_v_;
     double cmd_front_rad_,cmd_rear_rad_;
     double theta_target_;
-    double v_target_;
+    double default_v_;
     Vector2d pos_target_;
     int state_;
     Stopwatch move_timer_;
     geometry_msgs::PoseStamped goal_pose_global_;
+    double goal_v_;
     Vector3d start_pose_;
     DualPidCtrl ctrl_;
     double L_; // wheelbase

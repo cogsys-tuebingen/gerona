@@ -46,6 +46,7 @@ void MotionControlNode::goalCallback()
       active_ctrl_->setGoal(*goalptr);
       break;
     case motion_control::MotionGoal::MOTION_TO_GOAL:
+    case motion_control::MotionGoal::MOTION_FOLLOW_TARGET:
       active_ctrl_=simple_goal_driver_;
       active_ctrl_->setGoal(*goalptr);
       break;      

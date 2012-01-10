@@ -5,16 +5,21 @@ int32 MOTION_FOLLOW_PATH=       4
 int32 MOTION_FOLLOW_TARGET=     5
 #goal definition
 int32 mode
+# pose of goal in WCS
 float32 x
 float32 y
 float32 theta
+# driving speed of robot (interpreted as recommended value)
 float32 v
+# sideslip angle of robot
 float32 beta
-float32 follow_dist
+# movement speed of goal (used in follow target)
+float32 target_v
 #int32 servof
 #int32 servor
 #float32 deltaf
 #float32 deltar
+#float32 follow_dist
 ---
 #result definition
 int32 MOTION_STATUS_STOP=  0
