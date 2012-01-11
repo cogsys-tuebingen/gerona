@@ -11,6 +11,7 @@ rosbuild_add_library (LibRobot
     Laser2dScan.cpp
     LaserEnvironment.cpp
     WheelOdometry.cpp
+    Costmap.cpp
 )
 
 target_link_libraries( LibRobot boost_thread-mt )
