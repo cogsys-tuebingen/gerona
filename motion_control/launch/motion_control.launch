@@ -1,0 +1,12 @@
+<launch>
+  
+  <node name="motion_control" pkg="motion_control" type="motion_control" respawn="false" output="screen">
+    <param name="kp" value="0.9" />
+    <param name="ki" value="0.00001" />
+    <param name="kd" value="0.2" />
+    <param name="forward_speed" value="0.40" />
+    <param name="backward_speed" value="0.40" />
+    <param name="waypoint_threshold" value="0.2" />
+    <param name="steer_max" value="20.0f" />
+  </node>
+</launch>
