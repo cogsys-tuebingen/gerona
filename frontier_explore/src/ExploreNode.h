@@ -30,24 +30,48 @@
 // D E C L A R A T I O N S
 ///////////////////////////////////////////////////////////////////////////////
 
-
+/**
+ * A node offering an frontier based exploration algorithm.
+ */
 class ExploreNode {
 public:
 
     /**
-     * Initialize the object.
+     * Read configuration and initialize all members.
      */
     ExploreNode( ros::NodeHandle n );
 
     bool calculateFrontiers();
 
-    void mapToCvMap( const nav_msgs::OccupancyGrid& map, CvMap& cvmap );
-
 protected:
 
+    /**
+     * @brief Convert a ROS occupancy grid map to the internally used map type.
+     *
+     * This function will resize the map if neccessary.
+     *
+     * @param map The occupancy grid map.
+     * @param cvmap The internally used map.
+     */
+    void occupancyGridToCvMap( const nav_msgs::OccupancyGrid& map, CvMap& cvmap );
+
+    /**
+     * @brief Try to get the current robot pose in map coordinates.
+     *
+     * @param pose The pose will be written to this parameter.
+     *
+     * @return False if the transform is (temporarily) not available. True otherwise.
+     */
     bool getRobotPose(geometry_msgs::Pose &pose);
 
-    void publishFrontierVisu( const std::vector<frontier_explore::Frontier>& frontiers ) const;
+    /**
+     * @brief Publish a visualization of the given explorations goals.
+     *
+     * Publishes an arrow marker for each goal and deletes obsolete markers. The best
+     * goal will be red. All other goals are blue.
+     *
+     * @param goals The goals.
+     */
     void publishGoalsVisu( const std::vector<geometry_msgs::Pose>& goals );
 
 private:
@@ -61,16 +85,25 @@ private:
     tf::TransformListener tf_;
 
     /// Visualization publisher
-    ros::Publisher  visu_pub_;
+    ros::Publisher visu_pub_;
 
     /// Detects the frontiers
     frontier_explore::ExploreFrontier explorer_;
 
+    /// Number of published goal markers (used to delete old markers)
+    unsigned int goals_marker_count_;
+
+    /// Map erode iterations
+    int erode_;
+
+    /// Map downsample iterations
+    int downsample_;
+
     /// Publish visualization?
     bool visualize_;
 
-    /// Number of publishe goal markers (used to delete old markers)
-    unsigned int goals_marker_count_;
+    /// Show debug map image?
+    bool show_debug_map_;
 };
 
 

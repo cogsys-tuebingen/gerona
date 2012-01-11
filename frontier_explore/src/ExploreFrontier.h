@@ -38,7 +38,6 @@
 #define EXPLORE_FRONTIER_H_
 
 #include <geometry_msgs/Pose.h>
-#include <visualization_msgs/Marker.h>
 
 #include <LinearMath/btVector3.h>
 
@@ -83,9 +82,11 @@ struct WeightedFrontier {
 class ExploreFrontier {
 private:
     double min_frontier_length_;
-    AStar* planner_;
+    double path_length_gain_;
+    double orientation_change_gain_;
+    double frontier_length_gain_;
 
-    uint lastMarkerCount_;
+    AStar* planner_;
 
 protected:
     std::vector<Frontier> frontiers_;
@@ -103,22 +104,7 @@ protected:
     virtual bool getFrontierCost( const CvMap& map,
                                     const Frontier& frontier,
                                     const geometry_msgs::Pose& robot_pose,
-                                    const double path_length_gain,
-                                    const double orientation_change_gain,
-                                    const double frontier_size_gain, double &cost );
-
-   /**
-    * @brief Calculates how much the robot would have to turn to face this frontier
-    * @param frontier to evaluate
-    * @param robot_pose current pose
-    */
-    virtual double getOrientationChange(const Frontier& frontier, const geometry_msgs::Pose& robot_pose);
-
-   /**
-    * @brief Calculates potential information gain of exploring frontier
-    * @param frontier to evaluate
-    */
-    virtual float getFrontierGain(const Frontier& frontier, double map_resolution);
+                                    double &cost );
 
 public:
     ExploreFrontier();
@@ -154,16 +140,12 @@ public:
     virtual bool getExplorationGoals(
             const CvMap& map,
             geometry_msgs::Pose robot_pose,
-            std::vector<geometry_msgs::Pose>& goals,
-            double potential_scale,
-            double orientation_scale,
-            double gain_scale );
+            std::vector<geometry_msgs::Pose>& goals );
 
-   /**
-    * @brief  Returns markers representing all frontiers
-    * @param markers All markers will be added to this vector
-    */
-    virtual void getVisualizationMarkers(std::vector<visualization_msgs::Marker>& markers);
+    virtual void setMinFrontierLength( const double min_length ) { min_frontier_length_ = min_length; }
+    virtual void setPathLengthGain( const double gain ) { path_length_gain_ = gain; }
+    virtual void setOrientationChangeGain( const double gain ) { orientation_change_gain_ = gain; }
+    virtual void setFrontierLengthGain( const double gain ) { frontier_length_gain_ = gain; }
 };
 
 }

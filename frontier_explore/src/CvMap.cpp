@@ -30,8 +30,34 @@ void CvMap::erode(unsigned int iterations) {
 }
 
 void CvMap::downsample() {
-    //IplImage* dest = cvCreateImage( cvSize((image->width+1)/2, (image->height+1)/2), IPL_DEPTH_8U, 1 );
-    // TODO
+    IplImage* dest = cvCreateImage( cvSize(image->width/2, image->height/2), IPL_DEPTH_8U, 1 );
+
+    unsigned char* quad[4];
+    quad[0] = (unsigned char*)image->imageData;
+    quad[1] = (unsigned char*)&image->imageData[1];
+    quad[2] = (unsigned char*)&image->imageData[image->widthStep];
+    quad[3] = (unsigned char*)&image->imageData[image->widthStep+1];
+
+    unsigned char min;
+    for ( int row = 0; row < dest->height; ++row ) {
+        for ( int cell = 0; cell < dest->width; ++cell ) {
+            min = 255;
+            for ( int i = 0; i < 4; ++i ) {
+                if ( *quad[i] < min )
+                    min = *quad[i];
+                quad[i] += 2;
+            }
+            dest->imageData[row*dest->widthStep + cell] = min;
+        }
+        quad[0] = (unsigned char*)&image->imageData[2*row*image->widthStep];
+        quad[1] = (unsigned char*)&image->imageData[2*row*image->widthStep+1];
+        quad[2] = (unsigned char*)&image->imageData[(2*row+1)*image->widthStep];
+        quad[3] = (unsigned char*)&image->imageData[(2*row+1)*image->widthStep+1];
+    }
+    resize( dest->width, dest->height );
+    cvCopyImage( dest, image );
+    cvReleaseImage( &dest );
+    resolution *= 2.0;
 }
 
 void CvMap::celltoWorld(const unsigned int cell, double &x, double &y) const {
@@ -50,6 +76,14 @@ bool CvMap::worldToCell(const double x, const double y, unsigned int &cell) cons
 
     cell = (unsigned int)((x - origin_x)/resolution);
     cell += image->width * (unsigned int)((y - origin_y)/resolution);
+    return true;
+}
+
+bool CvMap::worldToXY(const double x, const double y, int &cellX, int &cellY) const {
+    unsigned int cell;
+    if ( !worldToCell( x, y, cell ))
+        return false;
+    cellToXY( cell, cellX, cellY );
     return true;
 }
 

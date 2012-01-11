@@ -25,6 +25,7 @@ public:
     void cellToXY( const unsigned int cell, int &x, int &y ) const;
     void celltoWorld( const unsigned int cell, double &x, double& y ) const;
     bool worldToCell( const double x, const double y, unsigned int& cell ) const;
+    bool worldToXY( const double x, const double y, int& cellX, int& cellY ) const;
 
     bool isOpen( const unsigned int idx ) const;
     bool isNoInformation( const unsigned int idx ) const;

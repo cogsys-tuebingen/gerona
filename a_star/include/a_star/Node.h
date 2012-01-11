@@ -35,8 +35,8 @@ public:
 
 private:
 	waypoint_t mPosition;
-	double mDistance;
-	double mPrediction;
+    float mDistance;
+    float mPrediction;
 	Node* mParent;
 	bool mVisited;
 	bool mInitialized;

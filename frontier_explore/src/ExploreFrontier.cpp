@@ -44,14 +44,14 @@
 #include "ExploreFrontier.h"
 
 
-using namespace visualization_msgs;
-
 namespace frontier_explore {
 
 ExploreFrontier::ExploreFrontier() :
     min_frontier_length_( 0.6 ),
+    path_length_gain_( 1.0 ),
+    orientation_change_gain_( 1.0 ),
+    frontier_length_gain_( 1.0 ),
     planner_(NULL),
-    lastMarkerCount_(0),
     frontiers_()
 {
 }
@@ -69,56 +69,6 @@ bool ExploreFrontier::getFrontiers( const CvMap& map, std::vector<geometry_msgs:
         frontiers.push_back( frontiers_[i].pose );
 
     return (frontiers.size() > 0);
-}
-
-bool ExploreFrontier::getFrontierCost( const CvMap& map,
-                                       const Frontier& frontier,
-                                       const geometry_msgs::Pose& robot_pose,
-                                       const double path_length_gain,
-                                       const double orientation_change_gain,
-                                       const double frontier_size_gain,
-                                       double& cost ) {
-    double path_length, ori_change;
-    if ( planner_ != NULL ) {
-        waypoint_t start, end;
-        unsigned int cell = 0;
-        map.worldToCell( robot_pose.position.x, robot_pose.position.y, cell );
-        map.cellToXY( cell, start.x, start.y );
-        map.worldToCell( frontier.pose.position.x, frontier.pose.position.y, cell );
-        map.cellToXY( cell, end.x, end.y );
-        path_t* path = planner_->planPath( start, end );
-
-        if ( path->size() <= 1 )
-            return false; // Frontier unrechable
-
-        path_length = path->size() * map.resolution;
-
-        //ori_change = std::acos( start.x*(*path)[1].x + start.y*(*path)[1].y);
-        //ori_change /= std::sqrt( pow( start.x, 2 ) + pow( start.y, 2 ))
-                    //    * std::sqrt( pow((*path)[1].x, 2 ) + pow((*path)[1].y, 2 ));
-        //ROS_INFO( "Path length: %f Orientation change: %f", path_length, ori_change );
-        ori_change = 1.0;
-        ROS_INFO( "Start: %d %d First path cell: %d %d", start.x, start.y, (*path)[1].x, (*path)[1].y );
-    } else {
-        path_length = 1.0;
-        ori_change = 0.0; // TODO
-    }
-
-    cost = path_length_gain * path_length
-            + orientation_change_gain * ori_change
-            - frontier_size_gain * frontier.size * map.resolution;
-    return true;
-}
-
-double ExploreFrontier::getOrientationChange( const Frontier& frontier, const geometry_msgs::Pose& robot_pose ) {
-    double robot_yaw = tf::getYaw( robot_pose.orientation );
-    double robot_atan2 = atan2(robot_pose.position.y + sin(robot_yaw), robot_pose.position.x + cos(robot_yaw));
-    double frontier_atan2 = atan2(frontier.pose.position.x, frontier.pose.position.y);
-    return robot_atan2 - frontier_atan2;
-}
-
-float ExploreFrontier::getFrontierGain( const Frontier& frontier, double map_resolution ) {
-    return frontier.size * map_resolution;
 }
 
 void ExploreFrontier::findFrontiers( const CvMap& map ) {
@@ -238,10 +188,7 @@ void ExploreFrontier::findFrontiers( const CvMap& map ) {
 bool ExploreFrontier::getExplorationGoals(
         const CvMap& map,
         geometry_msgs::Pose robot_pose,
-        std::vector<geometry_msgs::Pose>& goals,
-        double potential_scale,
-        double orientation_scale,
-        double gain_scale )
+        std::vector<geometry_msgs::Pose>& goals )
 {
     // Calculate frontiers
     findFrontiers( map );
@@ -268,8 +215,7 @@ bool ExploreFrontier::getExplorationGoals(
     WeightedFrontier goal;
     for ( std::size_t i = 0; i < frontiers_.size(); ++i ) {
         goal.frontier = frontiers_[i];
-        if ( getFrontierCost( map, goal.frontier, robot_pose,
-                              potential_scale, orientation_scale, gain_scale, goal.cost ))
+        if ( getFrontierCost( map, goal.frontier, robot_pose, goal.cost ))
             weightedFrontiers.push_back( goal );
     }
 
@@ -283,43 +229,54 @@ bool ExploreFrontier::getExplorationGoals(
     return goals.size() > 0;
 }
 
-void ExploreFrontier::getVisualizationMarkers(std::vector<Marker>& markers)
-{
-    Marker m;
-    m.header.frame_id = "/map";
-    m.header.stamp = ros::Time::now();
-    m.id = 0;
-    m.ns = "frontiers";
-    m.type = Marker::ARROW;
-    m.pose.position.x = 0.0;
-    m.pose.position.y = 0.0;
-    m.pose.position.z = 0.0;
-    m.scale.x = 1.0; //0.8;
-    m.scale.y = 1.0; //0.6;
-    m.scale.z = 1.0;
-    m.color.r = 255;
-    m.color.g = 0;
-    m.color.b = 0;
-    m.color.a = 255;
-    m.lifetime = ros::Duration(0);
+bool ExploreFrontier::getFrontierCost( const CvMap& map,
+                                       const Frontier& frontier,
+                                       const geometry_msgs::Pose& robot_pose,
+                                       double &cost ) {
+    double path_length, ori_change;
+    if ( planner_ != NULL ) {
+        // Plan a path from the current position to the frontier
+        waypoint_t start, end;
+        map.worldToXY( robot_pose.position.x, robot_pose.position.y, start.x, start.y );
+        map.worldToXY( frontier.pose.position.x, frontier.pose.position.y, end.x, end.y );
+        path_t* path = planner_->planPath( start, end );
 
-    m.action = Marker::ADD;
-    uint id = 0;
-    for (uint i=0; i<frontiers_.size(); i++) {
-        Frontier frontier = frontiers_[i];
-        m.id = id;
-        m.pose = frontier.pose;
-        markers.push_back(Marker(m));
-        id++;
+        // Frontier is reachable?
+        if ( path->size() == 0 )
+            return false;
+
+        // Calculate frontier cost parameters
+        path_length = path->size() * map.resolution; // Well, this is an approximation...
+
+        // The difference between the robot orientation and the frontier orientation is
+        // important if the robot is close to the frontier. It is not so important
+        // if the frontier is far away. In this case we check the difference between the
+        // robot orientation and the start of the planned path
+        double robot_yaw = tf::getYaw( robot_pose.orientation );;
+        if ( path_length < 2.0 || path->size() < 2 ) {
+            ori_change = std::fabs( robot_yaw - tf::getYaw( frontier.pose.orientation ));
+            while ( ori_change > M_PI )
+                ori_change -= 2.0*M_PI;
+        } else {
+            // First waypoint is the start cell
+            btVector3 path_ori((*path)[1].x - start.x, (*path)[1].y - start.y, 0.0 );
+            ori_change = std:: fabs( path_ori.angle( btVector3( std::cos( robot_yaw ), std::sin( robot_yaw ), 0.0 )));
+        }
+
+        ROS_INFO( "path length: %f ori change: %f", path_length, ori_change );
+
+    } else {
+        // TODO Compute something usefull here
+        path_length = 1.0;
+        ori_change = 1.0;
     }
 
-    m.action = Marker::DELETE;
-    for (; id < lastMarkerCount_; id++) {
-        m.id = id;
-        markers.push_back(Marker(m));
-    }
+    // Calculate final frontier cost
+    cost = path_length_gain_ * path_length
+            + orientation_change_gain_ * ori_change
+            - frontier_length_gain_ * map.resolution * frontier.size;
 
-    lastMarkerCount_ = markers.size();
+    return true;
 }
 
 /*bool ExploreFrontier::getExplorationGoals(Costmap2DROS& costmap, tf::Stamped<tf::Pose> robot_pose, navfn::NavfnROS* planner, std::vector<geometry_msgs::Pose>& goals, double potential_scale, double orientation_scale, double gain_scale)
@@ -382,6 +339,13 @@ void ExploreFrontier::getVisualizationMarkers(std::vector<Marker>& markers)
         goals.push_back(weightedFrontiers[i].frontier.pose);
     }
     return (goals.size() > 0);
+}*/
+
+/*double ExploreFrontier::getOrientationChange( const Frontier& frontier, const geometry_msgs::Pose& robot_pose ) {
+    double robot_yaw = tf::getYaw( robot_pose.orientation );
+    double robot_atan2 = atan2(robot_pose.position.y + sin(robot_yaw), robot_pose.position.x + cos(robot_yaw));
+    double frontier_atan2 = atan2(frontier.pose.position.x, frontier.pose.position.y);
+    return robot_atan2 - frontier_atan2;
 }*/
 
 } // Namespace frontier_explore

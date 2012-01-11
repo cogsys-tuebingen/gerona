@@ -6,10 +6,6 @@
  *
  */
 
-///////////////////////////////////////////////////////////////////////////////
-// I N C L U D E S
-///////////////////////////////////////////////////////////////////////////////
-
 // ROS
 #include <visualization_msgs/Marker.h>
 
@@ -20,34 +16,72 @@
 #include "ExploreNode.h"
 
 ///////////////////////////////////////////////////////////////////////////////
-// I M P L E M E N T A T I O N
+// class ExploreNode
 ///////////////////////////////////////////////////////////////////////////////
 
 ExploreNode::ExploreNode( ros::NodeHandle n ) :
     cvmap_( 10, 10, 0.1 ),
     tf_( ros::Duration( 5.0 )),
-    visualize_( true ),
     goals_marker_count_( 0 )
 {
+    // Map options
+    n.param<int>( "erode_iterations", erode_, 1 );
+    n.param<int>( "downsample_iterations", downsample_, 1 );
+
+    // Goal selection config
+    double length_gain, ori_gain, path_gain, min_length;
+    n.param<double>( "frontier_length_gain", length_gain, 1.0 );
+    n.param<double>( "frontier_dist_gain", path_gain, 2.0 );
+    n.param<double>( "frontier_orientation_gain", ori_gain, 5.0 );
+    n.param<double>( "min_frontier_length", min_length, 0.5 );
+
+    // Misc options
+    n.param<bool>( "visualize", visualize_, false );
+    n.param<bool>( "show_debug_map", show_debug_map_, false );
+
+    // Check options
+    if ( erode_ < 0 ) {
+        ROS_WARN( "Invalid number of erode iterations: %d. Setting parameter \"erode_iterations\" to zero.", erode_ );
+        erode_ = 0;
+    }
+    if ( downsample_ < 0 ) {
+        ROS_WARN( "Invalid number of downsample iterations: %d. Setting parameter \"downsample_iterations\" to zero.", downsample_ );
+        downsample_ = 0;
+    }
+
+    // Setup
+    explorer_.setFrontierLengthGain( length_gain );
+    explorer_.setOrientationChangeGain( ori_gain );
+    explorer_.setPathLengthGain( path_gain );
+    explorer_.setMinFrontierLength( min_length );
+
+    // Neccessary ROS stuff
     map_service_client_ = n.serviceClient<nav_msgs::GetMap>( "/dynamic_map" );
-    visu_pub_ = n.advertise<visualization_msgs::Marker>( "visualization_markers", 100 );
-    cvNamedWindow("ExploreDebug", CV_WINDOW_NORMAL );
+    if ( visualize_ )
+        visu_pub_ = n.advertise<visualization_msgs::Marker>( "visualization_markers", 100 );
+    if ( show_debug_map_ )
+        cvNamedWindow( "ExploreDebug", CV_WINDOW_NORMAL );
 }
 
 bool ExploreNode::calculateFrontiers() {
     // Request the current map
-    ROS_INFO( "Requesting map" );
     nav_msgs::GetMap srv_map;
     if ( !map_service_client_.call( srv_map )) {
         ROS_ERROR( "Error requesting the map!" );
         return false;
     }
 
-    // Create cv image
-    mapToCvMap( srv_map.response.map, cvmap_ );
-    cvmap_.erode( 2 );
-    //cvShowImage( "ExploreDebug", cvmap_.image );
-    //cvWaitKey( 100 );
+    // Create/process map
+    occupancyGridToCvMap( srv_map.response.map, cvmap_ );
+    cvmap_.erode( erode_ );
+    for ( int i = 0; i < downsample_; ++i )
+        cvmap_.downsample();
+
+    // Debug image?
+    if ( show_debug_map_ ) {
+        cvShowImage( "ExploreDebug", cvmap_.image );
+        cvWaitKey( 10 );
+    }
 
     // Get the robot position
     geometry_msgs::Pose robot_pose;
@@ -57,15 +91,12 @@ bool ExploreNode::calculateFrontiers() {
     }
 
     // Caluclate the frontiers
-    ROS_INFO( "Calculation exploration goals" );
     std::vector<geometry_msgs::Pose> goals;
-    explorer_.getExplorationGoals( cvmap_, robot_pose, goals, 1.0, 5.0, 1.0);
+    explorer_.getExplorationGoals( cvmap_, robot_pose, goals );
 
-    // Visualize detected frontiers
-    if ( visualize_ ) {
-        ROS_INFO( "Publishing markers" );
+    // Visualize detected frontiers?
+    if ( visualize_ )
         publishGoalsVisu( goals );
-    }
 
     return true;
 }
@@ -88,7 +119,7 @@ bool ExploreNode::getRobotPose( geometry_msgs::Pose& pose ) {
     return true;
 }
 
-void ExploreNode::mapToCvMap( const nav_msgs::OccupancyGrid &map, CvMap& cvmap ) {
+void ExploreNode::occupancyGridToCvMap( const nav_msgs::OccupancyGrid &map, CvMap& cvmap ) {
     // Check image size
     if ( cvmap.image->height != (int)map.info.height || cvmap.image->width != (int)map.info.width ) {
         cvmap.resize( map.info.width, map.info.height );
@@ -102,11 +133,11 @@ void ExploreNode::mapToCvMap( const nav_msgs::OccupancyGrid &map, CvMap& cvmap )
     // Copy map data
     for ( int i = 0; i < cvmap.image->imageSize; ++i ) {
         if ( map.data[i] == -1 )
-            cvmap.data[i] = 128;
+            cvmap.data[i] = 128; // No information
         else if ( map.data[i] < 10 )
-            cvmap.data[i] = 255;
+            cvmap.data[i] = 255; // Open
         else
-            cvmap.data[i] = 0;
+            cvmap.data[i] = 0; // Lethal obstacle
     }
 }
 
@@ -157,7 +188,6 @@ int main( int argc, char* argv[] ) {
     cvInitSystem( argc, argv );
 
     ros::spinOnce();
-    //explore_node.calculateFrontiers();
     while ( ros::ok()) {
         explore_node.calculateFrontiers();
         ros::spinOnce();
