@@ -12,7 +12,7 @@
 
 #include <deque>
 
-ROSReedsSheppPathPlanner::ROSReedsSheppPathPlanner(ros::NodeHandle &n, bool silent_mode)
+ROSReedsSheppPathPlanner::ROSReedsSheppPathPlanner(const ros::NodeHandle &n, const bool silent_mode)
   : m_node_handle(n), m_silent_mode(silent_mode), m_has_curve(false), m_has_goal(false), m_has_odom(false), m_has_map(false)
 {
   // Read parameters from rosparam server

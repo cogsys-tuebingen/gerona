@@ -23,7 +23,7 @@
 class ROSReedsSheppPathPlanner
 {
 public:
-  ROSReedsSheppPathPlanner(ros::NodeHandle& n, bool silent_mode = false);
+  ROSReedsSheppPathPlanner(const ros::NodeHandle& n, const bool silent_mode = false);
 
   /**
    * Callbacks
