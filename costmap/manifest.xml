@@ -1,0 +1,17 @@
+<package>
+  <description brief="costmap">
+
+     costmap
+
+  </description>
+  <author>buck</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/costmap</url>
+  
+  <depend package="nav_msgs" />
+  <depend package="utils" />
+
+</package>
+
+
