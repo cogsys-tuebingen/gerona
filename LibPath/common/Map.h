@@ -17,6 +17,8 @@ class MapInfo
 {
 public:
   MapInfo();
+  bool isPosValid (const Pose2d& pos);
+  bool isPosValid (const Point2d& pos);
 
   // height of one column in data
   int height;

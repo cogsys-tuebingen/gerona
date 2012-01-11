@@ -15,6 +15,9 @@ rosbuild_add_library(ReedsShepp  ReedsShepp/CurveGenerator.cpp
                         ReedsShepp/CurveSegment.cpp
                         ReedsShepp/CircleSegment.cpp
                         ReedsShepp/LineSegment.cpp
+                        sampling/GoalRegion.cpp
+                        sampling/RingGoalRegion.cpp
+                        sampling/SamplingPlanner.cpp
                         common/Map.cpp
                         common/MapMath.cpp
                         common/Point2d.cpp

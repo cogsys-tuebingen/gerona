@@ -10,3 +10,14 @@
 MapInfo::MapInfo()
 {
 }
+
+bool MapInfo::isPosValid(const Point2d &pos)
+{
+  return (pos.x>=0.0 && pos.x<width && pos.y>=0.0 && pos.y<height);
+}
+
+
+bool MapInfo::isPosValid(const Pose2d &pos)
+{
+  return (pos.x>=0.0 && pos.x<width && pos.y>=0.0 && pos.y<height);
+}
