@@ -13,11 +13,15 @@
 // I N C L U D E S
 ///////////////////////////////////////////////////////////////////////////////
 
+// C/C++
+#include <string>
+
 // ROS
 #include <ros/ros.h>
 #include <tf/tf.h>
 #include <ros/service_client.h>
 #include <nav_msgs/GetMap.h>
+#include <actionlib/server/simple_action_server.h>
 
 // OpenCV
 #include <cv.h>
@@ -25,15 +29,18 @@
 // Project
 #include "ExploreFrontier.h"
 #include "CvMap.h"
+#include <frontier_explore/ExplorationGoalsAction.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // D E C L A R A T I O N S
 ///////////////////////////////////////////////////////////////////////////////
 
+namespace frontier_explore {
+
 /**
  * A node offering an frontier based exploration algorithm.
  */
-class ExploreNode {
+class ExploreNode : public actionlib::SimpleActionServer<frontier_explore::ExplorationGoalsAction> {
 public:
 
     /**
@@ -41,7 +48,7 @@ public:
      */
     ExploreNode( ros::NodeHandle n );
 
-    bool calculateFrontiers();
+    void executeCB();
 
 protected:
 
@@ -62,7 +69,7 @@ protected:
      *
      * @return False if the transform is (temporarily) not available. True otherwise.
      */
-    bool getRobotPose(geometry_msgs::Pose &pose);
+    bool getRobotPose(geometry_msgs::Pose &pose, const std::string& map_frame);
 
     /**
      * @brief Publish a visualization of the given explorations goals.
@@ -106,5 +113,6 @@ private:
     bool show_debug_map_;
 };
 
+} // Namespace frontier_explore
 
 #endif // _EXPLORE_NODE_H_

@@ -35,13 +35,25 @@
  *********************************************************************/
 
 /*
- *  Created on: Apr 6, 2009
- *      Author: duhadway
+ * File: ExploreFrontier.cpp
+ * Created: Jan 2012
+ *
+ * The original code was taken from ROS package "exploration/explore".
+ *
+ * Original author: Duhadway
+ * Modified by: Marks
+ *
  */
 
+// C/C++
 #include <cmath>
 
+// project
 #include "ExploreFrontier.h"
+
+///////////////////////////////////////////////////////////////////////////////
+// class ExplorFrontier
+///////////////////////////////////////////////////////////////////////////////
 
 
 namespace frontier_explore {

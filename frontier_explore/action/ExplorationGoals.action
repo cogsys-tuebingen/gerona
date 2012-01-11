@@ -1,0 +1,24 @@
+# Goal definition for the get exploration goals action
+
+---
+# Result definition
+
+# Everything ok. Found at least one valid goal.
+int32 OK = 0
+# Exploration is done.
+int32 DONE = 1
+# Preempted by client.
+int32 PREEMPTED = 2
+# Error. No map available.
+int32 NO_MAP = 3
+# Error. Cannot get the robot pose in map coordinates.
+int32 NO_POSE = 4
+
+# The result status
+int32 status
+
+# The exploration goals. Best goal first.
+geometry_msgs/Pose[] goals
+
+---
+# Feedback definition

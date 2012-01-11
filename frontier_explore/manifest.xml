@@ -14,10 +14,11 @@
   <depend package="std_msgs"/>
   <depend package="tf"/>
   <depend package="roslib"/>
-  <depend package="navfn"/>
   <depend package="visualization_msgs"/>
   <depend package="geometry_msgs"/>
   <depend package="a_star"/>
+  <depend package="actionlib"/>
+  <depend package="actionlib_msgs"/>
 
 </package>
 

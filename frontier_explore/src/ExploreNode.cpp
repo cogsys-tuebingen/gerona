@@ -15,11 +15,17 @@
 // Project
 #include "ExploreNode.h"
 
+using namespace frontier_explore;
+using namespace actionlib;
+
 ///////////////////////////////////////////////////////////////////////////////
 // class ExploreNode
 ///////////////////////////////////////////////////////////////////////////////
 
 ExploreNode::ExploreNode( ros::NodeHandle n ) :
+    SimpleActionServer<ExplorationGoalsAction>( "exploration_goals",
+                                                boost::bind( &ExploreNode::executeCB, this ),
+                                                false ),
     cvmap_( 10, 10, 0.1 ),
     tf_( ros::Duration( 5.0 )),
     goals_marker_count_( 0 )
@@ -61,14 +67,21 @@ ExploreNode::ExploreNode( ros::NodeHandle n ) :
         visu_pub_ = n.advertise<visualization_msgs::Marker>( "visualization_markers", 100 );
     if ( show_debug_map_ )
         cvNamedWindow( "ExploreDebug", CV_WINDOW_NORMAL );
+
+    // Start action server
+    start();
 }
 
-bool ExploreNode::calculateFrontiers() {
+void ExploreNode::executeCB() {
+    ExplorationGoalsResult result;
+
     // Request the current map
     nav_msgs::GetMap srv_map;
     if ( !map_service_client_.call( srv_map )) {
         ROS_ERROR( "Error requesting the map!" );
-        return false;
+        result.status = ExplorationGoalsResult::NO_MAP;
+        setAborted( result );
+        return;
     }
 
     // Create/process map
@@ -76,6 +89,13 @@ bool ExploreNode::calculateFrontiers() {
     cvmap_.erode( erode_ );
     for ( int i = 0; i < downsample_; ++i )
         cvmap_.downsample();
+
+    // Preempt?
+    if ( isPreemptRequested() || !ros::ok()) {
+        result.status = ExplorationGoalsResult::PREEMPTED;
+        setPreempted( result );
+        return;
+    }
 
     // Debug image?
     if ( show_debug_map_ ) {
@@ -85,27 +105,35 @@ bool ExploreNode::calculateFrontiers() {
 
     // Get the robot position
     geometry_msgs::Pose robot_pose;
-    if ( !getRobotPose( robot_pose )) {
+    if ( !getRobotPose( robot_pose, srv_map.response.map.header.frame_id )) {
         ROS_ERROR( "Cannot get robot position." );
-        return false;
+        result.status = ExplorationGoalsResult::NO_POSE;
+        setAborted( result );
+        return;
     }
 
     // Caluclate the frontiers
-    std::vector<geometry_msgs::Pose> goals;
-    explorer_.getExplorationGoals( cvmap_, robot_pose, goals );
+    explorer_.getExplorationGoals( cvmap_, robot_pose, result.goals );
 
     // Visualize detected frontiers?
     if ( visualize_ )
-        publishGoalsVisu( goals );
+        publishGoalsVisu( result.goals );
 
-    return true;
+    // Return action result
+    if ( result.goals.size() > 0 )
+        result.status = ExplorationGoalsResult::OK;
+    else
+        result.status = ExplorationGoalsResult::DONE;
+    setSucceeded( result );
+
+    return;
 }
 
-bool ExploreNode::getRobotPose( geometry_msgs::Pose& pose ) {
+bool ExploreNode::getRobotPose( geometry_msgs::Pose& pose, const std::string& map_frame ) {
     tf::StampedTransform trafo;
     geometry_msgs::TransformStamped msg;
     try {
-        tf_.lookupTransform( "/map", "/base_link", ros::Time(0), trafo );
+        tf_.lookupTransform( map_frame.c_str(), "/base_link", ros::Time(0), trafo );
     } catch (tf::TransformException& ex) {
         return false;
     }
@@ -182,17 +210,9 @@ int main( int argc, char* argv[] ) {
 
     ros::init(argc,argv, "frontier_explore");
     ros::NodeHandle n("~");
-    ExploreNode explore_node( n );
-    ros::Rate rate( 2 );
-
     cvInitSystem( argc, argv );
-
-    ros::spinOnce();
-    while ( ros::ok()) {
-        explore_node.calculateFrontiers();
-        ros::spinOnce();
-        rate.sleep();
-    }
+    ExploreNode explore_node( n );
+    ros::spin();
 
     return 0;
 }

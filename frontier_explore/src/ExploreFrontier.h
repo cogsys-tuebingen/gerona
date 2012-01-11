@@ -34,18 +34,27 @@
  *
  *********************************************************************/
 
+/*
+ * File: ExploreFrontier.h
+ * Created: Jan 2012
+ *
+ * The original code was taken from ROS package "exploration/explore".
+ *
+ * Original author: Duhadway
+ * Modified by: Marks
+ *
+ */
+
 #ifndef EXPLORE_FRONTIER_H_
 #define EXPLORE_FRONTIER_H_
 
+// ROS
 #include <geometry_msgs/Pose.h>
-
 #include <LinearMath/btVector3.h>
-
-#include <navfn/navfn_ros.h>
 #include <tf/transform_listener.h>
-
 #include <a_star/AStar.h>
 
+// Project
 #include "CvMap.h"
 
 namespace frontier_explore {
