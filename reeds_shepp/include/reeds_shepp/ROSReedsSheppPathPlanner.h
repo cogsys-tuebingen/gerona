@@ -29,6 +29,7 @@ public:
    * Callbacks
    */
   void update_goal (const geometry_msgs::PoseStampedConstPtr &goal);
+  void update_ring_goal (const geometry_msgs::PoseStampedConstPtr &ring_goal);
   void update_odometry (const nav_msgs::OdometryConstPtr &odom);
   void update_map (const nav_msgs::OccupancyGridConstPtr &map);
 
@@ -48,6 +49,7 @@ private:
                          float r, float g, float b, float a);
 
   void send_empty_path();
+  void publishCurve (ReedsShepp::Curve * curve);
   void start_timer();
   double stop_timer();
 
@@ -85,9 +87,11 @@ private:
 
   std::string m_map_topic;
   std::string m_goal_topic;
+  std::string m_ring_goal_topic;
   std::string m_publish_frame;
 
   ros::Subscriber m_goal_pos_subscriber;
+  ros::Subscriber m_ring_goal_subscriber;
   ros::Subscriber m_odom_subscriber;
   ros::Subscriber m_map_subscriber;
 

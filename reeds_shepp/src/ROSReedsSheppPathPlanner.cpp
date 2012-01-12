@@ -6,7 +6,8 @@
  */
 
 #include <reeds_shepp/ROSReedsSheppPathPlanner.h>
-
+#include <utils/LibPath/sampling/SamplingPlanner.h>
+#include <utils/LibPath/sampling/RingGoalRegion.h>
 #include <tf/tf.h>
 #include <visualization_msgs/Marker.h>
 
@@ -133,6 +134,7 @@ void ROSReedsSheppPathPlanner::init_parameters()
   m_node_handle.param<std::string> ("map_topic", m_map_topic, "/map");
   m_node_handle.param<std::string> ("publish_frame", m_publish_frame, "/map");
   m_node_handle.param<std::string> ("goal_topic", m_goal_topic, "/goal");
+  m_node_handle.param<std::string> ("ring_goal_topic", m_ring_goal_topic, "/ring_goal");
 }
 
 
@@ -152,6 +154,10 @@ void ROSReedsSheppPathPlanner::init_subscribers()
 {
   m_goal_pos_subscriber = m_node_handle.subscribe<geometry_msgs::PoseStamped>
       (m_goal_topic, 10, boost::bind(&ROSReedsSheppPathPlanner::update_goal, this, _1));
+
+  m_ring_goal_subscriber = m_node_handle.subscribe<geometry_msgs::PoseStamped>
+      (m_ring_goal_topic, 10, boost::bind(&ROSReedsSheppPathPlanner::update_ring_goal, this, _1));
+
 
   m_odom_subscriber = m_node_handle.subscribe<nav_msgs::Odometry>
       ("/odom", 100, boost::bind(&ROSReedsSheppPathPlanner::update_odometry, this, _1));
@@ -178,6 +184,11 @@ void ROSReedsSheppPathPlanner::update_goal(const geometry_msgs::PoseStampedConst
 
   calculate();
 }
+
+
+
+
+
 
 
 void ROSReedsSheppPathPlanner::update_odometry(const nav_msgs::OdometryConstPtr &odom)
@@ -214,6 +225,32 @@ void ROSReedsSheppPathPlanner::update_map(const nav_msgs::OccupancyGridConstPtr 
   m_map.threshold_min = m_threshold_min;
   m_map.threshold_max = m_threshold_max;
   m_has_map = true;
+}
+
+
+void ROSReedsSheppPathPlanner::update_ring_goal(const geometry_msgs::PoseStampedConstPtr &ring_goal)
+{
+  Point2d center;
+  center.x=ring_goal->pose.position.x;
+  center.y=ring_goal->pose.position.y;
+  double radius=ring_goal->pose.position.z;
+  double width=0.05;
+  RingGoalRegion goal(center,radius,width);
+  SamplingPlanner planner(&m_rs_generator,&m_map);
+  ReedsShepp::Curve* curve=planner.createPath(m_odom_world,&goal);
+  if (!curve || !curve->is_valid()) {
+    ROS_INFO("no path found");
+    send_empty_path();
+  } else {
+
+  }
+
+}
+
+
+void ROSReedsSheppPathPlanner::publishCurve (ReedsShepp::Curve * curve)
+{
+
 }
 
 
