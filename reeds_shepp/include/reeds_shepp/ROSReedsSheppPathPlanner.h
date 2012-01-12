@@ -41,7 +41,7 @@ public:
   /**
    * Retrieves last calculated path (empty path if calculation unsuccessful)
    */
-  bool get_last_path(nav_msgs::PathConstPtr &dest);
+  bool get_last_path(nav_msgs::PathConstPtr &path, double &weight);
 
 private:
   void send_arrow_marker(int id, Pose2d &pose,
@@ -83,6 +83,7 @@ private:
   bool m_has_odom;
   bool m_has_map;
 
+  double m_last_weight;
   nav_msgs::PathConstPtr m_last_path;
 
   std::string m_map_topic;

@@ -328,6 +328,7 @@ void ROSReedsSheppPathPlanner::calculate()
         }
       }
 
+      m_last_weight = curve->weight ();
       m_last_path.reset(path);
       m_has_curve = true;
 
@@ -355,9 +356,10 @@ void ROSReedsSheppPathPlanner::calculate()
 }
 
 
-bool ROSReedsSheppPathPlanner::get_last_path(nav_msgs::PathConstPtr &dest)
+bool ROSReedsSheppPathPlanner::get_last_path(nav_msgs::PathConstPtr &path, double &weight)
 {
-  dest = m_last_path;
+  weight = m_last_weight;
+  path = m_last_path;
   return m_has_curve;
 }
 
@@ -370,6 +372,7 @@ void ROSReedsSheppPathPlanner::send_empty_path()
   empty_path->header.frame_id = m_publish_frame;
 
   m_last_path.reset(empty_path);
+  m_last_weight = 0.0;
 
   if (!m_silent_mode)
     m_path_publisher.publish(*empty_path);
@@ -445,3 +448,4 @@ int main(int argc, char** argv)
 
   return 0;
 }
+
