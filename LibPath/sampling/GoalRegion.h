@@ -15,7 +15,7 @@ class GoalRegion
 public:
     virtual ~GoalRegion();
     virtual bool getNextGoal(Pose2d& goal)=0;
-    virtual void init (int samples_num)=0;
+    virtual void init (unsigned samples_num)=0;
 };
 
 #endif // GOALREGION_H
