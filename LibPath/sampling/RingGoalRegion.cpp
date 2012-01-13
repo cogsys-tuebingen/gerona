@@ -41,6 +41,7 @@ bool RingGoalRegion::getNextGoal(Pose2d &goal)
     goal.y=center_.y+r*sin(alpha);
     goal.theta =alpha+(counter_%2-0.5)*M_PI;
     goal.theta=MathHelper::AngleClamp(goal.theta);
+    ++counter_;
     return true;
   }
 }
