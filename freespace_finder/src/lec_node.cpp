@@ -100,7 +100,7 @@ void update_map(const nav_msgs::OccupancyGridConstPtr &map)
   if(publish_verbose_debug_marker)
     m_marker_publisher.publish(verbose_marker);
 
-  ROS_WARN_STREAM("reduced the no. of points from " << count << " to " << points.size());
+  ROS_DEBUG_STREAM("reduced the no. of points from " << count << " to " << points.size());
 
   bool use_naiive_method = false;
   bool make_obstacles_unique = false;
@@ -110,7 +110,7 @@ void update_map(const nav_msgs::OccupancyGridConstPtr &map)
   CircleFinder finder((int) ox,(int) (w+ox),(int) (oy), (int) (h+oy), 2);
   finder.run(points, use_naiive_method, make_obstacles_unique);
 
-  ROS_WARN_STREAM("freespace search took " << profiler[PROFILE_INNER].stop() << "ms");
+  ROS_DEBUG_STREAM("freespace search took " << profiler[PROFILE_INNER].stop() << "ms");
 
   if(finder.valid()){
     // voronoi search was successful
@@ -177,7 +177,7 @@ void update_map(const nav_msgs::OccupancyGridConstPtr &map)
     }
   }
 
-  ROS_WARN_STREAM("whole method search took " << profiler[PROFILE_ALL].stop() << "ms");
+  ROS_DEBUG_STREAM("whole method search took " << profiler[PROFILE_ALL].stop() << "ms");
 }
 
 int main(int argc, char** argv)

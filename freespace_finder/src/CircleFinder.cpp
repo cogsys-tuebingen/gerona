@@ -62,7 +62,7 @@ CircleFinder::CircleFinder(int min_x, int max_x, int min_y, int max_y, int min_d
 }
 void CircleFinder::run(std::vector<Point> &obstacles, bool use_naiive, bool use_unique)
 {
-  std::cout << "started search on " << obstacles.size() << " points" << std::endl;
+  //std::cout << "started search on " << obstacles.size() << " points" << std::endl;
 
   if(use_naiive)
     run_naiive(obstacles);

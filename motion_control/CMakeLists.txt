@@ -58,6 +58,12 @@ src/DriveTestNode.cpp
 
 target_link_libraries(drive_test LibUtil)
 
+
+rosbuild_add_executable(samplingdrive_test
+src/SamplingTestNode.cpp
+)
+target_link_libraries(drive_test LibUtil)
+
 rosbuild_add_executable(motion_control
 src/DualPidCtrl.cpp
 src/DualAxisDriver.cpp

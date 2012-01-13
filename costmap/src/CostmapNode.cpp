@@ -29,9 +29,9 @@ void CostmapNode::updateMap(const nav_msgs::OccupancyGridConstPtr &ptr)
   costmap_.grow(ptr->data, ptr->info.width, ptr->info.height, map_data_);
 
   ros::Time stop = ros::Time::now();
-  ROS_INFO("costmap used %d msec",timer.msElapsed());
+  //ROS_INFO("costmap used %d msec",timer.msElapsed());
   ros::Duration diff = stop - start;
-  ROS_INFO_STREAM("map inflation took " << diff.toNSec() / 1000000. << "ms");
+  //ROS_INFO_STREAM("map inflation took " << diff.toNSec() / 1000000. << "ms");
 
   nav_msgs::OccupancyGrid o;
   o.data = map_data_;

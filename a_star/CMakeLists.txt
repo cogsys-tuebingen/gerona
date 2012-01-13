@@ -10,7 +10,7 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 set(ROS_BUILD_TYPE RelWithDebInfo)
 
 # We need OpenCV
-find_package(OpenCV REQUIRED)
+#find_package(OpenCV REQUIRED)
 
 rosbuild_init()
 
@@ -32,7 +32,7 @@ rosbuild_add_library(${PROJECT_NAME}
 )
 
 #link against OpenCV
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME} )
 
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)

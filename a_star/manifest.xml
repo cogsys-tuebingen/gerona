@@ -10,12 +10,11 @@
   <url></url>
 
   <depend package="roscpp"/>
-
+  <depend package="opencv2"/>
   <export>
     <cpp cflags="-I${prefix}/include/"
                  
-         lflags="-L${prefix}/lib
-                 -lcv" />
+         lflags="-L${prefix}/lib" />
   </export>
 
 
