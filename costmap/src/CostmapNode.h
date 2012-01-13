@@ -24,6 +24,7 @@ public:
 
 private:
     Costmap costmap_;
+    std::vector<int8_t> map_data_;
 
     ros::Subscriber map_subscriber_;
     ros::Publisher map_publisher_;
