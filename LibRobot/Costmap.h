@@ -7,6 +7,7 @@
 
 #ifndef COSTMAP_H
 #define COSTMAP_H
+#include <opencv/cv.h>
 
 #include <vector>
 #include <sys/types.h>
@@ -15,7 +16,7 @@ class Costmap
 {
 public:
     Costmap(int threshold, int dilate, int erode);
-
+    ~Costmap ();
     /**
      * Inflate the given map.
      * Freespace is eroded 'erode' times,
@@ -25,7 +26,8 @@ public:
      * @param width Width of the map
      * @param height Height of the map
      */
-    std::vector<int8_t> grow(std::vector<int8_t> map, int width, int height);
+     void grow(const std::vector<int8_t>& map, unsigned width, unsigned height,
+               std::vector<int8_t>& result);
 
 private:
     static const int UNKNOWN =  -1;
@@ -35,6 +37,9 @@ private:
     int threshold_;
     int dilate_;
     int erode_;
+    unsigned map_width_,map_height_;
+    CvMat *blocked_map_, *free_map_,*dest_blocked_map_, *dest_free_map_,*res_mat_;
+    IplConvKernel *block_shape_,*clear_shape_;
 };
 
 #endif // COSTMAP_H
