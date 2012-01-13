@@ -29,7 +29,7 @@ public:
    * Callbacks
    */
   void update_goal (const geometry_msgs::PoseStampedConstPtr &goal);
-  void update_ring_goal (const geometry_msgs::PoseStampedConstPtr &ring_goal);
+  void update_ring_goal (const geometry_msgs::PointConstPtr &ring_goal);
   void update_odometry (const nav_msgs::OdometryConstPtr &odom);
   void update_map (const nav_msgs::OccupancyGridConstPtr &map);
 

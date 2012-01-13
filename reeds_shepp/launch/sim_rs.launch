@@ -1,0 +1,38 @@
+<launch>
+  <param name="use_sim_time" value="true" />
+  
+  <node name="xstage" pkg="xstage" type="xstage" args="$(env RABOT)/Config/Simulation/largelab2.world">
+    <remap from="/base_scan" to="/scan"/>
+    <remap from="/cmd_robot" to="/ramaxx_cmd"/>
+  </node>
+
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0 0 0 0 0 3.141592654   /base_link /laser 100" />
+
+
+  <include file="$(find hector_mapping)/launch/mapping_default.launch" />
+<!--  <node pkg="costmap_2d" type="costmap_2d_node" name="costmap_2d" output="screen"></node>
+ <group ns="/costmap_2d/costmap">
+    <param name="transform_tolerance" value="1.0" />
+    <param name="update_frequency" value="2.0" />
+    <param name="publish_frequency" value="0.2" />
+    <param name="publish_nav_map" value="true" />
+    <param name="origin_bubble_radius" value="0.5" />
+    <param name="rolling_window" value="true" />
+  </group>-->
+ <node pkg="costmap" type="costmap_node" name="costmap" output="screen"></node>
+
+  <node pkg="reeds_shepp" type="path_reeds_shepp_node" name="reeds_shepp" output="screen">
+    <param name="circle_radius" value="0.9" />
+    <param name="max_waypoint_distance" value="0.25" />
+    <param name="cost_backwards" value="2.5" />
+    <param name="cost_forwards" value="1.0" />
+    <param name="cost_curve" value="1.3" />
+    <param name="cost_straight" value="1.0" />
+    <param name="threshold_min" value="-1" />
+    <param name="threshold_max" value="10" />
+    <param name="map_topic" value="//map_inflated" />
+    <param name="goal_topic" value="/goal" />
+  </node>
+
+
+</launch>

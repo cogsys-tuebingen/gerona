@@ -1,8 +1,9 @@
 <launch>
   <param name="use_sim_time" value="true" />
-  
-  <node name="Stage" pkg="stage" type="stageros" args="$(env RABOT)/Config/Simulation/rs_test.world" />
-
+  <node name="xstage" pkg="xstage" type="xstage" args="$(env RABOT)/Config/Simulation/largelab2.world">
+    <remap from="/base_scan" to="/scan"/>
+    <remap from="/cmd_robot" to="/ramaxx_cmd"/>
+  </node>
   <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0 0 0 0 0 3.141592654   /base_link /laser 100" />
 
   <node pkg="hector_mapping" type="hector_mapping" name="hector_mapping" output="screen" args="scan:=/base_scan">
@@ -40,7 +41,7 @@
       <param name="pub_debug_output" value="true"/>
     -->
   </node>
-    
+<!--
   <node pkg="costmap_2d" type="costmap_2d_node" name="costmap_2d" output="screen"></node>
   <group ns="/costmap_2d/costmap">
     <param name="transform_tolerance" value="1.0" />
@@ -50,7 +51,8 @@
     <param name="origin_bubble_radius" value="0.5" />
     <param name="rolling_window" value="true" />
   </group>
-
+-->
+  <node pkg="costmap" type="costmap_node" name="costmap_node" output="screen"></node>
   <node pkg="reeds_shepp" type="path_reeds_shepp_node" name="reeds_shepp" output="screen">
     <param name="circle_radius" value="0.70" />
     <param name="max_waypoint_distance" value="0.25" />
@@ -60,7 +62,10 @@
     <param name="cost_straight" value="1.0" />
     <param name="threshold_min" value="0" />
     <param name="threshold_max" value="10" />
-    <param name="map_topic" value="/costmap_2d/costmap/map_inflated" />
+<!--    <param name="map_topic" value="/costmap_2d/costmap/map_inflated" />
+-->
+    <param name="map_topic" value="/map_inflated" />
+    <param name="goal_topic" value="/goal" />
   </node>
   
 <!--<node name="map_server" pkg="map_server" type="map_server" args="$(find path_following)/map.yaml" />-->
