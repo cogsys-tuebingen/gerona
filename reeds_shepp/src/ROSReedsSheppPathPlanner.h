@@ -46,7 +46,8 @@ private:
                          float r, float g, float b, float a);
 
   void send_empty_path();
-  void generateAndPublishPath (ReedsShepp::Curve * curve);
+  void publishCurve (ReedsShepp::Curve * curve)
+
   void start_timer();
   double stop_timer();
 
