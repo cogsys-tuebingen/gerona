@@ -1,0 +1,46 @@
+<launch>
+  <param name="use_sim_time" value="true" />
+  
+  <node name="xstage" pkg="xstage" type="xstage" args="$(env RABOT)/Config/Simulation/largelab2.world">
+    <remap from="/base_scan" to="/scan"/>
+    <remap from="/cmd_robot" to="/ramaxx_cmd"/>
+  </node>
+
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0 0 0 0 0 3.141592654   /base_link /laser 100" />
+
+
+  <include file="$(find hector_mapping)/launch/mapping_default.launch" />
+
+  <node pkg="costmap" type="costmap_node" name="costmap" output="screen"></node>-
+
+  <node pkg="reeds_shepp" type="path_reeds_shepp_node" name="reeds_shepp" output="screen">
+    <param name="circle_radius" value="0.9" />
+    <param name="max_waypoint_distance" value="0.25" />
+    <param name="cost_backwards" value="2.5" />
+    <param name="cost_forwards" value="1.0" />
+    <param name="cost_curve" value="1.3" />
+    <param name="cost_straight" value="1.0" />
+    <param name="threshold_min" value="-1" />
+    <param name="threshold_max" value="10" />
+    <param name="map_topic" value="/map" />
+    <param name="goal_topic" value="/goal" />
+  </node>
+
+
+
+
+  <node pkg="freespace_finder" type="lec_node" name="lec_node" output="screen">
+    <param name="grid_spacing" value="1.0"/> <!-- large obstacles are split into a grid, this is the distance (in m) between points on that grid -->
+    <param name="map_topic" value="/map_inflated" />
+    <param name="publish_debug_marker" value="true" />
+    <param name="publish_verbose_debug_marker" value="true" />
+  </node>
+<!--
+  <node name="sampling_test" pkg="motion_control" type="samplingdrive_test" respawn="false" output="screen"/>
+  -->
+  <!--
+  <node name="motion_control" pkg="motion_control" type="motion_control" respawn="false" output="screen" >  
+    <param name="waypoint_threshold" value="0.15" />
+    <param name="max_waypoint_distance" value="0.25" />
+  </node>-->
+</launch>
