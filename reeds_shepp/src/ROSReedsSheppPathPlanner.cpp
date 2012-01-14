@@ -5,14 +5,14 @@
  *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
  */
 
-#include "ROSReedsSheppPathPlanner.h"
+
 #include <utils/LibPath/sampling/SamplingPlanner.h>
 #include <utils/LibPath/sampling/RingGoalRegion.h>
 #include <tf/tf.h>
 #include <visualization_msgs/Marker.h>
 
 #include <deque>
-
+#include "ROSReedsSheppPathPlanner.h"
 ROSReedsSheppPathPlanner::ROSReedsSheppPathPlanner(const ros::NodeHandle &n, const bool silent_mode)
   : m_node_handle(n), m_silent_mode(silent_mode), m_has_curve(false), m_has_goal(false), m_has_odom(false), m_has_map(false)
 {
@@ -225,8 +225,8 @@ void ROSReedsSheppPathPlanner::update_map(const nav_msgs::OccupancyGridConstPtr 
   m_map.threshold_min = m_threshold_min;
   m_map.threshold_max = m_threshold_max;
   m_has_map = true;
-}
 
+}
 
 void ROSReedsSheppPathPlanner::update_ring_goal(const geometry_msgs::PointConstPtr &ring_goal)
 {
@@ -240,28 +240,34 @@ void ROSReedsSheppPathPlanner::update_ring_goal(const geometry_msgs::PointConstP
   SamplingPlanner planner(&m_rs_generator,&m_map);
   ROS_INFO("calc sampling path from %f:%f to ring with center %f:%f",
            m_odom_world.x,m_odom_world.y,center.x,center.y);
-  ReedsShepp::Curve* curve=planner.createPath(m_odom_world,&goal);
-  if (!curve){
-    ROS_INFO("no path found");
-    send_empty_path();
-    return;
-  }
+  Pose2d odom_map = pos2map(m_odom_world, m_map);
 
-  if (!curve->is_valid()){
+  int8_t startpos_val=m_map.getValue(odom_map.x,odom_map.y);
+  for (int dx=-3;dx<3;++dx) {
+    for (int dy=-3;dy<3;++dy) {
+      m_map.setValue(odom_map.x+dx,odom_map.y+dx,m_threshold_min);
+    }
+  }
+  ReedsShepp::Curve* curve=planner.createPath(m_odom_world,&goal,20);
+  if (!curve || !curve->is_valid()) {
     ROS_INFO("no path found");
     send_empty_path();
   } else {
-    generateAndPublishPath(curve);
+
+    m_last_weight = curve->weight ();
+    m_has_curve = true;
+    ROS_INFO("publis curve with cost %f", m_last_weight);
+    publishCurve(curve);
+    delete curve;
   }
 
-  delete curve;
 }
 
 
-void ROSReedsSheppPathPlanner::generateAndPublishPath (ReedsShepp::Curve * curve)
+void ROSReedsSheppPathPlanner::publishCurve (ReedsShepp::Curve * curve)
 {
   if (!m_silent_mode){
-    ROS_INFO("[ReedsShepp] Found a path.");
+    ROS_INFO("Found a path. Cost:%f ", curve->weight());
 
     // start pos
     send_arrow_marker(0, m_odom_world,
@@ -274,9 +280,10 @@ void ROSReedsSheppPathPlanner::generateAndPublishPath (ReedsShepp::Curve * curve
                       0.0, 1.0, 0.0, 1.0f);
   }
 
-  // paths	(call to new necessary -> delete gets called by boost library)
-  nav_msgs::Path *path = new nav_msgs::Path;
-  path->header.frame_id = m_publish_frame;
+  // paths
+  nav_msgs::Path path;
+
+  path.header.frame_id = m_publish_frame;
   int id = 2;
 
   curve->reset_iteration();
@@ -292,7 +299,7 @@ void ROSReedsSheppPathPlanner::generateAndPublishPath (ReedsShepp::Curve * curve
     pose.pose.position.y = next_world.y;
     pose.pose.orientation = tf::createQuaternionMsgFromYaw(next_world.theta);
 
-    path->poses.push_back(pose);
+    path.poses.push_back(pose);
 
     if (!m_silent_mode){
       // marker
@@ -303,13 +310,10 @@ void ROSReedsSheppPathPlanner::generateAndPublishPath (ReedsShepp::Curve * curve
     }
   }
 
-
-  m_last_weight = curve->weight ();
-  m_last_path.reset(path);
-  m_has_curve = true;
+  m_last_path=path;
 
   if (!m_silent_mode)
-    m_path_publisher.publish(*path);
+    m_path_publisher.publish(m_last_path);
 }
 
 
@@ -341,16 +345,28 @@ void ROSReedsSheppPathPlanner::calculate()
       send_empty_path();
       return;
     }
-
+    int8_t startpos_val=m_map.getValue(odom_map.x,odom_map.y);
+    for (int dx=-3;dx<3;++dx) {
+      for (int dy=-3;dy<3;++dy) {
+        m_map.setValue(odom_map.x+dx,odom_map.y+dx,m_threshold_min);
+      }
+    }
+    m_map.setValue(odom_map.x,odom_map.y,m_threshold_min);
     ReedsShepp::Curve * curve = m_rs_generator.find_path(odom_map, goal_map, &m_map);
-
+    m_map.setValue(odom_map.x,odom_map.y,startpos_val);
     if(curve->is_valid()){
-      generateAndPublishPath(curve);
+
+      publishCurve(curve);
+
+      m_last_weight = curve->weight ();
+      m_has_curve = true;
+      delete curve;
+
     } else {
       ROS_WARN("[ReedsShepp] Couldn't find a path.");
+
       send_empty_path();
     }
-    delete curve;
 
     ROS_INFO("[ReedsShepp] Path generation time: %.4fms", stop_timer());
 
@@ -365,26 +381,19 @@ void ROSReedsSheppPathPlanner::calculate()
 }
 
 
-bool ROSReedsSheppPathPlanner::get_last_path(nav_msgs::PathConstPtr &path, double &weight)
-{
-  weight = m_last_weight;
-  path = m_last_path;
-  return m_has_curve;
-}
-
 
 void ROSReedsSheppPathPlanner::send_empty_path()
 {
   m_has_curve = false;
 
-  nav_msgs::Path * empty_path = new nav_msgs::Path;
-  empty_path->header.frame_id = m_publish_frame;
+  m_empty_path.header.frame_id = m_publish_frame;
+
+  m_last_path=m_empty_path;
 
   m_last_weight = 0.0;
-  m_last_path.reset(empty_path);
-
+  ROS_INFO("last path now size %d",m_last_path.poses.size());
   if (!m_silent_mode)
-    m_path_publisher.publish(*empty_path);
+    m_path_publisher.publish(m_last_path);
 }
 
 

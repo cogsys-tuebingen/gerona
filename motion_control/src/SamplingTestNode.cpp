@@ -62,6 +62,7 @@ void SamplingTestNode::pathReceived(const nav_msgs::PathConstPtr &path)
     for(unsigned i = 0; i < path->poses.size(); ++i){
       ROS_INFO("x: %f y: %f ",path->poses[i].pose.position.x,path->poses[i].pose.position.y);
     }
+    exit(0);
   }
   /*
   m_path = *path;

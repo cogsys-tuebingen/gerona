@@ -11,7 +11,7 @@
 
 #define THRESHOLD 10
 #define DILATE 6
-#define ERODE 4
+#define ERODE 10
 
 CostmapNode::CostmapNode(ros::NodeHandle &nh)
   : costmap_ (THRESHOLD, DILATE, ERODE)
