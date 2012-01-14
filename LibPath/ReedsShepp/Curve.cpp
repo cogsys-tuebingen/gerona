@@ -71,7 +71,15 @@ void Curve::test_sequence(std::vector<CurveSegment*> &sequence) {
     std::cerr << "unknown sequence" << std::endl;
 
   if(length < m_min_length) {
-    m_min_combo = sequence;
+    m_min_combo.resize(sequence.size());
+    for (int i=0;i<sequence.size();++i) {
+      if (typeid(*sequence[i])==typeid(CircleSegment)) {
+        m_min_combo[i]=new CircleSegment(*((CircleSegment *)sequence[i]));
+      } else {
+        m_min_combo[i]=new LineSegment(*((LineSegment *)sequence[i]));
+      }
+    }
+
 
     m_min_length = length;
   }
@@ -201,6 +209,7 @@ double Curve::weight()
   }
   if (fabs(weight-m_min_length)>1) {
     std::cout << "weight:"<<weight<< " minlength"<<m_min_length<< std::endl;
+    std::cout.flush();
   }
   return weight;
 }

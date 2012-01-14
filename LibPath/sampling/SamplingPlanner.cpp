@@ -42,6 +42,7 @@ ReedsShepp::Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *
     if (curve && curve->is_valid()) {
 
       std::cout << "goal:"<< goal_map.x<<" "<<goal_map.y<< "cost: "<<curve->weight() << std::endl;
+      std::cout.flush();
       if (curve->weight()<min_cost) {
         if (best_curve!=0) {
           delete best_curve;
@@ -50,10 +51,11 @@ ReedsShepp::Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *
         min_cost=best_curve->weight();
         std::cout << "new best curve with cost:"<<min_cost << std::endl;
 
-
+std::cout.flush();
       } else {
         delete curve;
         std::cout << "still  best curve has cost:"<<best_curve->weight() << std::endl;
+        std::cout.flush();
       }
     } else {
       delete curve;

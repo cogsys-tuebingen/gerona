@@ -37,6 +37,7 @@ public:
    */
   CircleSegment(ORIENTATION orientation, DIRECTION direction);
 
+
   /**
    * Computes a circle, that touches this circle and circle3 both tangentially.
    * This computation takes into consideration the orientation and direction of all three circles.

@@ -64,7 +64,7 @@ float LineSegment::weight()
 
   if(is_free){
     float cost = (m_direction == CurveSegment::BACKWARD) ? m_cost_backwards : m_cost_forwards;
-    std::cout << "line cost:"<< (m_start - m_end).distance_to_origin() * cost * m_cost_straight<<std::endl;
+
     return (m_start - m_end).distance_to_origin() * cost * m_cost_straight;
   } else{
     return NOT_FREE;

@@ -15,7 +15,29 @@ CircleSegment::CircleSegment(ORIENTATION orientation, DIRECTION direction)
   : CurveSegment(direction), m_orientation(orientation), m_angle_start(0), m_tangent_angle(0), m_iterating(false), m_output(0)
 {
 }
+/*
+CircleSegment::CircleSegment(const CircleSegment *src)
+{
 
+  m_orientation=src->m_orientation;
+  m_mode=src->m_mode;
+
+  m_center=src->m_center;
+  m_radius=;
+
+  m_angle_start;
+  m_tangent_angle;
+
+  m_arc_span;
+  m_stepsize;
+
+  m_iterating;
+  m_output;
+  m_steps;
+  m_jump_over;
+
+
+*/
 CircleSegment::ORIENTATION CircleSegment::orientation()
 {
   return m_orientation;
