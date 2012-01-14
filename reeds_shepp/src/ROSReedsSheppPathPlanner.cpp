@@ -344,7 +344,6 @@ void ROSReedsSheppPathPlanner::calculate()
       publishCurve(curve);
 
       m_last_weight = curve->weight ();
-      m_last_path.reset(path);
       m_has_curve = true;
       delete curve;
 
