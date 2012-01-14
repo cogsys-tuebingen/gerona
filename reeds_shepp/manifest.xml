@@ -18,7 +18,7 @@
   <depend package="geometry_msgs" />
   <depend package="visualization_msgs" />
   <export>
-    <cpp cflags="-I${prefix}/include" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib -lreeds_shepp" />
+    <cpp cflags="-I${prefix}/src" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib -lreeds_shepp" />
   </export>
 </package>
 
