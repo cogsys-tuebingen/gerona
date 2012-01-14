@@ -16,7 +16,7 @@ class SamplingPlanner
 {
 public:
     SamplingPlanner(ReedsShepp::CurveGenerator *rs_generator,MapInfo *map);
-    ReedsShepp::Curve* createPath (const Pose2d& start, GoalRegion *region);
+    ReedsShepp::Curve* createPath (const Pose2d& start, GoalRegion *region, int samples_num);
 private:
     ReedsShepp::CurveGenerator *rs_generator_;
     MapInfo *map_;

@@ -6,7 +6,7 @@
  */
 
 #include "CurveGenerator.h"
-
+#include <stdio.h>
 #include <iostream>
 #include <limits>
 #include <vector>
@@ -149,9 +149,12 @@ bool CurveGenerator::parse(std::string sequence, std::ostream& out)
       out << " ";
     out << "^" << std::endl;
   }
+  return error;
 }
 
-Curve * CurveGenerator::find_path(Pose2d &start, Pose2d &goal, MapInfo *map) {
+Curve * CurveGenerator::find_path(const Pose2d &start, const Pose2d &goal, MapInfo *map) {
+  std::cout << "computing curve from" << start.x << " "<< start.y<< " "<< start.theta<< " to "<< goal.x<< " "<< goal.y<< " "<< goal.theta<< " "<< std::endl;
+
   Curve * c = new Curve;
 
   c->m_start = start;

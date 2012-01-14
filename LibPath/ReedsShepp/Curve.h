@@ -59,6 +59,7 @@ public:
    */
   virtual Pose2d next();
 
+  Pose2d goal() {return m_goal;}
 private:
   /**
    * Private constructor, only the Generator can instatiate this class

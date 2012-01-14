@@ -94,4 +94,5 @@ bool SteerMission::execute() {
             usleep( 5000 );
         }
     }
+    return true;
 }

@@ -19,6 +19,12 @@ public:
   MapInfo();
   bool isPosValid (const Pose2d& pos);
   bool isPosValid (const Point2d& pos);
+  inline int8_t getValue(unsigned x, unsigned y) {
+    return data[width * y + x];
+  }
+  inline void setValue(unsigned x, unsigned y, int8_t val) {
+    data[width * y + x]=val;
+  }
 
   // height of one column in data
   int height;

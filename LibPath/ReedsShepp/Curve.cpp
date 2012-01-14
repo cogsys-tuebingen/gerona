@@ -28,9 +28,10 @@ Curve::~Curve() {
 }
 
 void Curve::test_sequence(std::vector<CurveSegment*> &sequence) {
-  if (m_start.distance_to(m_goal) < 2)
+  if (m_start.distance_to(m_goal) < 2) {
+    std::cerr << "***ERROR*** what now?" << std::endl;
     return;
-
+  }
   if (sequence.size() < 3){
     std::cerr << "invalid sequence, length < 3" << std::endl;
     return;
@@ -142,6 +143,8 @@ double Curve::handle_sequence(CurveSegment *segment1,
 
     return handle_sequence(start, c1, c2, goal);
   }
+  std::cerr << "***ERROR*** correct return value?"<< std::cerr << std::endl;
+  return NOT_FREE;
 }
 
 double Curve::handle_sequence(CircleSegment *circle1, LineSegment *line, CircleSegment *circle2)
@@ -192,7 +195,14 @@ bool Curve::is_valid()
 
 double Curve::weight()
 {
-  return m_min_length;
+  double weight=0.0;
+  for (unsigned i=0;i<m_min_combo.size();++i) {
+    weight+=m_min_combo[i]->weight();
+  }
+  if (fabs(weight-m_min_length)>1) {
+    std::cout << "weight:"<<weight<< " minlength"<<m_min_length<< std::endl;
+  }
+  return weight;
 }
 
 void Curve::reset_iteration()
@@ -201,11 +211,13 @@ void Curve::reset_iteration()
     m_min_combo[0]->reset_iteration();
     m_output_number = 0;
   }
+  //*** iterating is never set to false again
   m_iterating = true;
 }
 
 bool Curve::has_next()
 {
+  //*** no asserts in robot code - module should return pathnotfound
   assert(m_iterating);
 
   if( m_min_length < NOT_FREE &&
@@ -221,6 +233,7 @@ bool Curve::has_next()
 
 Pose2d Curve::next()
 {
+  //***
   assert(m_iterating);
 
   CurveSegment * current_segment = m_min_combo[m_output_number];
@@ -234,6 +247,7 @@ Pose2d Curve::next()
     return next();
 
   } else {
+    // ***return undefined value?
     return Pose2d();
   }
 }

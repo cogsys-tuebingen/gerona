@@ -87,6 +87,10 @@ float CircleSegment::weight()
 
   if(is_free){
     float cost = (m_direction == CurveSegment::BACKWARD) ? m_cost_backwards : m_cost_forwards;
+    if (m_arc_span>1.4*M_PI) {
+      std::cout << "arcspan:"<<m_arc_span*180.0/M_PI << " radius:"<<m_radius<< "costdir"<<cost <<" costcurve:"<<m_cost_curve<<std::endl;
+      std::cout << " cost is:"<<fabs(m_arc_span) * m_radius * cost * m_cost_curve<<std::endl;
+    }
     return fabs(m_arc_span) * m_radius * cost * m_cost_curve;
   } else {
     return NOT_FREE;
@@ -338,7 +342,7 @@ bool CircleSegment::get_tangential_double_circle_helper(CircleSegment &circle2, 
   else
     circle4.set_end_angle(-delta+theta+DTOR(90));
 
-
+  return true;
 }
 
 void CircleSegment::reset_iteration()
@@ -361,6 +365,7 @@ Pose2d CircleSegment::next()
 {
   assert(m_iterating);
 
+  std::cout << "arcspan="<<m_arc_span*180.0/M_PI<<"deg"<< std::endl;
   Point2d ray(m_radius, 0);
 
   float angle;

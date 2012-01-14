@@ -38,15 +38,15 @@ public:
   /**
    * Uses all parsed sequences to find the shortest path in a map
    *
-   * @param start pose to start from
-   * @param goal pose to end at
+   * @param start pose to start from in map coordinates
+   * @param goal pose to end at in map coordinates
    * @param map MapInfo that is used to check for obstacles
    * @param curve_radius radius of circle elements, NOT the maximal steering angle
    * @param max_distance_between_waypoints Maximum distance between two connected waypoints
    *
    * @returns a Reeds-Shepp-Curve that describes the shortest path
    */
-  Curve * find_path (Pose2d &start, Pose2d &goal, MapInfo *map);
+  Curve * find_path (const Pose2d &start, const Pose2d &goal, MapInfo *map);
 
   /**
    * Setters
