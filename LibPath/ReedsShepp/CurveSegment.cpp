@@ -9,7 +9,7 @@
 
 #include <assert.h>
 
-using namespace ReedsShepp;
+using namespace lib_path;
 
 CurveSegment::CurveSegment(DIRECTION direction)
   : m_direction(direction),

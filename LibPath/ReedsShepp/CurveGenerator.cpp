@@ -12,7 +12,7 @@
 #include <vector>
 #include <typeinfo>
 
-using namespace ReedsShepp;
+using namespace lib_path;
 
 CurveGenerator::CurveGenerator()
   : m_count(0), m_circle_radius(2.0), m_max_waypoint_distance(1.0),

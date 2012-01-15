@@ -11,6 +11,8 @@
 #include <cmath>
 #include <iostream>
 
+namespace lib_path {
+
 class Pose2d
 {
 public:
@@ -82,5 +84,7 @@ inline std::ostream& operator << (std::ostream& ostr, const Pose2d& p){
   ostr << "(" << p.x << " / " << p.y << " / " << (M_PI * 2.0f * p.theta) << "°)";
   return ostr;
 }
+
+} // Namespace "lib_path"
 
 #endif // POSE2D_H

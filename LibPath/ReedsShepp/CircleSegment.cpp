@@ -9,7 +9,7 @@
 
 #include <iostream>
 
-using namespace ReedsShepp;
+using namespace lib_path;
 
 CircleSegment::CircleSegment(ORIENTATION orientation, DIRECTION direction)
   : CurveSegment(direction), m_orientation(orientation), m_angle_start(0), m_tangent_angle(0), m_iterating(false), m_output(0)

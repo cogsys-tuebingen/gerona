@@ -10,7 +10,9 @@
 #include <stdio.h>
 #include "SamplingPlanner.h"
 
-SamplingPlanner::SamplingPlanner(ReedsShepp::CurveGenerator *rs_generator,
+using namespace lib_path;
+
+SamplingPlanner::SamplingPlanner(CurveGenerator *rs_generator,
                                  MapInfo* map)
   :rs_generator_(rs_generator),map_(map)
 {
@@ -18,7 +20,7 @@ SamplingPlanner::SamplingPlanner(ReedsShepp::CurveGenerator *rs_generator,
 }
 
 
-ReedsShepp::Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *region, int samples_num)
+Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *region, int samples_num)
 {
   Pose2d start_map=pos2map(start,*map_);
   if (!map_->isPosValid(start_map)) {
@@ -28,7 +30,7 @@ ReedsShepp::Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *
 
   region->init(samples_num);
   Pose2d goal;
-  ReedsShepp::Curve* best_curve=0;
+  Curve* best_curve=0;
   double min_cost = 999999;
   while (region->getNextGoal(goal)) {
     Pose2d goal_map = pos2map(goal, *map_);
@@ -38,7 +40,7 @@ ReedsShepp::Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *
       continue;
     }
 
-    ReedsShepp::Curve* curve=rs_generator_->find_path(start_map,goal_map, map_);
+    Curve* curve=rs_generator_->find_path(start_map,goal_map, map_);
     if (curve && curve->is_valid()) {
 
       std::cout << "goal:"<< goal_map.x<<" "<<goal_map.y<< "cost: "<<curve->weight() << std::endl;

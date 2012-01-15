@@ -7,6 +7,8 @@
 
 #include "Point2d.h"
 
+using namespace lib_path;
+
 Point2d::Point2d()
 {
 }

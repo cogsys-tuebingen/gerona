@@ -10,6 +10,9 @@
 #ifndef GOALREGION_H
 #define GOALREGION_H
 #include "../common/Pose2d.h"
+
+namespace lib_path {
+
 class GoalRegion
 {
 public:
@@ -17,5 +20,7 @@ public:
     virtual bool getNextGoal(Pose2d& goal)=0;
     virtual void init (unsigned samples_num)=0;
 };
+
+} // namespace "lib_path"
 
 #endif // GOALREGION_H

@@ -15,13 +15,13 @@
 
 #include <vector>
 
+namespace lib_path {
+
 class circle_pair {
 public:
   Point2d center_left;
   Point2d center_right;
 };
-
-namespace ReedsShepp {
 
 class Curve {
   friend class CurveGenerator;

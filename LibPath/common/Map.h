@@ -3,15 +3,18 @@
  *
  *  Created on: Apr 4, 2011
  *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *              marks
  */
 
 #ifndef MAPINFO_H
 #define MAPINFO_H
 
-#include "Point2d.h"
-
 #include <stdint.h>
 #include <vector>
+
+#include "Point2d.h"
+
+namespace lib_path {
 
 class MapInfo
 {
@@ -45,5 +48,7 @@ public:
   // cells
   std::vector<int8_t> data;
 };
+
+} // namespace "lib_path"
 
 #endif // MAPINFO_H

@@ -15,7 +15,7 @@
 
 #define NOT_FREE 999999
 
-namespace ReedsShepp {
+namespace lib_path {
 
 class CurveSegment
 {

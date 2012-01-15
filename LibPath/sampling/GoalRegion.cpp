@@ -9,6 +9,8 @@
 
 #include "GoalRegion.h"
 
+using namespace lib_path;
+
 GoalRegion::~GoalRegion()
 {
 }

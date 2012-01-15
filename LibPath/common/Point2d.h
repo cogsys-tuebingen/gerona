@@ -11,6 +11,8 @@
 #include "Pose2d.h"
 #include "MapMath.h"
 
+namespace lib_path {
+
 class Point2d
 {
 public:
@@ -91,5 +93,7 @@ inline std::ostream& operator << (std::ostream& ostr, const Point2d& p){
   ostr << "(" << p.x << " / " << p.y << ")";
   return ostr;
 }
+
+} // namespace "lib_path"
 
 #endif // POINT2D_H

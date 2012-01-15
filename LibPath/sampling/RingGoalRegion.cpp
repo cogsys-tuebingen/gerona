@@ -10,6 +10,8 @@
 #include <time.h>
 #include "RingGoalRegion.h"
 
+using namespace lib_path;
+
 RingGoalRegion::RingGoalRegion(const Point2d &center, double radius, double width)
   :center_(center),radius_(radius),width_(width),samples_num_(20),
     step_angle_rad_(2*M_PI/samples_num_), counter_(0)

@@ -9,7 +9,7 @@
 
 #include "../common/MapMath.h"
 
-using namespace ReedsShepp;
+using namespace lib_path;
 
 LineSegment::LineSegment(DIRECTION direction)
   : CurveSegment(direction), m_iterating(false), m_output(0)

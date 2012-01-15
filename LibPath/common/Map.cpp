@@ -7,6 +7,8 @@
 
 #include "Map.h"
 
+using namespace lib_path;
+
 MapInfo::MapInfo()
 {
 }

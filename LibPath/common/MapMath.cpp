@@ -9,6 +9,8 @@
 
 #include "Map.h"
 
+namespace lib_path {
+
 double NORMALIZE_0_2PI(double angle)
 {
   while (angle > 2 * M_PI)
@@ -55,4 +57,6 @@ Pose2d map2pos(const Pose2d& p, const MapInfo& mapinfo)
   res.theta = p.theta;
   map2pos(p.x,p.y,res.x,res.y,mapinfo);
   return res;
+}
+
 }

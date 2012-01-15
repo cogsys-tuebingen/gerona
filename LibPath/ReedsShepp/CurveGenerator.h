@@ -15,7 +15,7 @@
 #include <string>
 #include <ostream>
 
-namespace ReedsShepp {
+namespace lib_path {
 
 class CurveGenerator
 {

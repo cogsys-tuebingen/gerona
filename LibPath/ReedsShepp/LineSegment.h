@@ -11,7 +11,7 @@
 #include "CurveSegment.h"
 #include "../common/Point2d.h"
 
-namespace ReedsShepp {
+namespace lib_path {
 
 class LineSegment: public CurveSegment
 {

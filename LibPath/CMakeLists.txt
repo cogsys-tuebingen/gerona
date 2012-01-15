@@ -10,7 +10,7 @@
 
 #link_directories($ENV{RABOT}/lib)
 
-rosbuild_add_library(ReedsShepp  ReedsShepp/CurveGenerator.cpp
+rosbuild_add_library(LibPath  ReedsShepp/CurveGenerator.cpp
                         ReedsShepp/Curve.cpp
                         ReedsShepp/CurveSegment.cpp
                         ReedsShepp/CircleSegment.cpp
@@ -21,7 +21,10 @@ rosbuild_add_library(ReedsShepp  ReedsShepp/CurveGenerator.cpp
                         common/Map.cpp
                         common/MapMath.cpp
                         common/Point2d.cpp
-                        common/Pose2d.cpp)
+                        common/Pose2d.cpp
+                        a_star/AStar.cpp
+			a_star/Node.cpp
+			a_star/OpenList.cpp)
 
 #target_link_libraries(ReedsShepp    LibUtil)
 

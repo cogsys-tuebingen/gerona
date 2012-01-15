@@ -9,6 +9,8 @@
 
 #include "MapMath.h"
 
+using namespace lib_path;
+
 Pose2d::Pose2d()
 {
 }

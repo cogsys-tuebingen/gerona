@@ -12,7 +12,7 @@
 #include <iostream>
 #include <typeinfo>
 
-using namespace ReedsShepp;
+using namespace lib_path;
 
 Curve::Curve()
   : m_init(false),

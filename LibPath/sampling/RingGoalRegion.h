@@ -9,8 +9,12 @@
 
 #ifndef RINGGOALREGION_H
 #define RINGGOALREGION_H
+
 #include "../common/Point2d.h"
 #include "GoalRegion.h"
+
+namespace lib_path {
+
 class RingGoalRegion : public GoalRegion
 {
 public:
@@ -26,5 +30,7 @@ private:
     double  step_angle_rad_;
     unsigned      counter_;
 };
+
+} // namespace "lib_path"
 
 #endif // RINGGOALREGION_H

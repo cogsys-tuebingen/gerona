@@ -13,7 +13,7 @@
 
 #include "../common/Point2d.h"
 
-namespace ReedsShepp {
+namespace lib_path {
 
 class CircleSegment: public CurveSegment
 {
