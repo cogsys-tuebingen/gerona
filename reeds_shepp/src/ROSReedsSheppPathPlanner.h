@@ -41,12 +41,12 @@ public:
 
 
 private:
-  void send_arrow_marker(int id, Pose2d &pose,
+  void send_arrow_marker(int id, lib_path::Pose2d &pose,
                          float scale_x, float scale_y, float scale_z,
                          float r, float g, float b, float a);
 
   void send_empty_path();
-  void publishCurve (ReedsShepp::Curve * curve)
+  void publishCurve (lib_path::Curve * curve);
 
   void start_timer();
   double stop_timer();
@@ -62,7 +62,7 @@ private:
   // Member variables
   ros::NodeHandle m_node_handle;
 
-  ReedsShepp::CurveGenerator m_rs_generator;
+  lib_path::CurveGenerator m_rs_generator;
   double m_circle_radius;
   double m_max_waypoint_distance;
   double m_cost_backwards;
@@ -100,10 +100,10 @@ private:
 
   tf::TransformListener listener_;
 
-  Pose2d m_goal_world;
-  Pose2d m_odom_world;
+  lib_path::Pose2d m_goal_world;
+  lib_path::Pose2d m_odom_world;
 
-  MapInfo m_map;
+  lib_path::MapInfo m_map;
 
   struct timeval m_start_profiling, m_end_profiling;
 };

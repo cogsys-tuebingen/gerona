@@ -26,7 +26,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 
 rosbuild_add_library(reeds_shepp src/ROSReedsSheppPathPlanner.cpp)
-target_link_libraries(reeds_shepp ReedsShepp)
+target_link_libraries(reeds_shepp LibPath)
 
 rosbuild_add_executable(path_reeds_shepp_node src/ROSReedsSheppPathPlanner.cpp)
-target_link_libraries(path_reeds_shepp_node ReedsShepp)
+target_link_libraries(path_reeds_shepp_node LibPath)

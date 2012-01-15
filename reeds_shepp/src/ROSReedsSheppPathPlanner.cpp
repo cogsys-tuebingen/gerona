@@ -13,6 +13,9 @@
 
 #include <deque>
 #include "ROSReedsSheppPathPlanner.h"
+
+using namespace lib_path;
+
 ROSReedsSheppPathPlanner::ROSReedsSheppPathPlanner(const ros::NodeHandle &n, const bool silent_mode)
   : m_node_handle(n), m_silent_mode(silent_mode), m_has_curve(false), m_has_goal(false), m_has_odom(false), m_has_map(false)
 {
@@ -248,7 +251,7 @@ void ROSReedsSheppPathPlanner::update_ring_goal(const geometry_msgs::PointConstP
       m_map.setValue(odom_map.x+dx,odom_map.y+dx,m_threshold_min);
     }
   }
-  ReedsShepp::Curve* curve=planner.createPath(m_odom_world,&goal,20);
+  Curve* curve=planner.createPath(m_odom_world,&goal,20);
   if (!curve || !curve->is_valid()) {
     ROS_INFO("no path found");
     send_empty_path();
@@ -264,7 +267,7 @@ void ROSReedsSheppPathPlanner::update_ring_goal(const geometry_msgs::PointConstP
 }
 
 
-void ROSReedsSheppPathPlanner::publishCurve (ReedsShepp::Curve * curve)
+void ROSReedsSheppPathPlanner::publishCurve (Curve * curve)
 {
   if (!m_silent_mode){
     ROS_INFO("Found a path. Cost:%f ", curve->weight());
@@ -352,7 +355,7 @@ void ROSReedsSheppPathPlanner::calculate()
       }
     }
     m_map.setValue(odom_map.x,odom_map.y,m_threshold_min);
-    ReedsShepp::Curve * curve = m_rs_generator.find_path(odom_map, goal_map, &m_map);
+    Curve * curve = m_rs_generator.find_path(odom_map, goal_map, &m_map);
     m_map.setValue(odom_map.x,odom_map.y,startpos_val);
     if(curve->is_valid()){
 
