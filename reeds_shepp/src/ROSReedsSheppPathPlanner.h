@@ -30,6 +30,8 @@ public:
    */
   void update_goal (const geometry_msgs::PoseStampedConstPtr &goal);
   void update_ring_goal (const geometry_msgs::PointConstPtr &ring_goal);
+  void update_centroid_goal (const geometry_msgs::PointConstPtr &centroid_goal);
+
   void update_odometry (const nav_msgs::OdometryConstPtr &odom);
   void update_map (const nav_msgs::OccupancyGridConstPtr &map);
 
@@ -75,7 +77,6 @@ private:
 
   bool m_silent_mode;
 
-
   bool m_has_curve;
 
   bool m_has_goal;
@@ -88,10 +89,12 @@ private:
   std::string m_map_topic;
   std::string m_goal_topic;
   std::string m_ring_goal_topic;
+  std::string m_centroid_goal_topic;
   std::string m_publish_frame;
 
   ros::Subscriber m_goal_pos_subscriber;
   ros::Subscriber m_ring_goal_subscriber;
+  ros::Subscriber m_centroid_goal_subscriber;
   ros::Subscriber m_odom_subscriber;
   ros::Subscriber m_map_subscriber;
 
