@@ -15,16 +15,19 @@ class CentroidRadiusGoalRegion : public GoalRegion
 {
 public:
 
-  CentroidRadiusGoalRegion (const Point2d& center, double radius);
+  CentroidRadiusGoalRegion (const Point2d &src, const Point2d &center, double radius, double angle_rad);
   virtual ~CentroidRadiusGoalRegion ();
 
   virtual void init (unsigned samples_num);
-  virtual bool getNextGoal (Pose2d& goal);
+  virtual bool getNextGoal (Pose2d &goal);
 
 private:
 
+  Point2d src_;
   Point2d center_;
+
   double radius_;
+  double angle_rad_;
 
   double theta_;
   double theta_step_;

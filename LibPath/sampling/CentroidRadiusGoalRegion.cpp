@@ -9,10 +9,10 @@
 
 using namespace lib_path;
 
-CentroidRadiusGoalRegion::CentroidRadiusGoalRegion (const Point2d &center, double radius)
-  : center_ (center), radius_ (radius)
+CentroidRadiusGoalRegion::CentroidRadiusGoalRegion (const Point2d &src, const Point2d &center, double radius, double angle_rad)
+  : src_ (src), center_ (center), radius_ (radius), angle_rad_ (angle_rad), counter_ (0), samples_num_ (0)
 {
-  init (10);
+	// No init -> done by sampling planner
 }
 
 
@@ -27,8 +27,17 @@ void CentroidRadiusGoalRegion::init (unsigned samples_num)
   counter_ = 0;
   samples_num_ = samples_num;
 
-  theta_ = MathHelper::Angle (Vector2d (center_.x, center_.y)) - 0.5 * M_PI_2;
-  theta_step_ = M_PI_2 / (samples_num_-1);
+  theta_ = MathHelper::Angle (Vector2d (center_.x - src_.x, center_.y - src_.y));
+
+  angle_rad_ = fabs (angle_rad_);
+  if (angle_rad_ < 1e-6 || samples_num_ <= 1) {
+	  samples_num_ = 1;
+	  theta_step_ = 0.0;
+	  return;
+  }
+
+  theta_ -= 0.5 * angle_rad_;
+  theta_step_ = angle_rad_ / (samples_num_-1);
 }
 
 
