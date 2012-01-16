@@ -7,6 +7,7 @@
 // C/C++
 #include <string>
 #include <vector>
+#include <list>
 
 // ROS
 #include <ros/ros.h>
@@ -16,8 +17,11 @@
 #include <tf/transform_listener.h>
 
 // LibPath
+#include <utils/LibPath/common/Point2d.h>
 #include <utils/LibPath/common/SimpleGridMap2d.h>
-#include <utils/LibPath/a_star/AStar.h>
+
+// Project
+#include "GlobalPlanner.h"
 
 class CombinedPlannerNode {
 public:
@@ -27,8 +31,13 @@ public:
     void updateMap( const nav_msgs::OccupancyGridConstPtr& map );
     void updateGoal( const geometry_msgs::PoseStampedConstPtr& goal );
     bool getRobotPose( geometry_msgs::Pose& pose, const std::string& map_frame );
-    void visualizeGlobalPath( const std::vector<geometry_msgs::Point> &path );
-    bool isFree( const lib_path::waypoint_t p1, const lib_path::waypoint_t p2 );
+    void visualizePath( const std::list<lib_path::Point2d> &path,
+                        const std::string& ns,
+                        const int color = 0,
+                        const int id = 0 );
+
+    bool selectNextWaypoint( const lib_path::Pose2d& robot_pose,
+                             lib_path::Pose2d& next ) const;
 
 private:
 
@@ -45,6 +54,7 @@ private:
 
     lib_path::SimpleGridMap2d* map_;
     std::string map_frame_id_;
-    lib_path::AStar* a_star_;
+    GlobalPlanner* global_planner_;
     bool got_map_;
+    std::list<lib_path::Point2d> global_path_;
 };

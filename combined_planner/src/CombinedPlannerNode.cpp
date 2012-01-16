@@ -4,6 +4,9 @@
  * @author marks
  */
 
+// C/C++
+#include <cmath>
+
 // ROS
 #include <nav_msgs/Path.h>
 #include <nav_msgs/GetMap.h>
@@ -17,6 +20,7 @@
 
 
 using namespace lib_path;
+using namespace std;
 
 ///////////////////////////////////////////////////////////////////////////////
 // class CombinedPlannerNode
@@ -27,7 +31,7 @@ CombinedPlannerNode::CombinedPlannerNode()
     : n_( "~" ),
       tf_( ros::Duration( 5.0 )),
       map_( NULL ),
-      a_star_( NULL ),
+      global_planner_( NULL ),
       got_map_( false )
 {
     // Topic names parameters
@@ -58,9 +62,9 @@ void CombinedPlannerNode::updateMap( const nav_msgs::OccupancyGridConstPtr &map 
     map_->setOrigin( Point2d( map->info.origin.position.x, map->info.origin.position.x ));
     map_frame_id_ = "/map"; //map->header.frame_id;
 
-    // Create A* planner on first map update
-    if ( a_star_ == NULL ) {
-        a_star_ = new AStar( map_ );
+    // Create global planner on first map update
+    if ( global_planner_ == NULL ) {
+        global_planner_ = new GlobalPlanner( map_ );
     }
 
     // Ready to go
@@ -69,23 +73,24 @@ void CombinedPlannerNode::updateMap( const nav_msgs::OccupancyGridConstPtr &map 
 
 void CombinedPlannerNode::updateGoal( const geometry_msgs::PoseStampedConstPtr &goal )
 {
+    global_path_.clear();
     if ( !got_map_ ) {
         ROS_WARN( "Got a goal but no map. It's not possible to plan a path!" );
         return;
     }
 
     // Convert goal int map coordinate system if necessary
-    geometry_msgs::PoseStamped goalMap;
+    geometry_msgs::PoseStamped goal_map;
     if ( goal->header.frame_id.compare( map_frame_id_ ) != 0 ) {
         try {
-            tf_.transformPose( map_frame_id_, *goal, goalMap );
+            tf_.transformPose( map_frame_id_, *goal, goal_map );
         } catch (tf::TransformException& ex) {
             ROS_ERROR( "Cannot transform goal into map coordinates. Reason: %s",
                        ex.what());
             return;
         }
     } else {
-        goalMap = *goal;
+        goal_map = *goal;
     }
 
     // Get the current robot pose in map coordinates
@@ -93,73 +98,42 @@ void CombinedPlannerNode::updateGoal( const geometry_msgs::PoseStampedConstPtr &
     if (!getRobotPose( robot_pose, map_frame_id_ ))
         return;
 
-    // A* search
-    Stopwatch stopwatch;
-    a_star_->setNewMap( map_ );
-    waypoint_t start, end;
-    map_->point2Cell( Point2d( robot_pose.position.x, robot_pose.position.y), start.x, start.y );
-    map_->point2Cell( Point2d( goalMap.pose.position.x, goalMap.pose.position.y), end.x, end.y );
-    bool global_path_found = a_star_->planPath( start, end );
-    ROS_INFO( "A* search took %d ms.", stopwatch.msElapsed());
-    if ( !global_path_found ) {
-        ROS_ERROR( "No global path found." );
+    // Run global planner
+    lib_path::Point2d pathStart( robot_pose.position.x, robot_pose.position.y );
+    lib_path::Point2d pathEnd( goal_map.pose.position.x, goal_map.pose.position.y );
+    if ( !global_planner_->planPath( pathStart, pathEnd )) {
+        ROS_WARN( "No global path found." );
         return;
     }
 
-    // Waypoints from cell coordinates to map coordinates
-    std::vector<geometry_msgs::Point> global_path;
-    geometry_msgs::Point p;
-    lib_path::Point2d g;
-    lib_path::path_t* cell_path = a_star_->getLastPath();
-    for ( std::size_t i = 0; i < cell_path->size(); ++i ) {
-        map_->cell2point( (*cell_path)[i].x, (*cell_path)[i].y, g );
-        p.x = g.x;
-        p.y = g.y;
-        p.z = 0;
-        global_path.push_back( p );
-    }
+    // Visualize raw path
+    std::list<lib_path::Point2d> path_raw;
+    global_planner_->getLatestPathRaw( path_raw );
+    visualizePath( path_raw, "global_path_raw", 0, 0 );
 
-    ROS_INFO( "Global path found. Flattening path..." );
-
-    std::size_t startIdx = 0;
-    std::size_t endIdx = 1;
-    global_path.clear();
-    map_->cell2point( (*cell_path)[0].x, (*cell_path)[0].y, g );
-    p.x = g.x;
-    p.y = g.y;
-    p.z = 0;
-    global_path.push_back( p );
-    while ( endIdx < cell_path->size() - 1) {
-        if ( isFree( (*cell_path)[startIdx], (*cell_path)[endIdx]) ) {
-            ++endIdx;
-        } else {
-            map_->cell2point( (*cell_path)[endIdx].x, (*cell_path)[endIdx].y, g );
-            p.x = g.x;
-            p.y = g.y;
-            p.z = 0;
-            global_path.push_back( p );
-            startIdx = endIdx;
-            endIdx++;
-        }
-    }
-    endIdx = cell_path->size() - 1;
-    map_->cell2point( (*cell_path)[endIdx].x, (*cell_path)[endIdx].y, g );
-    p.x = g.x;
-    p.y = g.y;
-    p.z = 0;
-    global_path.push_back( p );
-
-    ROS_INFO( "Robot pose is: %f %f", robot_pose.position.x, robot_pose.position.y );
-    for ( std::size_t i = 0; i < global_path.size(); ++i ) {
-        ROS_INFO("Waypoint: %f %f", global_path[i].x, global_path[i].y );
-    }
-    ROS_INFO( "Goal is: %f %f", goalMap.pose.position.x, goalMap.pose.position.y );
-
-    ROS_INFO( "Global path found. Publishing visualization..." );
-    visualizeGlobalPath( global_path );
+    // Get & visualize flattened path
+    global_planner_->getLatestPath( global_path_ );
+    visualizePath( global_path_, "global_path", 1, 1 );
 }
 
-bool CombinedPlannerNode::getRobotPose( geometry_msgs::Pose& pose, const std::string& map_frame ) {
+bool CombinedPlannerNode::selectNextWaypoint( const lib_path::Pose2d &robot_pose,
+                                              lib_path::Point2d& next ) const
+{
+    /*if ( global_path_.empty())
+        return false;
+
+    // Check distance to next waypoint
+    double dist = 0;
+    lib_path::Pose2d wp = global_path_.front();
+    double dist = sqrt( pow( wp.x - robot_pose.x, 2 ) + pow( wp.y - robot_pose.y, 2 ));
+    if ( dist < 2.0 ) {
+
+    }*/
+
+}
+
+bool CombinedPlannerNode::getRobotPose( geometry_msgs::Pose& pose, const std::string& map_frame )
+{
     tf::StampedTransform trafo;
     geometry_msgs::TransformStamped msg;
     try {
@@ -179,93 +153,35 @@ bool CombinedPlannerNode::getRobotPose( geometry_msgs::Pose& pose, const std::st
     return true;
 }
 
-bool CombinedPlannerNode::isFree( const lib_path::waypoint_t p1, const lib_path::waypoint_t p2 )
-{
-    bool free = true;
-
-    if ( p1.x != p2.x || p1.y != p2.y) {
-        // Traverse from left to right
-        int x1, y1, x2, y2;
-        if (p1.x <= p2.x) {
-            x1 = p1.x;
-            y1 = p1.y;
-            x2 = p2.x;
-            y2 = p2.y;
-        } else {
-            x1 = p2.x;
-            y1 = p2.y;
-            x2 = p1.x;
-            y2 = p1.y;
-        }
-
-        int stepX = 1;
-        int stepY = (y1 <= y2 ? 1 : -1);
-
-        double tDeltaX = 0.0;
-        double tDeltaY = 0.0;
-
-        if (x1 == x2) {
-            tDeltaX = 0.0;
-            tDeltaY = 1.0;
-        } else if (y1 == y2) {
-            tDeltaX = 1.0;
-            tDeltaY = 0.0;
-        } else {
-            double m = double(y2 - y1) / double(x2 - x1);
-            tDeltaX = sqrt(1.0 + m * m);
-            tDeltaY = sqrt(1.0 + 1.0 / (m * m));
-        }
-
-        double tMaxX = tDeltaX * 0.5;
-        double tMaxY = tDeltaY * 0.5;
-
-        if ( map_ != NULL ) {
-            if ( map_->getWidth() > x2 && map_->getHeight() > max(y1, y2)) {
-                int x = x1;
-                int y = y1;
-
-                while (x <= x2 && (stepY == 1 ? y <= y2 : y >= y2)) {
-                    if ( map_->isOccupied( x, y )) {
-                        free = false;
-                        break;
-                    }
-
-                    if (tMaxX < tMaxY) {
-                        tMaxX += tDeltaX;
-                        x += stepX;
-                    } else {
-                        tMaxY += tDeltaY;
-                        y += stepY;
-                    }
-                }
-            } else {
-                free = false;
-            }
-        } else {
-            free = false;
-        }
-    }
-    return free;
-}
-
-void CombinedPlannerNode::visualizeGlobalPath( const std::vector<geometry_msgs::Point> &path )
+void CombinedPlannerNode::visualizePath(
+        const std::list<lib_path::Point2d> &path,
+        const std::string& ns,
+        const int color,
+        const int id )
 {
     visualization_msgs::Marker marker;
     marker.header.frame_id = map_frame_id_;
     marker.header.stamp = ros::Time::now();
     marker.type = visualization_msgs::Marker::LINE_STRIP;
     marker.action = visualization_msgs::Marker::ADD;
-    marker.ns = "global_path";
-    marker.color.r = 1.0f;
-    marker.color.a = 0.8f;
-    marker.scale.x = marker.scale.y = 0.2f;
-    marker.id = 0;
-    for ( std::size_t i = 0; i < path.size(); ++i ) {
-        marker.points.push_back( path[i] );
+    marker.ns = ns;
+    if ( color != 1 )
+        marker.color.r = 1.0f;
+    else
+        marker.color.b = 1.0f;
+    marker.color.a = 0.75f;
+    marker.scale.x = marker.scale.y = 0.1f;
+    marker.id = id;
+    geometry_msgs::Point p;
+    p.z = 0;
+    std::list<lib_path::Point2d>::const_iterator it = path.begin();
+    for ( ; it != path.end(); it++ ) {
+        p.x = it->x;
+        p.y = it->y;
+        marker.points.push_back( p );
     }
     visu_pub_.publish( marker );
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // Main

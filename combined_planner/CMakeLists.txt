@@ -31,6 +31,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 rosbuild_add_executable(combined_planner_node 
     src/CombinedPlannerNode.cpp
+    src/GlobalPlanner.cpp
 )
 target_link_libraries(combined_planner_node
     LibPath
