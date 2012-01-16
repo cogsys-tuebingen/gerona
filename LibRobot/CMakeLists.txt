@@ -1,11 +1,20 @@
 # Utils/LibRobot/CMakeLists.txt
 
-#include_directories (
-#    ${CMAKE_SOURCE_DIR}/ros/eigen/include
-#   ../../Utils/LibUtil/ ../../Player3x/RamaxxDriver/
-#)
+set(IPP NOTFOUND)
+find_path(IPP ipp.h /opt/intel/ipp/include/)
+if(IPP)
+    message("found IPP " ${IPP})
+    set(LIBS ippcore ippcv ippi ipps -L/opt/intel/ipp/lib/intel64/)
+    add_definitions(-DIPP)
+else(IPP)
+    message("didn't find IPP" ${IPP})
+    set(LIBS "")
+endif(IPP)
 
-rosbuild_add_library (LibRobot
+include_directories(/opt/intel/ipp/include/)
+
+
+rosbuild_add_library(LibRobot
     AckermannSteering.cpp
     BoundaryFinder.cpp
     Laser2dScan.cpp
@@ -14,6 +23,4 @@ rosbuild_add_library (LibRobot
     Costmap.cpp
 )
 
-target_link_libraries( LibRobot boost_thread-mt )
-
-#install (TARGETS LibRobot LIBRARY DESTINATION lib)
+target_link_libraries( LibRobot boost_thread-mt ${LIBS})

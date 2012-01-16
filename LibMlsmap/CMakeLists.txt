@@ -6,7 +6,7 @@
 #    #${CMAKE_SOURCE_DIR}/Extlib # for Eigen
 #)
 
-rosbuild_add_library (LibMlsmap SHARED
+rosbuild_add_library (LibMlsmap
     mlsmap.h
     field.h
     vectorcell.cpp
