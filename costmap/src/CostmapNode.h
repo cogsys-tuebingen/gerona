@@ -15,6 +15,10 @@
 
 #include <utils/LibRobot/Costmap.h>
 
+/**
+ * example usage:
+ *   rosrun costmap costmap_node _erode:=2 _dilate:=4 _sampling:=1
+ */
 class CostmapNode
 {
 public:
@@ -23,11 +27,18 @@ public:
     void updateMap(const nav_msgs::OccupancyGridConstPtr &ptr);
 
 private:
+    ros::Subscriber map_subscriber_;
+    ros::Publisher map_publisher_;
+
+    int threshold_;
+    int dilate_;
+    int erode_;
     Costmap costmap_;
     std::vector<int8_t> map_data_;
 
-    ros::Subscriber map_subscriber_;
-    ros::Publisher map_publisher_;
+    double running_avg_;
+    int running_avg_ticks_;
+    int sampling_;
 };
 
 #endif // COSTMAPNODE_H
