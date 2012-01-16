@@ -13,8 +13,7 @@
 #include <vector>
 
 // Project
-#include "../common/Map.h"
-#include "../common/MapMath.h"
+#include "../common/GridMap2d.h"
 #include "../common/Pose2d.h"
 #include "OpenList.h"
 
@@ -46,7 +45,7 @@ public:
      * @param map The map used to initialize the internal member variables.
      * @param maximumOccupancyRating ?
      */
-    AStar( MapInfo* map,
+    AStar( GridMap2d* map,
            double maximumOccupancyRating = 2 );
 
     /**
@@ -82,7 +81,7 @@ public:
      *
      * @param map The new map we are planning on.
      */
-    void setNewMap( MapInfo* map );
+    void setNewMap( GridMap2d* map );
 
 
 private:
@@ -98,7 +97,6 @@ private:
      */
     bool search();
 
-	bool isInMap(const waypoint_t waypoint);
 	bool isFreeWay(const waypoint_t waypoint);
 	double getWayRating(const waypoint_t waypoint);
 	unsigned char getMapValue(const waypoint_t& waypoint);
@@ -106,7 +104,7 @@ private:
 	OpenList* mNodesList;
 	static const int mNeighborCount = 8;
 	neighbor_t mNeighbors[mNeighborCount];
-    MapInfo* mMap;
+    GridMap2d* mMap;
 	path_t mPath;
 	waypoint_t mStart;
 	waypoint_t mGoal;

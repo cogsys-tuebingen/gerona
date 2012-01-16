@@ -16,7 +16,7 @@
 using namespace std;
 using namespace lib_path;
 
-AStar::AStar( MapInfo *map, double maximumOccupancyRating ) {
+AStar::AStar( GridMap2d *map, double maximumOccupancyRating ) {
 	mMap = NULL;
 	mNodesList = NULL;
     setNewMap( map );
@@ -24,14 +24,14 @@ AStar::AStar( MapInfo *map, double maximumOccupancyRating ) {
 	mMaxRating = maximumOccupancyRating;
 	mUseRating = (mMaxRating > 1);
 
-	mNeighbors[0].position.x = -1; mNeighbors[0].position.y = -1; mNeighbors[0].distance = sqrt(2);
+    mNeighbors[0].position.x = -1; mNeighbors[0].position.y = -1; mNeighbors[0].distance = sqrt(2);
 	mNeighbors[1].position.x = 0; mNeighbors[1].position.y = -1; mNeighbors[1].distance = 1;
-	mNeighbors[2].position.x = 1; mNeighbors[2].position.y = -1; mNeighbors[2].distance = sqrt(2);
+    mNeighbors[2].position.x = 1; mNeighbors[2].position.y = -1; mNeighbors[2].distance = sqrt(2);
 	mNeighbors[3].position.x = -1; mNeighbors[3].position.y = 0; mNeighbors[3].distance = 1;
 	mNeighbors[4].position.x = 1; mNeighbors[4].position.y = 0; mNeighbors[4].distance = 1;
-	mNeighbors[5].position.x = -1; mNeighbors[5].position.y = 1; mNeighbors[5].distance = sqrt(2);
+    mNeighbors[5].position.x = -1; mNeighbors[5].position.y = 1; mNeighbors[5].distance = sqrt(2);
 	mNeighbors[6].position.x = 0; mNeighbors[6].position.y = 1; mNeighbors[6].distance = 1;
-	mNeighbors[7].position.x = 1; mNeighbors[7].position.y = 1; mNeighbors[7].distance = sqrt(2);
+    mNeighbors[7].position.x = 1; mNeighbors[7].position.y = 1; mNeighbors[7].distance = sqrt(2);
 }
 
 AStar::~AStar() {
@@ -39,9 +39,9 @@ AStar::~AStar() {
 		delete mNodesList;
 }
 
-void AStar::setNewMap( MapInfo *map ) {
+void AStar::setNewMap( GridMap2d* map ) {
     // Check if there is an existing map
-    if ( mMap != NULL && ( mMap->width != map->width || mMap->height != map->height )) {
+    if ( mMap != NULL && ( mMap->getWidth() != map->getWidth() || mMap->getHeight() != map->getHeight() )) {
         cout << "AStar: Warning: Set map with new size. This takes some computation time." << endl;
         delete mNodesList;
         mNodesList = NULL;
@@ -50,7 +50,7 @@ void AStar::setNewMap( MapInfo *map ) {
 
     // Create node list only if necessary
     if ( mNodesList == NULL )
-        mNodesList = new OpenList( mMap->width, mMap->height );
+        mNodesList = new OpenList( mMap->getWidth(), mMap->getHeight());
 }
 
 bool AStar::planPath( const waypoint_t &start, const waypoint_t &goal ) {
@@ -58,11 +58,11 @@ bool AStar::planPath( const waypoint_t &start, const waypoint_t &goal ) {
     mPath.clear();
 
     // Check start/goal cell indices
-    if ( !isInMap( start )) {
+    if ( !mMap->isInMap( start.x, start.y )) {
         cout << ("AStar: Start is out of map.") << endl;
         return false;
     }
-    if ( !isInMap( goal )) {
+    if ( !mMap->isInMap( goal.x, goal.y )) {
         cout << ("AStar: Goal is out of map.") << endl;
         return false;
     }
@@ -116,16 +116,11 @@ path_t* AStar::getLastPath() {
 	return &this->mPath;
 }
 
-bool AStar::isInMap( const waypoint_t waypoint ) {
-    return !(waypoint.x < 0 || waypoint.y < 0 || waypoint.x >= mMap->width || waypoint.y >= mMap->height);
-}
-
 bool AStar::isFreeWay( const waypoint_t waypoint ) {
-    if (!isInMap( waypoint ))
+    if (!mMap->isInMap( waypoint.x, waypoint.y ))
 		return false;
 
-    int8_t value = mMap->getValue( waypoint.x, waypoint.y );
-    return value <= mMap->threshold_max && value >= mMap->threshold_min;
+    return mMap->isFree( waypoint.x, waypoint.y );
 }
 
 double AStar::getWayRating( const waypoint_t waypoint ) {

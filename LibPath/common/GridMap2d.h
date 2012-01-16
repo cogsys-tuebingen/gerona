@@ -7,6 +7,12 @@
 #ifndef GRIDMAP2D_H
 #define GRIDMAP2D_H
 
+// C/C++
+#include <inttypes.h>
+
+// Project
+#include "Point2d.h"
+
 namespace lib_path {
 
 /**
@@ -16,7 +22,7 @@ namespace lib_path {
 class GridMap2d {
 public:
 
-    virtual ~GridMap2d() { /*Nothing to do */ }
+    virtual ~GridMap2d();
 
     /**
      * @brief Get the value of the cell at (x,y)
@@ -64,7 +70,7 @@ public:
      * @brief Set the origin of the map in the map coordinate system.
      * @param p The new origin.
      */
-    virtual void setOrigin( const Point2d& p );
+    virtual void setOrigin( const Point2d& p ) = 0;
 
     /**
      * @brief Return if a map cell is free or not.
@@ -97,7 +103,7 @@ public:
      * @param y y-coordinate of the cell.
      * @return False if the point lies outside of the map. True otherwise.
      */
-    virtual bool point2Cell( const Point2d& p, unsigned int& x, unsigned int& y ) const = 0;
+    virtual bool point2Cell( const Point2d& p, int& x, int& y ) const = 0;
 
     /**
      * @brief Convert cell coordinates to a point in the map coordinate system.
@@ -105,7 +111,7 @@ public:
      * @param y y-coordinate of the cell.
      * @param p The position in the map coordinate system.
      */
-    virtual cell2point( const unsigned int x, const unsigned int y, Point2d& p ) const = 0;
+    virtual void cell2point( const int x, const int y, Point2d& p ) const = 0;
 
     /**
      * @brief Check if cell coordinates are valid.
@@ -113,7 +119,7 @@ public:
      * @param y y-coordinate of the cell.
      * @return False if the coordinates are out of range. True otherwise.
      */
-    virtual bool isInMap( const unsigned int x, const unsigned int y ) const = 0;
+    virtual bool isInMap( const int x, const int y ) const = 0;
 
     /**
      * @brief Check a point in the map coordinate system lies outside of the map.

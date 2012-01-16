@@ -23,6 +23,8 @@ rosbuild_add_library(LibPath  ReedsShepp/CurveGenerator.cpp
                         common/MapMath.cpp
                         common/Point2d.cpp
                         common/Pose2d.cpp
+                        common/GridMap2d.cpp
+                        common/SimpleGridMap2d.cpp
                         a_star/AStar.cpp
 			a_star/Node.cpp
 			a_star/OpenList.cpp)

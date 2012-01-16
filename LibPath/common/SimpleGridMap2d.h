@@ -1,5 +1,5 @@
 /**
- * @file SimpleGridMap2d.cpp
+ * @file SimpleGridMap2d.h
  * @date Jan 2012
  * @author marks
  */
@@ -32,11 +32,7 @@ public:
      * @param h Number of cells in y-direction.
      * @param r Size of one cell in meter.
      */
-    SimpleGridMap2d( const unsigned int w, const unsigned int h, const double r )
-        : width_( w ), height_( h ), res_( r ),  origin_( 0, 0 ),
-          lowerThres_( 0 ), upperThres_( 80 ) {
-        data.resize( width_*height_ );
-    }
+    SimpleGridMap2d( const unsigned int w, const unsigned int h, const double r );
 
     virtual ~SimpleGridMap2d() { /* Nothing to do */ }
 
@@ -74,7 +70,7 @@ public:
     inline bool isNoInformation( const unsigned int x, const unsigned int y ) const
         { return getValue( x, y ) < lowerThres_; }
 
-    inline bool point2Cell( const Point2d& p, unsigned int& x, unsigned int& y ) const {
+    inline bool point2Cell( const Point2d& p, int& x, int& y ) const {
         if ( !isInMap( p ))
             return false;
         x = (p.x - origin_.x)/res_;
@@ -82,16 +78,28 @@ public:
         return true;
     }
 
-    inline cell2point( const unsigned int x, const unsigned int y, Point2d& p ) const {
+    inline void cell2point( const int x, const int y, Point2d& p ) const {
         p.x = res_*(double)(x) + origin_.x + 0.5*res_;
         p.y = res_*(double)(y) + origin_.y + 0.5*res_;
     }
 
-    inline bool isInMap( const unsigned int x, const unsigned int y ) const
-        { return !(x < 0 || y < 0 || x > width_ || y > height_); }
+    inline bool isInMap( const int x, const int y ) const
+        { return !(x < 0 || y < 0 || x > (int)width_ || y > (int)height_); }
 
     inline bool isInMap( const Point2d& p ) const {
         return (p.x - origin_.x)/res_ < width_ && (p.y - origin_.y)/res_ < height_;
+    }
+
+    /**
+     * @brief Set new map data.
+     * @param data The new map data. Size should be >= w * h
+     * @param w New map width (number of cells in x-direction)
+     * @param h new map height (number of cells in y-direction)
+     */
+    void set( const std::vector<int8_t>& data, const unsigned int w, const unsigned int h ) {
+        width_ = w;
+        height_ = h;
+        data_.assign( data.begin(), data.end());
     }
 
 protected:
