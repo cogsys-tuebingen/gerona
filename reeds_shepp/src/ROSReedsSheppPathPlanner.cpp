@@ -275,13 +275,19 @@ void ROSReedsSheppPathPlanner::update_ring_goal(const geometry_msgs::PointConstP
 void ROSReedsSheppPathPlanner::update_centroid_goal(const geometry_msgs::PointConstPtr &centroid_goal)
 {
   ROS_INFO("update centroid goal");
+
+  Point2d src;
+  src.x = m_odom_world.x;
+  src.y = m_odom_world.y;
+
   Point2d center;
   center.x = centroid_goal->x;
   center.y = centroid_goal->y;
 
   double radius = centroid_goal->z;
+  double angle_rad = M_PI_2;
 
-  CentroidRadiusGoalRegion goal (center, radius);
+  CentroidRadiusGoalRegion goal (src, center, radius, angle_rad);
   SamplingPlanner planner(&m_rs_generator,&m_map);
 
   cout << "Odom " << m_odom_world.x << " " << m_odom_world.y << " " << m_odom_world.theta << endl;
