@@ -17,7 +17,7 @@ class Point2d
 {
 public:
   Point2d();
-  Point2d(Pose2d);
+  Point2d(const Pose2d& p);
   Point2d(double x, double y);
 
   /**

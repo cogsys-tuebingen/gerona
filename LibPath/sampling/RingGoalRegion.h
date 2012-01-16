@@ -18,17 +18,23 @@ namespace lib_path {
 class RingGoalRegion : public GoalRegion
 {
 public:
+   /**
+     @param radius radius of ring, if radius is positive sampled orientations are
+     counterclockwise, if negative clockwise
+     */
     RingGoalRegion (const Point2d& center, double radius, double width);
     virtual ~RingGoalRegion ();
     virtual void init (unsigned samples_num);
     virtual bool getNextGoal(Pose2d& goal);
 private:
     Point2d center_;
-    double  radius_;
     double  width_;
     unsigned samples_num_;
     double  step_angle_rad_;
     unsigned      counter_;
+    double direction_;
+    double  radius_;
+
 };
 
 } // namespace "lib_path"

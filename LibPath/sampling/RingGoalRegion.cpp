@@ -13,9 +13,14 @@
 using namespace lib_path;
 
 RingGoalRegion::RingGoalRegion(const Point2d &center, double radius, double width)
-  :center_(center),radius_(radius),width_(width),samples_num_(20),
+  :center_(center),width_(width),samples_num_(20),
     step_angle_rad_(2*M_PI/samples_num_), counter_(0)
 {
+  if (radius<0)
+    direction_=0;
+  else
+    direction_=1;
+  radius_=fabs(radius);
 }
 
 RingGoalRegion::~RingGoalRegion()
@@ -38,11 +43,13 @@ bool RingGoalRegion::getNextGoal(Pose2d &goal)
     return false;
   } else {
     double r = radius_+(((double)rand()/(RAND_MAX))-0.5)*width_;
+
     double alpha=counter_*step_angle_rad_;
     goal.x=center_.x+r*cos(alpha);
     goal.y=center_.y+r*sin(alpha);
-    goal.theta =alpha+(counter_%2-0.5)*M_PI;
+    goal.theta =alpha+(direction_-0.5)*M_PI;
     goal.theta=MathHelper::AngleClamp(goal.theta);
+    std::cout << "r="<<r <<" x="<<goal.x << " y="<<goal.y << std::endl;
     ++counter_;
     return true;
   }

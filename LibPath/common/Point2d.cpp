@@ -19,7 +19,7 @@ Point2d::Point2d(double px, double py)
   this->y = py;
 }
 
-Point2d::Point2d(Pose2d p)
+Point2d::Point2d(const Pose2d& p)
 {
   x = p.x;
   y = p.y;
