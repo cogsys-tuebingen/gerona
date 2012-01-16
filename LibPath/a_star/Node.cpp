@@ -44,14 +44,14 @@ void Node::setVisited() {
 }
 
 int Node::getValue() const {
-	//double result = mDistance + mPrediction;
+        double result = mDistance + mPrediction;
 
 	//HACK: Comparing of doubles fails in release build for unknown reasons.
 	//	Anyway it works with ints and is much faster, but it might return suboptimal
 	//	paths in rare cases.
-	int result = (mDistance + mPrediction);
-	//result = (int)(result);
-	return result;
+        //int result = (mDistance + mPrediction);
+        result = (int)(result);
+        return result;
 }
 
 string Node::toString() {
