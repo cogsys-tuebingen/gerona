@@ -101,7 +101,7 @@ void CircleEstimator::EliminateOutliers()
         delete group;
     }
 
-    int maxSize=0;
+    unsigned maxSize=0;
     for (std::list<Vector3dList *>::iterator gIt=pointGroups.begin();gIt!=pointGroups.end();++gIt) {
         std::cout << "group with size "<<(*gIt)->size() << std::endl;
         if ((*gIt)->size()>maxSize) {

@@ -2,7 +2,10 @@
 
 #include <stdint.h>
 #include <limits>
+#ifndef EIGEN2_SUPPORT
 #define EIGEN2_SUPPORT
+#endif
+
 #include "Eigen/Core"
 using namespace Eigen;
 
@@ -121,7 +124,7 @@ http://stackoverflow.com/questions/1217585/parallelogram-contains-point
     float angle=min_angle;
     mSins.resize(ranges.size());
     mCoss.resize(ranges.size());
-    for (int i=0;i<ranges.size();++i) {
+    for (unsigned i=0;i<ranges.size();++i) {
       mSins[i]=std::sin(angle);
       mCoss[i]=std::cos(angle);
       angle+=astep;
@@ -131,8 +134,7 @@ http://stackoverflow.com/questions/1217585/parallelogram-contains-point
   // corner points of the parallelogram
   float ax,ay,bx,by,cx,cy;
 
-  float px,py;
-  float a,b,c;
+
 
   float sbeta=std::sin(beta);
   float cbeta=std::cos(beta);
@@ -147,7 +149,7 @@ http://stackoverflow.com/questions/1217585/parallelogram-contains-point
   float offb=-ax*cy + ay*cx;
   float offc=ax*by - ay*bx;
 
-  for (int i=0;i<ranges.size();++i) {
+  for (unsigned i=0;i<ranges.size();++i) {
      const float& r=ranges[i];
 
     if (r<threshold && r>0.01) {

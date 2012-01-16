@@ -34,7 +34,7 @@ public:
 
 private:
     int mNumberOfSegments;
-    int     mLaser0RangesNum;
+    unsigned     mLaser0RangesNum;
     double  mViewRad; // view angle of laserscanner
     double  mLaserStartRad; // angle of first ray of laser
     double  mDeltaRad; // angle between two laser rays

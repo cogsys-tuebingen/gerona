@@ -15,7 +15,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // Eigen
+#ifndef EIGEN2_SUPPORT
 #define EIGEN2_SUPPORT
+#endif
 #include "Eigen/Core"
 
 // Import most common Eigen types

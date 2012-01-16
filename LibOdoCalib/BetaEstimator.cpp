@@ -1,5 +1,8 @@
 #include <iostream>
+#ifndef EIGEN2_SUPPORT
 #define EIGEN2_SUPPORT
+#endif
+
 #include <Eigen/LeastSquares>
 #include <Eigen/Dense>
 #include <cmath>
@@ -202,7 +205,7 @@ bool BetaEstimator::getConsensusSet(const Vector2dVec& points, double threshold,
 {
     IVector set,cset;
     DVector dists,cdists;
-    int n = points.size();
+    unsigned n = points.size();
     if (n<4) {
         return false;
     }
