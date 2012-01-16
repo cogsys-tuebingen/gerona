@@ -3,12 +3,18 @@ int32 MOTION_ODO_CALIB=         2
 int32 MOTION_POTENTIAL_FIELD=   3
 int32 MOTION_FOLLOW_PATH=       4
 int32 MOTION_FOLLOW_TARGET=     5
+int32 MOTION_FIXED_PARAMS=      6
 #goal definition
 int32 mode
 # pose of goal in WCS
 float32 x
 float32 y
 float32 theta
+nav_msgs/Path path
+# accepted tolerance of position
+float32 pos_tolerance
+# accepted tolerance of orientation in rad
+# not implemented yet float32 theta_tolerance
 # driving speed of robot (interpreted as recommended value)
 float32 v
 # sideslip angle of robot
@@ -17,8 +23,8 @@ float32 beta
 float32 target_v
 #int32 servof
 #int32 servor
-#float32 deltaf
-#float32 deltar
+float32 deltaf
+float32 deltar
 #float32 follow_dist
 ---
 #result definition
@@ -29,6 +35,7 @@ int32 MOTION_STATUS_SUCCESS=3
 int32 MOTION_STATUS_MOVE_FAIL=4
 int32 MOTION_STATUS_INTERNAL_ERROR=5
 int32 MOTION_STATUS_SLAM_FAIL=6
+int32 MOTION_STATUS_GOAL_FAIL=7
 int32 mode
 int32 status
 float32 dist_driven

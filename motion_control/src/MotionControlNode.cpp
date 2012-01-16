@@ -1,6 +1,7 @@
 #include <ramaxxbase/RamaxxMsg.h>
 #include "CalibDriver.h"
 #include "SimpleGoalDriver.h"
+#include "FixedDriver.h"
 #include "MotionController.h"
 #include "MotionControlNode.h"
 #include "PathDriver.h"
@@ -19,6 +20,8 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& node, const std::string& n
   calib_driver_ = new CalibDriver (cmd_ramaxx_pub_, node);
   simple_goal_driver_ = new SimpleGoalDriver (cmd_ramaxx_pub_, node);
   path_driver_ = new PathDriver(cmd_ramaxx_pub_, node);
+  fixed_driver_=new FixedDriver(cmd_ramaxx_pub_, node);
+
   action_server_.start();
 
   path_driver_->configure(node);
@@ -30,6 +33,7 @@ MotionControlNode::~MotionControlNode()
   delete path_driver_;
   delete calib_driver_;
   delete simple_goal_driver_;
+  delete fixed_driver_;
 }
 
 void MotionControlNode::goalCallback()
@@ -41,19 +45,25 @@ void MotionControlNode::goalCallback()
     active_ctrl_->stop();
   }
   switch (goalptr->mode) {
+    case motion_control::MotionGoal::MOTION_FIXED_PARAMS:
+      active_ctrl_=fixed_driver_;
+      active_ctrl_->setGoal(*goalptr);
+      break;
     case motion_control::MotionGoal::MOTION_ODO_CALIB:
       active_ctrl_=calib_driver_;
       active_ctrl_->setGoal(*goalptr);
       break;
+    case motion_control::MotionGoal::MOTION_FOLLOW_PATH:
     case motion_control::MotionGoal::MOTION_TO_GOAL:
     case motion_control::MotionGoal::MOTION_FOLLOW_TARGET:
       active_ctrl_=simple_goal_driver_;
       active_ctrl_->setGoal(*goalptr);
       break;      
+      /*
     case motion_control::MotionGoal::MOTION_FOLLOW_PATH:
       active_ctrl_=path_driver_;
       active_ctrl_->setGoal(*goalptr);
-      break;
+      break;*/
     default:
       ROS_WARN("Motioncontrol invalid motion mode %d requested",goalptr->mode);
       MotionResult result;

@@ -65,13 +65,15 @@ src/SamplingTestNode.cpp
 target_link_libraries(drive_test LibUtil)
 
 rosbuild_add_executable(motion_control
+src/CalibDriver.cpp
 src/DualPidCtrl.cpp
 src/DualAxisDriver.cpp
+src/FixedDriver.cpp
 src/MotionControlNode.cpp
 src/MotionController.cpp
-src/CalibDriver.cpp
-src/SimpleGoalDriver.cpp
 src/PathDriver.cpp
+src/SimpleGoalDriver.cpp
+
 )
 
 target_link_libraries(motion_control

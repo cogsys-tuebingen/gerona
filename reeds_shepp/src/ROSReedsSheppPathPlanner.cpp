@@ -246,8 +246,8 @@ void ROSReedsSheppPathPlanner::update_ring_goal(const geometry_msgs::PointConstP
   double width=0.05;
   RingGoalRegion goal(center,radius,width);
   SamplingPlanner planner(&m_rs_generator,&m_map);
-  ROS_INFO("calc sampling path from %f:%f to ring with center %f:%f",
-           m_odom_world.x,m_odom_world.y,center.x,center.y);
+  ROS_INFO("calc sampling path from %f:%f to ring with center %f:%f and radius %f",
+           m_odom_world.x,m_odom_world.y,center.x,center.y,radius);
   Pose2d odom_map = pos2map(m_odom_world, m_map);
 
   int8_t startpos_val=m_map.getValue(odom_map.x,odom_map.y);

@@ -2,9 +2,9 @@
 #define SIMPLEGOALDRIVER_H
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <nav_msgs/Path.h>
 #include <utils/LibRobot/LaserEnvironment.h>
 #include "StatsEstimator.h"
-#include <utils/LibOdoCalib/EncoderEstimator.h>
 #include "Stopwatch.h"
 #include "MotionController.h"
 #include "DualPidCtrl.h"
@@ -38,6 +38,10 @@ private:
     int state_;
     Stopwatch move_timer_;
     geometry_msgs::PoseStamped goal_pose_global_;
+    double pos_tolerance_;
+    double theta_tolerance_;
+    nav_msgs::Path goal_path_global_;
+    unsigned path_idx_;
     double goal_v_;
     Vector3d start_pose_;
     DualPidCtrl ctrl_;

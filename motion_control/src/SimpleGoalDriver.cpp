@@ -43,15 +43,33 @@ void SimpleGoalDriver::configure(ros::NodeHandle &node)
 
 void SimpleGoalDriver::setGoal(const motion_control::MotionGoal &goal)
 {
-  goal_pose_global_.pose.position.x=goal.x;
-  goal_pose_global_.pose.position.y=goal.y;
-  goal_pose_global_.pose.position.z=0;
-  goal_pose_global_.pose.orientation=
+
+  if (goal.mode==motion_control::MotionGoal::MOTION_FOLLOW_TARGET ||
+      goal.mode==motion_control::MotionGoal::MOTION_TO_GOAL) {
+    goal_pose_global_.pose.position.x=goal.x;
+    goal_pose_global_.pose.position.y=goal.y;
+    goal_pose_global_.pose.position.z=0;
+    goal_pose_global_.pose.orientation=
     tf::createQuaternionMsgFromRollPitchYaw(0.0,0.0,goal.theta);
+    goal_path_global_.poses.clear();
+    goal_path_global_.poses.push_back(goal_pose_global_);
+    path_idx_=0;
+    pos_tolerance_=0.3;
+  } else if (goal.mode==motion_control::MotionGoal::MOTION_FOLLOW_PATH) {
+    goal_path_global_=goal.path;
+    if (goal_path_global_.poses.size()>0) {
+      goal_pose_global_=goal_path_global_.poses[0];
+      path_idx_=0;
+      pos_tolerance_=goal.pos_tolerance;
+    } else {
+      ROS_ERROR("empty path");
+      state_=MotionResult::MOTION_STATUS_GOAL_FAIL;
+    }
+  }
   default_v_ = goal.v;
   if (fabs(default_v_)<0.01) {
     ROS_ERROR("motion_planner:simplegoaldriver robot speed set to %fm/sec - speed too slow",default_v_);
-    state_=MotionResult::MOTION_STATUS_MOVE_FAIL;
+    state_=MotionResult::MOTION_STATUS_GOAL_FAIL;
     return;
   }
   if (goal.mode==motion_control::MotionGoal::MOTION_FOLLOW_TARGET) {
@@ -168,7 +186,7 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
     // transform goal point into local cs
     geometry_msgs::PoseStamped goal_pose_local;
 
-    Vector3d robot_pose;
+    Vector3d robot_pose;    
     goal_pose_global_.header.stamp=ros::Time::now();
     try {
       goal_pose_global_.header.frame_id="/map";
@@ -184,12 +202,19 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
     goal_vec.y()=goal_pose_local.pose.position.y;
     // goal in reach for 4ws driver?
     double dist_goal=goal_vec.head<2>().norm();
-    if ((dist_goal<0.3) ) {
+    if ((dist_goal<pos_tolerance_) ) {
       // goal reached
-      result.status=MotionResult::MOTION_STATUS_SUCCESS;
-      state_=MotionResult::MOTION_STATUS_SUCCESS;
-      cmd_v_=goal_v_;
-      ROS_INFO("simplegoaldriver: goal reached");
+      ++path_idx_;
+      if (path_idx_<goal_path_global_.poses.size()) {
+        // next pose in path
+        goal_pose_global_=goal_path_global_.poses[path_idx_];
+        // publish in the next call of execute()
+        return state_;
+      } else {
+        result.status=MotionResult::MOTION_STATUS_SUCCESS;
+        state_=MotionResult::MOTION_STATUS_SUCCESS;
+        cmd_v_=goal_v_;
+      }
     } else {
       // driver drives towards goal
       goal_vec.z()=tf::getYaw(goal_pose_local.pose.orientation);
@@ -209,7 +234,6 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
   publish();
   return state_;
 }
-
 
 
 void SimpleGoalDriver::publish()
