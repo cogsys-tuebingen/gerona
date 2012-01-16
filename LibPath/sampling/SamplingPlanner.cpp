@@ -35,7 +35,7 @@ Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *region, int 
   while (region->getNextGoal(goal)) {
     Pose2d goal_map = pos2map(goal, *map_);
     std::cout << "goal map pose "<<goal_map.x << " "<<goal_map.y << std::endl;
-    if (!map_->isPosValid(goal)) {
+    if (!map_->isPosValid(goal_map)) {
       std::cout << "invalid goal pose "<<goal.x << " "<<goal.y << std::endl;
       continue;
     }
