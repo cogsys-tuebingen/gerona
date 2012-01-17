@@ -49,6 +49,17 @@ CombinedPlannerNode::CombinedPlannerNode()
     visu_pub_ = n_.advertise<visualization_msgs::Marker>( "visualization_markers", 5 );
 }
 
+void CombinedPlannerNode::update() {
+    // Get new robot pose
+    geometry_msgs::Pose robot_pose;
+    if ( !getRobotPose( robot_pose, map_frame_id_ )) {
+        return;
+    }
+
+    // Plan path to the next waypoint
+    costmap_;
+}
+
 void CombinedPlannerNode::updateMap( const nav_msgs::OccupancyGridConstPtr &map )
 {
     // Create map?
@@ -293,9 +304,10 @@ int main( int argc, char* argv[] )
     ros::init( argc, argv, "combined_planner" );
     CombinedPlannerNode node;
 
-    ros::Rate rate( 100 );
+    ros::Rate rate( 20 );
     while ( ros::ok()) {
         ros::spinOnce();
+        node.update();
         rate.sleep();
     }
 

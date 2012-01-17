@@ -31,6 +31,7 @@ public:
 
     void updateMap( const nav_msgs::OccupancyGridConstPtr& map );
     void updateGoal( const geometry_msgs::PoseStampedConstPtr& goal );
+    void update();
     bool getRobotPose( geometry_msgs::Pose& pose, const std::string& map_frame );
     void visualizePath( const std::vector<lib_path::Point2d> &path,
                         const std::string& ns,
