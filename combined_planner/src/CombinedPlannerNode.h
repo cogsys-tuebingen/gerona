@@ -15,6 +15,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Point.h>
 #include <tf/transform_listener.h>
+#include <costmap_2d/costmap_2d_ros.h>
 
 // LibPath
 #include <utils/LibPath/common/Point2d.h>
@@ -31,13 +32,18 @@ public:
     void updateMap( const nav_msgs::OccupancyGridConstPtr& map );
     void updateGoal( const geometry_msgs::PoseStampedConstPtr& goal );
     bool getRobotPose( geometry_msgs::Pose& pose, const std::string& map_frame );
-    void visualizePath( const std::list<lib_path::Point2d> &path,
+    void visualizePath( const std::vector<lib_path::Point2d> &path,
                         const std::string& ns,
                         const int color = 0,
                         const int id = 0 );
 
-    bool selectNextWaypoint( const lib_path::Pose2d& robot_pose,
-                             lib_path::Pose2d& next ) const;
+    void visualizeWaypoints( const std::list<lib_path::Pose2d> &wp, std::string ns, int id );
+
+    void generateWaypoints( const std::vector<lib_path::Point2d> &path,
+                            const lib_path::Pose2d& goal,
+                            list<lib_path::Pose2d> &waypoints ) const;
+
+    lib_path::Pose2d getNormalizedDelta( const lib_path::Point2d& start, const lib_path::Point2d& end ) const;
 
 private:
 
@@ -52,9 +58,10 @@ private:
     ros::Subscriber goal_subs_;
     tf::TransformListener tf_;
 
+    costmap_2d::Costmap2DROS costmap_;
     lib_path::SimpleGridMap2d* map_;
     std::string map_frame_id_;
     GlobalPlanner* global_planner_;
     bool got_map_;
-    std::list<lib_path::Point2d> global_path_;
+    std::vector<lib_path::Point2d> global_path_;
 };

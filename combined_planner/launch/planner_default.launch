@@ -1,0 +1,32 @@
+<launch>
+
+  <node pkg="combined_planner" type="combined_planner_node" name="combined_planner_node" output="screen"/>
+    
+    <!-- Loca planning costmap setup -->
+    <param name="use_sim_time" value="true" />
+    <group ns="combined_planner_node/local_costmap">
+        <param name="global_frame" value="/map"/>
+        <param name="robot_base_frame" value="/base_link"/>
+        <param name="publish_frequency" value="3.0"/>
+        <param name="update_frequency" value="5.0"/>
+        <param name="inflation_radius" value="0.30"/>
+        <param name="footprint" value="[[0.22,0.17],[0.22,-0.17],[-0.22,-0.17],[-0.22,0.17]]"/>
+        <param name="transform_tolerance" value="1.0"/>
+
+        <param name="rolling_window" value="true"/>
+        <param name="static_map" value="false"/>
+        <param name="width" value="10"/>
+        <param name="height" value="10"/>
+        <param name="resolution" value="0.1"/>
+        <param name="map_type" value="costmap"/>
+      
+        <param name="observation_sources" value="laser"/>
+        <param name="laser/topic" value="/scan"/>
+        <param name="laser/observation_persistence" value="1"/>
+        <param name="laser/expected_update_rate" value="1.0"/>
+        <param name="laser/data_type" value="LaserScan"/>
+        <param name="laser/clearing" value="true"/>
+        <param name="laser/obstacle_range" value="8.0"/>
+    </group>
+
+</launch>

@@ -29,7 +29,8 @@ using namespace std;
 
 CombinedPlannerNode::CombinedPlannerNode()
     : n_( "~" ),
-      tf_( ros::Duration( 5.0 )),
+      tf_( ros::Duration( 10.0 )),
+      costmap_( "local_costmap", tf_ ),
       map_( NULL ),
       global_planner_( NULL ),
       got_map_( false )
@@ -73,6 +74,7 @@ void CombinedPlannerNode::updateMap( const nav_msgs::OccupancyGridConstPtr &map 
 
 void CombinedPlannerNode::updateGoal( const geometry_msgs::PoseStampedConstPtr &goal )
 {
+    ROS_INFO("Got a new goal");
     global_path_.clear();
     if ( !got_map_ ) {
         ROS_WARN( "Got a goal but no map. It's not possible to plan a path!" );
@@ -107,29 +109,90 @@ void CombinedPlannerNode::updateGoal( const geometry_msgs::PoseStampedConstPtr &
     }
 
     // Visualize raw path
-    std::list<lib_path::Point2d> path_raw;
+    std::vector<lib_path::Point2d> path_raw;
     global_planner_->getLatestPathRaw( path_raw );
     visualizePath( path_raw, "global_path_raw", 0, 0 );
 
     // Get & visualize flattened path
     global_planner_->getLatestPath( global_path_ );
     visualizePath( global_path_, "global_path", 1, 1 );
+
+    // Calculate waypoints
+    list<lib_path::Pose2d> waypoints;
+    lib_path::Pose2d poseGoal, poseStart;
+    poseGoal.x = pathEnd.x;
+    poseGoal.y = pathEnd.y;
+    poseGoal.theta = tf::getYaw( goal_map.pose.orientation );
+    poseStart.x = robot_pose.position.x;
+    poseStart.y = robot_pose.position.y;
+    poseStart.theta = tf::getYaw( robot_pose.orientation );
+    generateWaypoints( global_path_, poseGoal, waypoints );
+
+    // Visualize waypoints
+    visualizeWaypoints( waypoints, "waypoints", 3 );
 }
 
-bool CombinedPlannerNode::selectNextWaypoint( const lib_path::Pose2d &robot_pose,
-                                              lib_path::Point2d& next ) const
+void CombinedPlannerNode::generateWaypoints( const vector<lib_path::Point2d>& path,
+                                             const lib_path::Pose2d& goal,
+                                             list<lib_path::Pose2d>& waypoints ) const
 {
-    /*if ( global_path_.empty())
-        return false;
+    double min_waypoint_dist_ = 1.5;
+    double max_waypoint_dist_ = 2.0;
 
-    // Check distance to next waypoint
-    double dist = 0;
-    lib_path::Pose2d wp = global_path_.front();
-    double dist = sqrt( pow( wp.x - robot_pose.x, 2 ) + pow( wp.y - robot_pose.y, 2 ));
-    if ( dist < 2.0 ) {
+    waypoints.clear();
 
-    }*/
+    // Path too short? We need at least a start and an end point
+    if ( path.size() < 2 ) {
+        waypoints.push_back( goal );
+        return;
+    }
 
+    // Compute waypoints
+    double dist;
+    double minus = 0.0;
+    double step_size = min_waypoint_dist_; // 0.5*( min_waypoint_dist_ + max_waypoint_dist_ );
+    lib_path::Pose2d dir( getNormalizedDelta( path[0], path[1] ));
+    lib_path::Pose2d last;
+    last.x = path[0].x; last.y = path[0].y;
+
+    // For every point of the path except the first one
+    for ( size_t i = 1; i < path.size(); ) {
+        // Distance from last waypoint to next point of path
+        dist = sqrt( pow( last.x - path[i].x, 2 ) + pow( last.y - path[i].y, 2 ));
+
+        // If the distance is too short select next point of path
+        if ( dist < max_waypoint_dist_ ) {
+            // If this is the last point of the path, push back the goal pose
+            if ( i >= path.size() - 1 ) {
+                waypoints.push_back( goal );
+                break;
+            }
+
+            // Compute new step vector. Index i is always less than path.size() - 1
+            dir = getNormalizedDelta( path[i], path[i+1] );
+            last.x = path[i].x;
+            last.y = path[i].y;
+            last.theta = dir.theta;
+            ++i;
+
+            // If the distance is greater than the minimum, add a new waypoint
+            if ( dist >= min_waypoint_dist_ || minus >= min_waypoint_dist_ ) {
+                waypoints.push_back( last );
+                minus = 0.0;
+                continue;
+            } else {
+                // Ensure that the next waypoint is not too far away
+                minus += dist;
+                continue;
+            }
+        }
+
+        last.x += (step_size - minus) * dir.x;
+        last.y += (step_size - minus) * dir.y;
+        last.theta = dir.theta;
+        minus = 0.0;
+        waypoints.push_back( last );
+    }
 }
 
 bool CombinedPlannerNode::getRobotPose( geometry_msgs::Pose& pose, const std::string& map_frame )
@@ -154,7 +217,7 @@ bool CombinedPlannerNode::getRobotPose( geometry_msgs::Pose& pose, const std::st
 }
 
 void CombinedPlannerNode::visualizePath(
-        const std::list<lib_path::Point2d> &path,
+        const std::vector<lib_path::Point2d> &path,
         const std::string& ns,
         const int color,
         const int id )
@@ -174,13 +237,51 @@ void CombinedPlannerNode::visualizePath(
     marker.id = id;
     geometry_msgs::Point p;
     p.z = 0;
-    std::list<lib_path::Point2d>::const_iterator it = path.begin();
+    std::vector<lib_path::Point2d>::const_iterator it = path.begin();
     for ( ; it != path.end(); it++ ) {
         p.x = it->x;
         p.y = it->y;
         marker.points.push_back( p );
     }
     visu_pub_.publish( marker );
+}
+
+void CombinedPlannerNode::visualizeWaypoints( const list<lib_path::Pose2d> &wp, string ns, int id ) {
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = map_frame_id_;
+    marker.header.stamp = ros::Time::now();
+    marker.type = visualization_msgs::Marker::LINE_LIST;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.ns = ns;
+    marker.color.g = 1.0f;
+    marker.color.a = 1.0f;
+    marker.scale.x = 0.25f;
+    marker.id = id;
+    geometry_msgs::Point p;
+    p.z = 0;
+    std::list<lib_path::Pose2d>::const_iterator it = wp.begin();
+    for ( ; it != wp.end(); it++ ) {
+        p.x = it->x;
+        p.y = it->y;
+        marker.points.push_back( p );
+        p.x += 0.8*cos( it->theta );
+        p.y += 0.8*sin( it->theta );
+        marker.points.push_back( p );
+    }
+    visu_pub_.publish( marker );
+}
+
+lib_path::Pose2d CombinedPlannerNode::getNormalizedDelta( const Point2d &start, const Point2d &end ) const
+{
+    lib_path::Pose2d result;
+    result.x = end.x - start.x;
+    result.y = end.y - start.y;
+    double l = sqrt( result.x*result.x + result.y*result.y );
+    result.x /= l;
+    result.y /= l;
+    result.theta = atan2( result.y, result.x );
+
+    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -20,8 +20,8 @@ public:
 
     virtual void setMap( lib_path::GridMap2d* map );
     virtual bool planPath( const lib_path::Point2d& start, lib_path::Point2d& goal );
-    virtual void getLatestPathRaw( std::list<lib_path::Point2d>& path ) const;
-    virtual void getLatestPath( std::list<lib_path::Point2d>& path ) const;
+    virtual void getLatestPathRaw( std::vector<lib_path::Point2d>& path ) const;
+    virtual void getLatestPath( std::vector<lib_path::Point2d>& path ) const;
 
 protected:
 

@@ -16,6 +16,7 @@
   <depend package="tf" />
   <depend package="geometry_msgs" />
   <depend package="visualization_msgs" />
+  <depend package="costmap_2d" />
 
 </package>
 

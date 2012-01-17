@@ -167,12 +167,12 @@ bool GlobalPlanner::isLineFree( const lib_path::waypoint_t &p1,
     return free;
 }
 
-void GlobalPlanner::getLatestPath( std::list<lib_path::Point2d> &path ) const
+void GlobalPlanner::getLatestPath( std::vector<lib_path::Point2d> &path ) const
 {
     path.assign( path_.begin(), path_.end());
 }
 
-void GlobalPlanner::getLatestPathRaw( std::list<lib_path::Point2d> &path ) const
+void GlobalPlanner::getLatestPathRaw( std::vector<lib_path::Point2d> &path ) const
 {
     path.assign( path_raw_.begin(), path_raw_.end());
 }
