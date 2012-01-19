@@ -70,9 +70,9 @@ void CombinedPlannerNode::updateMap( const nav_msgs::OccupancyGridConstPtr &map 
     }
 
     // Map setup
-    map_->set( map->data, map->info.width, map->info.height );
+    /*map_->set( map->data, map->info.width, map->info.height );
     map_->setOrigin( Point2d( map->info.origin.position.x, map->info.origin.position.x ));
-    map_frame_id_ = "/map"; //map->header.frame_id;
+    map_frame_id_ = "/map"; //map->header.frame_id;*/
 
     // Create global planner on first map update
     if ( global_planner_ == NULL ) {

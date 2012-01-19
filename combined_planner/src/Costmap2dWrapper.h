@@ -13,23 +13,63 @@
 // Workspace
 #include <utils/LibPath/common/GridMap2d.h>
 
+/**
+ * @class Costmap2dWrapper
+ * @brief A ROS Costmap2d wrapper.
+ *
+ * This class makes it possible to use a ROS costmap implementation as input for
+ * algorithms that use the ROS independend map interface from utils/LibPath.
+ *
+ * @attention At the current state not all member functions of this class are
+ *      reviewed and fully tested. Use it with care!
+ */
 class Costmap2dWrapper : public lib_path::GridMap2d
 {
 public:
-    Costmap2dWrapper( const costmap_2d::Costmap2D* map );
+
+    /**
+     * @brief Create a ROS Costmap2d wrapper.
+     * The lower threshold defaults to 20, the upper one to 200.
+     * @param map The wrapped costmap.
+     */
+    Costmap2dWrapper( costmap_2d::Costmap2D* map );
 
     virtual ~Costmap2dWrapper()
         { /* Nothing to do */ }
 
-    void setDataModel( costmap_2d::Costmap2D* newmap )
+    /**
+     * @brief Setter for the wrapped costmap object.
+     * @attention There is no local copy of the costmap! The given pointer should be
+     *      valid as long as this wrapper is in use.
+     * @param newmap Points to the new underlying costmap.
+     */
+    void setCostmap( costmap_2d::Costmap2D* newmap )
         { costmap_ = newmap; }
 
-    /* Inherited from GridMap2d */
+    /**
+     * @brief Set the lower threshold.
+     * Every cell with a value less or equal to the given threshold is obstacle free.
+     * @param thres The new lower threshold
+     */
+    void setLowerThreshold( const uint8_t thres )
+        { lower_thres_ = thres; }
 
-    inline int8_t getValue( const unsigned int x, const unsigned int y ) const
+    /**
+     * @brief Set the upper threshold.
+     * Every cell with a value greater or equal to this threshold represents an obstacle.
+     * This is not true for cell thats contain no information (value 255).
+     * @param thres The new upper threshold.
+     */
+    void setUpperThreshold( const uint8_t thres )
+        { upper_thres_ = thres; }
+
+
+    /* Abstract functions inherited from GridMap2d */
+
+    inline uint8_t getValue( const unsigned int x, const unsigned int y ) const
         { return (unsigned char)costmap_->getCost( x,y ); }
 
-    inline void setValue( const unsigned int x, const unsigned int y, const int8_t value )
+    inline void setValue( const unsigned int x, const unsigned int y, const uint8_t value )
         { return costmap_->setCost( x, y, (unsigned char)value ); }
 
     unsigned int getWidth() const
@@ -48,14 +88,12 @@ public:
         { costmap_->updateOrigin( p.x, p.y ); }
 
 
-    inline bool isFree( const unsigned int x, const unsigned int y ) const {
-        int8_t value = getValue( x,y );
-        return value >= lower_thres_ && value <= upper_thres_;
-    }
+    inline bool isFree( const unsigned int x, const unsigned int y ) const
+        { return getValue( x,y ) <= lower_thres_; }
 
     inline bool isOccupied( const unsigned int x, const unsigned int y ) const {
-        int8_t value = getValue( x,y );
-        return value > upper_thres_ && value < costmap_2d::NO_INFORMATION;
+        uint8_t value = getValue( x,y );
+        return value >= upper_thres_ && value < costmap_2d::NO_INFORMATION;
     }
 
     inline bool isNoInformation( const unsigned int x, const unsigned int y ) const
@@ -71,14 +109,21 @@ public:
         { return !( x < 0 || x >= getWidth() || y < 0 || y > getHeight()); }
 
     inline bool isInMap( const lib_path::Point2d& p ) const {
-        int x, y;
-        return point2Cell( p, x,y );
+        unsigned int x, y;
+        return point2Cell( p, x, y );
     }
 
 private:
+
+    /// Points to the underlying costmap
     costmap_2d::Costmap2D* costmap_;
-    double lower_thres_;
-    double upper_thres_;
+
+    /// Lower threshold. Every cell with a value less or equal this threshold is free
+    uint8_t lower_thres_;
+
+    /** Upper threshold. Every cell with a value greater or equal to this threshold is occupied
+     * (or it contains no information). */
+    uint8_t upper_thres_;
 };
 
 #endif // COSTMAP2DWRAPPER_H
