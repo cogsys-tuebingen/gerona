@@ -129,6 +129,26 @@ public:
     virtual bool isInMap( const Point2d& p ) const = 0;
 
     // To be continued...
+
+    /* Non abstract functions */
+
+    virtual inline bool isFree( const Point2d& p ) const {
+        int x, y;
+        point2Cell( p, x, y );
+        return isFree( x, y );
+    }
+
+    virtual inline bool isOccupied( const Point2d& p ) const {
+        int x, y;
+        point2Cell( p, x, y );
+        return isOccupied( x, y );
+    }
+
+    virtual inline bool isNoInformation( const Point2d& p ) const {
+        int x, y;
+        point2Cell( p, x, y );
+        return isNoInformation( x, y );
+    }
 };
 
 } // namespace "lib_path"
