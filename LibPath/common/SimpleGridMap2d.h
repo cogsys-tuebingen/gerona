@@ -38,10 +38,10 @@ public:
 
     /* Inherited from GridMap2d */
 
-    inline int8_t getValue( const unsigned int x, const unsigned int y ) const
+    inline uint8_t getValue( const unsigned int x, const unsigned int y ) const
         { return data_[y*width_ + x]; }
 
-    inline void setValue( const unsigned int x, const unsigned int y, const int8_t value )
+    inline void setValue( const unsigned int x, const unsigned int y, const uint8_t value )
         { data_[y*width_ + x] = value; }
 
     inline unsigned int getWidth() const
@@ -60,7 +60,7 @@ public:
         { origin_ = p; }
 
     inline bool isFree( const unsigned int x, const unsigned int y ) const {
-        int8_t value = getValue( x, y );
+        uint8_t value = getValue( x, y );
         return value >= lowerThres_ && value <= upperThres_;
     }
 
@@ -96,7 +96,7 @@ public:
      * @param w New map width (number of cells in x-direction)
      * @param h new map height (number of cells in y-direction)
      */
-    void set( const std::vector<int8_t>& data, const unsigned int w, const unsigned int h ) {
+    void set( const std::vector<uint8_t>& data, const unsigned int w, const unsigned int h ) {
         width_ = w;
         height_ = h;
         data_.assign( data.begin(), data.end());
@@ -116,13 +116,13 @@ protected:
     Point2d origin_;
 
     /// The map data (row major order)
-    std::vector<int8_t> data_;
+    std::vector<uint8_t> data_;
 
     /// Lower threshold. Every cell with a value less than this threshold contains no information.
-    int8_t lowerThres_;
+    uint8_t lowerThres_;
 
     /// Upper threshold. Every cell with an value greater than this threshold is occupied.
-    int8_t upperThres_;
+    uint8_t upperThres_;
 };
 
 } // namespace "lib_path"

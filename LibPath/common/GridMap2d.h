@@ -31,7 +31,7 @@ public:
      * @param y y-coordinate of the cell. Should be less than the height of the map.
      * @return Cell value.
      */
-    virtual int8_t getValue( const unsigned int x, const unsigned int y ) const = 0;
+    virtual uint8_t getValue( const unsigned int x, const unsigned int y ) const = 0;
 
     /**
      * @brief Set the value of the cell at (x,y).
@@ -40,7 +40,7 @@ public:
      * @param y y-coordinate of the cell. Should be less than the height of the map.
      * @param value The new value of the cell.
      */
-    virtual void setValue( const unsigned int x, const unsigned int y, const int8_t value ) = 0;
+    virtual void setValue( const unsigned int x, const unsigned int y, const uint8_t value ) = 0;
 
     /**
      * @brief Get the width of the map.
