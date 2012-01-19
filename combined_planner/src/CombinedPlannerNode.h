@@ -17,12 +17,15 @@
 #include <tf/transform_listener.h>
 #include <costmap_2d/costmap_2d_ros.h>
 
-// LibPath
+// Workspace
 #include <utils/LibPath/common/Point2d.h>
 #include <utils/LibPath/common/SimpleGridMap2d.h>
+#include <utils/LibRosUtil/Costmap2dWrapper.h>
+#include <utils/LibRosUtil/OccupancyGridWrapper.h>
 
 // Project
 #include "GlobalPlanner.h"
+#include "LocalPlanner.h"
 
 class CombinedPlannerNode {
 public:
@@ -47,11 +50,14 @@ public:
     lib_path::Pose2d getNormalizedDelta( const lib_path::Point2d& start, const lib_path::Point2d& end ) const;
 
 private:
-
+    /// Name of the global map topic we are listening on
     std::string map_topic_;
+    /// Name of the goal topic we are listening on
     std::string goal_topic_;
+    /// Name of the topic to publish the path
     std::string path_topic_;
 
+    // ROS stuff
     ros::NodeHandle n_;
     ros::Publisher path_pub_;
     ros::Publisher visu_pub_;
@@ -59,10 +65,33 @@ private:
     ros::Subscriber goal_subs_;
     tf::TransformListener tf_;
 
-    costmap_2d::Costmap2DROS costmap_;
-    lib_path::SimpleGridMap2d* map_;
+    /// Used to build up a local costmap from laser data
+    costmap_2d::Costmap2DROS lmap_ros_;
+
+    /// It's seems to be impossible to work on the ROS costmap directly, so we have to copy the data
+    costmap_2d::Costmap2D lmap_cpy_;
+
+    /// Changes the interface of the local costmap
+    lib_ros_util::Costmap2dWrapper lmap_wrapper_;
+
+    /// Copy of the global map we are planning on
+    nav_msgs::OccupancyGrid gmap_cpy_;
+
+    /// Changes the interface of the global map
+    lib_ros_util::OccupancyGridWrapper gmap_wrapper_;
+
+    /// Frame id of the latest global map (usually "/map")
     std::string map_frame_id_;
+
+    /// The planner used to calculate a global path
     GlobalPlanner* global_planner_;
+
+    /// The local planner working on the local costmap
+    LocalPlanner* local_planner_;
+
+    /// True if we got at least one global map
     bool got_map_;
+
+    /// The waypoints of the current path
     std::vector<lib_path::Point2d> global_path_;
 };

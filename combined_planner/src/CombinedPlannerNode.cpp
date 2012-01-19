@@ -20,6 +20,7 @@
 
 
 using namespace lib_path;
+using namespace lib_ros_util;
 using namespace std;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -30,9 +31,11 @@ using namespace std;
 CombinedPlannerNode::CombinedPlannerNode()
     : n_( "~" ),
       tf_( ros::Duration( 10.0 )),
-      costmap_( "local_costmap", tf_ ),
-      map_( NULL ),
+      lmap_ros_( "local_costmap", tf_ ),
+      lmap_wrapper_( &lmap_cpy_ ),
+      gmap_wrapper_( &gmap_cpy_ ),
       global_planner_( NULL ),
+      local_planner_( NULL ),
       got_map_( false )
 {
     // Topic names parameters
@@ -57,27 +60,18 @@ void CombinedPlannerNode::update() {
     }
 
     // Plan path to the next waypoint
-    costmap_;
+    lmap_ros_.getCostmapCopy( lmap_cpy_ );
 }
 
 void CombinedPlannerNode::updateMap( const nav_msgs::OccupancyGridConstPtr &map )
 {
-    // Create map?
-    if ( map_ == NULL ) {
-        map_ = new SimpleGridMap2d( map->info.width, map->info.height, map->info.resolution );
-        ROS_INFO( "Received first map: Width %d, height %d, resolution %f",
-                  map->info.width, map->info.height, map->info.resolution );
-    }
-
-    // Map setup
-    /*map_->set( map->data, map->info.width, map->info.height );
-    map_->setOrigin( Point2d( map->info.origin.position.x, map->info.origin.position.x ));
-    map_frame_id_ = "/map"; //map->header.frame_id;*/
+    gmap_cpy_ = *map;
 
     // Create global planner on first map update
     if ( global_planner_ == NULL ) {
-        global_planner_ = new GlobalPlanner( map_ );
+        global_planner_ = new GlobalPlanner( &gmap_wrapper_ );
     }
+    map_frame_id_ = "/map";
 
     // Ready to go
     got_map_ = true;

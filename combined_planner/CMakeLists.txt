@@ -33,7 +33,6 @@ rosbuild_add_executable(combined_planner_node
     src/CombinedPlannerNode.cpp
     src/GlobalPlanner.cpp
     src/LocalPlanner.cpp
-    src/Costmap2dWrapper.cpp
 )
 target_link_libraries(combined_planner_node
     LibPath
