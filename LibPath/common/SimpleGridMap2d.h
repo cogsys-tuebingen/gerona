@@ -106,15 +106,15 @@ public:
         return  value > lower_thres_ && value < upper_thres_;
     }
 
-    inline bool point2Cell( const double px, const double py, double& x, double& y ) const {
-        if ( !isInMap( x, y ))
+    inline bool point2cell( const double px, const double py, unsigned int& x, unsigned int& y ) const {
+        if ( !isInMap( (int)x, (int)y ))
             return false;
-        x = (px - origin_.x)/res_;
-        y = (py - origin_.y)/res_;
+        x = (unsigned int)(px - origin_.x)/res_;
+        y = (unsigned int)(py - origin_.y)/res_;
         return true;
     }
 
-    inline void cell2point( const int x, const int y, double& px, double& py ) const {
+    inline void cell2point( const unsigned int x, const unsigned int y, double& px, double& py ) const {
         px = res_*(double)(x) + origin_.x + 0.5*res_;
         py = res_*(double)(y) + origin_.y + 0.5*res_;
     }
