@@ -7,16 +7,36 @@
 // ROS
 #include <ros/ros.h>
 
+// Workspace
+#include <utils/LibPath/common/MapMath.h>
+
 // Project
 #include "LocalPlanner.h"
 
 using namespace std;
 using namespace lib_path;
 
-LocalPlanner::LocalPlanner()
+LocalPlanner::LocalPlanner( ros::NodeHandle& n )
     : got_map_( false ),
       map_( NULL )
 {
+    // Read config
+    double circle_radius, wp_distance, cost_backw, cost_forw, cost_curve, cost_straight;
+    n.param<double> ("circle_radius", circle_radius, 1.0f);
+    n.param<double> ("max_waypoint_distance", wp_distance, 0.25f );
+    n.param<double> ("cost_backwards", cost_backw, 3.0f);
+    n.param<double> ("cost_forwards", cost_forw, 1.0f);
+    n.param<double> ("cost_curve", cost_curve, 1.2f);
+    n.param<double> ("cost_straight", cost_straight, 1.0f);
+
+    // Set config
+    rs_.set_circle_radius( circle_radius );
+    rs_.set_max_waypoint_distance( wp_distance );
+    rs_.set_cost_backwards( cost_backw );
+    rs_.set_cost_forwards( cost_forw );
+    rs_.set_cost_curve( cost_curve );
+    rs_.set_cost_straight( cost_straight );
+
     // Init reed Shepp planner
     generatePatterns();
 }
@@ -40,26 +60,29 @@ bool LocalPlanner::planPath( const lib_path::Pose2d &start, const lib_path::Pose
     }
 
     // Search a path
-    Curve* curve = rs_.find_path( start, end, &map_info_ );
+    Pose2d start_map = pos2map( start, *map_ );
+    Pose2d end_map = pos2map( end, *map_ );
+    Curve* curve = rs_.find_path( start_map, end_map, map_ );
 
     // Check result
-    if ( curve->is_valid()) {
+    if ( curve && curve->is_valid()) {
         generatePath( curve );
+        ROS_INFO( "Found local path! Weight: %f", curve->weight());
         last_weight_ = curve->weight();
+        delete curve;
         return true;
     } else {
         ROS_WARN( "No local path found." );
+        if ( curve )
+            delete curve;
         return false;
     }
 }
 
 void LocalPlanner::setMap( lib_path::GridMap2d *map )
 {
-    map_info_.width = map->getWidth();
-    map_info_.height = map->getHeight();
-    map_info_.resolution = map->getResolution();
-    map_info_.origin = map->getOrigin();
-    //
+    map_ = map;
+    got_map_ = true;
 }
 
 void LocalPlanner::generatePath( lib_path::Curve *curve )
@@ -67,9 +90,14 @@ void LocalPlanner::generatePath( lib_path::Curve *curve )
     path_.clear();
     curve->reset_iteration();
     while( curve->has_next()) {
-        /// @todo We might have to transform the point into the map system?
-        path_.push_back( curve->next() );
+        path_.push_back( map2pos( curve->next(), *map_ ));
     }
+}
+
+void LocalPlanner::getPath( list<lib_path::Pose2d> &path ) const
+{
+    path.clear();
+    path.assign( path_.begin(), path_.end());
 }
 
 void LocalPlanner::generatePatterns()

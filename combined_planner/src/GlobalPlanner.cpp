@@ -38,12 +38,14 @@ bool GlobalPlanner::planPath( const lib_path::Point2d &start, lib_path::Point2d 
         return false;
     }
     waypoint_t startWayp, goalWayp;
-    map_->point2Cell( start, startWayp.x, startWayp.y );
-    map_->point2Cell( goal, goalWayp.x, goalWayp.y );
+    unsigned int x, y;
+    map_->point2cell( start, x, y );
+    startWayp.x = x; startWayp.y = y;
+    map_->point2cell( goal, x, y );
+    goalWayp.x = x; goalWayp.y = y;
 
     // Run A*
     if ( !a_star_.planPath( startWayp, goalWayp )) {
-        ROS_WARN( "No global path found." );
         return false;
     }
 

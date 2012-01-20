@@ -7,7 +7,7 @@
     <group ns="combined_planner_node/local_costmap">
         <param name="global_frame" value="/map"/>
         <param name="robot_base_frame" value="/base_link"/>
-        <param name="publish_frequency" value="2.0"/>
+        <param name="publish_frequency" value="0.5"/>
         <param name="update_frequency" value="5.0"/>
         <param name="inflation_radius" value="0.30"/>
         <param name="footprint" value="[[0.22,0.17],[0.22,-0.17],[-0.22,-0.17],[-0.22,0.17]]"/>
@@ -17,7 +17,7 @@
         <param name="static_map" value="false"/>
         <param name="width" value="10"/>
         <param name="height" value="10"/>
-        <param name="resolution" value="0.1"/>
+        <param name="resolution" value="0.15"/>
         <param name="map_type" value="costmap"/>
       
         <param name="observation_sources" value="laser"/>

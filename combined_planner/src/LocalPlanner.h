@@ -9,6 +9,10 @@
 
 // C/C++
 #include <vector>
+#include <list>
+
+// ROS
+#include <ros/ros.h>
 
 // Workspace
 #include <utils/LibPath/common/GridMap2d.h>
@@ -17,10 +21,11 @@
 class LocalPlanner
 {
 public:
-    LocalPlanner();
+    LocalPlanner( ros::NodeHandle& n );
 
     void setMap( lib_path::GridMap2d* map );
     bool planPath( const lib_path::Pose2d& start, const lib_path::Pose2d& end );
+    void getPath( std::list<lib_path::Pose2d>& path ) const;
 
 protected:
     void generatePatterns();
@@ -29,8 +34,7 @@ protected:
     lib_path::CurveGenerator rs_;
     bool got_map_;
     lib_path::GridMap2d* map_;
-    lib_path::MapInfo map_info_;
-    std::vector<lib_path::Pose2d> path_;
+    std::list<lib_path::Pose2d> path_;
     double last_weight_;
 
 };

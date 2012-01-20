@@ -34,8 +34,10 @@ public:
 
     void updateMap( const nav_msgs::OccupancyGridConstPtr& map );
     void updateGoal( const geometry_msgs::PoseStampedConstPtr& goal );
-    void update();
+    void update( bool force_replan = false );
     bool getRobotPose( geometry_msgs::Pose& pose, const std::string& map_frame );
+    void publishLocalPath( std::list<lib_path::Pose2d>& path );
+    void publishEmptyLocalPath();
     void visualizePath( const std::vector<lib_path::Point2d> &path,
                         const std::string& ns,
                         const int color = 0,
@@ -46,6 +48,10 @@ public:
     void generateWaypoints( const std::vector<lib_path::Point2d> &path,
                             const lib_path::Pose2d& goal,
                             list<lib_path::Pose2d> &waypoints ) const;
+
+    bool nextWaypoint( const lib_path::Pose2d& robot_pose ) const;
+    bool isGoalReached( const lib_path::Pose2d& robot_pose, const lib_path::Pose2d& goal ) const;
+    void getPoseDelta( const lib_path::Pose2d& p, const lib_path::Pose2d& q, double& d_dist, double& d_theta ) const;
 
     lib_path::Pose2d getNormalizedDelta( const lib_path::Point2d& start, const lib_path::Point2d& end ) const;
 
@@ -93,5 +99,5 @@ private:
     bool got_map_;
 
     /// The waypoints of the current path
-    std::vector<lib_path::Point2d> global_path_;
+    std::list<lib_path::Pose2d> waypoints_;
 };

@@ -43,6 +43,10 @@ CombinedPlannerNode::CombinedPlannerNode()
     n_.param<std::string>( "goal_topic", goal_topic_, "/goal" );
     n_.param<std::string>( "path_topic", path_topic_, "/a_star_path" );
 
+    // Member
+    ros::NodeHandle rs_n( "~/reed_shepp/" );
+    local_planner_ = new LocalPlanner( rs_n );
+
     // Subscribe
     map_subs_ = n_.subscribe<nav_msgs::OccupancyGrid>( map_topic_, 1, boost::bind( &CombinedPlannerNode::updateMap, this, _1 ));
     goal_subs_ = n_.subscribe<geometry_msgs::PoseStamped>( goal_topic_, 1, boost::bind( &CombinedPlannerNode::updateGoal, this, _1 ));
@@ -52,15 +56,80 @@ CombinedPlannerNode::CombinedPlannerNode()
     visu_pub_ = n_.advertise<visualization_msgs::Marker>( "visualization_markers", 5 );
 }
 
-void CombinedPlannerNode::update() {
+void CombinedPlannerNode::update( bool force_replan )
+{
     // Get new robot pose
     geometry_msgs::Pose robot_pose;
-    if ( !getRobotPose( robot_pose, map_frame_id_ )) {
+    if ( waypoints_.empty() || !getRobotPose( robot_pose, map_frame_id_ )) {
+        return; // No pose or no waypoint left
+    }
+
+    // No waypoints left except of the goal? Check if the goal is reached.
+    lib_path::Pose2d start;
+    start.x = robot_pose.position.x;
+    start.y = robot_pose.position.y;
+    start.theta = tf::getYaw( robot_pose.orientation );
+    if ( waypoints_.size() == 1 && isGoalReached( start, waypoints_.front())) {
+        waypoints_.clear(); // Finished
+        visualizeWaypoints( waypoints_ , "waypoints", 3 );
+        publishEmptyLocalPath();
+        ROS_INFO( "Goal reached" );
         return;
     }
 
+    // Select next waypoint
+    bool new_wp = false;
+    while ( waypoints_.size() > 1 && nextWaypoint( start )) {
+        waypoints_.pop_front();
+        new_wp = true;
+    }
+
+    // New waypoint selected?
+    if ( !force_replan && !new_wp )
+        return;
+
+    // Publish waypoints
+    ROS_INFO( "Selected new waypoint." );
+    visualizeWaypoints( waypoints_, "waypoints", 3 );
+
     // Plan path to the next waypoint
     lmap_ros_.getCostmapCopy( lmap_cpy_ );
+    local_planner_->setMap( &lmap_wrapper_ );
+    if ( local_planner_->planPath( start, waypoints_.front())) {
+        std::list<lib_path::Pose2d> lpath;
+        local_planner_->getPath( lpath );
+        publishLocalPath( lpath );
+    }
+}
+
+bool CombinedPlannerNode::nextWaypoint( const lib_path::Pose2d &robot_pose ) const
+{
+    if ( waypoints_.empty())
+        return false;
+
+    Pose2d next = waypoints_.front();
+    double d_dist, d_theta;
+    getPoseDelta( robot_pose, next, d_dist, d_theta );
+
+    return d_dist < 1.0 && d_theta < 0.25*M_PI;
+}
+
+bool CombinedPlannerNode::isGoalReached( const lib_path::Pose2d& robot_pose,
+                                         const lib_path::Pose2d &goal ) const
+{
+    double d_dist, d_theta;
+    getPoseDelta( robot_pose, goal, d_dist, d_theta );
+    return d_dist < 0.1 && d_theta < 0.1*M_PI;
+}
+
+void CombinedPlannerNode::getPoseDelta( const lib_path::Pose2d &p, const lib_path::Pose2d &q,
+                                       double &d_dist, double &d_theta ) const
+{
+    d_dist = sqrt( pow( p.x - q.x, 2 ) + pow( p.y - q.y, 2 ));
+    d_theta = fabs( p.theta - q.theta );
+    while ( d_theta > M_PI ) /// @todo use lib utils
+        d_theta -= 2.0*M_PI;
+    d_theta = fabs( d_theta );
 }
 
 void CombinedPlannerNode::updateMap( const nav_msgs::OccupancyGridConstPtr &map )
@@ -80,7 +149,7 @@ void CombinedPlannerNode::updateMap( const nav_msgs::OccupancyGridConstPtr &map 
 void CombinedPlannerNode::updateGoal( const geometry_msgs::PoseStampedConstPtr &goal )
 {
     ROS_INFO("Got a new goal");
-    global_path_.clear();
+    waypoints_.clear();
     if ( !got_map_ ) {
         ROS_WARN( "Got a goal but no map. It's not possible to plan a path!" );
         return;
@@ -119,11 +188,11 @@ void CombinedPlannerNode::updateGoal( const geometry_msgs::PoseStampedConstPtr &
     visualizePath( path_raw, "global_path_raw", 0, 0 );
 
     // Get & visualize flattened path
-    global_planner_->getLatestPath( global_path_ );
-    visualizePath( global_path_, "global_path", 1, 1 );
+    path_raw.clear();
+    global_planner_->getLatestPath( path_raw );
+    visualizePath( path_raw, "global_path", 1, 1 );
 
     // Calculate waypoints
-    list<lib_path::Pose2d> waypoints;
     lib_path::Pose2d poseGoal, poseStart;
     poseGoal.x = pathEnd.x;
     poseGoal.y = pathEnd.y;
@@ -131,10 +200,13 @@ void CombinedPlannerNode::updateGoal( const geometry_msgs::PoseStampedConstPtr &
     poseStart.x = robot_pose.position.x;
     poseStart.y = robot_pose.position.y;
     poseStart.theta = tf::getYaw( robot_pose.orientation );
-    generateWaypoints( global_path_, poseGoal, waypoints );
+    generateWaypoints( path_raw, poseGoal, waypoints_ );
 
     // Visualize waypoints
-    visualizeWaypoints( waypoints, "waypoints", 3 );
+    visualizeWaypoints( waypoints_, "waypoints", 3 );
+
+    // Run an update
+    update( true );
 }
 
 void CombinedPlannerNode::generateWaypoints( const vector<lib_path::Point2d>& path,
@@ -198,6 +270,31 @@ void CombinedPlannerNode::generateWaypoints( const vector<lib_path::Point2d>& pa
         minus = 0.0;
         waypoints.push_back( last );
     }
+}
+
+void CombinedPlannerNode::publishLocalPath( std::list<lib_path::Pose2d> &path )
+{
+    nav_msgs::Path path_msg;
+    path_msg.header.frame_id = map_frame_id_;
+    path_msg.header.stamp = ros::Time::now();
+
+    std::list<lib_path::Pose2d>::const_iterator it = path.begin();
+    geometry_msgs::PoseStamped pose;
+    for ( ; it != path.end(); it++ ) {
+        pose.pose.position.x = it->x;
+        pose.pose.position.y = it->y;
+        pose.pose.orientation = tf::createQuaternionMsgFromYaw( it->theta );
+        path_msg.poses.push_back( pose );
+    }
+    path_pub_.publish( path_msg );
+}
+
+void CombinedPlannerNode::publishEmptyLocalPath()
+{
+    nav_msgs::Path path_msg;
+    path_msg.header.frame_id = map_frame_id_;
+    path_msg.header.stamp = ros::Time::now();
+    path_pub_.publish( path_msg );
 }
 
 bool CombinedPlannerNode::getRobotPose( geometry_msgs::Pose& pose, const std::string& map_frame )
@@ -298,7 +395,7 @@ int main( int argc, char* argv[] )
     ros::init( argc, argv, "combined_planner" );
     CombinedPlannerNode node;
 
-    ros::Rate rate( 20 );
+    ros::Rate rate( 10 );
     while ( ros::ok()) {
         ros::spinOnce();
         node.update();
