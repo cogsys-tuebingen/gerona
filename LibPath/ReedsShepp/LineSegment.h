@@ -67,7 +67,7 @@ public:
   /**
    * Computes the weight of this segment
    */
-  virtual float weight();
+  virtual float weight(bool ignore_obstacles);
 
 private:
   Pose2d m_start;

@@ -15,7 +15,7 @@
 using namespace lib_path;
 
 Curve::Curve()
-  : m_init(false),
+  : m_init(false), m_ignore_obstacles(false),
     m_circle_radius(10.0), m_max_waypoint_distance(10.0),
     m_cost_forwards(1.0), m_cost_backwards(1.0), m_cost_curve(1.0), m_cost_straight(1.0),
     m_min_length(NOT_FREE), m_iterating(false), m_output_number(0)
@@ -29,9 +29,10 @@ Curve::~Curve() {
 
 void Curve::test_sequence(std::vector<CurveSegment*> &sequence) {
   if (m_start.distance_to(m_goal) < 2) {
-    std::cerr << "***ERROR*** what now?" << std::endl;
+    // TODO: robot is 2 pixels away from the target, what to do?
     return;
   }
+
   if (sequence.size() < 3){
     std::cerr << "invalid sequence, length < 3" << std::endl;
     return;
@@ -69,6 +70,10 @@ void Curve::test_sequence(std::vector<CurveSegment*> &sequence) {
     length = handle_sequence(sequence[0], sequence[1], sequence[2], sequence[3]);
   else
     std::cerr << "unknown sequence" << std::endl;
+
+  if(length < NOT_FREE) {
+    std::cout << "found a curve" << std::endl;
+  }
 
   if(length < m_min_length) {
     m_min_combo.resize(sequence.size());
@@ -151,7 +156,8 @@ double Curve::handle_sequence(CurveSegment *segment1,
 
     return handle_sequence(start, c1, c2, goal);
   }
-  std::cerr << "***ERROR*** correct return value?"<< std::cerr << std::endl;
+
+  std::cerr << "unknown sequence" << std::endl;
   return NOT_FREE;
 }
 
@@ -161,27 +167,34 @@ double Curve::handle_sequence(CircleSegment *circle1, LineSegment *line, CircleS
 
   circle1->get_common_tangent(*circle2, *line, reverse);
 
-  float w = circle1->weight() + line->weight() + circle2->weight();
+  float w = circle1->weight(m_ignore_obstacles)
+      + line->weight(m_ignore_obstacles)
+      + circle2->weight(m_ignore_obstacles);
 
   return w;
 }
 
 double Curve::handle_sequence(CircleSegment *circle1, CircleSegment *circle2, CircleSegment *circle3)
 {
-  if(circle1->get_tangential_circle(*circle2, *circle3) == false){
+  if(circle1->get_tangential_circle(*circle2, *circle3, m_ignore_obstacles) == false){
     return NOT_FREE;
 
   } else {
-    float w = circle1->weight() + circle2->weight() + circle3->weight();
+    float w = circle1->weight(m_ignore_obstacles)
+        + circle2->weight(m_ignore_obstacles)
+        + circle3->weight(m_ignore_obstacles);
     return w;
   }
 }
 
 double Curve::handle_sequence(CircleSegment *start, CircleSegment *circle2, CircleSegment *circle3, CircleSegment *goal)
 {
-  start->get_tangential_double_circle(*circle2, *circle3, *goal);
+  start->get_tangential_double_circle(*circle2, *circle3, *goal, m_ignore_obstacles);
 
-  float w = start->weight() + circle2->weight() + circle3->weight() + goal->weight();
+  float w = start->weight(m_ignore_obstacles)
+      + circle2->weight(m_ignore_obstacles)
+      + circle3->weight(m_ignore_obstacles)
+      + goal->weight(m_ignore_obstacles);
 
   return w;
 }
@@ -205,7 +218,7 @@ double Curve::weight()
 {
   double weight=0.0;
   for (unsigned i=0;i<m_min_combo.size();++i) {
-    weight+=m_min_combo[i]->weight();
+    weight+=m_min_combo[i]->weight(m_ignore_obstacles);
   }
   if (fabs(weight-m_min_length)>1) {
     std::cout << "weight:"<<weight<< " minlength"<<m_min_length<< std::endl;
@@ -220,43 +233,47 @@ void Curve::reset_iteration()
     m_min_combo[0]->reset_iteration();
     m_output_number = 0;
   }
-  //*** iterating is never set to false again
+
   m_iterating = true;
 }
 
 bool Curve::has_next()
 {
-  //*** no asserts in robot code - module should return pathnotfound
-  assert(m_iterating);
-
+  if(!m_iterating){
+    std::cerr << "*** [RS] SEVERE CODE ERROR, ITERATION NOT STARTET ***" << std::endl;
+  }
   if( m_min_length < NOT_FREE &&
-      m_iterating &&
       m_output_number < m_min_combo.size() ) {
 
     return m_min_combo[m_output_number]->has_next() || m_output_number < m_min_combo.size() - 1;
 
   } else {
+    m_iterating = false;
     return false;
   }
 }
 
 Pose2d Curve::next()
 {
-  //***
-  assert(m_iterating);
+  if(!m_iterating){
+    std::cerr << "*** [RS] SEVERE CODE ERROR, ITERATION NOT STARTET ***" << std::endl;
+  }
 
   CurveSegment * current_segment = m_min_combo[m_output_number];
 
   if(current_segment->has_next()) {
+    // current segment has another point
     return current_segment->next();
 
   } else if(has_next()) {
+    // current segment doesn't have another point, but there's another segment
     m_output_number++;
     m_min_combo[m_output_number]->reset_iteration();
     return next();
 
   } else {
-    // ***return undefined value?
+    // there are no more points, should never happen if has_next() is used.
+    std::cerr << "*** [RS] SEVERE CODE ERROR, DID NOT CALL HAS_NEXT ***" << std::endl;
     return Pose2d();
   }
 }

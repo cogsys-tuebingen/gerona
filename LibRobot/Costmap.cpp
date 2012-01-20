@@ -219,7 +219,7 @@ void Costmap::split(const std::vector<int8_t>& map, u_char *blocked_data, u_char
   blocked_data = blocked_map_->data.ptr;
   free_data = free_map_->data.ptr;
   for(unsigned i = 0; i < map_width_ * map_height_; ++i){
-    int8_t val = map_raw[i]; // FREE = 1, UNKNOWN = 0
+    int8_t val = map_raw[i];
 
     if(val > threshold){
       blocked_data[i] = val;

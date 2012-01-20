@@ -10,6 +10,7 @@
 
 #include "Curve.h"
 #include "CurveSegment.h"
+#include "../common/GridMap2d.h"
 
 #include <vector>
 #include <string>
@@ -43,10 +44,12 @@ public:
    * @param map MapInfo that is used to check for obstacles
    * @param curve_radius radius of circle elements, NOT the maximal steering angle
    * @param max_distance_between_waypoints Maximum distance between two connected waypoints
+   * @param ignore_obstacles true <-> Find the shortest path, <b>ignoring</b> obstacles (default: false)
    *
    * @returns a Reeds-Shepp-Curve that describes the shortest path
    */
-  Curve * find_path (const Pose2d &start, const Pose2d &goal, MapInfo *map);
+  Curve * find_path (const Pose2d &start, const Pose2d &goal, GridMap2d *map,
+                     bool ignore_obstacles = false);
 
   /**
    * Setters

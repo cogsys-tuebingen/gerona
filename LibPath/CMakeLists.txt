@@ -19,7 +19,6 @@ rosbuild_add_library(LibPath  ReedsShepp/CurveGenerator.cpp
                         sampling/RingGoalRegion.cpp
                         sampling/CentroidRadiusGoalRegion.cpp
                         sampling/SamplingPlanner.cpp
-                        common/Map.cpp
                         common/MapMath.cpp
                         common/Point2d.cpp
                         common/Pose2d.cpp
@@ -28,6 +27,8 @@ rosbuild_add_library(LibPath  ReedsShepp/CurveGenerator.cpp
                         a_star/AStar.cpp
 			a_star/Node.cpp
 			a_star/OpenList.cpp)
+
+target_link_libraries(LibPath LibUtil)
 
 #target_link_libraries(ReedsShepp    LibUtil)
 

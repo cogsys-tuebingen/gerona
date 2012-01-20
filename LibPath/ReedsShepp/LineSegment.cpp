@@ -30,7 +30,7 @@ void LineSegment::set_points(Point2d start, Point2d end)
   m_end.theta = m_slope;
 }
 
-float LineSegment::weight()
+float LineSegment::weight(bool ignore_obstacles)
 {
   bool is_free = true;
 
@@ -39,17 +39,18 @@ float LineSegment::weight()
   int x1 = m_end.x;
   int y1 = m_end.y;
 
-  if(x0 < 0 || x0 >= m_map->width || y0 < 0 || y0 >= m_map->height)
+  if(!m_map->isInMap(x0, y0)){
+    std::cout << "line: point (" << x0 << ", " << y0 << ") is outside the map" << std::endl;
     return NOT_FREE;
+  }
 
   int dx =  abs(x1-x0), sx = x0<x1 ? 1 : -1;
   int dy = -abs(y1-y0), sy = y0<y1 ? 1 : -1;
   int err = dx+dy, e2; /* error value e_xy */
 
   for(;;){
-    if(x0 >= 0 && x0 < m_map->width && y0 >= 0 && y0 < m_map->height){
-      int val = m_map->data[y0 * m_map->width + x0];
-      bool free = (val >= m_map->threshold_min && val <= m_map->threshold_max);
+    if(m_map->isInMap(x0, y0)){
+      bool free = m_map->isFree(x0, y0);
       if(!free){
         is_free = false;
         break;
@@ -62,7 +63,7 @@ float LineSegment::weight()
     if (e2 < dx) { err += dx; y0 += sy; } /* e_xy+e_y < 0 */
   }
 
-  if(is_free){
+  if(ignore_obstacles || is_free){
     float cost = (m_direction == CurveSegment::BACKWARD) ? m_cost_backwards : m_cost_forwards;
 
     return (m_start - m_end).distance_to_origin() * cost * m_cost_straight;

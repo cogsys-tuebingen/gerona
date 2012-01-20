@@ -46,7 +46,8 @@ public:
    * @param circle2 gets the information computed written into
    * @param circle3 the other circle, that must be touched
    */
-  bool get_tangential_circle(CircleSegment &circle2, CircleSegment &circle3);
+  bool get_tangential_circle(CircleSegment &circle2, CircleSegment &circle3,
+                             bool ignore_obstacles);
 
   /**
    * Computes two touching circles, that touch this circle and circle4 both tangentially.
@@ -57,7 +58,8 @@ public:
    * @param circle3 gets the information computed written into
    * @param circle4 the other circle, that must be touched
    */
-  bool get_tangential_double_circle(CircleSegment &circle2, CircleSegment &circle3, CircleSegment &circle4);
+  bool get_tangential_double_circle(CircleSegment &circle2, CircleSegment &circle3, CircleSegment &circle4,
+                                    bool ignore_obstacles);
 
 
   /**
@@ -138,7 +140,7 @@ public:
   /**
    * Computes the weight of this segment
    */
-  virtual float weight();
+  virtual float weight(bool ignore_obstacles);
 
 private:
   bool get_tangential_circle_helper(CircleSegment &circle2, CircleSegment &circle3, bool choose_positive_solution);

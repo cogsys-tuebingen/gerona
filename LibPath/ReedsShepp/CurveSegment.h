@@ -8,7 +8,7 @@
 #ifndef CURVESEGMENT_H
 #define CURVESEGMENT_H
 
-#include "../common/Map.h"
+#include "../common/GridMap2d.h"
 #include "../common/Point2d.h"
 
 #include <assert.h>
@@ -38,7 +38,7 @@ public:
    *
    * @param map the new MapInfo
    */
-  virtual void set_map(MapInfo *map);
+  virtual void set_map(GridMap2d *map);
 
 
   /**
@@ -90,10 +90,10 @@ public:
   /**
    * Computes the weight of this segment
    */
-  virtual float weight() = 0;
+  virtual float weight(bool ignore_obstacles) = 0;
 
 protected:
-  MapInfo * m_map;
+  GridMap2d * m_map;
   DIRECTION m_direction;
   float m_max_distance;
 

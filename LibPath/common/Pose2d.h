@@ -17,6 +17,7 @@ class Pose2d
 {
 public:
   Pose2d();
+  Pose2d(double x, double y, double theta);
 
   /**
      * Computes the distance to the given point

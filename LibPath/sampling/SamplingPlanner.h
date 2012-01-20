@@ -19,11 +19,11 @@ namespace lib_path {
 class SamplingPlanner
 {
 public:
-    SamplingPlanner(CurveGenerator *rs_generator,MapInfo *map);
+    SamplingPlanner(CurveGenerator *rs_generator, GridMap2d *map);
     Curve* createPath (const Pose2d& start, GoalRegion *region, int samples_num);
 private:
     CurveGenerator *rs_generator_;
-    MapInfo *map_;
+    GridMap2d *map_;
 };
 
 }

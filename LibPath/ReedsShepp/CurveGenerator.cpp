@@ -73,7 +73,7 @@ bool CurveGenerator::parse(std::string sequence, std::ostream& out)
         CurveSegment * cs = m_sequences[m_count].at(m_sequences[m_count].size()-1);
 
         if(typeid(*cs) == typeid(CircleSegment)){
-          CircleSegment * circle = dynamic_cast<CircleSegment*> (cs);
+          //CircleSegment * circle = dynamic_cast<CircleSegment*> (cs);
           //circle.set_part_of_turn();
 
         } else {
@@ -152,7 +152,7 @@ bool CurveGenerator::parse(std::string sequence, std::ostream& out)
   return error;
 }
 
-Curve * CurveGenerator::find_path(const Pose2d &start, const Pose2d &goal, MapInfo *map) {
+Curve * CurveGenerator::find_path(const Pose2d &start, const Pose2d &goal, GridMap2d *map, bool ignore_obstacles) {
   std::cout << "computing curve from" << start.x << " "<< start.y<< " "<< start.theta<< " to "<< goal.x<< " "<< goal.y<< " "<< goal.theta<< " "<< std::endl;
 
   Curve * c = new Curve;
@@ -161,8 +161,10 @@ Curve * CurveGenerator::find_path(const Pose2d &start, const Pose2d &goal, MapIn
   c->m_goal = goal;
   c->m_map = map;
 
-  c->m_circle_radius = m_circle_radius / map->resolution;
-  c->m_max_waypoint_distance = m_max_waypoint_distance / map->resolution;
+  c->m_ignore_obstacles = ignore_obstacles;
+
+  c->m_circle_radius = m_circle_radius / map->getResolution();
+  c->m_max_waypoint_distance = m_max_waypoint_distance / map->getResolution();
 
   c->m_min_length = std::numeric_limits<float>::max();
 

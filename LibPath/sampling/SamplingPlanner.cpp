@@ -13,7 +13,7 @@
 using namespace lib_path;
 
 SamplingPlanner::SamplingPlanner(CurveGenerator *rs_generator,
-                                 MapInfo* map)
+                                 GridMap2d* map)
   :rs_generator_(rs_generator),map_(map)
 {
 
@@ -23,7 +23,7 @@ SamplingPlanner::SamplingPlanner(CurveGenerator *rs_generator,
 Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *region, int samples_num)
 {
   Pose2d start_map=pos2map(start,*map_);
-  if (!map_->isPosValid(start_map)) {
+  if (!map_->isInMap(start_map)) {
     fprintf(stderr,"starting pos %f %f outside map", start.x,start.y);
     return 0;
   }
@@ -35,7 +35,7 @@ Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *region, int 
   while (region->getNextGoal(goal)) {
     Pose2d goal_map = pos2map(goal, *map_);
     std::cout << "goal map pose "<<goal_map.x << " "<<goal_map.y << std::endl;
-    if (!map_->isPosValid(goal_map)) {
+    if (!map_->isInMap(goal_map)) {
       std::cout << "invalid goal pose "<<goal.x << " "<<goal.y << std::endl;
       continue;
     }

@@ -7,11 +7,15 @@
 
 #include "Pose2d.h"
 
-#include "MapMath.h"
-
 using namespace lib_path;
 
 Pose2d::Pose2d()
+  : x(0), y(0), theta(0)
+{
+}
+
+Pose2d::Pose2d(double x, double y, double theta)
+  : x(x), y(y), theta(theta)
 {
 }
 

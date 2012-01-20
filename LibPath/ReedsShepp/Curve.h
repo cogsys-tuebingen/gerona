@@ -11,7 +11,6 @@
 #include "CurveSegment.h"
 #include "CircleSegment.h"
 #include "LineSegment.h"
-#include "../common/Point2d.h"
 
 #include <vector>
 
@@ -93,6 +92,7 @@ private:
   void init_circle_pairs(Pose2d &next_to, circle_pair &target);
 
   bool m_init;
+  bool m_ignore_obstacles;
 
   float m_circle_radius;
   float m_max_waypoint_distance;
@@ -111,7 +111,7 @@ private:
   Pose2d m_start;
   Pose2d m_goal;
 
-  MapInfo *m_map;
+  GridMap2d *m_map;
 
   bool m_iterating;
   int m_output_number;

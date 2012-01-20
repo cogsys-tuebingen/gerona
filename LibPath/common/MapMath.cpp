@@ -7,7 +7,8 @@
 
 #include "MapMath.h"
 
-#include "Map.h"
+#include "Pose2d.h"
+#include "GridMap2d.h"
 
 namespace lib_path {
 
@@ -31,19 +32,19 @@ double NORMALIZE_0_360(double angle)
   return angle;
 }
 
-void pos2map(double px, double py, double& mx, double&my, const MapInfo& mapinfo)
+void pos2map(double px, double py, double& mx, double&my, const GridMap2d& map)
 {
-  mx = (px - mapinfo.origin.x) / mapinfo.resolution;
-  my = (py - mapinfo.origin.y) / mapinfo.resolution;
+  mx = (px - map.getOrigin().x) / map.getResolution();
+  my = (py - map.getOrigin().y) / map.getResolution();
 }
 
-void map2pos(double mx, double my, double& px, double&py, const MapInfo& mapinfo)
+void map2pos(double mx, double my, double& px, double&py, const GridMap2d& map)
 {
-  px = mapinfo.resolution*mx + mapinfo.origin.x;
-  py = mapinfo.resolution*my + mapinfo.origin.y;
+  px = map.getResolution()*mx + map.getOrigin().x;
+  py = map.getResolution()*my + map.getOrigin().y;
 }
 
-Pose2d pos2map(const Pose2d& p, const MapInfo& mapinfo)
+Pose2d pos2map(const Pose2d& p, const GridMap2d& mapinfo)
 {
   Pose2d res;
   res.theta = p.theta;
@@ -51,7 +52,7 @@ Pose2d pos2map(const Pose2d& p, const MapInfo& mapinfo)
   return res;
 }
 
-Pose2d map2pos(const Pose2d& p, const MapInfo& mapinfo)
+Pose2d map2pos(const Pose2d& p, const GridMap2d& mapinfo)
 {
   Pose2d res;
   res.theta = p.theta;

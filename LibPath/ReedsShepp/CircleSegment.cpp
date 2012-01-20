@@ -85,8 +85,9 @@ void CircleSegment::set_mode(MODE mode)
   m_mode = mode;
 }
 
-float CircleSegment::weight()
+float CircleSegment::weight(bool ignore_obstacles)
 {
+  //ignore_obstacles = true;
   bool is_free = true;
 
   Point2d ray(m_radius, 0);
@@ -95,19 +96,20 @@ float CircleSegment::weight()
 
     Point2d point_on_map = m_center + ray.rotate(angle);
 
-    if(point_on_map.x >= 0 && point_on_map.x < m_map->width && point_on_map.y >= 0 && point_on_map.y < m_map->height){
-      int val = m_map->data[m_map->width * (int) point_on_map.y + (int) point_on_map.x];
-      if(val < m_map->threshold_min || val > m_map->threshold_max){
+    if(m_map->isInMap((int) point_on_map.x, (int) point_on_map.y)){
+
+      if(!m_map->isFree((int) point_on_map.x, (int) point_on_map.y)){
         is_free = false;
         break;
       }
     } else {
+      std::cout << "circle: point (" << (int) point_on_map.x << ", " << (int) point_on_map.y << ") is outside the map" << std::endl;
       is_free = false;
       break;
     }
   }
 
-  if(is_free){
+  if(ignore_obstacles || is_free){
     float cost = (m_direction == CurveSegment::BACKWARD) ? m_cost_backwards : m_cost_forwards;
     if (m_arc_span>1.4*M_PI) {
       std::cout << "arcspan:"<<m_arc_span*180.0/M_PI << " radius:"<<m_radius<< "costdir"<<cost <<" costcurve:"<<m_cost_curve<<std::endl;
@@ -199,7 +201,8 @@ void CircleSegment::compute_arc_span(bool is_center_circle)
   m_stepsize = m_arc_span / m_steps;
 }
 
-bool CircleSegment::get_tangential_circle(CircleSegment &circle2, CircleSegment &circle3)
+bool CircleSegment::get_tangential_circle(CircleSegment &circle2, CircleSegment &circle3,
+                                          bool ignore_obstacles)
 {
   Point2d &c1 = m_center;
   Point2d &c3 = circle3.m_center;
@@ -211,10 +214,14 @@ bool CircleSegment::get_tangential_circle(CircleSegment &circle2, CircleSegment 
   float weight_negative = NOT_FREE;
 
   if(get_tangential_circle_helper(circle2, circle3, true)) {
-    weight_positive = weight() + circle2.weight() + circle3.weight();
+    weight_positive = weight(ignore_obstacles)
+        + circle2.weight(ignore_obstacles)
+        + circle3.weight(ignore_obstacles);
   }
   if(get_tangential_circle_helper(circle2, circle3, false)) {
-    weight_negative = weight() + circle2.weight() + circle3.weight();
+    weight_negative = weight(ignore_obstacles)
+        + circle2.weight(ignore_obstacles)
+        + circle3.weight(ignore_obstacles);
   }
 
   if(weight_negative >= NOT_FREE && weight_positive >= NOT_FREE) {
@@ -230,7 +237,8 @@ bool CircleSegment::get_tangential_circle(CircleSegment &circle2, CircleSegment 
   }
 }
 
-bool CircleSegment::get_tangential_double_circle(CircleSegment &circle2, CircleSegment &circle3, CircleSegment &circle4)
+bool CircleSegment::get_tangential_double_circle(CircleSegment &circle2, CircleSegment &circle3, CircleSegment &circle4,
+                                                 bool ignore_obstacles)
 {
 
   Point2d &c1 = m_center;
@@ -243,10 +251,16 @@ bool CircleSegment::get_tangential_double_circle(CircleSegment &circle2, CircleS
   float weight_negative = NOT_FREE;
 
   if(get_tangential_double_circle_helper(circle2, circle3, circle4, true)) {
-    weight_positive = weight() + circle2.weight() + circle3.weight() + circle4.weight();
+    weight_positive = weight(ignore_obstacles)
+        + circle2.weight(ignore_obstacles)
+        + circle3.weight(ignore_obstacles)
+        + circle4.weight(ignore_obstacles);
   }
   if(get_tangential_double_circle_helper(circle2, circle3, circle4, false)) {
-    weight_negative = weight() + circle2.weight() + circle3.weight() + circle4.weight();
+    weight_negative = weight(ignore_obstacles)
+        + circle2.weight(ignore_obstacles)
+        + circle3.weight(ignore_obstacles)
+        + circle4.weight(ignore_obstacles);
   }
 
   if(weight_negative >= NOT_FREE && weight_positive >= NOT_FREE) {
