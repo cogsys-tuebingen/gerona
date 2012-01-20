@@ -96,7 +96,7 @@ float CircleSegment::weight(bool ignore_obstacles)
 
     Point2d point_on_map = m_center + ray.rotate(angle);
 
-    if(m_map->isInMap((int) point_on_map.x, (int) point_on_map.y)){
+    if(m_map->isInMap((int)point_on_map.x, (int)point_on_map.y)){
 
       if(!m_map->isFree((int) point_on_map.x, (int) point_on_map.y)){
         is_free = false;

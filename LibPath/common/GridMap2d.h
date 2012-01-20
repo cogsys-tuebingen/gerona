@@ -98,20 +98,23 @@ public:
 
     /**
      * @brief Convert a point in map coordinates to cell coordinates.
-     * @param p The position in the map coordinate system.
+     * The result is not necessarily a whole number.
+     * @param px x-coordinate of the position in the map coordinate system.
+     * @param py y-coordinate of the position in the map coordinate system.
      * @param x x-coordinate of the cell.
      * @param y y-coordinate of the cell.
      * @return False if the point lies outside of the map. True otherwise.
      */
-    virtual bool point2Cell( const Point2d& p, int& x, int& y ) const = 0;
+    virtual bool point2cell( const double px, const double py, unsigned int& x, unsigned int& y ) const = 0;
 
     /**
      * @brief Convert cell coordinates to a point in the map coordinate system.
      * @param x x-coordinate of the cell.
      * @param y y-coordinate of the cell.
-     * @param p The position in the map coordinate system.
+     * @param px x-coordinate of the point in the map coordinate system.
+     * @param py y-coordinate of the point in the map coordinate system.
      */
-    virtual void cell2point( const int x, const int y, Point2d& p ) const = 0;
+    virtual void cell2point( const unsigned int x, const unsigned int y, double& px, double& py ) const = 0;
 
     /**
      * @brief Check if cell coordinates are valid.
@@ -122,33 +125,48 @@ public:
     virtual bool isInMap( const int x, const int y ) const = 0;
 
     /**
-     * @brief Check a point in the map coordinate system lies outside of the map.
-     * @param p The point in map coordinates.
-     * @return False if the point lies outside of the map. True otherwise.
+     * @brief Check if a point int the map coordinate system lies outside
+     *      of the map.
+     * @param x x-coordinate of the point.
+     * @param y y-coordinate of the point.
+     * @return False if the coordinates are out of range. True otherwise.
      */
-    virtual bool isInMap( const Point2d& p ) const = 0;
+    virtual bool isInMap( const double x, const double y ) const = 0;
 
     // To be continued...
 
     /* Non abstract functions */
 
     virtual inline bool isFree( const Point2d& p ) const {
-        int x, y;
-        point2Cell( p, x, y );
+        unsigned int x, y;
+        point2cell( p, x, y );
         return isFree( x, y );
     }
 
     virtual inline bool isOccupied( const Point2d& p ) const {
-        int x, y;
-        point2Cell( p, x, y );
+        unsigned int x, y;
+        point2cell( p, x, y );
         return isOccupied( x, y );
     }
 
     virtual inline bool isNoInformation( const Point2d& p ) const {
-        int x, y;
-        point2Cell( p, x, y );
+        unsigned int x, y;
+        point2cell( p, x, y );
         return isNoInformation( x, y );
     }
+
+    virtual inline bool pose2cell( const Pose2d& src, unsigned int& x, unsigned int& y ) const
+        { return point2cell( src.x, src.y, x, y ); }
+
+    virtual inline bool point2cell( const Point2d& p, unsigned int& x, unsigned int& y ) const
+        { return point2cell( p.x, p.y, x, y ); }
+
+    virtual inline void cell2point( const unsigned int x, const unsigned int y, Point2d& p )
+        { return cell2point( x, y, p.x, p.y ); }
+
+    virtual inline bool isInMap( const Point2d& p ) const
+        { return isInMap( p.x, p.y ); }
+
 };
 
 } // namespace "lib_path"

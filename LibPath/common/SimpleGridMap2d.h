@@ -106,25 +106,25 @@ public:
         return  value > lower_thres_ && value < upper_thres_;
     }
 
-    inline bool point2Cell( const Point2d& p, int& x, int& y ) const {
-        if ( !isInMap( p ))
+    inline bool point2Cell( const double px, const double py, double& x, double& y ) const {
+        if ( !isInMap( x, y ))
             return false;
-        x = (p.x - origin_.x)/res_;
-        y = (p.y - origin_.y)/res_;
+        x = (px - origin_.x)/res_;
+        y = (py - origin_.y)/res_;
         return true;
     }
 
-    inline void cell2point( const int x, const int y, Point2d& p ) const {
-        p.x = res_*(double)(x) + origin_.x + 0.5*res_;
-        p.y = res_*(double)(y) + origin_.y + 0.5*res_;
+    inline void cell2point( const int x, const int y, double& px, double& py ) const {
+        px = res_*(double)(x) + origin_.x + 0.5*res_;
+        py = res_*(double)(y) + origin_.y + 0.5*res_;
     }
 
     inline bool isInMap( const int x, const int y ) const
         { return !(x < 0 || y < 0 || x > (int)width_ || y > (int)height_); }
 
-    inline bool isInMap( const Point2d& p ) const {
-        return (p.x - origin_.x)/res_ < width_ && (p.y - origin_.y)/res_ < height_;
-    }
+    inline bool isInMap( const double x, const double y ) const
+        { return (x - origin_.x)/res_ < width_ && (y - origin_.y)/res_ < height_; }
+
 
 protected:
     /// Number of cells in x-direction
