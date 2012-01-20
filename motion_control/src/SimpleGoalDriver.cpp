@@ -6,14 +6,14 @@
 
 
 
-SimpleGoalDriver::SimpleGoalDriver(ros::Publisher& cmd_pub,ros::NodeHandle& node)
-  :cmd_pub_(cmd_pub),state_(MotionResult::MOTION_STATUS_STOP)
+SimpleGoalDriver::SimpleGoalDriver(ros::Publisher& cmd_pub,ros::NodeHandle& nh)
+  :node_handle_(nh),cmd_pub_(cmd_pub),state_(MotionResult::MOTION_STATUS_STOP)
 {
   ctrl_.reset();
   cmd_v_ = 0;
   cmd_front_rad_ =0.0;
   cmd_rear_rad_= 0.0;
-  configure(node);
+  configure(node_handle_);
 
 }
 
@@ -43,7 +43,19 @@ void SimpleGoalDriver::configure(ros::NodeHandle &node)
 
 void SimpleGoalDriver::setGoal(const motion_control::MotionGoal &goal)
 {
-
+  // set driving speed
+  default_v_ = goal.v;
+  if (fabs(default_v_)<0.01) {
+    ROS_ERROR("motion_planner:simplegoaldriver robot speed set to %fm/sec - speed too slow",default_v_);
+    state_=MotionResult::MOTION_STATUS_GOAL_FAIL;
+    return;
+  }
+  // set target speed = final speed when goal reached
+  if (goal.mode==motion_control::MotionGoal::MOTION_FOLLOW_TARGET) {
+    goal_v_=goal.target_v;
+  } else {
+    goal_v_=0.0;
+  }
   if (goal.mode==motion_control::MotionGoal::MOTION_FOLLOW_TARGET ||
       goal.mode==motion_control::MotionGoal::MOTION_TO_GOAL) {
     goal_pose_global_.pose.position.x=goal.x;
@@ -55,7 +67,9 @@ void SimpleGoalDriver::setGoal(const motion_control::MotionGoal &goal)
     goal_path_global_.poses.push_back(goal_pose_global_);
     path_idx_=0;
     pos_tolerance_=0.3;
+    state_=MotionResult::MOTION_STATUS_MOVING;
   } else if (goal.mode==motion_control::MotionGoal::MOTION_FOLLOW_PATH) {
+    // copy the given path
     goal_path_global_=goal.path;
     if (goal_path_global_.poses.size()>0) {
       goal_pose_global_=goal_path_global_.poses[0];
@@ -63,20 +77,19 @@ void SimpleGoalDriver::setGoal(const motion_control::MotionGoal &goal)
       pos_tolerance_=goal.pos_tolerance;
     } else {
       ROS_ERROR("empty path");
-      state_=MotionResult::MOTION_STATUS_GOAL_FAIL;
+      state_=MotionResult::MOTION_STATUS_STOP;
     }
+    if (!goal.path_topic.empty()) {
+      // ***todo
+      // ros should automatically unsubscribe previous subscriptions
+      // test this
+      path_subscriber_=node_handle_.subscribe<nav_msgs::Path>
+          (goal.path_topic, 2, boost::bind(&SimpleGoalDriver::updatePath, this, _1));
+
+    }
+
   }
-  default_v_ = goal.v;
-  if (fabs(default_v_)<0.01) {
-    ROS_ERROR("motion_planner:simplegoaldriver robot speed set to %fm/sec - speed too slow",default_v_);
-    state_=MotionResult::MOTION_STATUS_GOAL_FAIL;
-    return;
-  }
-  if (goal.mode==motion_control::MotionGoal::MOTION_FOLLOW_TARGET) {
-    goal_v_=goal.target_v;
-  } else {
-    goal_v_=0.0;
-  }
+
   ROS_INFO("simplegoaldriver::setgoal: x=%f y=%f v=%f",goal_pose_global_.pose.position.x,
            goal_pose_global_.pose.position.y,goal_v_);
   start();
@@ -87,6 +100,20 @@ void SimpleGoalDriver::stop()
 {
   cmd_v_=0;
   publish();
+}
+
+
+void SimpleGoalDriver::updatePath (const nav_msgs::PathConstPtr& path)
+{
+  goal_path_global_=*path;
+  if (goal_path_global_.poses.size()>0) {
+    goal_pose_global_=goal_path_global_.poses[0];
+    path_idx_=0;
+    state_=MotionResult::MOTION_STATUS_MOVING;
+  } else {
+    ROS_ERROR("empty path");
+    state_=MotionResult::MOTION_STATUS_STOP;
+  }
 }
 
 
@@ -114,7 +141,6 @@ void SimpleGoalDriver::start()
   move_timer_.restart();
   getSlamPose(start_pose_);
   ctrl_.reset();
-  state_=MotionResult::MOTION_STATUS_MOVING;
 }
 
 

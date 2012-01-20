@@ -11,6 +11,8 @@ float32 x
 float32 y
 float32 theta
 nav_msgs/Path path
+# topic to listen to receive path updates
+string path_topic
 # accepted tolerance of position
 float32 pos_tolerance
 # accepted tolerance of orientation in rad
@@ -23,7 +25,9 @@ float32 beta
 float32 target_v
 #int32 servof
 #int32 servor
+# fixed front steering angle
 float32 deltaf
+# fixed rear steering angle
 float32 deltar
 #float32 follow_dist
 ---

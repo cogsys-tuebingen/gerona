@@ -24,12 +24,17 @@ public:
     virtual void configure (ros::NodeHandle &node);
     virtual void setGoal (const motion_control::MotionGoal& goal);
 
+    void updatePath (const nav_msgs::PathConstPtr& path);
+
+
 private:
     void publish ();
     void predictPose (double dt, double deltaf, double deltar, double v,
                       Vector2d& front_pred, Vector2d& rear_pred);
     int driveToGoal (const Vector3d& goal,MotionFeedback& fb, MotionResult& result);
+    ros::NodeHandle&    node_handle_;
     ros::Publisher&     cmd_pub_;
+    ros::Subscriber     path_subscriber_;
     double cmd_v_;
     double cmd_front_rad_,cmd_rear_rad_;
     double theta_target_;
