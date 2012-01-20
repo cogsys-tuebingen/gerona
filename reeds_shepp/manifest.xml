@@ -13,7 +13,6 @@
   <depend package="roscpp" />
   <depend package="std_msgs" />
   <depend package="nav_msgs" />
-  <depend package="costmap_2d" />
   <depend package="tf" />
   <depend package="geometry_msgs" />
   <depend package="visualization_msgs" />

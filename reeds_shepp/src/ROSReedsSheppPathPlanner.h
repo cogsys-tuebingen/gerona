@@ -9,7 +9,7 @@
 #define REEDSSHEPPPATHPLANNER_H
 
 #include <utils/LibPath/ReedsShepp/CurveGenerator.h>
-#include <utils/LibPath/common/Map.h>
+#include <utils/LibPath/common/GridMap2d.h>
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -24,6 +24,7 @@ class ROSReedsSheppPathPlanner
 {
 public:
   ROSReedsSheppPathPlanner(const ros::NodeHandle& n, const bool silent_mode = false);
+  virtual ~ROSReedsSheppPathPlanner();
 
   /**
    * Callbacks
@@ -106,7 +107,7 @@ private:
   lib_path::Pose2d m_goal_world;
   lib_path::Pose2d m_odom_world;
 
-  lib_path::MapInfo m_map;
+  lib_path::GridMap2d * m_map;
 
   struct timeval m_start_profiling, m_end_profiling;
 };

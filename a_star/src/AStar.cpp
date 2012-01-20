@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <stddef.h>
 #include <highgui.h>
 #include <a_star/AStar.h>
 

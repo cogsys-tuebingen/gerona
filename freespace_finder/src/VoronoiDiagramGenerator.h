@@ -33,6 +33,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
 #include <opencv/cv.h>
 #include <vector>
 

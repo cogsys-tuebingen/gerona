@@ -10,6 +10,9 @@
 #include <utils/LibPath/sampling/RingGoalRegion.h>
 #include <utils/LibPath/sampling/CentroidRadiusGoalRegion.h>
 
+#include <utils/LibPath/common/SimpleGridMap2d.h>
+#include <utils/LibPath/common/MapMath.h>
+
 #include <tf/tf.h>
 #include <visualization_msgs/Marker.h>
 
@@ -19,7 +22,9 @@
 using namespace lib_path;
 
 ROSReedsSheppPathPlanner::ROSReedsSheppPathPlanner(const ros::NodeHandle &n, const bool silent_mode)
-  : m_node_handle(n), m_silent_mode(silent_mode), m_has_curve(false), m_has_goal(false), m_has_odom(false), m_has_map(false)
+  : m_node_handle(n), m_silent_mode(silent_mode),
+    m_has_curve(false), m_has_goal(false), m_has_odom(false), m_has_map(false),
+    m_map(NULL)
 {
   // Read parameters from rosparam server
   init_parameters();
@@ -34,6 +39,13 @@ ROSReedsSheppPathPlanner::ROSReedsSheppPathPlanner(const ros::NodeHandle &n, con
     // Initialize all necessary subscriber and publisher objects
     init_subscribers();
     init_publishers();
+  }
+}
+
+ROSReedsSheppPathPlanner::~ROSReedsSheppPathPlanner()
+{
+  if(m_map != NULL) {
+    delete m_map;
   }
 }
 
@@ -134,8 +146,8 @@ void ROSReedsSheppPathPlanner::init_parameters()
   m_node_handle.param<double> ("cost_forwards", m_cost_forwards, 1.0f);
   m_node_handle.param<double> ("cost_curve", m_cost_curve, 1.0f);
   m_node_handle.param<double> ("cost_straight", m_cost_straight, 1.0f);
-  m_node_handle.param<int> ("threshold_min", m_threshold_min, 0);
-  m_node_handle.param<int> ("threshold_max", m_threshold_max, 100);
+  m_node_handle.param<int> ("threshold_min", m_threshold_min, 10);
+  m_node_handle.param<int> ("threshold_max", m_threshold_max, 20);
   m_node_handle.param<std::string> ("map_topic", m_map_topic, "/map");
   m_node_handle.param<std::string> ("publish_frame", m_publish_frame, "/map");
   m_node_handle.param<std::string> ("goal_topic", m_goal_topic, "/rs/goal");
@@ -203,7 +215,7 @@ void ROSReedsSheppPathPlanner::update_odometry(const nav_msgs::OdometryConstPtr 
 {
   tf::StampedTransform transform_map;
   try {
-    listener_.lookupTransform("/map", "/odom", ros::Time(0), transform_map);
+    listener_.lookupTransform("/map", odom->header.frame_id, ros::Time(0), transform_map);
   }
   catch (tf::TransformException ex){
     ROS_ERROR("[ReedsShepp] Cannot transform point");
@@ -224,15 +236,28 @@ void ROSReedsSheppPathPlanner::update_odometry(const nav_msgs::OdometryConstPtr 
 
 void ROSReedsSheppPathPlanner::update_map(const nav_msgs::OccupancyGridConstPtr &map)
 {
-  m_map.width = map->info.width;
-  m_map.height = map->info.height;
-  m_map.origin.x = map->info.origin.position.x;
-  m_map.origin.y = map->info.origin.position.y;
-  m_map.resolution = map->info.resolution;
-  m_map.data = map->data;
-  m_map.threshold_min = m_threshold_min;
-  m_map.threshold_max = m_threshold_max;
+  int w = map->info.width;
+  int h = map->info.height;
+
+  ROS_INFO("[ReedsShepp] map update");
+  SimpleGridMap2d * m = new SimpleGridMap2d(w, h, map->info.resolution);
+
+  m->setOrigin(Point2d(map->info.origin.position.x, map->info.origin.position.y));
+  m->setLowerThreshold(m_threshold_min);
+  m->setUpperThreshold(m_threshold_max);
+
+  std::vector<uint8_t> * data = (std::vector<uint8_t> *) &(map->data);
+
+  m->set(*data, w, h);
+
+  if(m_map != NULL) {
+    delete m_map;
+  }
+
+  m_map = m;
+
   m_has_map = true;
+  ROS_INFO("[ReedsShepp] map update done");
 }
 
 
@@ -245,19 +270,19 @@ void ROSReedsSheppPathPlanner::update_ring_goal(const geometry_msgs::PointConstP
   double radius=ring_goal->z;
   double width=0.05;
   RingGoalRegion goal(center,radius,width);
-  SamplingPlanner planner(&m_rs_generator,&m_map);
+  SamplingPlanner planner(&m_rs_generator,m_map);
   ROS_INFO("calc sampling path from %f:%f to ring with center %f:%f and radius %f",
            m_odom_world.x,m_odom_world.y,center.x,center.y,radius);
-  Pose2d odom_map = pos2map(m_odom_world, m_map);
+  Pose2d odom_map = pos2map(m_odom_world, *m_map);
 
-  int8_t startpos_val=m_map.getValue(odom_map.x,odom_map.y);
+  int8_t startpos_val=m_map->getValue(odom_map.x,odom_map.y);
   for (int dx=-3;dx<3;++dx) {
     for (int dy=-3;dy<3;++dy) {
-      m_map.setValue(odom_map.x+dx,odom_map.y+dx,m_threshold_min);
+      m_map->setValue(odom_map.x+dx,odom_map.y+dy,m_threshold_min);
     }
   }
   Curve* curve=planner.createPath(m_odom_world,&goal,20);
-  m_map.setValue(odom_map.x,odom_map.y,startpos_val);
+  m_map->setValue(odom_map.x,odom_map.y,startpos_val);
 
   if (curve && curve->is_valid()) {
     ROS_INFO("Publish curve with cost %f", curve->weight());
@@ -288,7 +313,7 @@ void ROSReedsSheppPathPlanner::update_centroid_goal(const geometry_msgs::PointCo
   double angle_rad = M_PI_2;
 
   CentroidRadiusGoalRegion goal (src, center, radius, angle_rad);
-  SamplingPlanner planner(&m_rs_generator,&m_map);
+  SamplingPlanner planner(&m_rs_generator, m_map);
 
   cout << "Odom " << m_odom_world.x << " " << m_odom_world.y << " " << m_odom_world.theta << endl;
   cout << "Goal " << centroid_goal->x << " " << centroid_goal->y << " " << centroid_goal->z << endl;
@@ -300,16 +325,16 @@ void ROSReedsSheppPathPlanner::update_centroid_goal(const geometry_msgs::PointCo
   ROS_INFO("calc sampling path from %f:%f to centroid at %f:%f in distance %f",
            m_odom_world.x, m_odom_world.y, center.x, center.y, radius);
 
-  Pose2d odom_map = pos2map(m_odom_world, m_map);
-  int8_t startpos_val = m_map.getValue (odom_map.x, odom_map.y);
+  Pose2d odom_map = pos2map(m_odom_world, *m_map);
+  int8_t startpos_val = m_map->getValue (odom_map.x, odom_map.y);
   for (int dx = -3; dx < 3; ++dx) {
     for (int dy = -3; dy < 3; ++dy) {
-      m_map.setValue (odom_map.x + dx, odom_map.y + dx, m_threshold_min);
+      m_map->setValue (odom_map.x + dx, odom_map.y + dx, m_threshold_min);
     }
   }
 
   Curve *curve = planner.createPath (m_odom_world, &goal, 10);
-  m_map.setValue(odom_map.x,odom_map.y,startpos_val);
+  m_map->setValue(odom_map.x,odom_map.y,startpos_val);
 
   if (curve && curve->is_valid()) {
     ROS_INFO ("Publish curve with cost %f", curve->weight());
@@ -350,7 +375,7 @@ void ROSReedsSheppPathPlanner::publishCurve (Curve * curve)
 
   while(curve->has_next()){
     Pose2d next_map = curve->next();
-    Pose2d next_world = map2pos(next_map, m_map);
+    Pose2d next_world = map2pos(next_map, *m_map);
 
     // Next pose along path
     geometry_msgs::PoseStamped pose;
@@ -385,34 +410,45 @@ void ROSReedsSheppPathPlanner::calculate()
   if(m_has_goal && m_has_odom && m_has_map ){
     start_timer();
 
-    Pose2d odom_map = pos2map(m_odom_world, m_map);
-    Pose2d goal_map = pos2map(m_goal_world, m_map);
+    int ox, oy, gx, gy;
+    m_map->point2Cell(m_odom_world, ox, oy);
+    m_map->point2Cell(m_goal_world, gx, gy);
+
+    Pose2d odom_map(ox, oy, m_odom_world.theta);
+    Pose2d goal_map(gx, gy, m_goal_world.theta);
 
     if (!m_silent_mode){
-      ROS_INFO ("map: resolution: %2.2f, origin: (%2.2f, %2.2f)", m_map.resolution, m_map.origin.x, m_map.origin.y);
-      ROS_INFO ("     width: %d, height: %d", m_map.width, m_map.height);
+      ROS_INFO ("map: resolution: %2.2f, origin: (%2.2f, %2.2f)",
+                m_map->getResolution(), m_map->getOrigin().x, m_map->getOrigin().y);
+      ROS_INFO ("     width: %d, height: %d", m_map->getWidth(), m_map->getHeight());
       ROS_INFO ("searching path:");
       ROS_INFO ("world: from: (%2.2f, %2.2f) to: (%2.2f, %2.2f)", m_odom_world.x, m_odom_world.y, m_goal_world.x, m_goal_world.y);
       ROS_INFO ("map:   from: (%2.2f, %2.2f) to: (%2.2f, %2.2f)", odom_map.x, odom_map.y , goal_map.x, goal_map.y);
     }
 
     // Check if goal coordinates inside map bounds
-    if (!m_map.isPosValid (odom_map) || !m_map.isPosValid(goal_map)){
-      ROS_WARN ("[ReedsShepp] Path search not possible, coordinates violate map borders.");
+    if (!m_map->isInMap(m_odom_world) || !m_map->isInMap(m_goal_world)){
+      if(!m_map->isInMap(m_odom_world)){
+        ROS_WARN ("[ReedsShepp] Path search not possible, odometry coordinates violate map borders.");
+      }
+      if(!m_map->isInMap(m_goal_world)){
+        ROS_WARN ("[ReedsShepp] Path search not possible, goals coordinates violate map borders.");
+      }
 
       send_empty_path();
       return;
     }
 
-    int8_t startpos_val=m_map.getValue(odom_map.x,odom_map.y);
-    for (int dx=-3;dx<3;++dx) {
-      for (int dy=-3;dy<3;++dy) {
-        m_map.setValue(odom_map.x+dx,odom_map.y+dx,m_threshold_min);
+    int8_t startpos_val=m_map->getValue(odom_map.x,odom_map.y);
+    for (int dx=-6;dx<6;++dx) {
+      for (int dy=-6;dy<6;++dy) {
+        m_map->setValue(odom_map.x+dx,odom_map.y+dy,0);
       }
     }
 
-    Curve * curve = m_rs_generator.find_path(odom_map, goal_map, &m_map);
-    m_map.setValue(odom_map.x,odom_map.y,startpos_val);
+    bool ignore_obstacles = false;
+    Curve * curve = m_rs_generator.find_path(odom_map, goal_map, m_map, ignore_obstacles);
+    m_map->setValue(odom_map.x,odom_map.y,startpos_val);
 
     if(curve && curve->is_valid()){
       publishCurve(curve);
@@ -447,7 +483,7 @@ void ROSReedsSheppPathPlanner::send_empty_path()
   m_last_path=m_empty_path;
 
   m_last_weight = 0.0;
-  ROS_INFO("last path now size %d",m_last_path.poses.size());
+  ROS_INFO_STREAM("last path now size" << m_last_path.poses.size());
   if (!m_silent_mode)
     m_path_publisher.publish(m_last_path);
 }
