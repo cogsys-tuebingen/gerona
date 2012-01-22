@@ -410,9 +410,9 @@ void ROSReedsSheppPathPlanner::calculate()
   if(m_has_goal && m_has_odom && m_has_map ){
     start_timer();
 
-    int ox, oy, gx, gy;
-    m_map->point2Cell(m_odom_world, ox, oy);
-    m_map->point2Cell(m_goal_world, gx, gy);
+    unsigned int ox, oy, gx, gy;
+    m_map->point2cell(m_odom_world.x, m_odom_world.y, ox, oy);
+    m_map->point2cell(m_goal_world.x, m_goal_world.y, gx, gy);
 
     Pose2d odom_map(ox, oy, m_odom_world.theta);
     Pose2d goal_map(gx, gy, m_goal_world.theta);
