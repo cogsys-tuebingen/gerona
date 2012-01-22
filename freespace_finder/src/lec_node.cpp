@@ -195,6 +195,7 @@ int main(int argc, char** argv)
     publish_debug_marker = true;
 
   ros::Subscriber m_map_subscriber = n.subscribe<nav_msgs::OccupancyGrid> (map_topic, 2, &update_map);
+  publish_debug_marker = true;
 
   m_marker_publisher = n.advertise<visualization_msgs::Marker> ("/freespace", 200);
 

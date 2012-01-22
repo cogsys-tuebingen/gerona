@@ -40,8 +40,10 @@ private:
   double default_v_;
   int state_;
   Stopwatch move_timer_;
-  Vector3d start_pose_;
+  Vector3d start_pose_, last_pose_;
   double beta_;
+  double driven_dist_;
+  double dist_measure_threshold_;
 
 };
 

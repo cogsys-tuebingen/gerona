@@ -18,6 +18,7 @@ FixedDriver::FixedDriver(ros::Publisher &cmd_pub, ros::NodeHandle &node)
   cmd_front_rad_ =0.0;
   cmd_rear_rad_= 0.0;
   beta_=0.0;
+  dist_measure_threshold_=0.1;
 }
 
 
@@ -34,6 +35,8 @@ void FixedDriver::setGoal(const motion_control::MotionGoal &goal)
   cmd_rear_rad_=goal.deltar;
   beta_=atan(0.5*(tan(cmd_front_rad_)+tan(cmd_rear_rad_)));
   getSlamPose(start_pose_);
+  last_pose_=start_pose_;
+  driven_dist_=0.0;
   state_=MotionResult::MOTION_STATUS_MOVING;
   move_timer_.restart();
 
@@ -81,6 +84,16 @@ int FixedDriver::execute(MotionFeedback &fb, MotionResult &result)
     } else {
       result.status=MotionResult::MOTION_STATUS_MOVING;
     }
+    Vector3d pose;
+    getSlamPose(pose);
+    double delta_dist=(pose.head<2>()-last_pose_.head<2>()).norm();
+    if (delta_dist>dist_measure_threshold_) {
+      driven_dist_+=delta_dist;
+      last_pose_=pose;
+    }
+    // return driven distance in feedback
+    fb.dist_driven=driven_dist_;
+    break;
   }
   }
   ramaxxbase::RamaxxMsg cmd;
