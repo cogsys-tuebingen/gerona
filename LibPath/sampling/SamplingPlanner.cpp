@@ -22,8 +22,10 @@ SamplingPlanner::SamplingPlanner(CurveGenerator *rs_generator,
 
 Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *region, int samples_num)
 {
+  // TODO: pos2map macht das selbe wie map_->point2cell, nur double statt integers,
+  // besser pos2map abzuschaffen und in GridMap2d mit einzugliedern.
   Pose2d start_map=pos2map(start,*map_);
-  if (!map_->isInMap(start_map)) {
+  if (!map_->isInMap(start)) {
     fprintf(stderr,"starting pos %f %f outside map", start.x,start.y);
     return 0;
   }
@@ -35,7 +37,7 @@ Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *region, int 
   while (region->getNextGoal(goal)) {
     Pose2d goal_map = pos2map(goal, *map_);
     std::cout << "goal map pose "<<goal_map.x << " "<<goal_map.y << std::endl;
-    if (!map_->isInMap(goal_map)) {
+    if (!map_->isInMap(goal)) {
       std::cout << "invalid goal pose "<<goal.x << " "<<goal.y << std::endl;
       continue;
     }
@@ -52,8 +54,7 @@ Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *region, int 
         best_curve=curve;
         min_cost=best_curve->weight();
         std::cout << "new best curve with cost:"<<min_cost << std::endl;
-
-std::cout.flush();
+        std::cout.flush();
       } else {
         delete curve;
         std::cout << "still  best curve has cost:"<<best_curve->weight() << std::endl;
