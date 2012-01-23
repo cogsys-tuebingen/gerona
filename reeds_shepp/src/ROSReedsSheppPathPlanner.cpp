@@ -315,14 +315,10 @@ void ROSReedsSheppPathPlanner::update_centroid_goal(const geometry_msgs::PointCo
   CentroidRadiusGoalRegion goal (src, center, radius, angle_rad);
   SamplingPlanner planner(&m_rs_generator, m_map);
 
-  cout << "Odom " << m_odom_world.x << " " << m_odom_world.y << " " << m_odom_world.theta << endl;
-  cout << "Goal " << centroid_goal->x << " " << centroid_goal->y << " " << centroid_goal->z << endl;
-  Pose2d tha_poser;
-  while (goal.getNextGoal (tha_poser)) {
-    cout << "Pose: " << tha_poser.x << " " << tha_poser.y  << " " << tha_poser.theta * 180.0 / M_PI << endl;
-  }
+  cout << "[RS_CG] Odom " << m_odom_world.x << " " << m_odom_world.y << " " << m_odom_world.theta << endl;
+  cout << "[RS_CG] Goal " << center.x << " " << center.y << " " << radius << endl;
 
-  ROS_INFO("calc sampling path from %f:%f to centroid at %f:%f in distance %f",
+  ROS_INFO("calc sampling path from %f:%f to centroid at %f:%f with radius %f",
            m_odom_world.x, m_odom_world.y, center.x, center.y, radius);
 
   Pose2d odom_map = pos2map(m_odom_world, *m_map);
