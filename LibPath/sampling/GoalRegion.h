@@ -17,8 +17,8 @@ class GoalRegion
 {
 public:
     virtual ~GoalRegion();
-    virtual bool getNextGoal(Pose2d& goal)=0;
     virtual void init (unsigned samples_num)=0;
+    virtual bool getNextGoal(Pose2d& goal, double& gain)=0;
 };
 
 } // namespace "lib_path"

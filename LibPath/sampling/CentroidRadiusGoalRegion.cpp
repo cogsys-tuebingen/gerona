@@ -41,7 +41,7 @@ void CentroidRadiusGoalRegion::init (unsigned samples_num)
 }
 
 
-bool CentroidRadiusGoalRegion::getNextGoal (Pose2d &goal)
+bool CentroidRadiusGoalRegion::getNextGoal (Pose2d &goal, double& gain)
 {
   if (counter_ >= samples_num_)
     return false;

@@ -37,7 +37,7 @@ void RingGoalRegion::init(unsigned samples_num)
 
 }
 
-bool RingGoalRegion::getNextGoal(Pose2d &goal)
+bool RingGoalRegion::getNextGoal(Pose2d &goal, double& gain)
 {
   if (counter_>=samples_num_) {
     return false;

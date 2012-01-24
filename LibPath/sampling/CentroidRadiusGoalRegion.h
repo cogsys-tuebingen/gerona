@@ -19,7 +19,7 @@ public:
   virtual ~CentroidRadiusGoalRegion ();
 
   virtual void init (unsigned samples_num);
-  virtual bool getNextGoal (Pose2d &goal);
+  virtual bool getNextGoal (Pose2d &goal, double& gain);
 
 private:
 

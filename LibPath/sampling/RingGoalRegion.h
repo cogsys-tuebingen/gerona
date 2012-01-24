@@ -25,7 +25,7 @@ public:
     RingGoalRegion (const Point2d& center, double radius, double width);
     virtual ~RingGoalRegion ();
     virtual void init (unsigned samples_num);
-    virtual bool getNextGoal(Pose2d& goal);
+    virtual bool getNextGoal(Pose2d& goal, double& gain);
 private:
     Point2d center_;
     double  width_;
