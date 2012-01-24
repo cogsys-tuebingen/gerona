@@ -75,18 +75,20 @@ void SimpleGoalDriver::setGoal(const motion_control::MotionGoal &goal)
       goal_pose_global_=goal_path_global_.poses[0];
       path_idx_=0;
       pos_tolerance_=goal.pos_tolerance;
-    } else if ( goal.path_topic.empty()) {
-      ROS_ERROR("empty path");
-      state_=MotionResult::MOTION_STATUS_STOP;
-    } else {
+    }
+    if (!goal.path_topic.empty()) {
       // ***todo
       // ros should automatically unsubscribe previous subscriptions
       // test this
       ROS_INFO( "Subscribing to path topic: %s", goal.path_topic.c_str());
       path_subscriber_=node_handle_.subscribe<nav_msgs::Path>
           (goal.path_topic, 2, boost::bind(&SimpleGoalDriver::updatePath, this, _1));
-      pos_tolerance_=goal.pos_tolerance;
-
+    }
+    if (goal_path_global_.poses.empty() && goal.path_topic.empty()) {
+      ROS_ERROR("empty path");
+      state_=MotionResult::MOTION_STATUS_STOP;
+    } else {
+      state_=MotionResult::MOTION_STATUS_MOVING;
     }
 
   }
