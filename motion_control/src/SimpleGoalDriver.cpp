@@ -75,16 +75,17 @@ void SimpleGoalDriver::setGoal(const motion_control::MotionGoal &goal)
       goal_pose_global_=goal_path_global_.poses[0];
       path_idx_=0;
       pos_tolerance_=goal.pos_tolerance;
-    } else {
+    } else if ( goal.path_topic.empty()) {
       ROS_ERROR("empty path");
       state_=MotionResult::MOTION_STATUS_STOP;
-    }
-    if (!goal.path_topic.empty()) {
+    } else {
       // ***todo
       // ros should automatically unsubscribe previous subscriptions
       // test this
+      ROS_INFO( "Subscribing to path topic: %s", goal.path_topic.c_str());
       path_subscriber_=node_handle_.subscribe<nav_msgs::Path>
           (goal.path_topic, 2, boost::bind(&SimpleGoalDriver::updatePath, this, _1));
+      pos_tolerance_=goal.pos_tolerance;
 
     }
 
@@ -105,6 +106,7 @@ void SimpleGoalDriver::stop()
 
 void SimpleGoalDriver::updatePath (const nav_msgs::PathConstPtr& path)
 {
+    ROS_INFO( "Updating path" );
   goal_path_global_=*path;
   if (goal_path_global_.poses.size()>0) {
     goal_pose_global_=goal_path_global_.poses[0];
@@ -178,7 +180,7 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
   beta=MathHelper::NormalizeAngle(beta);
     // check collision
   bool colliding=checkCollision(beta,0.3);
-  if (colliding) {
+  if ( colliding ) {
     result.status=MotionResult::MOTION_STATUS_COLLISION;
     cmd_v_=0.0;
     return MotionResult::MOTION_STATUS_COLLISION;
