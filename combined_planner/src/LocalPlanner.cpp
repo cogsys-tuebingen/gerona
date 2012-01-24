@@ -9,80 +9,72 @@
 
 // Workspace
 #include <utils/LibPath/common/MapMath.h>
+#include <utils/LibPath/sampling/SamplingPlanner.h>
 
 // Project
 #include "LocalPlanner.h"
+#include "CombinedPlannerException.h"
+#include "LocalWaypointRegion.h"
 
 using namespace std;
 using namespace lib_path;
+using namespace combined_planner;
 
-LocalPlanner::LocalPlanner( ros::NodeHandle& n )
-    : got_map_( false ),
-      map_( NULL )
+LocalPlanner::LocalPlanner()
+    : map_( NULL )
 {
-    // Read config
-    double circle_radius, wp_distance, cost_backw, cost_forw, cost_curve, cost_straight;
-    n.param<double> ("circle_radius", circle_radius, 1.0f);
-    n.param<double> ("max_waypoint_distance", wp_distance, 0.25f );
-    n.param<double> ("cost_backwards", cost_backw, 3.0f);
-    n.param<double> ("cost_forwards", cost_forw, 1.0f);
-    n.param<double> ("cost_curve", cost_curve, 1.2f);
-    n.param<double> ("cost_straight", cost_straight, 1.0f);
-
-    // Set config
-    rs_.set_circle_radius( circle_radius );
-    rs_.set_max_waypoint_distance( wp_distance );
-    rs_.set_cost_backwards( cost_backw );
-    rs_.set_cost_forwards( cost_forw );
-    rs_.set_cost_curve( cost_curve );
-    rs_.set_cost_straight( cost_straight );
+    // Read/set configuration
+    configure();
 
     // Init reed Shepp planner
     generatePatterns();
 }
 
-bool LocalPlanner::planPath( const lib_path::Pose2d &start, const lib_path::Pose2d &end )
+bool LocalPlanner::planPath( const lib_path::Pose2d &start, const lib_path::Pose2d &end, bool sampling )
 {
-    // Delete old path
-    path_.clear();
     last_weight_ = -1.0;
+    path_.clear();
 
     // Check input and status
-    if ( !got_map_ ) {
-        ROS_ERROR( "Cannot plan a local path. No map!" );
-        return false;
+    if ( map_ == NULL ) {
+        throw CombinedPlannerException( "No map!" );
     }
 
     if ( !map_->isInMap( Point2d( start.x, start.y ))
          || !map_->isInMap( Point2d( end.x, end.y ))) {
-        ROS_ERROR( "Got invalid start/end pose for local path planning. Pose not in map!" );
-        return false;
+        throw CombinedPlannerException( "Start or goal pose outside of the map." );
     }
 
     // Search a path
-    Pose2d start_map = pos2map( start, *map_ );
-    Pose2d end_map = pos2map( end, *map_ );
-    Curve* curve = rs_.find_path( start_map, end_map, map_ );
+    Curve* curve = NULL;
+    if ( sampling ) {
+        // Try to reach the end with coorect orientation
+        LocalWaypointRegion goalRegion( end, 0.25 );
+        SamplingPlanner s_planner( &rs_, map_ );
+        curve = s_planner.createPath( start, &goalRegion, 0 );
+    } else {
+        // Try to reach the given end exactly
+        Pose2d start_map = pos2map( start, *map_ );
+        Pose2d end_map = pos2map( end, *map_ );
+        curve = rs_.find_path( start_map, end_map, map_ );
+    }
 
-    // Check result
-    if ( curve && curve->is_valid()) {
+    // Check result & generate path if there is one
+    if ( curve  && curve->is_valid()) {
         generatePath( curve );
-        ROS_INFO( "Found local path! Weight: %f", curve->weight());
         last_weight_ = curve->weight();
         delete curve;
         return true;
-    } else {
-        ROS_WARN( "No local path found." );
-        if ( curve )
-            delete curve;
-        return false;
     }
+
+    if ( curve != NULL ) /// @todo Is this neccessary?
+        delete curve;
+    return false;
 }
 
 void LocalPlanner::setMap( lib_path::GridMap2d *map )
 {
     map_ = map;
-    got_map_ = true;
 }
 
 void LocalPlanner::generatePath( lib_path::Curve *curve )
@@ -94,10 +86,27 @@ void LocalPlanner::generatePath( lib_path::Curve *curve )
     }
 }
 
-void LocalPlanner::getPath( list<lib_path::Pose2d> &path ) const
+void LocalPlanner::configure()
 {
-    path.clear();
-    path.assign( path_.begin(), path_.end());
+    /// @todo Remove ROS dependency from this class
+    ros::NodeHandle n( "~/reed_shepp/" );
+
+    // Read config
+    double circle_radius, wp_distance, cost_backw, cost_forw, cost_curve, cost_straight;
+    n.param<double> ("circle_radius", circle_radius, 1.0f);
+    n.param<double> ("max_waypoint_distance", wp_distance, 0.25f );
+    n.param<double> ("cost_backwards", cost_backw, 5.0f);
+    n.param<double> ("cost_forwards", cost_forw, 1.0f);
+    n.param<double> ("cost_curve", cost_curve, 1.2f);
+    n.param<double> ("cost_straight", cost_straight, 1.0f);
+
+    // Set config
+    rs_.set_circle_radius( circle_radius );
+    rs_.set_max_waypoint_distance( wp_distance );
+    rs_.set_cost_backwards( cost_backw );
+    rs_.set_cost_forwards( cost_forw );
+    rs_.set_cost_curve( cost_curve );
+    rs_.set_cost_straight( cost_straight );
 }
 
 void LocalPlanner::generatePatterns()

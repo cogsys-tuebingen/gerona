@@ -16,16 +16,19 @@
 #include <geometry_msgs/Point.h>
 #include <tf/transform_listener.h>
 #include <costmap_2d/costmap_2d_ros.h>
+#include <actionlib/client/simple_action_client.h>
 
 // Workspace
-#include <utils/LibPath/common/Point2d.h>
+#include <utils/LibUtil/Stopwatch.h>
 #include <utils/LibPath/common/SimpleGridMap2d.h>
 #include <utils/LibRosUtil/Costmap2dWrapper.h>
 #include <utils/LibRosUtil/OccupancyGridWrapper.h>
+#include <motion_control/MotionAction.h>
 
 // Project
-#include "GlobalPlanner.h"
-#include "LocalPlanner.h"
+#include "CombinedPlanner.h"
+
+namespace combined_planner {
 
 class CombinedPlannerNode {
 public:
@@ -34,26 +37,20 @@ public:
 
     void updateMap( const nav_msgs::OccupancyGridConstPtr& map );
     void updateGoal( const geometry_msgs::PoseStampedConstPtr& goal );
-    void update( bool force_replan = false );
-    bool getRobotPose( geometry_msgs::Pose& pose, const std::string& map_frame );
-    void publishLocalPath( std::list<lib_path::Pose2d>& path );
+    void update();
+    void motionCtrlDoneCB( const actionlib::SimpleClientGoalState& state,
+                           const motion_control::MotionResultConstPtr& result );
+    bool getRobotPose( lib_path::Pose2d &pose, const std::string& map_frame );
+    void publishLocalPath( const std::list<lib_path::Pose2d> &path );
     void publishEmptyLocalPath();
-    void visualizePath( const std::vector<lib_path::Point2d> &path,
+    void visualizePath( const std::list<lib_path::Point2d> &path,
                         const std::string& ns,
                         const int color = 0,
                         const int id = 0 );
 
     void visualizeWaypoints( const std::list<lib_path::Pose2d> &wp, std::string ns, int id );
-
-    void generateWaypoints( const std::vector<lib_path::Point2d> &path,
-                            const lib_path::Pose2d& goal,
-                            list<lib_path::Pose2d> &waypoints ) const;
-
-    bool nextWaypoint( const lib_path::Pose2d& robot_pose ) const;
-    bool isGoalReached( const lib_path::Pose2d& robot_pose, const lib_path::Pose2d& goal ) const;
-    void getPoseDelta( const lib_path::Pose2d& p, const lib_path::Pose2d& q, double& d_dist, double& d_theta ) const;
-
-    lib_path::Pose2d getNormalizedDelta( const lib_path::Point2d& start, const lib_path::Point2d& end ) const;
+    void activate();
+    void deactivate();
 
 private:
     /// Name of the global map topic we are listening on
@@ -87,17 +84,22 @@ private:
     lib_ros_util::OccupancyGridWrapper gmap_wrapper_;
 
     /// Frame id of the latest global map (usually "/map")
-    std::string map_frame_id_;
+    std::string gmap_frame_id_;
 
-    /// The planner used to calculate a global path
-    GlobalPlanner* global_planner_;
-
-    /// The local planner working on the local costmap
-    LocalPlanner* local_planner_;
+    /// The planner
+    CombinedPlanner planner_;
 
     /// True if we got at least one global map
     bool got_map_;
 
-    /// The waypoints of the current path
-    std::list<lib_path::Pose2d> waypoints_;
+    /// Motion control action client used to move the robot
+    actionlib::SimpleActionClient<motion_control::MotionAction> motion_ac_;
+
+    /// Flag if are driving towards a goal
+    bool active_;
+
+    /// Used to replan the local path if neccessary
+    Stopwatch replan_timer_;
 };
+
+} // Namespace

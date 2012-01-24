@@ -9,8 +9,10 @@
 
 // Project
 #include "GlobalPlanner.h"
+#include "CombinedPlannerException.h"
 
 using namespace lib_path;
+using namespace combined_planner;
 
 GlobalPlanner::GlobalPlanner( lib_path::GridMap2d *map )
     : map_( map ),
@@ -26,17 +28,18 @@ void GlobalPlanner::setMap( GridMap2d *map )
     a_star_.setNewMap( map );
 }
 
-bool GlobalPlanner::planPath( const lib_path::Point2d &start, lib_path::Point2d &goal )
+bool GlobalPlanner::planPath( Point2d start, Point2d goal )
 {
     // Clean old paths
     path_.clear();
     path_raw_.clear();
 
-    // Convert start/goal into cell coordinate
+    // Check start and goal pose
     if ( !map_->isInMap( start ) || !map_->isInMap( goal )) {
-        ROS_WARN( "Start or goal lies outside of the map. Path planning not possible!" );
-        return false;
+        throw CombinedPlannerException( "Start or goal pose lies outside of the map." );
     }
+
+    // Convert start/goal into cell coordinate
     waypoint_t startWayp, goalWayp;
     unsigned int x, y;
     map_->point2cell( start, x, y );
@@ -51,9 +54,11 @@ bool GlobalPlanner::planPath( const lib_path::Point2d &start, lib_path::Point2d 
 
     // Copy the raw path
     path_t* cell_path = a_star_.getLastPath();
-    path_raw_.resize( cell_path->size());
-    for ( std::size_t i = 0; i < cell_path->size(); ++i )
-        map_->cell2point((*cell_path)[i].x, (*cell_path)[i].y, path_raw_[i] );
+    Point2d p;
+    for ( std::size_t i = 0; i < cell_path->size(); ++i ) {
+        map_->cell2point((*cell_path)[i].x, (*cell_path)[i].y, p );
+        path_raw_.push_back( p );
+    }
 
 
     // Path too short? Flattening not necessary!
@@ -63,20 +68,28 @@ bool GlobalPlanner::planPath( const lib_path::Point2d &start, lib_path::Point2d 
     }
 
     // Flatten path
+    path_.push_back( start );
+    flatten( cell_path, path_ );
+    path_.push_back( goal );
+
+    return true;
+}
+
+void GlobalPlanner::flatten( const path_t* raw, std::vector<Point2d> &flattened ) const
+{
     Point2d p;
     std::size_t first = 0;
     std::size_t current = 1;
-    std::size_t look_ahead = 0;
-    path_.push_back( start );
-    while ( current < cell_path->size() - 1 ) {
-        if ( isLineFree((*cell_path)[first], (*cell_path)[current])) {
+    std::size_t look_ahead = 5;
+    while ( current < raw->size() - 1 ) {
+        if ( isLineFree((*raw)[first], (*raw)[current])) {
             current++;
         } else {
             // Look ahead hack
-            // TODO This is still buggy
+            /// @todo This is still buggy
             bool succ = false;
-            for ( size_t i = 1; (i + current) < (cell_path->size() - 1) && i < 4; ++i ) {
-                if ( isLineFree((*cell_path)[first], (*cell_path)[current + i])) {
+            for ( size_t i = 1; (i + current) < (raw->size() - 1) && i < look_ahead; ++i ) {
+                if ( isLineFree((*raw)[first], (*raw)[current + i])) {
                     current += i;
                     succ = true;
                     break;
@@ -84,16 +97,13 @@ bool GlobalPlanner::planPath( const lib_path::Point2d &start, lib_path::Point2d 
             }
 
             if ( !succ ) {
-                map_->cell2point((*cell_path)[current].x, (*cell_path)[current].y, p );
-                path_.push_back( p );
+                map_->cell2point((*raw)[current].x, (*raw)[current].y, p );
+                flattened.push_back( p );
                 first = current;
                 current++;
             }
         }
     }
-    path_.push_back( goal );
-
-    return true;
 }
 
 bool GlobalPlanner::isLineFree( const lib_path::waypoint_t &p1,
@@ -167,14 +177,4 @@ bool GlobalPlanner::isLineFree( const lib_path::waypoint_t &p1,
         }
     }
     return free;
-}
-
-void GlobalPlanner::getLatestPath( std::vector<lib_path::Point2d> &path ) const
-{
-    path.assign( path_.begin(), path_.end());
-}
-
-void GlobalPlanner::getLatestPathRaw( std::vector<lib_path::Point2d> &path ) const
-{
-    path.assign( path_raw_.begin(), path_raw_.end());
 }

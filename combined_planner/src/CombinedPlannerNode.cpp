@@ -14,14 +14,17 @@
 
 // Workspace
 #include <utils/LibUtil/Stopwatch.h>
+#include <utils/LibUtil/Stopwatch.h>
 
 // Project
+#include "CombinedPlannerException.h"
 #include "CombinedPlannerNode.h"
 
 
 using namespace lib_path;
 using namespace lib_ros_util;
 using namespace std;
+using namespace combined_planner;
 
 ///////////////////////////////////////////////////////////////////////////////
 // class CombinedPlannerNode
@@ -34,18 +37,17 @@ CombinedPlannerNode::CombinedPlannerNode()
       lmap_ros_( "local_costmap", tf_ ),
       lmap_wrapper_( &lmap_cpy_ ),
       gmap_wrapper_( &gmap_cpy_ ),
-      global_planner_( NULL ),
-      local_planner_( NULL ),
-      got_map_( false )
+      got_map_( false ),
+      motion_ac_( "motion_control" ),
+      active_( false )
 {
     // Topic names parameters
     n_.param<std::string>( "map_topic", map_topic_, "/map_inflated" );
     n_.param<std::string>( "goal_topic", goal_topic_, "/goal" );
-    n_.param<std::string>( "path_topic", path_topic_, "/a_star_path" );
+    n_.param<std::string>( "path_topic", path_topic_, "/path" );
 
-    // Member
-    ros::NodeHandle rs_n( "~/reed_shepp/" );
-    local_planner_ = new LocalPlanner( rs_n );
+    //lmap_wrapper_.setLowerThreshold( 0 );
+    //lmap_wrapper_.setUpperThreshold( 245 );
 
     // Subscribe
     map_subs_ = n_.subscribe<nav_msgs::OccupancyGrid>( map_topic_, 1, boost::bind( &CombinedPlannerNode::updateMap, this, _1 ));
@@ -56,91 +58,61 @@ CombinedPlannerNode::CombinedPlannerNode()
     visu_pub_ = n_.advertise<visualization_msgs::Marker>( "visualization_markers", 5 );
 }
 
-void CombinedPlannerNode::update( bool force_replan )
+void CombinedPlannerNode::update()
 {
-    // Get new robot pose
-    geometry_msgs::Pose robot_pose;
-    if ( waypoints_.empty() || !getRobotPose( robot_pose, map_frame_id_ )) {
-        return; // No pose or no waypoint left
-    }
+    // Nothing to do if there is no goal
+    if ( !active_ )
+        return;
 
-    // No waypoints left except of the goal? Check if the goal is reached.
-    lib_path::Pose2d start;
-    start.x = robot_pose.position.x;
-    start.y = robot_pose.position.y;
-    start.theta = tf::getYaw( robot_pose.orientation );
-    if ( waypoints_.size() == 1 && isGoalReached( start, waypoints_.front())) {
-        waypoints_.clear(); // Finished
-        visualizeWaypoints( waypoints_ , "waypoints", 3 );
-        publishEmptyLocalPath();
-        ROS_INFO( "Goal reached" );
+    // Try to get the current position
+    Pose2d robot_pose;
+    if ( !getRobotPose( robot_pose, gmap_frame_id_ )) {
+        deactivate();
         return;
     }
 
-    // Select next waypoint
-    bool new_wp = false;
-    while ( waypoints_.size() > 1 && nextWaypoint( start )) {
-        waypoints_.pop_front();
-        new_wp = true;
+    // Check if we reached the goal
+    if ( planner_.isGoalReached( robot_pose )) {
+        ROS_INFO( "Goal reached." );
+        deactivate();
+        active_ = false;
+        return;
     }
 
-    // New waypoint selected?
-    if ( !force_replan && !new_wp )
-        return;
-
-    // Publish waypoints
-    ROS_INFO( "Selected new waypoint." );
-    visualizeWaypoints( waypoints_, "waypoints", 3 );
-
-    // Plan path to the next waypoint
+    lmap_ros_.clearRobotFootprint();
     lmap_ros_.getCostmapCopy( lmap_cpy_ );
-    local_planner_->setMap( &lmap_wrapper_ );
-    if ( local_planner_->planPath( start, waypoints_.front())) {
-        std::list<lib_path::Pose2d> lpath;
-        local_planner_->getPath( lpath );
-        publishLocalPath( lpath );
+    planner_.setLocalMap( &lmap_wrapper_ );
+    bool new_local_path = false;
+    bool force_replan = replan_timer_.msElapsed() > 2000;
+    try {
+        new_local_path = planner_.updateLocalPath( robot_pose, force_replan );
+    } catch ( CombinedPlannerException& ex ) {
+        ROS_ERROR( "Error planning a local path. Reason: %s", ex.what());
+        deactivate();
+        active_ = false;
+        return;
     }
-}
 
-bool CombinedPlannerNode::nextWaypoint( const lib_path::Pose2d &robot_pose ) const
-{
-    if ( waypoints_.empty())
-        return false;
 
-    Pose2d next = waypoints_.front();
-    double d_dist, d_theta;
-    getPoseDelta( robot_pose, next, d_dist, d_theta );
+    // Publis new local path?
+    if ( !new_local_path ) {
+        return;
+    }
 
-    return d_dist < 1.0 && d_theta < 0.25*M_PI;
-}
+    ROS_INFO("Publishing new local path");
+    std::list<Pose2d> lpath = planner_.getLocalWaypoints();
+    if ( lpath.size() > 1 )
+        lpath.pop_front();
+    publishLocalPath( lpath /*planner_.getLocalWaypoints()*/);
+    replan_timer_.restart();
 
-bool CombinedPlannerNode::isGoalReached( const lib_path::Pose2d& robot_pose,
-                                         const lib_path::Pose2d &goal ) const
-{
-    double d_dist, d_theta;
-    getPoseDelta( robot_pose, goal, d_dist, d_theta );
-    return d_dist < 0.1 && d_theta < 0.1*M_PI;
-}
-
-void CombinedPlannerNode::getPoseDelta( const lib_path::Pose2d &p, const lib_path::Pose2d &q,
-                                       double &d_dist, double &d_theta ) const
-{
-    d_dist = sqrt( pow( p.x - q.x, 2 ) + pow( p.y - q.y, 2 ));
-    d_theta = fabs( p.theta - q.theta );
-    while ( d_theta > M_PI ) /// @todo use lib utils
-        d_theta -= 2.0*M_PI;
-    d_theta = fabs( d_theta );
+    visualizeWaypoints( planner_.getGlobalWaypoints(), "waypoints", 3 );
 }
 
 void CombinedPlannerNode::updateMap( const nav_msgs::OccupancyGridConstPtr &map )
 {
     gmap_cpy_ = *map;
-
-    // Create global planner on first map update
-    if ( global_planner_ == NULL ) {
-        global_planner_ = new GlobalPlanner( &gmap_wrapper_ );
-    }
-    map_frame_id_ = "/map";
+    gmap_frame_id_ = "/map";
 
     // Ready to go
     got_map_ = true;
@@ -149,17 +121,15 @@ void CombinedPlannerNode::updateMap( const nav_msgs::OccupancyGridConstPtr &map 
 void CombinedPlannerNode::updateGoal( const geometry_msgs::PoseStampedConstPtr &goal )
 {
     ROS_INFO("Got a new goal");
-    waypoints_.clear();
-    if ( !got_map_ ) {
-        ROS_WARN( "Got a goal but no map. It's not possible to plan a path!" );
-        return;
-    }
+
+    // Stop motion control etc if necessary
+    deactivate();
 
     // Convert goal int map coordinate system if necessary
     geometry_msgs::PoseStamped goal_map;
-    if ( goal->header.frame_id.compare( map_frame_id_ ) != 0 ) {
+    if ( goal->header.frame_id.compare( gmap_frame_id_ ) != 0 ) {
         try {
-            tf_.transformPose( map_frame_id_, *goal, goal_map );
+            tf_.transformPose( gmap_frame_id_, *goal, goal_map );
         } catch (tf::TransformException& ex) {
             ROS_ERROR( "Cannot transform goal into map coordinates. Reason: %s",
                        ex.what());
@@ -170,112 +140,58 @@ void CombinedPlannerNode::updateGoal( const geometry_msgs::PoseStampedConstPtr &
     }
 
     // Get the current robot pose in map coordinates
-    geometry_msgs::Pose robot_pose;
-    if (!getRobotPose( robot_pose, map_frame_id_ ))
+    lib_path::Pose2d robot_pose;
+    if (!getRobotPose( robot_pose, gmap_frame_id_ ))
         return;
 
     // Run global planner
-    lib_path::Point2d pathStart( robot_pose.position.x, robot_pose.position.y );
-    lib_path::Point2d pathEnd( goal_map.pose.position.x, goal_map.pose.position.y );
-    if ( !global_planner_->planPath( pathStart, pathEnd )) {
-        ROS_WARN( "No global path found." );
+    planner_.setGlobalMap( &gmap_wrapper_ );
+    lmap_ros_.clearRobotFootprint();
+    lmap_ros_.getCostmapCopy( lmap_cpy_ );
+    planner_.setLocalMap( &lmap_wrapper_ );
+    lib_path::Pose2d pathStart = robot_pose;
+    lib_path::Pose2d pathEnd( goal_map.pose.position.x, goal_map.pose.position.y, tf::getYaw( goal_map.pose.orientation ));
+    try  {
+        if ( !planner_.setGoal( pathStart, pathEnd )) {
+            ROS_WARN( "No global path found." );
+            return;
+        }
+    } catch ( CombinedPlannerException& ex ) {
+        ROS_ERROR( "Cannot plan a global path. Reason: %s", ex.what());
         return;
     }
 
+    // Start motion control etc
+    activate();
+
     // Visualize raw path
-    std::vector<lib_path::Point2d> path_raw;
-    global_planner_->getLatestPathRaw( path_raw );
-    visualizePath( path_raw, "global_path_raw", 0, 0 );
+    std::list<lib_path::Point2d> path_raw;
+    /*planner_.getGlobalPathRaw( path_raw );
+    visualizePath( path_raw, "global_path_raw", 0, 0 );*/
 
     // Get & visualize flattened path
     path_raw.clear();
-    global_planner_->getLatestPath( path_raw );
+    planner_.getGlobalPath( path_raw );
     visualizePath( path_raw, "global_path", 1, 1 );
 
-    // Calculate waypoints
-    lib_path::Pose2d poseGoal, poseStart;
-    poseGoal.x = pathEnd.x;
-    poseGoal.y = pathEnd.y;
-    poseGoal.theta = tf::getYaw( goal_map.pose.orientation );
-    poseStart.x = robot_pose.position.x;
-    poseStart.y = robot_pose.position.y;
-    poseStart.theta = tf::getYaw( robot_pose.orientation );
-    generateWaypoints( path_raw, poseGoal, waypoints_ );
-
     // Visualize waypoints
-    visualizeWaypoints( waypoints_, "waypoints", 3 );
+    visualizeWaypoints( planner_.getGlobalWaypoints(), "waypoints", 3 );
 
-    // Run an update
-    update( true );
+    // Run an update to plan a local path
+    replan_timer_.restart();
+    update();
 }
 
-void CombinedPlannerNode::generateWaypoints( const vector<lib_path::Point2d>& path,
-                                             const lib_path::Pose2d& goal,
-                                             list<lib_path::Pose2d>& waypoints ) const
+void CombinedPlannerNode::motionCtrlDoneCB( const actionlib::SimpleClientGoalState &state,
+                                            const motion_control::MotionResultConstPtr &result )
 {
-    double min_waypoint_dist_ = 1.5;
-    double max_waypoint_dist_ = 2.0;
-
-    waypoints.clear();
-
-    // Path too short? We need at least a start and an end point
-    if ( path.size() < 2 ) {
-        waypoints.push_back( goal );
-        return;
-    }
-
-    // Compute waypoints
-    double dist;
-    double minus = 0.0;
-    double step_size = min_waypoint_dist_; // 0.5*( min_waypoint_dist_ + max_waypoint_dist_ );
-    lib_path::Pose2d dir( getNormalizedDelta( path[0], path[1] ));
-    lib_path::Pose2d last;
-    last.x = path[0].x; last.y = path[0].y;
-
-    // For every point of the path except the first one
-    for ( size_t i = 1; i < path.size(); ) {
-        // Distance from last waypoint to next point of path
-        dist = sqrt( pow( last.x - path[i].x, 2 ) + pow( last.y - path[i].y, 2 ));
-
-        // If the distance is too short select next point of path
-        if ( dist < max_waypoint_dist_ ) {
-            // If this is the last point of the path, push back the goal pose
-            if ( i >= path.size() - 1 ) {
-                waypoints.push_back( goal );
-                break;
-            }
-
-            // Compute new step vector. Index i is always less than path.size() - 1
-            dir = getNormalizedDelta( path[i], path[i+1] );
-            last.x = path[i].x;
-            last.y = path[i].y;
-            last.theta = dir.theta;
-            ++i;
-
-            // If the distance is greater than the minimum, add a new waypoint
-            if ( dist >= min_waypoint_dist_ || minus >= min_waypoint_dist_ ) {
-                waypoints.push_back( last );
-                minus = 0.0;
-                continue;
-            } else {
-                // Ensure that the next waypoint is not too far away
-                minus += dist;
-                continue;
-            }
-        }
-
-        last.x += (step_size - minus) * dir.x;
-        last.y += (step_size - minus) * dir.y;
-        last.theta = dir.theta;
-        minus = 0.0;
-        waypoints.push_back( last );
-    }
+    /// @todo Resume from state collision
 }
 
-void CombinedPlannerNode::publishLocalPath( std::list<lib_path::Pose2d> &path )
+void CombinedPlannerNode::publishLocalPath( const std::list<lib_path::Pose2d> &path )
 {
     nav_msgs::Path path_msg;
-    path_msg.header.frame_id = map_frame_id_;
+    path_msg.header.frame_id = gmap_frame_id_;
     path_msg.header.stamp = ros::Time::now();
 
     std::list<lib_path::Pose2d>::const_iterator it = path.begin();
@@ -292,12 +208,12 @@ void CombinedPlannerNode::publishLocalPath( std::list<lib_path::Pose2d> &path )
 void CombinedPlannerNode::publishEmptyLocalPath()
 {
     nav_msgs::Path path_msg;
-    path_msg.header.frame_id = map_frame_id_;
+    path_msg.header.frame_id = gmap_frame_id_;
     path_msg.header.stamp = ros::Time::now();
     path_pub_.publish( path_msg );
 }
 
-bool CombinedPlannerNode::getRobotPose( geometry_msgs::Pose& pose, const std::string& map_frame )
+bool CombinedPlannerNode::getRobotPose( lib_path::Pose2d& pose, const std::string& map_frame )
 {
     tf::StampedTransform trafo;
     geometry_msgs::TransformStamped msg;
@@ -310,22 +226,52 @@ bool CombinedPlannerNode::getRobotPose( geometry_msgs::Pose& pose, const std::st
     }
 
     tf::transformStampedTFToMsg( trafo, msg );
-    pose.position.x = msg.transform.translation.x;
-    pose.position.y = msg.transform.translation.y;
-    pose.position.z = 0;
-    pose.orientation = msg.transform.rotation;
+    pose.x = msg.transform.translation.x;
+    pose.y = msg.transform.translation.y;
+    pose.theta = tf::getYaw( msg.transform.rotation );
 
     return true;
 }
 
+void CombinedPlannerNode::activate()
+{
+    // Kill all goals and reset the path planner if neccessary
+    if ( active_ )
+        deactivate();
+
+    // Wait for action server
+    if ( !motion_ac_.waitForServer( ros::Duration( 1.0 )) ) {
+        ROS_WARN( "Motion control action server didn't connect within 1.0 seconds" );
+        return;
+    }
+    active_ = true;
+
+    // Send goal
+    motion_control::MotionGoal motionGoal;
+    motionGoal.mode = motion_control::MotionGoal::MOTION_FOLLOW_PATH;
+    motionGoal.path_topic = path_topic_;
+    motionGoal.v = 0.5;
+    motionGoal.pos_tolerance = 0.3;
+    motion_ac_.sendGoal( motionGoal, boost::bind( &CombinedPlannerNode::motionCtrlDoneCB, this, _1, _2 ));
+}
+
+void CombinedPlannerNode::deactivate()
+{
+    ROS_INFO( "Deactivating path planner." );
+    motion_ac_.cancelAllGoals();
+    planner_.setGoalReached();
+    active_ = false;
+    publishEmptyLocalPath();
+}
+
 void CombinedPlannerNode::visualizePath(
-        const std::vector<lib_path::Point2d> &path,
+        const std::list<lib_path::Point2d> &path,
         const std::string& ns,
         const int color,
         const int id )
 {
     visualization_msgs::Marker marker;
-    marker.header.frame_id = map_frame_id_;
+    marker.header.frame_id = gmap_frame_id_;
     marker.header.stamp = ros::Time::now();
     marker.type = visualization_msgs::Marker::LINE_STRIP;
     marker.action = visualization_msgs::Marker::ADD;
@@ -339,7 +285,7 @@ void CombinedPlannerNode::visualizePath(
     marker.id = id;
     geometry_msgs::Point p;
     p.z = 0;
-    std::vector<lib_path::Point2d>::const_iterator it = path.begin();
+    std::list<lib_path::Point2d>::const_iterator it = path.begin();
     for ( ; it != path.end(); it++ ) {
         p.x = it->x;
         p.y = it->y;
@@ -350,14 +296,14 @@ void CombinedPlannerNode::visualizePath(
 
 void CombinedPlannerNode::visualizeWaypoints( const list<lib_path::Pose2d> &wp, string ns, int id ) {
     visualization_msgs::Marker marker;
-    marker.header.frame_id = map_frame_id_;
+    marker.header.frame_id = gmap_frame_id_;
     marker.header.stamp = ros::Time::now();
     marker.type = visualization_msgs::Marker::LINE_LIST;
     marker.action = visualization_msgs::Marker::ADD;
     marker.ns = ns;
     marker.color.g = 1.0f;
     marker.color.a = 1.0f;
-    marker.scale.x = 0.25f;
+    marker.scale.x = 0.1f;
     marker.id = id;
     geometry_msgs::Point p;
     p.z = 0;
@@ -371,19 +317,6 @@ void CombinedPlannerNode::visualizeWaypoints( const list<lib_path::Pose2d> &wp, 
         marker.points.push_back( p );
     }
     visu_pub_.publish( marker );
-}
-
-lib_path::Pose2d CombinedPlannerNode::getNormalizedDelta( const Point2d &start, const Point2d &end ) const
-{
-    lib_path::Pose2d result;
-    result.x = end.x - start.x;
-    result.y = end.y - start.y;
-    double l = sqrt( result.x*result.x + result.y*result.y );
-    result.x /= l;
-    result.y /= l;
-    result.theta = atan2( result.y, result.x );
-
-    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
