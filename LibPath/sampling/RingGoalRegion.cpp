@@ -16,10 +16,14 @@ RingGoalRegion::RingGoalRegion(const Point2d &center, double radius, double widt
   :center_(center),width_(width),samples_num_(20),
     step_angle_rad_(2*M_PI/samples_num_), counter_(0)
 {
-  if (radius<0)
+  if (radius<0) {
+    cout << "ringgoal radius NEGATIVE"<< endl;
+    cout.flush();
     direction_=0;
-  else
+  } else {
     direction_=1;
+  }
+
   radius_=fabs(radius);
 }
 
@@ -49,7 +53,7 @@ bool RingGoalRegion::getNextGoal(Pose2d &goal, double& gain)
     goal.y=center_.y+r*sin(alpha);
     goal.theta =alpha+(direction_-0.5)*M_PI;
     goal.theta=MathHelper::AngleClamp(goal.theta);
-    std::cout << "r="<<r <<" x="<<goal.x << " y="<<goal.y << std::endl;
+    std::cout << "r="<<r <<" x="<<goal.x << " y="<<goal.y << " theta="<<goal.theta*180.0/M_PI<<"deg"<<std::endl;
     ++counter_;
     return true;
   }

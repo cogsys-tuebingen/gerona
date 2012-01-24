@@ -38,7 +38,7 @@ Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *region, int 
   double min_cost = 999999;
   while (region->getNextGoal(goal, gain)) {
     Pose2d goal_map = pos2map(goal, *map_);
-    std::cout << "goal map pose "<<goal_map.x << " "<<goal_map.y << std::endl;
+    std::cout << "goal map pose "<<goal_map.x << " "<<goal_map.y << " "<<goal_map.theta*180.0/M_PI<<"deg" << std::endl;
     if (!map_->isInMap(goal)) {
       std::cout << "invalid goal pose "<<goal.x << " "<<goal.y << std::endl;
       continue;
@@ -47,8 +47,6 @@ Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *region, int 
     Curve* curve=rs_generator_->find_path(start_map,goal_map, map_);
     if (curve && curve->is_valid()) {
 
-      std::cout << "goal:" << goal_map.x << " " << goal_map.y << "cost: " << curve->weight() << std::endl;
-      std::cout.flush();
 
       double actual_cost = gain*curve->weight();
 
@@ -60,12 +58,9 @@ Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *region, int 
         best_curve=curve;
         min_cost=actual_cost;
 
-        std::cout << "new best curve with cost:" << min_cost << std::endl;
-        std::cout.flush();
       } else {
         delete curve;
-        std::cout << "still  best curve has cost:" << min_cost << std::endl;
-        std::cout.flush();
+
       }
     } else if (curve) {
       delete curve;

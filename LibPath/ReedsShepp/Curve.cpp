@@ -72,7 +72,7 @@ void Curve::test_sequence(std::vector<CurveSegment*> &sequence) {
     std::cerr << "unknown sequence" << std::endl;
 
   if(length < NOT_FREE) {
-    std::cout << "found a curve" << std::endl;
+    //std::cout << "found a curve" << std::endl;
   }
 
   if(length < m_min_length) {

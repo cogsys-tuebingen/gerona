@@ -1,7 +1,7 @@
 # Utils/LibRobot/CMakeLists.txt
 
-set(IPP NOTFOUND)
-find_path(IPP ipp.h /opt/intel/ipp/include/)
+#set(IPP NOTFOUND)
+#find_path(IPP ipp.h /opt/intel/ipp/include/)
 if(IPP)
     message("found IPP " ${IPP})
     set (IPP_LIB32 NOTFOUND)
