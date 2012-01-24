@@ -4,6 +4,7 @@ int32 MOTION_POTENTIAL_FIELD=   3
 int32 MOTION_FOLLOW_PATH=       4
 int32 MOTION_FOLLOW_TARGET=     5
 int32 MOTION_FIXED_PARAMS=      6
+int32 MOTION_FOLLOW_RSPATH=     7
 #goal definition
 int32 mode
 # pose of goal in WCS

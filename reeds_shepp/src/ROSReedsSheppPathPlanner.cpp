@@ -239,7 +239,6 @@ void ROSReedsSheppPathPlanner::update_map(const nav_msgs::OccupancyGridConstPtr 
   int w = map->info.width;
   int h = map->info.height;
 
-  ROS_INFO("[ReedsShepp] map update");
   SimpleGridMap2d * m = new SimpleGridMap2d(w, h, map->info.resolution);
 
   m->setOrigin(Point2d(map->info.origin.position.x, map->info.origin.position.y));
@@ -257,7 +256,6 @@ void ROSReedsSheppPathPlanner::update_map(const nav_msgs::OccupancyGridConstPtr 
   m_map = m;
 
   m_has_map = true;
-  ROS_INFO("[ReedsShepp] map update done");
 }
 
 
@@ -348,7 +346,6 @@ void ROSReedsSheppPathPlanner::update_centroid_goal(const geometry_msgs::PointCo
 void ROSReedsSheppPathPlanner::publishCurve (Curve * curve)
 {
   if (!m_silent_mode){
-    ROS_INFO("Found a path. Cost:%f ", curve->weight());
 
     // start pos
     send_arrow_marker(0, m_odom_world,

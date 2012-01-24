@@ -9,8 +9,8 @@
 PathDriver::PathDriver(ros::Publisher& cmd_pub, ros::NodeHandle& node)
   : m_has_subgoal(false), m_has_path(false), m_has_odom(false), m_planning_done_(false)
 {
-  m_path_subscriber = node.subscribe<nav_msgs::Path>
-      ("/rs_path", 2, boost::bind(&PathDriver::update_path, this, _1));
+ // m_path_subscriber = node.subscribe<nav_msgs::Path>
+  //    ("/rs_path", 2, boost::bind(&PathDriver::update_path, this, _1));
 
   m_command_ramaxx_publisher = cmd_pub;
   m_rs_goal_publisher = node.advertise<geometry_msgs::PoseStamped> ("/rs/goal", 10);
@@ -37,7 +37,7 @@ void PathDriver::start (){
       m_poses.push_back(m_path.poses[i]);
     }
     m_has_path = m_nodes > 0;
-
+    ROS_INFO("haspath=%d mnodes=%d",m_has_path,m_nodes);
     m_has_subgoal = false;
   }
 }
@@ -76,6 +76,7 @@ int PathDriver::execute (MotionFeedback& fb, MotionResult& result){
       m_has_path=false;
       result.status=MotionResult::MOTION_STATUS_SUCCESS;
       state_=MotionResult::MOTION_STATUS_SUCCESS;
+      return state_;
     }
   }
 
@@ -124,7 +125,7 @@ int PathDriver::execute (MotionFeedback& fb, MotionResult& result){
 
   fb.dist_driven = (m_nodes - m_poses.size()) * m_max_waypoint_distance;
   fb.dist_goal = m_poses.size() * m_max_waypoint_distance;
-
+  result.status=state_;
   return state_;
 }
 
@@ -140,10 +141,18 @@ void PathDriver::setGoal (const motion_control::MotionGoal& goal){
   goal_pose_global_.pose.position.z=0;
   goal_pose_global_.pose.orientation=
       tf::createQuaternionMsgFromRollPitchYaw(0.0,0.0,goal.theta);
+  if (goal.path.poses.empty()) {
+    // run reeds shepp
+    m_planning_done_ = false;
+    m_rs_goal_publisher.publish(goal_pose_global_);
+  } else {
+    m_path = goal.path;
+    m_planning_done_ = true;
+    ROS_INFO("pathfollower: path received with %d poses",m_path.poses.size());
 
-  // run reeds shepp
-  m_planning_done_ = false;
-  m_rs_goal_publisher.publish(goal_pose_global_);
+    start();
+  }
+
 
 }
 

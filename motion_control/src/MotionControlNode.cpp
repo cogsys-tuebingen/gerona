@@ -59,11 +59,11 @@ void MotionControlNode::goalCallback()
       active_ctrl_=simple_goal_driver_;
       active_ctrl_->setGoal(*goalptr);
       break;      
-      /*
-    case motion_control::MotionGoal::MOTION_FOLLOW_PATH:
+
+    case motion_control::MotionGoal::MOTION_FOLLOW_RSPATH:
       active_ctrl_=path_driver_;
       active_ctrl_->setGoal(*goalptr);
-      break;*/
+      break;
     default:
       ROS_WARN("Motioncontrol invalid motion mode %d requested",goalptr->mode);
       MotionResult result;
@@ -85,7 +85,7 @@ void MotionControlNode::laserCallback(const sensor_msgs::LaserScanConstPtr& scan
 
 void MotionControlNode::preemptCallback()
 {
-
+  ROS_WARN("preempt goal called");
 
 }
 
