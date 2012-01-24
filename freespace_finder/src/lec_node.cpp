@@ -16,7 +16,8 @@ ros::Publisher m_marker_publisher;
 ros::Publisher m_circle_publisher;
 bool publish_debug_marker = false;
 bool publish_verbose_debug_marker = false;
-double grid_spacing = 1.0;
+double min_distance = sqrt(2); /*meters*/
+double grid_spacing = 1.0; /*meters*/
 
 #define PROFILE_ALL 0
 #define PROFILE_INNER 1
@@ -107,7 +108,7 @@ void update_map(const nav_msgs::OccupancyGridConstPtr &map)
 
   // start the search
   profiler[PROFILE_INNER].start();
-  CircleFinder finder((int) ox,(int) (w+ox),(int) (oy), (int) (h+oy), 2);
+  CircleFinder finder((int) ox,(int) (w+ox),(int) (oy), (int) (h+oy), min_distance);
   finder.run(points, use_naiive_method, make_obstacles_unique);
 
   ROS_DEBUG_STREAM("freespace search took " << profiler[PROFILE_INNER].stop() << "ms");
@@ -190,6 +191,8 @@ int main(int argc, char** argv)
   n.param("grid_spacing", grid_spacing, 1.0);
   n.param("publish_debug_marker", publish_debug_marker, false);
   n.param("publish_verbose_debug_marker", publish_verbose_debug_marker, false);
+
+  min_distance = 2 * grid_spacing;
 
   if(publish_verbose_debug_marker)
     publish_debug_marker = true;

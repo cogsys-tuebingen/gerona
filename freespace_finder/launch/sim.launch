@@ -1,50 +1,23 @@
 <launch>
   <param name="use_sim_time" value="true" />
   
-  <node name="xstage" pkg="xstage" type="xstage" args="$(env RABOT)/Config/Simulation/rs_test.world" />
-
-  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0 0 0 0 0 3.141592654   /base_link /laser 100" />
-
-  <node name="Gmapping" pkg="gmapping" type="slam_gmapping" args="scan:=/base_scan" >
-    <param name="~particles" type="int" value="5" />
-    <param name="~map_update_interval" type="double" value="0.1" />
-    <param name="~iterations" type="int" value="15" />
-    <param name="~srr" type="double" value="0.5" />
-    <param name="~srt" type="double" value="0.5" />
-    <param name="~str" type="double" value="0.5" />
-    <param name="~stt" type="double" value="0.5" />
-    <param name="~delta" type="double" value="0.05" />
-    <param name="~lstep" type="double" value="0.2" />
-    <param name="~astep" type="double" value="0.2" />
-    <param name="~xmin" type="double" value="-10.0" />
-    <param name="~ymin" type="double" value="-10.0" />
-    <param name="~xmax" type="double" value="10.0" />
-    <param name="~ymax" type="double" value="10.0" />
-    <param name="~maxUrange" type="double" value="5.5" />
-
-    <param name="~linearUpdate" type="double" value="0.01" />
-    <param name="~angularUpdate" type="double" value="0.01" />
-
-    <param name="~temporalUpdate" type="double" value="1" />
-
-    <param name="lskip" type="int" value="0" />
-    <param name="~resampleThreshold" type="double" value="0.5" />
+  <node name="xstage" pkg="xstage" type="xstage" args="$(env RABOT)/Config/Simulation/largelab2.world">
+    <remap from="/base_scan" to="/scan"/>
+    <remap from="/cmd_robot" to="/ramaxx_cmd"/>
   </node>
   
-  <node pkg="costmap_2d" type="costmap_2d_node" name="costmap_2d" output="screen"></node>
-  <group ns="/costmap_2d/costmap">
-    <param name="transform_tolerance" value="1.0" />
-    <param name="update_frequency" value="2.0" />
-    <param name="publish_frequency" value="0.2" />
-    <param name="publish_nav_map" value="true" />
-    <param name="origin_bubble_radius" value="0.2" />
-  </group>
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0 0 0 0 0 3.141592654   /base_link /laser 100" />
+
+  
+  <include file="$(find hector_mapping)/launch/mapping_default.launch" />
+
+  <node pkg="costmap" type="costmap_node" name="costmap" output="screen"></node>
 
   
   <node pkg="freespace_finder" type="lec_node" name="lec_node" output="screen">
     <!--<param name="map_topic" value="/map" />-->
-    <param name="grid_spacing" value="1.0"/> <!-- large obstacles are split into a grid, this is the distance (in m) between points on that grid -->
-    <param name="map_topic" value="/costmap_2d/costmap/map_inflated" />
+    <param name="grid_spacing" value="0.50"/> <!-- large obstacles are split into a grid, this is the distance (in m) between points on that grid -->
+    <param name="map_topic" value="/map_inflated" />
     <param name="publish_debug_marker" value="true" />
     <param name="publish_verbose_debug_marker" value="true" />
   </node>
