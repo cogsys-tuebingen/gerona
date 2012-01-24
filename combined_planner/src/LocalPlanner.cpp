@@ -30,7 +30,7 @@ LocalPlanner::LocalPlanner()
     generatePatterns();
 }
 
-bool LocalPlanner::planPath( const lib_path::Pose2d &start, const lib_path::Pose2d &end, bool sampling )
+bool LocalPlanner::planPath( const lib_path::Pose2d &start, const lib_path::Pose2d &end )
 {
     last_weight_ = -1.0;
     path_.clear();
@@ -47,17 +47,9 @@ bool LocalPlanner::planPath( const lib_path::Pose2d &start, const lib_path::Pose
 
     // Search a path
     Curve* curve = NULL;
-    if ( sampling ) {
-        // Try to reach the end with coorect orientation
-        LocalWaypointRegion goalRegion( end, 0.25 );
-        SamplingPlanner s_planner( &rs_, map_ );
-        curve = s_planner.createPath( start, &goalRegion, 0 );
-    } else {
-        // Try to reach the given end exactly
-        Pose2d start_map = pos2map( start, *map_ );
-        Pose2d end_map = pos2map( end, *map_ );
-        curve = rs_.find_path( start_map, end_map, map_ );
-    }
+    LocalWaypointRegion goalRegion( end, 0.25, 20.0 );
+    SamplingPlanner s_planner( &rs_, map_ );
+    curve = s_planner.createPath( start, &goalRegion, 0 );
 
     // Check result & generate path if there is one
     if ( curve  && curve->is_valid()) {
@@ -95,10 +87,10 @@ void LocalPlanner::configure()
     double circle_radius, wp_distance, cost_backw, cost_forw, cost_curve, cost_straight;
     n.param<double> ("circle_radius", circle_radius, 1.0f);
     n.param<double> ("max_waypoint_distance", wp_distance, 0.25f );
-    n.param<double> ("cost_backwards", cost_backw, 5.0f);
+    n.param<double> ("cost_backwards", cost_backw, 1.5f);
     n.param<double> ("cost_forwards", cost_forw, 1.0f);
-    n.param<double> ("cost_curve", cost_curve, 1.2f);
-    n.param<double> ("cost_straight", cost_straight, 1.0f);
+    n.param<double> ("cost_curve", cost_curve, 120.0f);
+    n.param<double> ("cost_straight", cost_straight, 100.0f);
 
     // Set config
     rs_.set_circle_radius( circle_radius );

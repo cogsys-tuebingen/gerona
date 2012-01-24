@@ -97,7 +97,7 @@ void GlobalPlanner::flatten( const path_t* raw, std::vector<Point2d> &flattened 
             }
 
             if ( !succ ) {
-                map_->cell2point((*raw)[current].x, (*raw)[current].y, p );
+                map_->cell2point((*raw)[current-1].x, (*raw)[current-1].y, p );
                 flattened.push_back( p );
                 first = current;
                 current++;
@@ -108,11 +108,45 @@ void GlobalPlanner::flatten( const path_t* raw, std::vector<Point2d> &flattened 
 
 bool GlobalPlanner::isLineFree( const lib_path::waypoint_t &p1,
                                 const lib_path::waypoint_t &p2 ) const {
+    int x0, y0, x1, y1;
+    x0 = p1.x; y0 = p1.y;
+    x1 = p2.x; y1 = p2.y;
+
+    double dx, dy, err;
+    dx = abs( x1 - x0 );
+    dy = abs( y1 - y0 );
+    err = dx - dy;
+
+    int sx, sy;
+    sx = sy = 1;
+    if ( x0 >= x1 )
+        sx = -1;
+    if ( y0 >= y1 )
+        sy = -1;
+
+    while ( true ) {
+        if ( !map_->isFree( x0, y0 ))
+            return false;
+
+        if ( x0 == x1 && y0 == y1 )
+            return true;
+
+        if ( 2.0 * err > -dy ) {
+            err = err - dy;
+            x0 += sx;
+        }
+
+        if ( 2.0 * err < dx ) {
+            err = err + dx;
+            y0 += sy;
+        }
+    }
+
     /*
      * Copied from sickday planner. Authors: dube, laible
      */
 
-    bool free = true;
+    /*bool free = true;
 
     if ( p1.x != p2.x || p1.y != p2.y) {
         // Traverse from left to right
@@ -176,5 +210,5 @@ bool GlobalPlanner::isLineFree( const lib_path::waypoint_t &p1,
             free = false;
         }
     }
-    return free;
+    return free;*/
 }

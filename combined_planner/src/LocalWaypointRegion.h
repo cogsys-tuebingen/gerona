@@ -30,11 +30,13 @@ public:
      * @param dist_step Distance the goals will be moved to the left and right
      *      relative to the center pose.
      */
-    LocalWaypointRegion( const lib_path::Pose2d& center, const double dist_step = 0.1 );
+    LocalWaypointRegion( const lib_path::Pose2d &center,
+                         const double dist_step,
+                         const double angle_steg_deg );
 
     /* Inherited from GoalRegion */
     virtual void init( unsigned samples_num = 0 ) { /* We have always three samples */ }
-    virtual bool getNextGoal( lib_path::Pose2d &goal );
+    virtual bool getNextGoal( lib_path::Pose2d &goal, double& gain );
 
 protected:
 
@@ -44,10 +46,12 @@ protected:
      * @param dist_step Distance the goals will be moved to the left and right
      *      relative to the center pose.
      */
-    virtual void generateGoals( const lib_path::Pose2d &center, const double dist_step );
+    virtual void generateGoals( const lib_path::Pose2d &center,
+                                const double dist_step,
+                                const double angle_steg_deg );
 
     /// List of possible goals
-    std::list<lib_path::Pose2d> goal_list_;
+    std::list<std::pair<lib_path::Pose2d, double> > goal_list_;
 };
 
 #endif // LOCALWAYPOINTREGION_H

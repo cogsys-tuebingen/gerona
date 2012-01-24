@@ -46,8 +46,8 @@ CombinedPlannerNode::CombinedPlannerNode()
     n_.param<std::string>( "goal_topic", goal_topic_, "/goal" );
     n_.param<std::string>( "path_topic", path_topic_, "/path" );
 
-    //lmap_wrapper_.setLowerThreshold( 0 );
-    //lmap_wrapper_.setUpperThreshold( 245 );
+    lmap_wrapper_.setLowerThreshold( 0 );
+    lmap_wrapper_.setUpperThreshold( 128 );
 
     // Subscribe
     map_subs_ = n_.subscribe<nav_msgs::OccupancyGrid>( map_topic_, 1, boost::bind( &CombinedPlannerNode::updateMap, this, _1 ));

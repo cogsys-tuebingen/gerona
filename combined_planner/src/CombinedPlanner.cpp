@@ -88,7 +88,7 @@ bool CombinedPlanner::updateLocalPath( const Pose2d &robot_pose, bool force_repl
     }
 
     // Select next waypoint?
-    Pose2d current_wp = gwaypoints_.front();
+    Pose2d current_wp;
     bool new_wp = false;
     if ( gwaypoints_.empty()) {
         // Next waypoint must be the goal
@@ -97,6 +97,8 @@ bool CombinedPlanner::updateLocalPath( const Pose2d &robot_pose, bool force_repl
         new_wp = true;
         gwaypoints_.pop_front();
         current_wp = gwaypoints_.front();
+    } else {
+        current_wp = gwaypoints_.front();
     }
 
     // Check if we have to replan
@@ -104,9 +106,8 @@ bool CombinedPlanner::updateLocalPath( const Pose2d &robot_pose, bool force_repl
         return false;
 
     // Plan a local path.
-    ROS_INFO("Updating local path.");
     try {
-        if ( lplanner_->planPath( robot_pose, current_wp, true )) {
+        if ( lplanner_->planPath( robot_pose, current_wp )) {
             // Found a path. Remeber local goal
             latest_lgoal_ = lplanner_->getPath().back();
             return true;
@@ -119,7 +120,7 @@ bool CombinedPlanner::updateLocalPath( const Pose2d &robot_pose, bool force_repl
     Pose2d wp_backw( current_wp );
     wp_backw.theta += M_PI;
     try {
-        if ( lplanner_->planPath( robot_pose, wp_backw, true )) {
+        if ( lplanner_->planPath( robot_pose, wp_backw )) {
             // Well, we found a path. Thats the most important thing. Remeber local goal
             latest_lgoal_ = lplanner_->getPath().back();
             return true;
@@ -130,7 +131,7 @@ bool CombinedPlanner::updateLocalPath( const Pose2d &robot_pose, bool force_repl
     if ( gwaypoints_.size() >= 2 ) {
         list<Pose2d>::iterator it = gwaypoints_.begin();
         it++;
-        if ( lplanner_->planPath( robot_pose, *it, true )) {
+        if ( lplanner_->planPath( robot_pose, *it )) {
             gwaypoints_.pop_front();
             latest_lgoal_ = lplanner_->getPath().back();
             return true;
@@ -168,7 +169,7 @@ void CombinedPlanner::setGoalReached() {
 
 void CombinedPlanner::calculateWaypoints( const vector<Point2d> &path, const Pose2d& goal, list<Pose2d> &waypoints ) const
 {
-    double min_waypoint_dist_ = 1.25;
+    double min_waypoint_dist_ = 1.0;
     double max_waypoint_dist_ = 1.50;
 
     waypoints.clear();

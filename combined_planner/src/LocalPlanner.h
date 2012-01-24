@@ -45,14 +45,11 @@ public:
      * @brief Try to find a local car-like feasible path.
      * @param start The start pose of the path.
      * @param end The (optimal) end pose of the path.
-     * @param sampling If this is set to true you might find a path even if the given
-     *      end pose is not reachable. But is is possible that the calculated path
-     *      does not end at the given end pose.
      * @return True if there is a valid path.
      * @throws CombinedPlannerException If there is no map or if the start/end pose lies
      *      outside of the map.
      */
-    bool planPath( const lib_path::Pose2d& start, const lib_path::Pose2d& end, bool sampling = false );
+    bool planPath( const lib_path::Pose2d& start, const lib_path::Pose2d& end );
 
     /**
      * @brief Get the latest path.
