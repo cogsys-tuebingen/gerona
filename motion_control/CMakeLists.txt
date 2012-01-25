@@ -70,6 +70,11 @@ src/SamplingTestNode.cpp
 )
 target_link_libraries(drive_test LibUtil)
 
+rosbuild_add_executable(FixedDriverTestNode
+src/FixedDriverTestNode.cpp
+)
+target_link_libraries(FixedDriverTestNode LibUtil)
+
 rosbuild_add_executable(motion_control
 src/CalibDriver.cpp
 src/DualPidCtrl.cpp
