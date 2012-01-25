@@ -46,8 +46,8 @@ CombinedPlannerNode::CombinedPlannerNode()
     n_.param<std::string>( "goal_topic", goal_topic_, "/goal" );
     n_.param<std::string>( "path_topic", path_topic_, "/path" );
 
-    lmap_wrapper_.setLowerThreshold( 0 );
-    lmap_wrapper_.setUpperThreshold( 128 );
+    lmap_wrapper_.setLowerThreshold( 80 );
+    lmap_wrapper_.setUpperThreshold( 180 );
 
     // Subscribe
     map_subs_ = n_.subscribe<nav_msgs::OccupancyGrid>( map_topic_, 1, boost::bind( &CombinedPlannerNode::updateMap, this, _1 ));
@@ -79,7 +79,6 @@ void CombinedPlannerNode::update()
         return;
     }
 
-    lmap_ros_.clearRobotFootprint();
     lmap_ros_.getCostmapCopy( lmap_cpy_ );
     planner_.setLocalMap( &lmap_wrapper_ );
     bool new_local_path = false;
@@ -250,8 +249,8 @@ void CombinedPlannerNode::activate()
     motion_control::MotionGoal motionGoal;
     motionGoal.mode = motion_control::MotionGoal::MOTION_FOLLOW_PATH;
     motionGoal.path_topic = path_topic_;
-    motionGoal.v = 0.5;
-    motionGoal.pos_tolerance = 0.3;
+    motionGoal.v = 0.8;
+    motionGoal.pos_tolerance = 0.20;
     motion_ac_.sendGoal( motionGoal, boost::bind( &CombinedPlannerNode::motionCtrlDoneCB, this, _1, _2 ));
 }
 

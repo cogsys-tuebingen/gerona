@@ -1,7 +1,7 @@
 <launch>
   <param name="use_sim_time" value="true" />
   
-  <node name="xstage" pkg="xstage" type="xstage" args="$(env RABOT)/Config/Simulation/largelab.world">
+  <node name="xstage" pkg="xstage" type="xstage" args="$(env RABOT)/Config/Simulation/corridor.world">
     <remap from="/base_scan" to="/scan"/>
     <remap from="/cmd_robot" to="/ramaxx_cmd"/>
   </node>
@@ -22,7 +22,7 @@
     
     <!-- Map size / start point -->
     <param name="map_resolution" value="0.10"/>
-    <param name="map_size" value="512"/>
+    <param name="map_size" value="2000"/>
     <param name="map_start_x" value="0.5"/>
     <param name="map_start_y" value="0.5" />
     <param name="map_multi_res_levels" value="2" />

@@ -33,6 +33,8 @@ public:
      */
     LocalPlanner();
 
+    virtual ~LocalPlanner();
+
     /**
      * @brief Set the current (local) map.
      * @attention There is no internal copy of the given map. The pointer should be valid
@@ -86,6 +88,9 @@ protected:
 
     /// Weight of the last Reed Shepp curve
     double last_weight_;
+
+    /// Used to clear the cells near the robots position
+    lib_path::CircleArea* clear_area_;
 
 };
 

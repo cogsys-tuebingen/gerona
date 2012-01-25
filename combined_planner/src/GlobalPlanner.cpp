@@ -39,6 +39,13 @@ bool GlobalPlanner::planPath( Point2d start, Point2d goal )
         throw CombinedPlannerException( "Start or goal pose lies outside of the map." );
     }
 
+    // Buffer map data at current position
+    CircleBuffer start_area( start, 0.25, map_ );
+    map_->getAreaValues( start_area );
+
+    // Clear current position
+    map_->setAreaValue( start_area, 0 );
+
     // Convert start/goal into cell coordinate
     waypoint_t startWayp, goalWayp;
     unsigned int x, y;
@@ -48,9 +55,11 @@ bool GlobalPlanner::planPath( Point2d start, Point2d goal )
     goalWayp.x = x; goalWayp.y = y;
 
     // Run A*
-    if ( !a_star_.planPath( startWayp, goalWayp )) {
+    bool path_found = a_star_.planPath( startWayp, goalWayp );
+    //map_->setAreaValue( start_area );
+
+    if ( !path_found )
         return false;
-    }
 
     // Copy the raw path
     path_t* cell_path = a_star_.getLastPath();

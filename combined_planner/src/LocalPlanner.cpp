@@ -21,13 +21,20 @@ using namespace lib_path;
 using namespace combined_planner;
 
 LocalPlanner::LocalPlanner()
-    : map_( NULL )
+    : map_( NULL ),
+      clear_area_( NULL )
 {
     // Read/set configuration
     configure();
 
     // Init reed Shepp planner
     generatePatterns();
+}
+
+LocalPlanner::~LocalPlanner()
+{
+    if ( clear_area_ != NULL )
+        delete clear_area_;
 }
 
 bool LocalPlanner::planPath( const lib_path::Pose2d &start, const lib_path::Pose2d &end )
@@ -44,6 +51,9 @@ bool LocalPlanner::planPath( const lib_path::Pose2d &start, const lib_path::Pose
          || !map_->isInMap( Point2d( end.x, end.y ))) {
         throw CombinedPlannerException( "Start or goal pose outside of the map." );
     }
+
+    // Clear robot pose
+    map_->setAreaValue( *clear_area_, (uint8_t)0 );
 
     // Search a path
     Curve* curve = NULL;
@@ -65,8 +75,10 @@ bool LocalPlanner::planPath( const lib_path::Pose2d &start, const lib_path::Pose
 }
 
 void LocalPlanner::setMap( lib_path::GridMap2d *map )
-{
+{   
     map_ = map;
+    if ( clear_area_ == NULL )
+        clear_area_ = new CircleArea( Point2d( 0, 0 ), 0.3, map_ );
 }
 
 void LocalPlanner::generatePath( lib_path::Curve *curve )
