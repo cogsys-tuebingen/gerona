@@ -13,7 +13,7 @@
 
 // Project
 #include "GridMap2d.h"
-
+#include <stdio.h>
 namespace lib_path {
 
 /**
@@ -106,39 +106,8 @@ public:
         return  value > lower_thres_ && value < upper_thres_;
     }
 
-    inline bool point2cell( const double px, const double py, unsigned int& x, unsigned int& y ) const {
-      x = (unsigned int)(px - origin_.x)/res_;
-      y = (unsigned int)(py - origin_.y)/res_;
-
-      if ( !isInMap( (int)x, (int)y ))
-            return false;
-        return true;
-    }
-
-    inline void cell2point( const unsigned int x, const unsigned int y, double& px, double& py ) const {
-        px = res_*(double)(x) + origin_.x + 0.5*res_;
-        py = res_*(double)(y) + origin_.y + 0.5*res_;
-    }
-
-    inline bool isInMap( const int x, const int y ) const
-        { return !(x < 0 || y < 0 || x > (int)width_ || y > (int)height_); }
-
-    inline bool isInMap( const double x, const double y ) const
-        { return (x - origin_.x)/res_ < width_ && (y - origin_.y)/res_ < height_; }
-
-
 protected:
-    /// Number of cells in x-direction
-    unsigned int width_;
 
-    /// Number of cells in y-direction
-    unsigned int height_;
-
-    /// Size of one cell in meter
-    double res_;
-
-    /// Origin of the map
-    Point2d origin_;
 
     /// The map data (row major order)
     std::vector<uint8_t> data_;

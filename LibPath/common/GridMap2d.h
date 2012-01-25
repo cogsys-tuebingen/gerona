@@ -105,8 +105,16 @@ public:
      * @param y y-coordinate of the cell.
      * @return False if the point lies outside of the map. True otherwise.
      */
-    virtual bool point2cell( const double px, const double py, unsigned int& x, unsigned int& y ) const = 0;
+    bool point2cell( const double px, const double py, unsigned int& x, unsigned int& y ) const
+    {
+      x = (unsigned int)((px - origin_.x)/res_);
+      y = (unsigned int)((py - origin_.y)/res_);
 
+      if ( !isInMap( (int)x, (int)y ))
+            return false;
+        return true;
+
+    }
     /**
      * @brief Convert cell coordinates to a point in the map coordinate system.
      * @param x x-coordinate of the cell.
@@ -114,7 +122,23 @@ public:
      * @param px x-coordinate of the point in the map coordinate system.
      * @param py y-coordinate of the point in the map coordinate system.
      */
-    virtual void cell2point( const unsigned int x, const unsigned int y, double& px, double& py ) const = 0;
+    void cell2point( const unsigned int x, const unsigned int y, double& px, double& py ) const
+    {
+         px = res_*(double)(x+0.5) + origin_.x;
+         py = res_*(double)(y+0.5) + origin_.y;
+         //printf("cp x=%d y=%d px=%f py=%f res=%f\n",x,y,px,py,res_);
+
+    }
+
+
+
+    inline bool isInMap( const int x, const int y ) const
+        { return !(x < 0 || y < 0 || x > (int)width_ || y > (int)height_); }
+
+    inline bool isInMap( const double x, const double y ) const
+        { return (x - origin_.x)/res_ < width_ && (y - origin_.y)/res_ < height_; }
+
+
 
     /**
      * @brief Check if cell coordinates are valid.
@@ -122,7 +146,6 @@ public:
      * @param y y-coordinate of the cell.
      * @return False if the coordinates are out of range. True otherwise.
      */
-    virtual bool isInMap( const int x, const int y ) const = 0;
 
     /**
      * @brief Check if a point int the map coordinate system lies outside
@@ -131,7 +154,6 @@ public:
      * @param y y-coordinate of the point.
      * @return False if the coordinates are out of range. True otherwise.
      */
-    virtual bool isInMap( const double x, const double y ) const = 0;
 
     // To be continued...
 
@@ -166,6 +188,19 @@ public:
 
     virtual inline bool isInMap( const Point2d& p ) const
         { return isInMap( p.x, p.y ); }
+
+protected:
+    /// Number of cells in x-direction
+    unsigned int width_;
+
+    /// Number of cells in y-direction
+    unsigned int height_;
+
+    /// Size of one cell in meter
+    double res_;
+
+    /// Origin of the map
+    Point2d origin_;
 
 };
 
