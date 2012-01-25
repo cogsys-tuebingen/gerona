@@ -16,6 +16,45 @@
 namespace lib_path {
 
 /**
+ * @class MapArea2d
+ * @brief Defines a area of the map and offers methods to access the corresponding grid cells.
+ */
+class MapArea2d {
+public:
+    /**
+     * @brief Start a new iteration.
+     */
+    virtual void begin() = 0;
+
+    /**
+     * @brief Select next cell.
+     * @return False if there are no more cells.
+     */
+    virtual bool next() = 0;
+
+    /**
+     * @brief Get the cell coordinates of the currently selected cell.
+     * @param x x-coordinates of the cell.
+     * @param y y coordinate of the cell.
+     */
+    virtual void getCell( int& x, int& y ) const = 0;
+
+    /**
+     * @brief Get the value of the currently selected cell.
+     * @return The value.
+     */
+    virtual uint8_t getValue() const
+        { return 0; }
+
+    /**
+     * @brief Set the value of the currently selected cell.
+     * @param value The new value.
+     */
+    void setValue( const uint8_t value )
+        {}
+};
+
+/**
  * @class GridMap
  * @brief Defines an interface for any grid based map implementations.
  */
@@ -105,16 +144,8 @@ public:
      * @param y y-coordinate of the cell.
      * @return False if the point lies outside of the map. True otherwise.
      */
-    bool point2cell( const double px, const double py, unsigned int& x, unsigned int& y ) const
-    {
-      x = (unsigned int)((px - origin_.x)/res_);
-      y = (unsigned int)((py - origin_.y)/res_);
+    virtual bool point2cell( const double px, const double py, unsigned int& x, unsigned int& y ) const = 0;
 
-      if ( !isInMap( (int)x, (int)y ))
-            return false;
-        return true;
-
-    }
     /**
      * @brief Convert cell coordinates to a point in the map coordinate system.
      * @param x x-coordinate of the cell.
@@ -122,23 +153,7 @@ public:
      * @param px x-coordinate of the point in the map coordinate system.
      * @param py y-coordinate of the point in the map coordinate system.
      */
-    void cell2point( const unsigned int x, const unsigned int y, double& px, double& py ) const
-    {
-         px = res_*(double)(x+0.5) + origin_.x;
-         py = res_*(double)(y+0.5) + origin_.y;
-         //printf("cp x=%d y=%d px=%f py=%f res=%f\n",x,y,px,py,res_);
-
-    }
-
-
-
-    inline bool isInMap( const int x, const int y ) const
-        { return !(x < 0 || y < 0 || x > (int)width_ || y > (int)height_); }
-
-    inline bool isInMap( const double x, const double y ) const
-        { return (x - origin_.x)/res_ < width_ && (y - origin_.y)/res_ < height_; }
-
-
+    virtual void cell2point( const unsigned int x, const unsigned int y, double& px, double& py ) const = 0;
 
     /**
      * @brief Check if cell coordinates are valid.
@@ -146,6 +161,7 @@ public:
      * @param y y-coordinate of the cell.
      * @return False if the coordinates are out of range. True otherwise.
      */
+    virtual bool isInMap( const int x, const int y ) const = 0;
 
     /**
      * @brief Check if a point int the map coordinate system lies outside
@@ -154,54 +170,176 @@ public:
      * @param y y-coordinate of the point.
      * @return False if the coordinates are out of range. True otherwise.
      */
-
-    // To be continued...
+    virtual bool isInMap( const double x, const double y ) const = 0;
 
     /* Non abstract functions */
 
-    virtual inline bool isFree( const Point2d& p ) const {
+    inline bool isFree( const Point2d& p ) const {
         unsigned int x, y;
         point2cell( p, x, y );
         return isFree( x, y );
     }
 
-    virtual inline bool isOccupied( const Point2d& p ) const {
+    inline bool isOccupied( const Point2d& p ) const {
         unsigned int x, y;
         point2cell( p, x, y );
         return isOccupied( x, y );
     }
 
-    virtual inline bool isNoInformation( const Point2d& p ) const {
+    inline bool isNoInformation( const Point2d& p ) const {
         unsigned int x, y;
         point2cell( p, x, y );
         return isNoInformation( x, y );
     }
 
-    virtual inline bool pose2cell( const Pose2d& src, unsigned int& x, unsigned int& y ) const
+    inline bool pose2cell( const Pose2d& src, unsigned int& x, unsigned int& y ) const
         { return point2cell( src.x, src.y, x, y ); }
 
-    virtual inline bool point2cell( const Point2d& p, unsigned int& x, unsigned int& y ) const
+    inline bool point2cell( const Point2d& p, unsigned int& x, unsigned int& y ) const
         { return point2cell( p.x, p.y, x, y ); }
 
-    virtual inline void cell2point( const unsigned int x, const unsigned int y, Point2d& p )
+    inline void cell2point( const unsigned int x, const unsigned int y, Point2d& p )
         { return cell2point( x, y, p.x, p.y ); }
 
-    virtual inline bool isInMap( const Point2d& p ) const
+    inline bool isInMap( const Point2d& p ) const
         { return isInMap( p.x, p.y ); }
 
+    /**
+     * @brief Set all cells in a area to the given value.
+     * @param area The map area.
+     * @param value The value.
+     */
+    virtual void setAreaValue( MapArea2d &area, const uint8_t value );
+
+    /**
+     * @brief Set all cells in a area to the value defined by that area object.
+     * @param area The map area.
+     */
+    virtual void setAreaValue( MapArea2d &area );
+
+    /**
+     * @brief Read all cell values from a given area of the map.
+     * @param area The map area.
+     */
+    virtual void getAreaValues( MapArea2d& area ) const;
+};
+
+/**
+ * @class CircleArea
+ * @brief Represents a circular area of a map.
+ * @attention This class is mostly untested!
+ */
+class CircleArea : public MapArea2d {
+public:
+
+    /**
+     * @brief Create an area with given center and radius.
+     * @param center Center of the circle in map coordinates.
+     *      Should be on the map or the area won't contain any points.
+     * @param radius Radius of the circle. Should be > 0. Otherwise
+     *      the area won't contain any points.
+     * @param map The map. Neccessary to get the size of one cell.
+     */
+    CircleArea( const Point2d& center, const double radius, const GridMap2d* map );
+
+    /**
+     * @brief Create the list of cells.
+     * @param center Center of the circle in map coordinates.
+     *      Should be on the map or the area won't contain any points.
+     * @param radius Radius of the circle. Should be > 0. Otherwise
+     *      the area won't contain any points.
+     * @param map The map. Neccessary to get the size of one cell.
+     */
+    virtual void init( const Point2d& center, const double radius, const GridMap2d* map );
+
+    /* Inherited from MapArea2d */
+
+    virtual void begin()
+        { counter_ = 0; }
+
+    virtual inline bool next() {
+        if ( counter_ < cells_.size()) {
+            ++counter_;
+            return true;
+        }
+        return false;
+    }
+
+    inline virtual void getCell( int& x, int& y ) const {
+        x = cells_[counter_].first;
+        y = cells_[counter_].second;
+    }
+
+    virtual uint8_t getValue() const
+        { return value_; }
+
 protected:
-    /// Number of cells in x-direction
-    unsigned int width_;
 
-    /// Number of cells in y-direction
-    unsigned int height_;
+    /**
+     * @brief Adds a horizontal (in x-direction) line of cells to the cell list.
+     * @param y y coordinate of the line.
+     * @param x0 Maximum or minimum x coordinate.
+     * @param x1 Maximum or minimum x coordinate.
+     */
+    void addHorizontalLine( const int y, int x0, int x1 );
 
-    /// Size of one cell in meter
-    double res_;
+    /// The cell value returned on request.
+    uint8_t value_;
 
-    /// Origin of the map
-    Point2d origin_;
+    /// List of all cells in this area (cell coordinates)
+    std::vector<std::pair<int, int> > cells_;
 
+    /// Points to the currently selected cell
+    std::size_t counter_;
+};
+
+/**
+ * @class CircleBuffer
+ * @brief Used to buffer a circular area of the map.
+ * @attention This class is mostly untested
+ * @attention This class was designed for small areas and is not very efficient.
+ */
+class CircleBuffer : public CircleArea {
+public:
+    /**
+     * @brief Create an area with given center and radius.
+     * @param center Center of the circle in map coordinates.
+     *      Should be on the map or the area won't contain any points.
+     * @param radius Radius of the circle. Should be > 0. Otherwise
+     *      the area won't contain any points.
+     * @param map The map. Neccessary to get the size of one cell.
+     */
+    CircleBuffer( const Point2d& center, const double radius, const GridMap2d* map );
+
+    /**
+     * @brief Create an area with given center and radius.
+     * @param center Center of the circle in map coordinates.
+     *      Should be on the map or the area won't contain any points.
+     * @param radius Radius of the circle. Should be > 0. Otherwise
+     *      the area won't contain any points.
+     * @param map The map. Neccessary to get the size of one cell.
+     */
+    virtual void init( const Point2d& center, const double radius, const GridMap2d* map );
+
+    /**
+     * @brief Returns the previously buffered vlaue of the currently selected cell.
+     * @return Previously buffered cell value.
+     */
+    virtual uint8_t getValue() const {
+        return values_[counter_];
+    }
+
+    /**
+     * @brief Buffer the value of the currently selected cell.
+     * @param value Value of the currently selected cell.
+     */
+    virtual void setValue( const uint8_t value ) {
+        values_[counter_] = value;
+    }
+
+protected:
+    /// Buffered cell values.
+    std::vector<uint8_t> values_;
 };
 
 } // namespace "lib_path"

@@ -13,7 +13,8 @@
 
 // Project
 #include "GridMap2d.h"
-#include <stdio.h>
+
+
 namespace lib_path {
 
 /**
@@ -73,41 +74,71 @@ public:
 
     /* Inherited from GridMap2d */
 
-    inline uint8_t getValue( const unsigned int x, const unsigned int y ) const
+    uint8_t getValue( const unsigned int x, const unsigned int y ) const
         { return data_[y*width_ + x]; }
 
-    inline void setValue( const unsigned int x, const unsigned int y, const uint8_t value )
+    void setValue( const unsigned int x, const unsigned int y, const uint8_t value )
         { data_[y*width_ + x] = value; }
 
-    inline unsigned int getWidth() const
+    unsigned int getWidth() const
         { return width_; }
 
-    inline unsigned int getHeight() const
+    unsigned int getHeight() const
         { return height_; }
 
-    inline double getResolution() const
+    double getResolution() const
         { return res_; }
 
     Point2d getOrigin() const
         { return origin_; }
 
-    inline void setOrigin( const Point2d& p )
+    void setOrigin( const Point2d& p )
         { origin_ = p; }
 
-    inline bool isFree( const unsigned int x, const unsigned int y ) const {
+    bool isFree( const unsigned int x, const unsigned int y ) const {
         return getValue( x, y ) <= lower_thres_;
     }
 
-    inline bool isOccupied( const unsigned int x, const unsigned int y ) const
+    bool isOccupied( const unsigned int x, const unsigned int y ) const
         { return getValue( x, y ) >= upper_thres_ ; }
 
-    inline bool isNoInformation( const unsigned int x, const unsigned int y ) const {
+    bool isNoInformation( const unsigned int x, const unsigned int y ) const {
         uint8_t value = getValue( x, y );
         return  value > lower_thres_ && value < upper_thres_;
     }
 
-protected:
+    bool point2cell( const double px, const double py, unsigned int& x, unsigned int& y ) const {
+        x = (unsigned int)((px - origin_.x)/res_);
+        y = (unsigned int)((py - origin_.y)/res_);
 
+        if ( !isInMap( (int)x, (int)y ))
+            return false;
+        return true;
+    }
+
+    void cell2point( const unsigned int x, const unsigned int y, double& px, double& py ) const {
+        px = res_*(double)(x+0.5) + origin_.x;
+        py = res_*(double)(y+0.5) + origin_.y;
+    }
+
+    bool isInMap( const int x, const int y ) const
+        { return !(x < 0 || y < 0 || x > (int)width_ || y > (int)height_); }
+
+    bool isInMap( const double x, const double y ) const
+        { return (x - origin_.x)/res_ < width_ && (y - origin_.y)/res_ < height_; }
+
+protected:
+    /// Number of cells in x-direction
+    unsigned int width_;
+
+    /// Number of cells in y-direction
+    unsigned int height_;
+
+    /// Size of one cell in meter
+    double res_;
+
+    /// Origin of the map
+    Point2d origin_;
 
     /// The map data (row major order)
     std::vector<uint8_t> data_;

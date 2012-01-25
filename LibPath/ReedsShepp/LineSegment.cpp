@@ -48,6 +48,7 @@ float LineSegment::weight(bool ignore_obstacles)
   int dy = -abs(y1-y0), sy = y0<y1 ? 1 : -1;
   int err = dx+dy, e2; /* error value e_xy */
 
+  double path_cost = 0;
   for(;;){
     if(m_map->isInMap(x0, y0)){
       bool free = m_map->isFree(x0, y0);
@@ -55,6 +56,7 @@ float LineSegment::weight(bool ignore_obstacles)
         is_free = false;
         break;
       }
+      path_cost += min( (uint8_t)5, m_map->getValue( x0, y0 ));
     }
 
     if (x0==x1 && y0==y1) break;
