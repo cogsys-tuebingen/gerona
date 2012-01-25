@@ -34,8 +34,10 @@ void EncoderEstimator::Update( const Vector3d &pose,
         cout << "Right Start: " << mStartTicksRight << " Current: " << ticksRight << endl;
         cout << "Distance: " << mDist << " m" << endl;
         cout << "calibleft:"<<mCalibLeft<< " calibright:"<<mCalibRight<<endl;
-        cout << "Wheel Diameter Left" << (mTicksPerTurn*mCalibLeft)/M_PI << "m"<<endl;
-        cout << "Wheel Diameter Right" << (mTicksPerTurn*mCalibRight)/M_PI << "m"<<endl;
+        cout << "Wheel Diameter Left144" << (mTicksPerTurn*mCalibLeft)/M_PI << "m"<<endl;
+        cout << "Wheel Diameter Right144" << (mTicksPerTurn*mCalibRight)/M_PI << "m"<<endl;
+        cout << "Wheel Diameter Left128" << (128*mCalibLeft)/M_PI << "m"<<endl;
+        cout << "Wheel Diameter Right128" << (128*mCalibRight)/M_PI << "m"<<endl;
 
         mLastPose=pose;
     }

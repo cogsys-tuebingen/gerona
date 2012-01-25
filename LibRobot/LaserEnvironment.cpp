@@ -149,6 +149,7 @@ http://stackoverflow.com/questions/1217585/parallelogram-contains-point
   float offb=-ax*cy + ay*cx;
   float offc=ax*by - ay*bx;
 
+  unsigned coll_points=0;
   for (unsigned i=0;i<ranges.size();++i) {
      const float& r=ranges[i];
 
@@ -164,7 +165,10 @@ http://stackoverflow.com/questions/1217585/parallelogram-contains-point
           (r*pb<=(nom-offb)) &&
           (r*pc<=(nom-offc))) {
           cout << "i="<<i << " point x="<<r*co << " y="<<r*si << " in parallelogram"<< endl;
-          return true;
+          coll_points++;
+          if (coll_points>3) {
+            return true;
+          }
       }
     }
   }
