@@ -38,8 +38,8 @@ void CostmapNode::updateMap(const nav_msgs::OccupancyGridConstPtr &ptr)
   double diff =  timer.elapsed() * 1000;
   running_avg_ticks_++;
   running_avg_ = (running_avg_ * (running_avg_ticks_-1) / running_avg_ticks_) + diff / running_avg_ticks_;
-  ROS_INFO_STREAM("map inflation took " << diff << "ms [dilate: " << dilate_ << ", erode: " << erode_ <<
-                  ", sampling: " << sampling_ << "] [avg. " << running_avg_ << "ms]");
+//  ROS_INFO_STREAM("map inflation took " << diff << "ms [dilate: " << dilate_ << ", erode: " << erode_ <<
+ //                 ", sampling: " << sampling_ << "] [avg. " << running_avg_ << "ms]");
 
   nav_msgs::OccupancyGrid o;
   o.data = map_data_;
