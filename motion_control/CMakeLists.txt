@@ -58,6 +58,12 @@ src/DriveTestNode.cpp
 
 target_link_libraries(drive_test LibUtil)
 
+rosbuild_add_executable(FollowTestNode
+src/FollowTestNode.cpp
+)
+
+target_link_libraries(FollowTestNode LibUtil)
+
 
 rosbuild_add_executable(samplingdrive_test
 src/SamplingTestNode.cpp
@@ -72,6 +78,7 @@ src/FixedDriver.cpp
 src/MotionControlNode.cpp
 src/MotionController.cpp
 src/PathDriver.cpp
+src/RsPathDriver.cpp
 src/SimpleGoalDriver.cpp
 
 )

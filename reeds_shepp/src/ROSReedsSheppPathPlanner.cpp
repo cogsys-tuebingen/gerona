@@ -150,7 +150,7 @@ void ROSReedsSheppPathPlanner::init_parameters()
   m_node_handle.param<int> ("threshold_max", m_threshold_max, 20);
   m_node_handle.param<std::string> ("map_topic", m_map_topic, "/map");
   m_node_handle.param<std::string> ("publish_frame", m_publish_frame, "/map");
-  m_node_handle.param<std::string> ("goal_topic", m_goal_topic, "/rs/goal");
+  m_node_handle.param<std::string> ("goal_topic", m_goal_topic, "/goal");
   m_node_handle.param<std::string> ("ring_goal_topic", m_ring_goal_topic, "/rs/ring_goal");
   m_node_handle.param<std::string> ("centroid_goal_topic", m_centroid_goal_topic, "/rs/centroid_goal");
 }
@@ -368,24 +368,24 @@ void ROSReedsSheppPathPlanner::publishCurve (Curve * curve)
 
   while(curve->has_next()){
     Pose2d next_map = curve->next();
-    Pose2d next_world = map2pos(next_map, *m_map);
-
-    // Next pose along path
     geometry_msgs::PoseStamped pose;
+    m_map->cell2point(next_map.x,next_map.y,pose.pose.position.x,
+                                          pose.pose.position.y);
 
-    pose.pose.position.x = next_world.x;
-    pose.pose.position.y = next_world.y;
-    pose.pose.orientation = tf::createQuaternionMsgFromYaw(next_world.theta);
+
+
+
+    pose.pose.orientation = tf::createQuaternionMsgFromYaw(next_map.theta);
 
     path.poses.push_back(pose);
 
-    if (!m_silent_mode){
+  //  if (!m_silent_mode){
       // marker
-      send_arrow_marker(id, next_world,
-                        0.05, 0.3, 0.3,
-                        0.0, 0.0, 1.0, 0.7f);
-      id++;
-    }
+//      send_arrow_marker(id, next_world,
+       //                 0.05, 0.3, 0.3,
+ //                       0.0, 0.0, 1.0, 0.7f);
+   //   id++;
+    //}
   }
 
   m_last_weight = curve->weight();
@@ -397,17 +397,59 @@ void ROSReedsSheppPathPlanner::publishCurve (Curve * curve)
 }
 
 
+bool ROSReedsSheppPathPlanner::getSlamPose(Vector3d& pose)
+{
+  tf::StampedTransform transform;
+  geometry_msgs::TransformStamped msg;
+
+  std::string source_frame("base_link");
+  std::string target_frame("map");
+  try {
+    listener_.lookupTransform(target_frame, source_frame, ros::Time(0), transform);
+  } catch (tf::TransformException& ex) {
+    ROS_ERROR("error with transform robot pose: %s", ex.what());
+    return false;
+  }
+  tf::transformStampedTFToMsg(transform, msg);
+
+  pose.x() = msg.transform.translation.x;
+  pose.y() = msg.transform.translation.y;
+  pose(2) = tf::getYaw(msg.transform.rotation);
+
+  return true;
+}
+
+
 void ROSReedsSheppPathPlanner::calculate()
 {
+
+
+
   ROS_INFO("calc: %d %d %d",m_has_goal,m_has_odom,m_has_map);
-  if(m_has_goal && m_has_odom && m_has_map ){
+  if(m_has_goal &&  m_has_map ){
     start_timer();
 
     unsigned int ox, oy, gx, gy;
-    m_map->point2cell(m_odom_world.x, m_odom_world.y, ox, oy);
-    m_map->point2cell(m_goal_world.x, m_goal_world.y, gx, gy);
+    Vector3d slam_pose;
+    getSlamPose(slam_pose);
+    //m_map->point2cell(m_odom_world.x, m_odom_world.y, ox, oy);
+    bool start_in_map=m_map->point2cell(slam_pose.x(),slam_pose.y(),ox,oy);
+    double px2,py2;
+    m_map->cell2point(ox,oy,px2,py2);
+    ROS_ERROR("start x=%f y=%f map %d %d bx %f by %f",slam_pose.x(),slam_pose.y(),ox,oy,
+              px2,py2);
 
-    Pose2d odom_map(ox, oy, m_odom_world.theta);
+
+
+    bool goal_in_map=m_map->point2cell(m_goal_world.x, m_goal_world.y, gx, gy);
+
+    if (!start_in_map || !goal_in_map) {
+      ROS_WARN("start or goal outside map");
+      send_empty_path();
+      return;
+    }
+    //Pose2d odom_map(ox, oy, m_odom_world.theta);
+    Pose2d odom_map(ox, oy, slam_pose.z());
     Pose2d goal_map(gx, gy, m_goal_world.theta);
 
     if (!m_silent_mode){
@@ -419,18 +461,6 @@ void ROSReedsSheppPathPlanner::calculate()
       ROS_INFO ("map:   from: (%2.2f, %2.2f) to: (%2.2f, %2.2f)", odom_map.x, odom_map.y , goal_map.x, goal_map.y);
     }
 
-    // Check if goal coordinates inside map bounds
-    if (!m_map->isInMap(m_odom_world) || !m_map->isInMap(m_goal_world)){
-      if(!m_map->isInMap(m_odom_world)){
-        ROS_WARN ("[ReedsShepp] Path search not possible, odometry coordinates violate map borders.");
-      }
-      if(!m_map->isInMap(m_goal_world)){
-        ROS_WARN ("[ReedsShepp] Path search not possible, goals coordinates violate map borders.");
-      }
-
-      send_empty_path();
-      return;
-    }
 
     int8_t startpos_val=m_map->getValue(odom_map.x,odom_map.y);
     for (int dx=-6;dx<6;++dx) {

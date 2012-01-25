@@ -14,7 +14,7 @@
 
 class MotionController;
 class CalibDriver;
-class PathDriver;
+class RsPathDriver;
 class FixedDriver;
 class SimpleGoalDriver;
 
@@ -50,7 +50,7 @@ private:
   nav_msgs::Odometry odometry_;
   std::string action_name_;
 
-  PathDriver *path_driver_;
+  RsPathDriver *rspath_driver_;
   MotionController *active_ctrl_;
   CalibDriver *calib_driver_;
   SimpleGoalDriver *simple_goal_driver_;

@@ -4,7 +4,7 @@
 #include "FixedDriver.h"
 #include "MotionController.h"
 #include "MotionControlNode.h"
-#include "PathDriver.h"
+#include "RsPathDriver.h"
 
 MotionControlNode::MotionControlNode(ros::NodeHandle& node, const std::string& name)
   :action_server_(node,name, false), action_name_(name)
@@ -19,18 +19,18 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& node, const std::string& n
   active_ctrl_ = NULL;
   calib_driver_ = new CalibDriver (cmd_ramaxx_pub_, node);
   simple_goal_driver_ = new SimpleGoalDriver (cmd_ramaxx_pub_, node);
-  path_driver_ = new PathDriver(cmd_ramaxx_pub_, node);
+  rspath_driver_ = new RsPathDriver(cmd_ramaxx_pub_, node);
   fixed_driver_=new FixedDriver(cmd_ramaxx_pub_, node);
 
   action_server_.start();
 
-  path_driver_->configure(node);
+  //path_driver_->configure(node);
 }
 
 
 MotionControlNode::~MotionControlNode()
 {
-  delete path_driver_;
+  delete rspath_driver_;
   delete calib_driver_;
   delete simple_goal_driver_;
   delete fixed_driver_;
@@ -61,7 +61,7 @@ void MotionControlNode::goalCallback()
       break;      
 
     case motion_control::MotionGoal::MOTION_FOLLOW_RSPATH:
-      active_ctrl_=path_driver_;
+      active_ctrl_=rspath_driver_;
       active_ctrl_->setGoal(*goalptr);
       break;
     default:

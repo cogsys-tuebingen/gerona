@@ -41,7 +41,7 @@ public:
    */
   void calculate();
 
-
+  bool getSlamPose( Vector3d &pose ) ;
 
 private:
   void send_arrow_marker(int id, lib_path::Pose2d &pose,
