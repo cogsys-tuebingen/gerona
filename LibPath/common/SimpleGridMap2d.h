@@ -107,10 +107,11 @@ public:
     }
 
     inline bool point2cell( const double px, const double py, unsigned int& x, unsigned int& y ) const {
-        if ( !isInMap( (int)x, (int)y ))
+      x = (unsigned int)(px - origin_.x)/res_;
+      y = (unsigned int)(py - origin_.y)/res_;
+
+      if ( !isInMap( (int)x, (int)y ))
             return false;
-        x = (unsigned int)(px - origin_.x)/res_;
-        y = (unsigned int)(py - origin_.y)/res_;
         return true;
     }
 
