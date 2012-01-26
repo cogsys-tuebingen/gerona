@@ -17,6 +17,7 @@ rosbuild_add_library(LibPath  ReedsShepp/CurveGenerator.cpp
                         ReedsShepp/LineSegment.cpp
                         sampling/GoalRegion.cpp
                         sampling/RingGoalRegion.cpp
+                        sampling/PoseListGoalRegion.cpp
                         sampling/CentroidRadiusGoalRegion.cpp
                         sampling/SamplingPlanner.cpp
                         common/MapMath.cpp
