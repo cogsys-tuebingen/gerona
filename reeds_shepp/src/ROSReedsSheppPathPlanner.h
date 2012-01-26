@@ -17,6 +17,8 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/Path.h>
 #include <tf/transform_listener.h>
+#include <utils/PoseList.h>
+#include <utils/LibPath/sampling/GoalRegion.h>
 
 #include <string>
 
@@ -32,6 +34,7 @@ public:
   void update_goal (const geometry_msgs::PoseStampedConstPtr &goal);
   void update_ring_goal (const geometry_msgs::PointConstPtr &ring_goal);
   void update_centroid_goal (const geometry_msgs::PointConstPtr &centroid_goal);
+  void update_pose_list_goal (const utils::PoseListConstPtr &pose_list);
 
   void update_odometry (const nav_msgs::OdometryConstPtr &odom);
   void update_map (const nav_msgs::OccupancyGridConstPtr &map);
@@ -40,6 +43,7 @@ public:
    * Calculate the shortest path and publish it
    */
   void calculate();
+  void sample_goal (lib_path::GoalRegion &goal, int num_samples);
 
   bool getSlamPose( Vector3d &pose ) ;
 
@@ -91,11 +95,13 @@ private:
   std::string m_goal_topic;
   std::string m_ring_goal_topic;
   std::string m_centroid_goal_topic;
+  std::string m_pose_list_goal_topic;
   std::string m_publish_frame;
 
   ros::Subscriber m_goal_pos_subscriber;
   ros::Subscriber m_ring_goal_subscriber;
   ros::Subscriber m_centroid_goal_subscriber;
+  ros::Subscriber m_pose_list_goal_subscriber;
   ros::Subscriber m_odom_subscriber;
   ros::Subscriber m_map_subscriber;
 

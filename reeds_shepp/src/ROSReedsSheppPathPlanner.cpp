@@ -8,6 +8,7 @@
 
 #include <utils/LibPath/sampling/SamplingPlanner.h>
 #include <utils/LibPath/sampling/RingGoalRegion.h>
+#include <utils/LibPath/sampling/PoseListGoalRegion.h>
 #include <utils/LibPath/sampling/CentroidRadiusGoalRegion.h>
 
 #include <utils/LibPath/common/SimpleGridMap2d.h>
@@ -153,6 +154,7 @@ void ROSReedsSheppPathPlanner::init_parameters()
   m_node_handle.param<std::string> ("goal_topic", m_goal_topic, "/goal");
   m_node_handle.param<std::string> ("ring_goal_topic", m_ring_goal_topic, "/rs/ring_goal");
   m_node_handle.param<std::string> ("centroid_goal_topic", m_centroid_goal_topic, "/rs/centroid_goal");
+  m_node_handle.param<std::string> ("pose_list_goal_topic", m_pose_list_goal_topic, "/rs/pose_list_goal");
 }
 
 
@@ -178,6 +180,9 @@ void ROSReedsSheppPathPlanner::init_subscribers()
 
   m_centroid_goal_subscriber = m_node_handle.subscribe<geometry_msgs::Point>
       (m_centroid_goal_topic, 1, boost::bind(&ROSReedsSheppPathPlanner::update_centroid_goal, this, _1));
+
+  m_pose_list_goal_subscriber = m_node_handle.subscribe<utils::PoseList>
+      (m_pose_list_goal_topic, 1, boost::bind(&ROSReedsSheppPathPlanner::update_pose_list_goal, this, _1));
 
   m_odom_subscriber = m_node_handle.subscribe<nav_msgs::Odometry>
       ("/odom", 100, boost::bind(&ROSReedsSheppPathPlanner::update_odometry, this, _1));
@@ -267,31 +272,13 @@ void ROSReedsSheppPathPlanner::update_ring_goal(const geometry_msgs::PointConstP
   center.y=ring_goal->y;
   double radius=ring_goal->z;
   double width=0.05;
-  RingGoalRegion goal(center,radius,width);
-  SamplingPlanner planner(&m_rs_generator,m_map);
+
   ROS_INFO("calc sampling path from %f:%f to ring with center %f:%f and radius %f",
            m_odom_world.x,m_odom_world.y,center.x,center.y,radius);
-  Pose2d odom_map = pos2map(m_odom_world, *m_map);
 
-  int8_t startpos_val=m_map->getValue(odom_map.x,odom_map.y);
-  for (int dx=-3;dx<3;++dx) {
-    for (int dy=-3;dy<3;++dy) {
-      m_map->setValue(odom_map.x+dx,odom_map.y+dy,m_threshold_min);
-    }
-  }
-  Curve* curve=planner.createPath(m_odom_world,&goal,20);
-  m_map->setValue(odom_map.x,odom_map.y,startpos_val);
+  RingGoalRegion goal(center,radius,width);
 
-  if (curve && curve->is_valid()) {
-    ROS_INFO("Publish curve with cost %f", curve->weight());
-    publishCurve(curve);
-  } else {
-    ROS_INFO("No path found.");
-    send_empty_path();
-  }
-
-  if (curve)
-    delete curve;
+  sample_goal (goal, 20);
 }
 
 
@@ -310,36 +297,57 @@ void ROSReedsSheppPathPlanner::update_centroid_goal(const geometry_msgs::PointCo
   double radius = centroid_goal->z;
   double angle_rad = M_PI_2;
 
-  CentroidRadiusGoalRegion goal (src, center, radius, angle_rad);
-  SamplingPlanner planner(&m_rs_generator, m_map);
-
   cout << "[RS_CG] Odom " << m_odom_world.x << " " << m_odom_world.y << " " << m_odom_world.theta << endl;
   cout << "[RS_CG] Goal " << center.x << " " << center.y << " " << radius << endl;
 
   ROS_INFO("calc sampling path from %f:%f to centroid at %f:%f with radius %f",
            m_odom_world.x, m_odom_world.y, center.x, center.y, radius);
 
-  Pose2d odom_map = pos2map(m_odom_world, *m_map);
-  int8_t startpos_val = m_map->getValue (odom_map.x, odom_map.y);
-  for (int dx = -3; dx < 3; ++dx) {
-    for (int dy = -3; dy < 3; ++dy) {
-      m_map->setValue (odom_map.x + dx, odom_map.y + dx, m_threshold_min);
-    }
-  }
+  CentroidRadiusGoalRegion goal (src, center, radius, angle_rad);
 
-  Curve *curve = planner.createPath (m_odom_world, &goal, 10);
-  m_map->setValue(odom_map.x,odom_map.y,startpos_val);
+  sample_goal (goal, 10);
+}
 
-  if (curve && curve->is_valid()) {
-    ROS_INFO ("Publish curve with cost %f", curve->weight());
-    publishCurve (curve);
-  } else {
-    ROS_INFO ("No path found.");
-    send_empty_path ();
-  }
 
-  if (curve)
-    delete curve;
+void ROSReedsSheppPathPlanner::update_pose_list_goal(const utils::PoseListConstPtr &pose_list)
+{
+  ROS_INFO("update pose_list goal");
+
+  const int pose_count = pose_list->pose.size ();
+  ROS_INFO("calc sampling path from %f:%f to pose list containing %d entries.",
+           m_odom_world.x, m_odom_world.y, pose_count);
+
+  PoseListGoalRegion goal (pose_list);
+
+  sample_goal (goal, pose_count);
+}
+
+
+void ROSReedsSheppPathPlanner::sample_goal (GoalRegion &goal, int num_samples)
+{
+	  SamplingPlanner planner(&m_rs_generator, m_map);
+
+	  Pose2d odom_map = pos2map(m_odom_world, *m_map);
+	  int8_t startpos_val = m_map->getValue (odom_map.x, odom_map.y);
+	  for (int dx = -3; dx < 3; ++dx) {
+	    for (int dy = -3; dy < 3; ++dy) {
+	      m_map->setValue (odom_map.x + dx, odom_map.y + dx, m_threshold_min);
+	    }
+	  }
+
+	  Curve *curve = planner.createPath (m_odom_world, &goal, num_samples);
+	  m_map->setValue(odom_map.x,odom_map.y,startpos_val);
+
+	  if (curve && curve->is_valid()) {
+	    ROS_INFO ("Publish curve with cost %f", curve->weight());
+	    publishCurve (curve);
+	  } else {
+	    ROS_INFO ("No path found.");
+	    send_empty_path ();
+	  }
+
+	  if (curve)
+	    delete curve;
 }
 
 
@@ -362,7 +370,6 @@ void ROSReedsSheppPathPlanner::publishCurve (Curve * curve)
   nav_msgs::Path path;
 
   path.header.frame_id = m_publish_frame;
-  int id = 2;
 
   curve->reset_iteration();
 
@@ -372,20 +379,9 @@ void ROSReedsSheppPathPlanner::publishCurve (Curve * curve)
     m_map->cell2point(next_map.x,next_map.y,pose.pose.position.x,
                                           pose.pose.position.y);
 
-
-
-
     pose.pose.orientation = tf::createQuaternionMsgFromYaw(next_map.theta);
 
     path.poses.push_back(pose);
-
-  //  if (!m_silent_mode){
-      // marker
-//      send_arrow_marker(id, next_world,
-       //                 0.05, 0.3, 0.3,
- //                       0.0, 0.0, 1.0, 0.7f);
-   //   id++;
-    //}
   }
 
   m_last_weight = curve->weight();
