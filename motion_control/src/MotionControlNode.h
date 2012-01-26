@@ -15,6 +15,7 @@
 class MotionController;
 class CalibDriver;
 class RsPathDriver;
+class PatternDriver;
 class FixedDriver;
 class SimpleGoalDriver;
 
@@ -54,7 +55,7 @@ private:
   MotionController *active_ctrl_;
   CalibDriver *calib_driver_;
   SimpleGoalDriver *simple_goal_driver_;
-  FixedDriver* fixed_driver_;
+  PatternDriver* fixed_driver_;
 };
 
 #endif // MOTIONCONTROLNODE_H

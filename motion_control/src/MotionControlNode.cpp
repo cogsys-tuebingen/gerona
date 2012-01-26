@@ -4,6 +4,7 @@
 #include "FixedDriver.h"
 #include "MotionController.h"
 #include "MotionControlNode.h"
+#include "PatternDriver.h"
 #include "RsPathDriver.h"
 
 MotionControlNode::MotionControlNode(ros::NodeHandle& node, const std::string& name)
@@ -20,7 +21,7 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& node, const std::string& n
   calib_driver_ = new CalibDriver (cmd_ramaxx_pub_, node);
   simple_goal_driver_ = new SimpleGoalDriver (cmd_ramaxx_pub_, node);
   rspath_driver_ = new RsPathDriver(cmd_ramaxx_pub_, node);
-  fixed_driver_=new FixedDriver(cmd_ramaxx_pub_, node);
+  fixed_driver_=new PatternDriver(cmd_ramaxx_pub_, node);
 
   action_server_.start();
 

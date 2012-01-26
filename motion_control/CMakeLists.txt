@@ -80,6 +80,7 @@ src/CalibDriver.cpp
 src/DualPidCtrl.cpp
 src/DualAxisDriver.cpp
 src/FixedDriver.cpp
+src/PatternDriver.cpp
 src/MotionControlNode.cpp
 src/MotionController.cpp
 src/PathDriver.cpp
