@@ -18,7 +18,7 @@ LaserPointGroup::LaserPointGroup ()
 
 void LaserPointGroup::AddPoint(double dist, double rad)
 {
-    if (mNum>=mPoints.size()) {
+    if (mNum>=(int)mPoints.size()) {
         mPoints.resize(mNum*2);
     }
     mPoints[mNum].r = dist;
@@ -68,7 +68,7 @@ void BoundaryFinder::GroupScanPoints(const Laser2dScan &laserScan,
 
     // find the most distant point first
     int maxIdx = -1;
-    for (int i = 0; i<laserScan.ranges_.size();++i) {
+    for (unsigned int i = 0; i<laserScan.ranges_.size();++i) {
         if (laserScan.ranges_[i]>maxDist) {
             maxDist = laserScan.ranges_[i];
             maxIdx = i;
