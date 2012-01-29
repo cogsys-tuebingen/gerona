@@ -21,7 +21,8 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& node, const std::string& n
   calib_driver_ = new CalibDriver (cmd_ramaxx_pub_, node);
   simple_goal_driver_ = new SimpleGoalDriver (cmd_ramaxx_pub_, node);
   rspath_driver_ = new RsPathDriver(cmd_ramaxx_pub_, node);
-  fixed_driver_=new PatternDriver(cmd_ramaxx_pub_, node);
+  fixed_driver_ =new FixedDriver(cmd_ramaxx_pub_, node);
+  pattern_driver_=new PatternDriver(cmd_ramaxx_pub_, node);
 
   action_server_.start();
 
@@ -46,6 +47,10 @@ void MotionControlNode::goalCallback()
     active_ctrl_->stop();
   }
   switch (goalptr->mode) {
+    case motion_control::MotionGoal::MOTION_DRIVE_PATTERN:
+      active_ctrl_=pattern_driver_;
+      active_ctrl_->setGoal(*goalptr);
+      break;
     case motion_control::MotionGoal::MOTION_FIXED_PARAMS:
       active_ctrl_=fixed_driver_;
       active_ctrl_->setGoal(*goalptr);

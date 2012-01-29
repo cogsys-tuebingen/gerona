@@ -140,7 +140,7 @@ void PathFollowing::update_path(const nav_msgs::PathConstPtr &path)
 {
   m_path = *path;
   m_has_path = true;
-  ROS_INFO("pathfollower: path received with %d poses",m_path.poses.size());
+  ROS_INFO("pathfollower: path received with %u poses",m_path.poses.size());
 
   m_poses.clear();
   for(int i = 0; i < (int) path->poses.size(); ++i){

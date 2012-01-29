@@ -31,7 +31,7 @@ FollowTestNode::~FollowTestNode()
 void FollowTestNode::pathReceived(const nav_msgs::PathConstPtr &path)
 {
   if (state_==STATE_S_WAIT_PATH) {
-    ROS_INFO("pathfollower: path received with %d poses",path->poses.size());
+    ROS_INFO("pathfollower: path received with %zu poses",path->poses.size());
     if (path->poses.size()>0) {
       motion_control::MotionGoal goal;
       goal.mode=motion_control::MotionGoal::MOTION_FOLLOW_PATH;
