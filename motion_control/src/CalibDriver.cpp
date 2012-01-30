@@ -112,7 +112,7 @@ void CalibDriver::setGoal(const motion_control::MotionGoal &goal)
   theta_target_=goal.theta;
   ROS_INFO("calibration start: beta=%f speed=%f theta=%f v=%f",beta_target_*180.0/M_PI,speed_,theta_target_*180.0/M_PI,
            speed_);
-
+  laser_scan_.ranges.clear();
   start();
 }
 
@@ -138,8 +138,8 @@ int CalibDriver::doStartMove(MotionFeedback& fb, MotionResult& result)
     ROS_INFO("collsion in calib start move");
     result.status=MotionResult::MOTION_STATUS_COLLISION;
     cmd_v_=0.0;
-    return MotionResult::MOTION_STATUS_COLLISION;
     state_=CALIB_STATE_STOP;
+    return MotionResult::MOTION_STATUS_COLLISION;
   } else {
 
     Vector3d current_pose;

@@ -72,7 +72,7 @@ void RsPathDriver::setGoal(const motion_control::MotionGoal &goal)
     state_=MotionResult::MOTION_STATUS_MOVING;
   }
 
-
+  laser_scan_.ranges.clear();
   start();
 }
 

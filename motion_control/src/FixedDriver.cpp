@@ -39,7 +39,7 @@ void FixedDriver::setGoal(const motion_control::MotionGoal &goal)
   driven_dist_=0.0;
   state_=MotionResult::MOTION_STATUS_MOVING;
   move_timer_.restart();
-
+  laser_scan_.ranges.clear();
 }
 
 
