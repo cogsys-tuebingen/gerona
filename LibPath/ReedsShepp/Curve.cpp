@@ -77,7 +77,7 @@ void Curve::test_sequence(std::vector<CurveSegment*> &sequence) {
 
   if(length < m_min_length) {
     m_min_combo.resize(sequence.size());
-    for (int i=0;i<sequence.size();++i) {
+    for (unsigned i=0;i<sequence.size();++i) {
       if (typeid(*sequence[i])==typeid(CircleSegment)) {
         m_min_combo[i]=new CircleSegment(*((CircleSegment *)sequence[i]));
       } else {
@@ -209,10 +209,17 @@ void Curve::init_circle_pairs(Pose2d &next_to, circle_pair &target) {
   target.center_right = Point2d(next_to.x - dir.x, next_to.y - dir.y);
 }
 
+
 bool Curve::is_valid()
 {
-  return m_min_length < NOT_FREE;
+  if (m_min_length<0.001) {
+    std::cout << "WARNING:curve with cost 0"<<std::endl;
+    return false;
+  }  else {
+    return m_min_length < NOT_FREE;
+  }
 }
+
 
 double Curve::weight()
 {

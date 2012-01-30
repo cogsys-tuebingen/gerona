@@ -114,7 +114,7 @@ private:
   GridMap2d *m_map;
 
   bool m_iterating;
-  int m_output_number;
+  unsigned m_output_number;
 };
 
 }

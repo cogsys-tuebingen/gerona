@@ -166,7 +166,7 @@ http://stackoverflow.com/questions/1217585/parallelogram-contains-point
           (r*pc<=(nom-offc))) {
           cout << "i="<<i << " point x="<<r*co << " y="<<r*si << " in parallelogram"<< endl;
           coll_points++;
-          if (coll_points>3) {
+          if (coll_points>1) {
             return true;
           }
       }
