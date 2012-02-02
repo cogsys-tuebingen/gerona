@@ -86,8 +86,8 @@ void ICtrl::Execute(double deltaTSec, double betaSet, double beta, double yawSet
     //eInt << mBetaInt,mPsiRateInt;
     double yawDiff = Misc::normalizeAngle(yawSet - yawIs);
     yaw_int_ +=KIyaw*deltaTSec*(yawDiff);
-    cout << "betaint="<<beta_int_ << " yawis"<<yawIs*180.0/M_PI<< " servomid="<<servos[0].mid<< "yawset="<<yawSet*180.0/M_PI
-         << "deg betadiff="<<betaDiff*180.0/M_PI <<"deg"<< endl;
+//    cout << "betaint="<<beta_int_ << " yawis"<<yawIs*180.0/M_PI<< " servomid="<<servos[0].mid<< "yawset="<<yawSet*180.0/M_PI
+//         << "deg betadiff="<<betaDiff*180.0/M_PI <<"deg"<< endl;
 
     //eInt << beta_int_,yawDiff;
     eInt << beta_int_,(yaw_int_+KPyaw*yawDiff);

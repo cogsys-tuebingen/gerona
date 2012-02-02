@@ -16,6 +16,7 @@ rosbuild_add_library (LibOdoCalib
     DriveStraightAction.cpp
     DriveStraightMission.cpp
     DualAxisCalib.cpp
+    HallEstimator.cpp
 #    OdoDualPidCtrl.cpp
     MoveAction.cpp
     MoveDistAction.cpp
