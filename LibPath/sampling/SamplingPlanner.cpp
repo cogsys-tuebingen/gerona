@@ -38,7 +38,7 @@ Curve* SamplingPlanner::createPath(const Pose2d& start, GoalRegion *region, int 
   double min_cost = 999999;
   while (region->getNextGoal(goal, gain)) {
     Pose2d goal_map = pos2map(goal, *map_);
-    std::cout << "goal map pose "<<goal_map.x << " "<<goal_map.y << " "<<goal_map.theta*180.0/M_PI<<"deg" << std::endl;
+    //std::cout << "goal map pose "<<goal_map.x << " "<<goal_map.y << " "<<goal_map.theta*180.0/M_PI<<"deg" << std::endl;
     if (!map_->isInMap(goal)) {
       std::cout << "invalid goal pose "<<goal.x << " "<<goal.y << std::endl;
       continue;

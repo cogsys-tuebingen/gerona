@@ -40,7 +40,7 @@ float LineSegment::weight(bool ignore_obstacles)
   int y1 = m_end.y;
 
   if(!m_map->isInMap(x0, y0)){
-    std::cout << "line: point (" << x0 << ", " << y0 << ") is outside the map" << std::endl;
+    //std::cout << "line: point (" << x0 << ", " << y0 << ") is outside the map" << std::endl;
     return NOT_FREE;
   }
 

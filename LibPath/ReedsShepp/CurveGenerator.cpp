@@ -153,7 +153,7 @@ bool CurveGenerator::parse(std::string sequence, std::ostream& out)
 }
 
 Curve * CurveGenerator::find_path(const Pose2d &start, const Pose2d &goal, GridMap2d *map, bool ignore_obstacles) {
-  std::cout << "computing curve from" << start.x << " "<< start.y<< " "<< start.theta<< " to "<< goal.x<< " "<< goal.y<< " "<< goal.theta<< " "<< std::endl;
+  //std::cout << "computing curve from" << start.x << " "<< start.y<< " "<< start.theta<< " to "<< goal.x<< " "<< goal.y<< " "<< goal.theta<< " "<< std::endl;
 
   Curve * c = new Curve;
 

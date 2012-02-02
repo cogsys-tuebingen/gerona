@@ -228,8 +228,8 @@ double Curve::weight()
     weight+=m_min_combo[i]->weight(m_ignore_obstacles);
   }
   if (fabs(weight-m_min_length)>1) {
-    std::cout << "weight:"<<weight<< " minlength"<<m_min_length<< std::endl;
-    std::cout.flush();
+    //std::cout << "weight:"<<weight<< " minlength"<<m_min_length<< std::endl;
+    //std::cout.flush();
   }
   return weight;
 }

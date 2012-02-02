@@ -103,7 +103,7 @@ float CircleSegment::weight(bool ignore_obstacles)
         break;
       }
     } else {
-      std::cout << "circle: point (" << (int) point_on_map.x << ", " << (int) point_on_map.y << ") is outside the map" << std::endl;
+      //std::cout << "circle: point (" << (int) point_on_map.x << ", " << (int) point_on_map.y << ") is outside the map" << std::endl;
       is_free = false;
       break;
     }
