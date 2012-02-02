@@ -233,8 +233,8 @@ int CalibDriver::doCtrlDrive(MotionFeedback& fb, MotionResult& result)
 
       dual_axis_calib_.Execute(ctrl_time_ms/1000.0,beta_target_,beta_is,theta_target_,current_pose.z(),
                              cmd_servof_,cmd_servor_);
-      ROS_INFO("ctrl: betaset=%fdeg betais=%fdeg thetaset=%f thetais=%f servof=%f servor=%f",
-               beta_target_*180.0/M_PI,beta_is*180.0/M_PI,theta_target_,current_pose.z(),cmd_servof_,cmd_servor_);
+      //ROS_INFO("ctrl: betaset=%fdeg betais=%fdeg thetaset=%f thetais=%f servof=%f servor=%f",
+      //         beta_target_*180.0/M_PI,beta_is*180.0/M_PI,theta_target_,current_pose.z(),cmd_servof_,cmd_servor_);
       ctrl_timer_.restart();
     }
     result.status=MotionResult::MOTION_STATUS_MOVING;
