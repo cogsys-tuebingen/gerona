@@ -26,7 +26,15 @@ class Curve {
   friend class CurveGenerator;
   friend class CurveRenderer;
 
+private:
+  /**
+   * Private constructor, only the Generator can instatiate this class
+   */
+  Curve();
+
 public:
+  Curve (const Curve& c);
+
   virtual ~Curve();
 
   /**
@@ -59,12 +67,13 @@ public:
   virtual Pose2d next();
 
   Pose2d goal() {return m_goal;}
-private:
-  /**
-   * Private constructor, only the Generator can instatiate this class
-   */
-  Curve();
 
+  void set_trace(int value) {
+    m_trace = value;
+  }
+
+
+private:
   void test_sequence(std::vector< CurveSegment* > &sequence);
 
   double handle_sequence(CurveSegment *segment1,
@@ -115,6 +124,8 @@ private:
 
   bool m_iterating;
   unsigned m_output_number;
+
+  int m_trace;
 };
 
 }

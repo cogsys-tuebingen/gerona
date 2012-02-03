@@ -52,7 +52,10 @@ float LineSegment::weight(bool ignore_obstacles)
   for(;;){
     if(m_map->isInMap(x0, y0)){
       bool free = m_map->isFree(x0, y0);
-      if(!free){
+      if(m_trace != -1){
+        m_map->setValue(x0, y0, m_trace);
+      }
+      if(!free && !ignore_obstacles){
         is_free = false;
         break;
       }

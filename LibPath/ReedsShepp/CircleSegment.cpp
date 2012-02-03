@@ -15,29 +15,7 @@ CircleSegment::CircleSegment(ORIENTATION orientation, DIRECTION direction)
   : CurveSegment(direction), m_orientation(orientation), m_angle_start(0), m_tangent_angle(0), m_iterating(false), m_output(0)
 {
 }
-/*
-CircleSegment::CircleSegment(const CircleSegment *src)
-{
 
-  m_orientation=src->m_orientation;
-  m_mode=src->m_mode;
-
-  m_center=src->m_center;
-  m_radius=;
-
-  m_angle_start;
-  m_tangent_angle;
-
-  m_arc_span;
-  m_stepsize;
-
-  m_iterating;
-  m_output;
-  m_steps;
-  m_jump_over;
-
-
-*/
 CircleSegment::ORIENTATION CircleSegment::orientation()
 {
   return m_orientation;
@@ -77,7 +55,7 @@ void CircleSegment::set_end_angle(double angle)
   if(m_orientation == CircleSegment::LEFT)
     m_tangent_angle += DTOR(180);
 
-  compute_arc_span(false);
+  computeArcSpan(false);
 }
 
 void CircleSegment::set_mode(MODE mode)
@@ -87,27 +65,7 @@ void CircleSegment::set_mode(MODE mode)
 
 float CircleSegment::weight(bool ignore_obstacles)
 {
-  //ignore_obstacles = true;
-  bool is_free = true;
-
-  Point2d ray(m_radius, 0);
-  for (int step = 0; step <= m_steps; step++) {
-    float angle = m_angle_start + m_stepsize * step;
-
-    Point2d point_on_map = m_center + ray.rotate(angle);
-
-    if(m_map->isInMap((int)point_on_map.x, (int)point_on_map.y)){
-
-      if(!m_map->isFree((int) point_on_map.x, (int) point_on_map.y)){
-        is_free = false;
-        break;
-      }
-    } else {
-      //std::cout << "circle: point (" << (int) point_on_map.x << ", " << (int) point_on_map.y << ") is outside the map" << std::endl;
-      is_free = false;
-      break;
-    }
-  }
+  bool is_free = checkCircle(m_center.x, m_center.y, m_radius, ignore_obstacles);
 
   if(ignore_obstacles || is_free){
     float cost = (m_direction == CurveSegment::BACKWARD) ? m_cost_backwards : m_cost_forwards;
@@ -115,6 +73,114 @@ float CircleSegment::weight(bool ignore_obstacles)
   } else {
     return NOT_FREE;
   }
+}
+
+
+// modified version of midpoint circle algorithm
+//   (http://en.wikipedia.org/wiki/Midpoint_circle_algorithm)
+// 'cx' and 'cy' denote the offset of the circle centre from the origin.
+bool CircleSegment::checkCircle(int cx, int cy, int radius, bool ignore_obstacles)
+{
+  bool is_free = true;
+  int error = -radius;
+  int x = radius;
+  int y = 0;
+
+  // The following while loop may altered to 'while (x > y)' for a
+  // performance benefit, as long as a call to 'test4points' follows
+  // the body of the loop. This allows for the elimination of the
+  // '(x != y') test in 'test8points', providing a further benefit.
+  //
+  // For the sake of clarity, this is not shown here.
+  while (x >= y)
+  {
+    is_free &= test8Points(cx, cy, x, y, ignore_obstacles);
+
+    error += y;
+    ++y;
+    error += y;
+
+    // The following test may be implemented in assembly language in
+    // most machines by testing the carry flag after adding 'y' to
+    // the value of 'error' in the previous step, since 'error'
+    // nominally has a negative value.
+    if (error >= 0)
+    {
+      error -= x;
+      --x;
+      error -= x;
+    }
+  }
+
+  return is_free;
+}
+
+bool CircleSegment::test8Points(int cx, int cy, int x, int y, bool ignore_obstacles)
+{
+  bool is_free = test4Points(cx, cy, x, y, ignore_obstacles);
+  if (x != y) {
+    is_free &= test4Points(cx, cy, y, x, ignore_obstacles);
+  }
+  return is_free;
+}
+
+// The '(x != 0 && y != 0)' test in the last line of this function
+// may be omitted for a performance benefit if the radius of the
+// circle is known to be non-zero.
+bool CircleSegment::test4Points(int cx, int cy, int x, int y, bool ignore_obstacles)
+{
+  bool is_free = true;
+  is_free &= testPixel(cx, cy, cx + x, cy + y, ignore_obstacles);
+  if (x != 0) is_free &= testPixel(cx, cy, cx - x, cy + y, ignore_obstacles);
+  if (y != 0) is_free &= testPixel(cx, cy, cx + x, cy - y, ignore_obstacles);
+  if (x != 0 && y != 0) is_free &= testPixel(cx, cy, cx - x, cy - y, ignore_obstacles);
+
+  return is_free;
+}
+
+bool CircleSegment::testPixel(int cx, int cy, int x, int y, bool ignore_obstacles){
+  float angle = atan2(y-cy, x-cx);
+  if(m_map->isInMap(x, y)){
+    bool on_segment = false;
+
+    float start = NORMALIZE(m_angle_start);
+    float end = NORMALIZE(start + m_arc_span);
+
+    bool increasing = ((m_orientation == LEFT) ^ (m_direction == BACKWARD)) ^ (m_mode == TOWARDS_POINT);
+    bool decreasing = !increasing;
+
+    if(start > end){
+      if(decreasing){
+        // start > end  &&  angle decreasing  -> no possible overflow
+        on_segment = angle <= start && angle >= end;
+      } else {
+        // start > end  &&  angle increasing  ->  possible overflow
+        on_segment = angle >= start || angle <= end;
+      }
+    } else {
+      // start <= end
+      if(increasing){
+        // start <= end  &&  angle increasing  -> no possible overflow
+        on_segment = angle >= start && angle <= end;
+      } else {
+        // start <= end  &&  angle decreasing  -> possible overflow
+        on_segment = angle <= start || angle >= end;
+      }
+    }
+
+
+    if(on_segment) {
+      bool free = m_map->isFree(x, y);
+      if(m_trace != -1){
+        m_map->setValue(x, y, free ? m_trace : std::min(255, m_trace + 50));
+      }
+      if(ignore_obstacles) return true;
+      else
+        return free;
+    }
+  }
+
+  return true;
 }
 
 
@@ -141,7 +207,7 @@ bool CircleSegment::get_common_tangent(CircleSegment &circle, LineSegment &out_t
 
     Point2d offset = direction.ortho() / distance * m_radius;
 
-    if (m_orientation == RIGHT ^ line_is_reverse)
+    if ((m_orientation == RIGHT) ^ line_is_reverse)
       offset = offset * -1;
 
     p = start + offset;
@@ -164,15 +230,15 @@ bool CircleSegment::get_common_tangent(CircleSegment &circle, LineSegment &out_t
     q = goal - offset;
   }
 
-  compute_arc_span(false);
-  circle.compute_arc_span(false);
+  computeArcSpan(false);
+  circle.computeArcSpan(false);
 
   out_tangent.set_points(tangent_points.first, tangent_points.second);
 
   return true;
 }
 
-void CircleSegment::compute_arc_span(bool is_center_circle)
+void CircleSegment::computeArcSpan(bool is_center_circle)
 {
   float arc_angle = NORMALIZE_0_2PI(m_tangent_angle - m_angle_start );
 
@@ -209,12 +275,12 @@ bool CircleSegment::get_tangential_circle(CircleSegment &circle2, CircleSegment 
   float weight_positive = NOT_FREE;
   float weight_negative = NOT_FREE;
 
-  if(get_tangential_circle_helper(circle2, circle3, true)) {
+  if(getTangentiaCircleHelper(circle2, circle3, true)) {
     weight_positive = weight(ignore_obstacles)
         + circle2.weight(ignore_obstacles)
         + circle3.weight(ignore_obstacles);
   }
-  if(get_tangential_circle_helper(circle2, circle3, false)) {
+  if(getTangentiaCircleHelper(circle2, circle3, false)) {
     weight_negative = weight(ignore_obstacles)
         + circle2.weight(ignore_obstacles)
         + circle3.weight(ignore_obstacles);
@@ -225,9 +291,9 @@ bool CircleSegment::get_tangential_circle(CircleSegment &circle2, CircleSegment 
 
   } else {
     if(weight_positive < weight_negative){
-      get_tangential_circle_helper(circle2, circle3, true);
+      getTangentiaCircleHelper(circle2, circle3, true);
     } else {
-      get_tangential_circle_helper(circle2, circle3, false);
+      getTangentiaCircleHelper(circle2, circle3, false);
     }
     return true;
   }
@@ -246,13 +312,13 @@ bool CircleSegment::get_tangential_double_circle(CircleSegment &circle2, CircleS
   float weight_positive = NOT_FREE;
   float weight_negative = NOT_FREE;
 
-  if(get_tangential_double_circle_helper(circle2, circle3, circle4, true)) {
+  if(getTangentialDoubleCircleHelper(circle2, circle3, circle4, true)) {
     weight_positive = weight(ignore_obstacles)
         + circle2.weight(ignore_obstacles)
         + circle3.weight(ignore_obstacles)
         + circle4.weight(ignore_obstacles);
   }
-  if(get_tangential_double_circle_helper(circle2, circle3, circle4, false)) {
+  if(getTangentialDoubleCircleHelper(circle2, circle3, circle4, false)) {
     weight_negative = weight(ignore_obstacles)
         + circle2.weight(ignore_obstacles)
         + circle3.weight(ignore_obstacles)
@@ -264,15 +330,15 @@ bool CircleSegment::get_tangential_double_circle(CircleSegment &circle2, CircleS
 
   } else {
     if(weight_positive < weight_negative){
-      get_tangential_double_circle_helper(circle2, circle3, circle4, true);
+      getTangentialDoubleCircleHelper(circle2, circle3, circle4, true);
     } else {
-      get_tangential_double_circle_helper(circle2, circle3, circle4, false);
+      getTangentialDoubleCircleHelper(circle2, circle3, circle4, false);
     }
     return true;
   }
 }
 
-bool CircleSegment::get_tangential_circle_helper(CircleSegment &circle2, CircleSegment &circle3,
+bool CircleSegment::getTangentiaCircleHelper(CircleSegment &circle2, CircleSegment &circle3,
                                                  bool choose_positive_solution)
 {
   Point2d &c1 = m_center;
@@ -302,14 +368,14 @@ bool CircleSegment::get_tangential_circle_helper(CircleSegment &circle2, CircleS
   }
 
   m_tangent_angle = (m_center - circle2.m_center).angle() - DTOR(180);
-  compute_arc_span(false);
+  computeArcSpan(false);
 
   circle3.m_tangent_angle = (circle3.m_center - circle2.m_center).angle() - DTOR(180);
-  circle3.compute_arc_span(false);
+  circle3.computeArcSpan(false);
 
   circle2.m_angle_start = (circle2.m_center - m_center).angle() - DTOR(180);
   circle2.m_tangent_angle = (circle2.m_center - circle3.m_center).angle() - DTOR(180);
-  circle2.compute_arc_span(true);
+  circle2.computeArcSpan(true);
   circle2.m_mode = AWAY_FROM_POINT;
 
   return true;
@@ -317,7 +383,7 @@ bool CircleSegment::get_tangential_circle_helper(CircleSegment &circle2, CircleS
 
 
 
-bool CircleSegment::get_tangential_double_circle_helper(CircleSegment &circle2, CircleSegment &circle3, CircleSegment &circle4,
+bool CircleSegment::getTangentialDoubleCircleHelper(CircleSegment &circle2, CircleSegment &circle3, CircleSegment &circle4,
                                                         bool choose_positive_solution)
 {
   Point2d direction = circle4.center_of_orientation() - this->center_of_orientation();
@@ -325,7 +391,7 @@ bool CircleSegment::get_tangential_double_circle_helper(CircleSegment &circle2, 
   double r = m_radius;
   double two_r = 2 * r;
   double theta = direction.angle();
-  double beta = acos((0.5 * d - r) / two_r);
+  //double beta = acos((0.5 * d - r) / two_r);
   double q = (d-two_r) / 2.0;
   double delta = acos(q/two_r);
   if(!choose_positive_solution)

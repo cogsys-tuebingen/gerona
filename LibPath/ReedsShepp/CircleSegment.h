@@ -37,6 +37,10 @@ public:
    */
   CircleSegment(ORIENTATION orientation, DIRECTION direction);
 
+  /**
+   * Copy constructor
+   */
+  // not necessary, use default
 
   /**
    * Computes a circle, that touches this circle and circle3 both tangentially.
@@ -70,7 +74,7 @@ public:
    * @param circle the second circle for the tangent
    * @param line_is_reverse
    */
-  bool get_common_tangent(CircleSegment &circle, LineSegment &out_tangent, bool line_is_reverse);
+  bool get_common_tangent(CircleSegment &checkCircle, LineSegment &out_tangent, bool line_is_reverse);
 
   /**
    * Sets the center for this circle
@@ -143,10 +147,16 @@ public:
   virtual float weight(bool ignore_obstacles);
 
 private:
-  bool get_tangential_circle_helper(CircleSegment &circle2, CircleSegment &circle3, bool choose_positive_solution);
-  bool get_tangential_double_circle_helper(CircleSegment &circle2, CircleSegment &circle3, CircleSegment &circle4, bool choose_positive_solution);
+  bool getTangentiaCircleHelper(CircleSegment &circle2, CircleSegment &circle3, bool choose_positive_solution);
+  bool getTangentialDoubleCircleHelper(CircleSegment &circle2, CircleSegment &circle3, CircleSegment &circle4, bool choose_positive_solution);
 
-  void compute_arc_span(bool is_center_circle);
+  void computeArcSpan(bool is_center_circle);
+
+  // midpoint circle
+  bool checkCircle(int cx, int cy, int radius, bool ignore_obstacles);
+  bool test8Points(int cx, int cy, int x, int y, bool ignore_obstacles);
+  bool test4Points(int cx, int cy, int x, int y, bool ignore_obstacles);
+  bool testPixel(int cx, int cy, int x, int y, bool ignore_obstacles);
 
   ORIENTATION m_orientation;
   MODE m_mode;

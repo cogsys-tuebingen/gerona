@@ -9,16 +9,16 @@
 #define CURVERENDERER_H
 
 #include "Curve.h"
+#include "../common/Point2d.h"
 
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 
+namespace lib_path {
 
 inline CvPoint p2cv(Point2d p, int img_height) {
   return cvPoint(p.x, img_height-p.y);
 }
-
-namespace ReedsShepp {
 
 class CurveRenderer
 {

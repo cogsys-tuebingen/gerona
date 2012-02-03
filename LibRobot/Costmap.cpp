@@ -98,7 +98,8 @@ void Costmap::grow(const std::vector<int8_t>& map, unsigned width, unsigned heig
   }
 
   // split the map into two separate maps (blocked & free)
-  u_char *blocked_data, *free_data;
+  u_char *blocked_data = NULL;
+  u_char *free_data = NULL;
   split(map, blocked_data, free_data, threshold);
 
   CvMat *blocked_map_scaled, *free_map_scaled;

@@ -121,6 +121,11 @@ public:
         py = res_*(double)(y+0.5) + origin_.y;
     }
 
+    virtual void cell2pointSubPixel( const double x, const double y, double& px, double& py ) const {
+        px = res_*x + origin_.x;
+        py = res_*y + origin_.y;
+    }
+
     bool isInMap( const int x, const int y ) const
         { return !(x < 0 || y < 0 || x > (int)width_ || y > (int)height_); }
 

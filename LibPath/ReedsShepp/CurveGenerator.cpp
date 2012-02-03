@@ -16,7 +16,8 @@ using namespace lib_path;
 
 CurveGenerator::CurveGenerator()
   : m_count(0), m_circle_radius(2.0), m_max_waypoint_distance(1.0),
-    m_cost_forwards(1.0), m_cost_backwards(1.0), m_cost_curve(1.0), m_cost_straight(1.0)
+    m_cost_forwards(1.0), m_cost_backwards(1.0), m_cost_curve(1.0), m_cost_straight(1.0),
+    m_trace(-1)
 {
 }
 
@@ -172,6 +173,8 @@ Curve * CurveGenerator::find_path(const Pose2d &start, const Pose2d &goal, GridM
   c->m_cost_forwards = m_cost_forwards;
   c->m_cost_curve = m_cost_curve;
   c->m_cost_straight = m_cost_straight;
+
+  c->m_trace = m_trace;
 
 
 

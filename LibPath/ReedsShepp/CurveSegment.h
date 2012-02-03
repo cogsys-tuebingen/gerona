@@ -59,6 +59,13 @@ public:
   virtual void set_cost_curve(double cost);
   virtual void set_cost_straight(double cost);
 
+  /**
+   * Debugging function:
+   *   set the mapvalue to this value, where a "free check" has happened
+   */
+  virtual void set_trace(int value){
+    m_trace = value;
+  }
 
 
   /**
@@ -101,6 +108,8 @@ protected:
   float m_cost_backwards;
   float m_cost_curve;
   float m_cost_straight;
+
+  int m_trace;
 
 };
 

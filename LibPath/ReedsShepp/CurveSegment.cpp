@@ -13,7 +13,8 @@ using namespace lib_path;
 
 CurveSegment::CurveSegment(DIRECTION direction)
   : m_direction(direction),
-    m_cost_forwards(1.0), m_cost_backwards(1.0), m_cost_curve(1.0), m_cost_straight(1.0)
+    m_cost_forwards(1.0), m_cost_backwards(1.0), m_cost_curve(1.0), m_cost_straight(1.0),
+    m_trace(-1)
 {
 }
 

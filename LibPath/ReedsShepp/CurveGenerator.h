@@ -62,6 +62,10 @@ public:
   void set_cost_curve(double cost_curve);
   void set_cost_straight(double cost_straight);
 
+  void set_trace(int value) {
+    m_trace = value;
+  }
+
 private:
   std::vector< CurveSegment* > m_sequences[64];
   int m_count;
@@ -72,6 +76,8 @@ private:
   double m_cost_backwards;
   double m_cost_curve;
   double m_cost_straight;
+
+  int m_trace;
 };
 
 }

@@ -18,13 +18,48 @@ Curve::Curve()
   : m_init(false), m_ignore_obstacles(false),
     m_circle_radius(10.0), m_max_waypoint_distance(10.0),
     m_cost_forwards(1.0), m_cost_backwards(1.0), m_cost_curve(1.0), m_cost_straight(1.0),
-    m_min_length(NOT_FREE), m_iterating(false), m_output_number(0)
+    m_min_length(NOT_FREE), m_iterating(false), m_output_number(0), m_trace(-1)
 {
   m_min_combo = std::vector<CurveSegment*>();
 }
 
+Curve::Curve(const Curve &c)
+  : m_init(c.m_init), m_ignore_obstacles(c.m_ignore_obstacles),
+    m_circle_radius(c.m_circle_radius), m_max_waypoint_distance(c.m_max_waypoint_distance),
+    m_cost_forwards(c.m_cost_forwards), m_cost_backwards(c.m_cost_backwards),
+    m_cost_curve(c.m_cost_curve), m_cost_straight(c.m_cost_straight),
+    m_min_length(c.m_min_length),
+    m_circle_start(c.m_circle_start), m_circle_goal(c.m_circle_goal),
+    m_start(c.m_start), m_goal(c.m_goal),
+    m_map(c.m_map),
+    m_iterating(c.m_iterating), m_output_number(c.m_output_number),
+    m_trace(c.m_trace)
+{
+  m_min_combo = std::vector<CurveSegment*>();
+  m_min_combo.reserve(c.m_min_combo.size());
+  std::vector<CurveSegment*>::const_iterator it = c.m_min_combo.begin();
+
+  for(; it != c.m_min_combo.end(); ++it){
+    CurveSegment * current = *it;
+    CircleSegment * circle = dynamic_cast<CircleSegment*>(current);
+    LineSegment * line = dynamic_cast<LineSegment*>(current);
+
+    if(circle != NULL){
+      m_min_combo.push_back(new CircleSegment(*circle));
+    } else if(line != NULL) {
+      m_min_combo.push_back(new LineSegment(*line));
+    } else {
+      std::cerr << "unknown curve segment" << std::endl;
+    }
+  }
+}
+
 Curve::~Curve() {
-  // nothing to do
+  std::vector<CurveSegment*>::const_iterator it = m_min_combo.begin();
+
+  for(; it != m_min_combo.end(); ++it){
+    delete *it;
+  }
 }
 
 void Curve::test_sequence(std::vector<CurveSegment*> &sequence) {
@@ -55,6 +90,8 @@ void Curve::test_sequence(std::vector<CurveSegment*> &sequence) {
     (*it)->set_cost_forwards(m_cost_forwards);
     (*it)->set_cost_curve(m_cost_curve);
     (*it)->set_cost_straight(m_cost_straight);
+
+    (*it)->set_trace(m_trace);
 
     if(typeid(**it) == typeid(CircleSegment)){
       CircleSegment *c = dynamic_cast<CircleSegment*> (*it);
@@ -189,7 +226,11 @@ double Curve::handle_sequence(CircleSegment *circle1, CircleSegment *circle2, Ci
 
 double Curve::handle_sequence(CircleSegment *start, CircleSegment *circle2, CircleSegment *circle3, CircleSegment *goal)
 {
-  start->get_tangential_double_circle(*circle2, *circle3, *goal, m_ignore_obstacles);
+  bool exists = start->get_tangential_double_circle(*circle2, *circle3, *goal, m_ignore_obstacles);
+
+  if(!exists) {
+    return NOT_FREE;
+  }
 
   float w = start->weight(m_ignore_obstacles)
       + circle2->weight(m_ignore_obstacles)

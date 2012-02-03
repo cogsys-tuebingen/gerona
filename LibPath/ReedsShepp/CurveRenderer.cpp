@@ -10,7 +10,7 @@
 #include <sstream>
 #include <typeinfo>
 
-using namespace ReedsShepp;
+using namespace lib_path;
 
 CurveRenderer::CurveRenderer(IplImage *debug_image)
   : m_debug_image(debug_image)
@@ -45,6 +45,8 @@ void CurveRenderer::snapshot_in_new_window(Curve * curve)
 
   cvResize(m_debug_image, output);
 
+  cvStartWindowThread();
+
   cvNamedWindow("debug image");
 
   cvShowImage("debug image", output);
@@ -60,14 +62,15 @@ void CurveRenderer::draw(Curve * curve){
     return;
 
   // draw map
-  for(int y=0; y<curve->m_map->height; y++) {
-    for(int x=0; x<curve->m_map->width; x++) {
+  for(unsigned y=0; y<curve->m_map->getHeight(); y++) {
+    for(unsigned x=0; x<curve->m_map->getWidth(); x++) {
       CvScalar col;
-      int val = curve->m_map->data[y * curve->m_map->width + x];
-      if(val == -1)
-        col = cvScalarAll(127);
-      else
-        col = cvScalarAll(val);
+      if(curve->m_map->isFree(x, y)) {
+        col = cvScalarAll(255);
+      } else {
+        unsigned v = curve->m_map->getValue(x, y);
+        col = cvScalar(255-v, 0, 0, 0);
+      }
       cvSet2D(m_debug_image, m_debug_image->height-1-y, x, col);
     }
   }
@@ -103,14 +106,15 @@ void CurveRenderer::draw(Curve * curve){
     curve->reset_iteration();
     while(curve->has_next()){
       Pose2d n = curve->next();
-      cvLine(m_debug_image, p2cv(last, m_debug_image->height), p2cv(n, m_debug_image->height), cvScalar(100,10,10,0.4f), 1, CV_AA );
+      cvLine(m_debug_image, p2cv(last, m_debug_image->height), p2cv(n, m_debug_image->height),
+             cvScalar(100,100,100,0.1f), 1, CV_AA );
       last = n;
     }
 
     curve->reset_iteration();
     while(curve->has_next()){
       Pose2d n = curve->next();
-      draw_arrow(curve, n, cvScalar(200,100,100,0), 0.4f);
+      draw_arrow(curve, n, cvScalar(200,200,200,0), 0.4f);
     }
 
     draw_arrow(curve, curve->m_goal,cvScalar(50, 50, 200));
@@ -131,9 +135,12 @@ void CurveRenderer::draw_arrow(Curve * curve, Pose2d &pose, CvScalar color, floa
   dir *= scale;
 
   Point2d tip = t + dir.rotate(pose.theta);
-  cvLine(m_debug_image, p2cv(pose, curve->m_map->height), p2cv(t + dir.rotate(pose.theta), curve->m_map->height), color, 2.0f * scale, CV_AA);
-  cvLine(m_debug_image, p2cv(tip, curve->m_map->height), p2cv(t + left.rotate(pose.theta), curve->m_map->height), color, 2.0f * scale, CV_AA);
-  cvLine(m_debug_image, p2cv(tip, curve->m_map->height), p2cv(t + right.rotate(pose.theta), curve->m_map->height), color, 2.0f * scale, CV_AA);
+  cvLine(m_debug_image, p2cv(pose, curve->m_map->getHeight()), p2cv(t + dir.rotate(pose.theta), curve->m_map->getHeight()),
+         color, 2.0f * scale, CV_AA);
+  cvLine(m_debug_image, p2cv(tip, curve->m_map->getHeight()), p2cv(t + left.rotate(pose.theta), curve->m_map->getHeight()),
+         color, 2.0f * scale, CV_AA);
+  cvLine(m_debug_image, p2cv(tip, curve->m_map->getHeight()), p2cv(t + right.rotate(pose.theta), curve->m_map->getHeight()),
+         color, 2.0f * scale, CV_AA);
 }
 
 void CurveRenderer::display_overlay(Curve * curve)
@@ -170,7 +177,13 @@ void CurveRenderer::display_overlay(Curve * curve)
   cvPutText(m_debug_image, ss.str().c_str() , cvPoint(x_offset,y_offset += dy), &font, cvScalar(255,100,100));
 
   ss.clear(); ss.str("");
-  ss << "min weight: " << curve->weight();
+  double w = curve->weight();
+  ss << "min weight: ";
+  if (w < NOT_FREE) {
+    ss << w;
+  } else {
+    ss << "not free (" << w << ")";
+  }
   cvPutText(m_debug_image, ss.str().c_str() , cvPoint(x_offset,y_offset += dy), &font, cvScalar(255,100,100));
 
 }

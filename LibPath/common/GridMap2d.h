@@ -192,6 +192,17 @@ public:
         return isNoInformation( x, y );
     }
 
+    /**
+     * @brief Convert cell coordinates to a point in the map coordinate system. (Subpixel accuracy)
+     * @param x x-coordinate of the cell.
+     * @param y y-coordinate of the cell.
+     * @param px x-coordinate of the point in the map coordinate system.
+     * @param py y-coordinate of the point in the map coordinate system.
+     */
+    virtual void cell2pointSubPixel( const double x, const double y, double& px, double& py ) const {
+      cell2point((unsigned int) x, (unsigned int) y, px, py);
+    }
+
     inline bool pose2cell( const Pose2d& src, unsigned int& x, unsigned int& y ) const
         { return point2cell( src.x, src.y, x, y ); }
 

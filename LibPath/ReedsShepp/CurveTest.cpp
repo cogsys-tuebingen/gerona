@@ -21,6 +21,8 @@
 #include "CurveGenerator.h"
 #include "CurveRenderer.h"
 
+#include "../common/SimpleGridMap2d.h"
+
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 
@@ -40,8 +42,12 @@
  */
 #define fps 30.0
 
+using namespace lib_path;
+
 IplImage *img;
 Pose2d start, goal;
+int trace = -1;
+bool ignore = false;
 
 void mouseHandler(int event, int x, int y, int flags, void* param) {
   start.x = x;
@@ -49,6 +55,8 @@ void mouseHandler(int event, int x, int y, int flags, void* param) {
 }
 
 int main(int argc, char *argv[]) {
+  cvStartWindowThread();
+
   cvNamedWindow("Reeds Shepp Curve Test");
 
   cvSetMouseCallback("Reeds Shepp Curve Test", mouseHandler);
@@ -83,9 +91,9 @@ int main(int argc, char *argv[]) {
                 CV_FILLED, CV_AA, 0);
   }
 
-  ReedsShepp::CurveRenderer renderer(img);
+  lib_path::CurveRenderer renderer(img);
 
-  ReedsShepp::CurveGenerator generator;
+  lib_path::CurveGenerator generator;
 
   //////// CSC
 
@@ -169,41 +177,47 @@ int main(int argc, char *argv[]) {
 
   // TODO: ALLOW SPECIAL QUARTER CIRCLE COMBINATIONS!!!
 
-  MapInfo map_info;
-  map_info.height = orig_map->height;
-  map_info.width = orig_map->width;
-  map_info.origin = Point2d(0, 0);
-  map_info.resolution = 0.02f;
-  map_info.threshold_max = 10;
-  map_info.threshold_min = 0;
+  while (cvGetWindowHandle("Reeds Shepp Curve Test") != NULL) {
+    SimpleGridMap2d map_info(orig_map->width, orig_map->height, 0.02f);
+    map_info.setOrigin(Point2d(0, 0));
+    map_info.setLowerThreshold(20);
+    map_info.setUpperThreshold(50);
 
-  float radius = 1.0f /*meter*/;
-  float max_dist = 0.25f /*meter*/;
+    float radius = 1.0f /*meter*/;
+    float max_dist = 0.25f /*meter*/;
 
-  generator.set_circle_radius(radius);
-  generator.set_max_waypoint_distance(max_dist);
+    generator.set_circle_radius(radius);
+    generator.set_max_waypoint_distance(max_dist);
 
-  generator.set_cost_backwards(2.0);
-  generator.set_cost_curve(1.3);
+    generator.set_cost_backwards(2.0);
+    generator.set_cost_curve(1.3);
 
-  for(int y=0; y<orig_map->height; y++){
-    for(int x=0; x<orig_map->width; x++){
-      map_info.data.push_back(cvGet2D(orig_map, y, x).val[0]);
+    for(int y=0; y<orig_map->height; y++){
+      for(int x=0; x<orig_map->width; x++){
+        map_info.setValue( x, y, cvGet2D(orig_map, y, x).val[0]);
+      }
     }
-  }
 
-  while (true) {
     cvSet(img, cvScalarAll(0));
 
-    ReedsShepp::Curve * c = generator.find_path(start, goal, &map_info);
+    generator.set_trace(trace);
+    lib_path::Curve * curve = generator.find_path(start, goal, &map_info, ignore);
 
-    renderer.draw(c);
-    renderer.display_overlay(c);
+    // Test copy constructor
+    lib_path::Curve c(*curve);
+    delete curve;
 
-    cvShowImage("Reeds Shepp Curve Test", img);
+    renderer.draw(&c);
+    renderer.display_overlay(&c);
 
-    int key;
-    key = cvWaitKey(1000 / fps);
+    if(cvGetWindowHandle("Reeds Shepp Curve Test") != NULL){
+      cvShowImage("Reeds Shepp Curve Test", img);
+    }
+
+    int key = 0;
+    if(cvGetWindowHandle("Reeds Shepp Curve Test") != NULL){
+      key = cvWaitKey(1000 / fps);
+    }
 
     float dt = 0.1;
     switch ((char) key) {
@@ -221,7 +235,17 @@ int main(int argc, char *argv[]) {
       break;
 
     case 'p':
-      renderer.snapshot_in_new_window(c);
+      renderer.snapshot_in_new_window(&c);
+      break;
+
+    case 't':
+      if(trace == -1) trace = 40;
+      else trace = -1;
+      generator.set_trace(trace);
+      break;
+
+    case 'i':
+      ignore = !ignore;
       break;
 
     case '+':
@@ -251,8 +275,6 @@ int main(int argc, char *argv[]) {
     default:
       std::cout << "key " << key << " is not bound" << std::endl;
     }
-
-    delete c;
 
   }
   cvReleaseImage(&img);

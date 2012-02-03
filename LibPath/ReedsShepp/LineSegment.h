@@ -23,6 +23,11 @@ public:
    */
   LineSegment(DIRECTION direction);
 
+  /**
+   * Copy constructor
+   */
+  // not necessary, use default
+
 
   /**
    * Sets the points that describe the line
