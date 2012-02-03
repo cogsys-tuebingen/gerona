@@ -376,7 +376,7 @@ void ROSReedsSheppPathPlanner::publishCurve (Curve * curve)
   while(curve->has_next()){
     Pose2d next_map = curve->next();
     geometry_msgs::PoseStamped pose;
-    m_map->cell2point(next_map.x,next_map.y,pose.pose.position.x,
+    m_map->cell2pointSubPixel(next_map.x,next_map.y,pose.pose.position.x,
                                           pose.pose.position.y);
 
     pose.pose.orientation = tf::createQuaternionMsgFromYaw(next_map.theta);
@@ -418,9 +418,6 @@ bool ROSReedsSheppPathPlanner::getSlamPose(Vector3d& pose)
 
 void ROSReedsSheppPathPlanner::calculate()
 {
-
-
-
   ROS_INFO("calc: %d %d %d",m_has_goal,m_has_odom,m_has_map);
   if(m_has_goal &&  m_has_map ){
     start_timer();
@@ -434,8 +431,6 @@ void ROSReedsSheppPathPlanner::calculate()
     m_map->cell2point(ox,oy,px2,py2);
     ROS_ERROR("start x=%f y=%f map %d %d bx %f by %f",slam_pose.x(),slam_pose.y(),ox,oy,
               px2,py2);
-
-
 
     bool goal_in_map=m_map->point2cell(m_goal_world.x, m_goal_world.y, gx, gy);
 

@@ -78,7 +78,7 @@ void update_map(const nav_msgs::OccupancyGridConstPtr &map)
             (y+1 < h && is_free(map->data[(y+1)*w+x])) ||
             (y   > 0 && is_free(map->data[(y-1)*w+x]));
 
-        bool is_on_grid = (x % grid == 0 && y % grid == 0);
+        bool is_on_grid = (grid != 0 && x % grid == 0 && y % grid == 0);
 
         if(has_free_neighbor || is_on_grid){
           Point p;

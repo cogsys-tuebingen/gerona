@@ -20,7 +20,7 @@
     <param name="pub_map_odom_transform" value="true"/>
     
     <!-- Map size / start point -->
-    <param name="map_resolution" value="0.150"/>
+    <param name="map_resolution" value="0.050"/>
     <param name="map_size" value="512"/>
     <param name="map_start_x" value="0.5"/>
     <param name="map_start_y" value="0.5" />
@@ -56,7 +56,7 @@
   <node pkg="costmap" type="costmap_node" name="costmap_node" output="screen"></node>
   <node pkg="reeds_shepp" type="path_reeds_shepp_node" name="reeds_shepp" output="screen">
     <param name="circle_radius" value="0.70" />
-    <param name="max_waypoint_distance" value="0.25" />
+    <param name="max_waypoint_distance" value="0.125" />
     <param name="cost_backwards" value="2.5" />
     <param name="cost_forwards" value="1.0" />
     <param name="cost_curve" value="1.3" />
