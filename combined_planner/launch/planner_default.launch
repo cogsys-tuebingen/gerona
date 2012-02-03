@@ -18,7 +18,7 @@
         <param name="static_map" value="false"/>
         <param name="width" value="8"/>
         <param name="height" value="8"/>
-        <param name="resolution" value="0.10"/>
+        <param name="resolution" value="0.1"/>
         <param name="map_type" value="costmap"/>
       
         <param name="observation_sources" value="laser"/>

@@ -16,9 +16,7 @@ using namespace combined_planner;
 
 GlobalPlanner::GlobalPlanner( lib_path::GridMap2d *map )
     : map_( map ),
-      a_star_( map ),
-      start_( 0, 0 ),
-      goal_( 0, 0 )
+      a_star_( map )
 { /* Nothing else to do */ }
 
 
@@ -56,6 +54,7 @@ bool GlobalPlanner::planPath( Point2d start, Point2d goal )
 
     // Run A*
     bool path_found = a_star_.planPath( startWayp, goalWayp );
+    /// @todo Fix this!
     //map_->setAreaValue( start_area );
 
     if ( !path_found )
@@ -89,13 +88,12 @@ void GlobalPlanner::flatten( const path_t* raw, std::vector<Point2d> &flattened 
     Point2d p;
     std::size_t first = 0;
     std::size_t current = 1;
-    std::size_t look_ahead = 5;
+    const std::size_t look_ahead = 25;
     while ( current < raw->size() - 1 ) {
         if ( isLineFree((*raw)[first], (*raw)[current])) {
             current++;
         } else {
-            // Look ahead hack
-            /// @todo This is still buggy
+            /// @todo This hack is still buggy
             bool succ = false;
             for ( size_t i = 1; (i + current) < (raw->size() - 1) && i < look_ahead; ++i ) {
                 if ( isLineFree((*raw)[first], (*raw)[current + i])) {
@@ -108,7 +106,7 @@ void GlobalPlanner::flatten( const path_t* raw, std::vector<Point2d> &flattened 
             if ( !succ ) {
                 map_->cell2point((*raw)[current-1].x, (*raw)[current-1].y, p );
                 flattened.push_back( p );
-                first = current;
+                first = current - 1;
                 current++;
             }
         }

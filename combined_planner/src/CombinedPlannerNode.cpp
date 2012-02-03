@@ -46,7 +46,7 @@ CombinedPlannerNode::CombinedPlannerNode()
     n_.param<std::string>( "goal_topic", goal_topic_, "/goal" );
     n_.param<std::string>( "path_topic", path_topic_, "/path" );
 
-    lmap_wrapper_.setLowerThreshold( 80 );
+    lmap_wrapper_.setLowerThreshold( 180 );
     lmap_wrapper_.setUpperThreshold( 180 );
 
     // Subscribe
@@ -79,30 +79,34 @@ void CombinedPlannerNode::update()
         return;
     }
 
+    lmap_ros_.clearRobotFootprint();
     lmap_ros_.getCostmapCopy( lmap_cpy_ );
     planner_.setLocalMap( &lmap_wrapper_ );
-    bool new_local_path = false;
-    bool force_replan = replan_timer_.msElapsed() > 2000;
     try {
-        new_local_path = planner_.updateLocalPath( robot_pose, force_replan );
+        planner_.update( robot_pose , replan_timer_.msElapsed() > 500 );
     } catch ( CombinedPlannerException& ex ) {
-        ROS_ERROR( "Error planning a local path. Reason: %s", ex.what());
+        ROS_ERROR( "Error planning a path. Reason: %s", ex.what());
         deactivate();
         active_ = false;
         return;
     }
 
+    // Is there a valid path?
+    if ( !planner_.hasValidPath()) {
+        deactivate();
+        return;
+    }
 
     // Publis new local path?
-    if ( !new_local_path ) {
+    if ( !planner_.hasNewLocalPath()) {
         return;
     }
 
     ROS_INFO("Publishing new local path");
-    std::list<Pose2d> lpath = planner_.getLocalWaypoints();
+    /*std::list<Pose2d> lpath = planner_.getLocalPath();
     if ( lpath.size() > 1 )
-        lpath.pop_front();
-    publishLocalPath( lpath /*planner_.getLocalWaypoints()*/);
+        lpath.pop_front();*/
+    publishLocalPath( /*lpath*/ planner_.getLocalPath());
     replan_timer_.restart();
 
     visualizeWaypoints( planner_.getGlobalWaypoints(), "waypoints", 3 );
@@ -143,7 +147,7 @@ void CombinedPlannerNode::updateGoal( const geometry_msgs::PoseStampedConstPtr &
     if (!getRobotPose( robot_pose, gmap_frame_id_ ))
         return;
 
-    // Run global planner
+    // Run planner
     planner_.setGlobalMap( &gmap_wrapper_ );
     lmap_ros_.clearRobotFootprint();
     lmap_ros_.getCostmapCopy( lmap_cpy_ );
@@ -151,12 +155,15 @@ void CombinedPlannerNode::updateGoal( const geometry_msgs::PoseStampedConstPtr &
     lib_path::Pose2d pathStart = robot_pose;
     lib_path::Pose2d pathEnd( goal_map.pose.position.x, goal_map.pose.position.y, tf::getYaw( goal_map.pose.orientation ));
     try  {
-        if ( !planner_.setGoal( pathStart, pathEnd )) {
-            ROS_WARN( "No global path found." );
-            return;
-        }
+        planner_.setGoal( pathStart, pathEnd );
     } catch ( CombinedPlannerException& ex ) {
-        ROS_ERROR( "Cannot plan a global path. Reason: %s", ex.what());
+        ROS_ERROR( "Cannot plan a path. Reason: %s", ex.what());
+        return;
+    }
+
+    // Valid path found?
+    if ( !planner_.hasValidPath()) {
+        ROS_WARN( "No path found!" );
         return;
     }
 
@@ -185,6 +192,18 @@ void CombinedPlannerNode::motionCtrlDoneCB( const actionlib::SimpleClientGoalSta
                                             const motion_control::MotionResultConstPtr &result )
 {
     /// @todo Resume from state collision
+}
+
+void CombinedPlannerNode::plannerPathToRos(const list<Pose2d> &planner_p, vector<geometry_msgs::PoseStamped>& ros_p )
+{
+    std::list<lib_path::Pose2d>::const_iterator it = planner_p.begin();
+    geometry_msgs::PoseStamped pose;
+    for ( ; it != planner_p.end(); it++ ) {
+        pose.pose.position.x = it->x;
+        pose.pose.position.y = it->y;
+        pose.pose.orientation = tf::createQuaternionMsgFromYaw( it->theta );
+        ros_p.push_back( pose );
+    }
 }
 
 void CombinedPlannerNode::publishLocalPath( const std::list<lib_path::Pose2d> &path )
@@ -249,7 +268,8 @@ void CombinedPlannerNode::activate()
     motion_control::MotionGoal motionGoal;
     motionGoal.mode = motion_control::MotionGoal::MOTION_FOLLOW_PATH;
     motionGoal.path_topic = path_topic_;
-    motionGoal.v = 0.8;
+    plannerPathToRos( planner_.getLocalPath(), motionGoal.path.poses );
+    motionGoal.v = 0.5;
     motionGoal.pos_tolerance = 0.20;
     motion_ac_.sendGoal( motionGoal, boost::bind( &CombinedPlannerNode::motionCtrlDoneCB, this, _1, _2 ));
 }
@@ -258,7 +278,6 @@ void CombinedPlannerNode::deactivate()
 {
     ROS_INFO( "Deactivating path planner." );
     motion_ac_.cancelAllGoals();
-    planner_.setGoalReached();
     active_ = false;
     publishEmptyLocalPath();
 }

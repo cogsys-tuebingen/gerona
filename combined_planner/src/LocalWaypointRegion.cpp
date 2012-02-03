@@ -76,5 +76,10 @@ void LocalWaypointRegion::generateGoals( const lib_path::Pose2d &center,
     shifted.theta -= angle_step_rad;
     goal_list_.push_back( pair<Pose2d, double>( shifted, 1.3 ));
 
+    // Allow to reach the pose backwards
+    shifted = center;
+    shifted.theta += M_PI;
+    goal_list_.push_back( pair<Pose2d, double>( shifted, 3.0 ) );
+
 }
 

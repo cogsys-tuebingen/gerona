@@ -51,6 +51,7 @@ public:
     void visualizeWaypoints( const std::list<lib_path::Pose2d> &wp, std::string ns, int id );
     void activate();
     void deactivate();
+    void plannerPathToRos( const std::list<lib_path::Pose2d> &planner_p, std::vector<geometry_msgs::PoseStamped>& ros_p );
 
 private:
     /// Name of the global map topic we are listening on

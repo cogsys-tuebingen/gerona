@@ -21,8 +21,7 @@ using namespace lib_path;
 using namespace combined_planner;
 
 LocalPlanner::LocalPlanner()
-    : map_( NULL ),
-      clear_area_( NULL )
+    : map_( NULL )
 {
     // Read/set configuration
     configure();
@@ -33,40 +32,47 @@ LocalPlanner::LocalPlanner()
 
 LocalPlanner::~LocalPlanner()
 {
-    if ( clear_area_ != NULL )
-        delete clear_area_;
+
 }
 
-bool LocalPlanner::planPath( const lib_path::Pose2d &start, const lib_path::Pose2d &end )
+bool LocalPlanner::planPath( const lib_path::Pose2d &start, const lib_path::Pose2d &end, bool sampling )
 {
     last_weight_ = -1.0;
     path_.clear();
 
     // Check input and status
     if ( map_ == NULL ) {
-        throw CombinedPlannerException( "No map!" );
+        throw CombinedPlannerException( "No local map!" );
     }
 
     if ( !map_->isInMap( Point2d( start.x, start.y ))
          || !map_->isInMap( Point2d( end.x, end.y ))) {
-        throw CombinedPlannerException( "Start or goal pose outside of the map." );
+        throw CombinedPlannerException( "Start or goal pose outside of the local map." );
     }
 
     // Clear robot pose
-    map_->setAreaValue( *clear_area_, (uint8_t)0 );
+    CircleArea clear_area( Point2d( start.x, start.y ), 0.3, map_ );
+    map_->setAreaValue( clear_area, (uint8_t)0 );
 
     // Search a path
     Curve* curve = NULL;
-    LocalWaypointRegion goalRegion( end, 0.25, 20.0 );
-    SamplingPlanner s_planner( &rs_, map_ );
-    curve = s_planner.createPath( start, &goalRegion, 0 );
+    if ( sampling ) {
+        LocalWaypointRegion goalRegion( end, 0.20, 10.0 );
+        SamplingPlanner s_planner( &rs_, map_ );
+        curve = s_planner.createPath( start, &goalRegion, 0 );
+    } else {
+        // The Reed Shepp planner needs cell coordinates
+        Pose2d start_cell = pos2map( start, *map_ );
+        Pose2d end_cell = pos2map( end, *map_ );
+        curve = rs_.find_path( start_cell, end_cell, map_ );
+    }
 
     // Check result & generate path if there is one
     if ( curve  && curve->is_valid()) {
         generatePath( curve );
         last_weight_ = curve->weight();
         delete curve;
-        return true;
+        return path_.size() > 0;
     }
 
     if ( curve != NULL ) /// @todo Is this neccessary?
@@ -77,8 +83,6 @@ bool LocalPlanner::planPath( const lib_path::Pose2d &start, const lib_path::Pose
 void LocalPlanner::setMap( lib_path::GridMap2d *map )
 {   
     map_ = map;
-    if ( clear_area_ == NULL )
-        clear_area_ = new CircleArea( Point2d( 0, 0 ), 0.3, map_ );
 }
 
 void LocalPlanner::generatePath( lib_path::Curve *curve )
@@ -99,10 +103,10 @@ void LocalPlanner::configure()
     double circle_radius, wp_distance, cost_backw, cost_forw, cost_curve, cost_straight;
     n.param<double> ("circle_radius", circle_radius, 1.0f);
     n.param<double> ("max_waypoint_distance", wp_distance, 0.25f );
-    n.param<double> ("cost_backwards", cost_backw, 1.5f);
+    n.param<double> ("cost_backwards", cost_backw, 10.0f);
     n.param<double> ("cost_forwards", cost_forw, 1.0f);
-    n.param<double> ("cost_curve", cost_curve, 120.0f);
-    n.param<double> ("cost_straight", cost_straight, 100.0f);
+    n.param<double> ("cost_curve", cost_curve, 1.2f);
+    n.param<double> ("cost_straight", cost_straight, 1.0f);
 
     // Set config
     rs_.set_circle_radius( circle_radius );

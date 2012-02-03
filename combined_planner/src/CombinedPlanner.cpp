@@ -18,11 +18,14 @@ using namespace combined_planner;
 CombinedPlanner::CombinedPlanner()
     : lmap_(NULL),
       gmap_(NULL),
-      goal_dist_eps_( 1.0 ),
-      goal_angle_eps_( 0.6 ),
+      goal_dist_eps_( 0.25 ),
+      goal_angle_eps_( 20.0*M_PI/180.0 ),
       wp_dist_eps_( 1.0 ),
       wp_angle_eps_( 0.6 ),
-      ggoal_reached_( true )
+      local_replan_dist_( 0.50 ),
+      local_replan_theta_( 30.0*M_PI/180.0 ),
+      valid_path_( false ),
+      new_local_path_( false )
 {
     gplanner_ = NULL; // We gonna create the global planner on the first global map update
     lplanner_  = new LocalPlanner();
@@ -37,29 +40,70 @@ CombinedPlanner::~CombinedPlanner()
 }
 
 
-bool CombinedPlanner::setGoal( const Pose2d &robot_pose, const Pose2d &goal )
+void CombinedPlanner::setGoal( const lib_path::Pose2d& robot_pose, const Pose2d &goal )
 {
-    // Reset
-    gwaypoints_.clear();
-    ggoal_reached_ = true;
+    valid_path_ = false;
 
-    // Try to find a local path
+    // Try to find a global path
     if ( !findGlobalPath( robot_pose, goal )) {
-        return false;
+        return;
     }
-
-    // Set new goal
-    ggoal_ = goal;
-    ggoal_reached_ = false;
-    if ( isGoalReached( robot_pose )) {
-        setGoalReached();
-        return true;
-    }
-
-    latest_lgoal_ = goal;
 
     // Try to find a local path to the first waypoint
-    return updateLocalPath( robot_pose, true );
+    lgoal_ = goal; // Will be set during next update
+    valid_path_ = true;
+    lstart_ = robot_pose;
+    update( robot_pose, true );
+}
+
+void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
+{
+    new_local_path_ = false;
+
+    // Reached the goal or we don't have a path?
+    if ( isGoalReached( robot_pose ) || !valid_path_ ) {
+        valid_path_ = false;
+        return;
+    }
+
+    // Replan anyway?
+    double d_dist, d_theta;
+    getPoseDelta( lstart_, robot_pose, d_dist, d_theta );
+    force_replan = force_replan || d_dist >= local_replan_dist_ || d_theta >= local_replan_theta_;
+
+    // Select next waypoint?
+    if ( !gwaypoints_.empty() && isWaypointReached( robot_pose, lgoal_ )) {
+        gwaypoints_.pop_front();
+    } else if ( !force_replan ) {
+        return; // No need to replan
+    }
+
+    if ( gwaypoints_.empty()) {
+        // Next waypoint is the goal
+        new_local_path_ = findPathToGoal( robot_pose );
+    } else {
+        // Next waypoint isn't the goal
+        new_local_path_ = findPathToWaypoint( robot_pose );
+    }
+
+    // Plan a new global path if we didn't find a local one
+    if ( !new_local_path_ ) {
+        ROS_WARN( "No local path found!" );
+        getPoseDelta( robot_pose, gstart_, d_dist, d_theta );
+        if (( d_dist < 0.5 && d_theta < 0.5) || !findGlobalPath( robot_pose, ggoal_ )) {
+            // Failure
+            valid_path_ = false;
+            return;
+        }
+
+        // We found a new global path. Plan a local path to the next waypoint
+        lgoal_ = ggoal_;
+        lstart_ = robot_pose;
+        update( robot_pose, true );
+        return;
+    }
+
+    valid_path_ = true;
 }
 
 bool CombinedPlanner::findGlobalPath( const Pose2d &start, const Pose2d &goal )
@@ -73,73 +117,33 @@ bool CombinedPlanner::findGlobalPath( const Pose2d &start, const Pose2d &goal )
     if ( gplanner_->planPath( Point2d( start.x, start.y ), Point2d( goal.x, goal.y ))) {
         // Calculate waypoints on success
         calculateWaypoints( gplanner_->getLatestPath(), goal, gwaypoints_ );
-        ROS_INFO( "Found a global path." );
+        // Remeber start/end
+        gstart_ = start;
+        ggoal_ = goal;
+        return true;
+    }
+    ROS_WARN( "No global path found" );
+    return false;
+}
+
+bool CombinedPlanner::findPathToWaypoint( const Pose2d &start )
+{
+    if( lplanner_->planPath( start, gwaypoints_.front())) {
+        lstart_ = start;
+        lgoal_ = lplanner_->getPath().back();
         return true;
     }
     return false;
 }
 
-bool CombinedPlanner::updateLocalPath( const Pose2d &robot_pose, bool force_replan )
+bool CombinedPlanner::findPathToGoal( const Pose2d &start )
 {
-    // Check if we have reached the goal
-    if ( isGoalReached( robot_pose )) {
-        setGoalReached();
-        return false; // No new local path
+    if ( lplanner_->planPath( start, ggoal_, false )) {
+        lstart_ = start;
+        lgoal_ = ggoal_;
+        return true;
     }
-
-    // Select next waypoint?
-    Pose2d current_wp;
-    bool new_wp = false;
-    if ( gwaypoints_.empty()) {
-        // Next waypoint must be the goal
-        current_wp = ggoal_;
-    } else if ( isWaypointReached( robot_pose, latest_lgoal_ )) {
-        new_wp = true;
-        gwaypoints_.pop_front();
-        current_wp = gwaypoints_.front();
-    } else {
-        current_wp = gwaypoints_.front();
-    }
-
-    // Check if we have to replan
-    if ( !(new_wp || force_replan ))
-        return false;
-
-    // Plan a local path.
-    try {
-        if ( lplanner_->planPath( robot_pose, current_wp )) {
-            // Found a path. Remeber local goal
-            latest_lgoal_ = lplanner_->getPath().back();
-            return true;
-        }
-    } catch ( CombinedPlannerException& ex ) {}
-
-    /* Well, we didn't find a local path. Try to invert the orientation of
-     * the current waypoint if it's not the global  goal. Maybe there is
-     * not enough space to turn around. */
-    Pose2d wp_backw( current_wp );
-    wp_backw.theta += M_PI;
-    try {
-        if ( lplanner_->planPath( robot_pose, wp_backw )) {
-            // Well, we found a path. Thats the most important thing. Remeber local goal
-            latest_lgoal_ = lplanner_->getPath().back();
-            return true;
-        }
-    } catch ( CombinedPlannerException& ex ) {}
-
-    /* Last try. If there is moren than one waypoint left, try to reach that one. */
-    if ( gwaypoints_.size() >= 2 ) {
-        list<Pose2d>::iterator it = gwaypoints_.begin();
-        it++;
-        if ( lplanner_->planPath( robot_pose, *it )) {
-            gwaypoints_.pop_front();
-            latest_lgoal_ = lplanner_->getPath().back();
-            return true;
-        }
-    }
-
-    // Well, there might be a local path but we didn't find one
-    throw CombinedPlannerException( "No local path found." );
+    return false;
 }
 
 bool CombinedPlanner::isWaypointReached( const Pose2d &robot_pose, const Pose2d &wp ) const
@@ -149,34 +153,27 @@ bool CombinedPlanner::isWaypointReached( const Pose2d &robot_pose, const Pose2d 
     return d_dist < wp_dist_eps_ && d_theta < wp_angle_eps_;
 }
 
-bool CombinedPlanner::isGoalReached( const Pose2d &robot_pose ) const {
-    if ( ggoal_reached_ )
-        return true; // We reached it earlier
-
-    if ( !gwaypoints_.size() > 1)
+bool CombinedPlanner::isGoalReached( const Pose2d& robot_pose ) const
+{
+    if ( !gwaypoints_.empty())
         return false; // Too much waypoints left
 
-    // Check distance to the latest global goal
+    // Check distance to the global goal
     double d_dist, d_theta;
     getPoseDelta( ggoal_, robot_pose, d_dist, d_theta );
     return (d_dist < goal_dist_eps_ && d_theta < goal_angle_eps_);
 }
 
-void CombinedPlanner::setGoalReached() {
-    gwaypoints_.clear();
-    ggoal_reached_ = true;
-}
-
 void CombinedPlanner::calculateWaypoints( const vector<Point2d> &path, const Pose2d& goal, list<Pose2d> &waypoints ) const
 {
-    double min_waypoint_dist_ = 1.0;
-    double max_waypoint_dist_ = 1.50;
+    double min_waypoint_dist_ = 1.25;
+    double max_waypoint_dist_ = 1.25;
 
     waypoints.clear();
 
     // Path too short? We need at least a start and an end point
     if ( path.size() < 2 ) {
-        waypoints.push_back( goal );
+        //waypoints.push_back( goal );
         return;
     }
 
@@ -197,7 +194,7 @@ void CombinedPlanner::calculateWaypoints( const vector<Point2d> &path, const Pos
         if ( dist < max_waypoint_dist_ ) {
             // If this is the last point of the path, push back the goal pose
             if ( i >= path.size() - 1 ) {
-                waypoints.push_back( goal );
+                //waypoints.push_back( goal );
                 break;
             }
 
@@ -226,7 +223,6 @@ void CombinedPlanner::calculateWaypoints( const vector<Point2d> &path, const Pos
         minus = 0.0;
         waypoints.push_back( last );
     }
-    waypoints.push_back( goal );
 }
 
 lib_path::Pose2d CombinedPlanner::getNormalizedDelta( const Point2d &start, const Point2d &end ) const

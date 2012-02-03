@@ -35,7 +35,41 @@ public:
      */
     CombinedPlanner();
 
-    virtual ~CombinedPlanner();
+    ~CombinedPlanner();
+
+    /**
+     * @brief Set a new goal and plan a path to this goal.
+     * This method tries to find a global path and calculates waypoints
+     * as well as an initial local path.
+     * @exception CombinedPlannerException If the goal or the position of the robot lies
+     *      outside of the global map, if there is no global/local map or if there
+     *      is no local path to the first waypoint.
+     */
+    void setGoal( const lib_path::Pose2d& robot_pose, const lib_path::Pose2d& goal );
+
+    /**
+     * @brief Select next waypoint if necessary and try to find a local path
+     *      to this waypoint. Try to find a new global path if neccesary.
+     * @param robot_pose Current position of the robot in map coordinates.
+     *      Used to check if we have to select a new waypoint or if we reached the goal.
+     * @param force_replan Set this to true if we should caluclate a new local path
+     *      even though we didn't select a new waypoint.
+     * @return True if there is a new local path. False otherwise.
+     * @throw CombinedPlannerException If an error occurred during local path planning.
+     */
+    void update( const lib_path::Pose2d& robot_pose, bool force_replan = false );
+
+    /**
+     * @brief Check if we have reached the goal.
+     * @return True if the robot reached the goal. False otherwise.
+     */
+    bool isGoalReached( const lib_path::Pose2d& robot_pose ) const;
+
+    bool hasValidPath() const
+        { return valid_path_; }
+
+    bool hasNewLocalPath() const
+        { return new_local_path_; }
 
     /**
      * @brief Set a new map used for global path planning.
@@ -43,23 +77,36 @@ public:
      *      as long as this object is in use.
      * @param gmap The new global map.
      */
-    virtual void setGlobalMap( lib_path::GridMap2d* gmap );
+    void setGlobalMap( lib_path::GridMap2d* gmap );
 
-    virtual bool setGoal( const lib_path::Pose2d& robot_pose, const lib_path::Pose2d& goal );
+    /**
+     * @brief Set a new map used for local path planning.
+     * @attention There is no internal copy of the map! The given pointer should be valid
+     *      as long as this object is in use.
+     * @param gmap The new local map.
+     */
+    void setLocalMap( lib_path::GridMap2d* lmap );
+
+    /**
+     * @brief Get the latest local path.
+     * @return the current local path.
+     */
+    const std::list<lib_path::Pose2d>& getLocalPath() const
+        { return lplanner_->getPath(); }
 
     /**
      * @brief Get the latest raw global path.
      * The raw path was not minimized or flattened.
      * @param path_raw The raw path will be written to this list.
      */
-    virtual void getGlobalPathRaw( std::list<lib_path::Point2d>& path_raw ) const
+    void getGlobalPathRaw( std::list<lib_path::Point2d>& path_raw ) const
         { gplanner_->getLatestPathRaw( path_raw ); }
 
     /**
      * @brief Get the latest flattened global path.
      * @param path The path will be written to this list.
      */
-    virtual void getGlobalPath( std::list<lib_path::Point2d>& path ) const
+    void getGlobalPath( std::list<lib_path::Point2d>& path ) const
         { gplanner_->getLatestPath( path ); }
 
     /**
@@ -69,48 +116,8 @@ public:
      * reached the goal pose, the result will be empty.
      * @param The latest global waypoints.
      */
-    virtual const std::list<lib_path::Pose2d>& getGlobalWaypoints() const
+    const std::list<lib_path::Pose2d>& getGlobalWaypoints() const
         { return gwaypoints_; }
-
-    /**
-     * @brief Set a new map used for local path planning.
-     * @attention There is no internal copy of the map! The given pointer should be valid
-     *      as long as this object is in use.
-     * @param gmap The new local map.
-     */
-    virtual void setLocalMap( lib_path::GridMap2d* lmap );
-
-    /**
-     * @brief Select next waypoint if necessary and try to find a local path
-     *      to this waypoint.
-     * @param robot_pose Current position of the robot in map coordinates.
-     *      Used to check if we have to select a new waypoint.
-     * @param force_replan Set this to true if we should caluclate a new local path
-     *      even though we didn't select a new waypoint.
-     * @return True if there is a new local path. False otherwise.
-     * @throw CombinedPlannerException If an error occurred during local path planning.
-     */
-    virtual bool updateLocalPath( const lib_path::Pose2d& robot_pose, bool force_replan = false );
-
-    /**
-     * @brief Get the latest local path.
-     * @return the current local waypoints.
-     */
-    virtual const std::list<lib_path::Pose2d>& getLocalWaypoints() const
-        { return lplanner_->getPath(); }
-
-    /**
-     * @brief Check if we have reached the goal.
-     * @param robot_pose The current robot position in map coordinates.
-     * @return True if reached the goal. False otherwise.
-     */
-    virtual bool isGoalReached( const lib_path::Pose2d &robot_pose ) const;
-
-    /**
-     * @brief Remove the current goal from the waypoint list which
-     *      indicates that the goal is reached.
-     */
-    virtual void setGoalReached();
 
 protected:
 
@@ -122,7 +129,11 @@ protected:
      * @exception CombinedPlannerException If one of start or goal lies outsied of
      *      the map or if there is no map to plan on.
      */
-    virtual bool findGlobalPath( const lib_path::Pose2d& start, const lib_path::Pose2d& goal );
+    bool findGlobalPath( const lib_path::Pose2d& start, const lib_path::Pose2d& goal );
+
+    bool findPathToWaypoint( const lib_path::Pose2d& start );
+
+    bool findPathToGoal( const lib_path::Pose2d& start );
 
     /**
      * @brief Calculate waypoints from a given path.
@@ -144,11 +155,11 @@ protected:
      * smaller than the maximum errors allowed.
      * @param robot_pose Current position of the robot in map coordinates.
      * @param wp The waypoint in map coordinates.
-     * @return True id the waypoint is reached.
+     * @return True if the waypoint is reached.
      */
-    virtual bool isWaypointReached( const lib_path::Pose2d &robot_pose, const lib_path::Pose2d& wp ) const;
+    bool isWaypointReached( const lib_path::Pose2d &robot_pose, const lib_path::Pose2d& wp ) const;
 
-    virtual void getPoseDelta( const lib_path::Pose2d& p, const lib_path::Pose2d& q,
+    void getPoseDelta( const lib_path::Pose2d& p, const lib_path::Pose2d& q,
                                  double& d_dist, double& d_theta ) const;
 
     lib_path::Pose2d getNormalizedDelta( const lib_path::Point2d &start, const lib_path::Point2d &end ) const;
@@ -168,6 +179,21 @@ protected:
     /// Global waypoints
     std::list<lib_path::Pose2d> gwaypoints_;
 
+    /// Global goal
+    lib_path::Pose2d ggoal_;
+
+    /// Start of the latest global path
+    lib_path::Pose2d gstart_;
+
+    /// Flag if we reached the latest global goal
+    bool ggoal_reached_;
+
+    /// End of the latest local path
+    lib_path::Pose2d lgoal_;
+
+    /// Start of the latest local path
+    lib_path::Pose2d lstart_;
+
     /// Maximum goal distance error. Used to determine if we have reached the goal
     double goal_dist_eps_;
 
@@ -180,14 +206,17 @@ protected:
     /// Maximum angle delta to the next waypoint. Used to determine if we have to select the next waypoint
     double wp_angle_eps_;
 
-    /// End of the latest local path
-    lib_path::Pose2d latest_lgoal_;
+    /// Plan a new local path at least every N meter
+    double local_replan_dist_;
 
-    /// Global goal
-    lib_path::Pose2d ggoal_;
+    /// Plan a new local path if the orientation changed N radian
+    double local_replan_theta_;
 
-    /// Flag if we reached the latest global goal
-    bool ggoal_reached_;
+    /// Flag if there is a valid global and a valid local path
+    bool valid_path_;
+
+    /// Flag if we computed a new local path during the last update
+    bool new_local_path_;
 };
 
 } // namespace combined_planner

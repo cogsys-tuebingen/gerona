@@ -28,7 +28,7 @@ public:
      * @brief Create object.
      * @param map The initial map. The size of this map used to initialize the
      *      the object. It's possible to use a map with a different size
-     *      during runtime but it will take some computation time (memory allocation).
+     *      during runtime but it will take some time (memory allocation).
      */
     GlobalPlanner( lib_path::GridMap2d* map );
 
@@ -44,9 +44,9 @@ public:
      * @brief Try to find a path.
      * @param start Start of the path.
      * @param goal End of the path.
-     * @return True if there is a path, falss otherwise.
+     * @return True if there is a path, false otherwise.
      * @exception CombinedPlannerException If the start or the goal pose lies outside
-     *      of the map.
+     *      of the map or if there is no map.
      */
     virtual bool planPath( lib_path::Point2d start, lib_path::Point2d goal );
 
@@ -106,12 +106,6 @@ private:
 
     /// A* search object
     lib_path::AStar a_star_;
-
-    /// Start of path in map coordinates
-    lib_path::Point2d start_;
-
-    /// Goal in map coordinates
-    lib_path::Point2d goal_;
 
     /// Latest planned path
     std::vector<lib_path::Point2d> path_;
