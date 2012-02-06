@@ -83,7 +83,7 @@ void CombinedPlannerNode::update()
     lmap_ros_.getCostmapCopy( lmap_cpy_ );
     planner_.setLocalMap( &lmap_wrapper_ );
     try {
-        planner_.update( robot_pose , replan_timer_.msElapsed() > 500 );
+        planner_.update( robot_pose , /*replan_timer_.msElapsed() > 500*/ false );
     } catch ( CombinedPlannerException& ex ) {
         ROS_ERROR( "Error planning a path. Reason: %s", ex.what());
         deactivate();

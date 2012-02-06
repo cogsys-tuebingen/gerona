@@ -48,6 +48,7 @@
 
     <param name="waypoint_threshold" value="0.15" />
     <param name="max_waypoint_distance" value="0.25" />
+    <param name="rowdetect/dualpid/Kp" value="1.0" />
 
   </node>
 

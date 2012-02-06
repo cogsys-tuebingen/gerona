@@ -22,8 +22,8 @@ CombinedPlanner::CombinedPlanner()
       goal_angle_eps_( 20.0*M_PI/180.0 ),
       wp_dist_eps_( 1.0 ),
       wp_angle_eps_( 0.6 ),
-      local_replan_dist_( 2.0 ),
-      local_replan_theta_( 90.0*M_PI/180.0 ),
+      local_replan_dist_( 1.5 ),
+      local_replan_theta_( 30.0*M_PI/180.0 ),
       valid_path_( false ),
       new_local_path_( false )
 {
@@ -128,6 +128,25 @@ bool CombinedPlanner::findGlobalPath( const Pose2d &start, const Pose2d &goal )
 
 bool CombinedPlanner::findPathToWaypoint( const Pose2d &start )
 {
+    /// @todo this is a hack
+    list<Pose2d>::iterator it = gwaypoints_.begin();
+    double d_dist, d_theta;
+    for ( ; it != gwaypoints_.end(); it++ ) {
+        getPoseDelta( start, *it, d_dist, d_theta );
+        if ( d_dist > 2.0 ) {
+            break;
+        }
+    }
+
+    for ( ; it != gwaypoints_.end() && it != gwaypoints_.begin(); it-- ) {
+        if ( lplanner_->planPath( start, *it, true )) {
+            lstart_ = start;
+            lgoal_ = lplanner_->getPath().back();
+            gwaypoints_.erase( gwaypoints_.begin(), it );
+            return true;
+        }
+    }
+
     if( lplanner_->planPath( start, gwaypoints_.front())) {
         lstart_ = start;
         lgoal_ = lplanner_->getPath().back();
