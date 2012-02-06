@@ -62,7 +62,7 @@ float LineSegment::weight(bool ignore_obstacles)
         break;
       }
 #ifdef REED_SHEPP_USE_COST
-      path_cost += min( (uint8_t)5, m_map->getValue( x0, y0 ));
+      path_cost += max( (uint8_t)5, m_map->getValue( x0, y0 ));
 #endif
     }
 

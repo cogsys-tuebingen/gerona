@@ -178,7 +178,7 @@ bool CircleSegment::testPixel(int cx, int cy, int x, int y, bool ignore_obstacle
 
     if(on_segment) {
 #ifdef REED_SHEPP_USE_COST
-      m_weight += min( (uint8_t)5, m_map->getValue( x, y ));
+      m_weight += max( (uint8_t)5, m_map->getValue( x, y ));
 #endif
       bool free = m_map->isFree(x, y);
       if(m_trace != -1){
