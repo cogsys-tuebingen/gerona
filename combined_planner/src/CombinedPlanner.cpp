@@ -22,8 +22,8 @@ CombinedPlanner::CombinedPlanner()
       goal_angle_eps_( 20.0*M_PI/180.0 ),
       wp_dist_eps_( 1.0 ),
       wp_angle_eps_( 0.6 ),
-      local_replan_dist_( 0.50 ),
-      local_replan_theta_( 30.0*M_PI/180.0 ),
+      local_replan_dist_( 2.0 ),
+      local_replan_theta_( 90.0*M_PI/180.0 ),
       valid_path_( false ),
       new_local_path_( false )
 {
@@ -166,8 +166,8 @@ bool CombinedPlanner::isGoalReached( const Pose2d& robot_pose ) const
 
 void CombinedPlanner::calculateWaypoints( const vector<Point2d> &path, const Pose2d& goal, list<Pose2d> &waypoints ) const
 {
-    double min_waypoint_dist_ = 1.25;
-    double max_waypoint_dist_ = 1.25;
+    double min_waypoint_dist_ = 0.50;
+    double max_waypoint_dist_ = 0.75;
 
     waypoints.clear();
 

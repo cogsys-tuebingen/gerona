@@ -3,7 +3,6 @@
   <node pkg="combined_planner" type="combined_planner_node" name="combined_planner_node" output="screen"/>
     
     <!-- Loca planning costmap setup -->
-    <param name="use_sim_time" value="true" />
     <group ns="combined_planner_node/local_costmap">
         <param name="global_frame" value="/map"/>
         <param name="robot_base_frame" value="/base_link"/>
