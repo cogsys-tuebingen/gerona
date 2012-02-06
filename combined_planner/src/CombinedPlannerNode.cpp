@@ -269,7 +269,7 @@ void CombinedPlannerNode::activate()
     motionGoal.mode = motion_control::MotionGoal::MOTION_FOLLOW_PATH;
     motionGoal.path_topic = path_topic_;
     plannerPathToRos( planner_.getLocalPath(), motionGoal.path.poses );
-    motionGoal.v = 0.5;
+    motionGoal.v = 0.7;
     motionGoal.pos_tolerance = 0.20;
     motion_ac_.sendGoal( motionGoal, boost::bind( &CombinedPlannerNode::motionCtrlDoneCB, this, _1, _2 ));
 }

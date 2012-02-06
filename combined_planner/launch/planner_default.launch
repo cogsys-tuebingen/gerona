@@ -8,8 +8,8 @@
         <param name="robot_base_frame" value="/base_link"/>
         <param name="publish_frequency" value="0.5"/>
         <param name="update_frequency" value="5.0"/>
-        <param name="inflation_radius" value="0.35"/>
-        <param name="footprint" value="[[0.22,0.17],[0.22,-0.17],[-0.22,-0.17],[-0.22,0.17]]"/>
+        <param name="inflation_radius" value="0.5"/>
+        <param name="footprint" value="[[0.25,0.20],[0.25,-0.20],[-0.25,-0.20],[-0.25,0.20]]"/>
         <param name="origin_bubble_radius" value="0.5"/>
         <param name="transform_tolerance" value="1.0"/>
 
