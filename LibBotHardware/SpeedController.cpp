@@ -111,6 +111,8 @@ SimpleSpeedController::SimpleSpeedController( RamaxxConnection * conn,
     if ( odo != NULL ) {
         mOdo->addDataListener( this );
     }
+    setAvr32SpeedCtrlEnabled( false );
+
 }
 
 void SimpleSpeedController::setCalibration( const SpeedCtrlCalibration &calib ) {

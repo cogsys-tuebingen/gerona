@@ -66,12 +66,15 @@ PidSpeedController::PidSpeedController( RamaxxConnection * conn,
     mUpdateTimer.restart();
     mSlowreverseTimer.restart();
     odo->addDataListener( this );
+    setAvr32SpeedCtrlEnabled( false );
+
     // Development
     mLog.addColumn("v_target","v_target",false);
     mLog.addColumn("v_set","v_set",false);
     mLog.addColumn("v_is","v_is",false);
     mLog.addColumn("u","servo",false);
-//    mLog.enable("/tmp/pid.log",true);
+    mLog.enable("/tmp/pid.log",true);
+
 }
 
 PidSpeedController::~PidSpeedController() {
@@ -129,6 +132,7 @@ void PidSpeedController::setCalibration( const SpeedCtrlCalibration &calib ) {
 
 
 void PidSpeedController::update( bool immediately ) {
+
 
     if ( mDeactivated || ( !immediately && mUpdateTimer.msElapsed() < mCalib.updateIntervalMs )) {
         return; // Update only every xxx msec, dont send any values if we are deactivated
@@ -294,6 +298,6 @@ void PidSpeedController::setMotorSpeed( double speedMSec ) {
         if ( servoVal < SERVO_MIN ) servoVal = SERVO_MIN;
     }
 
-    mLog.addValue("u",servoVal/1000.0);
+    mLog.addValue("u",servoVal/1000.0);    
     mActuators->setSpeed(servoVal);
 }
