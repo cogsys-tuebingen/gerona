@@ -151,7 +151,7 @@ void ROSReedsSheppPathPlanner::init_parameters()
   m_node_handle.param<int> ("threshold_max", m_threshold_max, 20);
   m_node_handle.param<std::string> ("map_topic", m_map_topic, "/map");
   m_node_handle.param<std::string> ("publish_frame", m_publish_frame, "/map");
-  m_node_handle.param<std::string> ("goal_topic", m_goal_topic, "/goal");
+  m_node_handle.param<std::string> ("goal_topic", m_goal_topic, "/rs/goal");
   m_node_handle.param<std::string> ("ring_goal_topic", m_ring_goal_topic, "/rs/ring_goal");
   m_node_handle.param<std::string> ("centroid_goal_topic", m_centroid_goal_topic, "/rs/centroid_goal");
   m_node_handle.param<std::string> ("pose_list_goal_topic", m_pose_list_goal_topic, "/rs/pose_list_goal");
