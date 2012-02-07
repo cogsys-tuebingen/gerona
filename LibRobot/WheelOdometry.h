@@ -15,7 +15,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // Eigen
-#ifndef EIGEN2_SUPPORT
+#ifdef EIGEN2_SUPPORT
+
+#else
 #define EIGEN2_SUPPORT
 #endif
 #include "Eigen/Core"
