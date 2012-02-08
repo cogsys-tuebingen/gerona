@@ -145,6 +145,7 @@ void SimpleGoalDriver::start()
 {
   move_timer_.restart();
   getSlamPose(start_pose_);
+  getSlamPose(last_slam_pose_);
   ctrl_.reset();
 }
 
@@ -176,12 +177,16 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
     cmd_rear_rad_=-1.0*direction*deltar;
   } else {
   }
+
   // estimate course
   double beta=atan(0.5*(tan(deltaf)+tan(deltar)));
   // add pi to direction if driving backwards
   beta+=direction<0?M_PI:0.0;
   beta=MathHelper::NormalizeAngle(beta);
-    // check collision
+  //double beta = calculateCourse( cmd_front_rad_, cmd_rear_rad_, cmd_v_ );
+
+
+  // check collision
   bool colliding=checkCollision(beta,0.3);
   if ( colliding ) {
     result.status=MotionResult::MOTION_STATUS_COLLISION;
@@ -192,6 +197,28 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
     result.status=MotionResult::MOTION_STATUS_MOVING;
     return MotionResult::MOTION_STATUS_MOVING;
   }
+}
+
+double SimpleGoalDriver::calculateCourse( double delta_f, double delta_r, double cmd_v )
+{
+    // Estimate beta from current steering angles
+    double beta = atan(0.5*(tan(delta_f)+tan(delta_r)));
+    if ( cmd_v < 0 )
+        beta = MathHelper::NormalizeAngle( beta + M_PI );
+    cout << "Beta: " << beta << endl;
+
+    // Estimate course from SLAM system
+    Vector3d slam_pose;
+    bool slam_avail = getSlamPose( slam_pose );
+    if ( slam_avail && (last_slam_pose_ - slam_pose).norm() > 0.05 ) {
+        double slam_beta = MathHelper::AngleDelta( last_slam_pose_.z(), atan2( slam_pose.y(), slam_pose.x()));
+        beta = 0.2*beta + 0.8*slam_beta;
+        last_slam_pose_ = slam_pose;
+        cout << "Slam beta: " << slam_beta << endl;
+    }
+    cout << "Resulting beta: " << beta << endl;
+
+    return beta;
 }
 
 

@@ -32,6 +32,8 @@ private:
     void predictPose (double dt, double deltaf, double deltar, double v,
                       Vector2d& front_pred, Vector2d& rear_pred);
     int driveToGoal (const Vector3d& goal,MotionFeedback& fb, MotionResult& result);
+    double calculateCourse( double delta_f, double delta_r, double cmd_v );
+
     ros::NodeHandle&    node_handle_;
     ros::Publisher&     cmd_pub_;
     ros::Subscriber     path_subscriber_;
@@ -54,7 +56,7 @@ private:
     double Tt_; // system dead time / latency
     double delta_max_;
     tf::TransformListener listener_;
-
+    Vector3d last_slam_pose_;
 };
 
 #endif // SIMPLEGOALDRIVER_H
