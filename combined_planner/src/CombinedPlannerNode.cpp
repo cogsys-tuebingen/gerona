@@ -46,8 +46,8 @@ CombinedPlannerNode::CombinedPlannerNode()
     n_.param<std::string>( "goal_topic", goal_topic_, "/goal" );
     n_.param<std::string>( "path_topic", path_topic_, "/path" );
 
-    lmap_wrapper_.setLowerThreshold( 250 );
-    lmap_wrapper_.setUpperThreshold( 251 );
+    lmap_wrapper_.setLowerThreshold( 128 );
+    lmap_wrapper_.setUpperThreshold( 250 );
 
     // Subscribe
     map_subs_ = n_.subscribe<nav_msgs::OccupancyGrid>( map_topic_, 1, boost::bind( &CombinedPlannerNode::updateMap, this, _1 ));
@@ -183,9 +183,7 @@ void CombinedPlannerNode::updateGoal( const geometry_msgs::PoseStampedConstPtr &
     // Visualize waypoints
     visualizeWaypoints( planner_.getGlobalWaypoints(), "waypoints", 3 );
 
-    // Run an update to plan a local path
-    replan_timer_.restart();
-    update();
+    ROS_INFO( "Goal updated." );
 }
 
 void CombinedPlannerNode::motionCtrlDoneCB( const actionlib::SimpleClientGoalState &state,

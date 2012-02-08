@@ -36,6 +36,7 @@ rosbuild_add_executable(combined_planner_node
     src/CombinedPlanner.cpp
     src/CombinedPlannerException.cpp
     src/LocalWaypointRegion.cpp
+    src/Path2d.cpp
 )
 target_link_libraries(combined_planner_node
     LibPath

@@ -31,51 +31,81 @@ LocalPlanner::LocalPlanner()
 }
 
 LocalPlanner::~LocalPlanner()
-{
+{ /* Nothing to do */ }
 
-}
-
-bool LocalPlanner::planPath( const lib_path::Pose2d &start, const lib_path::Pose2d &end, bool sampling )
+bool LocalPlanner::planPath( const lib_path::Pose2d &start,
+                             list<Pose2d>& global_waypoints,
+                             const Pose2d& global_goal )
 {
-    last_weight_ = -1.0;
-    path_.clear();
+    path_.reset();
 
     // Check input and status
     if ( map_ == NULL ) {
         throw CombinedPlannerException( "No local map!" );
     }
 
-    if ( !map_->isInMap( Point2d( start.x, start.y ))
-         || !map_->isInMap( Point2d( end.x, end.y ))) {
-        throw CombinedPlannerException( "Start or goal pose outside of the local map." );
+    // Check start pose
+    if ( !map_->isInMap( Point2d( start.x, start.y ))) {
+        throw CombinedPlannerException( "Start pose outside of the local map." );
     }
 
-    // Clear robot pose
+    // Clear start pose
     CircleArea clear_area( Point2d( start.x, start.y ), 0.3, map_ );
     map_->setAreaValue( clear_area, (uint8_t)0 );
 
-    // Search a path
+    // Create a list of reachable global waypoints
+    list<list<Pose2d>::iterator> possible_goals;
+    list<Pose2d>::iterator global_wp_it = global_waypoints.begin();
+    double max_wp_dist = 0.45*map_->getResolution()*(double)( min( map_->getHeight(), map_->getWidth()));
+    while ( global_wp_it != global_waypoints.end()) {
+        if ( global_wp_it->distance_to( start ) <= 0.8*max_wp_dist ) {
+            possible_goals.push_front( global_wp_it );
+            global_wp_it++;
+        } else
+            break;
+    }
+
+    // If we didn't find a possible global waypoint but the goal is out of reach
+    bool goal_in_area = global_goal.distance_to( start ) <= max_wp_dist;
+    if ( possible_goals.empty() && !goal_in_area )
+        throw CombinedPlannerException( "Found no possible local goal and the global goal is too far away." );
+
+    // If the goal is reachable try to find a path to it (no sampling!)
     Curve* curve = NULL;
-    if ( sampling ) {
-        LocalWaypointRegion goalRegion( end, 0.20, 10.0 );
-        SamplingPlanner s_planner( &rs_, map_ );
-        curve = s_planner.createPath( start, &goalRegion, 0 );
-    } else {
+    if ( goal_in_area ) {
         // The Reed Shepp planner needs cell coordinates
         Pose2d start_cell = pos2map( start, *map_ );
-        Pose2d end_cell = pos2map( end, *map_ );
+        Pose2d end_cell = pos2map( global_goal, *map_ );
         curve = rs_.find_path( start_cell, end_cell, map_ );
+
+        // Remove all waypoints on success
+        if ( curve && curve->is_valid()) {
+            global_waypoints.clear();
+            generatePath( curve );
+            delete curve;
+            return path_.getWaypointCount() > 0;
+        }
     }
 
-    // Check result & generate path if there is one
-    if ( curve  && curve->is_valid()) {
-        generatePath( curve );
-        last_weight_ = curve->weight();
-        delete curve;
-        return path_.size() > 0;
+    // Search a path to the selected waypoints. Latest selected one first
+    SamplingPlanner s_planner( &rs_, map_ );
+    while ( !possible_goals.empty()) {
+        LocalWaypointRegion wp_region( *possible_goals.front(), 0.25, 10.0 );
+        curve = s_planner.createPath( start, &wp_region, 0 );
+
+        // Remove waypoints on success
+        if ( curve && curve->is_valid()) {
+            global_waypoints.erase( global_waypoints.begin(), ++possible_goals.front());
+            generatePath( curve );
+            return path_.getWaypointCount() > 0;
+            break;
+        }
+
+        possible_goals.pop_front();
     }
 
-    if ( curve != NULL ) /// @todo Is this neccessary?
+    // Fail. No local path found
+    if ( curve != NULL )
         delete curve;
     return false;
 }
@@ -87,10 +117,10 @@ void LocalPlanner::setMap( lib_path::GridMap2d *map )
 
 void LocalPlanner::generatePath( lib_path::Curve *curve )
 {
-    path_.clear();
+    path_.reset();
     curve->reset_iteration();
     while( curve->has_next()) {
-        path_.push_back( map2pos( curve->next(), *map_ ));
+        path_.addWaypoint( map2pos( curve->next(), *map_ ));
     }
 }
 
@@ -102,10 +132,10 @@ void LocalPlanner::configure()
     // Read config
     double circle_radius, wp_distance, cost_backw, cost_forw, cost_curve, cost_straight;
     n.param<double> ("circle_radius", circle_radius, 1.0f);
-    n.param<double> ("max_waypoint_distance", wp_distance, 0.25f );
-    n.param<double> ("cost_backwards", cost_backw, 10.0f);
+    n.param<double> ("max_waypoint_distance", wp_distance, 0.25f);
+    n.param<double> ("cost_backwards", cost_backw, 5.0f);
     n.param<double> ("cost_forwards", cost_forw, 1.0f);
-    n.param<double> ("cost_curve", cost_curve, 1.2f);
+    n.param<double> ("cost_curve", cost_curve, 1.5f);
     n.param<double> ("cost_straight", cost_straight, 1.0f);
 
     // Set config

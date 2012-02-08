@@ -16,6 +16,7 @@
 // Project
 #include "LocalPlanner.h"
 #include "GlobalPlanner.h"
+#include "Path2d.h"
 
 namespace combined_planner {
 
@@ -91,8 +92,8 @@ public:
      * @brief Get the latest local path.
      * @return the current local path.
      */
-    const std::list<lib_path::Pose2d>& getLocalPath() const
-        { return lplanner_->getPath(); }
+    const WaypointList& getLocalPath() const
+        { return lplanner_->getPath().getWaypoints(); }
 
     /**
      * @brief Get the latest raw global path.
@@ -130,10 +131,6 @@ protected:
      *      the map or if there is no map to plan on.
      */
     bool findGlobalPath( const lib_path::Pose2d& start, const lib_path::Pose2d& goal );
-
-    bool findPathToWaypoint( const lib_path::Pose2d& start );
-
-    bool findPathToGoal( const lib_path::Pose2d& start );
 
     /**
      * @brief Calculate waypoints from a given path.
@@ -188,11 +185,8 @@ protected:
     /// Flag if we reached the latest global goal
     bool ggoal_reached_;
 
-    /// End of the latest local path
-    lib_path::Pose2d lgoal_;
-
-    /// Start of the latest local path
-    lib_path::Pose2d lstart_;
+    /// Current local path
+    Path2d lpath_;
 
     /// Maximum goal distance error. Used to determine if we have reached the goal
     double goal_dist_eps_;

@@ -18,6 +18,9 @@
 #include <utils/LibPath/common/GridMap2d.h>
 #include <utils/LibPath/ReedsShepp/CurveGenerator.h>
 
+// Project
+#include "Path2d.h"
+
 namespace combined_planner {
 
 /**
@@ -47,19 +50,19 @@ public:
      * @brief Try to find a car-like feasible path.
      * @param start The start pose of the path.
      * @param end The (optimal) end pose of the path.
-     * @param sampling If set to true the planner will no only try to find
-     *      a path to the given end pose but to a region around this pose.
      * @return True if there is a valid path and if this path contains at least one waypoint. False otherwise.
      * @throws CombinedPlannerException If there is no map or if the start/end pose lies
      *      outside of the map.
      */
-    bool planPath( const lib_path::Pose2d& start, const lib_path::Pose2d& end, bool sampling = true );
+    bool planPath( const lib_path::Pose2d& start,
+                   std::list<lib_path::Pose2d> &global_waypoints,
+                   const lib_path::Pose2d &global_goal );
 
     /**
      * @brief Get the latest path.
      * @return The latest path.
      */
-    const std::list<lib_path::Pose2d>& getPath() const
+    const Path2d& getPath() const
         { return path_; }
 
 protected:
@@ -86,10 +89,7 @@ protected:
     lib_path::GridMap2d* map_;
 
     /// The latest path
-    std::list<lib_path::Pose2d> path_;
-
-    /// Weight of the last Reed Shepp curve
-    double last_weight_;
+    Path2d path_;
 };
 
 } // namespace
