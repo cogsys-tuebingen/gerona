@@ -21,6 +21,10 @@ namespace lib_path {
  */
 class MapArea2d {
 public:
+
+    virtual ~MapArea2d()
+        { /* Nothing to do */ }
+
     /**
      * @brief Start a new iteration.
      */
@@ -50,7 +54,7 @@ public:
      * @brief Set the value of the currently selected cell.
      * @param value The new value.
      */
-    void setValue( const uint8_t value )
+    virtual void setValue( const uint8_t value )
         {}
 };
 
@@ -233,6 +237,10 @@ public:
      * @param area The map area.
      */
     virtual void getAreaValues( MapArea2d& area ) const;
+
+    virtual bool isAreaFree( MapArea2d& area ) const;
+
+    virtual bool isAreaOccupied( MapArea2d& area ) const;
 };
 
 /**
@@ -253,6 +261,9 @@ public:
      */
     CircleArea( const Point2d& center, const double radius, const GridMap2d* map );
 
+    virtual ~CircleArea()
+        { /* Nothing to do */ }
+
     /**
      * @brief Create the list of cells.
      * @param center Center of the circle in map coordinates.
@@ -263,12 +274,21 @@ public:
      */
     virtual void init( const Point2d& center, const double radius, const GridMap2d* map );
 
+    /**
+     * @brief Set the center point of the circular area.
+     * This method is fast since it doesn't recalculate the cells in this area.
+     * @param p The new center. Should be inside of the map!
+     * @param map The map. Should have the same resolution as the map used to
+     *      initialize the area.
+     */
+    virtual void setCenter( const Point2d& p, const GridMap2d *map );
+
     /* Inherited from MapArea2d */
 
     virtual void begin()
         { counter_ = 0; }
 
-    virtual inline bool next() {
+    virtual bool next() {
         if ( counter_ < cells_.size()) {
             ++counter_;
             return true;
@@ -276,9 +296,9 @@ public:
         return false;
     }
 
-    inline virtual void getCell( int& x, int& y ) const {
-        x = cells_[counter_].first;
-        y = cells_[counter_].second;
+    virtual void getCell( int& x, int& y ) const {
+        x = cells_[counter_].first + center_x_;
+        y = cells_[counter_].second + center_y_;
     }
 
     virtual uint8_t getValue() const
@@ -299,6 +319,12 @@ protected:
 
     /// List of all cells in this area (cell coordinates)
     std::vector<std::pair<int, int> > cells_;
+
+    /// Current x coordinate of center point (cell coordinates)
+    int center_x_;
+
+    /// Current y coordinate of center point (cell coordinates)
+    int center_y_;
 
     /// Points to the currently selected cell
     std::size_t counter_;
@@ -321,6 +347,9 @@ public:
      * @param map The map. Neccessary to get the size of one cell.
      */
     CircleBuffer( const Point2d& center, const double radius, const GridMap2d* map );
+
+    virtual ~CircleBuffer()
+        { /* Nothing to do */ }
 
     /**
      * @brief Create an area with given center and radius.

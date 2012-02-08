@@ -31,6 +31,7 @@ public:
      */
   double distance_to_origin() const;
 
+  bool isEqual( const Pose2d &p, const double dist_eps, const double theta_eps ) const;
 
 public:
   // x-coordinate
