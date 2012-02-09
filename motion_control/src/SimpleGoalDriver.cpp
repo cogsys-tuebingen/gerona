@@ -58,13 +58,14 @@ void SimpleGoalDriver::setGoal(const motion_control::MotionGoal &goal)
   }
   if (goal.mode==motion_control::MotionGoal::MOTION_FOLLOW_TARGET ||
       goal.mode==motion_control::MotionGoal::MOTION_TO_GOAL) {
-    goal_pose_global_.pose.position.x=goal.x;
-    goal_pose_global_.pose.position.y=goal.y;
-    goal_pose_global_.pose.position.z=0;
-    goal_pose_global_.pose.orientation=
+    goal_global_.pose.position.x=goal.x;
+    goal_global_.pose.position.y=goal.y;
+    goal_global_.pose.position.z=0;
+    goal_global_.pose.orientation=
     tf::createQuaternionMsgFromRollPitchYaw(0.0,0.0,goal.theta);
+    next_goal_global_=goal_global_;
     goal_path_global_.poses.clear();
-    goal_path_global_.poses.push_back(goal_pose_global_);
+    goal_path_global_.poses.push_back(goal_global_);
     path_idx_=0;
     pos_tolerance_=0.3;
     state_=MotionResult::MOTION_STATUS_MOVING;
@@ -72,10 +73,16 @@ void SimpleGoalDriver::setGoal(const motion_control::MotionGoal &goal)
     // copy the given path
     goal_path_global_=goal.path;
     if (goal_path_global_.poses.size()>0) {
-      goal_pose_global_=goal_path_global_.poses[0];
+      goal_global_=goal_path_global_.poses[0];
       path_idx_=0;
       pos_tolerance_=goal.pos_tolerance;
     }
+    if (goal_path_global_.poses.size()>1) {
+      next_goal_global_=goal_path_global_.poses[1];
+    } else {
+      next_goal_global_=goal_global_;
+    }
+
     if (!goal.path_topic.empty()) {
       // ***todo
       // ros should automatically unsubscribe previous subscriptions
@@ -93,8 +100,8 @@ void SimpleGoalDriver::setGoal(const motion_control::MotionGoal &goal)
 
   }
 
-  ROS_INFO("simplegoaldriver::setgoal: x=%f y=%f v=%f",goal_pose_global_.pose.position.x,
-           goal_pose_global_.pose.position.y,goal_v_);
+  ROS_INFO("simplegoaldriver::setgoal: x=%f y=%f v=%f",goal_global_.pose.position.x,
+           goal_global_.pose.position.y,goal_v_);
   laser_scan_.ranges.clear();
   start();
 }
@@ -112,9 +119,14 @@ void SimpleGoalDriver::updatePath (const nav_msgs::PathConstPtr& path)
     ROS_INFO( "Updating path" );
   goal_path_global_=*path;
   if (goal_path_global_.poses.size()>0) {
-    goal_pose_global_=goal_path_global_.poses[0];
+    goal_global_=goal_path_global_.poses[0];
     path_idx_=0;
     state_=MotionResult::MOTION_STATUS_MOVING;
+    if (goal_path_global_.poses.size()>1) {
+      next_goal_global_=goal_path_global_.poses[1];
+    } else {
+      next_goal_global_=goal_global_;
+    }
   } else {
     ROS_ERROR("empty path");
     state_=MotionResult::MOTION_STATUS_STOP;
@@ -150,7 +162,7 @@ void SimpleGoalDriver::start()
 }
 
 
-int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFeedback& feedback,
+int SimpleGoalDriver::driveToGoal(const Vector3d& goal, const Vector3d& next_goal, motion_control::MotionFeedback& feedback,
                                   motion_control::MotionResult& result)
 {
 
@@ -164,9 +176,14 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
   predictPose(Tt_,cmd_front_rad_,cmd_rear_rad_,direction*default_v_,
                 front_pred, rear_pred);
 
-  Line2d target_line;
   Vector2d target_pos( goal[0], goal[1] );
-  target_line.FromAngle( target_pos, goal[2] );
+  Line2d target_line;
+  if ((next_goal-goal).head<2>().norm()<0.01) {
+    target_line.FromAngle( target_pos, goal[2] );
+  } else {
+    target_line=Line2d(goal.head<2>(),next_goal.head<2>());
+  }
+
   double ef =target_line.GetSignedDistance(front_pred);
   double er =target_line.GetSignedDistance(rear_pred);
   double deltaf,deltar;
@@ -221,13 +238,16 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
   case MotionResult::MOTION_STATUS_MOVING:
   {
     // transform goal point into local cs
-    geometry_msgs::PoseStamped goal_pose_local;
+    geometry_msgs::PoseStamped goal_local,next_goal_local;
 
     Vector3d robot_pose;    
-    goal_pose_global_.header.stamp=ros::Time::now();
+    goal_global_.header.stamp=ros::Time::now();
+    next_goal_global_.header.stamp=ros::Time::now();
     try {
-      goal_pose_global_.header.frame_id="/map";
-      pose_listener_.transformPose("/base_link",ros::Time(0),goal_pose_global_,"/map",goal_pose_local);
+      goal_global_.header.frame_id="/map";
+      next_goal_global_.header.frame_id="/map";
+      pose_listener_.transformPose("/base_link",ros::Time(0),goal_global_,"/map",goal_local);
+      pose_listener_.transformPose("/base_link",ros::Time(0),goal_global_,"/map",next_goal_local);
     } catch (tf::TransformException& ex) {
       ROS_ERROR("error with transform goal pose: %s", ex.what());
       return MotionResult::MOTION_STATUS_MOVING;
@@ -235,8 +255,8 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
 
     // check distance to goal
     Vector3d goal_vec;
-    goal_vec.x()=goal_pose_local.pose.position.x;
-    goal_vec.y()=goal_pose_local.pose.position.y;
+    goal_vec.x()=goal_local.pose.position.x;
+    goal_vec.y()=goal_local.pose.position.y;
     // goal in reach for 4ws driver?
     double dist_goal=goal_vec.head<2>().norm();
     if ((dist_goal<pos_tolerance_) ) {
@@ -244,7 +264,14 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
       ++path_idx_;
       if (path_idx_<goal_path_global_.poses.size()) {
         // next pose in path
-        goal_pose_global_=goal_path_global_.poses[path_idx_];
+        goal_global_=goal_path_global_.poses[path_idx_];
+        if (path_idx_+1<goal_path_global_.poses.size()) {
+          next_goal_global_=goal_path_global_.poses[path_idx_+1];
+        } else {
+          next_goal_global_=goal_global_;
+        }
+
+
         // publish in the next call of execute()
         return state_;
       } else {
@@ -254,8 +281,11 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
       }
     } else {
       // driver drives towards goal
-      goal_vec.z()=tf::getYaw(goal_pose_local.pose.orientation);
-      state_=driveToGoal(goal_vec,feedback,result);
+      goal_vec.z()=tf::getYaw(goal_local.pose.orientation);
+      Vector3d next_goal_vec;
+      next_goal_vec.x()=next_goal_local.pose.position.x;
+      next_goal_vec.y()=next_goal_local.pose.position.y;
+      state_=driveToGoal(goal_vec,next_goal_vec,feedback,result);
 
     }
     feedback.dist_goal=dist_goal;
