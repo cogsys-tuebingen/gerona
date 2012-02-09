@@ -32,7 +32,8 @@ public:
      */
     LocalWaypointRegion( const lib_path::Pose2d &center,
                          const double dist_step,
-                         const double angle_steg_deg );
+                         const double angle_steg_deg,
+                         const bool inverse = false );
 
     /* Inherited from GoalRegion */
     virtual void init( unsigned samples_num = 0 ) { /* We have always three samples */ }
@@ -48,7 +49,8 @@ protected:
      */
     virtual void generateGoals( const lib_path::Pose2d &center,
                                 const double dist_step,
-                                const double angle_steg_deg );
+                                const double angle_steg_deg,
+                                const bool inverse );
 
     /// List of possible goals
     std::list<std::pair<lib_path::Pose2d, double> > goal_list_;

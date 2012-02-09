@@ -18,9 +18,10 @@ using namespace lib_path;
 
 LocalWaypointRegion::LocalWaypointRegion( const lib_path::Pose2d &center,
                                           const double dist_step,
-                                          const double angle_step_deg )
+                                          const double angle_step_deg,
+                                          const bool inverse )
 {
-    generateGoals( center, dist_step, angle_step_deg );
+    generateGoals( center, dist_step, angle_step_deg, inverse );
 }
 
 bool LocalWaypointRegion::getNextGoal( Pose2d &goal, double& gain )
@@ -36,7 +37,8 @@ bool LocalWaypointRegion::getNextGoal( Pose2d &goal, double& gain )
 
 void LocalWaypointRegion::generateGoals( const lib_path::Pose2d &center,
                                          const double dist_step,
-                                         const double angle_steg_deg )
+                                         const double angle_steg_deg,
+                                         const bool inverse )
 {
     double angle_step_rad = M_PI*angle_steg_deg/180.0;
 
@@ -76,10 +78,11 @@ void LocalWaypointRegion::generateGoals( const lib_path::Pose2d &center,
     shifted.theta -= angle_step_rad;
     goal_list_.push_back( pair<Pose2d, double>( shifted, 1.3 ));
 
-    // Allow to reach the pose backwards
-    shifted = center;
-    shifted.theta += M_PI;
-    goal_list_.push_back( pair<Pose2d, double>( shifted, 3.0 ) );
-
+    if ( inverse ) {
+        // Allow to reach the pose backwards
+        shifted = center;
+        shifted.theta += M_PI;
+        goal_list_.push_back( pair<Pose2d, double>( shifted, 3.0 ) );
+    }
 }
 

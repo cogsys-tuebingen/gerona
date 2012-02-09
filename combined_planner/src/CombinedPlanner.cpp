@@ -74,13 +74,13 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
     lpath_.updateWaypoints( 0.25, robot_pose );
 
     // debug
-    if ( !lpath_.isFree( lmap_->getResolution(), lmap_ ))
+    if ( !lpath_.areWaypointsFree( lmap_->getResolution(), lmap_ ))
         ROS_WARN( "Local path is not free." );
 
     // Replan anyway?
     force_replan = force_replan || lpath_.getWaypointCount() <= 0 ||
             (!gwaypoints_.empty() && robot_pose.isEqual( lpath_.getEnd(), wp_dist_eps_, wp_angle_eps_ )) ||
-            !lpath_.isFree( lmap_->getResolution(), lmap_ );
+            !lpath_.areWaypointsFree( lmap_->getResolution(), lmap_ );
 
     // Something to do?
     if ( !force_replan )
@@ -149,8 +149,8 @@ bool CombinedPlanner::isGoalReached( const Pose2d& robot_pose ) const
 
 void CombinedPlanner::calculateWaypoints( const vector<Point2d> &path, const Pose2d& goal, list<Pose2d> &waypoints ) const
 {
-    double min_waypoint_dist_ = 0.50;
-    double max_waypoint_dist_ = 0.75;
+    double min_waypoint_dist_ = 0.75;
+    double max_waypoint_dist_ = 1.0;
 
     waypoints.clear();
 

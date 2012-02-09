@@ -53,7 +53,43 @@ bool Path2d::isEndReached( const Pose2d& robot_pose,
     return end_.isEqual( robot_pose, max_d_dist, max_d_theta );
 }
 
-bool Path2d::isFree( double radius, const GridMap2d *map ) const
+bool Path2d::isFree( const GridMap2d *map, Pose2d robot_pose, const double skip_radius ) const
+{
+    // We need two remaining waypoints
+    if ( waypoints_.size() < 2 )
+        return true; /// @todo Use robot pose as a waypoint?
+
+    // Skip all waypoint that are too close to the robot pose
+    WaypointList::const_iterator wp_it = waypoints_.begin();
+    while ( wp_it != waypoints_.end()) {
+        if ( robot_pose.distance_to( *wp_it ) > skip_radius )
+            break;
+        wp_it++;
+    }
+
+    // This might happen
+    if ( wp_it == waypoints_.end())
+        return true;
+
+    // Check lines between the waypoints
+    Point2d start( 0, 0 ), end( 0, 0 );
+    LineArea line_area( start, end, map );
+    start.x = wp_it->x, start.y = wp_it->y;
+    while ((++wp_it) != waypoints_.end()) {
+        end.x = wp_it->x, end.y = wp_it->y;
+        line_area.set( start, end, map );
+
+        if ( !map->isAreaFree( line_area )) {
+            return false;
+        }
+
+        start = end;
+    }
+
+    return true;
+}
+
+bool Path2d::areWaypointsFree( const double radius, const GridMap2d *map ) const
 {
     if ( waypoints_.empty())
         return true;

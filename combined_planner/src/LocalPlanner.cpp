@@ -82,6 +82,8 @@ bool LocalPlanner::planPath( const lib_path::Pose2d &start,
         if ( curve && curve->is_valid()) {
             global_waypoints.clear();
             generatePath( curve );
+            //if ( !path_.isFree( map_, start, 0.3 ))
+              //  throw CombinedPlannerException( "New local path is not free. This should never happen!" );
             delete curve;
             return path_.getWaypointCount() > 0;
         }
@@ -90,13 +92,15 @@ bool LocalPlanner::planPath( const lib_path::Pose2d &start,
     // Search a path to the selected waypoints. Latest selected one first
     SamplingPlanner s_planner( &rs_, map_ );
     while ( !possible_goals.empty()) {
-        LocalWaypointRegion wp_region( *possible_goals.front(), 0.25, 10.0 );
+        LocalWaypointRegion wp_region( *possible_goals.front(), 0.25, 10.0, possible_goals.size() == 1 );
         curve = s_planner.createPath( start, &wp_region, 0 );
 
         // Remove waypoints on success
         if ( curve && curve->is_valid()) {
             global_waypoints.erase( global_waypoints.begin(), ++possible_goals.front());
             generatePath( curve );
+            //if ( !path_.isFree( map_, start, 0.3 ))
+               // throw CombinedPlannerException( "New local path is not free. This should never happen!" );
             return path_.getWaypointCount() > 0;
             break;
         }
