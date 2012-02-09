@@ -27,6 +27,7 @@ void CentroidRadiusGoalRegion::init (unsigned samples_num)
   counter_ = 0;
   samples_num_ = samples_num;
 
+  // Direct approach angle of robot (src) to goal (center)
   theta_ = MathHelper::Angle (Vector2d (center_.x - src_.x, center_.y - src_.y));
 
   angle_rad_ = fabs (angle_rad_);
@@ -52,6 +53,10 @@ bool CentroidRadiusGoalRegion::getNextGoal (Pose2d &goal, double& gain)
 
   counter_++;
   theta_ = MathHelper::AngleClamp (theta_ + theta_step_);
+
+  // Direct approach 1.0 -> approach from max angle 2.0
+  int32_t diff = (int32_t)(counter_ - (samples_num_/2));
+  gain = 1.0 + 2.0*abs (diff) / samples_num_;
 
   return true;
 }
