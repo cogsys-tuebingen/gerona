@@ -17,6 +17,8 @@
 #include <tf/transform_listener.h>
 #include <costmap_2d/costmap_2d_ros.h>
 #include <actionlib/client/simple_action_client.h>
+#include <actionlib/server/simple_action_server.h>
+#include <move_base_msgs/MoveBaseAction.h>
 
 // Workspace
 #include <utils/LibUtil/Stopwatch.h>
@@ -30,16 +32,17 @@
 
 namespace combined_planner {
 
-class CombinedPlannerNode {
+class CombinedPlannerNode : public actionlib::SimpleActionServer<move_base_msgs::MoveBaseAction> {
 public:
 
     CombinedPlannerNode();
 
-    void updateMap( const nav_msgs::OccupancyGridConstPtr& map );
-    void updateGoal( const geometry_msgs::PoseStampedConstPtr& goal );
-    void update();
+    void actionGoalCB();
+    void globalMapCB( const nav_msgs::OccupancyGridConstPtr& map );
+    void goalCB( const geometry_msgs::PoseStampedConstPtr& goal );
     void motionCtrlDoneCB( const actionlib::SimpleClientGoalState& state,
                            const motion_control::MotionResultConstPtr& result );
+    void update();
     bool getRobotPose( lib_path::Pose2d &pose, const std::string& map_frame );
     void publishLocalPath( const std::list<lib_path::Pose2d> &path );
     void publishEmptyLocalPath();
@@ -50,7 +53,7 @@ public:
 
     void visualizeWaypoints( const std::list<lib_path::Pose2d> &wp, std::string ns, int id );
     void activate();
-    void deactivate();
+    void deactivate( bool succeeded = true );
     void plannerPathToRos( const std::list<lib_path::Pose2d> &planner_p, std::vector<geometry_msgs::PoseStamped>& ros_p );
 
 private:
@@ -101,6 +104,15 @@ private:
 
     /// Used to replan the local path if neccessary
     Stopwatch replan_timer_;
+
+    /// Action goal
+    move_base_msgs::MoveBaseGoal as_goal_;
+
+    /// Action result
+    move_base_msgs::MoveBaseResult as_result_;
+
+    /// Action feedback
+    move_base_msgs::MoveBaseFeedback as_feedback_;
 };
 
 } // Namespace

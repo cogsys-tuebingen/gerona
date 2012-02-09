@@ -20,11 +20,12 @@
 #include "CombinedPlannerException.h"
 #include "CombinedPlannerNode.h"
 
-
 using namespace lib_path;
 using namespace lib_ros_util;
 using namespace std;
 using namespace combined_planner;
+using namespace move_base_msgs;
+using namespace actionlib;
 
 ///////////////////////////////////////////////////////////////////////////////
 // class CombinedPlannerNode
@@ -32,14 +33,14 @@ using namespace combined_planner;
 
 
 CombinedPlannerNode::CombinedPlannerNode()
-    : n_( "~" ),
+    : SimpleActionServer<MoveBaseAction>( "move_base", false ),
+      n_( "~" ),
       tf_( ros::Duration( 10.0 )),
       lmap_ros_( "local_costmap", tf_ ),
       lmap_wrapper_( &lmap_cpy_ ),
       gmap_wrapper_( &gmap_cpy_ ),
       got_map_( false ),
-      motion_ac_( "motion_control" ),
-      active_( false )
+      motion_ac_( "motion_control" )
 {
     // Topic names parameters
     n_.param<std::string>( "map_topic", map_topic_, "/map_inflated" );
@@ -50,69 +51,135 @@ CombinedPlannerNode::CombinedPlannerNode()
     lmap_wrapper_.setUpperThreshold( 253 );
 
     // Subscribe
-    map_subs_ = n_.subscribe<nav_msgs::OccupancyGrid>( map_topic_, 1, boost::bind( &CombinedPlannerNode::updateMap, this, _1 ));
-    goal_subs_ = n_.subscribe<geometry_msgs::PoseStamped>( goal_topic_, 1, boost::bind( &CombinedPlannerNode::updateGoal, this, _1 ));
+    map_subs_ = n_.subscribe<nav_msgs::OccupancyGrid>( map_topic_, 1, boost::bind( &CombinedPlannerNode::globalMapCB, this, _1 ));
+    //goal_subs_ = n_.subscribe<geometry_msgs::PoseStamped>( goal_topic_, 1, boost::bind( &CombinedPlannerNode::goalCB, this, _1 ));
 
     // Advertise
     path_pub_ = n_.advertise<nav_msgs::Path>( path_topic_, 5 );
     visu_pub_ = n_.advertise<visualization_msgs::Marker>( "visualization_markers", 5 );
+
+    // Init and start action server
+    registerGoalCallback( boost::bind( &CombinedPlannerNode::actionGoalCB, this ));
+    start();
 }
 
 void CombinedPlannerNode::update()
 {
+    // Check for preempt request
+    if ( isPreemptRequested()) {
+        deactivate( false );
+        return;
+    }
+
     // Nothing to do if there is no goal
-    if ( !active_ )
+    if ( !isActive())
         return;
 
     // Try to get the current position
     Pose2d robot_pose;
     if ( !getRobotPose( robot_pose, gmap_frame_id_ )) {
-        deactivate();
+        deactivate( false );
         return;
     }
 
     // Check if we reached the goal
     if ( planner_.isGoalReached( robot_pose )) {
         ROS_INFO( "Goal reached." );
-        deactivate();
-        active_ = false;
+        deactivate( true );
         return;
     }
 
-    lmap_ros_.clearRobotFootprint();
     lmap_ros_.getCostmapCopy( lmap_cpy_ );
     planner_.setLocalMap( &lmap_wrapper_ );
     try {
-        planner_.update( robot_pose , /*replan_timer_.msElapsed() > 500*/ false );
+        planner_.update( robot_pose, false );
     } catch ( CombinedPlannerException& ex ) {
         ROS_ERROR( "Error planning a path. Reason: %s", ex.what());
-        deactivate();
-        active_ = false;
+        deactivate( false );
         return;
     }
 
     // Is there a valid path?
     if ( !planner_.hasValidPath()) {
-        deactivate();
+        ROS_ERROR( "No valid path!" );
+        deactivate( false );
         return;
     }
 
-    // Publis new local path?
-    if ( !planner_.hasNewLocalPath()) {
+    // Publis new local path and feedback
+    //as_feedback_.base_position = robot_pose; /// @todo Implement
+    //publishFeedback( as_feedback_ );
+    if ( !planner_.hasNewLocalPath())
         return;
-    }
 
-    ROS_INFO("Publishing new local path");
-    /*std::list<Pose2d> lpath = planner_.getLocalPath();
-    if ( lpath.size() > 1 )
-        lpath.pop_front();*/
-    publishLocalPath( /*lpath*/ planner_.getLocalPath());
-    replan_timer_.restart();
+    publishLocalPath( planner_.getLocalPath());
 
     visualizeWaypoints( planner_.getGlobalWaypoints(), "waypoints", 3 );
 }
 
-void CombinedPlannerNode::updateMap( const nav_msgs::OccupancyGridConstPtr &map )
+void CombinedPlannerNode::actionGoalCB()
+{
+    // Stop motion control etc if necessary
+    ROS_INFO( "Goal callback" );
+    if ( isPreemptRequested())
+        deactivate( false );
+
+    as_goal_ = *acceptNewGoal();
+    ROS_INFO( "Got a new goal" );
+
+    // Convert goal int map coordinate system if necessary
+    geometry_msgs::PoseStamped goal_map;
+    if ( as_goal_.target_pose.header.frame_id.compare( gmap_frame_id_ ) != 0 ) {
+        try {
+            tf_.transformPose( gmap_frame_id_, as_goal_.target_pose, goal_map );
+        } catch (tf::TransformException& ex) {
+            ROS_ERROR( "Cannot transform goal into map coordinates. Reason: %s",
+                       ex.what());
+            deactivate( false );
+            return;
+        }
+    } else {
+        goal_map = as_goal_.target_pose;
+    }
+
+    // Get the current robot pose in map coordinates
+    lib_path::Pose2d robot_pose;
+    if (!getRobotPose( robot_pose, gmap_frame_id_ )) {
+        deactivate( false );
+        return;
+    }
+
+    // Run planner
+    planner_.setGlobalMap( &gmap_wrapper_ );
+    lmap_ros_.getCostmapCopy( lmap_cpy_ );
+    planner_.setLocalMap( &lmap_wrapper_ );
+    lib_path::Pose2d pathStart = robot_pose;
+    lib_path::Pose2d pathEnd( goal_map.pose.position.x,
+                              goal_map.pose.position.y,
+                              tf::getYaw( goal_map.pose.orientation ));
+    try  {
+        planner_.setGoal( pathStart, pathEnd );
+    } catch ( CombinedPlannerException& ex ) {
+        ROS_ERROR( "Cannot plan a path. Reason: %s", ex.what());
+        deactivate( false );
+        return;
+    }
+
+    // Valid path found?
+    if ( !planner_.hasValidPath()) {
+        ROS_WARN( "No path found!" );
+        deactivate( false );
+        return;
+    }
+
+    // Start motion control etc
+    activate();
+
+    // Visualize waypoints
+    visualizeWaypoints( planner_.getGlobalWaypoints(), "waypoints", 3 );
+}
+
+void CombinedPlannerNode::globalMapCB( const nav_msgs::OccupancyGridConstPtr &map )
 {
     gmap_cpy_ = *map;
     gmap_frame_id_ = "/map";
@@ -121,75 +188,57 @@ void CombinedPlannerNode::updateMap( const nav_msgs::OccupancyGridConstPtr &map 
     got_map_ = true;
 }
 
-void CombinedPlannerNode::updateGoal( const geometry_msgs::PoseStampedConstPtr &goal )
+void CombinedPlannerNode::activate()
 {
-    ROS_INFO("Got a new goal");
-
-    // Stop motion control etc if necessary
-    deactivate();
-
-    // Convert goal int map coordinate system if necessary
-    geometry_msgs::PoseStamped goal_map;
-    if ( goal->header.frame_id.compare( gmap_frame_id_ ) != 0 ) {
-        try {
-            tf_.transformPose( gmap_frame_id_, *goal, goal_map );
-        } catch (tf::TransformException& ex) {
-            ROS_ERROR( "Cannot transform goal into map coordinates. Reason: %s",
-                       ex.what());
-            return;
-        }
-    } else {
-        goal_map = *goal;
-    }
-
-    // Get the current robot pose in map coordinates
-    lib_path::Pose2d robot_pose;
-    if (!getRobotPose( robot_pose, gmap_frame_id_ ))
-        return;
-
-    // Run planner
-    planner_.setGlobalMap( &gmap_wrapper_ );
-    lmap_ros_.clearRobotFootprint();
-    lmap_ros_.getCostmapCopy( lmap_cpy_ );
-    planner_.setLocalMap( &lmap_wrapper_ );
-    lib_path::Pose2d pathStart = robot_pose;
-    lib_path::Pose2d pathEnd( goal_map.pose.position.x, goal_map.pose.position.y, tf::getYaw( goal_map.pose.orientation ));
-    try  {
-        planner_.setGoal( pathStart, pathEnd );
-    } catch ( CombinedPlannerException& ex ) {
-        ROS_ERROR( "Cannot plan a path. Reason: %s", ex.what());
+    // Wait for action server
+    if ( !motion_ac_.waitForServer( ros::Duration( 1.0 )) ) {
+        ROS_WARN( "Motion control action server didn't connect within 1.0 seconds" );
+        deactivate( false );
         return;
     }
 
-    // Valid path found?
-    if ( !planner_.hasValidPath()) {
-        ROS_WARN( "No path found!" );
+    // Send goal
+    motion_control::MotionGoal motionGoal;
+    motionGoal.mode = motion_control::MotionGoal::MOTION_FOLLOW_PATH;
+    motionGoal.path_topic = path_topic_;
+    plannerPathToRos( planner_.getLocalPath(), motionGoal.path.poses );
+    motionGoal.v = 0.6;
+    motionGoal.pos_tolerance = 0.20;
+    motion_ac_.sendGoal( motionGoal, boost::bind( &CombinedPlannerNode::motionCtrlDoneCB, this, _1, _2 ));
+}
+
+void CombinedPlannerNode::deactivate( bool succeeded )
+{
+    ROS_INFO( "Deactivating path planner. Succeeded: %d", succeeded );
+    publishEmptyLocalPath();
+    motion_ac_.cancelAllGoals();
+
+    if ( !isActive())
         return;
-    }
 
-    // Start motion control etc
-    activate();
-
-    // Visualize raw path
-    std::list<lib_path::Point2d> path_raw;
-    /*planner_.getGlobalPathRaw( path_raw );
-    visualizePath( path_raw, "global_path_raw", 0, 0 );*/
-
-    // Get & visualize flattened path
-    path_raw.clear();
-    planner_.getGlobalPath( path_raw );
-    visualizePath( path_raw, "global_path", 1, 1 );
-
-    // Visualize waypoints
-    visualizeWaypoints( planner_.getGlobalWaypoints(), "waypoints", 3 );
-
-    ROS_INFO( "Goal updated." );
+    if ( succeeded )
+        setSucceeded( as_result_ );
+    else
+        setAborted( as_result_ );
 }
 
 void CombinedPlannerNode::motionCtrlDoneCB( const actionlib::SimpleClientGoalState &state,
                                             const motion_control::MotionResultConstPtr &result )
 {
-    /// @todo Resume from state collision
+    /// @todo Do something more professional
+    switch ( result->status ) {
+    case motion_control::MotionResult::MOTION_STATUS_SUCCESS:
+    case motion_control::MotionResult::MOTION_STATUS_MOVING:
+    case motion_control::MotionResult::MOTION_STATUS_STOP:
+        ROS_INFO( "Motion control is done. Status is ok." );
+        break;
+
+    default:
+        ROS_ERROR( "Motion control reported an error." );
+    }
+
+    // Anyway, deactivate
+    deactivate( false );
 }
 
 void CombinedPlannerNode::plannerPathToRos(const list<Pose2d> &planner_p, vector<geometry_msgs::PoseStamped>& ros_p )
@@ -247,37 +296,6 @@ bool CombinedPlannerNode::getRobotPose( lib_path::Pose2d& pose, const std::strin
     pose.theta = tf::getYaw( msg.transform.rotation );
 
     return true;
-}
-
-void CombinedPlannerNode::activate()
-{
-    // Kill all goals and reset the path planner if neccessary
-    if ( active_ )
-        deactivate();
-
-    // Wait for action server
-    if ( !motion_ac_.waitForServer( ros::Duration( 1.0 )) ) {
-        ROS_WARN( "Motion control action server didn't connect within 1.0 seconds" );
-        return;
-    }
-    active_ = true;
-
-    // Send goal
-    motion_control::MotionGoal motionGoal;
-    motionGoal.mode = motion_control::MotionGoal::MOTION_FOLLOW_PATH;
-    motionGoal.path_topic = path_topic_;
-    plannerPathToRos( planner_.getLocalPath(), motionGoal.path.poses );
-    motionGoal.v = 0.7;
-    motionGoal.pos_tolerance = 0.20;
-    motion_ac_.sendGoal( motionGoal, boost::bind( &CombinedPlannerNode::motionCtrlDoneCB, this, _1, _2 ));
-}
-
-void CombinedPlannerNode::deactivate()
-{
-    ROS_INFO( "Deactivating path planner." );
-    motion_ac_.cancelAllGoals();
-    active_ = false;
-    publishEmptyLocalPath();
 }
 
 void CombinedPlannerNode::visualizePath(

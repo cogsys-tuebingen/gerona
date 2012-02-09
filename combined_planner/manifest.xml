@@ -20,6 +20,7 @@
   <depend package="motion_control" />
   <depend package="actionlib"/>
   <depend package="actionlib_msgs"/>
+  <depend package="move_base_msgs"/>
 </package>
 
 

@@ -41,3 +41,7 @@ rosbuild_add_executable(combined_planner_node
 target_link_libraries(combined_planner_node
     LibPath
 )
+
+rosbuild_add_executable(goal_topic_node
+    src/GoalTopicNode.cpp
+)
