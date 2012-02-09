@@ -382,6 +382,68 @@ protected:
     std::vector<uint8_t> values_;
 };
 
+/**
+ * @class LineArea
+ * @brief A area containing all cells on a line.
+ * This class uses a Bresenham algorithm to compute the cells on a straight line.
+ * @attention The width of the line is just one pixel!
+ * @attention This class is mostly untested!
+ */
+class LineArea : public MapArea2d {
+public:
+
+    /**
+     * @brief Create a new line area.
+     * @attention The area won't contain any cells, if start or end is outside of the map.
+     * @param start Start of the line in map coordinates.
+     * @param end End of the line in map coordinates.
+     * @param map The map (we need to known the origin and the resolution).
+     */
+    LineArea( const Point2d &start, const Point2d &end, const GridMap2d *map );
+
+    virtual ~LineArea() { /* Nothing to do */ }
+
+    /**
+     * @brief Set start and end and compute the cells in between.
+     * @attention The area won't contain any cells, if start or end is outside of the map.
+     * @param start Start of the line in map coordinates.
+     * @param end End of the line in map coordinates.
+     * @param map The map (we need to known the origin and the resolution).
+     */
+    void set( const Point2d &start, const Point2d &end, const GridMap2d *map );
+
+    /* Inherited from MapArea2d */
+
+    virtual void begin()
+        { counter_ = 0; }
+
+    virtual bool next() {
+        if ( counter_ < cells_.size()) {
+            ++counter_;
+            return true;
+        }
+        return false;
+    }
+
+    virtual void getCell( int& x, int& y ) const {
+        x = cells_[counter_].first;
+        y = cells_[counter_].second;
+    }
+
+    virtual uint8_t getValue() const
+        { return value_; }
+
+protected:
+    /// Points to the current cell
+    std::size_t counter_;
+
+    /// All cells of this area
+    std::vector<std::pair<int, int> > cells_;
+
+    /// New cell value
+    uint8_t value_;
+};
+
 } // namespace "lib_path"
 
 #endif // GRIDMAP2D_H

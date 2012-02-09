@@ -181,3 +181,43 @@ void CircleBuffer::init( const Point2d &center,
     values_.resize( cells_.size());
     values_.assign( values_.size(), value_ );
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// class LineArea
+///////////////////////////////////////////////////////////////////////////////
+
+LineArea::LineArea( const Point2d &start, const Point2d &end, const GridMap2d *map )
+    : counter_( 0 ),
+      value_( 0 )
+{
+    set( start, end, map );
+}
+
+void LineArea::set( const Point2d &start, const Point2d &end, const GridMap2d *map )
+{
+    cells_.clear();
+
+    // Get cell coordinates
+    int x0, y0, x1, y1;
+    if ( !map->isInMap( start ) || !map->isInMap( end ))
+        return;
+    unsigned int x, y; /// @todo Fix this unsigned/signed shit
+    map->point2cell( start, x, y );
+    x0 = (int)x; y0 = (int)y;
+    map->point2cell( end, x, y );
+    x1 = (int)x; y1 = (int)y;
+
+    // Taken from http://de.wikipedia.org/wiki/Bresenham-Algorithmus
+    int dx =  abs( x1 - x0 ), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs( y1 - y0 ), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy, e2;
+
+    for (;;) {
+        cells_.push_back( std::pair<int, int>( x0, y0 ));
+
+        if ( x0 == x1 && y0 == y1 ) break;
+        e2 = 2*err;
+        if (e2 > dy) { err += dy; x0 += sx; }
+        if (e2 < dx) { err += dx; y0 += sy; }
+    }
+}
