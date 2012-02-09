@@ -44,6 +44,13 @@ Line2d::Line2d( const Vector2d &origin, const double angle ) {
 
 double Line2d::GetSignedDistance(const Eigen::Vector2d &p) const
 {
+  /* see http://mathworld.wolfram.com/Point-LineDistance2-Dimensional.html
+    with line=(p1,p2) point p0
+    distance to line is
+    d= |det(p2-p1 p1-p0)|/ |p2-p1]
+    here [p2-p1| = |mDirection| = 1
+    */
+
   Matrix2d M;
   M.col(0)=mDirection;
   M.col(1)=mOrigin-p;
