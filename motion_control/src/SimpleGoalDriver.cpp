@@ -171,6 +171,7 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
   double er =target_line.GetSignedDistance(rear_pred);
   double deltaf,deltar;
   bool controlled=ctrl_.execute(ef,er,deltaf,deltar);
+
   if (controlled) {
     cmd_v_=direction*default_v_;
     cmd_front_rad_=-1.0*direction*deltaf;
@@ -179,16 +180,17 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
   }
 
   // estimate course
-  double beta=atan(0.5*(tan(deltaf)+tan(deltar)));
+  double beta=direction*atan(0.5*(tan(cmd_front_rad_)+tan(cmd_rear_rad_)));
   // add pi to direction if driving backwards
-  beta+=direction<0?M_PI:0.0;
-  beta=MathHelper::NormalizeAngle(beta);
-  //double beta = calculateCourse( cmd_front_rad_, cmd_rear_rad_, cmd_v_ );
+  beta += direction < 0 ? M_PI : 0.0;
+  beta = MathHelper::NormalizeAngle(beta);
 
 
   // check collision
-  bool colliding=checkCollision(beta,0.3);
+  bool colliding=checkCollision(beta,0.4);
   if ( colliding ) {
+    cout << "Beta: " << beta << endl;
+    cout << "Cmd front: " << cmd_front_rad_ << " cmd rear: " << cmd_rear_rad_ << endl;
     result.status=MotionResult::MOTION_STATUS_COLLISION;
     cmd_v_=0.0;
     return MotionResult::MOTION_STATUS_COLLISION;
@@ -198,29 +200,6 @@ int SimpleGoalDriver::driveToGoal(const Vector3d& goal, motion_control::MotionFe
     return MotionResult::MOTION_STATUS_MOVING;
   }
 }
-
-double SimpleGoalDriver::calculateCourse( double delta_f, double delta_r, double cmd_v )
-{
-    // Estimate beta from current steering angles
-    double beta = atan(0.5*(tan(delta_f)+tan(delta_r)));
-    if ( cmd_v < 0 )
-        beta = MathHelper::NormalizeAngle( beta + M_PI );
-    cout << "Beta: " << beta << endl;
-
-    // Estimate course from SLAM system
-    Vector3d slam_pose;
-    bool slam_avail = getSlamPose( slam_pose );
-    if ( slam_avail && (last_slam_pose_ - slam_pose).norm() > 0.05 ) {
-        double slam_beta = MathHelper::AngleDelta( last_slam_pose_.z(), atan2( slam_pose.y(), slam_pose.x()));
-        beta = 0.2*beta + 0.8*slam_beta;
-        last_slam_pose_ = slam_pose;
-        cout << "Slam beta: " << slam_beta << endl;
-    }
-    cout << "Resulting beta: " << beta << endl;
-
-    return beta;
-}
-
 
 int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
                          motion_control::MotionResult& result)
