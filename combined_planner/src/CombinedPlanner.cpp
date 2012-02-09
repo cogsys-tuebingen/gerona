@@ -149,8 +149,8 @@ bool CombinedPlanner::isGoalReached( const Pose2d& robot_pose ) const
 
 void CombinedPlanner::calculateWaypoints( const vector<Point2d> &path, const Pose2d& goal, list<Pose2d> &waypoints ) const
 {
-    double min_waypoint_dist_ = 0.75;
-    double max_waypoint_dist_ = 1.0;
+    double min_waypoint_dist_ = 0.50;
+    double max_waypoint_dist_ = 0.75;
 
     waypoints.clear();
 

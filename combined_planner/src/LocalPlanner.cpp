@@ -50,7 +50,7 @@ bool LocalPlanner::planPath( const lib_path::Pose2d &start,
     }
 
     // Clear start pose
-    CircleArea clear_area( Point2d( start.x, start.y ), 0.3, map_ );
+    CircleArea clear_area( Point2d( start.x, start.y ), 0.35, map_ );
     map_->setAreaValue( clear_area, (uint8_t)0 );
 
     // Create a list of reachable global waypoints
@@ -67,7 +67,7 @@ bool LocalPlanner::planPath( const lib_path::Pose2d &start,
 
     // If we didn't find a possible global waypoint but the goal is out of reach
     bool goal_in_area = global_goal.distance_to( start ) <= max_wp_dist;
-    if ( possible_goals.empty() && !goal_in_area )
+    if ( possible_goals.empty() && !map_->isInMap( global_goal ))
         throw CombinedPlannerException( "Found no possible local goal and the global goal is too far away." );
 
     // If the goal is reachable try to find a path to it (no sampling!)
@@ -92,7 +92,7 @@ bool LocalPlanner::planPath( const lib_path::Pose2d &start,
     // Search a path to the selected waypoints. Latest selected one first
     SamplingPlanner s_planner( &rs_, map_ );
     while ( !possible_goals.empty()) {
-        LocalWaypointRegion wp_region( *possible_goals.front(), 0.25, 10.0, possible_goals.size() == 1 );
+       LocalWaypointRegion wp_region( *possible_goals.front(), 0.25, 10.0, possible_goals.size() < 2 );
         curve = s_planner.createPath( start, &wp_region, 0 );
 
         // Remove waypoints on success
