@@ -39,6 +39,7 @@ private:
 
   double default_v_;
   int state_;
+  int mode_;
   Stopwatch move_timer_;
   Vector3d start_pose_, last_pose_;
   double beta_;

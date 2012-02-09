@@ -51,6 +51,7 @@ void MotionControlNode::goalCallback()
       active_ctrl_=pattern_driver_;
       active_ctrl_->setGoal(*goalptr);
       break;
+    case motion_control::MotionGoal::MOTION_DIRECT_SPEED:
     case motion_control::MotionGoal::MOTION_FIXED_PARAMS:
       active_ctrl_=fixed_driver_;
       active_ctrl_->setGoal(*goalptr);

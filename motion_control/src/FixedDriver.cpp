@@ -30,6 +30,7 @@ void FixedDriver::configure(ros::NodeHandle &node)
 
 void FixedDriver::setGoal(const motion_control::MotionGoal &goal)
 {
+  mode_=goal.mode;
   cmd_v_=goal.v;
   cmd_front_rad_=goal.deltaf;
   cmd_rear_rad_=goal.deltar;
@@ -100,7 +101,11 @@ int FixedDriver::execute(MotionFeedback &fb, MotionResult &result)
   cmd.data.resize(3);
   cmd.data[0].key=ramaxxbase::RamaxxMsg::CMD_STEER_FRONT_DEG;
   cmd.data[1].key=ramaxxbase::RamaxxMsg::CMD_STEER_REAR_DEG;
-  cmd.data[2].key=ramaxxbase::RamaxxMsg::CMD_SPEED;
+  if (mode_==motion_control::MotionGoal::MOTION_DIRECT_SPEED) {
+    cmd.data[2].key=ramaxxbase::RamaxxMsg::CMD_SPEED_SERVO;
+  } else {
+    cmd.data[2].key=ramaxxbase::RamaxxMsg::CMD_SPEED;
+  }
   cmd.data[0].value=cmd_front_rad_*180.0/M_PI;
   cmd.data[1].value=cmd_rear_rad_*180.0/M_PI;
   cmd.data[2].value=cmd_v_;
