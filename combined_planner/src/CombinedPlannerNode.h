@@ -37,6 +37,8 @@ public:
 
     CombinedPlannerNode();
 
+    enum ActionResultState { PREEMPT, ABORT, SUCCEEDED };
+
     void actionGoalCB();
     void globalMapCB( const nav_msgs::OccupancyGridConstPtr& map );
     void goalCB( const geometry_msgs::PoseStampedConstPtr& goal );
@@ -53,7 +55,7 @@ public:
 
     void visualizeWaypoints( const std::list<lib_path::Pose2d> &wp, std::string ns, int id );
     void activate();
-    void deactivate( bool succeeded = true );
+    void deactivate( ActionResultState state = ABORT );
     void plannerPathToRos( const std::list<lib_path::Pose2d> &planner_p, std::vector<geometry_msgs::PoseStamped>& ros_p );
 
 private:

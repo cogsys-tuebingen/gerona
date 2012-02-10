@@ -66,8 +66,8 @@ CombinedPlannerNode::CombinedPlannerNode()
 void CombinedPlannerNode::update()
 {
     // Check for preempt request
-    if ( isPreemptRequested()) {
-        deactivate( false );
+    if ( isPreemptRequested() && isActive()) {
+        deactivate( PREEMPT );
         return;
     }
 
@@ -78,14 +78,14 @@ void CombinedPlannerNode::update()
     // Try to get the current position
     Pose2d robot_pose;
     if ( !getRobotPose( robot_pose, gmap_frame_id_ )) {
-        deactivate( false );
+        deactivate( ABORT );
         return;
     }
 
     // Check if we reached the goal
     if ( planner_.isGoalReached( robot_pose )) {
         ROS_INFO( "Goal reached." );
-        deactivate( true );
+        deactivate( SUCCEEDED );
         return;
     }
 
@@ -95,14 +95,14 @@ void CombinedPlannerNode::update()
         planner_.update( robot_pose, false );
     } catch ( CombinedPlannerException& ex ) {
         ROS_ERROR( "Error planning a path. Reason: %s", ex.what());
-        deactivate( false );
+        deactivate( ABORT );
         return;
     }
 
     // Is there a valid path?
     if ( !planner_.hasValidPath()) {
         ROS_ERROR( "No valid path!" );
-        deactivate( false );
+        deactivate( ABORT );
         return;
     }
 
@@ -121,8 +121,8 @@ void CombinedPlannerNode::actionGoalCB()
 {
     // Stop motion control etc if necessary
     ROS_INFO( "Goal callback" );
-    if ( isPreemptRequested())
-        deactivate( false );
+    if ( isActive() || isPreemptRequested())
+        deactivate( PREEMPT );
 
     as_goal_ = *acceptNewGoal();
     ROS_INFO( "Got a new goal" );
@@ -135,7 +135,7 @@ void CombinedPlannerNode::actionGoalCB()
         } catch (tf::TransformException& ex) {
             ROS_ERROR( "Cannot transform goal into map coordinates. Reason: %s",
                        ex.what());
-            deactivate( false );
+            deactivate( ABORT );
             return;
         }
     } else {
@@ -145,7 +145,7 @@ void CombinedPlannerNode::actionGoalCB()
     // Get the current robot pose in map coordinates
     lib_path::Pose2d robot_pose;
     if (!getRobotPose( robot_pose, gmap_frame_id_ )) {
-        deactivate( false );
+        deactivate( ABORT );
         return;
     }
 
@@ -161,14 +161,14 @@ void CombinedPlannerNode::actionGoalCB()
         planner_.setGoal( pathStart, pathEnd );
     } catch ( CombinedPlannerException& ex ) {
         ROS_ERROR( "Cannot plan a path. Reason: %s", ex.what());
-        deactivate( false );
+        deactivate( ABORT );
         return;
     }
 
     // Valid path found?
     if ( !planner_.hasValidPath()) {
         ROS_WARN( "No path found!" );
-        deactivate( false );
+        deactivate( ABORT );
         return;
     }
 
@@ -193,7 +193,7 @@ void CombinedPlannerNode::activate()
     // Wait for action server
     if ( !motion_ac_.waitForServer( ros::Duration( 1.0 )) ) {
         ROS_WARN( "Motion control action server didn't connect within 1.0 seconds" );
-        deactivate( false );
+        deactivate( ABORT );
         return;
     }
 
@@ -207,30 +207,45 @@ void CombinedPlannerNode::activate()
     motion_ac_.sendGoal( motionGoal, boost::bind( &CombinedPlannerNode::motionCtrlDoneCB, this, _1, _2 ));
 }
 
-void CombinedPlannerNode::deactivate( bool succeeded )
+void CombinedPlannerNode::deactivate( ActionResultState state )
 {
-    ROS_INFO( "Deactivating path planner. Succeeded: %d", succeeded );
-    publishEmptyLocalPath();
-    motion_ac_.cancelAllGoals();
-
     if ( !isActive())
         return;
 
-    if ( succeeded )
+    ROS_INFO( "Deactivating path planner. Succeeded: %d", state == SUCCEEDED );
+    publishEmptyLocalPath();
+    motion_ac_.cancelAllGoals();
+
+    switch ( state ) {
+    case SUCCEEDED:
         setSucceeded( as_result_ );
-    else
+        break;
+    case ABORT:
         setAborted( as_result_ );
+        break;
+    default:
+        setPreempted( as_result_ );
+        break;
+    }
 }
 
 void CombinedPlannerNode::motionCtrlDoneCB( const actionlib::SimpleClientGoalState &state,
                                             const motion_control::MotionResultConstPtr &result )
 {
     /// @todo Do something more professional
+
+    if ( state == SimpleClientGoalState::PREEMPTED ) {
+        // We ignore this since we have requested the preempt
+        return;
+    }
+
     switch ( result->status ) {
     case motion_control::MotionResult::MOTION_STATUS_SUCCESS:
     case motion_control::MotionResult::MOTION_STATUS_MOVING:
     case motion_control::MotionResult::MOTION_STATUS_STOP:
         ROS_INFO( "Motion control is done. Status is ok." );
+        /// @todo hack
+        deactivate( SUCCEEDED );
         break;
 
     default:
@@ -238,7 +253,7 @@ void CombinedPlannerNode::motionCtrlDoneCB( const actionlib::SimpleClientGoalSta
     }
 
     // Anyway, deactivate
-    deactivate( false );
+    deactivate( ABORT );
 }
 
 void CombinedPlannerNode::plannerPathToRos(const list<Pose2d> &planner_p, vector<geometry_msgs::PoseStamped>& ros_p )

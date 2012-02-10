@@ -18,8 +18,8 @@ using namespace combined_planner;
 CombinedPlanner::CombinedPlanner()
     : lmap_(NULL),
       gmap_(NULL),
-      goal_dist_eps_( 0.25 ),
-      goal_angle_eps_( 20.0*M_PI/180.0 ),
+      goal_dist_eps_( 0.5 ),
+      goal_angle_eps_( 30.0*M_PI/180.0 ),
       wp_dist_eps_( 1.0 ),
       wp_angle_eps_( 0.6 ),
       local_replan_dist_( 1.5 ),
