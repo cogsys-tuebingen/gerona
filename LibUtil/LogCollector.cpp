@@ -98,6 +98,21 @@ void LogCollector::disable() {
     mEnabled = false;
 }
 
+
+void LogCollector::addColumns(const std::list<string>& ids)
+{
+  for (std::list<string>::const_iterator it=ids.begin();it!=ids.end();++it) {
+    addColumn(*it);
+  }
+}
+
+
+bool LogCollector::addColumn(const string &id)
+{
+  addColumn(id,id,false);
+}
+
+
 bool LogCollector::addColumn( const string &id, const string &description, bool isTrigger ) {
     // Check if id already exists
     LogColumnMap::const_iterator idIter = mColMap.begin();

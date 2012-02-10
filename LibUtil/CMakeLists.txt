@@ -15,6 +15,7 @@ include_directories(
 
 add_library (LibUtil SHARED
     ConfigFileReader.cpp
+    EggTimer.cpp
     EigenTools.cpp
     LogCollector.cpp
     LowPassFilter.cpp

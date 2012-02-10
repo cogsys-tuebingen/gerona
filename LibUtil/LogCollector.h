@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <list>
 #include <iostream>
 #include <fstream>
 #include <sys/time.h>
@@ -62,9 +63,11 @@ public:
      *
      * @return False if id exists already, true otherwise
      */
-    bool addColumn( const string& id, const string& description = "", bool isTrigger = false );
+    bool addColumn( const string& id, const string& description , bool isTrigger = false );
 
+    bool addColumn( const string& id);
 
+    void addColumns(const std::list<string>& ids);
 
     /**
      * Enable collecting of data.
