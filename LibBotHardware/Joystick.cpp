@@ -116,8 +116,8 @@ bool Joystick::update() {
     for ( Uint i = 0; i < mButtons.size(); ++i ) {
         if (mButtons[i].isPressed()) {
             mButtonsState|=flag;
-            flag = flag << 1;
         }
+        flag = flag << 1;
     }
 
     for ( Uint i = 0; i < mAxes.size(); ++i ) {
