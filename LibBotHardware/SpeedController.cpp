@@ -43,9 +43,42 @@ void SpeedController::setAvr32SpeedCtrlEnabled( bool arg ) {
 void SpeedController::connectionEstablished() {
     QuMessage msg;
     msg.type = MT_SPEEDCTRL;
-    msg.length = 1;
-    msg.data.resize( 1 );
-    msg.data[0] = mAvr32Ctrl;
+
+    if ( mAvr32Ctrl ) {
+        // Enable command
+        msg.length = 13;
+        msg.data.resize( 13 );
+        msg.data[0] = 1;
+
+        // P
+        S32 val = mCalib.kp;
+        msg.data[1] = (val >> 24) & 0xFF;
+        msg.data[2] = (val >> 16) & 0xFF;
+        msg.data[3] = (val >> 8) & 0xFF;
+        msg.data[4] = val & 0xFF;
+
+        // I
+        val = mCalib.ki;
+        msg.data[5] = (val >> 24) & 0xFF;
+        msg.data[6] = (val >> 16) & 0xFF;
+        msg.data[7] = (val >> 8) & 0xFF;
+        msg.data[8] = val & 0xFF;
+
+        // Brake scale
+        val = mCalib.brakeScale;
+        if ( val < 1 ) val = 1;
+        msg.data[9] = (val >> 24) & 0xFF;
+        msg.data[10] = (val >> 16) & 0xFF;
+        msg.data[11] = (val >> 8) & 0xFF;
+        msg.data[12] = val & 0xFF;
+
+    } else {
+        // Disable command
+        msg.length = 1;
+        msg.data.resize( 1 );
+        msg.data[0] = 0;
+    }
+
     mConn->queueMsg( msg );
 }
 
@@ -55,6 +88,11 @@ Avr32SpeedController::Avr32SpeedController( RamaxxConnection * conn )
   : SpeedController( conn ), mTargetSpeed( 0 ), mConn( conn ) {
     mUpdateTimer.restart();
     setAvr32SpeedCtrlEnabled( true );
+
+    // Initial config
+    mCalib.kp = 175;
+    mCalib.ki = 25;
+    mCalib.brakeScale = 1;
 }
 
 void Avr32SpeedController::setSpeed( float speed ) {
@@ -113,6 +151,10 @@ SimpleSpeedController::SimpleSpeedController( RamaxxConnection * conn,
     }
     setAvr32SpeedCtrlEnabled( false );
 
+    // Set initial calib values
+    mCalib.nullForward = mNullForward;
+    mCalib.nullBackward = mNullBackward;
+    mCalib.speedScale = mSpeedScale;
 }
 
 void SimpleSpeedController::setCalibration( const SpeedCtrlCalibration &calib ) {

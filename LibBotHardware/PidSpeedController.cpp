@@ -125,7 +125,7 @@ void PidSpeedController::setSpeed( float newTargetSpeed ) {
 
 
 void PidSpeedController::setCalibration( const SpeedCtrlCalibration &calib ) {
-    mCalib = calib;
+    SpeedController::setCalibration( calib );
     pidReset();
     update();
 }

@@ -38,6 +38,7 @@ struct SpeedCtrlCalibration {
     double ki;
     double kd;
     double maxSpeed;
+    double brakeScale;
     double updateIntervalMs; // update interval in milliseconds
 };
 
@@ -59,7 +60,16 @@ public:
      *
      * @param calib The new calibration data.
      */
-    virtual void setCalibration( const SpeedCtrlCalibration &calib ) = 0;
+    virtual void setCalibration( const SpeedCtrlCalibration &calib )
+        { mCalib = calib; }
+
+    /**
+     * Return the current calibration.
+     *
+     * @return The current calibration.
+     */
+    virtual SpeedCtrlCalibration getCalibration()
+        { return mCalib; }
 
     /**
      * Set the speed of the robot.
@@ -104,6 +114,9 @@ protected:
      */
     void setAvr32SpeedCtrlEnabled( bool arg );
 
+    /// Current calibration
+    SpeedCtrlCalibration mCalib;
+
 private:
     /// Flag if we should enable the Avr32 speed controller
     bool mAvr32Ctrl;
@@ -125,9 +138,6 @@ public:
      * @param conn Connection to the robot.
      */
     Avr32SpeedController( RamaxxConnection *conn );
-
-    /* Inherited from SpeedController */
-    void setCalibration( const SpeedCtrlCalibration &calib ) { /* Nothing to do */ };
 
     /* Inherited from SpeedController. */
     void setSpeed( float speed );

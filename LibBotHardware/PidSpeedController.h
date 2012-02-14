@@ -104,8 +104,6 @@ private:
     Actuators * mActuators;
     /** Object doing odometry. */
     Odometry * mOdo;
-    /** Basic controller calibration. */
-    SpeedCtrlCalibration mCalib;
     /** Demanded velocity in meter per second. */
     double mTargetSpeed;
     /** Velocity as reported by the odometry (average over 2 values). */
