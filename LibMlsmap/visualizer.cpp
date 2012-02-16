@@ -12,6 +12,8 @@ Visualizer::Visualizer(MLSmap<VectorCell>* map)
 }
 
 void Visualizer::floodFill(int x, int y, int neighborHeight, int maxHeightDiff, string filename){
+  cout << "floodfill"<<endl;
+  cout.flush();
 
     // todo: besser initialisierung mit dem ersten Surface
     int minHeight = 0;
@@ -39,7 +41,7 @@ void Visualizer::floodFill(int x, int y, int neighborHeight, int maxHeightDiff, 
             }
         }
     }
-
+    cout << "minheight:"<<minHeight << " maxheight:"<<maxHeight<< endl;
     long int surfaceCounter = 0;
     long int durationMicrosecs = 0;
     this->vertices.clear();
@@ -62,6 +64,7 @@ void Visualizer::floodFill(int x, int y, int neighborHeight, int maxHeightDiff, 
         coordStack.pop_back();
         pt::ptime now1 = pt::microsec_clock::universal_time();
         if(mlsmap->isField(x,y)){
+          cout << "is afield"<<endl;
             VectorCell* cell = mlsmap->getCell(x,y);
             vector<Surface>& surfaces = cell->getSurfaces();
 
@@ -340,7 +343,7 @@ void Visualizer::writeData(ofstream &plyFile){
     }
     for(vector<Face>::iterator it = faces.begin(); it < faces.end(); it++){
         plyFile << it->verts.size() << " ";
-        for (int i = 0; i < it->verts.size(); i++){
+        for (unsigned i = 0; i < it->verts.size(); i++){
             plyFile << it->verts[i] << " ";
         }
         plyFile << endl;

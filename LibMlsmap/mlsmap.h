@@ -26,7 +26,7 @@ public:
     void merge(MLSmap mlsmap);
     std::vector<Field<CellT>*> getFields();
     int getCellSize();
-
+    unsigned int getFieldNumber();
 private:
     const int mCellSize; // Size of Patch in cm
     const int mGapSize; // minimum distance between two surfaces in the same patch (in cm)
@@ -101,6 +101,8 @@ bool MLSmap<CellT>::isValidCoord(int x, int y)
 template <class CellT>
 void MLSmap<CellT>::addField(int x, int y)
 {
+  cout << "addfield for coordinates x="<<x << " y="<<y <<endl;
+  cout.flush();
     mFields[ getFieldIndex(x,y) ] = new Field<CellT>();
 }
 
@@ -151,5 +153,15 @@ template <class CellT>
 int MLSmap<CellT>::getCellSize(){
     return mCellSize;
 }
+
+template <class CellT>
+unsigned int MLSmap<CellT>::getFieldNumber() {
+  unsigned num=0;
+  for (unsigned i=0;i<mFields.size();++i) {
+    if (mFields[i]) ++num;
+  }
+  return num;
+}
+
 
 #endif // MLSMAP_H
