@@ -10,8 +10,10 @@
 // ROS
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
-#include <move_base_msgs/MoveBaseAction.h>
 #include <geometry_msgs/PoseStamped.h>
+
+// Project
+#include <combined_planner/GoToAction.h>
 
 namespace combined_planner {
 
@@ -23,17 +25,20 @@ public:
     void goalCB( const geometry_msgs::PoseStampedConstPtr& goal );
 
     void acDoneCB( const actionlib::SimpleClientGoalState& state,
-                   const move_base_msgs::MoveBaseResultConstPtr& result );
+                   const GoToResultConstPtr &result );
 
 private:
     /// The ROS handle
     ros::NodeHandle n_;
 
     /// Action client
-    actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> ac_;
+    actionlib::SimpleActionClient<GoToAction> ac_;
 
     /// Used to get new goals
     ros::Subscriber goal_subs_;
+
+    /// Maximum robot speed m/s
+    double max_speed_;
 };
 
 } // namespace

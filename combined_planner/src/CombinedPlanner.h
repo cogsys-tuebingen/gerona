@@ -30,6 +30,9 @@ namespace combined_planner {
 class CombinedPlanner
 {
 public:
+
+    enum State { WAITING_FOR_GMAP, VALID_PATH, GOAL_REACHED };
+
     /**
      * @brief Create the object.
      * Initializes all pointers to NULL.
@@ -42,9 +45,9 @@ public:
      * @brief Set a new goal and plan a path to this goal.
      * This method tries to find a global path and calculates waypoints
      * as well as an initial local path.
-     * @exception CombinedPlannerException If the goal or the position of the robot lies
-     *      outside of the global map, if there is no global/local map or if there
-     *      is no local path to the first waypoint.
+     * @exception PlannerException If the goal or the position of the robot lies
+     *      outside of the global map or if there is no global/local map.
+     * @exception NoPathException If there is no global path.
      */
     void setGoal( const lib_path::Pose2d& robot_pose, const lib_path::Pose2d& goal );
 
@@ -55,8 +58,9 @@ public:
      *      Used to check if we have to select a new waypoint or if we reached the goal.
      * @param force_replan Set this to true if we should caluclate a new local path
      *      even though we didn't select a new waypoint.
-     * @return True if there is a new local path. False otherwise.
-     * @throw CombinedPlannerException If an error occurred during local path planning.
+     *
+     * @throw PlannerException If an error occurred during local path planning.
+     * @throw NoPathException If there is no path on the global map.
      */
     void update( const lib_path::Pose2d& robot_pose, bool force_replan = false );
 
@@ -66,9 +70,15 @@ public:
      */
     bool isGoalReached( const lib_path::Pose2d& robot_pose ) const;
 
-    bool hasValidPath() const
-        { return valid_path_; }
+    /**
+     * @brief Set the planner to an inactive state.
+     */
+    void reset();
 
+    /**
+     * @brief Check if we've computed a new local path during last update.
+     * @return True if there is a new local path.
+     */
     bool hasNewLocalPath() const
         { return new_local_path_; }
 
@@ -76,6 +86,8 @@ public:
      * @brief Set a new map used for global path planning.
      * @attention There is no internal copy of the map! The given pointer should be valid
      *      as long as this object is in use.
+     * @attention Call this function only if the map contains new data. We will always allow
+     *      global replanning on a new map.
      * @param gmap The new global map.
      */
     void setGlobalMap( lib_path::GridMap2d* gmap );
@@ -126,11 +138,12 @@ protected:
      * @brief Try to find a global path and calculate waypoints.
      * @param start Start of the path.
      * @param goal End of the path.
-     * @return True if there is a path. False otherwise.
-     * @exception CombinedPlannerException If one of start or goal lies outsied of
+     *
+     * @exception PlannerException If one of start or goal lies outsied of
      *      the map or if there is no map to plan on.
+     * @exception NoPathException If there is no global path.
      */
-    bool findGlobalPath( const lib_path::Pose2d& start, const lib_path::Pose2d& goal );
+    void findGlobalPath( const lib_path::Pose2d& start, const lib_path::Pose2d& goal );
 
     /**
      * @brief Calculate waypoints from a given path.
@@ -182,8 +195,8 @@ protected:
     /// Start of the latest global path
     lib_path::Pose2d gstart_;
 
-    /// Flag if we reached the latest global goal
-    bool ggoal_reached_;
+    /// Flag if we got a new global map since last global replan
+    bool new_gmap_;
 
     /// Current local path
     Path2d lpath_;
@@ -206,11 +219,11 @@ protected:
     /// Plan a new local path if the orientation changed N radian
     double local_replan_theta_;
 
-    /// Flag if there is a valid global and a valid local path
-    bool valid_path_;
-
     /// Flag if we computed a new local path during the last update
     bool new_local_path_;
+
+    /// Current planner state
+    State state_;
 };
 
 } // namespace combined_planner

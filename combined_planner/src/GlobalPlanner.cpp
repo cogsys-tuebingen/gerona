@@ -9,14 +9,15 @@
 
 // Project
 #include "GlobalPlanner.h"
-#include "CombinedPlannerException.h"
+#include "PlannerExceptions.h"
 
 using namespace lib_path;
 using namespace combined_planner;
 
 GlobalPlanner::GlobalPlanner( lib_path::GridMap2d *map )
     : map_( map ),
-      a_star_( map )
+      a_star_( map ),
+      robot_bubble_( 0.35 )
 { /* Nothing else to do */ }
 
 
@@ -26,25 +27,25 @@ void GlobalPlanner::setMap( GridMap2d *map )
     a_star_.setNewMap( map );
 }
 
-bool GlobalPlanner::planPath( Point2d start, Point2d goal )
+void GlobalPlanner::planPath( Point2d start, Point2d goal )
 {
     // Clean old paths
     path_.clear();
     path_raw_.clear();
 
     // Check start and goal pose
-    if ( !map_->isInMap( start ) || !map_->isInMap( goal )) {
-        throw CombinedPlannerException( "Start or goal pose lies outside of the map." );
-    }
+    if ( !map_->isInMap( start ) || !map_->isInMap( goal ))
+        throw PlannerException( "Start or goal pose lies outside of the map." );
+
 
     // Buffer map data at current position
-    CircleBuffer start_area( start, 0.25, map_ );
+    CircleBuffer start_area( start, robot_bubble_, map_ );
     map_->getAreaValues( start_area );
 
     // Clear current position
     map_->setAreaValue( start_area, 0 );
 
-    // Convert start/goal into cell coordinate
+    // Convert start/goal into cell coordinates
     waypoint_t startWayp, goalWayp;
     unsigned int x, y;
     map_->point2cell( start, x, y );
@@ -58,9 +59,9 @@ bool GlobalPlanner::planPath( Point2d start, Point2d goal )
     //map_->setAreaValue( start_area );
 
     if ( !path_found )
-        return false;
+        throw NoPathException( "No global path found." );
 
-    // Copy the raw path
+    // Convert the raw path to map coordinates
     path_t* cell_path = a_star_.getLastPath();
     Point2d p;
     for ( std::size_t i = 0; i < cell_path->size(); ++i ) {
@@ -72,7 +73,7 @@ bool GlobalPlanner::planPath( Point2d start, Point2d goal )
     // Path too short? Flattening not necessary!
     if ( cell_path->size() <= 2 ) {
         path_.assign( path_raw_.begin(), path_raw_.end());
-        return true;
+        return;
     }
 
     // Flatten path
@@ -80,7 +81,7 @@ bool GlobalPlanner::planPath( Point2d start, Point2d goal )
     flatten( cell_path, path_ );
     path_.push_back( goal );
 
-    return true;
+    return;
 }
 
 void GlobalPlanner::flatten( const path_t* raw, std::vector<Point2d> &flattened ) const
@@ -88,12 +89,11 @@ void GlobalPlanner::flatten( const path_t* raw, std::vector<Point2d> &flattened 
     Point2d p;
     std::size_t first = 0;
     std::size_t current = 1;
-    const std::size_t look_ahead = 25;
+    const std::size_t look_ahead = 25; // Always check next n points
     while ( current < raw->size() - 1 ) {
         if ( isLineFree((*raw)[first], (*raw)[current])) {
             current++;
         } else {
-            /// @todo This hack is still buggy
             bool succ = false;
             for ( size_t i = 1; (i + current) < (raw->size() - 1) && i < look_ahead; ++i ) {
                 if ( isLineFree((*raw)[first], (*raw)[current + i])) {
@@ -104,6 +104,7 @@ void GlobalPlanner::flatten( const path_t* raw, std::vector<Point2d> &flattened 
             }
 
             if ( !succ ) {
+                /// @todo Think about the -1 here
                 map_->cell2point((*raw)[current-1].x, (*raw)[current-1].y, p );
                 flattened.push_back( p );
                 first = current - 1;
@@ -135,74 +136,4 @@ bool GlobalPlanner::isLineFree( const lib_path::waypoint_t &p1,
         if (e2 > dy) { err += dy; x0 += sx; }
         if (e2 < dx) { err += dx; y0 += sy; }
     }
-
-    /*
-     * Copied from sickday planner. Authors: dube, laible
-     */
-
-    /*bool free = true;
-
-    if ( p1.x != p2.x || p1.y != p2.y) {
-        // Traverse from left to right
-        int x1, y1, x2, y2;
-        if (p1.x <= p2.x) {
-            x1 = p1.x;
-            y1 = p1.y;
-            x2 = p2.x;
-            y2 = p2.y;
-        } else {
-            x1 = p2.x;
-            y1 = p2.y;
-            x2 = p1.x;
-            y2 = p1.y;
-        }
-
-        int stepX = 1;
-        int stepY = (y1 <= y2 ? 1 : -1);
-
-        double tDeltaX = 0.0;
-        double tDeltaY = 0.0;
-
-        if (x1 == x2) {
-            tDeltaX = 0.0;
-            tDeltaY = 1.0;
-        } else if (y1 == y2) {
-            tDeltaX = 1.0;
-            tDeltaY = 0.0;
-        } else {
-            double m = double(y2 - y1) / double(x2 - x1);
-            tDeltaX = sqrt(1.0 + m * m);
-            tDeltaY = sqrt(1.0 + 1.0 / (m * m));
-        }
-
-        double tMaxX = tDeltaX * 0.5;
-        double tMaxY = tDeltaY * 0.5;
-
-        if ( map_ != NULL ) {
-            if ( map_->getWidth() > x2 && map_->getHeight() > max(y1, y2)) {
-                int x = x1;
-                int y = y1;
-
-                while (x <= x2 && (stepY == 1 ? y <= y2 : y >= y2)) {
-                    if ( !map_->isFree( x, y )) {
-                        free = false;
-                        break;
-                    }
-
-                    if (tMaxX < tMaxY) {
-                        tMaxX += tDeltaX;
-                        x += stepX;
-                    } else {
-                        tMaxY += tDeltaY;
-                        y += stepY;
-                    }
-                }
-            } else {
-                free = false;
-            }
-        } else {
-            free = false;
-        }
-    }
-    return free;*/
 }

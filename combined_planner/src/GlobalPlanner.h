@@ -45,10 +45,12 @@ public:
      * @param start Start of the path.
      * @param goal End of the path.
      * @return True if there is a path, false otherwise.
-     * @exception CombinedPlannerException If the start or the goal pose lies outside
+     *
+     * @exception PlannerException If the start or the goal pose lies outside
      *      of the map or if there is no map.
+     * @exception NoPathException If there is no path.
      */
-    virtual bool planPath( lib_path::Point2d start, lib_path::Point2d goal );
+    virtual void planPath( lib_path::Point2d start, lib_path::Point2d goal );
 
     /**
      * @brief Return the raw result of the latest A* search.
@@ -61,7 +63,7 @@ public:
     /**
      * @brief Get the latest flattened path.
      * The result will contain less points than the raw path and will be close
-     * to the shortest path possible.
+     * to the shortest path.
      * @param path The result will be written to this variable.
      */
     virtual void getLatestPath( std::list<lib_path::Point2d>& path ) const
@@ -70,7 +72,7 @@ public:
     /**
      * @brief Get the latest flattened path.
      * The result will contain less points than the raw path and will be close
-     * to the shortest path possible.
+     * to the shortest path.
      * @return The latest flattened path.
      */
     virtual const std::vector<lib_path::Point2d>& getLatestPath() const
@@ -90,9 +92,9 @@ protected:
 
     /**
      * @brief Flatten the given path.
-     * This methos tries to remove as many points as possible from the raw path.
+     * This method tries to remove as many points as possible from the raw path.
      * It's possible to remove a point if there are no obstacles on the stright line between
-     * the previous and the next point.
+     * previous and next point.
      * @param raw A* path in cell-coordinates.
      * @param flattened The result will be written to this parameter. The list won't be cleared
      *      and it won't contain the start or goal position. The entries of this list
@@ -112,6 +114,10 @@ private:
 
     /// Latest planned path (not flattened etc)
     std::list<lib_path::Point2d> path_raw_;
+
+    /// Radius of the free circle around the robot. We are ignoring obstacles
+    /// inside of this circle to avoid planner errors if we are very close to an obstacle.
+    double robot_bubble_;
 };
 
 } // namespace

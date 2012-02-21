@@ -18,7 +18,6 @@
 #include <costmap_2d/costmap_2d_ros.h>
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/server/simple_action_server.h>
-#include <move_base_msgs/MoveBaseAction.h>
 
 // Workspace
 #include <utils/LibUtil/Stopwatch.h>
@@ -29,10 +28,11 @@
 
 // Project
 #include "CombinedPlanner.h"
+#include <combined_planner/GoToAction.h>
 
 namespace combined_planner {
 
-class CombinedPlannerNode : public actionlib::SimpleActionServer<move_base_msgs::MoveBaseAction> {
+class CombinedPlannerNode : public actionlib::SimpleActionServer<GoToAction> {
 public:
 
     CombinedPlannerNode();
@@ -55,7 +55,7 @@ public:
 
     void visualizeWaypoints( const std::list<lib_path::Pose2d> &wp, std::string ns, int id );
     void activate();
-    void deactivate( ActionResultState state = ABORT );
+    void deactivate( ActionResultState state = ABORT, int result = GoToResult::PLANNER_ERROR );
     void plannerPathToRos( const std::list<lib_path::Pose2d> &planner_p, std::vector<geometry_msgs::PoseStamped>& ros_p );
 
 private:
@@ -108,13 +108,22 @@ private:
     Stopwatch replan_timer_;
 
     /// Action goal
-    move_base_msgs::MoveBaseGoal as_goal_;
+    GoToGoal as_goal_;
 
     /// Action result
-    move_base_msgs::MoveBaseResult as_result_;
+    GoToResult as_result_;
 
     /// Action feedback
-    move_base_msgs::MoveBaseFeedback as_feedback_;
+    GoToFeedback as_feedback_;
+
+    /// True if motion control reported a collision and if we are still trying to solve the situation
+    bool collision_;
+
+    /// Time stamp last collision
+    ros::Time collision_stamp_;
+
+    /// Position of last collision
+    lib_path::Pose2d collision_pose_;
 };
 
 } // Namespace

@@ -1,0 +1,40 @@
+# Goal
+
+# Target pose
+geometry_msgs/PoseStamped target_pose
+
+# Maximum robot speed m/s
+float32 max_speed
+
+---
+# Result 
+
+# Ok
+int32 GOAL_REACHED = 0
+
+# Goal not reachable, there is no global path
+int32 NO_PATH = 1
+
+# If we can't get out of this situation
+int32 COLLISION_ERROR = 2
+
+# Severe planner error (e.g. no global map)
+int32 PLANNER_ERROR = 3
+
+# Motion control reported an error
+int32 MOTION_CTRL_ERROR = 4
+
+# If someone preempted this action
+int32 STOP = 5
+
+# The result
+int32 result
+
+---
+# Feedback 
+
+# Current pose
+geometry_msgs/PoseStamped target_pose
+
+# Distance to goal along the current path
+float32 dist_to_goal

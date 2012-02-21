@@ -9,7 +9,7 @@
 
 // Project
 #include "CombinedPlanner.h"
-#include "CombinedPlannerException.h"
+#include "PlannerExceptions.h"
 
 using namespace lib_path;
 using namespace std;
@@ -18,14 +18,15 @@ using namespace combined_planner;
 CombinedPlanner::CombinedPlanner()
     : lmap_(NULL),
       gmap_(NULL),
+      new_gmap_( false ),
       goal_dist_eps_( 0.5 ),
       goal_angle_eps_( 30.0*M_PI/180.0 ),
       wp_dist_eps_( 1.0 ),
       wp_angle_eps_( 0.6 ),
       local_replan_dist_( 1.5 ),
       local_replan_theta_( 30.0*M_PI/180.0 ),
-      valid_path_( false ),
-      new_local_path_( false )
+      new_local_path_( false ),
+      state_( GOAL_REACHED )
 {
     gplanner_ = NULL; // We gonna create the global planner on the first global map update
     lplanner_  = new LocalPlanner();
@@ -39,18 +40,19 @@ CombinedPlanner::~CombinedPlanner()
         delete gplanner_;
 }
 
+void CombinedPlanner::reset()
+{
+    state_ = GOAL_REACHED;
+    lpath_.reset();
+}
 
 void CombinedPlanner::setGoal( const lib_path::Pose2d& robot_pose, const Pose2d &goal )
 {
-    valid_path_ = false;
-
     // Try to find a global path
-    if ( !findGlobalPath( robot_pose, goal )) {
-        return;
-    }
+    findGlobalPath( robot_pose, goal );
 
     // Try to find a local path to the first waypoint
-    valid_path_ = true;
+    state_ = VALID_PATH;
     lpath_.reset();
     update( robot_pose, true );
 }
@@ -59,23 +61,27 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
 {
     new_local_path_ = false;
 
-    // Reached the goal or we don't have a path?
-    if ( isGoalReached( robot_pose ) || !valid_path_ ) {
-        valid_path_ = false;
+    // Reached the goal or we don't have a goal?
+    if ( isGoalReached( robot_pose ) || state_ == GOAL_REACHED ) {
+        state_ = GOAL_REACHED;
         return;
     }
-    valid_path_ = true; // Set this to false only if there is an error
+
+    // Waiting for a new global map?
+    if ( state_ == WAITING_FOR_GMAP ) {
+        if ( !new_gmap_ )
+            return; // Still waiting
+
+        // Got a new global map. Try to replan
+        findGlobalPath( robot_pose, ggoal_ );
+    }
 
     // Do we have a local and a global map?
     if ( lmap_ == NULL || gmap_ == NULL )
-        throw CombinedPlannerException( "Got no local map or no global map on planner update." );
+        throw PlannerException( "Got no local map or no global map on planner update." );
 
-    // Update the current local path. This will remove allready reached local waypoints
+    // Update the current local path. This will remove already reached local waypoints
     lpath_.updateWaypoints( 0.25, robot_pose );
-
-    // debug
-    if ( !lpath_.areWaypointsFree( lmap_->getResolution(), lmap_ ))
-        ROS_WARN( "Local path is not free." );
 
     // Replan anyway?
     force_replan = force_replan || lpath_.getWaypointCount() <= 0 ||
@@ -87,52 +93,61 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
         return;
 
     // Plan a new local path
-    ROS_INFO( "Planning a new local path." );
-    if ( lplanner_->planPath( robot_pose, gwaypoints_, ggoal_ )) {
-        lpath_ = lplanner_->getPath();
-        new_local_path_ = true;
-        ROS_INFO( "Found new local path." );
+    try {
+        lplanner_->planPath( robot_pose, gwaypoints_, ggoal_ );
+    } catch ( NoPathException& ex ) {
+        // We didn't find a local path
+        bool allow_waiting = !new_gmap_;
+        if ( gstart_.isEqual( robot_pose, 0.5, 0.5 ) && !allow_waiting ) {
+            // Start pose of latest global path is too close
+            throw NoPathException( "Didn't find a path." );
+        }
+
+        ROS_WARN( "Searching a new global path because there is no local one." );
+        try {
+            findGlobalPath( robot_pose, ggoal_ );
+        } catch ( NoPathException& ex ) {
+            // Well, allow waiting for a new global map if the current one is old
+            if ( allow_waiting ) {
+                ROS_WARN( "Waiting for new global map." );
+                state_ = WAITING_FOR_GMAP;
+                return;
+            }
+
+            // The goal is not reachable
+            throw NoPathException( ex );
+        }
+
+        // Found a new global path. Update the local path
+        lpath_.reset();
+        state_ = VALID_PATH;
+        update( robot_pose, true );
         return;
     }
 
-    /* We didn't find a local path. Search a new global path if we got a new global
-     * of if we changed our position since the last global replan. */
-    /// @todo Allow global replan if there is a new global map
-    if ( !gstart_.isEqual( robot_pose, 0.5, 0.5 )) {
-        ROS_WARN( "Searching a new global path because there is no local one." );
-        if ( findGlobalPath( robot_pose, ggoal_ )) {
-            // Found a new global path. Update the local path
-            lpath_.reset();
-            update( robot_pose, true );
-            return;
-        }
-    }
-
-    // Fail
-    valid_path_ = false;
-    ROS_ERROR( "No local path found." );
+    // Got a new local path
+    lpath_ = lplanner_->getPath();
+    new_local_path_ = true;
+    state_ = VALID_PATH;
 }
 
-bool CombinedPlanner::findGlobalPath( const Pose2d &start, const Pose2d &goal )
+void CombinedPlanner::findGlobalPath( const Pose2d &start, const Pose2d &goal )
 {
     ROS_INFO( "Planing a global path." );
+    new_gmap_ = false;
 
     // Check if we got a global map/global planner was initialized
     if ( gmap_ == NULL || gplanner_ == NULL ) {
-        throw CombinedPlannerException( "No global map." );
+        throw PlannerException( "Got no global map." );
     }
 
-    // Plan path
-    if ( gplanner_->planPath( Point2d( start.x, start.y ), Point2d( goal.x, goal.y ))) {
-        // Calculate waypoints on success
-        calculateWaypoints( gplanner_->getLatestPath(), goal, gwaypoints_ );
-        // Remeber start/end
-        gstart_ = start;
-        ggoal_ = goal;
-        return true;
-    }
-    ROS_WARN( "No global path found" );
-    return false;
+    // Plan path (throws exception if there is no path)
+    gplanner_->planPath( Point2d( start.x, start.y ), Point2d( goal.x, goal.y ));
+
+    // Calculate waypoints on success and remeber start/end etc.
+    calculateWaypoints( gplanner_->getLatestPath(), goal, gwaypoints_ );
+    gstart_ = start;
+    ggoal_ = goal;
 }
 
 
@@ -238,6 +253,7 @@ void CombinedPlanner::setGlobalMap( GridMap2d *gmap )
         gplanner_ = new GlobalPlanner( gmap_ );
     else
         gplanner_->setMap( gmap_ );
+    new_gmap_ = true;
 }
 
 void CombinedPlanner::setLocalMap( GridMap2d *lmap )
