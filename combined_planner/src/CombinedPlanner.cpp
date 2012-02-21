@@ -101,7 +101,7 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
         lplanner_->planPath( robot_pose, gwaypoints_, ggoal_ );
     } catch ( NoPathException& ex ) {
         // We didn't find a local path
-        if ( gstart_.isEqual( robot_pose, 0.5, 0.5 )) {
+        if ( gstart_.isEqual( robot_pose, 0.5, 0.5 ) && !new_gmap_) {
             // Start pose of latest global path is too close
             throw NoPathException( "Didn't find a path." );
         }
@@ -138,7 +138,6 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
 void CombinedPlanner::findGlobalPath( const Pose2d &start, const Pose2d &goal )
 {
     ROS_INFO( "Planing a global path." );
-    new_gmap_ = false;
 
     // Check if we got a global map/global planner was initialized
     if ( gmap_ == NULL || gplanner_ == NULL ) {
@@ -152,6 +151,7 @@ void CombinedPlanner::findGlobalPath( const Pose2d &start, const Pose2d &goal )
     calculateWaypoints( gplanner_->getLatestPath(), goal, gwaypoints_ );
     gstart_ = start;
     ggoal_ = goal;
+    new_gmap_ = false;
 }
 
 

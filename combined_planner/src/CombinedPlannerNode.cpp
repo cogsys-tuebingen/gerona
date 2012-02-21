@@ -217,6 +217,7 @@ void CombinedPlannerNode::activate()
     motionGoal.v = as_goal_.max_speed;
     motionGoal.pos_tolerance = 0.20;
     motion_ac_.sendGoal( motionGoal, boost::bind( &CombinedPlannerNode::motionCtrlDoneCB, this, _1, _2 ));
+    publishLocalPath( planner_.getLocalPath());
 }
 
 void CombinedPlannerNode::deactivate( ActionResultState state, int result )
@@ -256,7 +257,10 @@ void CombinedPlannerNode::motionCtrlDoneCB( const actionlib::SimpleClientGoalSta
     case motion_control::MotionResult::MOTION_STATUS_SUCCESS:
     case motion_control::MotionResult::MOTION_STATUS_STOP:
         // Motion control should be active until we cancel it
-        activate();
+        if ( isActive())
+            activate();
+        ROS_ERROR( "Motion control retruened." );
+        //deactivate( ABORT, GoToResult::MOTION_CTRL_ERROR );
         break;
 
     case motion_control::MotionResult::MOTION_STATUS_COLLISION:
