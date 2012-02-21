@@ -221,12 +221,14 @@ void CombinedPlannerNode::activate()
 
 void CombinedPlannerNode::deactivate( ActionResultState state, int result )
 {
+    motion_ac_.cancelAllGoals();
+    publishEmptyLocalPath();
+
     if ( !isActive())
         return;
 
     ROS_INFO( "Deactivating path planner." );
-    motion_ac_.cancelAllGoals();
-    publishEmptyLocalPath();
+
     as_result_.result = result;
     switch ( state ) {
     case SUCCEEDED:

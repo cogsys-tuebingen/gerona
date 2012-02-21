@@ -55,6 +55,7 @@ bool Path2d::isEndReached( const Pose2d& robot_pose,
 
 bool Path2d::isFree( const GridMap2d *map, Pose2d robot_pose, const double skip_radius ) const
 {
+    /// @todo the problem is the end of the path? WTF!?!
     // We need two remaining waypoints
     if ( waypoints_.size() < 2 )
         return true; /// @todo Use robot pose as a waypoint?

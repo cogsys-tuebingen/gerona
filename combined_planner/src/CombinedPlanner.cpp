@@ -83,6 +83,10 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
     // Update the current local path. This will remove already reached local waypoints
     lpath_.updateWaypoints( 0.25, robot_pose );
 
+    // Debug
+    if ( !lpath_.isFree( lmap_, robot_pose, 0.35 ))
+        ROS_WARN( "Local path is not free!" );
+
     // Replan anyway?
     force_replan = force_replan || lpath_.getWaypointCount() <= 0 ||
             (!gwaypoints_.empty() && robot_pose.isEqual( lpath_.getEnd(), wp_dist_eps_, wp_angle_eps_ )) ||
@@ -97,18 +101,18 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
         lplanner_->planPath( robot_pose, gwaypoints_, ggoal_ );
     } catch ( NoPathException& ex ) {
         // We didn't find a local path
-        bool allow_waiting = !new_gmap_;
-        if ( gstart_.isEqual( robot_pose, 0.5, 0.5 ) && !allow_waiting ) {
+        if ( gstart_.isEqual( robot_pose, 0.5, 0.5 )) {
             // Start pose of latest global path is too close
             throw NoPathException( "Didn't find a path." );
         }
+        gstart_ = robot_pose; // Set this to avoid infinite replanning loop
 
         ROS_WARN( "Searching a new global path because there is no local one." );
         try {
             findGlobalPath( robot_pose, ggoal_ );
         } catch ( NoPathException& ex ) {
             // Well, allow waiting for a new global map if the current one is old
-            if ( allow_waiting ) {
+            if ( !new_gmap_ ) {
                 ROS_WARN( "Waiting for new global map." );
                 state_ = WAITING_FOR_GMAP;
                 return;
