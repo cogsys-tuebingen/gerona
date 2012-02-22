@@ -58,7 +58,7 @@ void LocalPlanner::planPath( const lib_path::Pose2d &start,
     /// @todo Don't assume a quadratic map here and don't assume, that the start is equal to the map origin
     list<list<Pose2d>::iterator> possible_goals;
     list<Pose2d>::iterator global_wp_it = global_waypoints.begin();
-    double max_wp_dist = 0.4*map_->getResolution()*(double)( min( map_->getHeight(), map_->getWidth()));
+    double max_wp_dist = 0.3*map_->getResolution()*(double)( min( map_->getHeight(), map_->getWidth()));
     while ( global_wp_it != global_waypoints.end()) {
         if ( global_wp_it->distance_to( start ) <= max_wp_dist ) {
             possible_goals.push_front( global_wp_it );
@@ -67,8 +67,20 @@ void LocalPlanner::planPath( const lib_path::Pose2d &start,
             break;
     }
 
+    // Fallback: If there are waypoints left but no one was selected, take any waypoint inside of the map
+    /// @todo Do we need this?
+    if ( possible_goals.empty() && !global_waypoints.empty()) {
+        global_wp_it = global_waypoints.begin();
+        while ( global_wp_it != global_waypoints.end()) {
+            if ( map_->isInMap( *global_wp_it )) {
+                possible_goals.push_front( global_wp_it );
+            }
+            global_wp_it++;
+        }
+    }
+
     // If we didn't find a possible global waypoint but the goal is out of reach
-    bool goal_in_area = map_->isInMap( global_goal );
+    bool goal_in_area = start.distance_to( global_goal ) <= max_wp_dist;
     if ( possible_goals.empty() && !goal_in_area )
         throw NoPathException( "Found no local waypoint and the global goal lies outside of the local map." );
 
@@ -148,7 +160,7 @@ void LocalPlanner::configure()
     double circle_radius, wp_distance, cost_backw, cost_forw, cost_curve, cost_straight;
     n.param<double> ("circle_radius", circle_radius, 1.0f);
     n.param<double> ("max_waypoint_distance", wp_distance, 0.25f);
-    n.param<double> ("cost_backwards", cost_backw, 5.0f);
+    n.param<double> ("cost_backwards", cost_backw, 3.0f);
     n.param<double> ("cost_forwards", cost_forw, 1.0f);
     n.param<double> ("cost_curve", cost_curve, 1.5f);
     n.param<double> ("cost_straight", cost_straight, 1.0f);

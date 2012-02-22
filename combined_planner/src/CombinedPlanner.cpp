@@ -48,6 +48,8 @@ void CombinedPlanner::reset()
 
 void CombinedPlanner::setGoal( const lib_path::Pose2d& robot_pose, const Pose2d &goal )
 {
+    reset();
+
     // Try to find a global path
     findGlobalPath( robot_pose, goal );
 
@@ -73,7 +75,9 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
             return; // Still waiting
 
         // Got a new global map. Try to replan
+        ROS_INFO( "Got a new global map. Trying to find a new global path." );
         findGlobalPath( robot_pose, ggoal_ );
+        state_ = VALID_PATH;
     }
 
     // Do we have a local and a global map?
@@ -89,8 +93,8 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
 
     // Replan anyway?
     force_replan = force_replan || lpath_.getWaypointCount() <= 0 ||
-            (!gwaypoints_.empty() && robot_pose.isEqual( lpath_.getEnd(), wp_dist_eps_, wp_angle_eps_ )) ||
-            !lpath_.areWaypointsFree( lmap_->getResolution(), lmap_ );
+            (!gwaypoints_.empty() && robot_pose.isEqual( lpath_.getEnd(), wp_dist_eps_, wp_angle_eps_ ))
+            /*|| !lpath_.areWaypointsFree( lmap_->getResolution(), lmap_ )*/;
 
     // Something to do?
     if ( !force_replan )
@@ -98,18 +102,18 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
 
     // Plan a new local path
     try {
+        // Planning a new local path
         lplanner_->planPath( robot_pose, gwaypoints_, ggoal_ );
     } catch ( NoPathException& ex ) {
         // We didn't find a local path
         if ( gstart_.isEqual( robot_pose, 0.5, 0.5 ) && !new_gmap_) {
-            // Start pose of latest global path is too close
-            throw NoPathException( "Didn't find a path." );
+            throw NoPathException( "Didn't find a local path and global replanning is not allowed" );
         }
-        gstart_ = robot_pose; // Set this to avoid infinite replanning loop
 
-        ROS_WARN( "Searching a new global path because there is no local one." );
+        ROS_WARN( "Searching a new global path because there is no local one. Reason: %s", ex.what());
         try {
             findGlobalPath( robot_pose, ggoal_ );
+            gstart_ = robot_pose; // Set this to avoid infinite replanning loop
         } catch ( NoPathException& ex ) {
             // Well, allow waiting for a new global map if the current one is old
             if ( !new_gmap_ ) {
@@ -123,6 +127,7 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
         }
 
         // Found a new global path. Update the local path
+        ROS_INFO( "Found a new global path." );
         lpath_.reset();
         state_ = VALID_PATH;
         update( robot_pose, true );
@@ -137,7 +142,7 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
 
 void CombinedPlanner::findGlobalPath( const Pose2d &start, const Pose2d &goal )
 {
-    ROS_INFO( "Planing a global path." );
+    gwaypoints_.clear();
 
     // Check if we got a global map/global planner was initialized
     if ( gmap_ == NULL || gplanner_ == NULL ) {

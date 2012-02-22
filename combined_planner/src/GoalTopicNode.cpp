@@ -35,9 +35,6 @@ void GoalTopicNode::goalCB( const geometry_msgs::PoseStampedConstPtr &goal )
               goal->pose.position.x,
               goal->pose.position.y );
 
-    // Cancel all previous goals
-    ac_.cancelAllGoals();
-
     // Wait for action server
     if ( !ac_.waitForServer( ros::Duration( 1.0 ))) {
         ROS_ERROR( "No connection to go_to action server." );

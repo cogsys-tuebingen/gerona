@@ -54,6 +54,6 @@
 
   <include file="$(find costmap)/launch/costmap_default.launch" />
 
-  <include file="$(find combined_planner)/launch/planner_default.launch" />
+  <!--<include file="$(find combined_planner)/launch/planner_default.launch" />-->
 
 </launch>

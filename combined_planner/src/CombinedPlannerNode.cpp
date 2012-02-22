@@ -63,15 +63,13 @@ CombinedPlannerNode::CombinedPlannerNode()
 
 void CombinedPlannerNode::update()
 {
-    // Check for preempt request
-    if ( isPreemptRequested() && isActive()) {
+    if ( !isActive())
+        return;
+
+    if ( isPreemptRequested()) {
         deactivate( PREEMPT, GoToResult::STOP );
         return;
     }
-
-    // Nothing to do if there is no goal
-    if ( !isActive())
-        return;
 
     // Try to get the current position
     Pose2d robot_pose;
@@ -87,16 +85,15 @@ void CombinedPlannerNode::update()
         return;
     }
 
-    // Collision? Wait at least one second
+    // Collision? Wait at least 2 second
     bool force_replan = false;
-    bool reactivate = false;
     if ( collision_ ) {
-        if ((ros::Time::now() - collision_stamp_).toSec() < 1.0 )
+        if ((ros::Time::now() - collision_stamp_).toSec() < 2.0 )
             return; // Still waiting
 
-        // Alright. Force a new local path and reactivate motion control
+        // Alright. Force a new local path
         ROS_INFO( "Trying to find a new local path to resolve collision." );
-        force_replan = reactivate = true;
+        force_replan = true;
         collision_ = false;
     }
 
@@ -115,8 +112,14 @@ void CombinedPlannerNode::update()
     }
 
     // Reactivate motion control?
-    if ( reactivate )
+    if ( motion_ac_.getState() == SimpleClientGoalState::ABORTED
+         || motion_ac_.getState() == SimpleClientGoalState::PREEMPTED ) {
+        ROS_WARN( "Reactivating motion control." );
         activate();
+    }
+
+    if ( !isActive())
+        return; // There might have been an error during reactivation of motion control
 
     // Publis new local path and feedback
     /// @todo Implement
@@ -134,13 +137,22 @@ void CombinedPlannerNode::actionGoalCB()
 {
     // Stop motion control etc if necessary
     ROS_INFO( "Received new goal" );
-    if ( isActive() || isPreemptRequested())
+
+    if ( isActive())
         deactivate( PREEMPT, GoToResult::STOP );
 
     as_goal_ = *acceptNewGoal();
     collision_ = false;
+    planner_.reset();
     collision_stamp_ = ros::Time::now() - ros::Duration( 10.0 );
     collision_pose_.x = collision_pose_.y = collision_pose_.theta = 0;
+
+    // Check if there is a pending preempt on the new goal
+    if ( isPreemptRequested()) {
+        ROS_INFO( "Preempt request on new goal." );
+        deactivate( PREEMPT, GoToResult::STOP );
+        return;
+    }
 
     // Convert goal int map coordinate system if necessary
     geometry_msgs::PoseStamped goal_map;
@@ -183,7 +195,7 @@ void CombinedPlannerNode::actionGoalCB()
         return;
     }
 
-    // Start motion control etc
+    // Send goal to motion control
     activate();
 
     // Visualize waypoints
@@ -222,13 +234,10 @@ void CombinedPlannerNode::activate()
 
 void CombinedPlannerNode::deactivate( ActionResultState state, int result )
 {
+    ROS_INFO( "Deactivating path planner. Action state: %d Result: %d", state, result );
     motion_ac_.cancelAllGoals();
     publishEmptyLocalPath();
-
-    if ( !isActive())
-        return;
-
-    ROS_INFO( "Deactivating path planner." );
+    planner_.reset();
 
     as_result_.result = result;
     switch ( state ) {
@@ -236,9 +245,11 @@ void CombinedPlannerNode::deactivate( ActionResultState state, int result )
         setSucceeded( as_result_ );
         break;
     case ABORT:
+        /// @todo Somethin is wrong with this
         setAborted( as_result_ );
+        //setPreempted( as_result_ );
         break;
-    default:
+    case PREEMPT:
         setPreempted( as_result_ );
         break;
     }
@@ -254,33 +265,26 @@ void CombinedPlannerNode::motionCtrlDoneCB( const actionlib::SimpleClientGoalSta
 
     lib_path::Pose2d robot_pose;
     switch ( result->status ) {
-    case motion_control::MotionResult::MOTION_STATUS_SUCCESS:
-    case motion_control::MotionResult::MOTION_STATUS_STOP:
-        // Motion control should be active until we cancel it
-        if ( isActive())
-            activate();
-        ROS_ERROR( "Motion control retruened." );
-        //deactivate( ABORT, GoToResult::MOTION_CTRL_ERROR );
-        break;
-
     case motion_control::MotionResult::MOTION_STATUS_COLLISION:
         ROS_WARN( "Motion control reported a collision." );
         // That's the interesting part. Try to resolve the situation if the
         // latest collision is at least 2 seconds ago or if we moved at least a little bit
         if ( getRobotPose( robot_pose, gmap_frame_id_ ) &&
-             ((ros::Time::now() - collision_stamp_).toSec() > 2.0
+             ((ros::Time::now() - collision_stamp_).toSec() > 3.0
               || !robot_pose.isEqual( collision_pose_, 0.4, 90.0*M_PI/180.0 ))) {
             collision_ = true;
             collision_stamp_ = ros::Time::now();
             collision_pose_ = robot_pose;
         } else {
+            ROS_WARN( "Cannot resume from collision." );
             deactivate( ABORT, GoToResult::COLLISION_ERROR );
         }
         break;
 
     default:
-        ROS_ERROR( "Motion control reported an error." );
-        deactivate( ABORT, GoToResult::MOTION_CTRL_ERROR );
+        /// @todo Motion control should be active until we cancel it
+        ROS_WARN( "Motion control action is done." );
+        break;
     }
 }
 
