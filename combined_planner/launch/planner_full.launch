@@ -1,0 +1,17 @@
+<launch>
+
+  <include file="$(find combined_planner)/launch/hector_slam.launch"/>
+    
+  <node name="motion_control" pkg="motion_control" type="motion_control" respawn="false" output="screen" >  
+
+    <param name="waypoint_threshold" value="0.15" />
+    <param name="max_waypoint_distance" value="0.25" />
+    <param name="rowdetect/dualpid/Kp" value="1.0" />
+
+  </node>
+
+  <include file="$(find costmap)/launch/costmap_default.launch" />
+
+  <include file="$(find combined_planner)/launch/planner_default.launch" />
+
+</launch>
