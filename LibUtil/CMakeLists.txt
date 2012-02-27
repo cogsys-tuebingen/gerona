@@ -1,12 +1,12 @@
 # Utils/LibUtil/CMakeLists.txt
 
 # Load OpenCV cmake module, if wasn't looked for or found yet
-find_package( OpenCV REQUIRED )
+find_package( OpenCV )
 IF(NOT DEFINED OpenCV_FOUND OR NOT OpenCV_FOUND)
         set(OpenCV_DIR /opt/ros/diamondback/stacks/vision_opencv/opencv2/opencv/share/opencv/)
         find_package( OpenCV REQUIRED )
 ENDIF()
-message(${OpenCV_LIB_DIR})
+message("found OpenCV " ${OpenCV_LIB_DIR})
 
 
 include_directories(
