@@ -18,6 +18,7 @@
 // Project
 #include "Actuators.h"
 #include "QuMessage.h"
+#include "DataListener.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // DECLARATIONS
@@ -35,7 +36,7 @@ struct RtzCalibration {
  * Controls the laser roll/tilt unit. Offers methods to set and to get the
  * current roll/tilt angles.
  */
-class RtzController {
+class RtzController : public DataOwner {
 public:
 
   /**
@@ -99,6 +100,17 @@ public:
     double getRollRad() const;
 
     /**
+     * Return the milliseconds since the last roll angle feedback was received.
+     *
+     * @param msec Milliseconds since last roll angle feedback.
+     * @return True if the servo reports feedback about it's position. False
+     * otherwise. Don't use the data in that case.
+     */
+    bool getRollFeedbackStamp( int& msec ) const {
+        return mActuators->getPositionFeedbackStamp( mRollId, msec );
+    }
+
+    /**
      * Returns the tilt angle.
      *
      * @param The current tilt angle in radian. The true angle may
@@ -106,6 +118,17 @@ public:
      * aproaching the requested position.
      */
     double getTiltRad() const;
+
+    /**
+     * Return the milliseconds since the last tilt angle feedback was received.
+     *
+     * @param msec Milliseconds since last tilt angle feedback.
+     * @return True if the servo reports feedback about it's position. False
+     * otherwise. Don't use the data in that case.
+     */
+    bool getTiltFeedbackStamp( int& msec ) const {
+        return mActuators->getPositionFeedbackStamp( mTiltId, msec );
+    }
 
     /**
      * Sets the rtz position to 0,0.

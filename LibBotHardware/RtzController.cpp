@@ -73,7 +73,7 @@ double RtzController::getRollRad() const {
 double RtzController::getTiltRad() const {
     S32 rawValue;
 
-    // Servo reports ist present position? Use it!
+    // Servo reports its present position? Use it!
     if ( mActuators->hasPositionFeedback( mTiltId ))
         rawValue = mActuators->getPresentPosition( mTiltId );
     else

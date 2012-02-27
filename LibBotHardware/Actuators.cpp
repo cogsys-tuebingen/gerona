@@ -28,12 +28,15 @@ Actuators::Actuators( RamaxxConnection * conn ) {
 
     // Set default configuration and initial values
     ActuatorConfig defaultConfig;
+    ActuatorStatus* actuStatus;
     for ( int i = 0; i < ACTUATOR_COUNT; ++i ) {
-        mActuStatus[i].config = defaultConfig;
-        mActuStatus[i].presentPosition = -1; // Unknown
-        mActuStatus[i].requestedPosition = defaultConfig.zero;
-        mActuStatus[i].error = false; // No error reported
-        mActuStatus[i].hasPositionFeedback = false; // No position feedback received
+        actuStatus = &mActuStatus[i];
+        actuStatus->config = defaultConfig;
+        actuStatus->presentPosition = -1; // Unknown
+        actuStatus->requestedPosition = defaultConfig.zero;
+        actuStatus->error = false; // No error reported
+        actuStatus->hasPositionFeedback = false; // No position feedback received
+        gettimeofday( &actuStatus->feedbackStamp, NULL );
     }
 
     // Set speed servo default config
@@ -65,8 +68,19 @@ void Actuators::processQuMessage( const QuMessage &msg ) {
     presentPos |= msg.data[3] << 8;
     presentPos |= msg.data[2] << 16;
     presentPos |= msg.data[1] << 24;
-    mActuStatus[actId].presentPosition = presentPos;
-    mActuStatus[actId].hasPositionFeedback = true;
+    ActuatorStatus* actuStatus = &mActuStatus[actId];
+    actuStatus->presentPosition = presentPos;
+    actuStatus->hasPositionFeedback = true;
+    gettimeofday( &actuStatus->feedbackStamp, NULL );
+}
+
+bool Actuators::getPositionFeedbackStamp( const ActuatorId id, int &msec ) const {
+    const ActuatorStatus* actuStatus = &mActuStatus[id];
+    timeval now;
+    gettimeofday( &now, NULL );
+    msec = (now.tv_sec - actuStatus->feedbackStamp.tv_sec)*1000;
+    msec += (now.tv_usec - actuStatus->feedbackStamp.tv_usec)/1000;
+    return actuStatus->hasPositionFeedback;
 }
 
 void Actuators::setPosition( ActuatorId id, S32 value ) {

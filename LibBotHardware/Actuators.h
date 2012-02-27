@@ -12,6 +12,8 @@
 // I N C L U D E S
 ///////////////////////////////////////////////////////////////////////////////
 
+// C/C++
+#include <sys/time.h>
 
 // Workspace
 #include <Global.h>
@@ -88,6 +90,12 @@ struct ActuatorStatus {
      */
     bool hasPositionFeedback;
 
+    /**
+     * Time stamp of last position feedback. Won't hold something usefull if
+     * there is no position feedback.
+     */
+    timeval feedbackStamp;
+
     /// Flag if the actuator reported an error
     bool error;
 };
@@ -163,6 +171,17 @@ public:
      * @return True if the actuator reported its position once. False otherwise.
      */
     bool hasPositionFeedback( ActuatorId id ) const { return mActuStatus[id].hasPositionFeedback; }
+
+    /**
+     * Return the time stamp of the latest position feedback.
+     *
+     * @param id Id of the actuator.
+     * @param msec Milliseconds since the last position feedback was received.
+     *
+     * @return True if the actuator reported it's position once. False otherwise.
+     * Don't use the data in that case.
+     */
+    bool getPositionFeedbackStamp( const ActuatorId id, int &msec ) const;
 
     /**
      * Return the minimum actuator value. Note: The actual minimum value might
