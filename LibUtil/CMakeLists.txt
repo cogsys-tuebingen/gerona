@@ -1,14 +1,18 @@
 # Utils/LibUtil/CMakeLists.txt
 
 # Load OpenCV cmake module, if wasn't looked for or found yet
+find_package( OpenCV REQUIRED )
 IF(NOT DEFINED OpenCV_FOUND OR NOT OpenCV_FOUND)
         set(OpenCV_DIR /opt/ros/diamondback/stacks/vision_opencv/opencv2/opencv/share/opencv/)
         find_package( OpenCV REQUIRED )
 ENDIF()
+message(${OpenCV_LIB_DIR})
+
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/ros/eigen/include
     /opt/ros/diamondback/stacks/geometry/bullet/include/LinearMath
+    /opt/ros/electric/stacks/bullet/include/LinearMath
     # Alternative using player Extlib:
     #${CMAKE_SOURCE_DIR}/Extlib # for Eigen
 )
@@ -35,6 +39,7 @@ add_library (LibUtil SHARED
 
 target_link_libraries(LibUtil
     ${OpenCV_LIBS}
+    -L${OpenCV_LIB_DIR}
 )
 
 install (TARGETS LibUtil LIBRARY DESTINATION lib)
