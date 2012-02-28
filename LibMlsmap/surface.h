@@ -11,6 +11,7 @@ public:
     short int height;  // Hoehe der Oberflaeche in cm
     short int varHeight; //Varianz in mm^2
     short int length;  // Laenge des Surface in cm
+    short int type; // free space for adding extra information to surface
 private:
     Surface();
 };
