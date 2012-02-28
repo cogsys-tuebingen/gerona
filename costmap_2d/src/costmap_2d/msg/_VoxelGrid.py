@@ -124,8 +124,8 @@ float64 z
       buff.write(struct.pack(pattern, *self.data))
       _x = self
       buff.write(_struct_3f3d3I.pack(_x.origin.x, _x.origin.y, _x.origin.z, _x.resolutions.x, _x.resolutions.y, _x.resolutions.z, _x.size_x, _x.size_y, _x.size_z))
-    except struct.error, se: self._check_types(se)
-    except TypeError, te: self._check_types(te)
+    except struct.error as se: self._check_types(se)
+    except TypeError as te: self._check_types(te)
 
   def deserialize(self, str):
     """
@@ -163,7 +163,7 @@ float64 z
       end += 48
       (_x.origin.x, _x.origin.y, _x.origin.z, _x.resolutions.x, _x.resolutions.y, _x.resolutions.z, _x.size_x, _x.size_y, _x.size_z,) = _struct_3f3d3I.unpack(str[start:end])
       return self
-    except struct.error, e:
+    except struct.error as e:
       raise roslib.message.DeserializationError(e) #most likely buffer underfill
 
 
@@ -187,8 +187,8 @@ float64 z
       buff.write(self.data.tostring())
       _x = self
       buff.write(_struct_3f3d3I.pack(_x.origin.x, _x.origin.y, _x.origin.z, _x.resolutions.x, _x.resolutions.y, _x.resolutions.z, _x.size_x, _x.size_y, _x.size_z))
-    except struct.error, se: self._check_types(se)
-    except TypeError, te: self._check_types(te)
+    except struct.error as se: self._check_types(se)
+    except TypeError as te: self._check_types(te)
 
   def deserialize_numpy(self, str, numpy):
     """
@@ -228,7 +228,7 @@ float64 z
       end += 48
       (_x.origin.x, _x.origin.y, _x.origin.z, _x.resolutions.x, _x.resolutions.y, _x.resolutions.z, _x.size_x, _x.size_y, _x.size_z,) = _struct_3f3d3I.unpack(str[start:end])
       return self
-    except struct.error, e:
+    except struct.error as e:
       raise roslib.message.DeserializationError(e) #most likely buffer underfill
 
 _struct_I = roslib.message.struct_I

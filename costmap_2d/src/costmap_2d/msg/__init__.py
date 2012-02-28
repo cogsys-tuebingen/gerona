@@ -1,1 +1,1 @@
-from _VoxelGrid import *
+from ._VoxelGrid import *
