@@ -37,5 +37,13 @@ void configureRamaxxLog(LogCollector &logger)
   logger.addColumn(LOG_HALLFRONT2,LOG_HALLFRONT2,false);
   logger.addColumn(LOG_HALLREAR1,LOG_HALLREAR1,false);
   logger.addColumn(LOG_HALLREAR2,LOG_HALLREAR2,false);
-
+  logger.addColumn(LOG_GPS_N);
+  logger.addColumn(LOG_GPS_E);
+  logger.addColumn(LOG_GPS_ALT);
+  logger.addColumn(LOG_GPS_FIX);
+  logger.addColumn(LOG_GPS_SATS);
+  logger.addColumn(LOG_IMUQ0);
+  logger.addColumn(LOG_IMUQ1);
+  logger.addColumn(LOG_IMUQ2);
+  logger.addColumn(LOG_IMUQ3);
 }

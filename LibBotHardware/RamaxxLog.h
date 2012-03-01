@@ -42,7 +42,15 @@ const string LOG_TARGETDELTAREAR= "targetdeltarear";
 const string LOG_HALLDELTAFRONT=  "halldeltafront";
 const string LOG_HALLDELTAREAR=   "halldeltarear";
 const string LOG_PNITHETA=        "pnitheta";
-
+const string LOG_IMUQ0=           "imuq0";
+const string LOG_IMUQ1=           "imuq1";
+const string LOG_IMUQ2=           "imuq2";
+const string LOG_IMUQ3=           "imuq3";
+const string LOG_GPS_N=           "gps_n";
+const string LOG_GPS_E=           "gps_e";
+const string LOG_GPS_ALT=         "gps_alt";
+const string LOG_GPS_FIX=         "gps_fix";
+const string LOG_GPS_SATS=        "gps_sats";
 
 void configureRamaxxLog(LogCollector& logger);
 
