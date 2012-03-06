@@ -4,6 +4,7 @@
 #include <vector>
 #include "field.h"
 #include <cmath>
+#include <iostream>
 
 #include <Eigen/Geometry>
 
