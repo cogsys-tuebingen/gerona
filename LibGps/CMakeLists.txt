@@ -1,4 +1,3 @@
-# Utils/LibUtil/CMakeLists.txt
 
 rosbuild_add_library (LibGps
  nmeaparser.cpp 
@@ -8,6 +7,7 @@ rosbuild_add_library (LibGps
  ubloxobservations.cpp 
  ecefgk.cpp 
  gk.cpp
+
 )
 
 #install (TARGETS LibGps LIBRARY DESTINATION lib)

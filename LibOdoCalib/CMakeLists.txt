@@ -10,7 +10,6 @@ include_directories (
 
 rosbuild_add_library (LibOdoCalib
     BetaEstimator.cpp
-    CircleEstimator.cpp
     DriveCircleAction.cpp
     DriveCircleMission.cpp
     DriveStraightAction.cpp

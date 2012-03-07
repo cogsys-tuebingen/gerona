@@ -76,7 +76,7 @@ bool LogCollector::enable( const string &fileName, bool overwrite ) {
     *mOutStream << mCommentChar << " \n";
 
     // Write descriptions
-    *mOutStream << mCommentChar<< " Column 0: Time since loggin was enabled [msec]" << endl;
+    *mOutStream << mCommentChar<< " Column 1: Time since loggin was enabled [msec]" << endl;
     ColumnVector::iterator colIter = mColData.begin();
     for ( ; colIter != mColData.end(); colIter++ ) {
         writeDescription( *colIter, mOutStream );
