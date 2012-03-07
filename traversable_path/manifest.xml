@@ -1,0 +1,17 @@
+<package>
+  <description brief="traversable_path">
+
+     traversable_path
+
+  </description>
+  <author>Felix Widmaier</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/traversable_path</url>
+  <depend package="std_msgs"/>
+  <depend package="roscpp"/>
+  <depend package="ramaxxbase"/>
+
+</package>
+
+
