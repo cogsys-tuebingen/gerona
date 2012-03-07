@@ -100,8 +100,8 @@ void SimpleGoalDriver::setGoal(const motion_control::MotionGoal &goal)
 
   }
 
-  ROS_INFO("simplegoaldriver::setgoal: x=%f y=%f v=%f",goal_global_.pose.position.x,
-           goal_global_.pose.position.y,goal_v_);
+  //ROS_INFO("simplegoaldriver::setgoal: x=%f y=%f v=%f",goal_global_.pose.position.x,
+  //         goal_global_.pose.position.y,goal_v_);
   laser_scan_.ranges.clear();
   start();
 }

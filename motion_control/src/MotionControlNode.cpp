@@ -39,8 +39,7 @@ MotionControlNode::~MotionControlNode()
 }
 
 void MotionControlNode::goalCallback()
-{
-  ROS_INFO("motion control: received goal");
+{  
   boost::shared_ptr<const motion_control::MotionGoal_<std::allocator<void> > >
     goalptr = action_server_.acceptNewGoal();
   if (active_ctrl_!=NULL && goalptr->mode!=active_ctrl_->getType()) {
@@ -112,7 +111,7 @@ void MotionControlNode::update()
       break;
     case MotionResult::MOTION_STATUS_SUCCESS:
         action_server_.setSucceeded(result);
-        ROS_INFO("motioncontrolnode: MOTION_STATUS_SUCCESS");
+        //ROS_INFO("motioncontrolnode: MOTION_STATUS_SUCCESS");
         break;
     case MotionResult::MOTION_STATUS_COLLISION:
       ROS_INFO("motioncontrolnode: MOTION_STATUS_COLLISION");

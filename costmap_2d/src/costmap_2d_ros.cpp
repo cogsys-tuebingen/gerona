@@ -1048,7 +1048,7 @@ namespace costmap_2d {
       start_t = start.tv_sec + double(start.tv_usec) / 1e6;
       end_t = end.tv_sec + double(end.tv_usec) / 1e6;
       t_diff = end_t - start_t;
-      ROS_INFO("Map update time: %.4fms", t_diff * 1000.f);
+      //ROS_INFO("Map update time: %.4fms", t_diff * 1000.f);
 
       r.sleep();
       //make sure to sleep for the remainder of our cycle time
