@@ -24,7 +24,7 @@ CircleEstimator::~CircleEstimator()
 
 void CircleEstimator::Reset()
 {
-    mRadius = -1;
+    mRadius = mRadiusK=-1;
     mCenter.setZero();
     mArcLength = 0;
     mPoints.clear();

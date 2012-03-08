@@ -4,6 +4,7 @@
 #define MATH_HELPER_H
 
 #include <utility>
+#include <limits>
 #include <vector>
 #include <Eigen/Core>
 #include "MathHelper.h"
@@ -60,6 +61,46 @@ public:
       return (value < low) ? low : ((value > high) ? high : value);
   }
 
+  /**
+    find peaks in data vector
+    http://billauer.co.il/peakdet.html
+    */
+  template <typename T>
+  static bool peakDetect(const vector<T>& data, T delta, vector<int>& mins, vector<int>& maxs)
+  {
+    T mn=std::numeric_limits<T>::max();
+    T mx=std::numeric_limits<T>::min();
+
+    int mnpos = -1, mxpos = -1;
+
+    int lookformax = 1;
+
+    for (int i=0;i<data.size();++i) {
+      T& val=data[i];
+      if (val > mx) {
+        mx = val;
+        mxpos = i;
+      }
+      if (val < mn) {
+        mn = val;
+        mnpos = i;
+      }
+      if (lookformax) {
+        if (val < mx-delta) {
+          maxs.push_back(mxpos);
+          mn = val; mnpos= i;
+          lookformax = 0;
+        }
+      }  else {
+        if (val > mn+delta) {
+          mins.push_back(mnpos);
+          mx = val; mxpos = i;
+          lookformax = 1;
+        }
+      }
+    }
+    return true;
+  }
 
 };
 
