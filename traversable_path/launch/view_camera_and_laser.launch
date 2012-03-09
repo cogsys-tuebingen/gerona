@@ -1,0 +1,5 @@
+<launch>
+	<node pkg="image_view" type="image_view" name="image_view" args="image:=/camera/image_raw" />
+	<node pkg="laserscan_viewer" type="laserscan_viewer.py" args="/scan" name="view_orginal_laser" />
+	<node pkg="laserscan_viewer" type="laserscan_viewer.py" args="/scan/flattend" name="view_flattend_laser" />
+</launch>
