@@ -21,6 +21,7 @@ add_library (LibUtil SHARED
     ConfigFileReader.cpp
     EggTimer.cpp
     EigenTools.cpp
+    Graphics.cpp
     LogCollector.cpp
     LowPassFilter.cpp
     MathHelper.cpp

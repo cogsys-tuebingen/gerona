@@ -66,7 +66,7 @@ public:
     http://billauer.co.il/peakdet.html
     */
   template <typename T>
-  static bool peakDetect(const vector<T>& data, T delta, vector<int>& mins, vector<int>& maxs)
+  static bool peakDetect(const vector<T>& data, T delta, vector<unsigned int>& mins, vector<unsigned int>& maxs)
   {
     T mn=std::numeric_limits<T>::max();
     T mx=std::numeric_limits<T>::min();
@@ -75,8 +75,8 @@ public:
 
     int lookformax = 1;
 
-    for (int i=0;i<data.size();++i) {
-      T& val=data[i];
+    for (unsigned int i=0;i<data.size();++i) {
+      const T& val=data[i];
       if (val > mx) {
         mx = val;
         mxpos = i;
