@@ -28,6 +28,7 @@ public:
     std::vector<Field<CellT>*> getFields();
     int getCellSize();
     unsigned int getFieldNumber();
+    int toIndex(double x);
 private:
     const int mCellSize; // Size of Patch in cm
     const int mGapSize; // minimum distance between two surfaces in the same patch (in cm)
@@ -102,7 +103,7 @@ bool MLSmap<CellT>::isValidCoord(int x, int y)
 template <class CellT>
 void MLSmap<CellT>::addField(int x, int y)
 {
-  cout << "addfield for coordinates x="<<x << " y="<<y <<endl;
+  cout << "addfield " << getFieldIndex(x,y) << " for coordinates x="<<x << " y="<<y <<endl;
   cout.flush();
     mFields[ getFieldIndex(x,y) ] = new Field<CellT>();
 }
@@ -117,6 +118,12 @@ template <class CellT>
 CellT* MLSmap<CellT>::getCellByCoord(double x, double y)
 {
     return getCell(floor(x/mCellSize), floor(y/mCellSize));
+}
+
+template <class CellT>
+int MLSmap<CellT>::toIndex(double x)
+{
+    return floor(x * mMetersToCentimeters / mCellSize) + mHalfMapSize; // add half length of map to center (0,0)
 }
 
 template <class CellT>
