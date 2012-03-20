@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include "ros/ros.h"
+#include "yaml-cpp/yaml.h"
 
 /**
  * @brief Store/Load std::vector to/from a file.
@@ -13,11 +14,10 @@
  * There are two methods store() and load(). store() takes a vector and stores its content to the file specified in the
  * constructor. load() is the counterpart that loads the data of such a file.
  *
- * The files have binary content. At the beginning the length of the vector is written to the file (unsigned int), then
- * the content.
+ * The vectors are stored in YAML-format, so it will only work with scalar values.
  *
  * @author Felix Widmaier
- * @version 1.0
+ * @version 1.1
  */
 template<class T>
 class VectorSaver
@@ -61,26 +61,25 @@ private:
 template <class T>
 bool VectorSaver<T>::store(std::vector<T> in)
 {
-    // data array
-    T *data = in.data();
-    // length of the array
-    unsigned int length = in.size();
+    YAML::Emitter out;
 
-    // write binary data to file, truncate file before writing
-    std::ofstream out_file(filename_.data(), std::ios::out | std::ios::trunc | std::ios::binary);
+    // convert vector to yaml-string
+    out << YAML::Flow << in;
 
+    // write data to file, truncate file before writing
+    std::ofstream out_file(filename_.data(), std::ios::out | std::ios::trunc);
     if (!out_file.good()) {
         ROS_ERROR("VectorSaver::store: Could not open file '%s' for writing.", filename_.data());
         return false;
     }
 
-    // first write length of datastream
-    out_file.write((char*) &length, sizeof(unsigned int));
+    out_file << out.c_str();
 
-    // ...then write data
-    out_file.write((char*) data, sizeof(T) * length);
-
-    return out_file.good();
+    if (!out_file.good()) {
+        ROS_ERROR("VectorSaver::store: Failure when writing data to file.", filename_.data());
+        return false;
+    }
+    return true;
 }
 
 template <class T>
@@ -93,28 +92,21 @@ bool VectorSaver<T>::load(std::vector<T> *out)
         return false;
     }
 
-    int length;
-    float *data = 0;
+    try {
+        YAML::Parser parser(in_file);
+        YAML::Node doc;
 
-    // first bytes of the file contain the array length
-    in_file.read((char*) &length, sizeof(unsigned int));
-    if (!in_file.good()) {
-        ROS_ERROR("VectorSaver::load: Failed reading array length.");
+        parser.GetNextDocument(doc);
+        // yaml-sequence to vector
+        for(YAML::Iterator it = doc.begin(); it != doc.end(); ++it) {
+            T elem;
+            *it >> elem;
+            out->push_back(elem);
+        }
+    } catch(YAML::Exception &e) {
+        ROS_ERROR("VectorSaver::load: YAML-Parser-Exception: %s", e.what());
         return false;
     }
-    ROS_DEBUG("Number of stored range values: %d", length);
-
-    // rest of the file are data
-    data = new T[length];
-    in_file.read((char*) data, sizeof(T)*length);
-
-    if (!in_file.good()) {
-        ROS_ERROR("VectorSaver::load: Failed reading data.");
-        return false;
-    }
-
-    // assign data to the output-vector
-    out->assign(data, data + length);
 
     return true;
 }

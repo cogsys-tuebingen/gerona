@@ -32,6 +32,6 @@ private:
 };
 
 const std::string DisplayLaserData::RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)
-                                                             + std::string("/rangecalibration.dat");
+                                                             + std::string("/rangecalibration.yaml");
 
 #endif // DISPLAY_LASER_DATA_H
