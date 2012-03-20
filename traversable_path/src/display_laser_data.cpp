@@ -43,14 +43,17 @@ void DisplayLaserData::printLaserData(const sensor_msgs::LaserScanPtr &msg)
         }
     }
 
-    // smooth ranges
+    // smooth
     smoothed.ranges = smooth(msg->ranges);
+    smoothed.intensities = smooth(msg->intensities);
 
     // differential
     diff.ranges[0] = 0;
+    diff.intensities[0] = 0;
     for (unsigned int i=1; i < smoothed.ranges.size(); ++i)
     {
         diff.ranges[i] = smoothed.ranges[i] - smoothed.ranges[i-1];
+        diff.intensities[i] = smoothed.intensities[i] - smoothed.intensities[i-1];
     }
 
     // smooth differential

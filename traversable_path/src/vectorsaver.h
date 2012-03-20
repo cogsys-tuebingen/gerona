@@ -76,7 +76,7 @@ bool VectorSaver<T>::store(std::vector<T> in)
     out_file << out.c_str();
 
     if (!out_file.good()) {
-        ROS_ERROR("VectorSaver::store: Failure when writing data to file.", filename_.data());
+        ROS_ERROR("VectorSaver::store: Failure when writing data to file '%s'.", filename_.data());
         return false;
     }
     return true;
@@ -104,7 +104,7 @@ bool VectorSaver<T>::load(std::vector<T> *out)
             out->push_back(elem);
         }
     } catch(YAML::Exception &e) {
-        ROS_ERROR("VectorSaver::load: YAML-Parser-Exception: %s", e.what());
+        ROS_ERROR("VectorSaver::load: File: '%s' YAML-Parser-Exception: %s", filename_.data(), e.what());
         return false;
     }
 
