@@ -41,6 +41,33 @@ AckermannSteering::AckermannSteering() {
     mCenterX = mCenterY = 0.0;
 }
 
+void AckermannSteering::calcIcr(const Vector2d &p0, const Vector2d &p1,
+                           const Vector2d&p2,double wb,Vector2d &m, double &r, double &deltaf)
+{
+  // calc circle through 3 points
+  // http://2000clicks.com/mathhelp/GeometryConicSectionCircleEquationGivenThreePoints.aspx
+  double a,b,c,d,e,f;
+  a=p0.x();
+  b=p0.y();
+  c=p1.x();
+  d=p1.y();
+  e=p2.x();
+  f=p2.y();
+  m.x()= (0.5)*((a*a+b*b)*(f-d) + (c*c+d*d)*(b-f) + (e*e+f)*(d-b)) / (a*(f-d)+c*(b-f)+e*(d-b));
+  m.y()= (0.5)*((a*a+b*b)*(e-c) + (c*c+d*d)*(a-e) + (e*e+f*f)*(c-a)) / (b*(e-c)+d*(a-e)+f*(c-a));
+
+
+  r=(p0-m).norm();
+  deltaf=atan(wb/r);
+  if (m.y()<0) {
+    // right curve
+    deltaf=fabs(deltaf)*-1.0;
+  } else {
+    deltaf=fabs(deltaf);
+  }
+}
+
+
 void AckermannSteering::SetSteerAngles( const double &front, const double &rear ) {
 
     mSteerFront = front;

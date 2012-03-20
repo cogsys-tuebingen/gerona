@@ -129,6 +129,19 @@ public:
     TurnDirection GetTurn() const { return mTurn; }
 
 
+    /**
+      calculate instantaneous center of rotation given three points of a circle
+      @param p0 first point on circle, e.g. goal point or point to steer clearenv()
+      @param p1 first point on robot, e.g. front (left or right) corner of robot
+      @param p2 second point on robot, e.g. rear (left or right) corner of robot
+      @param wheelbase distance from front to rear axle
+      @param[out] icr result coordinates of icr
+      @param[out] radius resulting radius of motion circle
+      @param[out] steer_front_rad steer_front_rad resulting steering angle to steer clear or reach p0
+      */
+    void calcIcr(const Vector2d &p0, const Vector2d &p1,
+                 const Vector2d&p2,double wheelbase, Vector2d &icr, double &radius, double &steer_front_rad);
+
 private:
 
     double          mFrontRadius, mCenterRadius, mRearRadius;
