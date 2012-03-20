@@ -4,6 +4,7 @@
 #include <string>
 #include <list>
 #include "ros/ros.h"
+#include "ros/package.h"
 #include "sensor_msgs/LaserScan.h"
 #include "std_srvs/Empty.h"
 
@@ -30,6 +31,7 @@ private:
     float avg(std::list<float> &xs);
 };
 
-const std::string DisplayLaserData::RANGE_CALIBRATION_FILE = "rangecalibration.dat";
+const std::string DisplayLaserData::RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)
+                                                             + std::string("/rangecalibration.dat");
 
 #endif // DISPLAY_LASER_DATA_H
