@@ -10,19 +10,30 @@ using namespace std;
 DisplayLaserData::DisplayLaserData() :
         is_calibrated_(false)
 {
-    pub_ = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
+    // private node handle for parameter access
+    ros::NodeHandle private_node_handle("~");
+
+    // advertise
+    publish_normalized_ = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
     publish_smooth_ = node_handle_.advertise<sensor_msgs::LaserScan>("scan/smooth", 100);
     publish_differential_ = node_handle_.advertise<sensor_msgs::LaserScan>("scan/differential", 100);
 
     // subscribe laser scanner
-    sub_ = node_handle_.subscribe("scan", 100, &DisplayLaserData::printLaserData, this);
+    subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &DisplayLaserData::printLaserData, this);
 
     // register calibration service
     service_ = node_handle_.advertiseService("calibrate_plane", &DisplayLaserData::calibrate, this);
 
 
+    // load range calibration filename from parameter
+    private_node_handle.param<string>("calibration_file", range_calibration_file_, DEFAULT_RANGE_CALIBRATION_FILE);
+    if (range_calibration_file_.compare("default") == 0) {
+        range_calibration_file_ = DEFAULT_RANGE_CALIBRATION_FILE;
+    }
+    ROS_INFO("Using calibration file %s", range_calibration_file_.c_str());
+
     // look for existing range calibration file
-    VectorSaver<float> vs(RANGE_CALIBRATION_FILE);
+    VectorSaver<float> vs(range_calibration_file_);
     is_calibrated_ = vs.load(&plane_ranges_);
 }
 
@@ -65,7 +76,7 @@ void DisplayLaserData::printLaserData(const sensor_msgs::LaserScanPtr &msg)
 
 
     // publish modified message
-    pub_.publish(msg);
+    publish_normalized_.publish(msg);
     publish_smooth_.publish(smoothed);
     publish_differential_.publish(diff);
 }
@@ -126,7 +137,7 @@ bool DisplayLaserData::calibrate(std_srvs::Empty::Request& request, std_srvs::Em
     this->is_calibrated_ = true;
 
     // store range-vector
-    VectorSaver<float> vs(RANGE_CALIBRATION_FILE);
+    VectorSaver<float> vs(range_calibration_file_);
     vs.store(scan->ranges);
 
     return true;

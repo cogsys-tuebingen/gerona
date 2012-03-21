@@ -14,14 +14,15 @@ public:
     DisplayLaserData();
 
 private:
-    const static std::string RANGE_CALIBRATION_FILE;
+    const static std::string DEFAULT_RANGE_CALIBRATION_FILE;
 
     ros::NodeHandle node_handle_;
-    ros::Publisher pub_;
+    ros::Publisher publish_normalized_;
     ros::Publisher publish_smooth_;
     ros::Publisher publish_differential_;
-    ros::Subscriber sub_;
+    ros::Subscriber subscribe_laser_scan_;
     ros::ServiceServer service_;
+    std::string range_calibration_file_;
     bool is_calibrated_;
     std::vector<float> plane_ranges_;
 
@@ -31,7 +32,7 @@ private:
     float avg(std::list<float> &xs);
 };
 
-const std::string DisplayLaserData::RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)
+const std::string DisplayLaserData::DEFAULT_RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)
                                                              + std::string("/rangecalibration.yaml");
 
 #endif // DISPLAY_LASER_DATA_H
