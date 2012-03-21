@@ -75,6 +75,9 @@ void DisplayLaserData::printLaserData(const sensor_msgs::LaserScanPtr &msg)
 //    reverse(msg->intensities.begin(), msg->intensities.end());
 
 
+    // find obstacles
+    detectObstacles(diff, msg->intensities);
+
     // publish modified message
     publish_normalized_.publish(msg);
     publish_smooth_.publish(smoothed);
@@ -187,6 +190,58 @@ float DisplayLaserData::avg(std::list<float> &xs)
         return accumulate(xs.begin(), xs.end(), 0.0) / xs.size();
 }
 
+void DisplayLaserData::detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out)
+{
+    /* look at each point seperate
+    const float RANGE_LIMIT = 0.01;
+    const float INTENSITY_LIMIT = 40.0;
+
+    for (unsigned int i = 0; i < data.ranges.size(); ++i) {
+        // missuse intensity of out as obstacle indicator... just for testing, I promise! :P
+        out[i] = 0;
+
+        if (abs(data.ranges[i]) > RANGE_LIMIT) {
+            out[i] = 3000; // just some high value that will be visible in the laserscan viewer
+        }
+
+        //cout << abs(data.intensities[i]) << endl;
+        if (abs(data.intensities[i]) > INTENSITY_LIMIT) {
+            out[i] = 5000; // an other high value to distinct range an intensity
+        }
+    }
+    //*/
+
+
+    //* Look at segemnts
+    const unsigned int SEGMENT_SIZE = 50;
+    const float RANGE_LIMIT = 0.007;
+    const float INTENSITY_LIMIT = 30.0;
+
+    for (unsigned int i = 0; i < data.ranges.size(); i+=SEGMENT_SIZE) {
+        float sum_range = 0;
+        float sum_intensity = 0;
+
+        for (unsigned int j = i; j < i+SEGMENT_SIZE && j < data.ranges.size(); ++j) {
+            // missuse intensity of out as obstacle indicator... just for testing, I promise! :P
+            out[j] = 0;
+
+            sum_range += abs(data.ranges[i]);
+            sum_intensity += abs(data.intensities[i]);
+        }
+
+        if (sum_range/SEGMENT_SIZE > RANGE_LIMIT) {
+            for (unsigned int j = i; j < i+SEGMENT_SIZE && j < data.ranges.size(); ++j)
+                out[j] = 3000; // just some high value that will be visible in the laserscan viewer
+        }
+
+        //cout << abs(data.intensities[i]) << endl;
+        if (sum_intensity/SEGMENT_SIZE > INTENSITY_LIMIT) {
+            for (unsigned int j = i; j < i+SEGMENT_SIZE && j < data.ranges.size(); ++j)
+                out[j] += 5000; // an other high value to distinct range an intensity
+        }
+    }
+    //*/
+}
 
 //--------------------------------------------------------------------------
 

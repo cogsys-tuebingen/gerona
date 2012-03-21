@@ -28,8 +28,20 @@ private:
 
     void printLaserData(const sensor_msgs::LaserScanPtr &msg);
     bool calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+
+    /**
+     * @brief Smoothes the curve describted by data.
+     */
     std::vector<float> smooth(std::vector<float> data);
+
+    /**
+     * @brief Calculates average of the elements of a float list.
+     * @param A list of float-values.
+     * @return Average of the list-values.
+     */
     float avg(std::list<float> &xs);
+
+    void detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
 };
 
 const std::string DisplayLaserData::DEFAULT_RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)
