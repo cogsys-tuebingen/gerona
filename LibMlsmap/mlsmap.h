@@ -29,11 +29,18 @@ public:
     int getCellSize();
     unsigned int getFieldNumber();
     int toIndex(double x);
+    void getBounds(double &minX, double &maxX, double &minY, double &maxY);
 private:
     const int mCellSize; // Size of Patch in cm
     const int mGapSize; // minimum distance between two surfaces in the same patch (in cm)
     const int mHalfMapSize; //don't change this value. The hash functions getFieldIndex() and getCellIndex depend on this
     const int mMetersToCentimeters;
+
+    bool mExtremaInit;
+    double mMaxX;
+    double mMinX;
+    double mMaxY;
+    double mMinY;
 
     std::vector<Field<CellT>*> mFields; //vector von 256 fields
 
@@ -47,7 +54,7 @@ private:
 };
 
 template <class CellT>
-        MLSmap<CellT>::MLSmap(int cellSize, int gapSize) : mCellSize(cellSize), mGapSize(gapSize), mHalfMapSize(2048), mMetersToCentimeters(100)
+MLSmap<CellT>::MLSmap(int cellSize, int gapSize) : mCellSize(cellSize), mGapSize(gapSize), mHalfMapSize(2048), mMetersToCentimeters(100), mExtremaInit(false)
 {
     // Fieldpointer ausnullen
     mFields.resize(256,0);
@@ -59,6 +66,15 @@ template <class CellT>
     for(unsigned int i = 0; i < mFields.size(); i++){
         delete mFields[i];
     }
+}
+
+template <class CellT>
+void MLSmap<CellT>::getBounds(double &minX, double &maxX, double &minY, double &maxY)
+{
+    minX = mMinX;
+    maxX = mMaxX;
+    minY = mMinY;
+    maxY = mMaxY;
 }
 
 template <class CellT>
@@ -132,6 +148,18 @@ template <class CellT>
     int x = floor(point[0] * mMetersToCentimeters / mCellSize) + mHalfMapSize; // add half length of map to center (0,0)
     int y = floor(point[1] * mMetersToCentimeters / mCellSize) + mHalfMapSize;
     if (isValidCoord(x,y)){
+        if(!mExtremaInit) {
+            mExtremaInit = true;
+            mMinX = point[0];
+            mMaxX = point[0];
+            mMinY = point[1];
+            mMaxY = point[1];
+        } else {
+            if(point[0] > mMaxX) mMaxX = point[0];
+            if(point[0] < mMinX) mMinX = point[0];
+            if(point[1] > mMaxY) mMaxY = point[1];
+            if(point[1] < mMinY) mMinY = point[1];
+        }
         if (!isField(x, y)){
             addField(x, y);
         }
