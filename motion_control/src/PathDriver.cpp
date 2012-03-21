@@ -1,196 +1,217 @@
+/**
+ * @file PathDriver.cpp
+ * @date March 2012
+ * @author marks
+ */
+
+#include <tf/tf.h>
+#include <utils/LibUtil/MathHelper.h>
+#include <utils/LibUtil/Line2d.h>
+#include <ramaxxbase/RamaxxMsg.h>
+
+// Project
+#include <motion_control/MotionResult.h>
 #include "PathDriver.h"
 
-#include <ramaxxbase/RamaxxMsg.h>
-#include <visualization_msgs/Marker.h>
-#include <tf/tf.h>
-#include "DualAxisDriver.h"
-#include <utils/LibUtil/MathHelper.h>
+using namespace std;
+using namespace Eigen;
+using namespace motion_control;
 
-PathDriver::PathDriver(ros::Publisher& cmd_pub, ros::NodeHandle& node)
-  : m_has_subgoal(false), m_has_path(false), m_has_odom(false), m_planning_done_(false)
+PathDriver::PathDriver( ros::Publisher& cmd_pub, ros::NodeHandle& node )
+    : active_( false ),
+      pos_tolerance_( 0.2 )
 {
- // m_path_subscriber = node.subscribe<nav_msgs::Path>
-  //    ("/rs_path", 2, boost::bind(&PathDriver::update_path, this, _1));
-
-  m_command_ramaxx_publisher = cmd_pub;
-  m_rs_goal_publisher = node.advertise<geometry_msgs::PoseStamped> ("/rs/goal", 10);
-
-  m_marker_publisher = node.advertise<visualization_msgs::Marker> ("/path_following_marker", 10);
-
-  driver_=new DualAxisDriver(node);
-
-  configure(node);
-
+    cmd_pub_ = cmd_pub;
+    configure( node );
 }
 
 PathDriver::~PathDriver()
 {
-  delete(driver_);
 }
 
-void PathDriver::start (){
-  if(m_planning_done_){
-    m_poses.clear();
-    m_nodes = m_path.poses.size();
+void PathDriver::start() {
+    active_ = true;
+    last_cmd_.setZero();
+}
 
-    for(int i = 0; i < m_nodes; ++i){
-      m_poses.push_back(m_path.poses[i]);
+void PathDriver::stop() {
+    active_ = false;
+    last_cmd_.setZero();
+    publishCmd( last_cmd_ );
+}
+
+int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
+    // Pending error?
+    if ( pending_error_ >= 0 ) {
+        int error = pending_error_;
+        pending_error_ = -1; // Error is processed
+        stop();
+        return error;
     }
-    m_has_path = m_nodes > 0;
-    ROS_INFO("haspath=%d mnodes=%d",m_has_path,m_nodes);
-    m_has_subgoal = false;
-  }
-}
 
-void PathDriver::stop (){
-  m_has_path = false;
-}
+    // This should never happen
+    if ( !active_ ) {
+        ROS_WARN( "Execute called but path driver is not active. This should never happen." );
+        return MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+    }
 
-/**
-  @return state
-  */
-int PathDriver::execute (MotionFeedback& fb, MotionResult& result){
-  if(!m_planning_done_){
-    ROS_INFO("path planning still running");
-    result.status= MotionResult::MOTION_STATUS_MOVING;
+    // Get SLAM pose
+    Vector3d slam_pose;
+    if ( !getSlamPose( slam_pose )) {
+        stop();
+        return MotionResult::MOTION_STATUS_SLAM_FAIL;
+    }
+
+    // Convert current waypoint into local CS
+    Vector3d wp_local;
+    geometry_msgs::PoseStamped wp( path_[path_idx_].pose );
+    wp.header.stamp = ros::Time::now();
+    if ( !toLocalCs( wp, wp_local )) {
+        stop();
+        return MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+    }
+
+    // Waypoint reached? Select next waypoint!
+    if ( wp_local.head<2>().norm() <= pos_tolerance_ ) {
+        // Last waypoint? Try to reach it!
+        if (( path_idx_ + 1 ) >= (int)path_.size()) {
+            /// @todo implement
+        }
+
+        // Select next waypoint
+        path_idx_++;
+        wp = path_[path_idx_].pose;
+        wp.header.stamp = ros::Time::now();
+        if ( !toLocalCs( wp, wp_local )) {
+            stop();
+            return MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+        }
+    }
+
+    // Calculate target line
+    Vector3d last_wp_local;
+    wp = path_[path_idx_ - 1].pose;
+    wp.header.stamp = ros::Time::now();
+    if ( !toLocalCs( wp, last_wp_local )) {
+        stop();
+        return MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+    }
+    Line2d target_line( last_wp_local.head<2>(), wp_local.head<2>());
+
+    // Calculate front/rear errors and steer commands
+    Vector2d front_pred, rear_pred;
+    predictPose( dead_time_, last_cmd_(0), last_cmd_(1), last_cmd_(2), front_pred, rear_pred );
+    double e_f = target_line.GetSignedDistance( front_pred );
+    double e_r = target_line.GetSignedDistance( rear_pred );
+    double delta_f, delta_r;
+    if ( !ctrl_.execute( e_f, e_r, delta_f, delta_r ))
+        return MotionResult::MOTION_STATUS_MOVING; // Nothing to do
+
+    // Send command
+    last_cmd_(0) = delta_f;
+    last_cmd_(1) = delta_r;
+    last_cmd_(2) = max_speed_;
+    publishCmd( last_cmd_ );
     return MotionResult::MOTION_STATUS_MOVING;
+}
 
-  } else if(!m_has_path){
-    ROS_INFO("no path available");
-    result.status= MotionResult::MOTION_STATUS_SLAM_FAIL;
-    return MotionResult::MOTION_STATUS_SLAM_FAIL;
-  }
+void PathDriver::configure( ros::NodeHandle &n ) {
+    n.param( "path_driver/position_tolerance", pos_tolerance_, 0.2 );
+    n.param( "path_driver/l", l_, 0.36 );
+}
 
-  double speed=0;
-  double front_rad=0.0,rear_rad=0.0;
+void PathDriver::setGoal( const motion_control::MotionGoal& goal ) {
+    pending_error_ = -1;
 
-  if(!m_has_subgoal){
-    if(m_poses.size() > 0){
-      temp_goal_pose_global_ = m_poses.front();
-      temp_goal_pose_global_.header.frame_id = goal_pose_global_.header.frame_id;
-      m_poses.pop_front();
-      m_has_subgoal = true;
+    // Set config
+    max_speed_ = goal.v; /// @todo That's all?
 
-    } else {
-      ROS_INFO("path follower: goal reached");
-      m_has_path=false;
-      result.status=MotionResult::MOTION_STATUS_SUCCESS;
-      state_=MotionResult::MOTION_STATUS_SUCCESS;
-      return state_;
+    // Got at least one waypoint?
+    if ( goal.path.poses.size() <= 0 ) {
+        ROS_ERROR( "Got an empty path." );
+        pending_error_ = MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+        return;
     }
-  }
 
-  // transform goal point into local cs
-  geometry_msgs::PoseStamped goal_pose_local;
-  try {
-    listener_.transformPose("base_link", temp_goal_pose_global_, goal_pose_local);
-  }
-  catch (tf::TransformException ex){
-    ROS_ERROR_STREAM("PathDriver: Cannot transform point -> " << ex.what());
-    return MotionResult::MOTION_STATUS_INTERNAL_ERROR;
-  }
-
-  // check distance to goal
-  Vector3d goal_vec;
-  goal_vec.x()=goal_pose_local.pose.position.x;
-  goal_vec.y()=goal_pose_local.pose.position.y;
-
-  // goal in reach for 4ws driver?
-
-  if ((goal_vec.head<2>().norm()<m_waypoint_threshold) ) {
-    m_has_subgoal = false;
-    return execute(fb, result);
-
-  } else {
-    // driver drives towards goal
-    goal_vec.z()=tf::getYaw(goal_pose_local.pose.orientation);
-    driver_->Update(goal_vec);
-    driver_->GetCmd(speed, front_rad, rear_rad);
-    state_=MotionResult::MOTION_STATUS_MOVING;
-
-    send_arrow_marker(0, "current goal", temp_goal_pose_global_.pose, 0.5, 0.5, 0.5, 1, 0, 0, 1);
-  }
-
-  // publish command to robot
-  ramaxxbase::RamaxxMsg msg;
-  msg.data.resize(3);
-  msg.data[0].key=ramaxxbase::RamaxxMsg::CMD_SPEED;
-  msg.data[1].key=ramaxxbase::RamaxxMsg::CMD_STEER_FRONT_DEG;
-  msg.data[2].key=ramaxxbase::RamaxxMsg::CMD_STEER_REAR_DEG;
-  msg.data[0].value=speed;
-  msg.data[1].value=angleDeg(front_rad);
-  msg.data[2].value=angleDeg(rear_rad);
-
-  m_command_ramaxx_publisher.publish(msg);
-
-  fb.dist_driven = (m_nodes - m_poses.size()) * m_max_waypoint_distance;
-  fb.dist_goal = m_poses.size() * m_max_waypoint_distance;
-  result.status=state_;
-  return state_;
-}
-
-void PathDriver::configure (ros::NodeHandle &node){
-  node.param<double> ("waypoint_threshold", m_waypoint_threshold, 0.15);
-  node.param<double> ("max_waypoint_distance", m_max_waypoint_distance, 0.25);
-}
-
-void PathDriver::setGoal (const motion_control::MotionGoal& goal){
-  goal_pose_global_.header.frame_id = "/map";
-  goal_pose_global_.pose.position.x=goal.x;
-  goal_pose_global_.pose.position.y=goal.y;
-  goal_pose_global_.pose.position.z=0;
-  goal_pose_global_.pose.orientation=
-      tf::createQuaternionMsgFromRollPitchYaw(0.0,0.0,goal.theta);
-  if (goal.path.poses.empty()) {
-    // run reeds shepp
-    m_planning_done_ = false;
-    m_rs_goal_publisher.publish(goal_pose_global_);
-  } else {
-    m_path = goal.path;
-    m_planning_done_ = true;
-    ROS_INFO("pathfollower: path received with %d poses",m_path.poses.size());
+    // Calculate waypoints
+    Vector3d slam_pose;
+    if ( !getSlamPose( slam_pose )) {
+        pending_error_ = MotionResult::MOTION_STATUS_SLAM_FAIL;
+        return;
+    }
+    calculateWaypoints( goal.path, slam_pose );
 
     start();
-  }
-
-
 }
 
-void PathDriver::update_path(const nav_msgs::PathConstPtr &path)
+void PathDriver::calculateWaypoints( const nav_msgs::Path &path, const Vector3d &slam_pose )
 {
-  m_path = *path;
-  m_planning_done_ = true;
-  ROS_INFO("pathfollower: path received with %d poses",m_path.poses.size());
+    path_.clear();
 
-  start();
+    // First waypoint is alway the current pose
+    geometry_msgs::PoseStamped first_pose;
+    first_pose.pose.position.x = slam_pose(0);
+    first_pose.pose.position.y = slam_pose(1);
+    first_pose.pose.position.z = 0;
+    tf::quaternionTFToMsg( tf::createQuaternionFromYaw( slam_pose(2)),
+                           first_pose.pose.orientation );
+    first_pose.header = path.poses[0].header;
+    path_.push_back( Waypoint( first_pose, max_speed_ ));
+
+    // Add all other poses
+    for ( size_t i = 0; i < path.poses.size(); ++i )
+        path_.push_back( Waypoint( path.poses[i], max_speed_ ));
+
+    // Current waypoint is the first entry of the actual path
+    path_idx_ = 1;
 }
 
-void PathDriver::send_arrow_marker(int id, std::string name_space, geometry_msgs::Pose &pose,
-                                   float scale_x, float scale_y, float scale_z,
-                                   float r, float g, float b, float a)
+bool PathDriver::toLocalCs( const geometry_msgs::PoseStamped &in,
+                            Eigen::Vector3d &out,
+                            const std::string out_frame ) const
 {
-  visualization_msgs::Marker marker;
-  marker.header.frame_id = "/map";
+    geometry_msgs::PoseStamped pose_out;
+    try {
+        // Get latest transform
+        tf_.transformPose( out_frame, ros::Time(0), in, in.header.frame_id, pose_out );
+    } catch ( tf::TransformException &ex ) {
+        ROS_ERROR( "Cannot transform pose. Reason %s", ex.what());
+        return false;
+    }
 
-  marker.ns = name_space;
-  marker.id = id;
-
-  marker.type = visualization_msgs::Marker::ARROW;
-
-  marker.action = visualization_msgs::Marker::ADD;
-
-  marker.pose = pose;
-
-  marker.scale.x = scale_x;
-  marker.scale.y = scale_y;
-  marker.scale.z = scale_z;
-
-  marker.color.r = r;
-  marker.color.g = g;
-  marker.color.b = b;
-  marker.color.a = a;
-
-  marker.lifetime = ros::Duration(3);
-
-  m_marker_publisher.publish(marker);
+    return true;
 }
+
+void PathDriver::predictPose( const double dt,
+                              const double deltaf,
+                              const double deltar,
+                              const double v,
+                              Vector2d &front_pred,
+                              Vector2d &rear_pred )
+{
+    double beta = atan(0.5*(tan(deltaf)+tan(deltar)));
+    double ds = v*dt;
+    double dtheta = ds*cos(beta)*(tan(deltaf)-tan(deltar))/l_;
+    double thetan = dtheta;
+    double yn = ds*sin(dtheta*0.5+beta*0.5);
+    double xn = ds*cos(dtheta*0.5+beta*0.5);
+
+    front_pred[0] = xn+cos(thetan)*l_/2.0;
+    front_pred[1] = yn+sin(thetan)*l_/2.0;
+    rear_pred[0] = xn-cos(thetan)*l_/2.0;
+    rear_pred[1] = yn-sin(thetan)*l_/2.0;
+}
+
+void PathDriver::publishCmd( const Eigen::Vector3d &cmd )
+{
+    ramaxxbase::RamaxxMsg msg;
+    msg.data.resize( 3 );
+    msg.data[0].key = ramaxxbase::RamaxxMsg::CMD_STEER_FRONT_DEG;
+    msg.data[1].key = ramaxxbase::RamaxxMsg::CMD_STEER_REAR_DEG;
+    msg.data[2].key = ramaxxbase::RamaxxMsg::CMD_SPEED;
+    msg.data[0].value = cmd(0)*180.0/M_PI;
+    msg.data[1].value = cmd(1)*180.0/M_PI;
+    msg.data[2].value = cmd(2);
+    cmd_pub_.publish( msg );
+}
+

@@ -1,5 +1,6 @@
 #ifndef MOTIONCONTROLLER_H
 #define MOTIONCONTROLLER_H
+
 #include <Eigen/Core>
 #include <tf/transform_listener.h>
 #include <sensor_msgs/LaserScan.h>
@@ -8,6 +9,9 @@
 #include "motion_control/MotionFeedback.h"
 #include "motion_control/MotionResult.h"
 #include <utils/LibRobot/LaserEnvironment.h>
+#include <string>
+#include <ros/ros.h>
+
 using namespace Eigen;
 using namespace motion_control;
 
