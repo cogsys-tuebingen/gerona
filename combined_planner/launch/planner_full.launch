@@ -10,7 +10,7 @@
 
   </node>
 
-  <include file="$(find costmap)/launch/costmap_default.launch" />
+  <include file="$(find combined_planner)/launch/global_costmap.launch" />
 
   <include file="$(find combined_planner)/launch/planner_default.launch" />
 
