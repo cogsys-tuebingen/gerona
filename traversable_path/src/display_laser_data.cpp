@@ -204,59 +204,41 @@ void DisplayLaserData::detectObstacles(sensor_msgs::LaserScan data, std::vector<
     //* Look at segemnts
     const unsigned int SEGMENT_SIZE = 10;
     const float RANGE_LIMIT = 0.005;
-    const float INTENSITY_LIMIT = 12.0;
+    const float INTENSITY_LIMIT = 13.0;
 
     // number of values
-    const unsigned int length = data.ranges.size();
+    const unsigned int LENGTH = data.ranges.size();
+    const unsigned int NUM_SEGMENTS = ceil(LENGTH / SEGMENT_SIZE);
     
     static boost::circular_buffer< vector<PointClassification> > store(3); //TODO class member instead io static variable
 
     vector<PointClassification> classification;
     //classification.resize(data.ranges.size(), 0);
 
-    for (unsigned int i = 0; i < length; i+=SEGMENT_SIZE) {
+    for (unsigned int i = 0; i < LENGTH; i+=SEGMENT_SIZE) {
         float sum_range = 0;
         float sum_intensity = 0;
         PointClassification seg_class;
 
-        for (unsigned int j = i; j < i+SEGMENT_SIZE && j < length; ++j) {
+        for (unsigned int j = i; j < i+SEGMENT_SIZE && j < LENGTH; ++j) {
             sum_range += abs(data.ranges[i]);
             sum_intensity += abs(data.intensities[i]);
         }
 
-//        if (sum_range/SEGMENT_SIZE > RANGE_LIMIT) {
-//            for (unsigned int j = i; j < i+SEGMENT_SIZE && j < data.ranges.size(); ++j)
-//                classification[j] = 3000.0; // just some high value that will be visible in the laserscan viewer
-//        }
-        seg_class.traversable_by_range = (sum_range/SEGMENT_SIZE < RANGE_LIMIT);
-
-//        if (sum_intensity/SEGMENT_SIZE > INTENSITY_LIMIT) {
-//            for (unsigned int j = i; j < i+SEGMENT_SIZE && j < data.ranges.size(); ++j)
-//                classification[j] += 5000.0; // an other high value to distinct range an intensity
-//        }
-        seg_class.traversable_by_intensity = (sum_intensity/SEGMENT_SIZE < INTENSITY_LIMIT);
+        seg_class.traversable_by_range     = (    sum_range / SEGMENT_SIZE < RANGE_LIMIT    );
+        seg_class.traversable_by_intensity = (sum_intensity / SEGMENT_SIZE < INTENSITY_LIMIT);
 
         classification.push_back(seg_class);
     }
     store.push_back(classification);
 
-//    out.assign(out.size(), 5000.0);
-//    for (boost::circular_buffer< vector<PointClassification> >::iterator it = store.begin(); it != store.end(); ++it) {
-//        for (unsigned int i = 0; i < it->size(); ++i) {
-//            float val = 0.0;
-//            if (it->at(i).traversable_by_range)
-//                val += 3000.0;
-//            if (it->at(i).traversable_by_intensity)
-//                val += 5000.0;
-//
-//            out[i] = min(out[i], val);
-//        }
-//    }
 
-    //TODO number of segments to variable
-    vector<PointClassification> result( store[0].size() );
+    //
+    int num_untraversable_due_to_intensity = 0;
+    vector<PointClassification> result( NUM_SEGMENTS );
     unsigned int store_size = store.size();
-    for (unsigned int i = 0; i < store[0].size(); ++i) {
+
+    for (unsigned int i = 0; i < NUM_SEGMENTS; ++i) {
         int sum_traversable_range     = 0;
         int sum_traversable_intensity = 0;
 
@@ -270,15 +252,21 @@ void DisplayLaserData::detectObstacles(sensor_msgs::LaserScan data, std::vector<
 
         result[i].traversable_by_range = (sum_traversable_range > store_size/2.0);
         result[i].traversable_by_intensity = (sum_traversable_intensity > store_size/2.0);
+
+        if (!result[i].traversable_by_intensity) {
+            ++num_untraversable_due_to_intensity;
+        }
     }
 
+    // only use intensity, if not more than 60% of the segments are untraversable due to intensity.
+    bool use_intensity = (float)num_untraversable_due_to_intensity / NUM_SEGMENTS < 0.60;
 
     // missuse intensity of out as obstacle indicator... just for testing, I promise! :P
-    for (unsigned int i = 0; i < length; ++i) {
+    for (unsigned int i = 0; i < LENGTH; ++i) {
         out[i] = 0.0;
         if (!result[i/SEGMENT_SIZE].traversable_by_range)
             out[i] += 3000.0;
-        if (!result[i/SEGMENT_SIZE].traversable_by_intensity)
+        if (use_intensity && !result[i/SEGMENT_SIZE].traversable_by_intensity)
             out[i] += 5000.0;
     }
 
