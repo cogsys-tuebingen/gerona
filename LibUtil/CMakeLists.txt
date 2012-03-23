@@ -1,13 +1,7 @@
 # Utils/LibUtil/CMakeLists.txt
 
 # Load OpenCV cmake module, if wasn't looked for or found yet
-find_package( OpenCV )
-IF(NOT DEFINED OpenCV_FOUND OR NOT OpenCV_FOUND)
-       # set(OpenCV_DIR /opt/ros/diamondback/stacks/vision_opencv/opencv2/opencv/share/opencv/)
-        find_package( OpenCV REQUIRED )
-ENDIF()
-message("found OpenCV " ${OpenCV_LIB_DIR})
-
+find_package( OpenCV REQUIRED)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/ros/eigen/include
@@ -39,8 +33,7 @@ add_library (LibUtil SHARED
 )
 
 target_link_libraries(LibUtil
-    ${OpenCV_LIBS}
-    -L${OpenCV_LIB_DIR}
+    ${OpenCV_LIBRARIES}
 )
 
 install (TARGETS LibUtil LIBRARY DESTINATION lib)

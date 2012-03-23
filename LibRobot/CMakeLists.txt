@@ -17,6 +17,9 @@ else(IPP)
     set(LIBS "")
 endif(IPP)
 
+# OpenCV
+find_package(OpenCV REQUIRED)
+
 include_directories(/opt/intel/ipp/include/)
 
 
@@ -30,4 +33,4 @@ rosbuild_add_library(LibRobot
 )
 
 
-target_link_libraries( LibRobot boost_thread-mt ${LIBS})
+target_link_libraries( LibRobot boost_thread-mt ${OpenCV_LIBRARIES})
