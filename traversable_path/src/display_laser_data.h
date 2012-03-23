@@ -3,6 +3,7 @@
 
 #include <string>
 #include <list>
+#include <boost/circular_buffer.hpp>
 #include "ros/ros.h"
 #include "ros/package.h"
 #include "sensor_msgs/LaserScan.h"
@@ -14,6 +15,11 @@ public:
     DisplayLaserData();
 
 private:
+    struct PointClassification {
+        bool traversable_by_range;
+        bool traversable_by_intensity;
+    };
+
     const static std::string DEFAULT_RANGE_CALIBRATION_FILE;
 
     ros::NodeHandle node_handle_;
@@ -32,14 +38,14 @@ private:
     /**
      * @brief Smoothes the curve describted by data.
      */
-    std::vector<float> smooth(std::vector<float> data);
+    std::vector<float> smooth(std::vector<float> data, const unsigned int num_values);
 
     /**
      * @brief Calculates average of the elements of a float list.
      * @param A list of float-values.
      * @return Average of the list-values.
      */
-    float avg(std::list<float> &xs);
+    float avg(boost::circular_buffer<float> &xs);
 
     void detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
 };

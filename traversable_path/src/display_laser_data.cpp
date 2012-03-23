@@ -55,8 +55,8 @@ void DisplayLaserData::printLaserData(const sensor_msgs::LaserScanPtr &msg)
     }
 
     // smooth
-    smoothed.ranges = smooth(msg->ranges);
-    smoothed.intensities = smooth(msg->intensities);
+    smoothed.ranges = smooth(msg->ranges, 6);
+    smoothed.intensities = smooth(msg->intensities, 4);
 
     // differential
     diff.ranges[0] = 0;
@@ -64,16 +64,11 @@ void DisplayLaserData::printLaserData(const sensor_msgs::LaserScanPtr &msg)
     for (unsigned int i=1; i < smoothed.ranges.size(); ++i)
     {
         diff.ranges[i] = smoothed.ranges[i] - smoothed.ranges[i-1];
-        diff.intensities[i] = smoothed.intensities[i] - smoothed.intensities[i-1];
+        diff.intensities[i] = abs(smoothed.intensities[i] - smoothed.intensities[i-1]); //< BEWARE of the abs()!
     }
 
     // smooth differential
-    //smoothed.ranges = smooth(diff.ranges);
-
-    // mirror laser data, to make it fit with the camera image
-//    reverse(msg->ranges.begin(), msg->ranges.end());
-//    reverse(msg->intensities.begin(), msg->intensities.end());
-
+    diff.intensities = smooth(diff.intensities, 6);
 
     // find obstacles
     detectObstacles(diff, msg->intensities);
@@ -147,45 +142,39 @@ bool DisplayLaserData::calibrate(std_srvs::Empty::Request& request, std_srvs::Em
 }
 
 
-vector<float> DisplayLaserData::smooth(std::vector<float> data)
+vector<float> DisplayLaserData::smooth(std::vector<float> data, const unsigned int num_values)
 {
-    const unsigned int num_values = 4;
-    list<float> neighbourhood;
+    //list<float> neighbourhood;
+    boost::circular_buffer<float> neighbourhood(2*num_values + 1);
     unsigned int length = data.size();
 
     // push first values to neighbourhood
     for (unsigned int i = 0; i < num_values && i < length; ++i)
     {
-        neighbourhood.push_front(data[i]);
+        neighbourhood.push_back(data[i]);
     }
 
     // push next and drop last
     for (unsigned int i = 0; i < length-num_values; ++i)
     {
-        neighbourhood.push_front(data[i+num_values]);
-
-        if (i > num_values+1)
-        {
-            neighbourhood.pop_back();
-        }
-
+        neighbourhood.push_back(data[i+num_values]);
         data[i] = avg(neighbourhood);
     }
 
     // nothing more to push
     for (unsigned int i = length-num_values; i < data.size(); ++i)
     {
-        neighbourhood.pop_back();
+        neighbourhood.pop_front();
         data[i] = avg(neighbourhood);
     }
 
     return data;
 }
 
-float DisplayLaserData::avg(std::list<float> &xs)
+float DisplayLaserData::avg(boost::circular_buffer<float> &xs)
 {
     if (xs.empty())
-        return 0;
+        return 0.0;
     else
         return accumulate(xs.begin(), xs.end(), 0.0) / xs.size();
 }
@@ -213,33 +202,87 @@ void DisplayLaserData::detectObstacles(sensor_msgs::LaserScan data, std::vector<
 
 
     //* Look at segemnts
-    const unsigned int SEGMENT_SIZE = 50;
-    const float RANGE_LIMIT = 0.007;
-    const float INTENSITY_LIMIT = 30.0;
+    const unsigned int SEGMENT_SIZE = 10;
+    const float RANGE_LIMIT = 0.005;
+    const float INTENSITY_LIMIT = 12.0;
 
-    for (unsigned int i = 0; i < data.ranges.size(); i+=SEGMENT_SIZE) {
+    // number of values
+    const unsigned int length = data.ranges.size();
+    
+    static boost::circular_buffer< vector<PointClassification> > store(3); //TODO class member instead io static variable
+
+    vector<PointClassification> classification;
+    //classification.resize(data.ranges.size(), 0);
+
+    for (unsigned int i = 0; i < length; i+=SEGMENT_SIZE) {
         float sum_range = 0;
         float sum_intensity = 0;
+        PointClassification seg_class;
 
-        for (unsigned int j = i; j < i+SEGMENT_SIZE && j < data.ranges.size(); ++j) {
-            // missuse intensity of out as obstacle indicator... just for testing, I promise! :P
-            out[j] = 0;
-
+        for (unsigned int j = i; j < i+SEGMENT_SIZE && j < length; ++j) {
             sum_range += abs(data.ranges[i]);
             sum_intensity += abs(data.intensities[i]);
         }
 
-        if (sum_range/SEGMENT_SIZE > RANGE_LIMIT) {
-            for (unsigned int j = i; j < i+SEGMENT_SIZE && j < data.ranges.size(); ++j)
-                out[j] = 3000; // just some high value that will be visible in the laserscan viewer
+//        if (sum_range/SEGMENT_SIZE > RANGE_LIMIT) {
+//            for (unsigned int j = i; j < i+SEGMENT_SIZE && j < data.ranges.size(); ++j)
+//                classification[j] = 3000.0; // just some high value that will be visible in the laserscan viewer
+//        }
+        seg_class.traversable_by_range = (sum_range/SEGMENT_SIZE < RANGE_LIMIT);
+
+//        if (sum_intensity/SEGMENT_SIZE > INTENSITY_LIMIT) {
+//            for (unsigned int j = i; j < i+SEGMENT_SIZE && j < data.ranges.size(); ++j)
+//                classification[j] += 5000.0; // an other high value to distinct range an intensity
+//        }
+        seg_class.traversable_by_intensity = (sum_intensity/SEGMENT_SIZE < INTENSITY_LIMIT);
+
+        classification.push_back(seg_class);
+    }
+    store.push_back(classification);
+
+//    out.assign(out.size(), 5000.0);
+//    for (boost::circular_buffer< vector<PointClassification> >::iterator it = store.begin(); it != store.end(); ++it) {
+//        for (unsigned int i = 0; i < it->size(); ++i) {
+//            float val = 0.0;
+//            if (it->at(i).traversable_by_range)
+//                val += 3000.0;
+//            if (it->at(i).traversable_by_intensity)
+//                val += 5000.0;
+//
+//            out[i] = min(out[i], val);
+//        }
+//    }
+
+    //TODO number of segments to variable
+    vector<PointClassification> result( store[0].size() );
+    unsigned int store_size = store.size();
+    for (unsigned int i = 0; i < store[0].size(); ++i) {
+        int sum_traversable_range     = 0;
+        int sum_traversable_intensity = 0;
+
+        for (unsigned int j = 0; j < store_size; ++j) {
+            if (store[j][i].traversable_by_range)
+                ++sum_traversable_range;
+
+            if (store[j][i].traversable_by_intensity)
+                ++sum_traversable_intensity;
         }
 
-        //cout << abs(data.intensities[i]) << endl;
-        if (sum_intensity/SEGMENT_SIZE > INTENSITY_LIMIT) {
-            for (unsigned int j = i; j < i+SEGMENT_SIZE && j < data.ranges.size(); ++j)
-                out[j] += 5000; // an other high value to distinct range an intensity
-        }
+        result[i].traversable_by_range = (sum_traversable_range > store_size/2.0);
+        result[i].traversable_by_intensity = (sum_traversable_intensity > store_size/2.0);
     }
+
+
+    // missuse intensity of out as obstacle indicator... just for testing, I promise! :P
+    for (unsigned int i = 0; i < length; ++i) {
+        out[i] = 0.0;
+        if (!result[i/SEGMENT_SIZE].traversable_by_range)
+            out[i] += 3000.0;
+        if (!result[i/SEGMENT_SIZE].traversable_by_intensity)
+            out[i] += 5000.0;
+    }
+
+
     //*/
 }
 
