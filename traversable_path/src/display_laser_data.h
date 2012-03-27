@@ -2,6 +2,7 @@
 #define DISPLAY_LASER_DATA_H
 
 #include <string>
+#include <vector>
 #include <list>
 #include <boost/circular_buffer.hpp>
 #include "ros/ros.h"
@@ -9,17 +10,15 @@
 #include "sensor_msgs/LaserScan.h"
 #include "std_srvs/Empty.h"
 
+#include "pointclassification.h"
+#include "visualization.h"
+
 class DisplayLaserData
 {
 public:
     DisplayLaserData();
 
 private:
-    struct PointClassification {
-        bool traversable_by_range;
-        bool traversable_by_intensity;
-    };
-
     const static std::string DEFAULT_RANGE_CALIBRATION_FILE;
 
     ros::NodeHandle node_handle_;
@@ -31,6 +30,7 @@ private:
     std::string range_calibration_file_;
     bool is_calibrated_;
     std::vector<float> plane_ranges_;
+    Visualization visualizer_;
 
     void printLaserData(const sensor_msgs::LaserScanPtr &msg);
     bool calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
@@ -47,7 +47,7 @@ private:
      */
     float avg(boost::circular_buffer<float> &xs);
 
-    void detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
+    std::vector<PointClassification> detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
 };
 
 const std::string DisplayLaserData::DEFAULT_RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)

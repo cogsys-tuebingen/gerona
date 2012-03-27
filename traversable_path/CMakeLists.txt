@@ -30,4 +30,4 @@ rosbuild_gensrv()
 #target_link_libraries(example ${PROJECT_NAME})
 
 #rosbuild_add_executable(movecam src/movecam.cpp)
-rosbuild_add_executable(display_laser_data src/display_laser_data.cpp src/vectorsaver.h)
+rosbuild_add_executable(display_laser_data src/display_laser_data.cpp src/vectorsaver.h src/pointclassification.h src/visualization.cpp)

@@ -42,7 +42,6 @@ void DisplayLaserData::printLaserData(const sensor_msgs::LaserScanPtr &msg)
     //FIXME publish als LaserScan nur, weil dann leicht mit dem laserscan_viewer anzeigbar :)
     sensor_msgs::LaserScan diff = *msg;
     sensor_msgs::LaserScan smoothed = *msg;
-    //diff.ranges.resize(msg->ranges.size());
 
     // if laser is calibrated, subtract plane values
     if (this->is_calibrated_) {
@@ -71,7 +70,10 @@ void DisplayLaserData::printLaserData(const sensor_msgs::LaserScanPtr &msg)
     diff.intensities = smooth(diff.intensities, 6);
 
     // find obstacles
-    detectObstacles(diff, msg->intensities);
+    vector<PointClassification> classification = detectObstacles(diff, msg->intensities);
+
+    // paint
+    visualizer_.paintPath(classification);
 
     // publish modified message
     publish_normalized_.publish(msg);
@@ -85,51 +87,6 @@ bool DisplayLaserData::calibrate(std_srvs::Empty::Request& request, std_srvs::Em
 
     // fetch one laser scan message, which will be used for calibration
     sensor_msgs::LaserScanConstPtr scan = ros::topic::waitForMessage<sensor_msgs::LaserScan>("scan");
-    //sensor_msgs::LaserScan scan = *ros::topic::waitForMessage<sensor_msgs::LaserScan>("scan").get();
-
-    /*
-    // calibration by math
-    int mid = scan.ranges.size()/2;
-
-    // simple local search for minimum
-//    cout << "mid: " << mid << endl;
-//    while (msg->ranges[mid] > msg->ranges[mid-10] || msg->ranges[mid] > msg->ranges[mid+10]) {
-//
-//    }
-//    if (msg->ranges[mid] > msg->ranges[mid-10]) {
-//        mid-= 10;
-//    } else {
-//        mid+=10;
-//    }
-//
-//    cout << "min: " << mid << endl << "----------" << endl;
-
-//    int step = 100;
-//    float valMid = msg->ranges[mid];
-//    float valLeft = msg->ranges[mid-step];
-//    float valRight = msg->ranges[mid+step];
-
-    // IDEE: interpoliere messwerte, statt s/cos - s zu verwenden?
-    // Oder interolation nur für minimum-suche? da gibts evtl bessere verfahren?
-
-
-    double s = scan.ranges[mid];
-    for (uint i=0; i < scan.ranges.size(); ++i) {
-        double angle = scan.angle_increment * (i - mid);
-
-        //if (abs(angle) > M_PI/2) {
-        //    // remove values with angle > 90 degree
-        //    scan.ranges[i] = 0;
-        //} else {
-            double d = s/cos(angle) - s;
-            scan.ranges[i] = d;
-        //}
-
-        cout << scan.ranges[i] << endl;
-    }
-
-    //*/
-
 
     this->plane_ranges_ = scan->ranges;
     this->is_calibrated_ = true;
@@ -144,7 +101,6 @@ bool DisplayLaserData::calibrate(std_srvs::Empty::Request& request, std_srvs::Em
 
 vector<float> DisplayLaserData::smooth(std::vector<float> data, const unsigned int num_values)
 {
-    //list<float> neighbourhood;
     boost::circular_buffer<float> neighbourhood(2*num_values + 1);
     unsigned int length = data.size();
 
@@ -179,7 +135,7 @@ float DisplayLaserData::avg(boost::circular_buffer<float> &xs)
         return accumulate(xs.begin(), xs.end(), 0.0) / xs.size();
 }
 
-void DisplayLaserData::detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out)
+vector<PointClassification> DisplayLaserData::detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out)
 {
     /* look at each point seperate
     const float RANGE_LIMIT = 0.01;
@@ -201,7 +157,7 @@ void DisplayLaserData::detectObstacles(sensor_msgs::LaserScan data, std::vector<
     //*/
 
 
-    //* Look at segemnts
+    // Look at segemnts
     const unsigned int SEGMENT_SIZE = 10;
     const float RANGE_LIMIT = 0.005;
     const float INTENSITY_LIMIT = 13.0;
@@ -213,7 +169,6 @@ void DisplayLaserData::detectObstacles(sensor_msgs::LaserScan data, std::vector<
     static boost::circular_buffer< vector<PointClassification> > store(3); //TODO class member instead io static variable
 
     vector<PointClassification> classification;
-    //classification.resize(data.ranges.size(), 0);
 
     for (unsigned int i = 0; i < LENGTH; i+=SEGMENT_SIZE) {
         float sum_range = 0;
@@ -270,8 +225,7 @@ void DisplayLaserData::detectObstacles(sensor_msgs::LaserScan data, std::vector<
             out[i] += 5000.0;
     }
 
-
-    //*/
+    return result;
 }
 
 //--------------------------------------------------------------------------
