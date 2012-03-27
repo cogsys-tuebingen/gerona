@@ -213,6 +213,32 @@ vector<PointClassification> DisplayLaserData::detectObstacles(sensor_msgs::Laser
         }
     }
 
+
+    // drop traversable segments, that are too narrow for the robot
+    //const float MIN_TRAVERSABLE_WIDTH = 0.7; // 70cm
+    // the middle of the robot is approximatly in the middle of the scan data...
+    //int mid = NUM_SEGMENTS/2;
+    //FIXME simple for the beginning...
+    const int MIN_TRAVERSABLE_SEGMENTS = 5;
+    int traversable_counter = 0;
+    for (vector<PointClassification>::iterator seg_it = result.begin(); seg_it != result.end(); ++seg_it) {
+        if (seg_it->traversable_by_range && seg_it->traversable_by_intensity) {
+            ++traversable_counter;
+        } else {
+            ROS_DEBUG("Width: untraversable. counter: %d", traversable_counter);
+            if (traversable_counter > 0 && traversable_counter < MIN_TRAVERSABLE_SEGMENTS) {
+                ROS_DEBUG("Width: Drop narrow path");
+                for (int i = 0; i < traversable_counter; ++i) {
+                    --seg_it;
+                    seg_it->traversable_by_range = false; //TODO: nicht range, dafür extra feld?
+                }
+                seg_it += traversable_counter;
+            }
+            traversable_counter = 0;
+        }
+    }
+
+
     // only use intensity, if not more than 60% of the segments are untraversable due to intensity.
     bool use_intensity = (float)num_untraversable_due_to_intensity / NUM_SEGMENTS < 0.60;
 
