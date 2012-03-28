@@ -14,10 +14,16 @@
 #include "visualization.h"
 #include "traversable_path/LaserScanClassification.h"
 
-class DisplayLaserData
+/**
+ * @brief Subscribes for the laser scans and classifies them.
+ *
+ * @author Felix Widmaier
+ * @version $Id:$
+ */
+class TerrainClassifier
 {
 public:
-    DisplayLaserData();
+    TerrainClassifier();
 
 private:
     const static std::string DEFAULT_RANGE_CALIBRATION_FILE;
@@ -33,7 +39,7 @@ private:
     std::vector<float> plane_ranges_;
     Visualization visualizer_;
 
-    void printLaserData(const sensor_msgs::LaserScanPtr &msg);
+    void classifyLaserScan(const sensor_msgs::LaserScanPtr &msg);
     bool calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 
     /**
@@ -51,7 +57,7 @@ private:
     traversable_path::LaserScanClassification detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
 };
 
-const std::string DisplayLaserData::DEFAULT_RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)
+const std::string TerrainClassifier::DEFAULT_RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)
                                                              + std::string("/rangecalibration.yaml");
 
 #endif // DISPLAY_LASER_DATA_H

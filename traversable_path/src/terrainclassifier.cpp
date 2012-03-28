@@ -1,4 +1,4 @@
-#include "display_laser_data.h"
+#include "terrainclassifier.h"
 #include <stdio.h>
 #include <algorithm>
 #include <numeric>
@@ -7,7 +7,7 @@
 
 using namespace std;
 
-DisplayLaserData::DisplayLaserData() :
+TerrainClassifier::TerrainClassifier() :
         is_calibrated_(false)
 {
     // private node handle for parameter access
@@ -19,10 +19,10 @@ DisplayLaserData::DisplayLaserData() :
     publish_path_points_  = node_handle_.advertise<traversable_path::LaserScanClassification>("scan/traversable", 100);
 
     // subscribe laser scanner
-    subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &DisplayLaserData::printLaserData, this);
+    subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &TerrainClassifier::classifyLaserScan, this);
 
     // register calibration service
-    service_ = node_handle_.advertiseService("calibrate_plane", &DisplayLaserData::calibrate, this);
+    service_ = node_handle_.advertiseService("calibrate_plane", &TerrainClassifier::calibrate, this);
 
 
     // load range calibration filename from parameter
@@ -37,7 +37,7 @@ DisplayLaserData::DisplayLaserData() :
     is_calibrated_ = vs.load(&plane_ranges_);
 }
 
-void DisplayLaserData::printLaserData(const sensor_msgs::LaserScanPtr &msg)
+void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 {
     //FIXME publish als LaserScan nur, weil dann leicht mit dem laserscan_viewer anzeigbar :)
     sensor_msgs::LaserScan diff = *msg;
@@ -78,7 +78,7 @@ void DisplayLaserData::printLaserData(const sensor_msgs::LaserScanPtr &msg)
     publish_differential_.publish(diff);
 }
 
-bool DisplayLaserData::calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
+bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
     ROS_INFO("Use current laser data for calibration.");
 
@@ -95,7 +95,7 @@ bool DisplayLaserData::calibrate(std_srvs::Empty::Request& request, std_srvs::Em
     return true;
 }
 
-vector<float> DisplayLaserData::smooth(std::vector<float> data, const unsigned int num_values)
+vector<float> TerrainClassifier::smooth(std::vector<float> data, const unsigned int num_values)
 {
     boost::circular_buffer<float> neighbourhood(2*num_values + 1);
     unsigned int length = data.size();
@@ -123,7 +123,7 @@ vector<float> DisplayLaserData::smooth(std::vector<float> data, const unsigned i
     return data;
 }
 
-float DisplayLaserData::avg(boost::circular_buffer<float> &xs)
+float TerrainClassifier::avg(boost::circular_buffer<float> &xs)
 {
     if (xs.empty())
         return 0.0;
@@ -131,7 +131,7 @@ float DisplayLaserData::avg(boost::circular_buffer<float> &xs)
         return accumulate(xs.begin(), xs.end(), 0.0) / xs.size();
 }
 
-traversable_path::LaserScanClassification DisplayLaserData::detectObstacles(sensor_msgs::LaserScan data,
+traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data,
                                                                             std::vector<float> &out)
 {
     /* look at each point seperate
@@ -329,7 +329,7 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "display_laser_data");
 
-    DisplayLaserData dls;
+    TerrainClassifier dls;
 
     // main loop
     ros::spin();

@@ -29,5 +29,5 @@ rosbuild_genmsg()
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 
-#rosbuild_add_executable(movecam src/movecam.cpp)
-rosbuild_add_executable(display_laser_data src/display_laser_data.cpp src/vectorsaver.h src/pointclassification.h src/visualization.cpp)
+rosbuild_add_executable(classify_terrain src/terrainclassifier.cpp src/vectorsaver.h src/pointclassification.h
+    src/visualization.cpp)
