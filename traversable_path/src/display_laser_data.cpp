@@ -214,20 +214,84 @@ vector<PointClassification> DisplayLaserData::detectObstacles(sensor_msgs::Laser
     }
 
 
+
+
+    // remove single intensity-peaks
+    const int MIN_SPACE_AROUND_INTESITY_PEAK = 2;
+    const int MAX_INTENSITY_PEAK_SIZE = 2;
+    const int STATE_BEFORE_PEAK = 0;
+    const int STATE_PEAK = 1;
+    const int STATE_AFTER_PEAK = 2;
+    int intensity_state = STATE_BEFORE_PEAK;
+    int intensity_peak_start = 0;
+    int intensity_peak_size  = 0;
+    int traversable_counter = 0;
+
+    for (size_t i = 0; i < result.size(); ++i) {
+        //ROS_DEBUG("R:%d, I:%d, State: %d", result[i].traversable_by_range, result[i].traversable_by_intensity, intensity_state);
+
+        switch (intensity_state) {
+        case STATE_BEFORE_PEAK:
+            if (result[i].traversable_by_range && result[i].traversable_by_intensity) {
+                ++traversable_counter;
+            } else {
+                if (result[i].traversable_by_range && traversable_counter >= MIN_SPACE_AROUND_INTESITY_PEAK) {
+                    intensity_state = STATE_PEAK;
+                    intensity_peak_start = i;
+                    intensity_peak_size = 1;
+                }
+
+                traversable_counter = 0;
+            }
+
+            break;
+
+        case STATE_PEAK:
+            if (result[i].traversable_by_range && result[i].traversable_by_intensity) {
+                intensity_state = STATE_AFTER_PEAK;
+                ++traversable_counter;
+            } else if (result[i].traversable_by_range) { // only intensity
+                if (++intensity_peak_size > MAX_INTENSITY_PEAK_SIZE) {
+                    intensity_state = STATE_BEFORE_PEAK;
+                }
+            } else {
+                intensity_state = STATE_BEFORE_PEAK;
+            }
+
+            break;
+
+        case STATE_AFTER_PEAK:
+            if (result[i].traversable_by_range && result[i].traversable_by_intensity) {
+                if (++traversable_counter >= MIN_SPACE_AROUND_INTESITY_PEAK) {
+                    ROS_DEBUG("Remove intensity peak");
+                    for (int j = intensity_peak_start; j < intensity_peak_start+intensity_peak_size; ++j) {
+                        result[j].traversable_by_intensity = true;
+                    }
+                    intensity_state = STATE_BEFORE_PEAK;
+                }
+            } else {
+                intensity_state = STATE_BEFORE_PEAK;
+            }
+
+            break;
+        }
+    }
+
+
     // drop traversable segments, that are too narrow for the robot
     //const float MIN_TRAVERSABLE_WIDTH = 0.7; // 70cm
     // the middle of the robot is approximatly in the middle of the scan data...
     //int mid = NUM_SEGMENTS/2;
     //FIXME simple for the beginning...
     const int MIN_TRAVERSABLE_SEGMENTS = 5;
-    int traversable_counter = 0;
+    traversable_counter = 0;
     for (vector<PointClassification>::iterator seg_it = result.begin(); seg_it != result.end(); ++seg_it) {
         if (seg_it->traversable_by_range && seg_it->traversable_by_intensity) {
             ++traversable_counter;
         } else {
-            ROS_DEBUG("Width: untraversable. counter: %d", traversable_counter);
+            //ROS_DEBUG("Width: untraversable. counter: %d", traversable_counter);
             if (traversable_counter > 0 && traversable_counter < MIN_TRAVERSABLE_SEGMENTS) {
-                ROS_DEBUG("Width: Drop narrow path");
+                //ROS_DEBUG("Width: Drop narrow path");
                 for (int i = 0; i < traversable_counter; ++i) {
                     --seg_it;
                     seg_it->traversable_by_range = false; //TODO: nicht range, dafür extra feld?
@@ -237,6 +301,7 @@ vector<PointClassification> DisplayLaserData::detectObstacles(sensor_msgs::Laser
             traversable_counter = 0;
         }
     }
+
 
 
     // only use intensity, if not more than 60% of the segments are untraversable due to intensity.
