@@ -16,7 +16,7 @@ TerrainClassifier::TerrainClassifier() :
     // advertise
     publish_normalized_   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
     publish_differential_ = node_handle_.advertise<sensor_msgs::LaserScan>("scan/differential", 100);
-    publish_path_points_  = node_handle_.advertise<traversable_path::LaserScanClassification>("scan/traversable", 100);
+    publish_path_points_  = node_handle_.advertise<traversable_path::LaserScanClassification>("scan/traversability", 100);
 
     // subscribe laser scanner
     subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &TerrainClassifier::classifyLaserScan, this);
@@ -301,7 +301,7 @@ traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sen
     }
 
     // paint
-    visualizer_.paintPath(classification);
+    visualizer_.paintPath(segments);
 
     // only use intensity, if not more than 60% of the segments are untraversable due to intensity.
     bool use_intensity = true; //(float)num_untraversable_due_to_intensity / NUM_SEGMENTS < 0.60;
@@ -327,7 +327,7 @@ traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sen
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "display_laser_data");
+    ros::init(argc, argv, "classify_terrain");
 
     TerrainClassifier dls;
 
