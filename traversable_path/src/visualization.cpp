@@ -16,21 +16,28 @@ void Visualization::paintPath(std::vector<PointClassification> points)
         is_path_initialized_ = true;
     }
 
-    bool traversable = false;
+    PointClassification current_state = points[0];
     int last_toggle = 0;
-    for (unsigned int i = 1; i < points.size(); ++i) { //TODO: gedanken über i=1 machen :P
-        if ( (points[i].traversable_by_intensity && points[i].traversable_by_range) != traversable ) {
-            cv::line(path_, cv::Point(path_pos_, last_toggle), cv::Point(path_pos_, i-1),
-                     traversable ? cv::Scalar(0, 255, 0) : cv::Scalar(0, 0, 255));
+    unsigned int points_size = points.size();
+    for (unsigned int i = 1; i < points_size; ++i) {
+        if (points[i] != current_state || i == points_size-1) {
+            cv::Scalar color;
+            if (current_state.traversable_by_intensity && current_state.traversable_by_range) {
+                color = cv::Scalar(0, 255, 0); // green
+            } else if (current_state.traversable_by_intensity) {
+                color = cv::Scalar(255, 0, 0); // blue
+            } else if (current_state.traversable_by_range) {
+                color = cv::Scalar(0, 255, 255); // yellow
+            } else {
+                color = cv::Scalar(0, 0, 255); // red
+            }
 
-            traversable = !traversable;
+            cv::line(path_, cv::Point(path_pos_, last_toggle), cv::Point(path_pos_, i-1), color);
+
+            current_state = points[i];
             last_toggle = i;
         }
     }
-
-    // last segment
-    cv::line(path_, cv::Point(path_pos_, last_toggle), cv::Point(path_pos_, path_.rows-1),
-             traversable ? cv::Scalar(0, 255, 0) : cv::Scalar(0, 0, 255));
 
     cv::imshow("path", path_);
     cv::waitKey(3);
