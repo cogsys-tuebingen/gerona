@@ -13,6 +13,10 @@ struct PointClassification {
     bool operator!=(PointClassification p) {
         return !operator ==(p);
     }
+
+    bool isTraversable() {
+        return traversable_by_intensity && traversable_by_range;
+    }
 };
 
 #endif // POINTCLASSIFICATION_H

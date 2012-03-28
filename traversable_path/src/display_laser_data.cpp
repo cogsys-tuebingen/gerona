@@ -14,9 +14,9 @@ DisplayLaserData::DisplayLaserData() :
     ros::NodeHandle private_node_handle("~");
 
     // advertise
-    publish_normalized_ = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
-    publish_smooth_ = node_handle_.advertise<sensor_msgs::LaserScan>("scan/smooth", 100);
+    publish_normalized_   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
     publish_differential_ = node_handle_.advertise<sensor_msgs::LaserScan>("scan/differential", 100);
+    publish_path_points_  = node_handle_.advertise<traversable_path::LaserScanClassification>("scan/traversable", 100);
 
     // subscribe laser scanner
     subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &DisplayLaserData::printLaserData, this);
@@ -70,14 +70,11 @@ void DisplayLaserData::printLaserData(const sensor_msgs::LaserScanPtr &msg)
     diff.intensities = smooth(diff.intensities, 6);
 
     // find obstacles
-    vector<PointClassification> classification = detectObstacles(diff, msg->intensities);
-
-    // paint
-    visualizer_.paintPath(classification);
+    traversable_path::LaserScanClassification classification = detectObstacles(diff, msg->intensities);
 
     // publish modified message
+    publish_path_points_.publish(classification);
     publish_normalized_.publish(msg);
-    publish_smooth_.publish(smoothed);
     publish_differential_.publish(diff);
 }
 
@@ -97,7 +94,6 @@ bool DisplayLaserData::calibrate(std_srvs::Empty::Request& request, std_srvs::Em
 
     return true;
 }
-
 
 vector<float> DisplayLaserData::smooth(std::vector<float> data, const unsigned int num_values)
 {
@@ -135,7 +131,8 @@ float DisplayLaserData::avg(boost::circular_buffer<float> &xs)
         return accumulate(xs.begin(), xs.end(), 0.0) / xs.size();
 }
 
-vector<PointClassification> DisplayLaserData::detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out)
+traversable_path::LaserScanClassification DisplayLaserData::detectObstacles(sensor_msgs::LaserScan data,
+                                                                            std::vector<float> &out)
 {
     /* look at each point seperate
     const float RANGE_LIMIT = 0.01;
@@ -158,7 +155,7 @@ vector<PointClassification> DisplayLaserData::detectObstacles(sensor_msgs::Laser
 
 
     // Look at segemnts
-    const unsigned int SEGMENT_SIZE = 10;
+    const unsigned int SEGMENT_SIZE = 10; //TODO unterteilung in segmente weglassen?
     const float RANGE_LIMIT = 0.005;
     const float INTENSITY_LIMIT = 13.0;
 
@@ -166,7 +163,7 @@ vector<PointClassification> DisplayLaserData::detectObstacles(sensor_msgs::Laser
     const unsigned int LENGTH = data.ranges.size();
     const unsigned int NUM_SEGMENTS = ceil(LENGTH / SEGMENT_SIZE);
     
-    static boost::circular_buffer< vector<PointClassification> > store(3); //TODO class member instead io static variable
+    static boost::circular_buffer< vector<PointClassification> > scan_buffer(3); //TODO class member instead io static variable
 
     vector<PointClassification> classification;
 
@@ -185,30 +182,31 @@ vector<PointClassification> DisplayLaserData::detectObstacles(sensor_msgs::Laser
 
         classification.push_back(seg_class);
     }
-    store.push_back(classification);
+    scan_buffer.push_back(classification);
 
 
-    //
+    // points will only be marked as traversable if they are traversable in more than the half of the scans in the
+    // scan buffer.
     int num_untraversable_due_to_intensity = 0;
-    vector<PointClassification> result( NUM_SEGMENTS );
-    unsigned int store_size = store.size();
+    vector<PointClassification> segments( NUM_SEGMENTS );
+    unsigned int store_size = scan_buffer.size();
 
     for (unsigned int i = 0; i < NUM_SEGMENTS; ++i) {
         int sum_traversable_range     = 0;
         int sum_traversable_intensity = 0;
 
         for (unsigned int j = 0; j < store_size; ++j) {
-            if (store[j][i].traversable_by_range)
+            if (scan_buffer[j][i].traversable_by_range)
                 ++sum_traversable_range;
 
-            if (store[j][i].traversable_by_intensity)
+            if (scan_buffer[j][i].traversable_by_intensity)
                 ++sum_traversable_intensity;
         }
 
-        result[i].traversable_by_range = (sum_traversable_range > store_size/2.0);
-        result[i].traversable_by_intensity = (sum_traversable_intensity > store_size/2.0);
+        segments[i].traversable_by_range = (sum_traversable_range > store_size/2.0);
+        segments[i].traversable_by_intensity = (sum_traversable_intensity > store_size/2.0);
 
-        if (!result[i].traversable_by_intensity) {
+        if (!segments[i].traversable_by_intensity) {
             ++num_untraversable_due_to_intensity;
         }
     }
@@ -227,15 +225,15 @@ vector<PointClassification> DisplayLaserData::detectObstacles(sensor_msgs::Laser
     int intensity_peak_size  = 0;
     int traversable_counter = 0;
 
-    for (size_t i = 0; i < result.size(); ++i) {
+    for (size_t i = 0; i < segments.size(); ++i) {
         //ROS_DEBUG("R:%d, I:%d, State: %d", result[i].traversable_by_range, result[i].traversable_by_intensity, intensity_state);
 
         switch (intensity_state) {
         case STATE_BEFORE_PEAK:
-            if (result[i].traversable_by_range && result[i].traversable_by_intensity) {
+            if (segments[i].traversable_by_range && segments[i].traversable_by_intensity) {
                 ++traversable_counter;
             } else {
-                if (result[i].traversable_by_range && traversable_counter >= MIN_SPACE_AROUND_INTESITY_PEAK) {
+                if (segments[i].traversable_by_range && traversable_counter >= MIN_SPACE_AROUND_INTESITY_PEAK) {
                     intensity_state = STATE_PEAK;
                     intensity_peak_start = i;
                     intensity_peak_size = 1;
@@ -247,10 +245,10 @@ vector<PointClassification> DisplayLaserData::detectObstacles(sensor_msgs::Laser
             break;
 
         case STATE_PEAK:
-            if (result[i].traversable_by_range && result[i].traversable_by_intensity) {
+            if (segments[i].traversable_by_range && segments[i].traversable_by_intensity) {
                 intensity_state = STATE_AFTER_PEAK;
                 ++traversable_counter;
-            } else if (result[i].traversable_by_range) { // only intensity
+            } else if (segments[i].traversable_by_range) { // only intensity
                 if (++intensity_peak_size > MAX_INTENSITY_PEAK_SIZE) {
                     intensity_state = STATE_BEFORE_PEAK;
                 }
@@ -261,11 +259,11 @@ vector<PointClassification> DisplayLaserData::detectObstacles(sensor_msgs::Laser
             break;
 
         case STATE_AFTER_PEAK:
-            if (result[i].traversable_by_range && result[i].traversable_by_intensity) {
+            if (segments[i].traversable_by_range && segments[i].traversable_by_intensity) {
                 if (++traversable_counter >= MIN_SPACE_AROUND_INTESITY_PEAK) {
                     ROS_DEBUG("Remove intensity peak");
                     for (int j = intensity_peak_start; j < intensity_peak_start+intensity_peak_size; ++j) {
-                        result[j].traversable_by_intensity = true;
+                        segments[j].traversable_by_intensity = true;
                     }
                     intensity_state = STATE_BEFORE_PEAK;
                 }
@@ -285,7 +283,7 @@ vector<PointClassification> DisplayLaserData::detectObstacles(sensor_msgs::Laser
     //FIXME simple for the beginning...
     const int MIN_TRAVERSABLE_SEGMENTS = 5;
     traversable_counter = 0;
-    for (vector<PointClassification>::iterator seg_it = result.begin(); seg_it != result.end(); ++seg_it) {
+    for (vector<PointClassification>::iterator seg_it = segments.begin(); seg_it != segments.end(); ++seg_it) {
         if (seg_it->traversable_by_range && seg_it->traversable_by_intensity) {
             ++traversable_counter;
         } else {
@@ -302,17 +300,23 @@ vector<PointClassification> DisplayLaserData::detectObstacles(sensor_msgs::Laser
         }
     }
 
-
+    // paint
+    visualizer_.paintPath(classification);
 
     // only use intensity, if not more than 60% of the segments are untraversable due to intensity.
-    bool use_intensity = (float)num_untraversable_due_to_intensity / NUM_SEGMENTS < 0.60;
+    bool use_intensity = true; //(float)num_untraversable_due_to_intensity / NUM_SEGMENTS < 0.60;
+
+    traversable_path::LaserScanClassification result;
+    result.traversable.resize(LENGTH);
 
     // missuse intensity of out as obstacle indicator... just for testing, I promise! :P
     for (unsigned int i = 0; i < LENGTH; ++i) {
+        result.traversable[i] = segments[i/SEGMENT_SIZE].isTraversable();
+
         out[i] = 0.0;
-        if (!result[i/SEGMENT_SIZE].traversable_by_range)
+        if (!segments[i/SEGMENT_SIZE].traversable_by_range)
             out[i] += 3000.0;
-        if (use_intensity && !result[i/SEGMENT_SIZE].traversable_by_intensity)
+        if (use_intensity && !segments[i/SEGMENT_SIZE].traversable_by_intensity)
             out[i] += 5000.0;
     }
 
