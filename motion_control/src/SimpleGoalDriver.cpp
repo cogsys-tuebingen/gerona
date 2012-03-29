@@ -245,6 +245,7 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
     goal_global_.header.stamp=ros::Time::now();
     next_goal_global_.header.stamp=ros::Time::now();
     bool status=node_->transformToLocal(goal_global_,goal_local);
+    next_goal_local=goal_local;
     if (!status) {
       return MotionResult::MOTION_STATUS_MOVING;
     }
