@@ -10,9 +10,9 @@
 #include "Line2d.h"
 #include "MathHelper.h"
 #include "FixedDriver.h"
-
-FixedDriver::FixedDriver(ros::Publisher &cmd_pub, ros::NodeHandle &node)
-  :cmd_pub_(cmd_pub),state_(MotionResult::MOTION_STATUS_STOP)
+#include "MotionControlNode.h"
+FixedDriver::FixedDriver(ros::Publisher &cmd_pub, MotionControlNode *node)
+  :node_(node),cmd_pub_(cmd_pub),state_(MotionResult::MOTION_STATUS_STOP)
 {
   cmd_v_ = 0;
   cmd_front_rad_ =0.0;
@@ -22,7 +22,7 @@ FixedDriver::FixedDriver(ros::Publisher &cmd_pub, ros::NodeHandle &node)
 }
 
 
-void FixedDriver::configure(ros::NodeHandle &node)
+void FixedDriver::configure()
 {
 
 }
@@ -35,7 +35,7 @@ void FixedDriver::setGoal(const motion_control::MotionGoal &goal)
   cmd_front_rad_=goal.deltaf;
   cmd_rear_rad_=goal.deltar;
   beta_=atan(0.5*(tan(cmd_front_rad_)+tan(cmd_rear_rad_)));
-  getSlamPose(start_pose_);
+  node_->getWorldPose(start_pose_);
   last_pose_=start_pose_;
   driven_dist_=0.0;
   state_=MotionResult::MOTION_STATUS_MOVING;
@@ -86,7 +86,7 @@ int FixedDriver::execute(MotionFeedback &fb, MotionResult &result)
       result.status=MotionResult::MOTION_STATUS_MOVING;
     }
     Vector3d pose;
-    getSlamPose(pose);
+    node_->getWorldPose(pose);
     double delta_dist=(pose.head<2>()-last_pose_.head<2>()).norm();
     if (delta_dist>dist_measure_threshold_) {
       driven_dist_+=delta_dist;

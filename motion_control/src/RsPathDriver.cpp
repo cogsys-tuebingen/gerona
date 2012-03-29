@@ -190,7 +190,7 @@ void RsPathDriver::calcIcr(const Vector3d& r0,const Vector3d& r1,
 void RsPathDriver::start()
 {
   move_timer_.restart();
-  getSlamPose(start_pose_);
+  getWorldPose(start_pose_);
 }
 
 

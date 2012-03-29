@@ -2,7 +2,6 @@
 #define MOTIONCONTROLLER_H
 
 #include <Eigen/Core>
-#include <tf/transform_listener.h>
 #include <sensor_msgs/LaserScan.h>
 #include "Global.h"
 #include "motion_control/MotionGoal.h"
@@ -14,7 +13,7 @@
 
 using namespace Eigen;
 using namespace motion_control;
-
+class MotionControlNode;
 class MotionController
 {
 public:
@@ -26,14 +25,12 @@ public:
     @return state
     */
   virtual int execute (MotionFeedback& fb, MotionResult& result)=0;
-  virtual void configure (ros::NodeHandle &node)=0;
+  virtual void configure ()=0;
   virtual void setGoal (const motion_control::MotionGoal& goal)=0;
-  virtual bool getSlamPose(Vector3d& pose) const;
   virtual void laserCallback(const sensor_msgs::LaserScanConstPtr& scan);
 
 protected:
   bool checkCollision(double course,double threshold);
-  tf::TransformListener pose_listener_;
   sensor_msgs::LaserScan laser_scan_;
   LaserEnvironment laser_env_;
 };

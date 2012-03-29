@@ -41,12 +41,12 @@ rosbuild_genmsg()
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
-rosbuild_add_executable(follow_path
-src/DualPidCtrl.cpp
-src/PathFollowing.cpp
-src/DualAxisDriver.cpp
-)
-target_link_libraries(follow_path LibUtil)
+#rosbuild_add_executable(follow_path
+#src/DualPidCtrl.cpp
+#src/PathFollowing.cpp
+#src/DualAxisDriver.cpp
+#)
+#target_link_libraries(follow_path LibUtil)
 
 
 rosbuild_add_executable(drive_test
@@ -81,7 +81,7 @@ src/PatternDriver.cpp
 src/MotionControlNode.cpp
 src/MotionController.cpp
 src/PathDriver.cpp
-src/RsPathDriver.cpp
+#src/RsPathDriver.cpp
 src/SimpleGoalDriver.cpp
 
 )

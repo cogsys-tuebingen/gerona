@@ -8,7 +8,7 @@
 #include <utils/LibUtil/MathHelper.h>
 #include <utils/LibUtil/Line2d.h>
 #include <ramaxxbase/RamaxxMsg.h>
-
+#include "MotionControlNode.h"
 // Project
 #include <motion_control/MotionResult.h>
 #include "PathDriver.h"
@@ -17,12 +17,12 @@ using namespace std;
 using namespace Eigen;
 using namespace motion_control;
 
-PathDriver::PathDriver( ros::Publisher& cmd_pub, ros::NodeHandle& node )
-    : active_( false ),
+PathDriver::PathDriver( ros::Publisher& cmd_pub,MotionControlNode* node )
+    : node_(node),active_( false ),
       pos_tolerance_( 0.2 )
 {
     cmd_pub_ = cmd_pub;
-    configure( node );
+    configure(  );
 }
 
 PathDriver::~PathDriver()
@@ -57,7 +57,7 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
 
     // Get SLAM pose
     Vector3d slam_pose;
-    if ( !getSlamPose( slam_pose )) {
+    if ( !node_->getWorldPose( slam_pose )) {
         stop();
         return MotionResult::MOTION_STATUS_SLAM_FAIL;
     }
@@ -66,9 +66,9 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
     Vector3d wp_local;
     geometry_msgs::PoseStamped wp( path_[path_idx_].pose );
     wp.header.stamp = ros::Time::now();
-    if ( !toLocalCs( wp, wp_local )) {
+    if ( !node_->transformToLocal( wp, wp_local )) {
         stop();
-        return MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+        return MotionResult::MOTION_STATUS_SLAM_FAIL;
     }
 
     // Waypoint reached? Select next waypoint!
@@ -82,9 +82,9 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
         path_idx_++;
         wp = path_[path_idx_].pose;
         wp.header.stamp = ros::Time::now();
-        if ( !toLocalCs( wp, wp_local )) {
+        if ( !node_->transformToLocal( wp, wp_local )) {
             stop();
-            return MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+            return MotionResult::MOTION_STATUS_SLAM_FAIL;
         }
     }
 
@@ -92,7 +92,7 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
     Vector3d last_wp_local;
     wp = path_[path_idx_ - 1].pose;
     wp.header.stamp = ros::Time::now();
-    if ( !toLocalCs( wp, last_wp_local )) {
+    if ( !node_->transformToLocal( wp, last_wp_local )) {
         stop();
         return MotionResult::MOTION_STATUS_INTERNAL_ERROR;
     }
@@ -115,10 +115,13 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
     return MotionResult::MOTION_STATUS_MOVING;
 }
 
-void PathDriver::configure( ros::NodeHandle &n ) {
-    n.param( "path_driver/position_tolerance", pos_tolerance_, 0.2 );
-    n.param( "path_driver/l", l_, 0.36 );
+
+void PathDriver::configure() {
+    ros::NodeHandle& nh=node_->getNodeHandle();
+    nh.param( "path_driver/position_tolerance", pos_tolerance_, 0.2 );
+    nh.param( "path_driver/l", l_, 0.36 );
 }
+
 
 void PathDriver::setGoal( const motion_control::MotionGoal& goal ) {
     pending_error_ = -1;
@@ -135,7 +138,7 @@ void PathDriver::setGoal( const motion_control::MotionGoal& goal ) {
 
     // Calculate waypoints
     Vector3d slam_pose;
-    if ( !getSlamPose( slam_pose )) {
+    if ( !node_->getWorldPose( slam_pose )) {
         pending_error_ = MotionResult::MOTION_STATUS_SLAM_FAIL;
         return;
     }
@@ -166,21 +169,6 @@ void PathDriver::calculateWaypoints( const nav_msgs::Path &path, const Vector3d 
     path_idx_ = 1;
 }
 
-bool PathDriver::toLocalCs( const geometry_msgs::PoseStamped &in,
-                            Eigen::Vector3d &out,
-                            const std::string out_frame ) const
-{
-    geometry_msgs::PoseStamped pose_out;
-    try {
-        // Get latest transform
-        tf_.transformPose( out_frame, ros::Time(0), in, in.header.frame_id, pose_out );
-    } catch ( tf::TransformException &ex ) {
-        ROS_ERROR( "Cannot transform pose. Reason %s", ex.what());
-        return false;
-    }
-
-    return true;
-}
 
 void PathDriver::predictPose( const double dt,
                               const double deltaf,

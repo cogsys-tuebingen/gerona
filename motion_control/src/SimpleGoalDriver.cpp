@@ -3,32 +3,33 @@
 #include "Line2d.h"
 #include "MathHelper.h"
 #include "SimpleGoalDriver.h"
+#include "MotionControlNode.h"
+class MotionControlNode;
 
-
-
-SimpleGoalDriver::SimpleGoalDriver(ros::Publisher& cmd_pub,ros::NodeHandle& nh)
-  :node_handle_(nh),cmd_pub_(cmd_pub),state_(MotionResult::MOTION_STATUS_STOP)
+SimpleGoalDriver::SimpleGoalDriver(ros::Publisher& cmd_pub,MotionControlNode *node)
+  :node_(node),cmd_pub_(cmd_pub),state_(MotionResult::MOTION_STATUS_STOP)
 {
   ctrl_.reset();
   cmd_v_ = 0;
   cmd_front_rad_ =0.0;
   cmd_rear_rad_= 0.0;
-  configure(node_handle_);
+  configure();
 
 }
 
 
-void SimpleGoalDriver::configure(ros::NodeHandle &node)
+void SimpleGoalDriver::configure()
 {
+  ros::NodeHandle& nh=node_->getNodeHandle();
   double Ta,Kp,e_max,delta_max_deg,default_v;
   // configure dual pid control
-  node.param<double>("rowdetect/dualpid/Tt",Tt_,0.1); // system deadtime
-  node.param<double>("rowdetect/dualpid/Ta",Ta,0.05); // controller sampling time
-  node.param<double>("rowdetect/dualpid/Kp",Kp,0.5);
-  node.param<double>("rowdetect/dualpid/e_max",e_max,0.1);
-  node.param<double>("rowdetect/dualpid/L",L_,0.38);
-  node.param<double>("rowdetect/dualpid/default_v",default_v,0.5);
-  node.param<double>("rowdetect/dualpid/delta_max_deg",delta_max_deg,22.0);
+  nh.param<double>("rowdetect/dualpid/Tt",Tt_,0.1); // system deadtime
+  nh.param<double>("rowdetect/dualpid/Ta",Ta,0.05); // controller sampling time
+  nh.param<double>("rowdetect/dualpid/Kp",Kp,0.5);
+  nh.param<double>("rowdetect/dualpid/e_max",e_max,0.1);
+  nh.param<double>("rowdetect/dualpid/L",L_,0.38);
+  nh.param<double>("rowdetect/dualpid/default_v",default_v,0.5);
+  nh.param<double>("rowdetect/dualpid/delta_max_deg",delta_max_deg,22.0);
 
   if (delta_max_deg<=0.0) {
     ROS_ERROR("invalid max steer angle delta_max in config. Setting to 20deg");
@@ -88,7 +89,7 @@ void SimpleGoalDriver::setGoal(const motion_control::MotionGoal &goal)
       // ros should automatically unsubscribe previous subscriptions
       // test this
       ROS_INFO( "Subscribing to path topic: %s", goal.path_topic.c_str());
-      path_subscriber_=node_handle_.subscribe<nav_msgs::Path>
+      path_subscriber_=node_->getNodeHandle().subscribe<nav_msgs::Path>
           (goal.path_topic, 2, boost::bind(&SimpleGoalDriver::updatePath, this, _1));
     }
     if (goal_path_global_.poses.empty() && goal.path_topic.empty()) {
@@ -156,8 +157,8 @@ void SimpleGoalDriver::predictPose(double dt, double deltaf, double deltar, doub
 void SimpleGoalDriver::start()
 {
   move_timer_.restart();
-  getSlamPose(start_pose_);
-  getSlamPose(last_slam_pose_);
+  node_->getWorldPose(start_pose_);
+  node_->getWorldPose(last_slam_pose_);
   ctrl_.reset();
 }
 
@@ -243,13 +244,8 @@ int SimpleGoalDriver::execute(motion_control::MotionFeedback& feedback,
     Vector3d robot_pose;    
     goal_global_.header.stamp=ros::Time::now();
     next_goal_global_.header.stamp=ros::Time::now();
-    try {
-      goal_global_.header.frame_id="/map";
-      next_goal_global_.header.frame_id="/map";
-      pose_listener_.transformPose("/base_link",ros::Time(0),goal_global_,"/map",goal_local);
-      pose_listener_.transformPose("/base_link",ros::Time(0),goal_global_,"/map",next_goal_local);
-    } catch (tf::TransformException& ex) {
-      ROS_ERROR("error with transform goal pose: %s", ex.what());
+    bool status=node_->transformToLocal(goal_global_,goal_local);
+    if (!status) {
       return MotionResult::MOTION_STATUS_MOVING;
     }
 

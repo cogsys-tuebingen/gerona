@@ -13,6 +13,7 @@
 #include "Eigen/Core"
 #include <Eigen/Dense>
 #include <Eigen/LeastSquares>
+#include "MotionControlNode.h"
 #include "ramaxxbase/RamaxxMsg.h"
 #include "Misc.h"
 #include "CalibDriver.h"
@@ -26,24 +27,25 @@ enum {
   POS_REAR=1
 };
 
-CalibDriver::CalibDriver(ros::Publisher& cmd_pub,ros::NodeHandle& node)
-  :cmd_pub_(cmd_pub),state_(CALIB_STATE_STOP)
+CalibDriver::CalibDriver(ros::Publisher& cmd_pub,MotionControlNode* node)
+  :node_(node),cmd_pub_(cmd_pub),state_(CALIB_STATE_STOP)
 {
-  configure(node);
+  configure();
 }
 
-void CalibDriver::configure(ros::NodeHandle &node)
+void CalibDriver::configure()
 {
-  node.param<int>("servoMidFront",servo_front_mid_,2250);
-  node.param<int>("servoMidRear",servo_rear_mid_,2250);
-  node.param<int>("controlSleepMs",ctrl_sleep_ms_,200);
-  node.param<double>("tuningA",tuning_a_,0.8);
+  ros::NodeHandle& nh=node_->getNodeHandle();
+  nh.param<int>("servoMidFront",servo_front_mid_,2250);
+  nh.param<int>("servoMidRear",servo_rear_mid_,2250);
+  nh.param<int>("controlSleepMs",ctrl_sleep_ms_,200);
+  nh.param<double>("tuningA",tuning_a_,0.8);
   double ks11,ks12,ks21,ks22,kp_yaw;
-  node.param<double>("ks11",ks11,1.0);
-  node.param<double>("ks12",ks12,0.6787);
-  node.param<double>("ks21",ks21,1);
-  node.param<double>("ks22",ks22,-0.994);
-  node.param<double>("kpyaw",kp_yaw,1.0);
+  nh.param<double>("ks11",ks11,1.0);
+  nh.param<double>("ks12",ks12,0.6787);
+  nh.param<double>("ks21",ks21,1);
+  nh.param<double>("ks22",ks22,-0.994);
+  nh.param<double>("kpyaw",kp_yaw,1.0);
   Matrix2d ksinv;
   ksinv << ks11,ks12,ks21,ks22;
   dual_axis_calib_.SetKSinv(ksinv);
@@ -122,7 +124,7 @@ void CalibDriver::start()
   if (state_==CALIB_STATE_STOP) {
     move_timer_.restart();
     beta_estimator_.reset();
-    getSlamPose(start_pose_);
+    node_->getWorldPose(start_pose_);
     cmd_servof_=servo_front_mid_;
     cmd_servor_=servo_rear_mid_;
     cmd_v_=speed_;
@@ -150,7 +152,7 @@ int CalibDriver::doStartMove(MotionFeedback& fb, MotionResult& result)
       cmd_v_=0;
       return result.status;
     }
-    bool has_slam=getSlamPose(current_pose);
+    bool has_slam=node_->getWorldPose(current_pose);
     if (has_slam) {
       beta_estimator_.update(current_pose);
       double dist_driven=(current_pose.head<2>()-start_pose_.head<2>()).norm();
@@ -173,7 +175,7 @@ int CalibDriver::doStartMove(MotionFeedback& fb, MotionResult& result)
 int CalibDriver::doCtrlDrive(MotionFeedback& fb, MotionResult& result)
 {
   Vector3d current_pose;
-  bool has_slam=getSlamPose(current_pose);
+  bool has_slam=node_->getWorldPose(current_pose);
   bool colliding=checkCollision(beta_target_,0.3);
   fb.status=MotionFeedback::MOTION_CALIB;
   if (!has_slam) {

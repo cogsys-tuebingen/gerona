@@ -14,14 +14,14 @@ class SimpleGoalDriver : public MotionController
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    SimpleGoalDriver(ros::Publisher& cmd_pub,ros::NodeHandle& node);
+    SimpleGoalDriver(ros::Publisher& cmd_pub,MotionControlNode* node);
     virtual void start ();
     virtual void stop ();
     virtual int getType () {
       return motion_control::MotionGoal::MOTION_TO_GOAL;
     }
     virtual int execute (MotionFeedback& fb, MotionResult& result);
-    virtual void configure (ros::NodeHandle &node);
+    virtual void configure ();
     virtual void setGoal (const motion_control::MotionGoal& goal);
 
     void updatePath (const nav_msgs::PathConstPtr& path);
@@ -32,8 +32,8 @@ private:
     void predictPose (double dt, double deltaf, double deltar, double v,
                       Vector2d& front_pred, Vector2d& rear_pred);
     int driveToGoal (const Vector3d& goal, const Vector3d& next_goal,MotionFeedback& fb, MotionResult& result);
+    MotionControlNode* node_;
 
-    ros::NodeHandle&    node_handle_;
     ros::Publisher&     cmd_pub_;
     ros::Subscriber     path_subscriber_;
     double cmd_v_;
@@ -55,7 +55,6 @@ private:
     double L_; // wheelbase
     double Tt_; // system dead time / latency
     double delta_max_;
-    tf::TransformListener listener_;
     Vector3d last_slam_pose_;
 };
 

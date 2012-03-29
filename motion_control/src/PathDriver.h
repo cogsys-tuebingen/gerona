@@ -47,7 +47,7 @@ public:
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    PathDriver( ros::Publisher& cmd_pub, ros::NodeHandle& n );
+    PathDriver( ros::Publisher& cmd_pub, MotionControlNode *node);
     virtual ~PathDriver();
 
     virtual void start();
@@ -57,7 +57,7 @@ public:
     }
 
     virtual int execute( MotionFeedback& fb, MotionResult& result );
-    virtual void configure( ros::NodeHandle &node );
+    virtual void configure( );
     virtual void setGoal( const motion_control::MotionGoal& goal );
 
 protected:
@@ -70,18 +70,7 @@ protected:
      */
     void calculateWaypoints( const nav_msgs::Path &path, const Vector3d &slam_pose );
 
-    /**
-     * @brief Convert a pose into the robot coordinate system using ROS tf.
-     *
-     * @param in Pose that will be transformed.
-     * @param out Pose in robot coordinates (x, y, yaw).
-     * @param out_frame Frame id of the robot coordinate system (e.g. "/base_link")
-     *
-     * @return False if an error occured. True otherwise.
-     */
-    bool toLocalCs( const geometry_msgs::PoseStamped &in,
-                    Eigen::Vector3d &out,
-                    const std::string out_frame = "/base_link" ) const;
+
 
     /**
      * @brief Predict the pose of the robot.
@@ -109,6 +98,8 @@ protected:
     void publishCmd( const Eigen::Vector3d &cmd );
 
 private:
+    MotionControlNode* node_;
+
     /// Used to publish steering/speed commands
     ros::Publisher cmd_pub_;
 

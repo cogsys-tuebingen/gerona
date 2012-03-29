@@ -20,19 +20,19 @@ enum
   CALIB_STATE_STARTMOVE,
   CALIB_STATE_CTRL
 };
-
+class MotionControlNode;
 class CalibDriver : public MotionController
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    CalibDriver(ros::Publisher& cmd_pub,ros::NodeHandle& node);
+    CalibDriver(ros::Publisher& cmd_pub,MotionControlNode *node);
     virtual void start ();
     virtual void stop ();
     virtual int getType () {
       return motion_control::MotionGoal::MOTION_ODO_CALIB;
     }
     virtual int execute (MotionFeedback& fb, MotionResult& result);
-    virtual void configure (ros::NodeHandle &node);
+    virtual void configure ();
     virtual void setGoal (const motion_control::MotionGoal& goal);
 
 private:
@@ -43,6 +43,7 @@ private:
     double  calcBetaAngle(const Vector3d& p1, const Vector3d& p2, int direction);
 
     double  calcLsBetaAngle(Vector2dVec& ps, double theta,int direction);
+    MotionControlNode* node_;
 
     ros::Publisher&     cmd_pub_;
     int                 state_;

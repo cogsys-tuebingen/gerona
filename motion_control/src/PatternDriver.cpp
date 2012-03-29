@@ -13,12 +13,12 @@
 #include "Line2d.h"
 #include "MathHelper.h"
 #include "PatternDriver.h"
-
+#include "MotionControlNode.h"
 
 using namespace std;
 
-PatternDriver::PatternDriver(ros::Publisher &cmd_pub, ros::NodeHandle &node)
-    :cmd_pub_(cmd_pub),state_(MotionResult::MOTION_STATUS_STOP)
+PatternDriver::PatternDriver(ros::Publisher &cmd_pub, MotionControlNode *node)
+    :node_(node),cmd_pub_(cmd_pub),state_(MotionResult::MOTION_STATUS_STOP)
 {
     cmd_v_ = 0;
     cmd_front_rad_ =0.0;
@@ -28,7 +28,7 @@ PatternDriver::PatternDriver(ros::Publisher &cmd_pub, ros::NodeHandle &node)
 }
 
 
-void PatternDriver::configure(ros::NodeHandle &node)
+void PatternDriver::configure()
 {
 
 }
@@ -40,7 +40,7 @@ void PatternDriver::setGoal(const motion_control::MotionGoal &goal)
     cmd_front_rad_ = goal.deltaf;
     cmd_rear_rad_ = 0; //goal.deltar;
     beta_ = 0; //atan(0.5*(tan(cmd_front_rad_)+tan(cmd_rear_rad_)));
-    getSlamPose( start_pose_ );
+    node_->getWorldPose( start_pose_ );
     last_pose_ = start_pose_;
     driven_dist_ = 0.0;
     state_ = MotionResult::MOTION_STATUS_MOVING;
@@ -200,7 +200,7 @@ int PatternDriver::execute(MotionFeedback &fb, MotionResult &result)
     default:
     {
         Vector3d slam_pose;
-        getSlamPose( slam_pose );
+        node_->getWorldPose( slam_pose );
         // TODO calc beta
         bool colliding=checkCollision( beta_, 0.3 );
         if ( colliding ) {

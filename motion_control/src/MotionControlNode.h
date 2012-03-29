@@ -14,11 +14,10 @@
 
 class MotionController;
 class CalibDriver;
-class RsPathDriver;
 class PatternDriver;
 class FixedDriver;
 class SimpleGoalDriver;
-
+using namespace Eigen;
 class MotionControlNode
 {
 public:
@@ -34,24 +33,27 @@ public:
 
   void update ();
   void publish();
+  bool getWorldPose(Vector3d& pose) const;
 
-
-
+  bool transformToLocal(const geometry_msgs::PoseStamped& global, geometry_msgs::PoseStamped& local );
+  bool transformToLocal(const geometry_msgs::PoseStamped& global, Vector3d& local );
+  ros::NodeHandle& getNodeHandle() {return nh_;}
 private:
   void send_arrow_marker(int id, std::string name_space, geometry_msgs::Pose &pose,
                          float scale_x, float scale_y, float scale_z,
                          float r, float g, float b, float a);
 
+  ros::NodeHandle& nh_;
   actionlib::SimpleActionServer<motion_control::MotionAction> action_server_;
   ros::Subscriber scan_sub_;
   ros::Publisher cmd_ramaxx_pub_;
 
-  tf::TransformListener listener_;
+  tf::TransformListener pose_listener_;
 
   nav_msgs::Odometry odometry_;
   std::string action_name_;
+  std::string world_frame_,robot_frame_;
 
-  RsPathDriver *rspath_driver_;
   MotionController *active_ctrl_;
   CalibDriver *calib_driver_;
   SimpleGoalDriver *simple_goal_driver_;

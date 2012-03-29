@@ -16,22 +16,24 @@
 
 #include "Stopwatch.h"
 #include "MotionController.h"
+class MotionControlNode;
 class FixedDriver : public MotionController
 {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  FixedDriver(ros::Publisher& cmd_pub,ros::NodeHandle& node);
+  FixedDriver(ros::Publisher& cmd_pub,MotionControlNode *node);
   virtual void start ();
   virtual void stop ();
   virtual int getType () {
     return motion_control::MotionGoal::MOTION_FIXED_PARAMS;
   }
   virtual int execute (MotionFeedback& fb, MotionResult& result);
-  virtual void configure (ros::NodeHandle &node);
+  virtual void configure ();
   virtual void setGoal (const motion_control::MotionGoal& goal);
 
 private:
+  MotionControlNode* node_;
 
   ros::Publisher&     cmd_pub_;
   double cmd_v_;
