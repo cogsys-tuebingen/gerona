@@ -8,7 +8,8 @@
 using namespace std;
 
 TerrainClassifier::TerrainClassifier() :
-        is_calibrated_(false)
+        is_calibrated_(false),
+        scan_buffer(3)
 {
     // private node handle for parameter access
     ros::NodeHandle private_node_handle("~");
@@ -22,7 +23,7 @@ TerrainClassifier::TerrainClassifier() :
     subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &TerrainClassifier::classifyLaserScan, this);
 
     // register calibration service
-    service_ = node_handle_.advertiseService("calibrate_plane", &TerrainClassifier::calibrate, this);
+    calibration_service_ = node_handle_.advertiseService("calibrate_plane", &TerrainClassifier::calibrate, this);
 
 
     // load range calibration filename from parameter
@@ -39,43 +40,31 @@ TerrainClassifier::TerrainClassifier() :
 
 void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 {
-    //FIXME publish als LaserScan nur, weil dann leicht mit dem laserscan_viewer anzeigbar :)
-    sensor_msgs::LaserScan diff = *msg;
+    // with uncalibrated laser, classification will not work
+    if (!this->is_calibrated_) {
+        return;
+    }
+
     sensor_msgs::LaserScan smoothed = *msg;
 
-    // if laser is calibrated, subtract plane values
-    if (this->is_calibrated_) {
-        for (unsigned int i=0; i < msg->ranges.size(); ++i) {
-            msg->ranges[i] -= this->plane_ranges_[i];
+    // subtract plane calibration values to normalize the scan data
+    for (unsigned int i=0; i < msg->ranges.size(); ++i) {
+        msg->ranges[i] -= this->plane_ranges_[i];
 
-            // mirror on x-axis
-            msg->ranges[i] *= -1;
-        }
+        // mirror on x-axis
+        msg->ranges[i] *= -1;
     }
 
     // smooth
     smoothed.ranges = smooth(msg->ranges, 6);
     smoothed.intensities = smooth(msg->intensities, 4);
 
-    // differential
-    diff.ranges[0] = 0;
-    diff.intensities[0] = 0;
-    for (unsigned int i=1; i < smoothed.ranges.size(); ++i)
-    {
-        diff.ranges[i] = smoothed.ranges[i] - smoothed.ranges[i-1];
-        diff.intensities[i] = abs(smoothed.intensities[i] - smoothed.intensities[i-1]); //< BEWARE of the abs()!
-    }
-
-    // smooth differential
-    diff.intensities = smooth(diff.intensities, 6);
-
     // find obstacles
-    traversable_path::LaserScanClassification classification = detectObstacles(diff, msg->intensities);
+    traversable_path::LaserScanClassification classification = detectObstacles(smoothed, msg->intensities);
 
     // publish modified message
     publish_path_points_.publish(classification);
-    publish_normalized_.publish(msg);
-    publish_differential_.publish(diff);
+    publish_normalized_.publish(msg); //< FIXME this topic is only for debugging
 }
 
 bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
@@ -134,68 +123,69 @@ float TerrainClassifier::avg(boost::circular_buffer<float> &xs)
 traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data,
                                                                             std::vector<float> &out)
 {
-    /* look at each point seperate
-    const float RANGE_LIMIT = 0.01;
-    const float INTENSITY_LIMIT = 40.0;
+    // parameters
+    const unsigned int SEGMENT_SIZE = 10;       //!< Points per segment. //TODO unterteilung in segmente weglassen?
+    const float DIFF_RANGE_LIMIT = 0.005;       //!< Limit of the range differential.
+    const float DIFF_INTENSITY_LIMIT = 13.0;    //!< Limit of the intensity differential.
+    //! Minimum number of traversable segments around a intensity peak that allows to ignore this peak.
+    const int MIN_SPACE_AROUND_FALSE_INTESITY_PEAK = 2;
+    //! Maximum size of an intensity peak (in segments) that allowes to ignore this peak.
+    const int MAX_FALSE_INTENSITY_PEAK_SIZE = 2;
 
-    for (unsigned int i = 0; i < data.ranges.size(); ++i) {
-        // missuse intensity of out as obstacle indicator... just for testing, I promise! :P
-        out[i] = 0;
-
-        if (abs(data.ranges[i]) > RANGE_LIMIT) {
-            out[i] = 3000; // just some high value that will be visible in the laserscan viewer
-        }
-
-        //cout << abs(data.intensities[i]) << endl;
-        if (abs(data.intensities[i]) > INTENSITY_LIMIT) {
-            out[i] = 5000; // an other high value to distinct range an intensity
-        }
-    }
-    //*/
-
-
-    // Look at segemnts
-    const unsigned int SEGMENT_SIZE = 10; //TODO unterteilung in segmente weglassen?
-    const float RANGE_LIMIT = 0.005;
-    const float INTENSITY_LIMIT = 13.0;
 
     // number of values
-    const unsigned int LENGTH = data.ranges.size();
-    const unsigned int NUM_SEGMENTS = ceil(LENGTH / SEGMENT_SIZE);
+    const unsigned int LENGTH = data.ranges.size(); //!< Length of the scan vector.
+    const unsigned int NUM_SEGMENTS = ceil(LENGTH / SEGMENT_SIZE); //!< Number of segments.
+
+    // differentials
+    vector<float> diff_ranges(LENGTH);          //!< range differential
+    vector<float> diff_intensities(LENGTH);     //!< intensity differential
     
-    static boost::circular_buffer< vector<PointClassification> > scan_buffer(3); //TODO class member instead io static variable
+    for (unsigned int i=0; i < LENGTH - 1; ++i)
+    {
+        diff_ranges[i] = data.ranges[i] - data.ranges[i+1];
+        diff_intensities[i] = abs(data.intensities[i] - data.intensities[i+1]); //< BEWARE of the abs()!
+    }
+    diff_ranges[LENGTH-1] = diff_ranges[LENGTH-2];
+    diff_intensities[LENGTH-1] = diff_intensities[LENGTH-2];
 
-    vector<PointClassification> classification;
+    // smooth differential of intensity
+    diff_intensities = smooth(diff_intensities, 6);
 
+    //publish_differential_.publish(diff);
+
+
+    // classify the current scan
+    vector<PointClassification> classification; //!< Classification for each segment in the current scan.
     for (unsigned int i = 0; i < LENGTH; i+=SEGMENT_SIZE) {
         float sum_range = 0;
         float sum_intensity = 0;
         PointClassification seg_class;
 
         for (unsigned int j = i; j < i+SEGMENT_SIZE && j < LENGTH; ++j) {
-            sum_range += abs(data.ranges[i]);
-            sum_intensity += abs(data.intensities[i]);
+            sum_range += abs(diff_ranges[i]);
+            sum_intensity += abs(diff_intensities[i]);
         }
 
-        seg_class.traversable_by_range     = (    sum_range / SEGMENT_SIZE < RANGE_LIMIT    );
-        seg_class.traversable_by_intensity = (sum_intensity / SEGMENT_SIZE < INTENSITY_LIMIT);
+        seg_class.traversable_by_range     = (    sum_range / SEGMENT_SIZE < DIFF_RANGE_LIMIT    );
+        seg_class.traversable_by_intensity = (sum_intensity / SEGMENT_SIZE < DIFF_INTENSITY_LIMIT);
 
         classification.push_back(seg_class);
     }
+    // push current scn to buffer
     scan_buffer.push_back(classification);
-
 
     // points will only be marked as traversable if they are traversable in more than the half of the scans in the
     // scan buffer.
     int num_untraversable_due_to_intensity = 0;
-    vector<PointClassification> segments( NUM_SEGMENTS );
-    unsigned int store_size = scan_buffer.size();
+    vector<PointClassification> segments( NUM_SEGMENTS );   //!< Final classification of the segments.
+    unsigned int scan_buffer_size = scan_buffer.size();
 
     for (unsigned int i = 0; i < NUM_SEGMENTS; ++i) {
         int sum_traversable_range     = 0;
         int sum_traversable_intensity = 0;
 
-        for (unsigned int j = 0; j < store_size; ++j) {
+        for (unsigned int j = 0; j < scan_buffer_size; ++j) {
             if (scan_buffer[j][i].traversable_by_range)
                 ++sum_traversable_range;
 
@@ -203,8 +193,8 @@ traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sen
                 ++sum_traversable_intensity;
         }
 
-        segments[i].traversable_by_range = (sum_traversable_range > store_size/2.0);
-        segments[i].traversable_by_intensity = (sum_traversable_intensity > store_size/2.0);
+        segments[i].traversable_by_range = (sum_traversable_range > scan_buffer_size/2.0);
+        segments[i].traversable_by_intensity = (sum_traversable_intensity > scan_buffer_size/2.0);
 
         if (!segments[i].traversable_by_intensity) {
             ++num_untraversable_due_to_intensity;
@@ -212,11 +202,7 @@ traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sen
     }
 
 
-
-
-    // remove single intensity-peaks
-    const int MIN_SPACE_AROUND_INTESITY_PEAK = 2;
-    const int MAX_INTENSITY_PEAK_SIZE = 2;
+    // remove single intensity-peaks (using a simple state machine)
     const int STATE_BEFORE_PEAK = 0;
     const int STATE_PEAK = 1;
     const int STATE_AFTER_PEAK = 2;
@@ -233,7 +219,7 @@ traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sen
             if (segments[i].traversable_by_range && segments[i].traversable_by_intensity) {
                 ++traversable_counter;
             } else {
-                if (segments[i].traversable_by_range && traversable_counter >= MIN_SPACE_AROUND_INTESITY_PEAK) {
+                if (segments[i].traversable_by_range && traversable_counter >= MIN_SPACE_AROUND_FALSE_INTESITY_PEAK) {
                     intensity_state = STATE_PEAK;
                     intensity_peak_start = i;
                     intensity_peak_size = 1;
@@ -249,7 +235,7 @@ traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sen
                 intensity_state = STATE_AFTER_PEAK;
                 ++traversable_counter;
             } else if (segments[i].traversable_by_range) { // only intensity
-                if (++intensity_peak_size > MAX_INTENSITY_PEAK_SIZE) {
+                if (++intensity_peak_size > MAX_FALSE_INTENSITY_PEAK_SIZE) {
                     intensity_state = STATE_BEFORE_PEAK;
                 }
             } else {
@@ -260,7 +246,7 @@ traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sen
 
         case STATE_AFTER_PEAK:
             if (segments[i].traversable_by_range && segments[i].traversable_by_intensity) {
-                if (++traversable_counter >= MIN_SPACE_AROUND_INTESITY_PEAK) {
+                if (++traversable_counter >= MIN_SPACE_AROUND_FALSE_INTESITY_PEAK) {
                     ROS_DEBUG("Remove intensity peak");
                     for (int j = intensity_peak_start; j < intensity_peak_start+intensity_peak_size; ++j) {
                         segments[j].traversable_by_intensity = true;
@@ -300,19 +286,21 @@ traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sen
         }
     }
 
-    // paint
+    // paint path
     visualizer_.paintPath(segments);
 
     // only use intensity, if not more than 60% of the segments are untraversable due to intensity.
+    // deaktivated
     bool use_intensity = true; //(float)num_untraversable_due_to_intensity / NUM_SEGMENTS < 0.60;
 
     traversable_path::LaserScanClassification result;
     result.traversable.resize(LENGTH);
 
-    // missuse intensity of out as obstacle indicator... just for testing, I promise! :P
+    // convert segment vector to point vector (each point is mapped to a bool. True = traversable, false=untraversable)
     for (unsigned int i = 0; i < LENGTH; ++i) {
         result.traversable[i] = segments[i/SEGMENT_SIZE].isTraversable();
 
+        // missuse out as obstacle indicator... just for testing, I promise! :P
         out[i] = 0.0;
         if (!segments[i/SEGMENT_SIZE].traversable_by_range)
             out[i] += 3000.0;

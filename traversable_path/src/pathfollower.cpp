@@ -28,7 +28,7 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
     }
 
     if (beginning == 0) {
-        ROS_INFO("No traversable paths found.");
+        ROS_DEBUG("No traversable paths found.");
         // TODO: stop robot
         return;
     }

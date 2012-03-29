@@ -28,18 +28,31 @@ public:
 private:
     const static std::string DEFAULT_RANGE_CALIBRATION_FILE;
 
+    //! ROS node handle.
     ros::NodeHandle node_handle_;
     ros::Publisher publish_normalized_;
     ros::Publisher publish_differential_;
+
+    //! Publishes the point classification for the laser scan data
     ros::Publisher publish_path_points_;
+    //! Subscribes for laser scans.
     ros::Subscriber subscribe_laser_scan_;
-    ros::ServiceServer service_;
+    //! Registers calibration service.
+    ros::ServiceServer calibration_service_;
+    //! Name of the range calibration file
     std::string range_calibration_file_;
+    //! True if already calibrated, false if not.
     bool is_calibrated_;
+    //! Range data of a (preferably) perfekt plane, to calibrate the laser data.
     std::vector<float> plane_ranges_;
+    //! Visualizes some data
     Visualization visualizer_;
+    //! Buffer of the last few scans.
+    boost::circular_buffer< std::vector<PointClassification> > scan_buffer;
 
     void classifyLaserScan(const sensor_msgs::LaserScanPtr &msg);
+
+    //! Calibrates the laser, assuming the current scan shows a flat plane without obstacles.
     bool calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 
     /**
@@ -54,6 +67,7 @@ private:
      */
     float avg(boost::circular_buffer<float> &xs);
 
+    //! Classifies the points of the given scan.
     traversable_path::LaserScanClassification detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
 };
 

@@ -7,7 +7,7 @@
   <author>Felix Widmaier</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/traversable_path</url>
+  <url></url>
   <depend package="std_msgs"/>
   <depend package="sensor_msgs"/>
   <depend package="std_srvs"/>
