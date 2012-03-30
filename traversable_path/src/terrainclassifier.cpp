@@ -16,7 +16,6 @@ TerrainClassifier::TerrainClassifier() :
 
     // advertise
     publish_normalized_   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
-    publish_differential_ = node_handle_.advertise<sensor_msgs::LaserScan>("scan/differential", 100);
     publish_path_points_  = node_handle_.advertise<traversable_path::LaserScanClassification>("scan/traversability", 100);
 
     // subscribe laser scanner
@@ -38,8 +37,24 @@ TerrainClassifier::TerrainClassifier() :
     is_calibrated_ = vs.load(&plane_ranges_);
 }
 
+/**
+ * @todo Handle problems if no intenisty is available!
+ */
 void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 {
+//    sensor_msgs::PointCloud cloud;
+//    //laser_projector_.projectLaser(*msg, cloud);
+//    try {
+//        laser_projector_.transformLaserScanToPointCloud("base_link", *msg, cloud, tf_listener_);
+//    }
+//    catch (tf::ExtrapolationException e) {
+//        ROS_ERROR("LAser transformation: %s", e.what());
+//    }
+//
+//    geometry_msgs::Point32 point = cloud.points[cloud.points.size()/2];
+//
+//    ROS_INFO("%f, %f, %f", point.x, point.y, point.z);
+
     // with uncalibrated laser, classification will not work
     if (!this->is_calibrated_) {
         return;
@@ -49,10 +64,10 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
     // subtract plane calibration values to normalize the scan data
     for (unsigned int i=0; i < msg->ranges.size(); ++i) {
-        msg->ranges[i] -= this->plane_ranges_[i];
+        smoothed.ranges[i] = msg->ranges[i] - plane_ranges_[i];
 
         // mirror on x-axis
-        msg->ranges[i] *= -1;
+        smoothed.ranges[i] *= -1;
     }
 
     // smooth
@@ -60,7 +75,15 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     smoothed.intensities = smooth(msg->intensities, 4);
 
     // find obstacles
-    traversable_path::LaserScanClassification classification = detectObstacles(smoothed, msg->intensities);
+    traversable_path::LaserScanClassification classification;
+    vector<bool> tmp = detectObstacles(smoothed, msg->intensities);
+    classification.traversable.assign(tmp.begin(), tmp.end()); //< TODO: why does a simple assignment via '=' not work?
+    // get projection to carthesian frame
+    sensor_msgs::PointCloud cloud;
+    laser_projector_.projectLaser(*msg, cloud, laser_geometry::channel_option::Distance);
+    classification.points = cloud.points;
+
+    ROS_INFO("size trav: %d, points: %d", msg->ranges.size(), cloud.points.size());
 
     // publish modified message
     publish_path_points_.publish(classification);
@@ -86,6 +109,7 @@ bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::E
 
 vector<float> TerrainClassifier::smooth(std::vector<float> data, const unsigned int num_values)
 {
+    //FIXME range check
     boost::circular_buffer<float> neighbourhood(2*num_values + 1);
     unsigned int length = data.size();
 
@@ -95,7 +119,7 @@ vector<float> TerrainClassifier::smooth(std::vector<float> data, const unsigned 
         neighbourhood.push_back(data[i]);
     }
 
-    // push next and drop last
+    // push next
     for (unsigned int i = 0; i < length-num_values; ++i)
     {
         neighbourhood.push_back(data[i+num_values]);
@@ -120,17 +144,13 @@ float TerrainClassifier::avg(boost::circular_buffer<float> &xs)
         return accumulate(xs.begin(), xs.end(), 0.0) / xs.size();
 }
 
-traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data,
+vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data,
                                                                             std::vector<float> &out)
 {
     // parameters
     const unsigned int SEGMENT_SIZE = 10;       //!< Points per segment. //TODO unterteilung in segmente weglassen?
     const float DIFF_RANGE_LIMIT = 0.005;       //!< Limit of the range differential.
     const float DIFF_INTENSITY_LIMIT = 13.0;    //!< Limit of the intensity differential.
-    //! Minimum number of traversable segments around a intensity peak that allows to ignore this peak.
-    const int MIN_SPACE_AROUND_FALSE_INTESITY_PEAK = 2;
-    //! Maximum size of an intensity peak (in segments) that allowes to ignore this peak.
-    const int MAX_FALSE_INTENSITY_PEAK_SIZE = 2;
 
 
     // number of values
@@ -141,8 +161,7 @@ traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sen
     vector<float> diff_ranges(LENGTH);          //!< range differential
     vector<float> diff_intensities(LENGTH);     //!< intensity differential
     
-    for (unsigned int i=0; i < LENGTH - 1; ++i)
-    {
+    for (unsigned int i=0; i < LENGTH - 1; ++i) {
         diff_ranges[i] = data.ranges[i] - data.ranges[i+1];
         diff_intensities[i] = abs(data.intensities[i] - data.intensities[i+1]); //< BEWARE of the abs()!
     }
@@ -151,8 +170,6 @@ traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sen
 
     // smooth differential of intensity
     diff_intensities = smooth(diff_intensities, 6);
-
-    //publish_differential_.publish(diff);
 
 
     // classify the current scan
@@ -169,9 +186,17 @@ traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sen
 
         seg_class.traversable_by_range     = (    sum_range / SEGMENT_SIZE < DIFF_RANGE_LIMIT    );
         seg_class.traversable_by_intensity = (sum_intensity / SEGMENT_SIZE < DIFF_INTENSITY_LIMIT);
+        
+//        // check height (this is important to detect walls in front)
+//        if (abs(data.ranges[i]) > 0.3) {
+//            seg_class.traversable_by_range = false;
+//        }
 
         classification.push_back(seg_class);
     }
+    
+    
+    
     // push current scn to buffer
     scan_buffer.push_back(classification);
 
@@ -201,6 +226,69 @@ traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sen
         }
     }
 
+
+    removeSingleIntensityPeaks(segments);
+
+
+    // drop traversable segments, that are too narrow for the robot
+    //const float MIN_TRAVERSABLE_WIDTH = 0.7; // 70cm
+    // the middle of the robot is approximatly in the middle of the scan data...
+    //int mid = NUM_SEGMENTS/2;
+    //FIXME simple for the beginning...
+    const int MIN_TRAVERSABLE_SEGMENTS = 5;
+    int traversable_counter = 0;
+    for (vector<PointClassification>::iterator seg_it = segments.begin(); seg_it != segments.end(); ++seg_it) {
+        if (seg_it->traversable_by_range && seg_it->traversable_by_intensity) {
+            ++traversable_counter;
+        } else {
+            //ROS_DEBUG("Width: untraversable. counter: %d", traversable_counter);
+            if (traversable_counter > 0 && traversable_counter < MIN_TRAVERSABLE_SEGMENTS) {
+                //ROS_DEBUG("Width: Drop narrow path");
+                for (int i = 0; i < traversable_counter; ++i) {
+                    --seg_it;
+                    seg_it->traversable_by_range = false; //TODO: nicht range, dafür extra feld?
+                }
+                seg_it += traversable_counter;
+            }
+            traversable_counter = 0;
+        }
+    }
+
+    // paint path
+    visualizer_.paintPath(segments);
+
+    // only use intensity, if not more than 60% of the segments are untraversable due to intensity.
+    // deaktivated
+    bool use_intensity = true; //(float)num_untraversable_due_to_intensity / NUM_SEGMENTS < 0.60;
+
+    vector<bool> result;
+    result.resize(LENGTH);
+
+    // convert segment vector to point vector (each point is mapped to a bool. True = traversable, false=untraversable)
+    for (unsigned int i = 0; i < LENGTH; ++i) {
+        result[i] = segments[i/SEGMENT_SIZE].isTraversable();
+
+        // missuse out as obstacle indicator... just for testing, I promise! :P
+        out[i] = 0.0;
+        if (!segments[i/SEGMENT_SIZE].traversable_by_range)
+            out[i] += 3000.0;
+        if (use_intensity && !segments[i/SEGMENT_SIZE].traversable_by_intensity)
+            out[i] += 5000.0;
+    }
+
+
+
+    //visualizer_.plot(data.ranges);
+
+    return result;
+}
+
+void TerrainClassifier::removeSingleIntensityPeaks(std::vector<PointClassification> &segments)
+{
+    //! Minimum number of traversable segments around a intensity peak that allows to ignore this peak.
+    const int MIN_SPACE_AROUND_FALSE_INTESITY_PEAK = 2;
+    //! Maximum size of an intensity peak (in segments) that allowes to ignore this peak.
+    const int MAX_FALSE_INTENSITY_PEAK_SIZE = 2;
 
     // remove single intensity-peaks (using a simple state machine)
     const int STATE_BEFORE_PEAK = 0;
@@ -260,56 +348,8 @@ traversable_path::LaserScanClassification TerrainClassifier::detectObstacles(sen
             break;
         }
     }
-
-
-    // drop traversable segments, that are too narrow for the robot
-    //const float MIN_TRAVERSABLE_WIDTH = 0.7; // 70cm
-    // the middle of the robot is approximatly in the middle of the scan data...
-    //int mid = NUM_SEGMENTS/2;
-    //FIXME simple for the beginning...
-    const int MIN_TRAVERSABLE_SEGMENTS = 5;
-    traversable_counter = 0;
-    for (vector<PointClassification>::iterator seg_it = segments.begin(); seg_it != segments.end(); ++seg_it) {
-        if (seg_it->traversable_by_range && seg_it->traversable_by_intensity) {
-            ++traversable_counter;
-        } else {
-            //ROS_DEBUG("Width: untraversable. counter: %d", traversable_counter);
-            if (traversable_counter > 0 && traversable_counter < MIN_TRAVERSABLE_SEGMENTS) {
-                //ROS_DEBUG("Width: Drop narrow path");
-                for (int i = 0; i < traversable_counter; ++i) {
-                    --seg_it;
-                    seg_it->traversable_by_range = false; //TODO: nicht range, dafür extra feld?
-                }
-                seg_it += traversable_counter;
-            }
-            traversable_counter = 0;
-        }
-    }
-
-    // paint path
-    visualizer_.paintPath(segments);
-
-    // only use intensity, if not more than 60% of the segments are untraversable due to intensity.
-    // deaktivated
-    bool use_intensity = true; //(float)num_untraversable_due_to_intensity / NUM_SEGMENTS < 0.60;
-
-    traversable_path::LaserScanClassification result;
-    result.traversable.resize(LENGTH);
-
-    // convert segment vector to point vector (each point is mapped to a bool. True = traversable, false=untraversable)
-    for (unsigned int i = 0; i < LENGTH; ++i) {
-        result.traversable[i] = segments[i/SEGMENT_SIZE].isTraversable();
-
-        // missuse out as obstacle indicator... just for testing, I promise! :P
-        out[i] = 0.0;
-        if (!segments[i/SEGMENT_SIZE].traversable_by_range)
-            out[i] += 3000.0;
-        if (use_intensity && !segments[i/SEGMENT_SIZE].traversable_by_intensity)
-            out[i] += 5000.0;
-    }
-
-    return result;
 }
+
 
 //--------------------------------------------------------------------------
 

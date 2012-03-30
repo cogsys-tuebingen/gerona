@@ -13,6 +13,11 @@
   <depend package="std_srvs"/>
   <depend package="roscpp"/>
   <depend package="ramaxxbase"/>
+  <depend package="laser_geometry"/>
+  <depend package="tf"/>
+  <depend package="motion_control"/>
+  <depend package="actionlib"/>
+  <depend package="actionlib_msgs"/>
 
 </package>
 

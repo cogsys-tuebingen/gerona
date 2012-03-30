@@ -27,6 +27,8 @@ public:
      */
     void paintPath(std::vector<PointClassification>);
 
+    void plot(std::vector<float> data);
+
 private:
     /**
      * @brief The path image.

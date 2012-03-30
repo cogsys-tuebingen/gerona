@@ -9,6 +9,8 @@
 #include "ros/package.h"
 #include "sensor_msgs/LaserScan.h"
 #include "std_srvs/Empty.h"
+#include "laser_geometry/laser_geometry.h"
+#include "tf/transform_listener.h"
 
 #include "pointclassification.h"
 #include "visualization.h"
@@ -31,7 +33,6 @@ private:
     //! ROS node handle.
     ros::NodeHandle node_handle_;
     ros::Publisher publish_normalized_;
-    ros::Publisher publish_differential_;
 
     //! Publishes the point classification for the laser scan data
     ros::Publisher publish_path_points_;
@@ -39,6 +40,10 @@ private:
     ros::Subscriber subscribe_laser_scan_;
     //! Registers calibration service.
     ros::ServiceServer calibration_service_;
+    //! projects laser data to carthesian frame.
+    laser_geometry::LaserProjection laser_projector_;
+
+    tf::TransformListener tf_listener_;
     //! Name of the range calibration file
     std::string range_calibration_file_;
     //! True if already calibrated, false if not.
@@ -68,7 +73,9 @@ private:
     float avg(boost::circular_buffer<float> &xs);
 
     //! Classifies the points of the given scan.
-    traversable_path::LaserScanClassification detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
+    std::vector<bool> detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
+
+    void removeSingleIntensityPeaks(std::vector<PointClassification> &segments);
 };
 
 const std::string TerrainClassifier::DEFAULT_RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)

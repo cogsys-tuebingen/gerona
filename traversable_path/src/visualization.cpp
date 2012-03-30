@@ -1,4 +1,5 @@
 #include "visualization.h"
+#include "GraphUtils.h"
 
 using namespace std;
 
@@ -43,4 +44,10 @@ void Visualization::paintPath(std::vector<PointClassification> points)
     cv::waitKey(3);
 
     path_pos_ = ++path_pos_ % path_.cols;
+}
+
+void Visualization::plot(std::vector<float>data)
+{
+    setGraphColor(0);
+    showFloatGraph("plot", data.data(), data.size());
 }
