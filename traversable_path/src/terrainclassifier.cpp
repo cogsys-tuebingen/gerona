@@ -76,12 +76,30 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
     // find obstacles
     traversable_path::LaserScanClassification classification;
-    vector<bool> tmp = detectObstacles(smoothed, msg->intensities);
-    classification.traversable.assign(tmp.begin(), tmp.end()); //< TODO: why does a simple assignment via '=' not work?
+    vector<bool> traversable = detectObstacles(smoothed, msg->intensities);
+
+    //classification.traversable.assign(tmp.begin(), tmp.end()); //< TODO: why does a simple assignment via '=' not work?
+
     // get projection to carthesian frame
     sensor_msgs::PointCloud cloud;
-    laser_projector_.projectLaser(*msg, cloud, laser_geometry::channel_option::Distance);
+    laser_projector_.projectLaser(*msg, cloud, laser_geometry::channel_option::Index);
     classification.points = cloud.points;
+
+    // connect points and traversability-values
+    for (vector<sensor_msgs::ChannelFloat32>::iterator channel_it = cloud.channels.begin();
+            channel_it != cloud.channels.end();
+            ++channel_it) {
+        //cout << "Channel: " << channel_it->name << endl; // das tut
+        //ROS_INFO("Channel: %s", channel_it->name);       // das stuertzt ab - warum?
+        if (channel_it->name.compare("index") == 0) {
+            unsigned int val_size = channel_it->values.size();
+            classification.traversable.resize(val_size);
+            for (unsigned int i = 0; i < val_size; ++i) {
+                unsigned int index = channel_it->values[i];
+                classification.traversable[i] = traversable[index];
+            }
+        }
+    }
 
     ROS_INFO("size trav: %d, points: %d", msg->ranges.size(), cloud.points.size());
 
