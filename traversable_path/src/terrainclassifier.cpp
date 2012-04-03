@@ -42,21 +42,13 @@ TerrainClassifier::TerrainClassifier() :
  */
 void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 {
-//    sensor_msgs::PointCloud cloud;
-//    //laser_projector_.projectLaser(*msg, cloud);
-//    try {
-//        laser_projector_.transformLaserScanToPointCloud("base_link", *msg, cloud, tf_listener_);
-//    }
-//    catch (tf::ExtrapolationException e) {
-//        ROS_ERROR("LAser transformation: %s", e.what());
-//    }
-//
-//    geometry_msgs::Point32 point = cloud.points[cloud.points.size()/2];
-//
-//    ROS_INFO("%f, %f, %f", point.x, point.y, point.z);
-
     // with uncalibrated laser, classification will not work
     if (!this->is_calibrated_) {
+        return;
+    }
+
+    if (msg->intensities.size() == 0) {
+        ROS_ERROR("Need intensity values of the laser scanner. Please reconfigure the laser scanner.");
         return;
     }
 
@@ -78,8 +70,6 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     traversable_path::LaserScanClassification classification;
     vector<bool> traversable = detectObstacles(smoothed, msg->intensities);
 
-    //classification.traversable.assign(tmp.begin(), tmp.end()); //< TODO: why does a simple assignment via '=' not work?
-
     // get projection to carthesian frame
     sensor_msgs::PointCloud cloud;
     laser_projector_.projectLaser(*msg, cloud, laser_geometry::channel_option::Index);
@@ -100,8 +90,6 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
             }
         }
     }
-
-    ROS_INFO("size trav: %d, points: %d", msg->ranges.size(), cloud.points.size());
 
     // publish modified message
     publish_path_points_.publish(classification);

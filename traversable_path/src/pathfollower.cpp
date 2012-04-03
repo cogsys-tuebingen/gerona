@@ -1,7 +1,7 @@
 #include "pathfollower.h"
 
 PathFollower::PathFollower() :
-        action_client_("motion_control")
+        motion_control_action_client_("motion_control")
 {
     subscribe_scan_classification_ = node_handle_.subscribe("/scan/traversability", 100,
                                                             &PathFollower::scan_classification_callback, this);
@@ -10,7 +10,7 @@ PathFollower::PathFollower() :
 
 void PathFollower::scan_classification_callback(traversable_path::LaserScanClassificationConstPtr scan)
 {
-    int path;
+    int goal_index;
 
     // search traversable area in front of the robot (assuming, "in front" is approximalty in the middle of the scan)
     unsigned int mid = scan->traversable.size() / 2;
@@ -58,24 +58,63 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
         ++end;
     }
 
-    // path = point in the middle of the path
-    path = beginning + (end-beginning)/2;
+    // goal = point in the middle of the path
+    goal_index = beginning + (end-beginning)/2;
 
-//    ROS_INFO("size trav: %d, points: %d", scan->traversable.size(), scan->points.size());
-//
-//    // transform this point to odom-frame
-//    geometry_msgs::PointStamped path_point;
-//    geometry_msgs::PointStamped goal_point;
-//
-//    path_point.header.frame_id = "/laser";
-//    path_point.header.stamp = ros::Time();
-//    path_point.point.x = scan->points[path].x;
-//    path_point.point.y = scan->points[path].y;
-//    path_point.point.z = scan->points[path].z;
-//
-//    tf_listener_.transformPoint("/odom", path_point, goal_point);
-//
-//    ROS_INFO("%f, %f, %f", goal_point.point.x, goal_point.point.y, goal_point.point.z);
+    // transform goal-pose to map-frame
+    geometry_msgs::PoseStamped goal_point_laser;
+    geometry_msgs::PoseStamped goal_point_map;
+
+    goal_point_laser.header.frame_id = "/laser";
+    goal_point_laser.header.stamp = ros::Time(0);
+    goal_point_laser.pose.position.x = scan->points[goal_index].x;
+    goal_point_laser.pose.position.y = scan->points[goal_index].y;
+    goal_point_laser.pose.position.z = scan->points[goal_index].z;
+
+    // dont change orientation for the moment.
+    /** @todo in the future, this should look along the path */
+    goal_point_laser.pose.orientation.x = 0;
+    goal_point_laser.pose.orientation.y = 0;
+    goal_point_laser.pose.orientation.z = 0;
+    goal_point_laser.pose.orientation.w = 1;
+
+    try {
+        tf_listener_.transformPose("/odom", goal_point_laser, goal_point_map);
+    }
+    catch (tf::TransformException e) {
+        ROS_WARN("Unable to transform goal. tf says: %s", e.what());
+        return;
+        /** @todo stop robot? */
+    }
+
+
+
+//    ROS_INFO("Goal (laser): x: %f; y: %f; theta: %f", goal_point_laser.pose.position.x,
+//             goal_point_laser.pose.position.y, tf::getYaw(goal_point_laser.pose.orientation));
+//    ROS_INFO("Goal (map): x: %f; y: %f; theta: %f", goal_point_map.pose.position.x,
+//             goal_point_map.pose.position.y, tf::getYaw(goal_point_map.pose.orientation));
+
+    // send goal to motion_control
+    motion_control::MotionGoal goal;
+    goal.v     = 0.2;
+    goal.beta  = 0;
+    goal.mode  = motion_control::MotionGoal::MOTION_TO_GOAL;
+
+    goal.x     = goal_point_map.pose.position.x;
+    goal.y     = goal_point_map.pose.position.y;
+
+    /* Orientation
+     * Look along the line from the last goal to the new one.
+     */
+    if (last_goal_.x == 0 && last_goal_.y == 0) {
+        goal.theta = tf::getYaw(goal_point_map.pose.orientation);
+    } else {
+        goal.theta = atan2(goal.y - last_goal_.y, goal.x - last_goal_.y);
+    }
+    last_goal_.x = goal.x;
+    last_goal_.y = goal.y;
+
+    motion_control_action_client_.sendGoal(goal);
 }
 
 
@@ -95,11 +134,12 @@ void PathFollower::drive(std_msgs::BoolConstPtr b) {
     path_point.pose.orientation.w = 1;
 
     try {
-        tf_listener_.transformPose("odom",ros::Time(0), path_point,"/base_link", goal_point);
+        tf_listener_.transformPose("/odom",ros::Time(0), path_point,"/base_link", goal_point);
         ROS_INFO("current position: %f,%f", goal_point.pose.position.x, goal_point.pose.position.y);
 
-         path_point.pose.position.x = 2;
-        tf_listener_.transformPose("odom",ros::Time(0), path_point,"/base_link", goal_point);
+        path_point.pose.position.x = 2;
+        path_point.pose.position.y = 0;
+        tf_listener_.transformPose("/odom",ros::Time(0), path_point,"/base_link", goal_point);
         ROS_INFO("goal position: %f,%f", goal_point.pose.position.x, goal_point.pose.position.y);
 
         motion_control::MotionGoal goal;
@@ -111,7 +151,7 @@ void PathFollower::drive(std_msgs::BoolConstPtr b) {
         goal.mode=motion_control::MotionGoal::MOTION_TO_GOAL;
 
         ROS_INFO("Start");
-        action_client_.sendGoal(goal);
+        motion_control_action_client_.sendGoal(goal);
     }
     catch (tf::InvalidArgument e) {
         ROS_ERROR("Problem: %s", e.what());
