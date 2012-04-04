@@ -261,7 +261,8 @@ vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data,
     }
 
     // paint path
-    visualizer_.paintPath(segments);
+    /** @todo extra node for visualization */
+    //visualizer_.paintPath(segments);
 
     // only use intensity, if not more than 60% of the segments are untraversable due to intensity.
     // deaktivated
