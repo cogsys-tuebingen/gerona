@@ -13,7 +13,7 @@
 #include "tf/transform_listener.h"
 
 #include "pointclassification.h"
-#include "visualization.h"
+//#include "visualization.h"
 #include "traversable_path/LaserScanClassification.h"
 
 /**
@@ -51,7 +51,7 @@ private:
     //! Range data of a (preferably) perfekt plane, to calibrate the laser data.
     std::vector<float> plane_ranges_;
     //! Visualizes some data
-    Visualization visualizer_;
+    //Visualization visualizer_;
     //! Buffer of the last few scans.
     boost::circular_buffer< std::vector<PointClassification> > scan_buffer;
 

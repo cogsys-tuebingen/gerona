@@ -9,7 +9,8 @@
 
     <!-- configure laser -->
     <node name="config_laser" pkg="dynamic_reconfigure" type="dynparam"
-        args="set /hokuyo_front \"{'allow_unsafe_settings': true, 'min_ang': -1.5, 'max_ang': 1.5, intensity: true}\""/>
+        args="set /hokuyo_front &quot;{'allow_unsafe_settings': true, 'min_ang': -1.5, 'max_ang': 1.5, intensity: true}&quot;"
+        />
 
 
     <!-- run traversable_path-nodes -->
