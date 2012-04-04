@@ -6,6 +6,7 @@ PathFollower::PathFollower() :
     subscribe_scan_classification_ = node_handle_.subscribe("/scan/traversability", 100,
                                                             &PathFollower::scan_classification_callback, this);
     subscribe_drive_ = node_handle_.subscribe("/go", 1, &PathFollower::drive, this);
+    publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 1);
 }
 
 void PathFollower::scan_classification_callback(traversable_path::LaserScanClassificationConstPtr scan)
@@ -114,7 +115,11 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
     last_goal_.x = goal.x;
     last_goal_.y = goal.y;
 
+    // send goal to motion_control
     motion_control_action_client_.sendGoal(goal);
+
+    // send goal-marker to rviz for debugging
+    publishGoalMarker(goal_point_map);
 }
 
 
@@ -156,6 +161,41 @@ void PathFollower::drive(std_msgs::BoolConstPtr b) {
     catch (tf::InvalidArgument e) {
         ROS_ERROR("Problem: %s", e.what());
     }
+}
+
+void PathFollower::publishGoalMarker(geometry_msgs::PoseStamped goal)
+{
+    visualization_msgs::Marker marker;
+
+    marker.header = goal.header;
+    marker.pose   = goal.pose;
+
+    // Set the namespace and id for this marker.  This serves to create a unique ID
+    // Any marker sent with the same namespace and id will overwrite the old one
+    marker.ns = "follow_path";
+    marker.id = 0;
+
+    // Set the marker type.
+    marker.type = visualization_msgs::Marker::ARROW;
+
+    // Set the marker action.  Options are ADD and DELETE
+    marker.action = visualization_msgs::Marker::ADD;
+
+    // Set the scale of the marker
+    marker.scale.x = 0.8;
+    marker.scale.y = 0.8;
+    marker.scale.z = 0.8;
+
+    // Set the color -- be sure to set alpha to something non-zero!
+    marker.color.r = 0.0f;
+    marker.color.g = 1.0f;
+    marker.color.b = 0.0f;
+    marker.color.a = 1.0;
+
+    marker.lifetime = ros::Duration();
+
+    // Publish the marker
+    publish_rviz_marker_.publish(marker);
 }
 
 
