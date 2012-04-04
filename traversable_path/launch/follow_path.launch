@@ -1,13 +1,19 @@
 <launch>
-    <!-- motion_control requires a frame with the name "/map" -->
-    <node pkg="tf" type="static_transform_publisher" name="tf_odom_to_map_identity" args="0 0 0 0 0 0 odom map 100" />
-
     <!-- copied from robot_goto launchfile -->
+    <param name="use_sim_time" value="false" />
+    <node pkg="tf" type="static_transform_publisher" name="tf_odom_to_map_identity" args="0 0 0 0 0 0 odom map 100" />
     <node name="motion_control" pkg="motion_control" type="motion_control" respawn="false" output="screen">
-        <param name="waypoint_threshold" value="0.15" />
-        <param name="max_waypoint_distance" value="0.25" />
+            <param name="waypoint_threshold" value="0.15" />
+            <param name="max_waypoint_distance" value="0.25" />
     </node>
 
-    <!--<node name="follow_path" pkg="traversable_path" type="follow_path" />-->
+    <!-- configure laser -->
+    <node name="config_laser" pkg="dynamic_reconfigure" type="dynparam"
+        args="set /hokuyo_front \"{'allow_unsafe_settings': true, 'min_ang': -1.5, 'max_ang': 1.5, intensity: true}\""/>
+
+
+    <!-- run traversable_path-nodes -->
+    <node name="classify_terrain" pkg="traversable_path" type="classify_terrain" />
+    <node name="follow_path" pkg="traversable_path" type="follow_path" />
 
 </launch>
