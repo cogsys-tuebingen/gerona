@@ -2,7 +2,7 @@
 
     <node pkg="costmap" type="costmap_node" name="global_costmap" output="screen">
 
-        <param name="dilate" value="3" />
+        <param name="dilate" value="2" />
         <param name="erode" value="0" />
         <param name="sampling" value="1" />
 
