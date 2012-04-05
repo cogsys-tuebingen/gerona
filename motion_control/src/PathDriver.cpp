@@ -51,6 +51,8 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
 
     // This might happen
     if ( !active_ ) {
+        last_cmd_.setZero();
+        publishCmd( last_cmd_ );
         return MotionResult::MOTION_STATUS_STOP;
     }
 
@@ -104,7 +106,7 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
         target_line.FromAngle( wp_local.head<2>(), wp_local(2) + M_PI );
     }
 
-    // Calculate front/rear errors and steer commands
+    // Calculate front/rear errors
     double dir_sign = 1.0;
     if ( wp_local.x() < 0 )
         dir_sign = -1.0;
@@ -112,6 +114,14 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
     predictPose( dead_time_, last_cmd_(0), last_cmd_(1), dir_sign*path_[path_idx_].speed, front_pred, rear_pred );
     double e_f = target_line.GetSignedDistance( front_pred );
     double e_r = target_line.GetSignedDistance( rear_pred );
+
+    // Path lost?
+    if ( fabs( e_f ) > wp_tolerance_ || fabs( e_r ) > wp_tolerance_ ) {
+        stop();
+        return MotionResult::MOTION_STATUS_PATH_LOST;
+    }
+
+     // Calculate steering angles
     double delta_f, delta_r;
     if ( !ctrl_.execute( e_f, e_r, delta_f, delta_r ))
         return MotionResult::MOTION_STATUS_MOVING; // Nothing to do

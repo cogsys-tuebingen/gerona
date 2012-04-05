@@ -167,13 +167,17 @@ void MotionControlNode::update()
       action_server_.publishFeedback(feedback);
       break;
     case MotionResult::MOTION_STATUS_SUCCESS:
+        result.status = MotionResult::MOTION_STATUS_SUCCESS;
         action_server_.setSucceeded( result );
-        //ROS_INFO("motioncontrolnode: MOTION_STATUS_SUCCESS");
         break;
     case MotionResult::MOTION_STATUS_COLLISION:
-      ROS_INFO("motioncontrolnode: MOTION_STATUS_COLLISION");
+        result.status = MotionResult::MOTION_STATUS_COLLISION;
     case MotionResult::MOTION_STATUS_INTERNAL_ERROR:
+        result.status = MotionResult::MOTION_STATUS_INTERNAL_ERROR;
     case MotionResult::MOTION_STATUS_SLAM_FAIL:
+        result.status = MotionResult::MOTION_STATUS_SLAM_FAIL;
+    case MotionResult::MOTION_STATUS_PATH_LOST:
+        result.status = MotionResult::MOTION_STATUS_PATH_LOST;
     default:
         action_server_.setAborted(result);
         active_ctrl_ = NULL;
