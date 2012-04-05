@@ -97,6 +97,10 @@ void CombinedPlannerNode::update()
         collision_ = false;
     }
 
+    // Path lost?
+    force_replan = force_replan || path_lost_;
+    path_lost_ = false;
+
     lmap_ros_.getCostmapCopy( lmap_cpy_ );
     planner_.setLocalMap( &lmap_wrapper_ );
     try {
@@ -144,6 +148,7 @@ void CombinedPlannerNode::actionGoalCB()
 
     as_goal_ = *acceptNewGoal();
     collision_ = false;
+    path_lost_ = false;
     planner_.reset();
     collision_stamp_ = ros::Time::now() - ros::Duration( 10.0 );
     collision_pose_.x = collision_pose_.y = collision_pose_.theta = 0;
@@ -280,6 +285,12 @@ void CombinedPlannerNode::motionCtrlDoneCB( const actionlib::SimpleClientGoalSta
             ROS_WARN( "Cannot resume from collision." );
             deactivate( ABORT, GoToResult::COLLISION_ERROR );
         }
+        break;
+
+    case motion_control::MotionResult::MOTION_STATUS_PATH_LOST:
+        // Replan
+        ROS_WARN( "Robot is too far away from path! Forcing a replan." );
+        path_lost_ = true;
         break;
 
     default:

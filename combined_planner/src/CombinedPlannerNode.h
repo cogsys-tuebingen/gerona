@@ -124,6 +124,9 @@ private:
 
     /// Position of last collision
     lib_path::Pose2d collision_pose_;
+
+    /// Flag if motion control reported a path lost error
+    bool path_lost_;
 };
 
 } // Namespace
