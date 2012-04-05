@@ -158,12 +158,16 @@ void LocalPlanner::configure()
 
     // Read config
     double circle_radius, wp_distance, cost_backw, cost_forw, cost_curve, cost_straight;
+    bool use_cell_cost;
+    int min_cell_cost;
     n.param<double> ("circle_radius", circle_radius, 1.0f);
     n.param<double> ("max_waypoint_distance", wp_distance, 0.25f);
     n.param<double> ("cost_backwards", cost_backw, 3.0f);
     n.param<double> ("cost_forwards", cost_forw, 1.0f);
     n.param<double> ("cost_curve", cost_curve, 1.5f);
     n.param<double> ("cost_straight", cost_straight, 1.0f);
+    n.param<bool> ("use_map_cost", use_cell_cost, true );
+    n.param<int> ("min_cell_cost", min_cell_cost, 10 );
 
     // Set config
     rs_.set_circle_radius( circle_radius );
@@ -172,6 +176,8 @@ void LocalPlanner::configure()
     rs_.set_cost_forwards( cost_forw );
     rs_.set_cost_curve( cost_curve );
     rs_.set_cost_straight( cost_straight );
+    rs_.set_use_map_cost( use_cell_cost );
+    rs_.set_min_cell_cost( (uint8_t)min_cell_cost );
 }
 
 void LocalPlanner::generatePatterns()

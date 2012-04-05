@@ -129,6 +129,7 @@ void CombinedPlannerNode::update()
         return;
 
     // Publish new path and waypoint marker
+    activate();
     publishLocalPath( planner_.getLocalPath());
     visualizeWaypoints( planner_.getGlobalWaypoints(), "waypoints", 3 );
 }
