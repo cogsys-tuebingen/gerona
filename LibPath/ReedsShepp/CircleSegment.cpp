@@ -65,18 +65,16 @@ void CircleSegment::set_mode(MODE mode)
 
 float CircleSegment::weight(bool ignore_obstacles)
 {
-#ifdef REED_SHEPP_USE_COST
+
   m_weight = 0;
-#endif
   bool is_free = checkCircle(m_center.x, m_center.y, m_radius, ignore_obstacles);
 
   if(ignore_obstacles || is_free){
     float cost = (m_direction == CurveSegment::BACKWARD) ? m_cost_backwards : m_cost_forwards;
-#ifdef REED_SHEPP_USE_COST
-    return cost * m_weight * m_cost_curve;
-#else
-    return fabs(m_arc_span) * m_radius * cost * m_cost_curve;
-#endif
+    if ( m_use_map_cost )
+        return cost * m_weight * m_cost_curve / m_map->getResolution();
+    else
+        return fabs(m_arc_span) * m_radius * cost * m_cost_curve;
   } else {
     return NOT_FREE;
   }
@@ -177,9 +175,7 @@ bool CircleSegment::testPixel(int cx, int cy, int x, int y, bool ignore_obstacle
 
 
     if(on_segment) {
-#ifdef REED_SHEPP_USE_COST
-      m_weight += max( (uint8_t)10, m_map->getValue( x, y ));
-#endif
+      m_weight += max( m_min_cell_cost, m_map->getValue( x, y ));
       bool free = m_map->isFree(x, y);
       if(m_trace != -1){
         m_map->setValue(x, y, free ? m_trace : std::min(255, m_trace + 50));

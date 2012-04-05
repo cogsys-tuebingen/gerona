@@ -48,9 +48,7 @@ float LineSegment::weight(bool ignore_obstacles)
   int dy = -abs(y1-y0), sy = y0<y1 ? 1 : -1;
   int err = dx+dy, e2; /* error value e_xy */
 
-#ifdef REED_SHEPP_USE_COST
   double path_cost = 0;
-#endif
   for(;;){
     if(m_map->isInMap(x0, y0)){
       bool free = m_map->isFree(x0, y0);
@@ -61,9 +59,7 @@ float LineSegment::weight(bool ignore_obstacles)
         is_free = false;
         break;
       }
-#ifdef REED_SHEPP_USE_COST
-      path_cost += max( (uint8_t)10, m_map->getValue( x0, y0 ));
-#endif
+      path_cost += max( m_min_cell_cost, m_map->getValue( x0, y0 ));
     }
 
     if (x0==x1 && y0==y1) break;
@@ -74,12 +70,11 @@ float LineSegment::weight(bool ignore_obstacles)
 
   if(ignore_obstacles || is_free){
     float cost = (m_direction == CurveSegment::BACKWARD) ? m_cost_backwards : m_cost_forwards;
-#ifdef REED_SHEPP_USE_COST
-    return cost * path_cost * m_cost_straight;
-#else
-    return (m_start - m_end).distance_to_origin() * cost * m_cost_straight;
-#endif
-  } else{
+    if ( m_use_map_cost )
+        return cost * path_cost * m_cost_straight / m_map->getResolution();
+    else
+        return (m_start - m_end).distance_to_origin() * cost * m_cost_straight;
+  } else {
     return NOT_FREE;
   }
 }

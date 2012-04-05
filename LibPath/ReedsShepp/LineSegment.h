@@ -11,9 +11,6 @@
 #include "CurveSegment.h"
 #include "../common/Point2d.h"
 
-/// @todo Test this
-//#define REED_SHEPP_USE_COST
-
 namespace lib_path {
 
 class LineSegment: public CurveSegment

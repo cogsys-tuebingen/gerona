@@ -17,6 +17,7 @@ using namespace lib_path;
 Curve::Curve()
   : m_init(false), m_ignore_obstacles(false),
     m_circle_radius(10.0), m_max_waypoint_distance(10.0),
+    m_use_map_cost(false), m_min_cell_cost(10),
     m_cost_forwards(1.0), m_cost_backwards(1.0), m_cost_curve(1.0), m_cost_straight(1.0),
     m_min_length(NOT_FREE), m_iterating(false), m_output_number(0), m_trace(-1)
 {
@@ -26,6 +27,7 @@ Curve::Curve()
 Curve::Curve(const Curve &c)
   : m_init(c.m_init), m_ignore_obstacles(c.m_ignore_obstacles),
     m_circle_radius(c.m_circle_radius), m_max_waypoint_distance(c.m_max_waypoint_distance),
+    m_use_map_cost(c.m_use_map_cost), m_min_cell_cost(c.m_min_cell_cost),
     m_cost_forwards(c.m_cost_forwards), m_cost_backwards(c.m_cost_backwards),
     m_cost_curve(c.m_cost_curve), m_cost_straight(c.m_cost_straight),
     m_min_length(c.m_min_length),
@@ -86,6 +88,8 @@ void Curve::test_sequence(std::vector<CurveSegment*> &sequence) {
 
     (*it)->set_max_distance(m_max_waypoint_distance);
 
+    (*it)->set_use_map_cost(m_use_map_cost);
+    (*it)->set_min_cell_cost(m_min_cell_cost);
     (*it)->set_cost_backwards(m_cost_backwards);
     (*it)->set_cost_forwards(m_cost_forwards);
     (*it)->set_cost_curve(m_cost_curve);

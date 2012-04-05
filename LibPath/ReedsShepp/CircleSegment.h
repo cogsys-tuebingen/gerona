@@ -13,9 +13,6 @@
 
 #include "../common/Point2d.h"
 
-/// @todo Test this
-//#define REED_SHEPP_USE_COST
-
 namespace lib_path {
 
 class CircleSegment: public CurveSegment
@@ -178,9 +175,7 @@ private:
   int m_steps;
   int m_jump_over;
 
-#ifdef REED_SHEPP_USE_COST
   double m_weight;
-#endif
 };
 
 }

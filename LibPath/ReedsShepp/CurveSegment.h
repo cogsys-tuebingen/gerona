@@ -48,6 +48,17 @@ public:
    */
   virtual void set_max_distance(float distance);
 
+  /**
+   * @brief Use the the map cell values to compute the cost of a curve or not.
+   * @param arg Use the cell values
+   */
+  virtual void set_use_map_cost( bool arg );
+
+  /**
+   * @brief Set minimum cost per map cell.
+   * @param cost Minimum cost.
+   */
+  virtual void set_min_cell_cost( uint8_t cost );
 
   /**
    * Setter for the costs
@@ -103,6 +114,12 @@ protected:
   GridMap2d * m_map;
   DIRECTION m_direction;
   float m_max_distance;
+
+  /// Use the map cell values to calculate the cost of a curve?
+  bool m_use_map_cost;
+
+  /// Minimum cost of one cell
+  uint8_t m_min_cell_cost;
 
   float m_cost_forwards;
   float m_cost_backwards;

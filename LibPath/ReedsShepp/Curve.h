@@ -106,6 +106,8 @@ private:
   float m_circle_radius;
   float m_max_waypoint_distance;
 
+  bool m_use_map_cost;
+  uint8_t m_min_cell_cost;
   float m_cost_forwards;
   float m_cost_backwards;
   float m_cost_curve;

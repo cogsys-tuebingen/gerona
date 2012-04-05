@@ -57,6 +57,8 @@ public:
   void set_circle_radius(double circle_radius);
   void set_max_waypoint_distance(double max_waypoint_distance);
 
+  void set_use_map_cost( bool arg );
+  void set_min_cell_cost( uint8_t cost );
   void set_cost_forwards(double cost_forwards);
   void set_cost_backwards(double cost_backwards);
   void set_cost_curve(double cost_curve);
@@ -70,6 +72,8 @@ private:
   std::vector< CurveSegment* > m_sequences[64];
   int m_count;
 
+  bool m_use_map_cost;
+  uint8_t m_min_cell_cost;
   double m_circle_radius;
   double m_max_waypoint_distance;
   double m_cost_forwards;

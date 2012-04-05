@@ -15,7 +15,8 @@
 using namespace lib_path;
 
 CurveGenerator::CurveGenerator()
-  : m_count(0), m_circle_radius(2.0), m_max_waypoint_distance(1.0),
+  : m_count(0), m_use_map_cost(false), m_min_cell_cost(10),
+     m_circle_radius(2.0), m_max_waypoint_distance(1.0),
     m_cost_forwards(1.0), m_cost_backwards(1.0), m_cost_curve(1.0), m_cost_straight(1.0),
     m_trace(-1)
 {
@@ -50,6 +51,16 @@ void CurveGenerator::set_cost_curve(double cost_curve)
 void CurveGenerator::set_cost_straight(double cost_straight)
 {
   m_cost_straight = cost_straight;
+}
+
+void CurveGenerator::set_use_map_cost(bool arg)
+{
+  m_use_map_cost = arg;
+}
+
+void CurveGenerator::set_min_cell_cost(uint8_t cost)
+{
+  m_min_cell_cost = cost;
 }
 
 bool CurveGenerator::parse(std::string sequence, std::ostream& out)
@@ -169,6 +180,8 @@ Curve * CurveGenerator::find_path(const Pose2d &start, const Pose2d &goal, GridM
 
   c->m_min_length = std::numeric_limits<float>::max();
 
+  c->m_use_map_cost = m_use_map_cost;
+  c->m_min_cell_cost = m_min_cell_cost;
   c->m_cost_backwards = m_cost_backwards;
   c->m_cost_forwards = m_cost_forwards;
   c->m_cost_curve = m_cost_curve;
