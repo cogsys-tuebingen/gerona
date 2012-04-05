@@ -124,6 +124,7 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
     if ( calculateSpeed( dir_sign*path_[path_idx_].speed, MathHelper::NormalizeAngle( beta ))) {
         // Collision!
         stop();
+        ROS_WARN( "Collision!" );
         return MotionResult::MOTION_STATUS_COLLISION;
     }
 
@@ -131,6 +132,7 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
     last_cmd_(0) = delta_f;
     last_cmd_(1) = delta_r;
     last_cmd_(2) = current_speed_;
+    publishCmd( last_cmd_ );
     return MotionResult::MOTION_STATUS_MOVING;
 }
 
@@ -143,7 +145,7 @@ bool PathDriver::calculateSpeed( const double request, const double beta )
     }
 
     // Check for collision
-    if ( checkCollision( beta, 0.2 ))
+    if ( checkCollision( beta, 0.35 ))
         return true;
 
     // Faster than requested?
@@ -153,10 +155,10 @@ bool PathDriver::calculateSpeed( const double request, const double beta )
     }
 
     // Increase speed?
-    if ( checkCollision( beta, 1.0, 0.3, 1.5 ))
+    if ( checkCollision( beta, 1.5, 0.35, 1.75 ))
         current_speed_ -= 0.1;
     else
-        current_speed_ += 0.05;
+        current_speed_ += 0.025;
     current_speed_ = min( current_speed_, max_speed_ );
     current_speed_ = max( current_speed_, min_speed_ );
     return false;
@@ -169,15 +171,15 @@ void PathDriver::configure() {
     nh.param( "path_driver/waypoint_tolerance", wp_tolerance_, 0.15 );
     nh.param( "path_driver/goal_tolerance", goal_tolerance_, 0.1 );
     nh.param( "path_driver/l", l_, 0.38 );
-    nh.param( "path_driver/min_speed", min_speed_, 0.3 );
-    nh.param( "path_driver/reverse_speed", reverse_speed_, 0.3 );
+    nh.param( "path_driver/min_speed", min_speed_, 0.4 );
+    nh.param( "path_driver/reverse_speed", reverse_speed_, 0.4 );
 
     // Dual pid
     double ta, e_max, kp, delta_max;
     nh.param( "path_driver/dualpid/dead_time", dead_time_, 0.1 );
     nh.param( "path_driver/dualpid/ta", ta, 0.05 );
     nh.param( "path_driver/dualpid/e_max", e_max, 0.1 );
-    nh.param( "path_driver/dualpid/kp", kp, 0.75 );
+    nh.param( "path_driver/dualpid/kp", kp, 0.6 );
     nh.param( "path_driver/dualpid/delta_max", delta_max, 22.0 );
     ctrl_.configure( kp, M_PI*delta_max/180.0, e_max, 0.5, ta );
 }
