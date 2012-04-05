@@ -106,6 +106,12 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
         target_line.FromAngle( wp_local.head<2>(), wp_local(2) + M_PI );
     }
 
+    // Path lost?
+    if ( target_line.GetDistance( Vector2d( 0, 0 )) > 0.4 ) {
+        stop();
+        return MotionResult::MOTION_STATUS_PATH_LOST;
+    }
+
     // Calculate front/rear errors
     double dir_sign = 1.0;
     if ( wp_local.x() < 0 )
@@ -114,12 +120,6 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
     predictPose( dead_time_, last_cmd_(0), last_cmd_(1), dir_sign*path_[path_idx_].speed, front_pred, rear_pred );
     double e_f = target_line.GetSignedDistance( front_pred );
     double e_r = target_line.GetSignedDistance( rear_pred );
-
-    // Path lost?
-    if ( fabs( e_f ) > wp_tolerance_ || fabs( e_r ) > wp_tolerance_ ) {
-        stop();
-        return MotionResult::MOTION_STATUS_PATH_LOST;
-    }
 
      // Calculate steering angles
     double delta_f, delta_r;
@@ -178,7 +178,7 @@ void PathDriver::configure() {
     ros::NodeHandle& nh = node_->getNodeHandle();
 
     // Path following/speed calculation
-    nh.param( "path_driver/waypoint_tolerance", wp_tolerance_, 0.15 );
+    nh.param( "path_driver/waypoint_tolerance", wp_tolerance_, 0.20 );
     nh.param( "path_driver/goal_tolerance", goal_tolerance_, 0.1 );
     nh.param( "path_driver/l", l_, 0.38 );
     nh.param( "path_driver/min_speed", min_speed_, 0.4 );
