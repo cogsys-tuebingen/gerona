@@ -10,7 +10,6 @@
 #include "sensor_msgs/LaserScan.h"
 #include "std_srvs/Empty.h"
 #include "laser_geometry/laser_geometry.h"
-#include "tf/transform_listener.h"
 
 #include "pointclassification.h"
 //#include "visualization.h"
@@ -43,7 +42,6 @@ private:
     //! projects laser data to carthesian frame.
     laser_geometry::LaserProjection laser_projector_;
 
-    tf::TransformListener tf_listener_;
     //! Name of the range calibration file
     std::string range_calibration_file_;
     //! True if already calibrated, false if not.

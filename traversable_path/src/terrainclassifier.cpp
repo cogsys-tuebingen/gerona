@@ -60,7 +60,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     }
 
     // smooth
-    smoothed.ranges = smooth(msg->ranges, 6);
+    smoothed.ranges = smooth(smoothed.ranges, 6);
     smoothed.intensities = smooth(msg->intensities, 4);
 
     // find obstacles
@@ -90,7 +90,8 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
     // publish modified message
     publish_path_points_.publish(classification);
-    publish_normalized_.publish(msg); //< FIXME this topic is only for debugging
+    smoothed.intensities = msg->intensities;
+    publish_normalized_.publish(smoothed); //< FIXME this topic is only for debugging
 }
 
 bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
@@ -147,8 +148,7 @@ float TerrainClassifier::avg(boost::circular_buffer<float> &xs)
         return accumulate(xs.begin(), xs.end(), 0.0) / xs.size();
 }
 
-vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data,
-                                                                            std::vector<float> &out)
+vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out)
 {
     // parameters
     const unsigned int SEGMENT_SIZE = 10;       //!< Points per segment. //TODO unterteilung in segmente weglassen?
@@ -290,9 +290,9 @@ vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data,
 void TerrainClassifier::removeSingleIntensityPeaks(std::vector<PointClassification> &segments)
 {
     //! Minimum number of traversable segments around a intensity peak that allows to ignore this peak.
-    const int MIN_SPACE_AROUND_FALSE_INTESITY_PEAK = 2;
+    const int MIN_SPACE_AROUND_FALSE_INTESITY_PEAK = 3;
     //! Maximum size of an intensity peak (in segments) that allowes to ignore this peak.
-    const int MAX_FALSE_INTENSITY_PEAK_SIZE = 2;
+    const int MAX_FALSE_INTENSITY_PEAK_SIZE = 3;
 
     // remove single intensity-peaks (using a simple state machine)
     const int STATE_BEFORE_PEAK = 0;
