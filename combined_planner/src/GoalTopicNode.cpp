@@ -21,7 +21,7 @@ GoalTopicNode::GoalTopicNode()
     // Read config
     string goal_topic;
     n_.param<std::string>( "goal_topic", goal_topic, "/goal" );
-    n_.param( "robot_speed", max_speed_, 0.6 );
+    n_.param( "robot_speed", max_speed_, 1.0 );
 
     // Subscribe to the goal topic
     goal_subs_ = n_.subscribe<geometry_msgs::PoseStamped>
