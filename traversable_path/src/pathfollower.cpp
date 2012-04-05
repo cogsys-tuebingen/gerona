@@ -16,21 +16,6 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
     // search traversable area in front of the robot (assuming, "in front" is approximalty in the middle of the scan)
     unsigned int mid = scan->traversable.size() / 2;
 
-
-//    //tf::StampedTransform transform;
-//    geometry_msgs::PointStamped laser_point;
-//    try {
-//        //tf_listener_.lookupTransform("/base_link", "/laser", ros::Time(0), transform);
-//        tf_listener_.transformPoint();
-//        ROS_INFO("%f, %f, %f", transform.getOrigin().x(), transform.getOrigin().y(), transform.getOrigin().z());
-//    }
-//    catch (tf::TransformException ex) {
-//        ROS_ERROR("%s",ex.what());
-//    }
-//
-//    return;
-
-
     // search traversable area
     unsigned int beginning = 0, end = 0;
     for (unsigned int i = 0; i < mid; ++i) {
@@ -80,13 +65,17 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
 //    goal_point_laser.pose.orientation.z = 0;
 //    goal_point_laser.pose.orientation.w = 1;
 
-    // orientation: robot to goal
-    double theta = atan2(goal_point_laser.pose.position.y, goal_point_laser.pose.position.x);
+    // orientation: orthogonal to the line of the traversable segment
+    double delta_x = scan->points[beginning].x - scan->points[end].x;
+    double delta_y = scan->points[end].y - scan->points[beginning].y;
+    double theta = M_PI/2 - atan2(delta_y, delta_x);
     tf::quaternionTFToMsg(tf::createQuaternionFromYaw(theta), goal_point_laser.pose.orientation);
+    //ROS_INFO("dx = %f, dy = %f, atan2 = %f, theta = %f", delta_x, delta_y, atan2(delta_y, delta_x), theta);
+    publishTraversaleLineMarker(scan->points[beginning], scan->points[end]);
 
 
     try {
-        tf_listener_.transformPose("/odom", goal_point_laser, goal_point_map);
+        tf_listener_.transformPose("/map", goal_point_laser, goal_point_map);
     }
     catch (tf::TransformException e) {
         ROS_WARN("Unable to transform goal. tf says: %s", e.what());
@@ -220,6 +209,53 @@ void PathFollower::publishGoalMarker(geometry_msgs::PoseStamped goal)
     publish_rviz_marker_.publish(marker);
 }
 
+void PathFollower::publishTraversaleLineMarker(geometry_msgs::Point32 a, geometry_msgs::Point32 b)
+{
+    //ROS_INFO("mark line from point a(%f,%f,%f) to b(%f,%f,%f)", a.x, a.y, a.z, b.x, b.y, b.z);
+
+    visualization_msgs::Marker points, line_strip;
+
+    points.header.frame_id = line_strip.header.frame_id = "/laser";
+    points.header.stamp = line_strip.header.stamp = ros::Time::now();
+    points.ns = line_strip.ns = "follow_path";
+    points.action = line_strip.action = visualization_msgs::Marker::ADD;
+    points.pose.orientation.w = line_strip.pose.orientation.w = 1.0;
+
+    points.id = 1;
+    line_strip.id = 2;
+
+    points.type = visualization_msgs::Marker::POINTS;
+    line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+
+    // POINTS markers use x and y scale for width/height respectively
+    points.scale.x = 0.05;
+    points.scale.y = 0.05;
+
+    // LINE_STRIP/LINE_LIST markers use only the x component of scale, for the line width
+    line_strip.scale.x = 0.03;
+
+    // Points are blue
+    points.color.b = 1.0;
+    points.color.a = 1.0;
+
+    // Line strip is green
+    line_strip.color.g = 1.0;
+    line_strip.color.a = 1.0;
+
+
+    // why the hell can't i simply cast this points??
+    geometry_msgs::Point pa, pb;
+    pa.x = a.x; pa.y = a.y; pa.z = a.z;
+    pb.x = b.x; pb.y = b.y; pb.z = b.z;
+
+    points.points.push_back(pa);
+    points.points.push_back(pb);
+    line_strip.points.push_back(pa);
+    line_strip.points.push_back(pb);
+
+    publish_rviz_marker_.publish(points);
+    publish_rviz_marker_.publish(line_strip);
+}
 
 //--------------------------------------------------------------------------
 

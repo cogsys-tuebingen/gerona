@@ -29,6 +29,7 @@ private:
     void drive(std_msgs::BoolConstPtr b);
 
     void publishGoalMarker(geometry_msgs::PoseStamped goal);
+    void publishTraversaleLineMarker(geometry_msgs::Point32 a, geometry_msgs::Point32 b);
 };
 
 #endif // PATHFOLLOWER_H
