@@ -65,12 +65,13 @@ protected:
     /**
      * @brief Calculate the waypoints from a given path.
      *
-     * @param path The path (poses only). Should contain at least one pose.
-     * @param slam_pose Current position of the robot.
+     * @param path The path (poses only). Should contain at least two poses.
      */
-    void calculateWaypoints( const nav_msgs::Path &path, const Vector3d &slam_pose );
+    void calculateWaypoints( const nav_msgs::Path &path );
 
+    double calculateWaypointSpeed( const Eigen::Vector3d &prev, const Eigen::Vector3d &wp, const Eigen::Vector3d &next );
 
+    bool calculateSpeed( const double request, const double beta );
 
     /**
      * @brief Predict the pose of the robot.
@@ -97,6 +98,13 @@ protected:
      */
     void publishCmd( const Eigen::Vector3d &cmd );
 
+    /**
+     * @brief Convert a ROS pose to a Eigen vector.
+     * @param in ROS pose.
+     * @param out Output vector.
+     */
+    void rosToEigen( const geometry_msgs::Pose &in, Eigen::Vector3d &out );
+
 private:
     MotionControlNode* node_;
 
@@ -119,7 +127,10 @@ private:
     int pending_error_;
 
     /// Minimum distance to the next waypoint
-    double pos_tolerance_;
+    double wp_tolerance_;
+
+    /// Minimum distance to goal
+    double goal_tolerance_;
 
     /// Controller deadtime
     double dead_time_;
@@ -129,6 +140,15 @@ private:
 
     /// Maximum allowed speed
     double max_speed_;
+
+    /// Minimum speed
+    double min_speed_;
+
+    /// Speed while driving backwards
+    double reverse_speed_;
+
+    /// Current speed
+    double current_speed_;
 
     /// Last command (steer_front, steer_rear, speed)
     Eigen::Vector3d last_cmd_;

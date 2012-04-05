@@ -18,11 +18,11 @@ using namespace Eigen;
 using namespace motion_control;
 
 PathDriver::PathDriver( ros::Publisher& cmd_pub,MotionControlNode* node )
-    : node_(node),active_( false ),
-      pos_tolerance_( 0.2 )
+    : node_(node), active_( false )
 {
     cmd_pub_ = cmd_pub;
-    configure(  );
+    configure();
+    current_speed_ = 0;
 }
 
 PathDriver::~PathDriver()
@@ -49,10 +49,9 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
         return error;
     }
 
-    // This should never happen
+    // This might happen
     if ( !active_ ) {
-        ROS_WARN( "Execute called but path driver is not active. This should never happen." );
-        return MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+        return MotionResult::MOTION_STATUS_STOP;
     }
 
     // Get SLAM pose
@@ -71,55 +70,116 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
         return MotionResult::MOTION_STATUS_SLAM_FAIL;
     }
 
-    // Waypoint reached? Select next waypoint!
-    if ( wp_local.head<2>().norm() <= pos_tolerance_ ) {
-        // Last waypoint? Try to reach it!
-        if (( path_idx_ + 1 ) >= (int)path_.size()) {
-            /// @todo implement
-        }
-
-        // Select next waypoint
-        path_idx_++;
-        wp = path_[path_idx_].pose;
-        wp.header.stamp = ros::Time::now();
-        if ( !node_->transformToLocal( wp, wp_local )) {
+    // Last waypoint?
+    if ( (size_t)path_idx_ + 1 >= path_.size()) {
+        if ( wp_local.head<2>().norm() <= goal_tolerance_ ) {
             stop();
-            return MotionResult::MOTION_STATUS_SLAM_FAIL;
+            return MotionResult::MOTION_STATUS_SUCCESS; // Goal reached
+        }
+    } else {
+        // Next waypoint?
+        while ( (size_t)path_idx_ < path_.size() && wp_local.head<2>().norm() <= wp_tolerance_ ) {
+            path_idx_++;
+            wp = path_[path_idx_].pose;
+            wp.header.stamp = ros::Time::now();
+            if ( !node_->transformToLocal( wp, wp_local )) {
+                stop();
+                return MotionResult::MOTION_STATUS_SLAM_FAIL;
+            }
         }
     }
 
-    // Calculate target line
-    Vector3d last_wp_local;
-    wp = path_[path_idx_ - 1].pose;
-    wp.header.stamp = ros::Time::now();
-    if ( !node_->transformToLocal( wp, last_wp_local )) {
-        stop();
-        return MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+    // Calculate target line from current to next waypoint (if there is any)
+    Line2d target_line;
+    if ( (size_t)path_idx_ + 1 < path_.size()) {
+        wp = path_[path_idx_ + 1].pose;
+        wp.header.stamp = ros::Time::now();
+        Vector3d next_wp_local;
+        if ( !node_->transformToLocal( wp, next_wp_local )) {
+            stop();
+            return MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+        }
+        target_line = Line2d( next_wp_local.head<2>(), wp_local.head<2>());
+    } else {
+        target_line.FromAngle( wp_local.head<2>(), wp_local(2) + M_PI );
     }
-    Line2d target_line( last_wp_local.head<2>(), wp_local.head<2>());
 
     // Calculate front/rear errors and steer commands
+    double dir_sign = 1.0;
+    if ( wp_local.x() < 0 )
+        dir_sign = -1.0;
     Vector2d front_pred, rear_pred;
-    predictPose( dead_time_, last_cmd_(0), last_cmd_(1), last_cmd_(2), front_pred, rear_pred );
+    predictPose( dead_time_, last_cmd_(0), last_cmd_(1), dir_sign*path_[path_idx_].speed, front_pred, rear_pred );
     double e_f = target_line.GetSignedDistance( front_pred );
     double e_r = target_line.GetSignedDistance( rear_pred );
     double delta_f, delta_r;
     if ( !ctrl_.execute( e_f, e_r, delta_f, delta_r ))
         return MotionResult::MOTION_STATUS_MOVING; // Nothing to do
 
+    // Check collision and calculate speed
+    double beta;
+    beta = dir_sign*atan( 0.5*(tan( delta_f ) + tan( delta_r )));
+    if ( dir_sign < 0 )
+        beta += M_PI;
+    if ( calculateSpeed( dir_sign*path_[path_idx_].speed, MathHelper::NormalizeAngle( beta ))) {
+        // Collision!
+        stop();
+        return MotionResult::MOTION_STATUS_COLLISION;
+    }
+
     // Send command
     last_cmd_(0) = delta_f;
     last_cmd_(1) = delta_r;
-    last_cmd_(2) = max_speed_;
-    publishCmd( last_cmd_ );
+    last_cmd_(2) = current_speed_;
     return MotionResult::MOTION_STATUS_MOVING;
 }
 
+bool PathDriver::calculateSpeed( const double request, const double beta )
+{
+    // We are not able to check for collisions while driving backwards
+    if ( request < 0 ) {
+        current_speed_ = -reverse_speed_;
+        return false;
+    }
+
+    // Check for collision
+    if ( checkCollision( beta, 0.2 ))
+        return true;
+
+    // Faster than requested?
+    if ( current_speed_ > request ) {
+        current_speed_ = request;
+        return false;
+    }
+
+    // Increase speed?
+    if ( checkCollision( beta, 1.0, 0.3, 1.5 ))
+        current_speed_ -= 0.1;
+    else
+        current_speed_ += 0.05;
+    current_speed_ = min( current_speed_, max_speed_ );
+    current_speed_ = max( current_speed_, min_speed_ );
+    return false;
+}
 
 void PathDriver::configure() {
-    ros::NodeHandle& nh=node_->getNodeHandle();
-    nh.param( "path_driver/position_tolerance", pos_tolerance_, 0.2 );
-    nh.param( "path_driver/l", l_, 0.36 );
+    ros::NodeHandle& nh = node_->getNodeHandle();
+
+    // Path following/speed calculation
+    nh.param( "path_driver/waypoint_tolerance", wp_tolerance_, 0.15 );
+    nh.param( "path_driver/goal_tolerance", goal_tolerance_, 0.1 );
+    nh.param( "path_driver/l", l_, 0.38 );
+    nh.param( "path_driver/min_speed", min_speed_, 0.3 );
+    nh.param( "path_driver/reverse_speed", reverse_speed_, 0.3 );
+
+    // Dual pid
+    double ta, e_max, kp, delta_max;
+    nh.param( "path_driver/dualpid/dead_time", dead_time_, 0.1 );
+    nh.param( "path_driver/dualpid/ta", ta, 0.05 );
+    nh.param( "path_driver/dualpid/e_max", e_max, 0.1 );
+    nh.param( "path_driver/dualpid/kp", kp, 0.75 );
+    nh.param( "path_driver/dualpid/delta_max", delta_max, 22.0 );
+    ctrl_.configure( kp, M_PI*delta_max/180.0, e_max, 0.5, ta );
 }
 
 
@@ -129,46 +189,66 @@ void PathDriver::setGoal( const motion_control::MotionGoal& goal ) {
     // Set config
     max_speed_ = goal.v; /// @todo That's all?
 
-    // Got at least one waypoint?
-    if ( goal.path.poses.size() <= 0 ) {
-        ROS_ERROR( "Got an empty path." );
+    // Got at least two waypoint?
+    if ( goal.path.poses.size() < 2 ) {
+        ROS_ERROR( "Got an invalid path with less than two poses." );
+        stop();
         pending_error_ = MotionResult::MOTION_STATUS_INTERNAL_ERROR;
         return;
     }
-
-    // Calculate waypoints
-    Vector3d slam_pose;
-    if ( !node_->getWorldPose( slam_pose )) {
-        pending_error_ = MotionResult::MOTION_STATUS_SLAM_FAIL;
-        return;
-    }
-    calculateWaypoints( goal.path, slam_pose );
+    calculateWaypoints( goal.path );
 
     start();
 }
 
-void PathDriver::calculateWaypoints( const nav_msgs::Path &path, const Vector3d &slam_pose )
+void PathDriver::calculateWaypoints( const nav_msgs::Path &path )
 {
     path_.clear();
 
-    // First waypoint is alway the current pose
-    geometry_msgs::PoseStamped first_pose;
-    first_pose.pose.position.x = slam_pose(0);
-    first_pose.pose.position.y = slam_pose(1);
-    first_pose.pose.position.z = 0;
-    tf::quaternionTFToMsg( tf::createQuaternionFromYaw( slam_pose(2)),
-                           first_pose.pose.orientation );
-    first_pose.header = path.poses[0].header;
-    path_.push_back( Waypoint( first_pose, max_speed_ ));
+    // Add first pose
+    path_.push_back( Waypoint( path.poses[0], max_speed_ ));
 
-    // Add all other poses
-    for ( size_t i = 0; i < path.poses.size(); ++i )
-        path_.push_back( Waypoint( path.poses[i], max_speed_ ));
+    // For all poses execpt of the first and the last one
+    Vector3d prev_wp, wp, next_wp;
+    for ( size_t i = 1; i < path.poses.size() - 1; ++i ) {
+        rosToEigen( path.poses[i-1].pose, prev_wp );
+        rosToEigen( path.poses[i].pose, wp );
+        rosToEigen( path.poses[i+1].pose, next_wp );
+        path_.push_back( Waypoint( path.poses[i], calculateWaypointSpeed( prev_wp, wp, next_wp )));
+    }
 
-    // Current waypoint is the first entry of the actual path
-    path_idx_ = 1;
+    // Add last waypoint
+    path_.push_back( Waypoint( path.poses[path.poses.size() - 1], min_speed_ ));
+
+    // Current waypoint is the first entry
+    path_idx_ = 0;
 }
 
+double PathDriver::calculateWaypointSpeed( const Eigen::Vector3d &prev, const Eigen::Vector3d &wp, const Eigen::Vector3d &next )
+{
+    Vector2d q( next.head<2>() - wp.head<2>());
+    Vector2d p( wp.head<2>() - prev.head<2>());
+
+    // Too close together?
+    if ( p.norm() < 0.01 || q.norm() < 0.01 ) {
+        return min_speed_;
+    }
+
+    // Calculate angle
+    double a = (p.dot( q ))/(p.norm()*q.norm());
+    if ( a >= 1.0 ) // Avoid rounding errors
+        return max_speed_;
+    if ( a <= -1.0 )
+        return min_speed_;
+    a = 180.0*acos( a )/M_PI;
+
+    // Calculate speed
+    if ( a < 5.0 )
+        return max_speed_;
+    if ( a > 50.0 )
+        return min_speed_;
+    return min_speed_ + (a - 5.0)*(max_speed_ - min_speed_)/45.0;
+}
 
 void PathDriver::predictPose( const double dt,
                               const double deltaf,
@@ -203,3 +283,9 @@ void PathDriver::publishCmd( const Eigen::Vector3d &cmd )
     cmd_pub_.publish( msg );
 }
 
+void PathDriver::rosToEigen( const geometry_msgs::Pose &in, Eigen::Vector3d &out )
+{
+    out.x() = in.position.x;
+    out.y() = in.position.y;
+    out(2) = tf::getYaw( in.orientation );
+}

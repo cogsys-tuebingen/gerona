@@ -59,6 +59,7 @@ private:
   SimpleGoalDriver *simple_goal_driver_;
   PatternDriver* pattern_driver_;
   FixedDriver* fixed_driver_;
+  MotionController* path_driver_;
 };
 
 #endif // MOTIONCONTROLNODE_H

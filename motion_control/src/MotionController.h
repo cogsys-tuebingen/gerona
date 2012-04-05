@@ -30,7 +30,7 @@ public:
   virtual void laserCallback(const sensor_msgs::LaserScanConstPtr& scan);
 
 protected:
-  bool checkCollision(double course,double threshold);
+  bool checkCollision( double course, double threshold, double width = 0.3, double length = 0.5 );
   sensor_msgs::LaserScan laser_scan_;
   LaserEnvironment laser_env_;
 };

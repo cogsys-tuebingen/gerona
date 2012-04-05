@@ -5,7 +5,9 @@
 #include "MotionController.h"
 #include "MotionControlNode.h"
 #include "PatternDriver.h"
+#include "PathDriver.h"
 
+using namespace motion_control;
 
 MotionControlNode::MotionControlNode(ros::NodeHandle& nh, const std::string& name)
   :nh_(nh),action_server_(nh,name, false), action_name_(name)
@@ -17,7 +19,7 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& nh, const std::string& nam
   nh_.param<string>("world_frame",world_frame_,"/map");
   nh_.param<string>("robot_frame",robot_frame_,"/base_link");
   cmd_ramaxx_pub_ = nh_.advertise<ramaxxbase::RamaxxMsg>
-      ("/ramaxx_cmd", 100);
+      ("/ramaxx_cmd", 10 );
   scan_sub_ = nh_.subscribe<sensor_msgs::LaserScan>( "/scan", 1, boost::bind(&MotionControlNode::laserCallback, this, _1 ));
 
   active_ctrl_ = NULL;
@@ -25,10 +27,9 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& nh, const std::string& nam
   simple_goal_driver_ = new SimpleGoalDriver (cmd_ramaxx_pub_,this);
   fixed_driver_ =new FixedDriver(cmd_ramaxx_pub_, this);
   pattern_driver_=new PatternDriver(cmd_ramaxx_pub_, this);
+  path_driver_ = new PathDriver( cmd_ramaxx_pub_, this );
 
   action_server_.start();
-
-  //path_driver_->configure(node);
 }
 
 
@@ -38,6 +39,7 @@ MotionControlNode::~MotionControlNode()
   delete calib_driver_;
   delete simple_goal_driver_;
   delete fixed_driver_;
+  delete path_driver_;
 }
 
 
@@ -115,6 +117,9 @@ void MotionControlNode::goalCallback()
       active_ctrl_->setGoal(*goalptr);
       break;
     case motion_control::MotionGoal::MOTION_FOLLOW_PATH:
+      active_ctrl_ = path_driver_;
+      active_ctrl_->setGoal( *goalptr );
+      break;
     case motion_control::MotionGoal::MOTION_TO_GOAL:
     case motion_control::MotionGoal::MOTION_FOLLOW_TARGET:
       active_ctrl_=simple_goal_driver_;
@@ -141,7 +146,9 @@ void MotionControlNode::laserCallback(const sensor_msgs::LaserScanConstPtr& scan
 
 void MotionControlNode::preemptCallback()
 {
-  ROS_WARN("preempt goal called");
+    if ( active_ctrl_ != NULL ) {
+        active_ctrl_->stop(); /// @todo think about this
+    }
 
 }
 
@@ -160,7 +167,7 @@ void MotionControlNode::update()
       action_server_.publishFeedback(feedback);
       break;
     case MotionResult::MOTION_STATUS_SUCCESS:
-        action_server_.setSucceeded(result);
+        action_server_.setSucceeded( result );
         //ROS_INFO("motioncontrolnode: MOTION_STATUS_SUCCESS");
         break;
     case MotionResult::MOTION_STATUS_COLLISION:
