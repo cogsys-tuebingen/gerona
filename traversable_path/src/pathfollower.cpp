@@ -70,14 +70,20 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
     goal_point_laser.header.stamp = ros::Time(0);
     goal_point_laser.pose.position.x = scan->points[goal_index].x;
     goal_point_laser.pose.position.y = scan->points[goal_index].y;
-    goal_point_laser.pose.position.z = scan->points[goal_index].z;
+    //goal_point_laser.pose.position.z = scan->points[goal_index].z;
+    goal_point_laser.pose.position.z = 0;
 
-    // dont change orientation for the moment.
-    /** @todo in the future, this should look along the path */
-    goal_point_laser.pose.orientation.x = 0;
-    goal_point_laser.pose.orientation.y = 0;
-    goal_point_laser.pose.orientation.z = 0;
-    goal_point_laser.pose.orientation.w = 1;
+//    // dont change orientation for the moment.
+//    /** @todo in the future, this should look along the path */
+//    goal_point_laser.pose.orientation.x = 0;
+//    goal_point_laser.pose.orientation.y = 0;
+//    goal_point_laser.pose.orientation.z = 0;
+//    goal_point_laser.pose.orientation.w = 1;
+
+    // orientation: robot to goal
+    double theta = atan2(goal_point_laser.pose.position.y, goal_point_laser.pose.position.x);
+    tf::quaternionTFToMsg(tf::createQuaternionFromYaw(theta), goal_point_laser.pose.orientation);
+
 
     try {
         tf_listener_.transformPose("/odom", goal_point_laser, goal_point_map);
@@ -88,12 +94,6 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
         /** @todo stop robot? */
     }
 
-
-
-//    ROS_INFO("Goal (laser): x: %f; y: %f; theta: %f", goal_point_laser.pose.position.x,
-//             goal_point_laser.pose.position.y, tf::getYaw(goal_point_laser.pose.orientation));
-//    ROS_INFO("Goal (map): x: %f; y: %f; theta: %f", goal_point_map.pose.position.x,
-//             goal_point_map.pose.position.y, tf::getYaw(goal_point_map.pose.orientation));
 
     // send goal to motion_control
     motion_control::MotionGoal goal;
@@ -107,19 +107,41 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
     /* Orientation
      * Look along the line from the last goal to the new one.
      */
-    if (last_goal_.x == 0 && last_goal_.y == 0) {
-        goal.theta = tf::getYaw(goal_point_map.pose.orientation);
-    } else {
-        goal.theta = atan2(goal.y - last_goal_.y, goal.x - last_goal_.y);
-    }
-    last_goal_.x = goal.x;
-    last_goal_.y = goal.y;
+//    if (last_goal_.x == 0 && last_goal_.y == 0) {
+//        goal.theta = tf::getYaw(goal_point_map.pose.orientation);
+//    } else {
+//        ROS_INFO("oldgoal");
+//        goal.theta = atan2(goal.y - last_goal_.y, goal.x - last_goal_.y);
+//    }
+//
+//    // only change last goal, if distance is big enough
+//    float distance = sqrt( pow(last_goal_.x - goal.x, 2) + pow(last_goal_.y - goal.y, 2) );
+//    if (distance > 0.1) {
+//        last_goal_.x = goal.x;
+//        last_goal_.y = goal.y;
+//    }
+    goal.theta = tf::getYaw(goal_point_map.pose.orientation);
 
     // send goal to motion_control
     motion_control_action_client_.sendGoal(goal);
 
     // send goal-marker to rviz for debugging
+    tf::quaternionTFToMsg(tf::createQuaternionFromYaw(goal.theta), goal_point_map.pose.orientation);
     publishGoalMarker(goal_point_map);
+
+
+//    ROS_INFO("Goal (laser): x: %f; y: %f; theta: %f;; x: %f, y: %f, z: %f, w: %f", goal_point_laser.pose.position.x,
+//             goal_point_laser.pose.position.y, tf::getYaw(goal_point_laser.pose.orientation),
+//             goal_point_laser.pose.orientation.x,
+//             goal_point_laser.pose.orientation.y,
+//             goal_point_laser.pose.orientation.z,
+//             goal_point_laser.pose.orientation.w);
+//    ROS_INFO("Goal (map): x: %f; y: %f; theta: %f;; x: %f, y: %f, z: %f, w: %f", goal_point_map.pose.position.x,
+//             goal_point_map.pose.position.y, tf::getYaw(goal_point_map.pose.orientation),
+//             goal_point_map.pose.orientation.x,
+//             goal_point_map.pose.orientation.y,
+//             goal_point_map.pose.orientation.z,
+//             goal_point_map.pose.orientation.w);
 }
 
 

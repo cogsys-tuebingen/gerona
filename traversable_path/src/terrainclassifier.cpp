@@ -37,9 +37,6 @@ TerrainClassifier::TerrainClassifier() :
     is_calibrated_ = vs.load(&plane_ranges_);
 }
 
-/**
- * @todo Handle problems if no intenisty is available!
- */
 void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 {
     // with uncalibrated laser, classification will not work
