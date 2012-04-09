@@ -33,3 +33,5 @@ rosbuild_add_executable(classify_terrain src/terrainclassifier.cpp src/vectorsav
     src/visualization.cpp src/GraphUtils.cpp)
 
 rosbuild_add_executable(follow_path src/pathfollower.cpp)
+
+rosbuild_add_executable(display_path src/node_display_path.cpp src/visualization.cpp src/GraphUtils.cpp)

@@ -1,6 +1,7 @@
 #ifndef VISUALIZATION_H
 #define VISUALIZATION_H
 
+#include <ros/ros.h>
 #include <vector>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -26,6 +27,8 @@ public:
      * @param The terrain classification for each point of the current laser scan.
      */
     void paintPath(std::vector<PointClassification>);
+
+    void paintPath(std::vector<uint8_t>);
 
     void plot(std::vector<float> data);
 

@@ -46,6 +46,43 @@ void Visualization::paintPath(std::vector<PointClassification> points)
     path_pos_ = ++path_pos_ % path_.cols;
 }
 
+void Visualization::paintPath(std::vector<uint8_t> points)
+{
+    if (points.empty()) {
+        ROS_ERROR("Visualization::paintPath (bool): Point array is empty.");
+        return;
+    }
+
+    if (!is_path_initialized_) {
+        path_ = cv::Mat(cv::Size(1000, points.size()), CV_8UC3);
+        path_pos_ = 0;
+        is_path_initialized_ = true;
+    }
+
+    bool current_state = points[0];
+    int last_toggle = 0;
+    unsigned int points_size = points.size();
+    cv::Scalar color;
+    for (unsigned int i = 1; i < points_size; ++i) {
+        if (points[i] != current_state) {
+            color = current_state ? cv::Scalar(0, 255, 0) : cv::Scalar(0, 0, 255);
+            cv::line(path_, cv::Point(path_pos_, last_toggle), cv::Point(path_pos_, i-1), color);
+
+            current_state = points[i];
+            last_toggle = i;
+        }
+    }
+    // the last segment
+    color = current_state ? cv::Scalar(0, 255, 0) : cv::Scalar(0, 0, 255);
+    cv::line(path_, cv::Point(path_pos_, last_toggle), cv::Point(path_pos_, path_.rows-1), color);
+
+
+    cv::imshow("path", path_);
+    cv::waitKey(3);
+
+    path_pos_ = ++path_pos_ % path_.cols;
+}
+
 void Visualization::plot(std::vector<float>data)
 {
     setGraphColor(0);
