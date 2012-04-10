@@ -21,7 +21,7 @@ CombinedPlanner::CombinedPlanner()
       new_gmap_( false ),
       goal_dist_eps_( 0.5 ),
       goal_angle_eps_( 30.0*M_PI/180.0 ),
-      wp_dist_eps_( 1.0 ),
+      wp_dist_eps_( 0.6 ),
       wp_angle_eps_( 0.6 ),
       local_replan_dist_( 1.5 ),
       local_replan_theta_( 30.0*M_PI/180.0 ),
@@ -94,7 +94,7 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
     // Replan anyway?
     force_replan = force_replan || lpath_.getWaypointCount() <= 0 ||
             (!gwaypoints_.empty() && robot_pose.isEqual( lpath_.getEnd(), wp_dist_eps_, wp_angle_eps_ ))
-            /*|| !lpath_.areWaypointsFree( lmap_->getResolution(), lmap_ )*/;
+            || !lpath_.isFree( lmap_, robot_pose, 0.35 );
 
     // Something to do?
     if ( !force_replan )
@@ -106,7 +106,7 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
         lplanner_->planPath( robot_pose, gwaypoints_, ggoal_ );
     } catch ( NoPathException& ex ) {
         // We didn't find a local path
-        if ( gstart_.isEqual( robot_pose, 0.5, 0.5 ) && !new_gmap_) {
+        if ( gstart_.isEqual( robot_pose, 0.2, 0.2 ) && !new_gmap_) {
             throw NoPathException( "Didn't find a local path and global replanning is not allowed" );
         }
 
