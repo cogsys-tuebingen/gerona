@@ -1,21 +1,15 @@
 #include "pathfollower.h"
 
 PathFollower::PathFollower() :
-        motion_control_action_client_("motion_control"),
-        waiting_for_new_goal_(true)
+        motion_control_action_client_("motion_control")
 {
     subscribe_scan_classification_ = node_handle_.subscribe("/scan/traversability", 100,
                                                             &PathFollower::scan_classification_callback, this);
-    subscribe_drive_ = node_handle_.subscribe("/go", 1, &PathFollower::drive, this);
     publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 1);
 }
 
 void PathFollower::scan_classification_callback(traversable_path::LaserScanClassificationConstPtr scan)
 {
-//    if (!waiting_for_new_goal_) {
-//        return;
-//    }
-
     int goal_index;
 
     // search traversable area in front of the robot (assuming, "in front" is approximalty in the middle of the scan)
@@ -85,13 +79,13 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
     }
 
     const double MIN_DISTANCE_BETWEEN_GOALS = 0.5;
-    double distance = sqrt( pow(goal_point_map.pose.position.x - last_goal_.x, 2) +
-                            pow(goal_point_map.pose.position.y - last_goal_.y, 2) );
+    double distance = sqrt( pow(goal_point_map.pose.position.x - current_goal_.x, 2) +
+                            pow(goal_point_map.pose.position.y - current_goal_.y, 2) );
 
     if (distance > MIN_DISTANCE_BETWEEN_GOALS) {
         // send goal to motion_control
         motion_control::MotionGoal goal;
-        goal.v     = 0.2;
+        goal.v     = 0.3;
         goal.beta  = 0;
         goal.mode  = motion_control::MotionGoal::MOTION_TO_GOAL;
 
@@ -101,25 +95,11 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
         /* Orientation
          * Look along the line from the last goal to the new one.
          */
-    //    if (last_goal_.x == 0 && last_goal_.y == 0) {
-    //        goal.theta = tf::getYaw(goal_point_map.pose.orientation);
-    //    } else {
-    //        ROS_INFO("oldgoal");
-    //        goal.theta = atan2(goal.y - last_goal_.y, goal.x - last_goal_.y);
-    //    }
-    //
-    //    // only change last goal, if distance is big enough
-    //    float distance = sqrt( pow(last_goal_.x - goal.x, 2) + pow(last_goal_.y - goal.y, 2) );
-    //    if (distance > 0.1) {
-    //        last_goal_.x = goal.x;
-    //        last_goal_.y = goal.y;
-    //    }
         goal.theta = tf::getYaw(goal_point_map.pose.orientation);
 
         // send goal to motion_control
         motion_control_action_client_.sendGoal(goal);
-        last_goal_ = goal_point_map.pose.position;
-        waiting_for_new_goal_ = false;
+        current_goal_ = goal_point_map.pose.position;
 
         // send goal-marker to rviz for debugging
         tf::quaternionTFToMsg(tf::createQuaternionFromYaw(goal.theta), goal_point_map.pose.orientation);
@@ -145,46 +125,6 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
     }
 }
 
-
-void PathFollower::drive(std_msgs::BoolConstPtr b) {
-    // transform this point to odom-frame
-    geometry_msgs::PoseStamped path_point;
-    geometry_msgs::PoseStamped goal_point;
-
-    path_point.header.frame_id = "/base_link";
-    path_point.header.stamp = ros::Time();
-    path_point.pose.position.x = 0;
-    path_point.pose.position.y = 0;
-    path_point.pose.position.z = 0;
-    path_point.pose.orientation.x = 0;
-    path_point.pose.orientation.y = 0;
-    path_point.pose.orientation.z = 0;
-    path_point.pose.orientation.w = 1;
-
-    try {
-        tf_listener_.transformPose("/odom",ros::Time(0), path_point,"/base_link", goal_point);
-        ROS_INFO("current position: %f,%f", goal_point.pose.position.x, goal_point.pose.position.y);
-
-        path_point.pose.position.x = 2;
-        path_point.pose.position.y = 0;
-        tf_listener_.transformPose("/odom",ros::Time(0), path_point,"/base_link", goal_point);
-        ROS_INFO("goal position: %f,%f", goal_point.pose.position.x, goal_point.pose.position.y);
-
-        motion_control::MotionGoal goal;
-        goal.v=0.4;
-        goal.beta=0;
-        goal.x = goal_point.pose.position.x;
-        goal.y = goal_point.pose.position.y;
-        goal.theta = 0;
-        goal.mode=motion_control::MotionGoal::MOTION_TO_GOAL;
-
-        ROS_INFO("Start");
-        motion_control_action_client_.sendGoal(goal);
-    }
-    catch (tf::InvalidArgument e) {
-        ROS_ERROR("Problem: %s", e.what());
-    }
-}
 
 void PathFollower::publishGoalMarker(geometry_msgs::PoseStamped goal)
 {
@@ -267,11 +207,6 @@ void PathFollower::publishTraversaleLineMarker(geometry_msgs::Point32 a, geometr
 
     publish_rviz_marker_.publish(points);
     publish_rviz_marker_.publish(line_strip);
-}
-
-void PathFollower::motionControllDoneCallback(const actionlib::SimpleClientGoalState &state,
-                                              const motion_control::MotionResultConstPtr &result) {
-    waiting_for_new_goal_ = true;
 }
 
 //--------------------------------------------------------------------------

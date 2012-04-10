@@ -2,7 +2,6 @@
 #define PATHFOLLOWER_H
 
 #include <ros/ros.h>
-#include <std_msgs/Bool.h>
 #include <tf/transform_listener.h>
 #include <motion_control/MotionAction.h>
 #include <actionlib/client/simple_action_client.h>
@@ -18,21 +17,14 @@ public:
 private:
     ros::NodeHandle node_handle_;
     ros::Subscriber subscribe_scan_classification_;
-    ros::Subscriber subscribe_drive_;
     ros::Publisher publish_rviz_marker_;
     tf::TransformListener tf_listener_;
     actionlib::SimpleActionClient<motion_control::MotionAction> motion_control_action_client_;
-    //! Last goal. Used to calculate the orientation of the new goal.
-    bool waiting_for_new_goal_;
-    geometry_msgs::Point last_goal_;
+    //! The current goal.
+    geometry_msgs::Point current_goal_;
 
 
     void scan_classification_callback(traversable_path::LaserScanClassificationConstPtr scan_classification);
-    void drive(std_msgs::BoolConstPtr b);
-
-    void motionControllDoneCallback(const actionlib::SimpleClientGoalState &state,
-                                    const motion_control::MotionResultConstPtr &result);
-
     void publishGoalMarker(geometry_msgs::PoseStamped goal);
     void publishTraversaleLineMarker(geometry_msgs::Point32 a, geometry_msgs::Point32 b);
 };
