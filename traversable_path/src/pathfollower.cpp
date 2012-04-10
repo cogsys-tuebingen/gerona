@@ -1,7 +1,8 @@
 #include "pathfollower.h"
 
 PathFollower::PathFollower() :
-        motion_control_action_client_("motion_control")
+        motion_control_action_client_("motion_control"),
+        waiting_for_new_goal_(true)
 {
     subscribe_scan_classification_ = node_handle_.subscribe("/scan/traversability", 100,
                                                             &PathFollower::scan_classification_callback, this);
@@ -11,6 +12,10 @@ PathFollower::PathFollower() :
 
 void PathFollower::scan_classification_callback(traversable_path::LaserScanClassificationConstPtr scan)
 {
+//    if (!waiting_for_new_goal_) {
+//        return;
+//    }
+
     int goal_index;
 
     // search traversable area in front of the robot (assuming, "in front" is approximalty in the middle of the scan)
@@ -44,6 +49,9 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
         ++end;
     }
 
+    ROS_DEBUG("size points: %d, size traversable: %d, beginning: %d, end: %d",
+              scan->points.size(), scan->traversable.size(), beginning, end);
+
     // goal = point in the middle of the path
     goal_index = beginning + (end-beginning)/2;
 
@@ -57,13 +65,6 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
     goal_point_laser.pose.position.y = scan->points[goal_index].y;
     //goal_point_laser.pose.position.z = scan->points[goal_index].z;
     goal_point_laser.pose.position.z = 0;
-
-//    // dont change orientation for the moment.
-//    /** @todo in the future, this should look along the path */
-//    goal_point_laser.pose.orientation.x = 0;
-//    goal_point_laser.pose.orientation.y = 0;
-//    goal_point_laser.pose.orientation.z = 0;
-//    goal_point_laser.pose.orientation.w = 1;
 
     // orientation: orthogonal to the line of the traversable segment
     double delta_x = scan->points[beginning].x - scan->points[end].x;
@@ -83,54 +84,60 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
         /** @todo stop robot? */
     }
 
+    const double MIN_DISTANCE_BETWEEN_GOALS = 0.7;
+    double distance = sqrt( pow(goal_point_map.pose.position.x - last_goal_.x, 2) +
+                            pow(goal_point_map.pose.position.y - last_goal_.y, 2) );
+    if (distance < MIN_DISTANCE_BETWEEN_GOALS) {
+        // send goal to motion_control
+        motion_control::MotionGoal goal;
+        goal.v     = 0.2;
+        goal.beta  = 0;
+        goal.mode  = motion_control::MotionGoal::MOTION_TO_GOAL;
 
-    // send goal to motion_control
-    motion_control::MotionGoal goal;
-    goal.v     = 0.2;
-    goal.beta  = 0;
-    goal.mode  = motion_control::MotionGoal::MOTION_TO_GOAL;
+        goal.x     = goal_point_map.pose.position.x;
+        goal.y     = goal_point_map.pose.position.y;
 
-    goal.x     = goal_point_map.pose.position.x;
-    goal.y     = goal_point_map.pose.position.y;
+        /* Orientation
+         * Look along the line from the last goal to the new one.
+         */
+    //    if (last_goal_.x == 0 && last_goal_.y == 0) {
+    //        goal.theta = tf::getYaw(goal_point_map.pose.orientation);
+    //    } else {
+    //        ROS_INFO("oldgoal");
+    //        goal.theta = atan2(goal.y - last_goal_.y, goal.x - last_goal_.y);
+    //    }
+    //
+    //    // only change last goal, if distance is big enough
+    //    float distance = sqrt( pow(last_goal_.x - goal.x, 2) + pow(last_goal_.y - goal.y, 2) );
+    //    if (distance > 0.1) {
+    //        last_goal_.x = goal.x;
+    //        last_goal_.y = goal.y;
+    //    }
+        goal.theta = tf::getYaw(goal_point_map.pose.orientation);
 
-    /* Orientation
-     * Look along the line from the last goal to the new one.
-     */
-//    if (last_goal_.x == 0 && last_goal_.y == 0) {
-//        goal.theta = tf::getYaw(goal_point_map.pose.orientation);
-//    } else {
-//        ROS_INFO("oldgoal");
-//        goal.theta = atan2(goal.y - last_goal_.y, goal.x - last_goal_.y);
-//    }
-//
-//    // only change last goal, if distance is big enough
-//    float distance = sqrt( pow(last_goal_.x - goal.x, 2) + pow(last_goal_.y - goal.y, 2) );
-//    if (distance > 0.1) {
-//        last_goal_.x = goal.x;
-//        last_goal_.y = goal.y;
-//    }
-    goal.theta = tf::getYaw(goal_point_map.pose.orientation);
+        // send goal to motion_control
+        motion_control_action_client_.sendGoal(goal);
+        last_goal_ = goal_point_map.pose.position;
+        waiting_for_new_goal_ = false;
 
-    // send goal to motion_control
-    motion_control_action_client_.sendGoal(goal);
-
-    // send goal-marker to rviz for debugging
-    tf::quaternionTFToMsg(tf::createQuaternionFromYaw(goal.theta), goal_point_map.pose.orientation);
-    publishGoalMarker(goal_point_map);
+        // send goal-marker to rviz for debugging
+        tf::quaternionTFToMsg(tf::createQuaternionFromYaw(goal.theta), goal_point_map.pose.orientation);
+        publishGoalMarker(goal_point_map);
 
 
-//    ROS_INFO("Goal (laser): x: %f; y: %f; theta: %f;; x: %f, y: %f, z: %f, w: %f", goal_point_laser.pose.position.x,
-//             goal_point_laser.pose.position.y, tf::getYaw(goal_point_laser.pose.orientation),
-//             goal_point_laser.pose.orientation.x,
-//             goal_point_laser.pose.orientation.y,
-//             goal_point_laser.pose.orientation.z,
-//             goal_point_laser.pose.orientation.w);
-//    ROS_INFO("Goal (map): x: %f; y: %f; theta: %f;; x: %f, y: %f, z: %f, w: %f", goal_point_map.pose.position.x,
-//             goal_point_map.pose.position.y, tf::getYaw(goal_point_map.pose.orientation),
-//             goal_point_map.pose.orientation.x,
-//             goal_point_map.pose.orientation.y,
-//             goal_point_map.pose.orientation.z,
-//             goal_point_map.pose.orientation.w);
+    //    ROS_INFO("Goal (laser): x: %f; y: %f; theta: %f;; x: %f, y: %f, z: %f, w: %f", goal_point_laser.pose.position.x,
+    //             goal_point_laser.pose.position.y, tf::getYaw(goal_point_laser.pose.orientation),
+    //             goal_point_laser.pose.orientation.x,
+    //             goal_point_laser.pose.orientation.y,
+    //             goal_point_laser.pose.orientation.z,
+    //             goal_point_laser.pose.orientation.w);
+        ROS_DEBUG("Goal (map): x: %f; y: %f; theta: %f;; x: %f, y: %f, z: %f, w: %f", goal_point_map.pose.position.x,
+                 goal_point_map.pose.position.y, tf::getYaw(goal_point_map.pose.orientation),
+                 goal_point_map.pose.orientation.x,
+                 goal_point_map.pose.orientation.y,
+                 goal_point_map.pose.orientation.z,
+                 goal_point_map.pose.orientation.w);
+    }
 }
 
 
@@ -255,6 +262,11 @@ void PathFollower::publishTraversaleLineMarker(geometry_msgs::Point32 a, geometr
 
     publish_rviz_marker_.publish(points);
     publish_rviz_marker_.publish(line_strip);
+}
+
+void PathFollower::motionControllDoneCallback(const actionlib::SimpleClientGoalState &state,
+                                              const motion_control::MotionResultConstPtr &result) {
+    waiting_for_new_goal_ = true;
 }
 
 //--------------------------------------------------------------------------
