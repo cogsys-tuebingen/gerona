@@ -35,6 +35,15 @@ TerrainClassifier::TerrainClassifier() :
     // look for existing range calibration file
     VectorSaver<float> vs(range_calibration_file_);
     is_calibrated_ = vs.load(&plane_ranges_);
+
+    // register reconfigure callback (which will also initialize config_ with the default values)
+    reconfig_server_.setCallback(boost::bind(&TerrainClassifier::dynamicReconfigureCallback, this, _1, _2));
+}
+
+void TerrainClassifier::dynamicReconfigureCallback(Config &config, uint32_t level)
+{
+    config_ = config;
+    ROS_DEBUG("Reconfigure TerrainClassifier. range: %f", config.diff_range_limit);
 }
 
 void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
@@ -152,8 +161,6 @@ vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std
 {
     // parameters
     const unsigned int SEGMENT_SIZE = 10;       //!< Points per segment. //TODO unterteilung in segmente weglassen?
-    const float DIFF_RANGE_LIMIT = 0.005;       //!< Limit of the range differential.
-    const float DIFF_INTENSITY_LIMIT = 13.0;    //!< Limit of the intensity differential.
 
 
     // number of values
@@ -187,8 +194,8 @@ vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std
             sum_intensity += abs(diff_intensities[i]);
         }
 
-        seg_class.traversable_by_range     = (    sum_range / SEGMENT_SIZE < DIFF_RANGE_LIMIT    );
-        seg_class.traversable_by_intensity = (sum_intensity / SEGMENT_SIZE < DIFF_INTENSITY_LIMIT);
+        seg_class.traversable_by_range     = (    sum_range / SEGMENT_SIZE < config_.diff_range_limit    );
+        seg_class.traversable_by_intensity = (sum_intensity / SEGMENT_SIZE < config_.diff_intensity_limit);
         
 //        // check height (this is important to detect walls in front)
 //        if (abs(data.ranges[i]) > 0.3) {
@@ -257,10 +264,6 @@ vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std
         }
     }
 
-    // paint path
-    /** @todo extra node for visualization */
-    //visualizer_.paintPath(segments);
-
     // only use intensity, if not more than 60% of the segments are untraversable due to intensity.
     // deaktivated
     bool use_intensity = true; //(float)num_untraversable_due_to_intensity / NUM_SEGMENTS < 0.60;
@@ -279,10 +282,6 @@ vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std
         if (use_intensity && !segments[i/SEGMENT_SIZE].traversable_by_intensity)
             out[i] += 5000.0;
     }
-
-
-
-    //visualizer_.plot(data.ranges);
 
     return result;
 }

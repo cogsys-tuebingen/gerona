@@ -19,6 +19,7 @@
   <depend package="actionlib"/>
   <depend package="actionlib_msgs"/>
   <depend package="visualization_msgs" />
+  <depent package="dynamic_reconfigure"/>
 
 </package>
 

@@ -10,10 +10,11 @@
 #include "sensor_msgs/LaserScan.h"
 #include "std_srvs/Empty.h"
 #include "laser_geometry/laser_geometry.h"
+#include "dynamic_reconfigure/server.h"
 
 #include "pointclassification.h"
-//#include "visualization.h"
 #include "traversable_path/LaserScanClassification.h"
+#include "traversable_path/classify_terrainConfig.h"
 
 /**
  * @brief Subscribes for the laser scans and classifies them.
@@ -27,6 +28,9 @@ public:
     TerrainClassifier();
 
 private:
+    typedef traversable_path::classify_terrainConfig Config;
+
+    //! Default path/name of the range calibration file
     const static std::string DEFAULT_RANGE_CALIBRATION_FILE;
 
     //! ROS node handle.
@@ -41,6 +45,8 @@ private:
     ros::ServiceServer calibration_service_;
     //! projects laser data to carthesian frame.
     laser_geometry::LaserProjection laser_projector_;
+    //! dynamic reconfigure server.
+    dynamic_reconfigure::Server<Config> reconfig_server_;
 
     //! Name of the range calibration file
     std::string range_calibration_file_;
@@ -48,10 +54,12 @@ private:
     bool is_calibrated_;
     //! Range data of a (preferably) perfekt plane, to calibrate the laser data.
     std::vector<float> plane_ranges_;
-    //! Visualizes some data
-    //Visualization visualizer_;
     //! Buffer of the last few scans.
     boost::circular_buffer< std::vector<PointClassification> > scan_buffer;
+
+    //! dynamic reconfigure values.
+    Config config_;
+
 
     void classifyLaserScan(const sensor_msgs::LaserScanPtr &msg);
 
@@ -74,6 +82,9 @@ private:
     std::vector<bool> detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
 
     void removeSingleIntensityPeaks(std::vector<PointClassification> &segments);
+
+    //! Callback for dynamic reconfigure.
+    void dynamicReconfigureCallback(Config &config, uint32_t level);
 };
 
 const std::string TerrainClassifier::DEFAULT_RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)

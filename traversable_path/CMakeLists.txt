@@ -21,6 +21,11 @@ rosbuild_genmsg()
 #uncomment if you have defined services
 #rosbuild_gensrv()
 
+# add dynamic reconfigure api
+rosbuild_find_ros_package(dynamic_reconfigure)
+include(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
+gencfg()
+
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
