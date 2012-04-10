@@ -45,7 +45,7 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
     while (beginning > 0 && scan->traversable[beginning]) {
         --beginning;
     }
-    while (end < scan->traversable.size() && scan->traversable[end]) {
+    while (end < scan->traversable.size()-1 && scan->traversable[end]) {
         ++end;
     }
 
@@ -84,10 +84,11 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
         /** @todo stop robot? */
     }
 
-    const double MIN_DISTANCE_BETWEEN_GOALS = 0.7;
+    const double MIN_DISTANCE_BETWEEN_GOALS = 0.5;
     double distance = sqrt( pow(goal_point_map.pose.position.x - last_goal_.x, 2) +
                             pow(goal_point_map.pose.position.y - last_goal_.y, 2) );
-    if (distance < MIN_DISTANCE_BETWEEN_GOALS) {
+
+    if (distance > MIN_DISTANCE_BETWEEN_GOALS) {
         // send goal to motion_control
         motion_control::MotionGoal goal;
         goal.v     = 0.2;
@@ -137,6 +138,10 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
                  goal_point_map.pose.orientation.y,
                  goal_point_map.pose.orientation.z,
                  goal_point_map.pose.orientation.w);
+    }
+    else {
+        ROS_DEBUG("Don't update goal. New goal is %.2f m distant from the current goal. Minimum distance is %f",
+                  distance, MIN_DISTANCE_BETWEEN_GOALS);
     }
 }
 
