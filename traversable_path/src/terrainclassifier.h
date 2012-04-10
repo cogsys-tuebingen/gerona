@@ -20,7 +20,7 @@
  * @brief Subscribes for the laser scans and classifies them.
  *
  * @author Felix Widmaier
- * @version $Id:$
+ * @version $Id$
  */
 class TerrainClassifier
 {
@@ -35,6 +35,11 @@ private:
 
     //! ROS node handle.
     ros::NodeHandle node_handle_;
+
+    /**
+     * @brief Publishes normalized laser data (using intensity as traverability-indicator)
+     * @todo This is only for debugging and should be removed in later versions.
+     */
     ros::Publisher publish_normalized_;
 
     //! Publishes the point classification for the laser scan data
@@ -61,6 +66,12 @@ private:
     Config config_;
 
 
+    /**
+     * @brief Classifies the laser scan points.
+     *
+     * This is the callback function for the laser scans. It classifies the points, transforms them to the carthesian
+     * frame of the laser and publishes the result as ScanClassification message.
+     */
     void classifyLaserScan(const sensor_msgs::LaserScanPtr &msg);
 
     //! Calibrates the laser, assuming the current scan shows a flat plane without obstacles.
@@ -81,6 +92,7 @@ private:
     //! Classifies the points of the given scan.
     std::vector<bool> detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
 
+    //! removes single peaks caused only by intensity (which are in most cases no untraversable areas).
     void removeSingleIntensityPeaks(std::vector<PointClassification> &segments);
 
     //! Callback for dynamic reconfigure.

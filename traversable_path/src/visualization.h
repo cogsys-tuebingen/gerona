@@ -11,7 +11,7 @@
  * @brief Provides methods to visualize the terrain classification.
  *
  * @author Felix Widmaier
- * @version 1.0
+ * @version $Id$
  */
 class Visualization
 {
@@ -28,6 +28,7 @@ public:
      */
     void paintPath(std::vector<PointClassification>);
 
+    // do the same with a bool-vector
     void paintPath(std::vector<uint8_t>);
 
     void plot(std::vector<float> data);
