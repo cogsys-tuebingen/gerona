@@ -107,7 +107,7 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
     }
 
     // Path lost?
-    if ( target_line.GetDistance( Vector2d( 0, 0 )) > 0.4 ) {
+    if ( target_line.GetDistance( Vector2d( 0, 0 )) > 0.2 ) {
         stop();
         return MotionResult::MOTION_STATUS_PATH_LOST;
     }
@@ -117,7 +117,7 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
     if ( wp_local.x() < 0 )
         dir_sign = -1.0;
     Vector2d front_pred, rear_pred;
-    predictPose( dead_time_, last_cmd_(0), last_cmd_(1), dir_sign*path_[path_idx_].speed, front_pred, rear_pred );
+    predictPose( dead_time_, last_cmd_(0), last_cmd_(1), path_[path_idx_].speed, front_pred, rear_pred );
     double e_f = target_line.GetSignedDistance( front_pred );
     double e_r = target_line.GetSignedDistance( rear_pred );
 
@@ -165,10 +165,10 @@ bool PathDriver::calculateSpeed( const double request, const double beta )
     }
 
     // Increase speed?
-    if ( checkCollision( beta, 1.5, 0.35, 1.75 ))
+    if ( checkCollision( beta, 2.0, 0.5, 2.25 ))
         current_speed_ -= 0.1;
     else
-        current_speed_ += 0.025;
+        current_speed_ += 0.01;
     current_speed_ = min( current_speed_, max_speed_ );
     current_speed_ = max( current_speed_, min_speed_ );
     return false;
@@ -178,19 +178,19 @@ void PathDriver::configure() {
     ros::NodeHandle& nh = node_->getNodeHandle();
 
     // Path following/speed calculation
-    nh.param( "path_driver/waypoint_tolerance", wp_tolerance_, 0.20 );
-    nh.param( "path_driver/goal_tolerance", goal_tolerance_, 0.1 );
+    nh.param( "path_driver/waypoint_tolerance", wp_tolerance_, 0.2 );
+    nh.param( "path_driver/goal_tolerance", goal_tolerance_, 0.15 );
     nh.param( "path_driver/l", l_, 0.38 );
-    nh.param( "path_driver/min_speed", min_speed_, 0.4 );
-    nh.param( "path_driver/reverse_speed", reverse_speed_, 0.4 );
+    nh.param( "path_driver/min_speed", min_speed_, 0.5 );
+    nh.param( "path_driver/reverse_speed", reverse_speed_, 0.5 );
 
     // Dual pid
     double ta, e_max, kp, delta_max;
-    nh.param( "path_driver/dualpid/dead_time", dead_time_, 0.1 );
+    nh.param( "path_driver/dualpid/dead_time", dead_time_, 0.10 );
     nh.param( "path_driver/dualpid/ta", ta, 0.05 );
-    nh.param( "path_driver/dualpid/e_max", e_max, 0.1 );
-    nh.param( "path_driver/dualpid/kp", kp, 0.6 );
-    nh.param( "path_driver/dualpid/delta_max", delta_max, 22.0 );
+    nh.param( "path_driver/dualpid/e_max", e_max, 0.15 );
+    nh.param( "path_driver/dualpid/kp", kp, 0.5 );
+    nh.param( "path_driver/dualpid/delta_max", delta_max, 24.0 );
     ctrl_.configure( kp, M_PI*delta_max/180.0, e_max, 0.5, ta );
 }
 
