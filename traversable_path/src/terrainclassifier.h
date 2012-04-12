@@ -29,6 +29,7 @@ public:
 
 private:
     typedef traversable_path::classify_terrainConfig Config;
+    typedef uint8_t classification;
 
     //! Default path/name of the range calibration file
     const static std::string DEFAULT_RANGE_CALIBRATION_FILE;
@@ -60,7 +61,7 @@ private:
     //! Range data of a (preferably) perfekt plane, to calibrate the laser data.
     std::vector<float> plane_ranges_;
     //! Buffer of the last few scans.
-    boost::circular_buffer< std::vector<PointClassification> > scan_buffer;
+    boost::circular_buffer< std::vector<PointClassification> > scan_buffer_;
 
     //! dynamic reconfigure values.
     Config config_;
@@ -92,8 +93,8 @@ private:
     //! Classifies the points of the given scan.
     std::vector<bool> detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
 
-    //! removes single peaks caused only by intensity (which are in most cases no untraversable areas).
-    void removeSingleIntensityPeaks(std::vector<PointClassification> &segments);
+    // ! removes single peaks caused only by intensity (which are in most cases no untraversable areas).
+    //void removeSingleIntensityPeaks(std::vector<PointClassification> &segments);
 
     //! Callback for dynamic reconfigure.
     void dynamicReconfigureCallback(Config &config, uint32_t level);

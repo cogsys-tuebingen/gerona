@@ -3,7 +3,7 @@
 PathFollower::PathFollower() :
         motion_control_action_client_("motion_control")
 {
-    subscribe_scan_classification_ = node_handle_.subscribe("/scan/traversability", 100,
+    subscribe_scan_classification_ = node_handle_.subscribe("traversability", 100,
                                                             &PathFollower::scan_classification_callback, this);
     publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 1);
 }
