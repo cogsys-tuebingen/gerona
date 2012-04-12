@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <numeric>
 #include <math.h>
+#include "ramaxxbase/PTZ.h"
 #include "vectorsaver.h"
 
 using namespace std;
+using namespace traversable_path;
 
 TerrainClassifier::TerrainClassifier() :
         is_calibrated_(false),
@@ -16,7 +18,7 @@ TerrainClassifier::TerrainClassifier() :
 
     // advertise
     publish_normalized_   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
-    publish_path_points_  = node_handle_.advertise<traversable_path::LaserScanClassification>("scan/traversability", 100);
+    publish_path_points_  = node_handle_.advertise<LaserScanClassification>("scan/traversability", 100);
 
     // subscribe laser scanner
     subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &TerrainClassifier::classifyLaserScan, this);
@@ -35,6 +37,16 @@ TerrainClassifier::TerrainClassifier() :
     // look for existing range calibration file
     VectorSaver<float> vs(range_calibration_file_);
     is_calibrated_ = vs.load(&plane_ranges_);
+
+    /** Set laser tilt @todo load the angle from calibration file */
+    ros::Publisher pub_laser_rtz = node_handle_.advertise<ramaxxbase::PTZ>("/cmd_rtz", 1);
+    ramaxxbase::PTZ laser_rtz;
+    laser_rtz.tilt = -0.22; // other values defaults to 0
+    ROS_INFO("Waiting 2 seconds for listener on /cmd_rtz...");
+    sleep(2); //TODO why does a latching publisher not work?
+    pub_laser_rtz.publish(laser_rtz);
+    ROS_INFO("Published laser tilt angle.");
+
 
     // register reconfigure callback (which will also initialize config_ with the default values)
     reconfig_server_.setCallback(boost::bind(&TerrainClassifier::dynamicReconfigureCallback, this, _1, _2));
@@ -73,7 +85,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     smoothed.intensities = smooth(msg->intensities, 4);
 
     // find obstacles
-    traversable_path::LaserScanClassification classification;
+    LaserScanClassification classification;
     vector<bool> traversable = detectObstacles(smoothed, msg->intensities);
 
     // get projection to carthesian frame
