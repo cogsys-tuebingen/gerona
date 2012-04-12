@@ -85,7 +85,7 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
     if (distance > MIN_DISTANCE_BETWEEN_GOALS) {
         // send goal to motion_control
         motion_control::MotionGoal goal;
-        goal.v     = 0.3;
+        goal.v     = 0.4;
         goal.beta  = 0;
         goal.mode  = motion_control::MotionGoal::MOTION_TO_GOAL;
 
