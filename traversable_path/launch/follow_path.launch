@@ -14,7 +14,7 @@
 
 
     <!-- run traversable_path-nodes -->
-    <node name="classify_terrain" pkg="traversable_path" type="classify_terrain" />
+    <include file="$(find traversable_path)/launch/classify_terrain.launch" />
     <node name="follow_path" pkg="traversable_path" type="follow_path" />
 
 </launch>

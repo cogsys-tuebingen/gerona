@@ -1,0 +1,10 @@
+<launch>
+    <!-- laser interpolation filter (interpolates invalid laser data) -->
+    <node name="interpolate_laser" pkg="laser_filters" type="scan_to_scan_filter_chain">
+        <rosparam command="load" file="$(find traversable_path)/laser_filter_interpol.yaml" />
+    </node>
+
+    <node name="classify_terrain" pkg="traversable_path" type="classify_terrain">
+        <remap from="scan" to="/scan_filtered" />
+    </node>
+</launch>

@@ -90,7 +90,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
     // get projection to carthesian frame
     sensor_msgs::PointCloud cloud;
-    laser_projector_.projectLaser(*msg, cloud, laser_geometry::channel_option::Index);
+    laser_projector_.projectLaser(*msg, cloud, -1.0, laser_geometry::channel_option::Index);
     classification.points = cloud.points;
 
     // connect points and traversability-values
@@ -111,8 +111,11 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
     // publish modified message
     publish_path_points_.publish(classification);
+    ROS_DEBUG("Published %zu traversability points", classification.points.size());
+
+    /** @todo This topic is only for debugging. Remove in later versions */
     smoothed.intensities = msg->intensities;
-    publish_normalized_.publish(smoothed); //< FIXME this topic is only for debugging
+    publish_normalized_.publish(smoothed);
 }
 
 bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
