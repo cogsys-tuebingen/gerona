@@ -176,13 +176,13 @@ vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std
 
 
     // constant values
-    const unsigned int LENGTH = data.ranges.size(); //!< Length of the scan vector.
+    const size_t LENGTH = data.ranges.size(); //!< Length of the scan vector.
     //const unsigned int NUM_SEGMENTS = ceil(LENGTH / SEGMENT_SIZE); //!< Number of segments.
 
-    // differentials
     vector<float> diff_ranges(LENGTH);          //!< range differential
     vector<float> diff_intensities(LENGTH);     //!< intensity differential
     
+    // differentials
     for (unsigned int i=0; i < LENGTH - 1; ++i) {
         diff_ranges[i] = data.ranges[i] - data.ranges[i+1];
         diff_intensities[i] = abs(data.intensities[i] - data.intensities[i+1]); //< BEWARE of the abs()!
@@ -198,6 +198,7 @@ vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std
 
     vector<PointClassification> scan_classification(LENGTH);
 
+    // classification
     for (size_t i = 0; i < LENGTH; ++i) {
         if (abs(diff_ranges[i]) > config_.diff_range_limit) {
             scan_classification[i].setFlag(PointClassification::FLAG_DIFF_RANGE_OVER_LIMIT);
@@ -212,7 +213,37 @@ vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std
          * @todo remove that in later versions!
          */
         out[i] = scan_classification[i].obstacle_value() * 20;
-    } 
+    }
+
+    // check neighbourhood of the points
+    const short NEIGHBOURHOOD_RANGE = 30;
+    boost::circular_buffer<PointClassification> neighbourhood(NEIGHBOURHOOD_RANGE*2+1);
+
+    // insert first NEIGHBOURHOOD_RANGE elements of the scan classification to the neighbouthood.
+    neighbourhood.insert(neighbourhood.begin(), scan_classification.begin(),
+                         scan_classification.begin()+NEIGHBOURHOOD_RANGE);
+
+    for (size_t i = 0; i < LENGTH; ++i) {
+        if (i < LENGTH-NEIGHBOURHOOD_RANGE) {
+            neighbourhood.push_back(scan_classification[i+NEIGHBOURHOOD_RANGE]);
+        } else {
+            neighbourhood.pop_front();
+        }
+
+        short diff_intensity_neighbours = 0;
+        boost::circular_buffer<PointClassification>::iterator neighbour_it;
+        for (neighbour_it = neighbourhood.begin(); neighbour_it != neighbourhood.end(); ++neighbour_it) {
+            if (neighbour_it->classification() & PointClassification::FLAG_DIFF_INTENSITY_OVER_LIMIT) {
+                ++diff_intensity_neighbours;
+            } else {
+                --diff_intensity_neighbours;
+            }
+        }
+
+        if (diff_intensity_neighbours > 0) {
+            scan_classification[i].setFlag(PointClassification::FLAG_DIFF_INTENSITY_NEIGHBOUR);
+        }
+    }
 
     // push current scan to buffer (push_front so the current scan has index 0)
     scan_buffer_.push_front(scan_classification);

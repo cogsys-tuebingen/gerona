@@ -8,6 +8,7 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
 #set(ROS_BUILD_TYPE RelWithDebInfo)
+set(Debug)
 
 rosbuild_init()
 
@@ -40,3 +41,6 @@ rosbuild_add_executable(classify_terrain src/terrainclassifier.cpp src/vectorsav
 rosbuild_add_executable(follow_path src/pathfollower.cpp)
 
 rosbuild_add_executable(display_path src/node_display_path.cpp src/visualization.cpp src/GraphUtils.cpp)
+
+# for testing some simple things TODO: remove if not required any more
+rosbuild_add_executable(testblub src/test.cpp) # it seams, that an excutable with name 'test' makes problems...

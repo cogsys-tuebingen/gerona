@@ -29,5 +29,5 @@ int main(int argc, char** argv)
     ros::Subscriber subscribe_classification = node_handle.subscribe("traversability", 1, &classificationCallback);
 
     ros::spin();
-    return 1;
+    return 0;
 }

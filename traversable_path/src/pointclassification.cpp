@@ -17,7 +17,7 @@ classification_t PointClassification::classification()
     return classification_;
 }
 
-int PointClassification::obstacle_value()
+short PointClassification::obstacle_value()
 {
     return obstacle_value_;
 }
@@ -29,13 +29,15 @@ void PointClassification::setFlag(classification_t flag)
     obstacle_value_ += weightByFlag(flag);
 }
 
-int PointClassification::weightByFlag(classification_t flag)
+short PointClassification::weightByFlag(classification_t flag)
 {
     switch (flag) {
     case FLAG_DIFF_RANGE_OVER_LIMIT:
         return WEIGHT_DIFF_RANGE_OVER_LIMIT;
     case FLAG_DIFF_INTENSITY_OVER_LIMIT:
         return WEIGHT_DIFF_INTENSITY_OVER_LIMIT;
+    case FLAG_DIFF_INTENSITY_NEIGHBOUR:
+        return WEIGHT_DIFF_INTENSITY_NEIGHBOUR;
     default:
         ROS_ERROR("PointClassification: Unknown flag %d", flag);
         return 0;

@@ -8,19 +8,22 @@ typedef uint8_t classification_t;
 
 class PointClassification {
 private:
-    static const int OBSTACLE_VALUE_LIMIT = 100;
-    static const int WEIGHT_DIFF_RANGE_OVER_LIMIT = 100;
-    static const int WEIGHT_DIFF_INTENSITY_OVER_LIMIT = 100;
+    static const short OBSTACLE_VALUE_LIMIT = 100;
+    static const short WEIGHT_DIFF_RANGE_OVER_LIMIT = 100;
+    static const short WEIGHT_DIFF_INTENSITY_OVER_LIMIT = 60;
+    static const short WEIGHT_DIFF_INTENSITY_NEIGHBOUR = 40;
 
     classification_t classification_;
-    int obstacle_value_;
+    short obstacle_value_;
 
-    int weightByFlag(classification_t flag);
+    short weightByFlag(classification_t flag);
 
 public:
     // flags
-    static const uint8_t FLAG_DIFF_RANGE_OVER_LIMIT = 1;
-    static const uint8_t FLAG_DIFF_INTENSITY_OVER_LIMIT = 2;
+    static const classification_t FLAG_NONE = 0;
+    static const classification_t FLAG_DIFF_RANGE_OVER_LIMIT = 1;
+    static const classification_t FLAG_DIFF_INTENSITY_OVER_LIMIT = 2;
+    static const classification_t FLAG_DIFF_INTENSITY_NEIGHBOUR = 4;
 
     PointClassification():
             classification_(0),
@@ -31,7 +34,7 @@ public:
     bool operator!=(PointClassification p);
 
     classification_t classification();
-    int obstacle_value();
+    short obstacle_value();
 
     void setFlag(classification_t flag);
     bool isTraversable();
