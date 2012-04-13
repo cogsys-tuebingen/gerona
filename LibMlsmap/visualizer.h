@@ -23,7 +23,7 @@ public:
     MLSmap<VectorCell>* mlsmap;
 
     Visualizer(MLSmap<VectorCell>* map);
-    void writePLY(string filename); //writes out an ply file to harddisk
+    void writePLY(string filename, double max_height=-1); //writes out an ply file to harddisk
     void floodFill(int x, int y, int neighborHeight, int maxHeightDiff, string filename);
 private:
     vector<Vertex> vertices;
@@ -37,7 +37,7 @@ private:
     void writeHeader(ofstream &plyFile);
     void writeData(ofstream &plyFile);
 
-    void writePLY(string filename, MLSmap<VectorCell>* map);
+    void writePLY(string filename, MLSmap<VectorCell>* map, double max_height=-1);
 };
 
 #endif // VISUALIZER_H

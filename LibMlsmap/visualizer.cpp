@@ -143,12 +143,12 @@ void Visualizer::floodFill(int x, int y, int neighborHeight, int maxHeightDiff, 
 }
 
 
-void Visualizer::writePLY(string filename){
-    this->writePLY(filename, this->mlsmap);
+void Visualizer::writePLY(string filename, double max_height){
+    this->writePLY(filename, this->mlsmap, max_height);
 }
 
 
-void Visualizer::writePLY(string filename, MLSmap<VectorCell>* map){
+void Visualizer::writePLY(string filename, MLSmap<VectorCell>* map, double max_height){
 
     long int surfaceCounter = 0;
 
@@ -159,6 +159,8 @@ void Visualizer::writePLY(string filename, MLSmap<VectorCell>* map){
     this->vertices.clear();
     this->faces.clear();
     this->vertexCount = 0;
+
+    bool remove = max_height != -1;
 
     // bestimme die höchste und die tiefste Struktur
     for (int fieldX = 0; fieldX < 16; fieldX++ ){
@@ -193,8 +195,31 @@ void Visualizer::writePLY(string filename, MLSmap<VectorCell>* map){
                         int visX = fieldX * 256 + cellX - 2048;
                         int visY = fieldY * 256 + cellY - 2048;
                         for (vector<Surface>::iterator it = surfaces.begin(); it != surfaces.end(); it++){
-                            addVertices(visX, visY, it->height, it->length, minHeight, maxHeight);
-                            addFaces(it->length);
+                            short int h = it->height;
+                            short int l = it->length;
+
+                            if(remove) {
+                                /*
+                                 * the surface ends at z = h and begins at z = h - l
+                                 */
+
+                                short int z = h - l;
+                                if(z > max_height){
+                                     // ignore surface
+                                    continue;
+                                }
+
+                                if(h > max_height){
+                                    // h < max_height
+                                    // truncate surface
+                                    short int diff = h - max_height;
+                                    l -= diff;
+                                    h -= diff;
+                                }
+                            }
+
+                            addVertices(visX, visY, h, l, minHeight, maxHeight);
+                            addFaces(l);
                             surfaceCounter++;
                         }
 
