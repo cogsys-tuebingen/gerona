@@ -203,9 +203,8 @@ public:
      * @param px x-coordinate of the point in the map coordinate system.
      * @param py y-coordinate of the point in the map coordinate system.
      */
-    virtual void cell2pointSubPixel( const double x, const double y, double& px, double& py ) const {
-      cell2point((unsigned int) x, (unsigned int) y, px, py);
-    }
+    virtual void cell2pointSubPixel( const double x, const double y, double& px, double& py ) const
+        { cell2point((unsigned int) x, (unsigned int) y, px, py); }
 
     inline bool pose2cell( const Pose2d& src, unsigned int& x, unsigned int& y ) const
         { return point2cell( src.x, src.y, x, y ); }
@@ -213,7 +212,7 @@ public:
     inline bool point2cell( const Point2d& p, unsigned int& x, unsigned int& y ) const
         { return point2cell( p.x, p.y, x, y ); }
 
-    inline void cell2point( const unsigned int x, const unsigned int y, Point2d& p )
+    inline void cell2point( const unsigned int x, const unsigned int y, Point2d& p ) const
         { return cell2point( x, y, p.x, p.y ); }
 
     inline bool isInMap( const Point2d& p ) const
