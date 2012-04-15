@@ -16,11 +16,10 @@
   <depend package="roslib"/>
   <depend package="visualization_msgs"/>
   <depend package="geometry_msgs"/>
-  <depend package="a_star"/>
   <depend package="actionlib"/>
   <depend package="actionlib_msgs"/>
-  <depend package="opencv2" />
-
+  <depend package="utils"/>
+  <depend package="eigen"/>
 
 </package>
 

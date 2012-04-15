@@ -3,16 +3,12 @@
 
   <node pkg="frontier_explore" type="ExploreNode" name="frontier_explore" output="screen">
 
-    <param name="erode_iterations" value="1"/>
-    <param name="downsample_iterations" value="1"/>
-   
     <param name="frontier_length_gain" value="0.25"/>
     <param name="frontier_dist_gain" value="1.0"/>
     <param name="frontier_orientation_gain" value="5.0"/>
-    <param name="min_frontier_length" value="0.5"/>
+    <param name="min_frontier_length" value="1.0"/>
 
     <param name="visualize" value="True"/>	
-    <param name="show_debug_map" value="False"/>
 
   </node>
 

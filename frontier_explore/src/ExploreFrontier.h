@@ -50,38 +50,66 @@
 
 // ROS
 #include <geometry_msgs/Pose.h>
-#include <LinearMath/btVector3.h>
 #include <tf/transform_listener.h>
-#include <a_star/AStar.h>
+#include <Eigen/Core>
 
-// Project
-#include "CvMap.h"
+// Workspace
+#include <utils/LibPath/common/GridMap2d.h>
+#include <utils/LibPath/a_star/AStar.h>
 
 namespace frontier_explore {
 
-struct FrontierPoint{
-    int idx;     //position
-    btVector3 d; //direction
+/// Represents one point of a frontier. Internally used
+struct FrontierPoint {
 
-    FrontierPoint(int idx_, btVector3 d_) : idx(idx_), d(d_) {}
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+    /// Cell x coordinate
+    unsigned int x;
+
+    /// Cell y coordinate
+    unsigned int y;
+
+    /// Direction
+    Eigen::Vector3d dir;
+
+    /// Contructor that initializes the cell indices and the direction
+    FrontierPoint( unsigned int cell_x, unsigned int cell_y, Eigen::Vector3d d )
+        : x( cell_x ), y( cell_y ), dir( d ) {}
+
 };
 
+/// Represents a frontier
 struct Frontier {
-    geometry_msgs::Pose pose;
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+    /// Position and orientation (x, y, theta)
+    Eigen::Vector3d pose;
+
+    /// Number of cells
     unsigned int size;
 
-    Frontier():pose(),size(0) {}
-    Frontier( const geometry_msgs::Pose& p, const unsigned int& s ) { pose = p; size = s; }
-    Frontier(const Frontier& copy) { pose = copy.pose; size = copy.size; }
+    /// Default contructor
+    Frontier() : pose( 0, 0, 0 ), size(0) {}
+
+    /// Contructor that initializes the pose and the number of cells
+    Frontier( const Eigen::Vector3d& p, const unsigned int& s ) { pose = p; size = s; }
 };
 
+/// Represents a weighted frontier
 struct WeightedFrontier {
+
+    /// The frontier
     Frontier frontier;
+
+    /// Cost of the frontier
     double cost;
 
-    bool operator<(const WeightedFrontier& o) const { return cost < o.cost; }
-    WeightedFrontier():frontier(),cost(1e9) {}
-    WeightedFrontier(const WeightedFrontier& copy) { frontier = copy.frontier; cost = copy.cost; }
+    /// Cost defaults to 1E9
+    WeightedFrontier() : frontier(), cost( 1e9 ) {}
+
+    bool operator<( const WeightedFrontier& o ) const { return cost < o.cost; }
 };
 
 /**
@@ -89,72 +117,82 @@ struct WeightedFrontier {
  * @brief A class that will identify frontiers in a partially explored map
  */
 class ExploreFrontier {
-private:
-    double min_frontier_length_;
-    double path_length_gain_;
-    double orientation_change_gain_;
-    double frontier_length_gain_;
-
-    AStar* planner_;
-
-protected:
-    std::vector<Frontier> frontiers_;
-
-   /**
-    * @brief Finds frontiers and populates frontiers_
-    * @param map The map to search for frontiers
-    */
-    virtual void findFrontiers( const CvMap& map );
-
-   /**
-    * @brief Calculates cost to explore frontier
-    * @param frontier to evaluate
-    */
-    virtual bool getFrontierCost( const CvMap& map,
-                                    const Frontier& frontier,
-                                    const geometry_msgs::Pose& robot_pose,
-                                    double &cost );
 
 public:
     ExploreFrontier();
     virtual ~ExploreFrontier();
 
-   /**
-    * @brief Returns all frontiers
-    * @param map The map to search for frontiers
-    * @param frontiers Will be filled with current frontiers
-    * @return True if at least one frontier was found
-    */
-    virtual bool getFrontiers( const CvMap &map, std::vector<geometry_msgs::Pose>& frontiers );
+    /**
+     * @brief Returns all frontiers.
+     *
+     * @param map The map to search for frontiers
+     * @param frontiers Will be filled with current frontiers
+     * @return True if at least one frontier was found
+     */
+    virtual bool getFrontiers( const lib_path::GridMap2d &map, std::vector<Frontier>& frontiers );
 
-        /**
-   * @brief Returns a list of frontiers, sorted by the planners estimated cost to visit each frontier
-   * @param costmap The costmap to search for frontiers
-   * @param start The current position of the robot
-   * @param goals Will be filled with sorted list of current goals
-   * @param planner A planner to evaluate the cost of going to any frontier
-   * @param potential_scale A scaling for the potential to a frontier goal point for the frontier's cost
-   * @param orientation_scale A scaling for the change in orientation required to get to a goal point for the frontier's cost
-   * @param gain_scale A scaling for the expected information gain to get to a goal point for the frontier's cost
-   * @return True if at least one frontier was found
-   *
-   * The frontiers are weighted by a simple cost function, which prefers
-   * frontiers which are large and close:
-   *   frontier cost = travel cost / frontier size
-   *
-   * Several different positions are evaluated for each frontier. This
-   * improves the robustness of goals which may lie near other obstacles
-   * which would prevent planning.
-   */
+    /**
+     * @brief Returns a list of frontiers, sorted by estimated cost to visit each frontier.
+     *
+     * @param explore_map The map to search for frontiers
+     * @param ground_map Used to check if a goal is reachable or not
+     * @param robot_pose The current position of the robot
+     * @param goals Will be filled with sorted list of current goals
+     * @return True if at least one frontier was found
+     */
     virtual bool getExplorationGoals(
-            const CvMap& map,
-            geometry_msgs::Pose robot_pose,
-            std::vector<geometry_msgs::Pose>& goals );
+            lib_path::GridMap2d &explore_map,
+            lib_path::GridMap2d &ground_map,
+            const Eigen::Vector3d& robot_pose,
+            std::vector<WeightedFrontier>& goals );
 
+    /// Set minimum frontier length in meter
     virtual void setMinFrontierLength( const double min_length ) { min_frontier_length_ = min_length; }
+
+    /// Set frontier distance gain in frontier cost calculation
     virtual void setPathLengthGain( const double gain ) { path_length_gain_ = gain; }
+
+    /// Set orientation change gain in frontier cost calculation
     virtual void setOrientationChangeGain( const double gain ) { orientation_change_gain_ = gain; }
+
+    /// Set frontier length gain in frontier cost calculation
     virtual void setFrontierLengthGain( const double gain ) { frontier_length_gain_ = gain; }
+
+protected:
+
+    /**
+    * @brief Finds frontiers and populates frontiers_
+    * @param map The map to search for frontiers
+    */
+    virtual void findFrontiers( const lib_path::GridMap2d& map );
+
+    /**
+    * @brief Calculates cost to explore frontier
+    * @param frontier to evaluate
+    */
+    virtual bool getFrontierCost( const lib_path::GridMap2d& map,
+                                  const Frontier& frontier,
+                                  const Eigen::Vector3d& robot_pose,
+                                  double &cost );
+
+    /// All frontiers
+    std::vector<Frontier> frontiers_;
+
+private:
+    /// Minimum frontier length
+    double min_frontier_length_;
+
+    /// Gain of distance to the frontier in cost calculation
+    double path_length_gain_;
+
+    /// Gain of orientation change in cost calculation
+    double orientation_change_gain_;
+
+    /// Gain of frontier length in cost calculation
+    double frontier_length_gain_;
+
+    /// Planner used to determine if a frontier is reachable and to calculate the distance to it
+    lib_path::AStar* planner_;
 };
 
 }

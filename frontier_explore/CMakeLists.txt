@@ -38,8 +38,5 @@ rosbuild_genmsg()
 rosbuild_add_executable(ExploreNode
     src/ExploreNode.cpp
     src/ExploreFrontier.cpp
-    src/CvMap.cpp
+    src/ExplorationMapGenerator.cpp
 )
-
-#link against OpenCV
-target_link_libraries(ExploreNode  a_star)

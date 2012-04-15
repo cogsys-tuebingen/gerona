@@ -8,9 +8,7 @@
 
 // ROS
 #include <visualization_msgs/Marker.h>
-
-// OpenCv
-#include <highgui.h>
+#include <Eigen/Core>
 
 // Project
 #include "ExploreNode.h"
@@ -26,13 +24,14 @@ ExploreNode::ExploreNode( ros::NodeHandle n ) :
     SimpleActionServer<ExplorationGoalsAction>( "exploration_goals",
                                                 boost::bind( &ExploreNode::executeCB, this ),
                                                 false ),
-    cvmap_( 10, 10, 0.1 ),
     tf_( ros::Duration( 5.0 )),
     goals_marker_count_( 0 )
 {
     // Map options
-    n.param<int>( "erode_iterations", erode_, 1 );
-    n.param<int>( "downsample_iterations", downsample_, 1 );
+    n.param( "use_ceiling_map", use_ceiling_map_, false );
+    std::string ground_map_topic, ceiling_map_topic;
+    n.param<std::string>( "ceiling_map_topic", ceiling_map_topic, "/ceiling_map" );
+    n.param<std::string>( "ground_map_topic", ground_map_topic, "/map_inflated" );
 
     // Goal selection config
     double length_gain, ori_gain, path_gain, min_length;
@@ -43,17 +42,6 @@ ExploreNode::ExploreNode( ros::NodeHandle n ) :
 
     // Misc options
     n.param<bool>( "visualize", visualize_, false );
-    n.param<bool>( "show_debug_map", show_debug_map_, false );
-
-    // Check options
-    if ( erode_ < 0 ) {
-        ROS_WARN( "Invalid number of erode iterations: %d. Setting parameter \"erode_iterations\" to zero.", erode_ );
-        erode_ = 0;
-    }
-    if ( downsample_ < 0 ) {
-        ROS_WARN( "Invalid number of downsample iterations: %d. Setting parameter \"downsample_iterations\" to zero.", downsample_ );
-        downsample_ = 0;
-    }
 
     // Setup
     explorer_.setFrontierLengthGain( length_gain );
@@ -62,11 +50,11 @@ ExploreNode::ExploreNode( ros::NodeHandle n ) :
     explorer_.setMinFrontierLength( min_length );
 
     // Neccessary ROS stuff
-    map_service_client_ = n.serviceClient<nav_msgs::GetMap>( "/dynamic_map" );
+    ground_map_subs_ = n.subscribe<nav_msgs::OccupancyGrid>( ground_map_topic, 0, boost::bind( &ExploreNode::groundMapCB, this, _1 ));
+    if ( use_ceiling_map_ )
+        ceiling_map_subs_ = n.subscribe<nav_msgs::OccupancyGrid>( ceiling_map_topic, 0, boost::bind( &ExploreNode::ceilingMapCB, this, _1 ));
     if ( visualize_ )
         visu_pub_ = n.advertise<visualization_msgs::Marker>( "visualization_markers", 100 );
-    if ( show_debug_map_ )
-        cvNamedWindow( "ExploreDebug", CV_WINDOW_NORMAL );
 
     // Start action server
     start();
@@ -75,20 +63,13 @@ ExploreNode::ExploreNode( ros::NodeHandle n ) :
 void ExploreNode::executeCB() {
     ExplorationGoalsResult result;
 
-    // Request the current map
-    nav_msgs::GetMap srv_map;
-    if ( !map_service_client_.call( srv_map )) {
-        ROS_ERROR( "Error requesting the map!" );
+    // Check if we got valid maps
+    if ( !got_ground_map_ ) {
+        ROS_WARN( "Exploration goals requested but there is no ground (or ceiling) map yet. Wait until the data is published." );
         result.status = ExplorationGoalsResult::NO_MAP;
         setAborted( result );
         return;
     }
-
-    // Create/process map
-    occupancyGridToCvMap( srv_map.response.map, cvmap_ );
-    cvmap_.erode( erode_ );
-    for ( int i = 0; i < downsample_; ++i )
-        cvmap_.downsample();
 
     // Preempt?
     if ( isPreemptRequested() || !ros::ok()) {
@@ -97,15 +78,9 @@ void ExploreNode::executeCB() {
         return;
     }
 
-    // Debug image?
-    if ( show_debug_map_ ) {
-        cvShowImage( "ExploreDebug", cvmap_.image );
-        cvWaitKey( 10 );
-    }
-
     // Get the robot position
-    geometry_msgs::Pose robot_pose;
-    if ( !getRobotPose( robot_pose, srv_map.response.map.header.frame_id )) {
+    Eigen::Vector3d robot_pose;
+    if ( !getRobotPose( robot_pose, "/map" /*ground_map_data_.header.frame_id*/ )) {
         ROS_ERROR( "Cannot get robot position." );
         result.status = ExplorationGoalsResult::NO_POSE;
         setAborted( result );
@@ -113,11 +88,33 @@ void ExploreNode::executeCB() {
     }
 
     // Caluclate the frontiers
-    explorer_.getExplorationGoals( cvmap_, robot_pose, result.goals );
+    lib_ros_util::OccupancyGridWrapper ground_map( &ground_map_data_ );
+    std::vector<WeightedFrontier> exploration_goals;
+    if ( use_ceiling_map_ && got_ceiling_map_ ) {
+        // Combine the ceiling and the ground map
+        lib_ros_util::OccupancyGridWrapper ceiling_map( &ceiling_map_data_ );
+        map_gen_.update( ground_map, ceiling_map );
+        explorer_.getExplorationGoals( map_gen_.map, ground_map,robot_pose, exploration_goals );
+    } else {
+        // Use the ground map as exploration map
+        explorer_.getExplorationGoals( ground_map, ground_map, robot_pose, exploration_goals );
+    }
 
     // Visualize detected frontiers?
     if ( visualize_ )
-        publishGoalsVisu( result.goals );
+        publishGoalsVisu( exploration_goals );
+
+    // Copy goals
+    geometry_msgs::Pose goal_pose;
+    Eigen::Vector3d frontier_pose;
+    for ( size_t i = 0; i < exploration_goals.size(); ++i ) {
+        frontier_pose = exploration_goals[i].frontier.pose;
+        goal_pose.position.x = frontier_pose.x();
+        goal_pose.position.y = frontier_pose.y();
+        goal_pose.position.z = 0;
+        goal_pose.orientation = tf::createQuaternionMsgFromYaw( frontier_pose(2));
+        result.goals.push_back( goal_pose );
+    }
 
     // Return action result
     if ( result.goals.size() > 0 )
@@ -129,7 +126,8 @@ void ExploreNode::executeCB() {
     return;
 }
 
-bool ExploreNode::getRobotPose( geometry_msgs::Pose& pose, const std::string& map_frame ) {
+bool ExploreNode::getRobotPose( Eigen::Vector3d &pose, const std::string& map_frame )
+{
     tf::StampedTransform trafo;
     geometry_msgs::TransformStamped msg;
     try {
@@ -139,37 +137,26 @@ bool ExploreNode::getRobotPose( geometry_msgs::Pose& pose, const std::string& ma
     }
 
     tf::transformStampedTFToMsg( trafo, msg );
-    pose.position.x = msg.transform.translation.x;
-    pose.position.y = msg.transform.translation.y;
-    pose.position.z = 0;
-    pose.orientation = msg.transform.rotation;
-
+    pose.x() = msg.transform.translation.x;
+    pose.y() = msg.transform.translation.y;
+    pose(2) = tf::getYaw( msg.transform.rotation );
     return true;
 }
 
-void ExploreNode::occupancyGridToCvMap( const nav_msgs::OccupancyGrid &map, CvMap& cvmap ) {
-    // Check image size
-    if ( cvmap.image->height != (int)map.info.height || cvmap.image->width != (int)map.info.width ) {
-        cvmap.resize( map.info.width, map.info.height );
-    }
-
-    // Resolution/origin migth differ
-    cvmap.resolution = map.info.resolution;
-    cvmap.origin_x = map.info.origin.position.x;
-    cvmap.origin_y = map.info.origin.position.y;
-
-    // Copy map data
-    for ( int i = 0; i < cvmap.image->imageSize; ++i ) {
-        if ( map.data[i] == -1 )
-            cvmap.data[i] = 128; // No information
-        else if ( map.data[i] < 10 )
-            cvmap.data[i] = 255; // Open
-        else
-            cvmap.data[i] = 0; // Lethal obstacle
-    }
+void ExploreNode::groundMapCB( const nav_msgs::OccupancyGridConstPtr &map )
+{
+    ground_map_data_ = *map;
+    got_ground_map_ = true;
 }
 
-void ExploreNode::publishGoalsVisu(const std::vector<geometry_msgs::Pose>& goals ) {
+void ExploreNode::ceilingMapCB( const nav_msgs::OccupancyGridConstPtr &map )
+{
+    ceiling_map_data_ = *map;
+    got_ceiling_map_ = true;
+}
+
+void ExploreNode::publishGoalsVisu(const std::vector<WeightedFrontier> &goals )
+{
     visualization_msgs::Marker m;
     m.header.frame_id = "/map";
     m.header.stamp = ros::Time::now();
@@ -188,9 +175,14 @@ void ExploreNode::publishGoalsVisu(const std::vector<geometry_msgs::Pose>& goals
     m.action = visualization_msgs::Marker::ADD;
     uint id = 0;
     unsigned int count = 0;
+    Eigen::Vector3d p;
     for ( std::size_t i = 0; i < goals.size(); ++i ) {
         m.id = id;
-        m.pose = goals[i];
+        p = goals[i].frontier.pose;
+        m.pose.position.x = p.x();
+        m.pose.position.y = p.y();
+        m.pose.position.z = 0;
+        m.pose.orientation = tf::createQuaternionMsgFromYaw( p(2));
         visu_pub_.publish( m );
         m.color.r = 0; // Only the first goal red
         m.color.b = 255;
@@ -210,7 +202,6 @@ int main( int argc, char* argv[] ) {
 
     ros::init(argc,argv, "frontier_explore");
     ros::NodeHandle n("~");
-    cvInitSystem( argc, argv );
     ExploreNode explore_node( n );
     ros::spin();
 
