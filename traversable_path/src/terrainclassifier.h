@@ -45,6 +45,8 @@ private:
 
     //! Publishes the point classification for the laser scan data
     ros::Publisher publish_path_points_;
+    //! Publisher for the classification point cloud
+    ros::Publisher publish_classification_cloud_;
     //! Subscribes for laser scans.
     ros::Subscriber subscribe_laser_scan_;
     //! Registers calibration service.
@@ -91,7 +93,7 @@ private:
     float avg(boost::circular_buffer<float> &xs);
 
     //! Classifies the points of the given scan.
-    std::vector<bool> detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
+    std::vector<PointClassification> detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
 
     // ! removes single peaks caused only by intensity (which are in most cases no untraversable areas).
     //void removeSingleIntensityPeaks(std::vector<PointClassification> &segments);

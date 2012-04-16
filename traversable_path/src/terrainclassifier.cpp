@@ -19,6 +19,7 @@ TerrainClassifier::TerrainClassifier() :
     // advertise
     publish_normalized_   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
     publish_path_points_  = node_handle_.advertise<LaserScanClassification>("traversability", 100);
+    publish_classification_cloud_ = node_handle_.advertise<sensor_msgs::PointCloud>("path_classification_cloud", 10);
 
     // subscribe laser scanner
     subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &TerrainClassifier::classifyLaserScan, this);
@@ -86,14 +87,37 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
     // find obstacles
     LaserScanClassification classification;
-    vector<bool> traversable = detectObstacles(smoothed, msg->intensities);
+    vector<PointClassification> traversable = detectObstacles(smoothed, msg->intensities);
 
     // get projection to carthesian frame
     sensor_msgs::PointCloud cloud;
+    cloud.header.frame_id = "/laser";
     laser_projector_.projectLaser(*msg, cloud, -1.0, laser_geometry::channel_option::Index);
-    classification.points = cloud.points;
+
+    // color cloud (for rivz)
+    sensor_msgs::ChannelFloat32 colors;
+    colors.name = "rgb";
+    colors.values.resize(cloud.points.size());
+    for (size_t i = 0; i < colors.values.size(); ++i) {
+        int rgb;
+
+        if (traversable[i].isTraversable()) {
+            // traversable. green to yellow depending on obstacle_value.
+            int r = (float) traversable[i].obstacle_value() / PointClassification::OBSTACLE_VALUE_LIMIT * 255;
+            rgb = 0x00ff00 | r;
+        } else {
+            // untraversable -> red
+            rgb = 0xff0000;
+        }
+
+        // set color (RGB values packed into the least significant 24 bits)
+        /** \todo is there a more standard conform way to explicitly set bits of a float? */
+        colors.values[i] = *reinterpret_cast<float*>(&rgb);
+    }
+    cloud.channels.push_back(colors);
 
     // connect points and traversability-values
+    classification.points = cloud.points;
     for (vector<sensor_msgs::ChannelFloat32>::iterator channel_it = cloud.channels.begin();
             channel_it != cloud.channels.end();
             ++channel_it) {
@@ -104,7 +128,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
             classification.traversable.resize(val_size);
             for (unsigned int i = 0; i < val_size; ++i) {
                 unsigned int index = channel_it->values[i];
-                classification.traversable[i] = traversable[index];
+                classification.traversable[i] = traversable[index].isTraversable();
             }
         }
     }
@@ -116,6 +140,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     /** @todo This topic is only for debugging. Remove in later versions */
     smoothed.intensities = msg->intensities;
     publish_normalized_.publish(smoothed);
+    publish_classification_cloud_.publish(cloud);
 }
 
 bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
@@ -172,7 +197,7 @@ float TerrainClassifier::avg(boost::circular_buffer<float> &xs)
         return accumulate(xs.begin(), xs.end(), 0.0) / xs.size();
 }
 
-vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out)
+vector<PointClassification> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out)
 {
     // parameters
     //const unsigned int SEGMENT_SIZE = 1;       //!< Points per segment. //TODO unterteilung in segmente weglassen?
@@ -253,7 +278,7 @@ vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std
 
     // points will only be marked as traversable if they are traversable in more than the half of the scans in the
     // scan buffer.
-    vector<bool> traversability(LENGTH);   //!< Final classification of the points.
+    //# vector<bool> traversability(LENGTH);   //!< Final classification of the points.
     const unsigned int scan_buffer_size = scan_buffer_.size();
 
     for (unsigned int i = 0; i < LENGTH; ++i) {
@@ -264,7 +289,11 @@ vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std
                 ++sum_traversable;
         }
 
-        traversability[i] = (sum_traversable > scan_buffer_size/2);
+        //# traversability[i] = (sum_traversable > scan_buffer_size/2);
+        /** \todo this does not realy work as intended */
+        if (sum_traversable < scan_buffer_size/2) {
+            scan_classification[i].setFlag(PointClassification::FLAG_UNTRAVERSABLE_IN_PAST_SCANS);
+        }
     }
 
 
@@ -276,37 +305,37 @@ vector<bool> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std
     // the middle of the robot is approximatly in the middle of the scan data...
     //int mid = NUM_SEGMENTS/2;
     //FIXME simple for the beginning...
-    const int MIN_TRAVERSABLE_SEGMENTS = 50;
-    int traversable_counter = 0;
-    for (vector<bool>::iterator trav_it = traversability.begin(); trav_it != traversability.end(); ++trav_it) {
-        if (*trav_it) {
-            ++traversable_counter;
-        } else {
-            //ROS_DEBUG("Width: untraversable. counter: %d", traversable_counter);
-            if (traversable_counter > 0 && traversable_counter < MIN_TRAVERSABLE_SEGMENTS) {
-                //ROS_DEBUG("Width: Drop narrow path");
-                // go back and make points untraversable
-                for (int i = 0; i < traversable_counter; ++i) {
-                    --trav_it;
-                    *trav_it = false;
-                }
-                // jump back to the current position
-                trav_it += traversable_counter;
-            }
-            traversable_counter = 0;
-        }
-    }
+//    const int MIN_TRAVERSABLE_SEGMENTS = 50;
+//    int traversable_counter = 0;
+//    for (vector<bool>::iterator trav_it = traversability.begin(); trav_it != traversability.end(); ++trav_it) {
+//        if (*trav_it) {
+//            ++traversable_counter;
+//        } else {
+//            //ROS_DEBUG("Width: untraversable. counter: %d", traversable_counter);
+//            if (traversable_counter > 0 && traversable_counter < MIN_TRAVERSABLE_SEGMENTS) {
+//                //ROS_DEBUG("Width: Drop narrow path");
+//                // go back and make points untraversable
+//                for (int i = 0; i < traversable_counter; ++i) {
+//                    --trav_it;
+//                    *trav_it = false;
+//                }
+//                // jump back to the current position
+//                trav_it += traversable_counter;
+//            }
+//            traversable_counter = 0;
+//        }
+//    }
 
     /**
      * missuse out as obstacle indicator... just for testing, I promise! :P
      * @todo remove that in later versions!
      */
     for (unsigned int i = 0; i < LENGTH; ++i) {
-        if (!traversability[i])
+        if (!scan_classification[i].isTraversable())
             out[i] = 5000.0;
     }
 
-    return traversability;
+    return scan_classification;
 }
 
 

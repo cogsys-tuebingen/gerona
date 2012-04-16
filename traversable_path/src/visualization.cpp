@@ -54,7 +54,7 @@ void Visualization::paintPath(std::vector<uint8_t> points)
     }
 
     if (!is_path_initialized_) {
-        ROS_INFO("Initialize path image. Size: 1000x%d", points.size());
+        ROS_INFO("Initialize path image. Size: 1000x%zu", points.size());
         path_ = cv::Mat(cv::Size(1000, points.size()), CV_8UC3);
         path_pos_ = 0;
         is_path_initialized_ = true;
@@ -68,7 +68,7 @@ void Visualization::paintPath(std::vector<uint8_t> points)
     bool current_state = points[0];
     int last_toggle = 0;
     cv::Scalar color;
-    for (unsigned int i = 1; i < path_.rows; ++i) {
+    for (int i = 1; i < path_.rows; ++i) {
         if (points[i] != current_state) {
             color = current_state ? cv::Scalar(0, 255, 0) : cv::Scalar(0, 0, 255);
             cv::line(path_, cv::Point(path_pos_, last_toggle), cv::Point(path_pos_, i-1), color);
