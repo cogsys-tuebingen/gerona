@@ -98,6 +98,14 @@ private:
     // ! removes single peaks caused only by intensity (which are in most cases no untraversable areas).
     //void removeSingleIntensityPeaks(std::vector<PointClassification> &segments);
 
+    /**
+     * @brief Drop traversable segments, that are too narrow for the robot.
+     *
+     * @param points The classification and position of the points. The points of too narrow paths will be marked as
+     *               untraversable within points.
+     */
+    void dropNarrowPaths(traversable_path::LaserScanClassification *points);
+
     //! Callback for dynamic reconfigure.
     void dynamicReconfigureCallback(Config &config, uint32_t level);
 };

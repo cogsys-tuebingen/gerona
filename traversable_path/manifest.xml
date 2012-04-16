@@ -20,7 +20,9 @@
   <depend package="actionlib_msgs"/>
   <depend package="visualization_msgs" />
   <depent package="dynamic_reconfigure"/>
+  <!--
+  <depent package="pcl"/>
+  <depent package="pcl_ros"/>
+  -->
 
 </package>
-
-

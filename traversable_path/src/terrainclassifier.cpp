@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <numeric>
 #include <math.h>
+//#include <pcl/point_cloud.h>
+//#include <pcl/point_types.h>
+//#include <pcl_ros/point_cloud.h>
 #include "ramaxxbase/PTZ.h"
 #include "vectorsaver.h"
 
@@ -56,7 +59,7 @@ TerrainClassifier::TerrainClassifier() :
 void TerrainClassifier::dynamicReconfigureCallback(Config &config, uint32_t level)
 {
     config_ = config;
-    ROS_DEBUG("Reconfigure TerrainClassifier. range: %f", config.diff_range_limit);
+    ROS_DEBUG("Reconfigure TerrainClassifier.");
 }
 
 void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
@@ -94,7 +97,8 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     cloud.header.frame_id = "/laser";
     laser_projector_.projectLaser(*msg, cloud, -1.0, laser_geometry::channel_option::Index);
 
-    // color cloud (for rivz)
+    // add channels to cloud
+    //! color cloud (for rivz)
     sensor_msgs::ChannelFloat32 colors;
     colors.name = "rgb";
     colors.values.resize(cloud.points.size());
@@ -109,7 +113,6 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
             // untraversable -> red
             rgb = 0xff0000;
         }
-
         // set color (RGB values packed into the least significant 24 bits)
         /** \todo is there a more standard conform way to explicitly set bits of a float? */
         colors.values[i] = *reinterpret_cast<float*>(&rgb);
@@ -132,6 +135,8 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
             }
         }
     }
+
+    dropNarrowPaths(&classification);
 
     // publish modified message
     publish_path_points_.publish(classification);
@@ -299,33 +304,6 @@ vector<PointClassification> TerrainClassifier::detectObstacles(sensor_msgs::Lase
 
     //removeSingleIntensityPeaks(segments);
 
-
-    // drop traversable segments, that are too narrow for the robot
-    //const float MIN_TRAVERSABLE_WIDTH = 0.7; // 70cm
-    // the middle of the robot is approximatly in the middle of the scan data...
-    //int mid = NUM_SEGMENTS/2;
-    //FIXME simple for the beginning...
-//    const int MIN_TRAVERSABLE_SEGMENTS = 50;
-//    int traversable_counter = 0;
-//    for (vector<bool>::iterator trav_it = traversability.begin(); trav_it != traversability.end(); ++trav_it) {
-//        if (*trav_it) {
-//            ++traversable_counter;
-//        } else {
-//            //ROS_DEBUG("Width: untraversable. counter: %d", traversable_counter);
-//            if (traversable_counter > 0 && traversable_counter < MIN_TRAVERSABLE_SEGMENTS) {
-//                //ROS_DEBUG("Width: Drop narrow path");
-//                // go back and make points untraversable
-//                for (int i = 0; i < traversable_counter; ++i) {
-//                    --trav_it;
-//                    *trav_it = false;
-//                }
-//                // jump back to the current position
-//                trav_it += traversable_counter;
-//            }
-//            traversable_counter = 0;
-//        }
-//    }
-
     /**
      * missuse out as obstacle indicator... just for testing, I promise! :P
      * @todo remove that in later versions!
@@ -336,6 +314,40 @@ vector<PointClassification> TerrainClassifier::detectObstacles(sensor_msgs::Lase
     }
 
     return scan_classification;
+}
+
+void TerrainClassifier::dropNarrowPaths(traversable_path::LaserScanClassification *points)
+{
+    size_t index_start = 0;       //!< Index of the first point of a traversable segment.
+    bool on_trav_segment = false; //!< True if currently iterating in a traversable segment, otherwise false.
+
+    for (size_t i = 0; i < points->points.size(); ++i) {
+        if (on_trav_segment && !points->traversable[i]) {
+            // end traversable segment
+            on_trav_segment = false;
+
+            geometry_msgs::Point32 point_start = points->points[index_start];
+            geometry_msgs::Point32 point_end = points->points[i-1]; // i > 0 because on_trav_segment is init. with false
+            
+            double distance = sqrt( pow(point_start.x - point_end.x, 2) +
+                                    pow(point_start.y - point_end.y, 2) +
+                                    pow(point_start.z - point_end.z, 2) );
+
+            if (distance < config_.min_path_width) {
+                // make this segment untraversable
+                for (size_t j = index_start; j < i; ++j) {
+                    points->traversable[j] = false;
+                }
+                ROS_DEBUG("Drop too narrow path (index %zu to %zu, distance: %.2fm)", index_start, i-1, distance);
+            }
+        }
+        else if (!on_trav_segment && points->traversable[i]) {
+            // begin new traversable segment
+            on_trav_segment = true;
+            index_start = i;
+        }
+        // else continue;
+    }
 }
 
 

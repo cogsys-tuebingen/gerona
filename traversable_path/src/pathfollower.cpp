@@ -43,7 +43,7 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
         ++end;
     }
 
-    ROS_DEBUG("size points: %d, size traversable: %d, beginning: %d, end: %d",
+    ROS_DEBUG("size points: %zu, size traversable: %zu, beginning: %d, end: %d",
               scan->points.size(), scan->traversable.size(), beginning, end);
 
     // goal = point in the middle of the path

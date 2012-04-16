@@ -4,7 +4,7 @@
         <rosparam command="load" file="$(find traversable_path)/laser_filter_interpol.yaml" />
     </node>
 
-    <node name="classify_terrain" pkg="traversable_path" type="classify_terrain">
+    <node name="classify_terrain" pkg="traversable_path" type="classify_terrain" output="screen">
         <remap from="scan" to="/scan_filtered" />
     </node>
 </launch>
