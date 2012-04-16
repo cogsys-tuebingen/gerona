@@ -104,7 +104,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
         if (traversable[i].isTraversable()) {
             // traversable. green to yellow depending on obstacle_value.
             int r = (float) traversable[i].obstacle_value() / PointClassification::OBSTACLE_VALUE_LIMIT * 255;
-            rgb = 0x00ff00 | r;
+            rgb = 0x00ff00 | (r<<16);
         } else {
             // untraversable -> red
             rgb = 0xff0000;
