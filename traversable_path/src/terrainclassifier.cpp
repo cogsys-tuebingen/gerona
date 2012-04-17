@@ -75,6 +75,9 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     }
 
     sensor_msgs::LaserScan smoothed = *msg;
+    vector<PointClassification> traversable;
+    LaserScanClassification classification;
+    sensor_msgs::PointCloud cloud;
 
     // subtract plane calibration values to normalize the scan data
     for (unsigned int i=0; i < msg->ranges.size(); ++i) {
@@ -89,13 +92,11 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     smoothed.intensities = smooth(msg->intensities, 4);
 
     // find obstacles
-    LaserScanClassification classification;
-    vector<PointClassification> traversable = detectObstacles(smoothed, msg->intensities);
+    traversable = detectObstacles(smoothed, msg->intensities);
 
     // get projection to carthesian frame
-    sensor_msgs::PointCloud cloud;
-    cloud.header.frame_id = "/laser";
     laser_projector_.projectLaser(*msg, cloud, -1.0, laser_geometry::channel_option::Index);
+    cloud.header.frame_id = "/laser";
 
     // add channels to cloud
     //! color cloud (for rivz)
@@ -119,7 +120,9 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     }
     cloud.channels.push_back(colors);
 
+
     // connect points and traversability-values
+    /** \todo use pointcloud instead of own message type */
     classification.points = cloud.points;
     for (vector<sensor_msgs::ChannelFloat32>::iterator channel_it = cloud.channels.begin();
             channel_it != cloud.channels.end();
@@ -138,14 +141,15 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
     dropNarrowPaths(&classification);
 
+
     // publish modified message
     publish_path_points_.publish(classification);
     ROS_DEBUG("Published %zu traversability points", classification.points.size());
 
+    publish_classification_cloud_.publish(cloud);
     /** @todo This topic is only for debugging. Remove in later versions */
     smoothed.intensities = msg->intensities;
     publish_normalized_.publish(smoothed);
-    publish_classification_cloud_.publish(cloud);
 }
 
 bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
@@ -370,204 +374,6 @@ void TerrainClassifier::dropNarrowPaths(traversable_path::LaserScanClassificatio
     }
 }
 
-
-/*
-vector<bool> TerrainClassifier::detectObstaclesOld(sensor_msgs::LaserScan data, std::vector<float> &out)
-{
-    // parameters
-    const unsigned int SEGMENT_SIZE = 10;       //!< Points per segment. //TODO unterteilung in segmente weglassen?
-
-    // number of values
-    const unsigned int LENGTH = data.ranges.size(); //!< Length of the scan vector.
-    const unsigned int NUM_SEGMENTS = ceil(LENGTH / SEGMENT_SIZE); //!< Number of segments.
-    // differentials
-    vector<float> diff_ranges(LENGTH);          //!< range differential
-    vector<float> diff_intensities(LENGTH);     //!< intensity differential
-
-    for (unsigned int i=0; i < LENGTH - 1; ++i) {
-        diff_ranges[i] = data.ranges[i] - data.ranges[i+1];
-        diff_intensities[i] = abs(data.intensities[i] - data.intensities[i+1]); //< BEWARE of the abs()!
-    }
-    diff_ranges[LENGTH-1] = diff_ranges[LENGTH-2];
-    diff_intensities[LENGTH-1] = diff_intensities[LENGTH-2];
-
-    // smooth differential of intensity
-    diff_intensities = smooth(diff_intensities, 6);
-
-
-    // classify the current scan
-    vector<PointClassification> classification; //!< Classification for each segment in the current scan.
-    for (unsigned int i = 0; i < LENGTH; i+=SEGMENT_SIZE) {
-        float sum_range = 0;
-        float sum_intensity = 0;
-        PointClassification seg_class;
-
-        for (unsigned int j = i; j < i+SEGMENT_SIZE && j < LENGTH; ++j) {
-            sum_range += abs(diff_ranges[i]);
-            sum_intensity += abs(diff_intensities[i]);
-        }
-
-        seg_class.traversable_by_range     = (    sum_range / SEGMENT_SIZE < config_.diff_range_limit    );
-        seg_class.traversable_by_intensity = (sum_intensity / SEGMENT_SIZE < config_.diff_intensity_limit);
-
-//        // check height (this is important to detect walls in front)
-//        if (abs(data.ranges[i]) > 0.3) {
-//            seg_class.traversable_by_range = false;
-//        }
-
-        classification.push_back(seg_class);
-    }
-
-
-
-    // push current scn to buffer
-    scan_buffer.push_back(classification);
-
-    // points will only be marked as traversable if they are traversable in more than the half of the scans in the
-    // scan buffer.
-    int num_untraversable_due_to_intensity = 0;
-    vector<PointClassification> segments( NUM_SEGMENTS );   //!< Final classification of the segments.
-    unsigned int scan_buffer_size = scan_buffer.size();
-
-    for (unsigned int i = 0; i < NUM_SEGMENTS; ++i) {
-        int sum_traversable_range     = 0;
-        int sum_traversable_intensity = 0;
-
-        for (unsigned int j = 0; j < scan_buffer_size; ++j) {
-            if (scan_buffer[j][i].traversable_by_range)
-                ++sum_traversable_range;
-
-            if (scan_buffer[j][i].traversable_by_intensity)
-                ++sum_traversable_intensity;
-        }
-
-        segments[i].traversable_by_range = (sum_traversable_range > scan_buffer_size/2.0);
-        segments[i].traversable_by_intensity = (sum_traversable_intensity > scan_buffer_size/2.0);
-
-        if (!segments[i].traversable_by_intensity) {
-            ++num_untraversable_due_to_intensity;
-        }
-    }
-
-
-    removeSingleIntensityPeaks(segments);
-
-
-    // drop traversable segments, that are too narrow for the robot
-    //const float MIN_TRAVERSABLE_WIDTH = 0.7; // 70cm
-    // the middle of the robot is approximatly in the middle of the scan data...
-    //int mid = NUM_SEGMENTS/2;
-    //FIXME simple for the beginning...
-    const int MIN_TRAVERSABLE_SEGMENTS = 5;
-    int traversable_counter = 0;
-    for (vector<PointClassification>::iterator seg_it = segments.begin(); seg_it != segments.end(); ++seg_it) {
-        if (seg_it->traversable_by_range && seg_it->traversable_by_intensity) {
-            ++traversable_counter;
-        } else {
-            //ROS_DEBUG("Width: untraversable. counter: %d", traversable_counter);
-            if (traversable_counter > 0 && traversable_counter < MIN_TRAVERSABLE_SEGMENTS) {
-                //ROS_DEBUG("Width: Drop narrow path");
-                for (int i = 0; i < traversable_counter; ++i) {
-                    --seg_it;
-                    seg_it->traversable_by_range = false; //TODO: nicht range, dafür extra feld?
-                }
-                seg_it += traversable_counter;
-            }
-            traversable_counter = 0;
-        }
-    }
-
-    // only use intensity, if not more than 60% of the segments are untraversable due to intensity.
-    // deaktivated
-    bool use_intensity = true; //(float)num_untraversable_due_to_intensity / NUM_SEGMENTS < 0.60;
-
-    vector<bool> result;
-    result.resize(LENGTH);
-
-    // convert segment vector to point vector (each point is mapped to a bool. True = traversable, false=untraversable)
-    for (unsigned int i = 0; i < LENGTH; ++i) {
-        result[i] = segments[i/SEGMENT_SIZE].isTraversable();
-
-        // missuse out as obstacle indicator... just for testing, I promise! :P
-        out[i] = 0.0;
-        if (!segments[i/SEGMENT_SIZE].traversable_by_range)
-            out[i] += 3000.0;
-        if (use_intensity && !segments[i/SEGMENT_SIZE].traversable_by_intensity)
-            out[i] += 5000.0;
-    }
-
-    return result;
-}
-*/
-
-/*
-void TerrainClassifier::removeSingleIntensityPeaks(std::vector<PointClassification> &segments)
-{
-    //! Minimum number of traversable segments around a intensity peak that allows to ignore this peak.
-    const int MIN_SPACE_AROUND_FALSE_INTESITY_PEAK = 3;
-    //! Maximum size of an intensity peak (in segments) that allowes to ignore this peak.
-    const int MAX_FALSE_INTENSITY_PEAK_SIZE = 3;
-
-    // remove single intensity-peaks (using a simple state machine)
-    const int STATE_BEFORE_PEAK = 0;
-    const int STATE_PEAK = 1;
-    const int STATE_AFTER_PEAK = 2;
-    int intensity_state = STATE_BEFORE_PEAK;
-    int intensity_peak_start = 0;
-    int intensity_peak_size  = 0;
-    int traversable_counter = 0;
-
-    for (size_t i = 0; i < segments.size(); ++i) {
-        //ROS_DEBUG("R:%d, I:%d, State: %d", result[i].traversable_by_range, result[i].traversable_by_intensity, intensity_state);
-
-        switch (intensity_state) {
-        case STATE_BEFORE_PEAK:
-            if (segments[i].traversable_by_range && segments[i].traversable_by_intensity) {
-                ++traversable_counter;
-            } else {
-                if (segments[i].traversable_by_range && traversable_counter >= MIN_SPACE_AROUND_FALSE_INTESITY_PEAK) {
-                    intensity_state = STATE_PEAK;
-                    intensity_peak_start = i;
-                    intensity_peak_size = 1;
-                }
-
-                traversable_counter = 0;
-            }
-
-            break;
-
-        case STATE_PEAK:
-            if (segments[i].traversable_by_range && segments[i].traversable_by_intensity) {
-                intensity_state = STATE_AFTER_PEAK;
-                ++traversable_counter;
-            } else if (segments[i].traversable_by_range) { // only intensity
-                if (++intensity_peak_size > MAX_FALSE_INTENSITY_PEAK_SIZE) {
-                    intensity_state = STATE_BEFORE_PEAK;
-                }
-            } else {
-                intensity_state = STATE_BEFORE_PEAK;
-            }
-
-            break;
-
-        case STATE_AFTER_PEAK:
-            if (segments[i].traversable_by_range && segments[i].traversable_by_intensity) {
-                if (++traversable_counter >= MIN_SPACE_AROUND_FALSE_INTESITY_PEAK) {
-                    ROS_DEBUG("Remove intensity peak");
-                    for (int j = intensity_peak_start; j < intensity_peak_start+intensity_peak_size; ++j) {
-                        segments[j].traversable_by_intensity = true;
-                    }
-                    intensity_state = STATE_BEFORE_PEAK;
-                }
-            } else {
-                intensity_state = STATE_BEFORE_PEAK;
-            }
-
-            break;
-        }
-    }
-}
-*/
 
 //--------------------------------------------------------------------------
 

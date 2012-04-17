@@ -95,9 +95,6 @@ private:
     //! Classifies the points of the given scan.
     std::vector<PointClassification> detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out);
 
-    // ! removes single peaks caused only by intensity (which are in most cases no untraversable areas).
-    //void removeSingleIntensityPeaks(std::vector<PointClassification> &segments);
-
     /**
      * @brief Check neighbourhood of each point for some features.
      *
