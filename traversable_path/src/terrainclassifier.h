@@ -99,6 +99,13 @@ private:
     //void removeSingleIntensityPeaks(std::vector<PointClassification> &segments);
 
     /**
+     * @brief Check neighbourhood of each point for some features.
+     *
+     * @param Classification of the points. This method will set flags to some points, depending on their neighbours.
+     */
+    void checkPointNeighbourhood(std::vector<PointClassification> *scan_classification);
+
+    /**
      * @brief Drop traversable segments, that are too narrow for the robot.
      *
      * @param points The classification and position of the points. The points of too narrow paths will be marked as

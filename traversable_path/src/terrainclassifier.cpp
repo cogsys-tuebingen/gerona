@@ -172,21 +172,18 @@ vector<float> TerrainClassifier::smooth(std::vector<float> data, const unsigned 
     unsigned int length = data.size();
 
     // push first values to neighbourhood
-    for (unsigned int i = 0; i < num_values && i < length; ++i)
-    {
+    for (unsigned int i = 0; i < num_values && i < length; ++i) {
         neighbourhood.push_back(data[i]);
     }
 
     // push next
-    for (unsigned int i = 0; i < length-num_values; ++i)
-    {
+    for (unsigned int i = 0; i < length-num_values; ++i) {
         neighbourhood.push_back(data[i+num_values]);
         data[i] = avg(neighbourhood);
     }
 
     // nothing more to push
-    for (unsigned int i = length-num_values; i < data.size(); ++i)
-    {
+    for (unsigned int i = length-num_values; i < data.size(); ++i) {
         neighbourhood.pop_front();
         data[i] = avg(neighbourhood);
     }
@@ -204,13 +201,8 @@ float TerrainClassifier::avg(boost::circular_buffer<float> &xs)
 
 vector<PointClassification> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out)
 {
-    // parameters
-    //const unsigned int SEGMENT_SIZE = 1;       //!< Points per segment. //TODO unterteilung in segmente weglassen?
-
-
     // constant values
     const size_t LENGTH = data.ranges.size(); //!< Length of the scan vector.
-    //const unsigned int NUM_SEGMENTS = ceil(LENGTH / SEGMENT_SIZE); //!< Number of segments.
 
     vector<float> diff_ranges(LENGTH);          //!< range differential
     vector<float> diff_intensities(LENGTH);     //!< intensity differential
@@ -225,8 +217,6 @@ vector<PointClassification> TerrainClassifier::detectObstacles(sensor_msgs::Lase
 
     // smooth differential of intensity
     diff_intensities = smooth(diff_intensities, 6);
-
-
 
 
     vector<PointClassification> scan_classification(LENGTH);
@@ -248,35 +238,8 @@ vector<PointClassification> TerrainClassifier::detectObstacles(sensor_msgs::Lase
         out[i] = scan_classification[i].obstacle_value() * 20;
     }
 
-    // check neighbourhood of the points
-    const short NEIGHBOURHOOD_RANGE = 30;
-    boost::circular_buffer<PointClassification> neighbourhood(NEIGHBOURHOOD_RANGE*2+1);
 
-    // insert first NEIGHBOURHOOD_RANGE elements of the scan classification to the neighbouthood.
-    neighbourhood.insert(neighbourhood.begin(), scan_classification.begin(),
-                         scan_classification.begin()+NEIGHBOURHOOD_RANGE);
-
-    for (size_t i = 0; i < LENGTH; ++i) {
-        if (i < LENGTH-NEIGHBOURHOOD_RANGE) {
-            neighbourhood.push_back(scan_classification[i+NEIGHBOURHOOD_RANGE]);
-        } else {
-            neighbourhood.pop_front();
-        }
-
-        short diff_intensity_neighbours = 0;
-        boost::circular_buffer<PointClassification>::iterator neighbour_it;
-        for (neighbour_it = neighbourhood.begin(); neighbour_it != neighbourhood.end(); ++neighbour_it) {
-            if (neighbour_it->classification() & PointClassification::FLAG_DIFF_INTENSITY_OVER_LIMIT) {
-                ++diff_intensity_neighbours;
-            } else {
-                --diff_intensity_neighbours;
-            }
-        }
-
-        if (diff_intensity_neighbours > 0) {
-            scan_classification[i].setFlag(PointClassification::FLAG_DIFF_INTENSITY_NEIGHBOUR);
-        }
-    }
+    checkPointNeighbourhood(&scan_classification);
 
     // push current scan to buffer (push_front so the current scan has index 0)
     scan_buffer_.push_front(scan_classification);
@@ -302,8 +265,6 @@ vector<PointClassification> TerrainClassifier::detectObstacles(sensor_msgs::Lase
     }
 
 
-    //removeSingleIntensityPeaks(segments);
-
     /**
      * missuse out as obstacle indicator... just for testing, I promise! :P
      * @todo remove that in later versions!
@@ -315,6 +276,65 @@ vector<PointClassification> TerrainClassifier::detectObstacles(sensor_msgs::Lase
 
     return scan_classification;
 }
+
+
+void TerrainClassifier::checkPointNeighbourhood(vector<PointClassification> *scan_classification)
+{
+    /*
+     * Check neighbourhood of the points. This is done by buffering NEIGHBOURHOOD_RANGE points before and after the
+     * current point and iterate over this buffer.
+     * If a feature-flag is set in more than the half of this points, an according neighbourhood-flag is set.
+     */
+    //! Range of the neighbourhood (Number of points before and after the current point, NOT total number of points).
+    const short NEIGHBOURHOOD_RANGE = 30;
+    //! Length of the scan vector.
+    const size_t LENGTH = scan_classification->size();
+    boost::circular_buffer<PointClassification> neighbourhood(NEIGHBOURHOOD_RANGE*2+1);
+
+    // insert first NEIGHBOURHOOD_RANGE elements of the scan classification to the neighbouthood.
+    neighbourhood.insert(neighbourhood.begin(), scan_classification->begin(),
+                         scan_classification->begin() + NEIGHBOURHOOD_RANGE);
+
+    for (size_t i = 0; i < LENGTH; ++i) {
+        // maintain neighbourhood
+        if (i < LENGTH - NEIGHBOURHOOD_RANGE) {
+            neighbourhood.push_back((*scan_classification)[i+NEIGHBOURHOOD_RANGE]);
+        } else {
+            neighbourhood.pop_front();
+        }
+
+        // Counters for the features. Will be incremented for each point with this feature and decremented for each
+        // point without (so counter > 0 means, the feature is detected in more than the half of the points).
+        short diff_intensity_neighbours = 0;
+        short diff_range_neighbours = 0;
+        // iterate over neighbourhood
+        boost::circular_buffer<PointClassification>::iterator neighbour_it;
+        for (neighbour_it = neighbourhood.begin(); neighbour_it != neighbourhood.end(); ++neighbour_it) {
+            // count points with DIFF_INTENSITY_OVER_LIMIT
+            if (neighbour_it->classification() & PointClassification::FLAG_DIFF_INTENSITY_OVER_LIMIT) {
+                ++diff_intensity_neighbours;
+            } else {
+                --diff_intensity_neighbours;
+            }
+
+            // count points with DIFF_RANGE_OVER_LIMIT
+            if (neighbour_it->classification() & PointClassification::FLAG_DIFF_RANGE_OVER_LIMIT) {
+                ++diff_range_neighbours;
+            } else {
+                --diff_range_neighbours;
+            }
+        }
+
+        // Check counters and set according flags.
+        if (diff_intensity_neighbours > 0) {
+            (*scan_classification)[i].setFlag(PointClassification::FLAG_DIFF_INTENSITY_NEIGHBOUR);
+        }
+        if (diff_range_neighbours > 0) {
+            (*scan_classification)[i].setFlag(PointClassification::FLAG_DIFF_RANGE_NEIGHBOUR);
+        }
+    }
+}
+
 
 void TerrainClassifier::dropNarrowPaths(traversable_path::LaserScanClassification *points)
 {
