@@ -19,6 +19,7 @@
 // ROS
 #include <ros/ros.h>
 #include <tf/tf.h>
+#include <tf/transform_listener.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <actionlib/server/simple_action_server.h>
 #include <Eigen/Core>
@@ -27,7 +28,7 @@
 #include <utils/LibRosUtil/OccupancyGridWrapper.h>
 
 // Project
-#include "ExploreFrontier.h"
+#include "Explorer.h"
 #include "ExplorationMapGenerator.h"
 #include <frontier_explore/ExplorationGoalsAction.h>
 
@@ -84,7 +85,15 @@ protected:
      *
      * @param goals The goals.
      */
-    void publishGoalsVisu( const std::vector<WeightedFrontier>& goals );
+    void publishGoalsVisu( const std::vector<WeightedGoal>& goals );
+
+    /**
+     * @brief Transform a stamped pose to the internally used datatype
+     * @param in Ths stamped pose
+     * @param out Transformed pose
+     * @return False if an error occured.
+     */
+    bool poseStampedToInternal( const geometry_msgs::PoseStamped& in, Eigen::Vector3d &out );
 
 private:
 
@@ -107,7 +116,7 @@ private:
     ros::Subscriber ceiling_map_subs_;
 
     /// Detects the frontiers
-    frontier_explore::ExploreFrontier explorer_;
+    Explorer explorer_;
 
     /// Number of published goal markers (used to delete old markers)
     unsigned int goals_marker_count_;

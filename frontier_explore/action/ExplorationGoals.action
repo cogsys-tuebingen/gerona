@@ -1,5 +1,11 @@
 # Goal definition for the get exploration goals action
 
+# Points of interest
+geometry_msgs/PoseStamped[] poi
+
+# Importance for every poi entry. Importance values should be > 0
+float32[] importance
+
 ---
 # Result definition
 
@@ -13,12 +19,19 @@ int32 PREEMPTED = 2
 int32 NO_MAP = 3
 # Error. Cannot get the robot pose in map coordinates.
 int32 NO_POSE = 4
+# Error. Cannot transform pose
+int32 NO_TRANSFORM = 5
 
 # The result status
 int32 status
 
-# The exploration goals. Best goal first.
-geometry_msgs/Pose[] goals
+# The exploration goals. Best goal first
+geometry_msgs/PoseStamped[] goals
+
+# Estimated distance for each goal
+float32[] distance
 
 ---
 # Feedback definition
+
+# We don't send feedback

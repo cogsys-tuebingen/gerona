@@ -37,6 +37,8 @@ rosbuild_genmsg()
 #build node executable
 rosbuild_add_executable(ExploreNode
     src/ExploreNode.cpp
-    src/ExploreFrontier.cpp
     src/ExplorationMapGenerator.cpp
+    src/FrontierFinder.cpp
+    src/GoalSelector.cpp
+    src/Explorer.cpp
 )

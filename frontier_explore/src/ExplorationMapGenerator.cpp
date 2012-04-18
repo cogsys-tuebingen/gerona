@@ -20,8 +20,6 @@
 ExplorationMapGenerator::ExplorationMapGenerator()
     : map( 10, 10, 1.0 ) // Dummy initialization
 {
-    map.setLowerThreshold( 20 );
-    map.setUpperThreshold( 80 );
 }
 
 void ExplorationMapGenerator::update(
@@ -32,7 +30,10 @@ void ExplorationMapGenerator::update(
     if ( ground_map.getWidth() != map.getWidth() || ground_map.getHeight() != map.getHeight()
          || ground_map.getResolution() != map.getResolution()) {
         map = lib_path::SimpleGridMap2d( ground_map.getWidth(), ground_map.getHeight(), ground_map.getResolution());
+        map.setLowerThreshold( 20 );
+        map.setUpperThreshold( 80 );
     }
+    map.setOrigin( ground_map.getOrigin());
 
     // For all cells in the ground map
     unsigned int w = ground_map.getWidth();
