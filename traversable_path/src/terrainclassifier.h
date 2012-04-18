@@ -5,13 +5,16 @@
 #include <vector>
 #include <list>
 #include <boost/circular_buffer.hpp>
-#include "ros/ros.h"
-#include "ros/package.h"
-#include "sensor_msgs/LaserScan.h"
-#include "std_srvs/Empty.h"
-#include "laser_geometry/laser_geometry.h"
-#include "dynamic_reconfigure/server.h"
+#include <ros/ros.h>
+#include <ros/package.h>
+#include <sensor_msgs/LaserScan.h>
+#include <std_srvs/Empty.h>
+#include <laser_geometry/laser_geometry.h>
+#include <dynamic_reconfigure/server.h>
+#include <pcl/point_cloud.h>
+#include <pcl_ros/point_cloud.h>
 
+#include "point_types.h"
 #include "pointclassification.h"
 #include "traversable_path/LaserScanClassification.h"
 #include "traversable_path/classify_terrainConfig.h"
@@ -109,6 +112,7 @@ private:
      *               untraversable within points.
      */
     void dropNarrowPaths(traversable_path::LaserScanClassification *points);
+    void dropNarrowPaths(pcl::PointCloud<PointXYZRGBT> *cloud);
 
     //! Callback for dynamic reconfigure.
     void dynamicReconfigureCallback(Config &config, uint32_t level);

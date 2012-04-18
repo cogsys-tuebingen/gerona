@@ -36,7 +36,7 @@ gencfg()
 #target_link_libraries(example ${PROJECT_NAME})
 
 rosbuild_add_executable(classify_terrain src/terrainclassifier.cpp src/vectorsaver.h src/pointclassification.cpp
-    src/visualization.cpp src/GraphUtils.cpp)
+    src/point_types.h)
 
 rosbuild_add_executable(follow_path src/pathfollower.cpp)
 
