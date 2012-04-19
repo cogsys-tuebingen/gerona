@@ -26,7 +26,10 @@ public:
       */
     void reset ();
 
+    /// Sets Ki to zero
     void configure (double Kp,double delta_max, double e_max, double v , double ta_sec);
+
+    void configure (double Kp, double Ki, double i_max, double delta_max, double e_max, double v, double ta);
 
 
 protected:
@@ -34,7 +37,10 @@ protected:
     double Ta_;
     double delta_max_,e_max_, v_;
     double Kp_;
+    double Ki_;
 
+    double i_f_, i_r_;
+    double i_max_;
 };
 
 #endif // DUALPIDCTRL_H

@@ -185,13 +185,15 @@ void PathDriver::configure() {
     nh.param( "path_driver/reverse_speed", reverse_speed_, 0.5 );
 
     // Dual pid
-    double ta, e_max, kp, delta_max;
+    double ta, e_max, kp, ki, i_max, delta_max;
     nh.param( "path_driver/dualpid/dead_time", dead_time_, 0.10 );
     nh.param( "path_driver/dualpid/ta", ta, 0.05 );
     nh.param( "path_driver/dualpid/e_max", e_max, 0.15 );
-    nh.param( "path_driver/dualpid/kp", kp, 0.5 );
+    nh.param( "path_driver/dualpid/kp", kp, 0.4 );
+    nh.param( "path_driver/dualpid/ki", ki, 0.5 );
+    nh.param( "path_driver/dualpid/i_max", i_max, 1.0 );
     nh.param( "path_driver/dualpid/delta_max", delta_max, 24.0 );
-    ctrl_.configure( kp, M_PI*delta_max/180.0, e_max, 0.5, ta );
+    ctrl_.configure( kp, ki, i_max, M_PI*delta_max/180.0, e_max, 0.5, ta );
 }
 
 
