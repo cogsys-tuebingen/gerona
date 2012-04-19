@@ -16,7 +16,6 @@
 
 #include "point_types.h"
 #include "pointclassification.h"
-#include "traversable_path/LaserScanClassification.h"
 #include "traversable_path/classify_terrainConfig.h"
 
 /**
@@ -32,7 +31,6 @@ public:
 
 private:
     typedef traversable_path::classify_terrainConfig Config;
-    typedef uint8_t classification;
 
     //! Default path/name of the range calibration file
     const static std::string DEFAULT_RANGE_CALIBRATION_FILE;
@@ -46,8 +44,6 @@ private:
      */
     ros::Publisher publish_normalized_;
 
-    //! Publishes the point classification for the laser scan data
-    ros::Publisher publish_path_points_;
     //! Publisher for the classification point cloud
     ros::Publisher publish_classification_cloud_;
     //! Subscribes for laser scans.
@@ -111,7 +107,6 @@ private:
      * @param points The classification and position of the points. The points of too narrow paths will be marked as
      *               untraversable within points.
      */
-    void dropNarrowPaths(traversable_path::LaserScanClassification *points);
     void dropNarrowPaths(pcl::PointCloud<PointXYZRGBT> *cloud);
 
     //! Callback for dynamic reconfigure.

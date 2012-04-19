@@ -1,11 +1,12 @@
 #ifndef VISUALIZATION_H
 #define VISUALIZATION_H
 
-#include <ros/ros.h>
 #include <vector>
+#include <ros/ros.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include "pointclassification.h"
+#include <pcl_ros/point_cloud.h>
+#include "point_types.h"
 
 /**
  * @brief Provides methods to visualize the terrain classification.
@@ -26,10 +27,7 @@ public:
      *
      * @param The terrain classification for each point of the current laser scan.
      */
-    void paintPath(std::vector<PointClassification>);
-
-    // do the same with a bool-vector
-    void paintPath(std::vector<uint8_t>);
+    void paintPath(const pcl::PointCloud<PointXYZRGBT>::ConstPtr &);
 
     void plot(std::vector<float> data);
 

@@ -1,6 +1,6 @@
 <launch>
     <!-- copied from robot_goto launchfile -->
-    <param name="use_sim_time" value="false" />
+    <!--<param name="use_sim_time" value="false" />-->
     <node pkg="tf" type="static_transform_publisher" name="tf_odom_to_map_identity" args="0 0 0 0 0 0 odom map 100" />
     <node name="motion_control" pkg="motion_control" type="motion_control" respawn="false" output="screen">
             <param name="waypoint_threshold" value="0.15" />

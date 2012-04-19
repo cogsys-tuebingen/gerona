@@ -20,8 +20,8 @@ TerrainClassifier::TerrainClassifier() :
 
     // advertise
     publish_normalized_   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
-    publish_path_points_  = node_handle_.advertise<LaserScanClassification>("traversability", 100);
-    publish_classification_cloud_ = node_handle_.advertise<pcl::PointCloud<PointXYZRGBT> >("path_classification_cloud", 10);
+    publish_classification_cloud_ = node_handle_.advertise<pcl::PointCloud<PointXYZRGBT> >("path_classification_cloud",
+                                                                                           10);
 
     // subscribe laser scanner
     subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &TerrainClassifier::classifyLaserScan, this);
@@ -75,7 +75,6 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
     sensor_msgs::LaserScan smoothed = *msg;
     vector<PointClassification> traversable;
-    LaserScanClassification classification;
 
     // subtract plane calibration values to normalize the scan data
     for (unsigned int i=0; i < msg->ranges.size(); ++i) {
@@ -112,7 +111,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
         }
     }
 
-    // connect points and traversability-values in pcl point cloud
+    // assign points and traversability-data to the pcl point cloud
     pcl_cloud.header.frame_id = "/laser";
     pcl_cloud.reserve(cloud.points.size());
     for (size_t i = 0; i < cloud.points.size(); ++i) {
@@ -139,34 +138,12 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
         pcl_cloud.push_back(point);
     }
 
-
-    // connect points and traversability-values
-    /** \todo use pointcloud instead of own message type */
-    classification.points = cloud.points;
-    for (vector<sensor_msgs::ChannelFloat32>::iterator channel_it = cloud.channels.begin();
-            channel_it != cloud.channels.end();
-            ++channel_it) {
-        //cout << "Channel: " << channel_it->name << endl; // das tut
-        //ROS_INFO("Channel: %s", channel_it->name);       // das stuertzt ab - warum?
-        if (channel_it->name.compare("index") == 0) {
-            unsigned int val_size = channel_it->values.size();
-            classification.traversable.resize(val_size);
-            for (unsigned int i = 0; i < val_size; ++i) {
-                unsigned int index = channel_it->values[i];
-                classification.traversable[i] = traversable[index].isTraversable();
-            }
-        }
-    }
-
-    //dropNarrowPaths(&classification);
     dropNarrowPaths(&pcl_cloud);
 
 
     // publish modified message
-    publish_path_points_.publish(classification);
-    ROS_DEBUG("Published %zu traversability points", classification.points.size());
-
     publish_classification_cloud_.publish(pcl_cloud);
+    ROS_DEBUG("Published %zu traversability points", pcl_cloud.points.size());
     /** @todo This topic is only for debugging. Remove in later versions */
     smoothed.intensities = msg->intensities;
     publish_normalized_.publish(smoothed);
@@ -359,40 +336,6 @@ void TerrainClassifier::checkPointNeighbourhood(vector<PointClassification> *sca
     }
 }
 
-
-void TerrainClassifier::dropNarrowPaths(traversable_path::LaserScanClassification *points)
-{
-    size_t index_start = 0;       //!< Index of the first point of a traversable segment.
-    bool on_trav_segment = false; //!< True if currently iterating in a traversable segment, otherwise false.
-
-    for (size_t i = 0; i < points->points.size(); ++i) {
-        if (on_trav_segment && !points->traversable[i]) {
-            // end traversable segment
-            on_trav_segment = false;
-
-            geometry_msgs::Point32 point_start = points->points[index_start];
-            geometry_msgs::Point32 point_end = points->points[i-1]; // i > 0 because on_trav_segment is init. with false
-
-            double distance = sqrt( pow(point_start.x - point_end.x, 2) +
-                                    pow(point_start.y - point_end.y, 2) +
-                                    pow(point_start.z - point_end.z, 2) );
-
-            if (distance < config_.min_path_width) {
-                // make this segment untraversable
-                for (size_t j = index_start; j < i; ++j) {
-                    points->traversable[j] = false;
-                }
-                ROS_DEBUG("Drop too narrow path (index %zu to %zu, distance: %.2fm)", index_start, i-1, distance);
-            }
-        }
-        else if (!on_trav_segment && points->traversable[i]) {
-            // begin new traversable segment
-            on_trav_segment = true;
-            index_start = i;
-        }
-        // else continue;
-    }
-}
 
 void TerrainClassifier::dropNarrowPaths(pcl::PointCloud<PointXYZRGBT> *cloud)
 {

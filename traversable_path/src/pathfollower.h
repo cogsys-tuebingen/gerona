@@ -7,7 +7,9 @@
 #include <actionlib/client/simple_action_client.h>
 #include <geometry_msgs/Point32.h>
 #include <visualization_msgs/Marker.h>
-#include "traversable_path/LaserScanClassification.h"
+#include <pcl_ros/point_cloud.h>
+
+#include "point_types.h"
 
 /**
  * @brief Main class of the follow_path node.
@@ -47,7 +49,7 @@ private:
      *
      * @param The terrain classification of the current laser scan.
      */
-    void scan_classification_callback(traversable_path::LaserScanClassificationConstPtr scan_classification);
+    void scan_classification_callback(const pcl::PointCloud<PointXYZRGBT>::ConstPtr& scan_classification);
 
     /**
      * @brief Sends a marker to rviz which visualizes the goal as an arrow.
@@ -63,7 +65,7 @@ private:
      * @param a Left border of the traversable segment.
      * @param b Right border of the traversable segment.
      */
-    void publishTraversaleLineMarker(geometry_msgs::Point32 a, geometry_msgs::Point32 b);
+    void publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b);
 };
 
 #endif // PATHFOLLOWER_H

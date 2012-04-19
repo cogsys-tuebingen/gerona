@@ -3,26 +3,26 @@
 PathFollower::PathFollower() :
         motion_control_action_client_("motion_control")
 {
-    subscribe_scan_classification_ = node_handle_.subscribe("traversability", 100,
+    subscribe_scan_classification_ = node_handle_.subscribe("path_classification_cloud", 100,
                                                             &PathFollower::scan_classification_callback, this);
     publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 1);
 }
 
-void PathFollower::scan_classification_callback(traversable_path::LaserScanClassificationConstPtr scan)
+void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRGBT>::ConstPtr &scan)
 {
     int goal_index;
 
     // search traversable area in front of the robot (assuming, "in front" is approximalty in the middle of the scan)
-    unsigned int mid = scan->traversable.size() / 2;
+    unsigned int mid = scan->points.size() / 2;
 
     // search traversable area
     unsigned int beginning = 0, end = 0;
     for (unsigned int i = 0; i < mid; ++i) {
-        if (scan->traversable[mid+i]) {
+        if (scan->points[mid+i].traversable) {
             beginning = mid+i;
             end = mid+i;
             break;
-        } else if (scan->traversable[mid-i]) {
+        } else if (scan->points[mid-i].traversable) {
             beginning = mid-i;
             end = mid-i;
             break;
@@ -36,15 +36,15 @@ void PathFollower::scan_classification_callback(traversable_path::LaserScanClass
     }
 
     // get range of the area
-    while (beginning > 0 && scan->traversable[beginning]) {
+    while (beginning > 0 && scan->points[beginning].traversable) {
         --beginning;
     }
-    while (end < scan->traversable.size()-1 && scan->traversable[end]) {
+    while (end < scan->points.size()-1 && scan->points[end].traversable) {
         ++end;
     }
 
-    ROS_DEBUG("size points: %zu, size traversable: %zu, beginning: %d, end: %d",
-              scan->points.size(), scan->traversable.size(), beginning, end);
+    ROS_DEBUG("size points: %zu, beginning: %d, end: %d",
+              scan->points.size(), beginning, end);
 
     // goal = point in the middle of the path
     goal_index = beginning + (end-beginning)/2;
@@ -161,7 +161,7 @@ void PathFollower::publishGoalMarker(geometry_msgs::PoseStamped goal)
     publish_rviz_marker_.publish(marker);
 }
 
-void PathFollower::publishTraversaleLineMarker(geometry_msgs::Point32 a, geometry_msgs::Point32 b)
+void PathFollower::publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b)
 {
     //ROS_INFO("mark line from point a(%f,%f,%f) to b(%f,%f,%f)", a.x, a.y, a.z, b.x, b.y, b.z);
 
