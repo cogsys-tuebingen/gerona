@@ -31,6 +31,7 @@ private:
     ros::Subscriber subscribe_scan_classification_;
     //! Publisher for rvis markers.
     ros::Publisher publish_rviz_marker_;
+    //! Listener for tf data.
     tf::TransformListener tf_listener_;
     //! Sends commands to motion_control
     actionlib::SimpleActionClient<motion_control::MotionAction> motion_control_action_client_;
@@ -56,7 +57,7 @@ private:
      * The arrow starts at the goal position and points in the direction of the goal orientation.
      * @param goal The goal pose with position and orientation of the goal.
      */
-    void publishGoalMarker(geometry_msgs::PoseStamped goal);
+    void publishGoalMarker(const geometry_msgs::PoseStamped &goal);
 
     /**
      * @brief Sends a marker to rviz which visualizes the choosen traversable segment.

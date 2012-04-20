@@ -42,13 +42,13 @@ TerrainClassifier::TerrainClassifier() :
     is_calibrated_ = vs.load(&plane_ranges_);
 
     /** Set laser tilt @todo load the angle from calibration file */
-    ros::Publisher pub_laser_rtz = node_handle_.advertise<ramaxxbase::PTZ>("/cmd_rtz", 1);
+    ros::Publisher pub_laser_rtz = node_handle_.advertise<ramaxxbase::PTZ>("/cmd_rtz", 1, true);
     ramaxxbase::PTZ laser_rtz;
-    laser_rtz.tilt = -0.22; // other values defaults to 0
-    ROS_INFO("Waiting 2 seconds for listener on /cmd_rtz...");
-    sleep(2); //TODO why does a latching publisher not work?
+    laser_rtz.tilt = -0.22; // other values default to 0
     pub_laser_rtz.publish(laser_rtz);
-    ROS_INFO("Published laser tilt angle.");
+    ROS_INFO("Published laser tilt angle. Waiting 2 seconds for rtz...");
+    sleep(2); // the rtz unit needs some time to move the laser scanner. 2 sec should be enought.
+    ROS_INFO("done.");
 
 
     // register reconfigure callback (which will also initialize config_ with the default values)
@@ -138,6 +138,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
         pcl_cloud.push_back(point);
     }
 
+
     dropNarrowPaths(&pcl_cloud);
 
 
@@ -192,7 +193,7 @@ vector<float> TerrainClassifier::smooth(std::vector<float> data, const unsigned 
     return data;
 }
 
-float TerrainClassifier::avg(boost::circular_buffer<float> &xs)
+float TerrainClassifier::avg(const boost::circular_buffer<float> &xs)
 {
     if (xs.empty())
         return 0.0;
@@ -200,7 +201,8 @@ float TerrainClassifier::avg(boost::circular_buffer<float> &xs)
         return accumulate(xs.begin(), xs.end(), 0.0) / xs.size();
 }
 
-vector<PointClassification> TerrainClassifier::detectObstacles(sensor_msgs::LaserScan data, std::vector<float> &out)
+vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs::LaserScan &data,
+                                                               std::vector<float> &out)
 {
     // constant values
     const size_t LENGTH = data.ranges.size(); //!< Length of the scan vector.
@@ -351,6 +353,7 @@ void TerrainClassifier::dropNarrowPaths(pcl::PointCloud<PointXYZRGBT> *cloud)
             PointXYZRGBT point_start = cloud->points[index_start];
             PointXYZRGBT point_end = cloud->points[i-1]; // i > 0 because on_trav_segment is init. with false
 
+            // check path width
             double distance = sqrt( pow(point_start.x - point_end.x, 2) +
                                     pow(point_start.y - point_end.y, 2) +
                                     pow(point_start.z - point_end.z, 2) );
@@ -362,6 +365,14 @@ void TerrainClassifier::dropNarrowPaths(pcl::PointCloud<PointXYZRGBT> *cloud)
                 }
                 ROS_DEBUG("Drop too narrow path (index %zu to %zu, distance: %.2fm)", index_start, i-1, distance);
             }
+
+
+//            // check slope
+//            const double b = fabs(point_start.z - point_end.z);
+//            const double a = sqrt( pow(point_start.x - point_end.x, 2) +  pow(point_start.y - point_end.y, 2));
+//            double angle_of_slope = atan2(b,a);
+
+//            ROS_INFO("slope: atan(%g, %g) = %g", b, a, angle_of_slope);
         }
         else if (!on_trav_segment && cloud->points[i].traversable) {
             // begin new traversable segment

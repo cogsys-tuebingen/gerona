@@ -31,7 +31,7 @@ void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRG
 
     if (beginning == 0) {
         ROS_DEBUG("No traversable paths found.");
-        // TODO: stop robot
+        /** @todo stop robot */
         return;
     }
 
@@ -43,8 +43,7 @@ void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRG
         ++end;
     }
 
-    ROS_DEBUG("size points: %zu, beginning: %d, end: %d",
-              scan->points.size(), beginning, end);
+    ROS_DEBUG("size points: %zu, beginning: %d, end: %d", scan->points.size(), beginning, end);
 
     // goal = point in the middle of the path
     goal_index = beginning + (end-beginning)/2;
@@ -91,10 +90,6 @@ void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRG
 
         goal.x     = goal_point_map.pose.position.x;
         goal.y     = goal_point_map.pose.position.y;
-
-        /* Orientation
-         * Look along the line from the last goal to the new one.
-         */
         goal.theta = tf::getYaw(goal_point_map.pose.orientation);
 
         // send goal to motion_control
@@ -120,13 +115,13 @@ void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRG
                  goal_point_map.pose.orientation.w);
     }
     else {
-        ROS_DEBUG("Don't update goal. New goal is %.2f m distant from the current goal. Minimum distance is %f",
+        ROS_DEBUG("Didn't update goal. New goal is %.2f m distant from the current goal. Minimum distance is %f",
                   distance, MIN_DISTANCE_BETWEEN_GOALS);
     }
 }
 
 
-void PathFollower::publishGoalMarker(geometry_msgs::PoseStamped goal)
+void PathFollower::publishGoalMarker(const geometry_msgs::PoseStamped &goal)
 {
     visualization_msgs::Marker marker;
 
