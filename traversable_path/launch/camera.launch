@@ -6,6 +6,8 @@
 		<param name="format7_packet_size" type="int" value="1880" />
 		<param name="format7_color_coding" type="string" value="mono8" />
 		<param name="bayer_pattern" type="string" value="rggb" />
-		<param name="bayer_method" type="string" value="Simple" />
+                <param name="bayer_method" type="string" value="Simple" />
+                <param name="auto_shutter" type="int" value="2" /> <!-- 2 = auto -->
+                <param name="auto_white_balance" type="int" value="2" /> <!-- 2 = auto -->
 	</node>
 </launch>
