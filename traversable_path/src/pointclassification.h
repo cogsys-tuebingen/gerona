@@ -20,6 +20,7 @@ private:
     static const short WEIGHT_DIFF_INTENSITY_NEIGHBOUR = 20;
     static const short WEIGHT_DIFF_RANGE_NEIGHBOUR = 20;
     static const short WEIGHT_UNTRAVERSABLE_IN_PAST_SCANS = 100;
+    static const short WEIGHT_HEIGHT_OVER_LIMIT = 100;
 
     //! Classification flags. One flag per bit.
     classification_t classification_;
@@ -38,6 +39,7 @@ public:
     static const classification_t FLAG_DIFF_RANGE_NEIGHBOUR = 4;
     static const classification_t FLAG_DIFF_INTENSITY_NEIGHBOUR = 8;
     static const classification_t FLAG_UNTRAVERSABLE_IN_PAST_SCANS = 16;
+    static const classification_t FLAG_HEIGHT_OVER_LIMIT = 32;
 
     PointClassification():
             classification_(0),

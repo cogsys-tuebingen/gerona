@@ -10,6 +10,7 @@
 #include <sensor_msgs/LaserScan.h>
 #include <std_srvs/Empty.h>
 #include <laser_geometry/laser_geometry.h>
+#include <tf/transform_listener.h>
 #include <dynamic_reconfigure/server.h>
 #include <pcl/point_cloud.h>
 #include <pcl_ros/point_cloud.h>
@@ -48,6 +49,8 @@ private:
     ros::Publisher publish_classification_cloud_;
     //! Subscribes for laser scans.
     ros::Subscriber subscribe_laser_scan_;
+    //! Listener for tf data.
+    tf::TransformListener tf_listener_;
     //! Registers calibration service.
     ros::ServiceServer calibration_service_;
     //! projects laser data to carthesian frame.

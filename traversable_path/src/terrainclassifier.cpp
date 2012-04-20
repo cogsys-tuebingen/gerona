@@ -93,12 +93,17 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
     // get projection to carthesian frame
     sensor_msgs::PointCloud cloud;
-    //sensor_msgs::PointCloud2 cloud2;
     pcl::PointCloud<PointXYZRGBT> pcl_cloud;
-    laser_projector_.projectLaser(*msg, cloud, -1.0, laser_geometry::channel_option::Index);
-    //laser_projector_.projectLaser(*msg, cloud2, -1.0, laser_geometry::channel_option::Index);
 
-    //pcl::fromROSMsg(cloud2, pcl_cloud);
+    //laser_projector_.projectLaser(*msg, cloud, -1.0, laser_geometry::channel_option::Index);
+    try {
+        laser_projector_.transformLaserScanToPointCloud("/odom", *msg, cloud, tf_listener_, -1.0,
+                                                        laser_geometry::channel_option::Index);
+    }
+    catch (tf::TransformException e) {
+        ROS_WARN("Unable to transform laser scan. tf says: %s", e.what());
+        return;
+    }
 
     // get index channel
     sensor_msgs::ChannelFloat32 channel_index;
@@ -249,7 +254,8 @@ vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs
 
     // points will only be marked as traversable if they are traversable in more than the half of the scans in the
     // scan buffer.
-    //# vector<bool> traversability(LENGTH);   //!< Final classification of the points.
+    /** \todo I think this can be removed when multiple scans are processed as 3d point cloud. the neighbourhood-
+        check should have the same effect then. */
     const unsigned int scan_buffer_size = scan_buffer_.size();
 
     for (unsigned int i = 0; i < LENGTH; ++i) {
@@ -260,7 +266,6 @@ vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs
                 ++sum_traversable;
         }
 
-        //# traversability[i] = (sum_traversable > scan_buffer_size/2);
         /** \todo this does not realy work as intended */
         if (sum_traversable < scan_buffer_size/2) {
             scan_classification[i].setFlag(PointClassification::FLAG_UNTRAVERSABLE_IN_PAST_SCANS);
@@ -346,7 +351,7 @@ void TerrainClassifier::dropNarrowPaths(pcl::PointCloud<PointXYZRGBT> *cloud)
 
 
     for (size_t i = 0; i < cloud->points.size(); ++i) {
-        if (on_trav_segment && !cloud->points[i].traversable) {
+        if (on_trav_segment && (!cloud->points[i].traversable || i == cloud->points.size()-1)) {
             // end traversable segment
             on_trav_segment = false;
 
@@ -364,15 +369,25 @@ void TerrainClassifier::dropNarrowPaths(pcl::PointCloud<PointXYZRGBT> *cloud)
                     cloud->points[j].setTraversability(false);
                 }
                 ROS_DEBUG("Drop too narrow path (index %zu to %zu, distance: %.2fm)", index_start, i-1, distance);
+                continue; // no need of other checks
             }
 
 
-//            // check slope
-//            const double b = fabs(point_start.z - point_end.z);
-//            const double a = sqrt( pow(point_start.x - point_end.x, 2) +  pow(point_start.y - point_end.y, 2));
-//            double angle_of_slope = atan2(b,a);
+            // check slope
+            const double b = fabs(point_start.z - point_end.z);
+            const double a = sqrt( pow(point_start.x - point_end.x, 2) +  pow(point_start.y - point_end.y, 2));
+            double angle_of_slope = atan2(b,a);
+            //ROS_DEBUG("slope: %d-%d, atan(%g, %g) = %g", index_start, i, b, a, angle_of_slope);
 
-//            ROS_INFO("slope: atan(%g, %g) = %g", b, a, angle_of_slope);
+            if (angle_of_slope > 0.2) { /** \todo To drop "paths" on walls, the limit angle depends on the laser tilt */
+                // make this segment untraversable
+                for (size_t j = index_start; j < i; ++j) {
+                    cloud->points[j].setTraversability(false);
+                }
+                ROS_DEBUG("Drop too steep path (index %zu to %zu, angle of slope: %.2fm)", index_start, i-1,
+                          angle_of_slope);
+            }
+
         }
         else if (!on_trav_segment && cloud->points[i].traversable) {
             // begin new traversable segment

@@ -42,6 +42,8 @@ short PointClassification::weightByFlag(classification_t flag)
         return WEIGHT_DIFF_RANGE_NEIGHBOUR;
     case FLAG_UNTRAVERSABLE_IN_PAST_SCANS:
         return WEIGHT_UNTRAVERSABLE_IN_PAST_SCANS;
+    case FLAG_HEIGHT_OVER_LIMIT:
+        return WEIGHT_HEIGHT_OVER_LIMIT;
     default:
         ROS_ERROR("PointClassification: Unknown flag %d", flag);
         return 0;

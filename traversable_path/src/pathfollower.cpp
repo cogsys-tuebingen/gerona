@@ -74,7 +74,6 @@ void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRG
     catch (tf::TransformException e) {
         ROS_WARN("Unable to transform goal. tf says: %s", e.what());
         return;
-        /** @todo stop robot? */
     }
 
     const double MIN_DISTANCE_BETWEEN_GOALS = 0.5;
@@ -86,6 +85,7 @@ void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRG
         motion_control::MotionGoal goal;
         goal.v     = 0.4;
         goal.beta  = 0;
+        //goal.pos_tolerance = 0.1;
         goal.mode  = motion_control::MotionGoal::MOTION_TO_GOAL;
 
         goal.x     = goal_point_map.pose.position.x;
@@ -100,13 +100,6 @@ void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRG
         tf::quaternionTFToMsg(tf::createQuaternionFromYaw(goal.theta), goal_point_map.pose.orientation);
         publishGoalMarker(goal_point_map);
 
-
-    //    ROS_INFO("Goal (laser): x: %f; y: %f; theta: %f;; x: %f, y: %f, z: %f, w: %f", goal_point_laser.pose.position.x,
-    //             goal_point_laser.pose.position.y, tf::getYaw(goal_point_laser.pose.orientation),
-    //             goal_point_laser.pose.orientation.x,
-    //             goal_point_laser.pose.orientation.y,
-    //             goal_point_laser.pose.orientation.z,
-    //             goal_point_laser.pose.orientation.w);
         ROS_DEBUG("Goal (map): x: %f; y: %f; theta: %f;; x: %f, y: %f, z: %f, w: %f", goal_point_map.pose.position.x,
                  goal_point_map.pose.position.y, tf::getYaw(goal_point_map.pose.orientation),
                  goal_point_map.pose.orientation.x,
