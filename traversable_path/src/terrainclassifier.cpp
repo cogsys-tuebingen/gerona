@@ -77,7 +77,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     vector<PointClassification> traversable;
 
     // subtract plane calibration values to normalize the scan data
-    for (unsigned int i=0; i < msg->ranges.size(); ++i) {
+    for (size_t i=0; i < msg->ranges.size(); ++i) {
         smoothed.ranges[i] = msg->ranges[i] - plane_ranges_[i];
 
         // mirror on x-axis
@@ -117,7 +117,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     }
 
     // assign points and traversability-data to the pcl point cloud
-    pcl_cloud.header.frame_id = "/laser";
+    pcl_cloud.header = cloud.header;
     pcl_cloud.reserve(cloud.points.size());
     for (size_t i = 0; i < cloud.points.size(); ++i) {
         size_t index = channel_index.values[i];
