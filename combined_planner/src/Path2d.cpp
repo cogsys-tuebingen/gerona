@@ -80,7 +80,7 @@ bool Path2d::isFree( const GridMap2d *map, Pose2d robot_pose, const double skip_
         end.x = wp_it->x, end.y = wp_it->y;
         line_area.set( start, end, map );
 
-        if ( !map->isAreaFree( line_area, 0, 220 )) {
+        if ( !map->isAreaFree( line_area )) {
             return false;
         }
 
