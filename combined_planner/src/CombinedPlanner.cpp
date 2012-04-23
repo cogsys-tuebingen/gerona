@@ -20,9 +20,9 @@ CombinedPlanner::CombinedPlanner()
       gmap_(NULL),
       new_gmap_( false ),
       goal_dist_eps_( 0.5 ),
-      goal_angle_eps_( 30.0*M_PI/180.0 ),
+      goal_angle_eps_( 25.0*M_PI/180.0 ),
       wp_dist_eps_( 0.6 ),
-      wp_angle_eps_( 0.6 ),
+      wp_angle_eps_( 30.0*M_PI/180.0 ),
       local_replan_dist_( 1.5 ),
       local_replan_theta_( 30.0*M_PI/180.0 ),
       new_local_path_( false ),
@@ -87,14 +87,16 @@ void CombinedPlanner::update( const Pose2d &robot_pose, bool force_replan )
     // Update the current local path. This will remove already reached local waypoints
     lpath_.updateWaypoints( 0.25, robot_pose );
 
-    // Debug
-    if ( !lpath_.isFree( lmap_, robot_pose, 0.35 ))
-        ROS_WARN( "Local path is not free!" );
+    // Path free
+    bool path_free = lpath_.isFree( lmap_, robot_pose, 0.4 );
+
+    if ( !path_free )
+       ROS_WARN( "Local path is not free!" );
 
     // Replan anyway?
     force_replan = force_replan || lpath_.getWaypointCount() <= 0 ||
             (!gwaypoints_.empty() && robot_pose.isEqual( lpath_.getEnd(), wp_dist_eps_, wp_angle_eps_ ))
-            || !lpath_.isFree( lmap_, robot_pose, 0.35 );
+            /*|| !path_free*/;
 
     // Something to do?
     if ( !force_replan )
