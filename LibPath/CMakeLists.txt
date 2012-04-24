@@ -11,23 +11,25 @@
 #link_directories($ENV{RABOT}/lib)
 
 rosbuild_add_library(LibPath  ReedsShepp/CurveGenerator.cpp
-                        ReedsShepp/Curve.cpp
-                        ReedsShepp/CurveSegment.cpp
-                        ReedsShepp/CircleSegment.cpp
-                        ReedsShepp/LineSegment.cpp
-                        sampling/GoalRegion.cpp
-                        sampling/RingGoalRegion.cpp
-                        sampling/PoseListGoalRegion.cpp
-                        sampling/CentroidRadiusGoalRegion.cpp
-                        sampling/SamplingPlanner.cpp
-                        common/MapMath.cpp
-                        common/Point2d.cpp
-                        common/Pose2d.cpp
-                        common/GridMap2d.cpp
-                        common/SimpleGridMap2d.cpp
-                        a_star/AStar.cpp
-			a_star/Node.cpp
-			a_star/OpenList.cpp)
+    ReedsShepp/Curve.cpp
+    ReedsShepp/CurveSegment.cpp
+    ReedsShepp/CircleSegment.cpp
+    ReedsShepp/LineSegment.cpp
+    sampling/GoalRegion.cpp
+    sampling/RingGoalRegion.cpp
+    sampling/PoseListGoalRegion.cpp
+    sampling/CentroidRadiusGoalRegion.cpp
+    sampling/SamplingPlanner.cpp
+    common/MapMath.cpp
+    common/Point2d.cpp
+    common/Pose2d.cpp
+    common/GridMap2d.cpp
+    common/SimpleGridMap2d.cpp
+    common/Bresenham2d.cpp
+    a_star/AStar.cpp
+    a_star/Node.cpp
+    a_star/OpenList.cpp
+)
 
 target_link_libraries(LibPath LibUtil)
 

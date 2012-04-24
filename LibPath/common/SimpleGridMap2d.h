@@ -72,6 +72,24 @@ public:
         data_.assign( data.begin(), data.end());
     }
 
+    /**
+     * @brief Set all cell values to a given value.
+     * @param value New value of all cells.
+     */
+    void set( const uint8_t value ) {
+        std::vector<uint8_t>::iterator cell_it = data_.begin();
+        while ( cell_it != data_.end()) {
+            *cell_it = value;
+            cell_it++;
+        }
+    }
+
+    /// @todo enervated hotfix
+    void cell2point( const unsigned int x, const unsigned int y, float& px, float& py ) const {
+        px = (float)(res_*(double)(x+0.5) + origin_.x);
+        py = (float)(res_*(double)(y+0.5) + origin_.y);
+    }
+
     /* Inherited from GridMap2d */
 
     uint8_t getValue( const unsigned int x, const unsigned int y ) const
