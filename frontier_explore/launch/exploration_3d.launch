@@ -6,7 +6,7 @@
     <param name="importance_gain" value="0.25"/>
     <param name="dist_gain" value="1.0"/>
     <param name="orientation_gain" value="5.0"/>
-    <param name="min_frontier_length" value="1.5"/>
+    <param name="min_frontier_length" value="1.0"/>
     <param name="use_ceiling_map" value="true" />
     <param name="ceiling_map_topic" value="/map_ceiling"/>
 

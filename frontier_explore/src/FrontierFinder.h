@@ -78,7 +78,7 @@ public:
         : min_frontier_length_( 1.0 ),
           use_pos_optimization_( false ),
           use_angle_optimization_( false ),
-          pos_optimizer_( 3.0 ) {}
+          pos_optimizer_( 5.0 ) {}
 
     /**
      * @brief Returns all frontiers.
