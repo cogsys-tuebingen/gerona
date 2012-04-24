@@ -42,4 +42,5 @@ rosbuild_add_executable(ExploreNode
     src/GoalSelector.cpp
     src/Explorer.cpp
     src/PositionOptimizer.cpp
+    src/AngleOptimizer.cpp
 )

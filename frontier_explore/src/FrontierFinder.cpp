@@ -145,12 +145,19 @@ bool FrontierFinder::getFrontiers( const lib_path::GridMap2d *map,
             if ( dir_sum.norm() > 1E-6 )
                 frontier_yaw = atan2(dir_sum.y(), dir_sum.x());
 
-            // Create and store detected frontier
+            // Create frontier
             Frontier newFrontier;
             newFrontier.pose.x() = frontier_pos.x();
             newFrontier.pose.y() = frontier_pos.y();
             newFrontier.pose(2) = frontier_yaw;
             newFrontier.size = frontier.size();
+
+            // Optimize yaw?
+            if ( use_angle_optimization_ ) {
+                Eigen::Vector3d oldPose( newFrontier.pose );
+                angle_optimizer_.optimize( oldPose, map, newFrontier.pose );
+            }
+
             frontiers.push_back( newFrontier );
         }
     }

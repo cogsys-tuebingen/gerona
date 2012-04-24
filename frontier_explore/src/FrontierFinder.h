@@ -16,6 +16,7 @@
 
 // Project
 #include "PositionOptimizer.h"
+#include "AngleOptimizer.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // D E C L A R A T I O N S
@@ -74,7 +75,10 @@ public:
      * position optimization is off.
      */
     FrontierFinder()
-        : min_frontier_length_( 1.0 ), use_pos_optimization_( false ), pos_optimizer_( 3.0 ) {}
+        : min_frontier_length_( 1.0 ),
+          use_pos_optimization_( false ),
+          use_angle_optimization_( false ),
+          pos_optimizer_( 3.0 ) {}
 
     /**
      * @brief Returns all frontiers.
@@ -104,6 +108,14 @@ public:
         use_pos_optimization_ = use_pos_optimization;
     }
 
+    /**
+     * @brief Use orientation optimization?
+     * @param use_angle_optimization Use it?
+     */
+    void setUseAngleOptimization( bool use_angle_optimization ) {
+        use_angle_optimization_ = use_angle_optimization;
+    }
+
 private:
 
     /// Minimum side length of a frontiers bounding box. Smaller frontiers will be neglected
@@ -112,8 +124,14 @@ private:
     /// Do position optimization
     bool use_pos_optimization_;
 
-    /// Use to optimize the position off a frontier (better exploration goal)
+    /// Do orientation optimization
+    bool use_angle_optimization_;
+
+    /// Used to optimize the position of a frontier (better exploration goal)
     PositionOptimizer pos_optimizer_;
+
+    /// Used to optimize the angle of an exploration goal (better information gain)
+    AngleOptimizer angle_optimizer_;
 };
 
 } // namespace

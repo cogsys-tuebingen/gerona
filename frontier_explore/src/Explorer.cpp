@@ -34,6 +34,7 @@ bool Explorer::calculateGoals(
     std::vector<Frontier> frontiers;
     frontier_.setMinFrontierLength( min_frontier_length_ );
     frontier_.setUsePositionOptimization( true );
+    frontier_.setUseAngleOptimization( true );
     frontier_.getFrontiers( explore_map, frontiers );
 
     // Initialize goal selector
