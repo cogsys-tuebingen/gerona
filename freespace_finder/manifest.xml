@@ -1,7 +1,7 @@
 <package>
-  <description brief="voronoi">
+  <description brief="freespace_finder">
 
-     voronoi
+     Searches for largest free circle
 
   </description>
   <author>buck</author>
@@ -13,6 +13,11 @@
   <depend package="nav_msgs" />
   <depend package="visualization_msgs" />
   <depend package="opencv2" />
+
+  <export>
+    <cpp cflags="-I${prefix}/src/"
+         lflags="-L${prefix}/lib -lfreespace_finder" />
+  </export>
 
 </package>
 
