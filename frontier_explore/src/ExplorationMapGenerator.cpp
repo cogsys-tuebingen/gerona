@@ -47,7 +47,7 @@ void ExplorationMapGenerator::update(
             ground_map.cell2point( x, y, p );
             if ( ground_map.isOccupied( x, y ))
                 map.setValue( x, y, 100 );
-            else if ( ground_map.isFree( x, y ) && ceiling_map.isOccupied( p ))
+            else if ( ground_map.isFree( x, y ) && ceiling_map.isInMap( p ) && ceiling_map.isOccupied( p ))
                 map.setValue( x, y, 0 );
         }
     }

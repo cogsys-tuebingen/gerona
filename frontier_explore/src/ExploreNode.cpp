@@ -69,7 +69,7 @@ void ExploreNode::executeCB() {
 
     // Check if we got valid maps
     if ( !got_ground_map_ ) {
-        ROS_WARN( "Exploration goals requested but there is no ground (or ceiling) map yet. Wait until the data is published." );
+        ROS_WARN( "Exploration goals requested but there is no ground map yet. Wait until the data is published." );
         result.status = ExplorationGoalsResult::NO_MAP;
         setAborted( result );
         return;
