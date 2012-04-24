@@ -14,6 +14,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <pcl/point_cloud.h>
 #include <pcl_ros/point_cloud.h>
+#include <nav_msgs/OccupancyGrid.h>
 
 #include "point_types.h"
 #include "pointclassification.h"
@@ -70,6 +71,11 @@ private:
     //! dynamic reconfigure values.
     Config config_;
 
+    nav_msgs::OccupancyGrid map_;
+    ros::Publisher publish_map_;
+    void updateMap(pcl::PointCloud<PointXYZRGBT> cloud);
+    void moveMap();
+    double distance(geometry_msgs::Point a, geometry_msgs::Point b);
 
     /**
      * @brief Classifies the laser scan points.
