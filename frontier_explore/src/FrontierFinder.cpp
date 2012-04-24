@@ -13,7 +13,6 @@
 namespace frontier_explore {
 
 bool FrontierFinder::getFrontiers( const lib_path::GridMap2d *map,
-                                   const double min_frontier_length,
                                    std::vector<Frontier> &frontiers )
 {
     frontiers.clear();
@@ -63,7 +62,7 @@ bool FrontierFinder::getFrontiers( const lib_path::GridMap2d *map,
 
                 // Check neighbors and set cell visited
                 unsigned int count = 0;
-                Eigen::Vector3d dir( 0, 0, 0 );
+                Eigen::Vector2d dir( 0, 0 );
                 if ( left && map->isNoInformation( p - 1, q )) {
                     ++count;
                     dir.x() += -1.0;
@@ -118,28 +117,38 @@ bool FrontierFinder::getFrontiers( const lib_path::GridMap2d *map,
 
             // Check frontier length
             if ( map->getResolution()*(double)std::max( max_x - min_x, max_y - min_y )
-                 < min_frontier_length )
+                 < min_frontier_length_ )
                 continue;
 
-            // Compute frontier orientation
-            Eigen::Vector3d dir_sum( 0, 0, 0 );
-            for ( unsigned int j = 0; j < frontier.size(); ++j )
-                dir_sum += frontier[j].dir;
+            // Compute direction vector
+            Eigen::Vector2d dir_sum( 0, 0 );
+            Eigen::Vector2d frontier_pos;
+            FrontierPoint * frontier_point;
+            for ( unsigned int j = 0; j < frontier.size(); ++j ) {
+                frontier_point = &frontier[j];
+                dir_sum += frontier_point->dir;
+            }
+
+            // Take the middle cell as first estimation for frontier position
+            /// @todo this is not the middle cell!
+            unsigned int middle = frontier.size() / 2;
+            map->cell2point( frontier[middle].x, frontier[middle].y, frontier_pos.x(), frontier_pos.y());
+
+            // Optimize position?
+            if ( use_pos_optimization_ ) {
+                Eigen::Vector2d old_pos( frontier_pos );
+                pos_optimizer_.optimize( old_pos, map, frontier_pos );
+            }
+
+            // Frontier orientation
             double frontier_yaw = 0;
             if ( dir_sum.norm() > 1E-6 )
                 frontier_yaw = atan2(dir_sum.y(), dir_sum.x());
 
-            // Take the middle cell as frontier position
-            unsigned int middle = frontier.size() / 2;
-            if ( frontier.size() < 2 )
-                middle = 0;
-            lib_path::Point2d frontier_pos;
-            map->cell2point( frontier[middle].x, frontier[middle].y, frontier_pos );
-
             // Create and store detected frontier
             Frontier newFrontier;
-            newFrontier.pose.x() = frontier_pos.x;
-            newFrontier.pose.y() = frontier_pos.y;
+            newFrontier.pose.x() = frontier_pos.x();
+            newFrontier.pose.y() = frontier_pos.y();
             newFrontier.pose(2) = frontier_yaw;
             newFrontier.size = frontier.size();
             frontiers.push_back( newFrontier );

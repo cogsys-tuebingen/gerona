@@ -9,6 +9,7 @@
 
 // Project
 #include "GoalSelector.h"
+#include "FrontierFinder.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // D E C L A R A T I O N S
@@ -70,6 +71,9 @@ private:
 
     /// Used to select the goals
     GoalSelector *goal_selector_;
+
+    /// Used to find frontiers
+    FrontierFinder frontier_;
 
     /// Minimum side length of frontier bounding box
     double min_frontier_length_;

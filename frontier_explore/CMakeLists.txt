@@ -41,4 +41,5 @@ rosbuild_add_executable(ExploreNode
     src/FrontierFinder.cpp
     src/GoalSelector.cpp
     src/Explorer.cpp
+    src/PositionOptimizer.cpp
 )

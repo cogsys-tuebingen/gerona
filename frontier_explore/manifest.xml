@@ -20,6 +20,7 @@
   <depend package="actionlib_msgs"/>
   <depend package="utils"/>
   <depend package="eigen"/>
+  <depend package="freespace_finder"/>
 
 </package>
 

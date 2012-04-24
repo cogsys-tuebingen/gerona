@@ -37,8 +37,9 @@ void GoalSelector::addGoal( const Goal &goal, const Eigen::Vector3d &robot_pose 
         return;
 
     // Clear robot position on the map
-    /// @todo Buffer and reset the values!
-    lib_path::CircleArea robot_bubble( lib_path::Point2d( robot_pose.x(), robot_pose.y()), 0.35, map_ );
+    //lib_path::CircleArea robot_bubble( lib_path::Point2d( robot_pose.x(), robot_pose.y()), 0.35, map_ );
+    lib_path::CircleBuffer robot_bubble( lib_path::Point2d( robot_pose.x(), robot_pose.y()), 0.35, map_ );
+    map_->getAreaValues( robot_bubble );
     map_->setAreaValue( robot_bubble, 0 );
 
     // Plan path etc
@@ -92,6 +93,10 @@ void GoalSelector::addGoal( const Goal &goal, const Eigen::Vector3d &robot_pose 
 
     // Add goal
     goals_.push_back( weighted_goal );
+
+    // Reset map
+    /// @todo always reset the map
+    map_->setAreaValue( robot_bubble );
 }
 
 void GoalSelector::addGoals( const std::vector<Goal> &goals, const Eigen::Vector3d &robot_pose )
@@ -105,6 +110,7 @@ bool GoalSelector::getSortedGoals( std::vector<WeightedGoal> &goals )
 {
     goals.assign( goals_.begin(), goals_.end());
     std::sort( goals.begin(), goals.end());
+    return goals.size() > 0;
 }
 
 void GoalSelector::setMap( lib_path::GridMap2d *map )

@@ -32,7 +32,9 @@ bool Explorer::calculateGoals(
 {
     // Find frontiers
     std::vector<Frontier> frontiers;
-    FrontierFinder::getFrontiers( explore_map, min_frontier_length_, frontiers );
+    frontier_.setMinFrontierLength( min_frontier_length_ );
+    frontier_.setUsePositionOptimization( true );
+    frontier_.getFrontiers( explore_map, frontiers );
 
     // Initialize goal selector
     if ( goal_selector_ == NULL )
