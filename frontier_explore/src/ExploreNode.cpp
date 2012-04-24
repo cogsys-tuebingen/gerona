@@ -26,7 +26,9 @@ ExploreNode::ExploreNode( ros::NodeHandle n ) :
                                                 boost::bind( &ExploreNode::executeCB, this ),
                                                 false ),
     tf_( ros::Duration( 5.0 )),
-    goals_marker_count_( 0 )
+    goals_marker_count_( 0 ),
+    got_ground_map_( false ),
+    got_ceiling_map_( false )
 {
     // Map options
     n.param( "use_ceiling_map", use_ceiling_map_, false );

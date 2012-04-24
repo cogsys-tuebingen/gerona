@@ -35,22 +35,20 @@ void ExplorationMapGenerator::update(
     }
     map.setOrigin( ground_map.getOrigin());
 
+    // Set all cells to no information
+    map.set( 50 );
+
     // For all cells in the ground map
     unsigned int w = ground_map.getWidth();
     unsigned int h = ground_map.getHeight();
     lib_path::Point2d p;
-    unsigned int q, r;
     for ( unsigned int x = 0; x < w; ++x ) {
         for ( unsigned int y = 0; y < h; ++y ) {
             ground_map.cell2point( x, y, p );
-            if ( ground_map.isFree( x, y ) && ceiling_map.point2cell( p, q, r )
-                 && ( ceiling_map.isFree( p ) || ceiling_map.isNoInformation( p ))) {
-                map.setValue( x, y, 50 ); // Set cell to unknown
-            } else if ( ground_map.isNoInformation( x, y )){
-                map.setValue( x, y, 50 );
-            } else {
-                map.setValue( x, y, ground_map.getValue( x, y ));
-            }
+            if ( ground_map.isOccupied( x, y ))
+                map.setValue( x, y, 100 );
+            else if ( ground_map.isFree( x, y ) && ceiling_map.isOccupied( p ))
+                map.setValue( x, y, 0 );
         }
     }
 }
