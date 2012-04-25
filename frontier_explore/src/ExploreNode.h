@@ -52,7 +52,7 @@ public:
     /**
      * @brief Called if there is a new goal to process.
      */
-    void executeCB();
+    void executeCB(const ExplorationGoalsGoalConstPtr &action_goal);
 
     /**
      * @brief New ground map callback.

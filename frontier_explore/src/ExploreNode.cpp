@@ -23,7 +23,7 @@ namespace frontier_explore {
 
 ExploreNode::ExploreNode( ros::NodeHandle n ) :
     SimpleActionServer<ExplorationGoalsAction>( "exploration_goals",
-                                                boost::bind( &ExploreNode::executeCB, this ),
+                                                boost::bind( &ExploreNode::executeCB, this, _1 ),
                                                 false ),
     tf_( ros::Duration( 5.0 )),
     goals_marker_count_( 0 ),
@@ -63,9 +63,8 @@ ExploreNode::ExploreNode( ros::NodeHandle n ) :
     start();
 }
 
-void ExploreNode::executeCB() {
+void ExploreNode::executeCB( const ExplorationGoalsGoalConstPtr& action_goal ) {
     ExplorationGoalsResult result;
-    ExplorationGoalsGoal action_goal; /// @todo use the goal! How do I access it?
 
     // Check if we got valid maps
     if ( !got_ground_map_ ) {
@@ -93,14 +92,14 @@ void ExploreNode::executeCB() {
 
     // Transform given points of interest
     std::vector<frontier_explore::Goal> poi;
-    for ( size_t i = 0; i < action_goal.poi.size(); ++i ) {
+    for ( size_t i = 0; i < action_goal->poi.size(); ++i ) {
         frontier_explore::Goal poi_goal;
-        if ( !poseStampedToInternal( action_goal.poi[i], poi_goal.pose )) {
+        if ( !poseStampedToInternal( action_goal->poi[i], poi_goal.pose )) {
             result.status = ExplorationGoalsResult::NO_TRANSFORM;
             setAborted( result );
             return;
         }
-        poi_goal.importance = action_goal.importance[i];
+        poi_goal.importance = action_goal->importance[i];
         poi.push_back( poi_goal );
     }
 
