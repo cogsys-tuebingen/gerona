@@ -23,13 +23,13 @@ short PointClassification::obstacle_value()
 }
 
 
-void PointClassification::setFlag(classification_t flag)
+void PointClassification::setFlag(uint8_t flag)
 {
-    classification_ |= flag;
+    classification_.set(flag);
     obstacle_value_ += weightByFlag(flag);
 }
 
-short PointClassification::weightByFlag(classification_t flag)
+short PointClassification::weightByFlag(uint8_t flag)
 {
     switch (flag) {
     case FLAG_DIFF_RANGE_OVER_LIMIT:

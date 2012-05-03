@@ -6,6 +6,7 @@ PathFollower::PathFollower() :
     subscribe_scan_classification_ = node_handle_.subscribe("path_classification_cloud", 100,
                                                             &PathFollower::scan_classification_callback, this);
     publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 1);
+    publish_goal_ = node_handle_.advertise<geometry_msgs::PoseStamped>("traversable_path/goal", 1);
 }
 
 void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRGBT>::ConstPtr &scan)
@@ -52,24 +53,24 @@ void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRG
     geometry_msgs::PoseStamped goal_point_laser;
     geometry_msgs::PoseStamped goal_point_map;
 
-    goal_point_laser.header.frame_id = "/laser";
-    goal_point_laser.header.stamp = ros::Time(0);
+    goal_point_laser.header = scan->header;
     goal_point_laser.pose.position.x = scan->points[goal_index].x;
     goal_point_laser.pose.position.y = scan->points[goal_index].y;
-    //goal_point_laser.pose.position.z = scan->points[goal_index].z;
-    goal_point_laser.pose.position.z = 0;
+    goal_point_laser.pose.position.z = scan->points[goal_index].z;
 
     // orientation: orthogonal to the line of the traversable segment
-    double delta_x = scan->points[beginning].x - scan->points[end].x;
+    double delta_x = scan->points[end].x - scan->points[beginning].x;
     double delta_y = scan->points[end].y - scan->points[beginning].y;
-    double theta = M_PI/2 - atan2(delta_y, delta_x);
+    double theta = atan2(delta_y, delta_x);
     tf::quaternionTFToMsg(tf::createQuaternionFromYaw(theta), goal_point_laser.pose.orientation);
-    //ROS_INFO("dx = %f, dy = %f, atan2 = %f, theta = %f", delta_x, delta_y, atan2(delta_y, delta_x), theta);
-    publishTraversaleLineMarker(scan->points[beginning], scan->points[end]);
+    ROS_DEBUG("B: %g, %g; E: %g, %g", scan->points[beginning].x, scan->points[beginning].y, scan->points[end].x, scan->points[end].y);
+    ROS_DEBUG("dx = %f, dy = %f, atan2 = %f, theta = %f", delta_x, delta_y, atan2(delta_y, delta_x), theta);
+    publishTraversaleLineMarker(scan->points[beginning], scan->points[end], scan->header);
 
 
     try {
         tf_listener_.transformPose("/map", goal_point_laser, goal_point_map);
+        goal_point_map.pose.position.z = 0;
     }
     catch (tf::TransformException e) {
         ROS_WARN("Unable to transform goal. tf says: %s", e.what());
@@ -97,7 +98,6 @@ void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRG
         current_goal_ = goal_point_map.pose.position;
 
         // send goal-marker to rviz for debugging
-        tf::quaternionTFToMsg(tf::createQuaternionFromYaw(goal.theta), goal_point_map.pose.orientation);
         publishGoalMarker(goal_point_map);
 
         ROS_DEBUG("Goal (map): x: %f; y: %f; theta: %f;; x: %f, y: %f, z: %f, w: %f", goal_point_map.pose.position.x,
@@ -116,6 +116,9 @@ void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRG
 
 void PathFollower::publishGoalMarker(const geometry_msgs::PoseStamped &goal)
 {
+    publish_goal_.publish(goal);
+
+    /*
     visualization_msgs::Marker marker;
 
     marker.header = goal.header;
@@ -147,16 +150,16 @@ void PathFollower::publishGoalMarker(const geometry_msgs::PoseStamped &goal)
 
     // Publish the marker
     publish_rviz_marker_.publish(marker);
+    */
 }
 
-void PathFollower::publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b)
+void PathFollower::publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, std_msgs::Header header)
 {
     //ROS_INFO("mark line from point a(%f,%f,%f) to b(%f,%f,%f)", a.x, a.y, a.z, b.x, b.y, b.z);
 
     visualization_msgs::Marker points, line_strip;
 
-    points.header.frame_id = line_strip.header.frame_id = "/laser";
-    points.header.stamp = line_strip.header.stamp = ros::Time::now();
+    points.header = line_strip.header = header;
     points.ns = line_strip.ns = "follow_path";
     points.action = line_strip.action = visualization_msgs::Marker::ADD;
     points.pose.orientation.w = line_strip.pose.orientation.w = 1.0;

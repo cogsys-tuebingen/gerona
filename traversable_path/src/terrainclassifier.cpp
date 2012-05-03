@@ -73,6 +73,11 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
         return;
     }
 
+    if (msg->ranges.size() != plane_ranges_.size()) {
+        ROS_ERROR("Size of calibration data does not fit. Please reconfigure the laser scanner.");
+        return;
+    }
+
     sensor_msgs::LaserScan smoothed = *msg;
     vector<PointClassification> traversable;
 
@@ -330,14 +335,14 @@ void TerrainClassifier::checkPointNeighbourhood(vector<PointClassification> *sca
         boost::circular_buffer<PointClassification>::iterator neighbour_it;
         for (neighbour_it = neighbourhood.begin(); neighbour_it != neighbourhood.end(); ++neighbour_it) {
             // count points with DIFF_INTENSITY_OVER_LIMIT
-            if (neighbour_it->classification() & PointClassification::FLAG_DIFF_INTENSITY_OVER_LIMIT) {
+            if (neighbour_it->classification().test(PointClassification::FLAG_DIFF_INTENSITY_OVER_LIMIT)) {
                 ++diff_intensity_neighbours;
             } else {
                 --diff_intensity_neighbours;
             }
 
             // count points with DIFF_RANGE_OVER_LIMIT
-            if (neighbour_it->classification() & PointClassification::FLAG_DIFF_RANGE_OVER_LIMIT) {
+            if (neighbour_it->classification().test(PointClassification::FLAG_DIFF_RANGE_OVER_LIMIT)) {
                 ++diff_range_neighbours;
             } else {
                 --diff_range_neighbours;
@@ -415,8 +420,8 @@ void TerrainClassifier::updateMap(pcl::PointCloud<PointXYZRGBT> cloud)
 {
     if (map_.data.size() == 0) {
         map_.info.resolution = 0.05;
-        map_.info.width  = 300;
-        map_.info.height = 300;
+        map_.info.width  = 200;
+        map_.info.height = 200;
         map_.info.origin.orientation.x = 0.0;
         map_.info.origin.orientation.y = 0.0;
         map_.info.origin.orientation.z = 0.0;
@@ -432,12 +437,13 @@ void TerrainClassifier::updateMap(pcl::PointCloud<PointXYZRGBT> cloud)
         col = (point_it->x - map_.info.origin.position.x) / map_.info.resolution;
         row = (point_it->y - map_.info.origin.position.y) / map_.info.resolution;
 
-        if (col < map_.info.width && row < map_.info.height && col >= 0 && row >= 0) {
+        // (int)-casts to supress comparison warning (no danger of overflow here)
+        if (col < (int)map_.info.width && row < (int)map_.info.height && col >= 0 && row >= 0) {
             size_t index = row * map_.info.width + col;
             // 0 = traversable, 100 = untraversable
             map_.data[index] = point_it->traversable ? 0 : 100;
         } else {
-            ROS_WARN("Out of Map. (row,col) = (%d, %d)", col, row);
+            //ROS_WARN("Out of Map. (row,col) = (%d, %d)", col, row);
         }
     }
 
@@ -466,7 +472,7 @@ void TerrainClassifier::moveMap()
     map_origin.point.y -= (signed int) map_.info.height * map_.info.resolution / 2;
 
     // only update if the robot has moved more than 5m since last update
-    if (distance(map_origin.point, map_.info.origin.position) > 5.0) {
+    if (distance(map_origin.point, map_.info.origin.position) > 2.0) {
         // transform map cells
         vector<int8_t> newdata(map_.data.size(), -1);
 
@@ -482,7 +488,8 @@ void TerrainClassifier::moveMap()
                 newrow = row - transform_x;
                 newcol = col - transform_y;
 
-                if (newrow >= 0 && newrow < map_.info.height && newcol >= 0 && newcol < map_.info.width) {
+                // (int)-casts to supress comparison warning (no danger of overflow here)
+                if (newrow >= 0 && newrow < (int)map_.info.height && newcol >= 0 && newcol < (int)map_.info.width) {
                     int offset = newcol * map_.info.width + newrow;
                     newdata[offset] = map_.data[i];
                 }

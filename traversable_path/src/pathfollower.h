@@ -31,6 +31,7 @@ private:
     ros::Subscriber subscribe_scan_classification_;
     //! Publisher for rvis markers.
     ros::Publisher publish_rviz_marker_;
+    ros::Publisher publish_goal_;
     //! Listener for tf data.
     tf::TransformListener tf_listener_;
     //! Sends commands to motion_control
@@ -65,8 +66,9 @@ private:
      * segment.
      * @param a Left border of the traversable segment.
      * @param b Right border of the traversable segment.
+     * @param header Header information of the points a and b.
      */
-    void publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b);
+    void publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, std_msgs::Header header);
 };
 
 #endif // PATHFOLLOWER_H

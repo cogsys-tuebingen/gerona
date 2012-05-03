@@ -2,10 +2,11 @@
 #define POINTCLASSIFICATION_H
 
 #include <stdint.h>
+#include <bitset>
 #include <ros/ros.h>
 
 //! Type of the point classification flags.
-typedef uint8_t classification_t;
+typedef std::bitset<6> classification_t;
 
 /**
  * @brief Classification of a point.
@@ -28,21 +29,19 @@ private:
     short obstacle_value_;
 
     //! Get the weight of the specified flag.
-    short weightByFlag(classification_t flag);
+    short weightByFlag(uint8_t flag);
 
 public:
     static const short OBSTACLE_VALUE_LIMIT = 100;
     // flags
-    static const classification_t FLAG_NONE = 0;
-    static const classification_t FLAG_DIFF_RANGE_OVER_LIMIT = 1;
-    static const classification_t FLAG_DIFF_INTENSITY_OVER_LIMIT = 2;
-    static const classification_t FLAG_DIFF_RANGE_NEIGHBOUR = 4;
-    static const classification_t FLAG_DIFF_INTENSITY_NEIGHBOUR = 8;
-    static const classification_t FLAG_UNTRAVERSABLE_IN_PAST_SCANS = 16;
-    static const classification_t FLAG_HEIGHT_OVER_LIMIT = 32;
+    static const uint8_t FLAG_DIFF_RANGE_OVER_LIMIT = 0;
+    static const uint8_t FLAG_DIFF_INTENSITY_OVER_LIMIT = 1;
+    static const uint8_t FLAG_DIFF_RANGE_NEIGHBOUR = 2;
+    static const uint8_t FLAG_DIFF_INTENSITY_NEIGHBOUR = 3;
+    static const uint8_t FLAG_UNTRAVERSABLE_IN_PAST_SCANS = 4;
+    static const uint8_t FLAG_HEIGHT_OVER_LIMIT = 5;
 
     PointClassification():
-            classification_(0),
             obstacle_value_(0)
     {}
 
@@ -75,7 +74,7 @@ public:
      *
      * The obstacle value of the point will automaticly be increased depending of the weight of this flag.
      */
-    void setFlag(classification_t flag);
+    void setFlag(uint8_t flag);
 
     //! True, if the point is traversable, false if not.
     bool isTraversable();
