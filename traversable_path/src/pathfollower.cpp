@@ -116,9 +116,14 @@ void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRG
 
 void PathFollower::publishGoalMarker(const geometry_msgs::PoseStamped &goal)
 {
+//    geometry_msgs::PoseStamped foo = goal;
+//    foo.pose.orientation.x = 1;
+//    foo.pose.orientation.y = 2;
+//    foo.pose.orientation.z = 3;
+//    foo.pose.orientation.w = 4;
+
     publish_goal_.publish(goal);
 
-    /*
     visualization_msgs::Marker marker;
 
     marker.header = goal.header;
@@ -150,7 +155,6 @@ void PathFollower::publishGoalMarker(const geometry_msgs::PoseStamped &goal)
 
     // Publish the marker
     publish_rviz_marker_.publish(marker);
-    */
 }
 
 void PathFollower::publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, std_msgs::Header header)

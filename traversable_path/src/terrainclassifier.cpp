@@ -5,6 +5,7 @@
 #include <math.h>
 #include "ramaxxbase/PTZ.h"
 #include "vectorsaver.h"
+#include "mapprocessor.h"
 
 using namespace std;
 using namespace traversable_path;
@@ -447,7 +448,10 @@ void TerrainClassifier::updateMap(pcl::PointCloud<PointXYZRGBT> cloud)
         }
     }
 
-    publish_map_.publish(map_);
+    // remove noise
+    MapProcessor foo;
+
+    publish_map_.publish(foo.process(map_));
 }
 
 void TerrainClassifier::moveMap()
