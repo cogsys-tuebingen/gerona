@@ -2,13 +2,10 @@
 #include "MotionController.h"
 
 
-
-
 void MotionController::laserCallback(const sensor_msgs::LaserScanConstPtr& scan)
 {
   laser_scan_=*scan;
 }
-
 
 bool MotionController::checkCollision( double course, double threshold, double width, double length )
 {

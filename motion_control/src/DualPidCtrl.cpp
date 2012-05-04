@@ -41,8 +41,8 @@ bool DualPidCtrl::execute(double ef, double er, double &deltaf, double &deltar)
         i_r_ = max( i_r_, -i_max_ );
 
         timer_.restart();
-        deltaf = (Kp_ + Ki_*i_f_)*delta_max_*ef/e_max_;
-        deltar = (Kp_ + Ki_*i_r_)*delta_max_*er/e_max_;
+        deltaf = (Kp_ - Ki_*i_f_)*delta_max_*ef/e_max_;
+        deltar = (Kp_ - Ki_*i_r_)*delta_max_*er/e_max_;
         deltaf=MathHelper::clamp(deltaf,-delta_max_,+delta_max_);
         deltar = MathHelper::clamp(deltar,-delta_max_,+delta_max_);
         return true;

@@ -201,7 +201,7 @@ void PathDriver::setGoal( const motion_control::MotionGoal& goal ) {
     pending_error_ = -1;
 
     // Set config
-    max_speed_ = goal.v; /// @todo That's all?
+    max_speed_ = goal.v;
 
     // Got at least two waypoint?
     if ( goal.path.poses.size() < 2 ) {
@@ -220,7 +220,7 @@ void PathDriver::calculateWaypoints( const nav_msgs::Path &path )
     path_.clear();
 
     // Add first pose
-    path_.push_back( Waypoint( path.poses[0], max_speed_ ));
+    path_.push_back( Waypoint( path.poses[0], getFilteredSpeed()));
 
     // For all poses execpt of the first and the last one
     Vector3d prev_wp, wp, next_wp;

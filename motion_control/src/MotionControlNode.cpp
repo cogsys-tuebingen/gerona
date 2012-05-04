@@ -10,7 +10,7 @@
 using namespace motion_control;
 
 MotionControlNode::MotionControlNode(ros::NodeHandle& nh, const std::string& name)
-  :nh_(nh),action_server_(nh,name, false), action_name_(name)
+    :nh_(nh),action_server_(nh,name, false), speed_filter_( 6 ), action_name_(name)
 {
   action_server_.registerGoalCallback(boost::bind(&MotionControlNode::goalCallback,this));
   action_server_.registerPreemptCallback(boost::bind(&MotionControlNode::preemptCallback,this));
@@ -21,7 +21,7 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& nh, const std::string& nam
   cmd_ramaxx_pub_ = nh_.advertise<ramaxxbase::RamaxxMsg>
       ("/ramaxx_cmd", 10 );
   scan_sub_ = nh_.subscribe<sensor_msgs::LaserScan>( "/scan", 1, boost::bind(&MotionControlNode::laserCallback, this, _1 ));
-
+  odom_sub_ = nh_.subscribe<nav_msgs::Odometry>( "/odom", 1, boost::bind( &MotionControlNode::odometryCallback, this, _1 ));
   active_ctrl_ = NULL;
   calib_driver_ = new CalibDriver (cmd_ramaxx_pub_, this);
   simple_goal_driver_ = new SimpleGoalDriver (cmd_ramaxx_pub_,this);
@@ -143,6 +143,12 @@ void MotionControlNode::laserCallback(const sensor_msgs::LaserScanConstPtr& scan
   }
 }
 
+void MotionControlNode::odometryCallback( const nav_msgs::OdometryConstPtr &odom )
+{
+   odometry_ = *odom;
+   float current_speed = sqrt( pow( odom->twist.twist.linear.x, 2 ) + pow( odom->twist.twist.linear.y, 2 ));
+   speed_filter_.Update( current_speed );
+}
 
 void MotionControlNode::preemptCallback()
 {

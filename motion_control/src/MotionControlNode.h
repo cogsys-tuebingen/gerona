@@ -11,6 +11,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <deque>
 #include <Eigen/Core>
+#include <utils/LibUtil/LowPassFilter.h>
 
 class MotionController;
 class CalibDriver;
@@ -24,7 +25,7 @@ public:
   MotionControlNode(ros::NodeHandle& node, const std::string& name);
   ~MotionControlNode();
 
-  void odometry_callback (const nav_msgs::OdometryConstPtr &odom);
+  void odometryCallback (const nav_msgs::OdometryConstPtr &odom);
   void path_callback (const nav_msgs::PathConstPtr &path);
   void action_callback (const geometry_msgs::PoseStampedConstPtr &goal_pose);
   void laserCallback(const sensor_msgs::LaserScanConstPtr& scan);
@@ -46,11 +47,13 @@ private:
   ros::NodeHandle& nh_;
   actionlib::SimpleActionServer<motion_control::MotionAction> action_server_;
   ros::Subscriber scan_sub_;
+  ros::Subscriber odom_sub_;
   ros::Publisher cmd_ramaxx_pub_;
 
   tf::TransformListener pose_listener_;
 
   nav_msgs::Odometry odometry_;
+  LowPassFilter<float> speed_filter_;
   std::string action_name_;
   std::string world_frame_,robot_frame_;
 

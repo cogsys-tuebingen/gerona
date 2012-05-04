@@ -10,6 +10,7 @@
 #include <utils/LibRobot/LaserEnvironment.h>
 #include <string>
 #include <ros/ros.h>
+#include <nav_msgs/Odometry.h>
 
 using namespace Eigen;
 using namespace motion_control;
@@ -17,6 +18,7 @@ class MotionControlNode;
 class MotionController
 {
 public:
+
   virtual void start ()=0;
   virtual void stop ()=0;
   virtual int getType ()=0;
@@ -28,11 +30,19 @@ public:
   virtual void configure ()=0;
   virtual void setGoal (const motion_control::MotionGoal& goal)=0;
   virtual void laserCallback(const sensor_msgs::LaserScanConstPtr& scan);
+  void setFilteredSpeed( const float speed ) {
+      filtered_speed_ = speed;
+  }
 
 protected:
   bool checkCollision( double course, double threshold, double width = 0.3, double length = 0.5 );
+  float getFilteredSpeed() const {
+      return filtered_speed_;
+  }
+
   sensor_msgs::LaserScan laser_scan_;
   LaserEnvironment laser_env_;
+  float filtered_speed_;
 };
 
 
