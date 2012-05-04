@@ -6,9 +6,9 @@
 
     <param name="path_driver/waypoint_tolerance" value="0.2" />
     <param name="path_driver/goal_tolerance" value="0.15" />
-    <param name="path_driver/dualpid/kp" value="0.5" />
-    <param name="path_driver/dualpid/ki" value="0.1" />
-    <param name="path_driver/dualpid/i_max" value="0.5" />
+    <param name="path_driver/dualpid/kp" value="0.3" />
+    <param name="path_driver/dualpid/ki" value="0.25" />
+    <param name="path_driver/dualpid/i_max" value="0.7" />
 
   </node>
 
