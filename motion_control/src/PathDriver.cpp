@@ -9,6 +9,7 @@
 #include <utils/LibUtil/Line2d.h>
 #include <ramaxxbase/RamaxxMsg.h>
 #include "MotionControlNode.h"
+
 // Project
 #include <motion_control/MotionResult.h>
 #include "PathDriver.h"
@@ -117,7 +118,7 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
     if ( wp_local.x() < 0 )
         dir_sign = -1.0;
     Vector2d front_pred, rear_pred;
-    predictPose( dead_time_, last_cmd_(0), last_cmd_(1), path_[path_idx_].speed, front_pred, rear_pred );
+    predictPose( dead_time_, last_cmd_(0), last_cmd_(1), getFilteredSpeed(), front_pred, rear_pred );
     double e_f = target_line.GetSignedDistance( front_pred );
     double e_r = target_line.GetSignedDistance( rear_pred );
 
@@ -159,14 +160,14 @@ bool PathDriver::calculateSpeed( const double request, const double beta )
         return true;
 
     // Faster than requested?
-    if ( current_speed_ > request ) {
+    /*if ( current_speed_ > request ) {
         current_speed_ = request;
         return false;
-    }
+    }*/
 
     // Increase speed?
-    if ( checkCollision( beta, 2.0, 0.5, 2.25 ))
-        current_speed_ -= 0.1;
+    if ( checkCollision( beta, 2.0, 0.6, 2.25 ) || current_speed_ > request )
+        current_speed_ -= 0.01;
     else
         current_speed_ += 0.01;
     current_speed_ = min( current_speed_, max_speed_ );
@@ -178,7 +179,7 @@ void PathDriver::configure() {
     ros::NodeHandle& nh = node_->getNodeHandle();
 
     // Path following/speed calculation
-    nh.param( "path_driver/waypoint_tolerance", wp_tolerance_, 0.2 );
+    nh.param( "path_driver/waypoint_tolerance", wp_tolerance_, 0.20 );
     nh.param( "path_driver/goal_tolerance", goal_tolerance_, 0.15 );
     nh.param( "path_driver/l", l_, 0.38 );
     nh.param( "path_driver/min_speed", min_speed_, 0.5 );
@@ -187,8 +188,8 @@ void PathDriver::configure() {
     // Dual pid
     double ta, e_max, kp, ki, i_max, delta_max;
     nh.param( "path_driver/dualpid/dead_time", dead_time_, 0.10 );
-    nh.param( "path_driver/dualpid/ta", ta, 0.05 );
-    nh.param( "path_driver/dualpid/e_max", e_max, 0.15 );
+    nh.param( "path_driver/dualpid/ta", ta, 0.03 );
+    nh.param( "path_driver/dualpid/e_max", e_max, 0.10 );
     nh.param( "path_driver/dualpid/kp", kp, 0.4 );
     nh.param( "path_driver/dualpid/ki", ki, 0.0 );
     nh.param( "path_driver/dualpid/i_max", i_max, 0.0 );
@@ -199,6 +200,7 @@ void PathDriver::configure() {
 
 void PathDriver::setGoal( const motion_control::MotionGoal& goal ) {
     pending_error_ = -1;
+    current_speed_ = getFilteredSpeed();
 
     // Set config
     max_speed_ = goal.v;
@@ -220,7 +222,7 @@ void PathDriver::calculateWaypoints( const nav_msgs::Path &path )
     path_.clear();
 
     // Add first pose
-    path_.push_back( Waypoint( path.poses[0], getFilteredSpeed()));
+    path_.push_back( Waypoint( path.poses[0], max_speed_ ));
 
     // For all poses execpt of the first and the last one
     Vector3d prev_wp, wp, next_wp;
@@ -235,7 +237,7 @@ void PathDriver::calculateWaypoints( const nav_msgs::Path &path )
     path_.push_back( Waypoint( path.poses[path.poses.size() - 1], min_speed_ ));
 
     // Current waypoint is the first entry
-    path_idx_ = 0;
+    path_idx_ = 1;
 }
 
 double PathDriver::calculateWaypointSpeed( const Eigen::Vector3d &prev, const Eigen::Vector3d &wp, const Eigen::Vector3d &next )
@@ -257,11 +259,11 @@ double PathDriver::calculateWaypointSpeed( const Eigen::Vector3d &prev, const Ei
     a = 180.0*acos( a )/M_PI;
 
     // Calculate speed
-    if ( a < 5.0 )
+    if ( a < 10.0 )
         return max_speed_;
     if ( a > 50.0 )
         return min_speed_;
-    return min_speed_ + (a - 5.0)*(max_speed_ - min_speed_)/45.0;
+    return min_speed_ + (a - 10.0)*(max_speed_ - min_speed_)/40.0;
 }
 
 void PathDriver::predictPose( const double dt,
