@@ -21,7 +21,7 @@ TerrainClassifier::TerrainClassifier() :
 
     // advertise
     publish_normalized_   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
-    publish_classification_cloud_ = node_handle_.advertise<pcl::PointCloud<PointXYZRGBT> >("path_classification_cloud", 10);
+    publish_classification_cloud_ = node_handle_.advertise<PointCloudXYZRGBT >("path_classification_cloud", 10);
     publish_map_ = node_handle_.advertise<nav_msgs::OccupancyGrid>("traversability_map", 1);
 
     // subscribe laser scanner
@@ -99,7 +99,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
     // get projection to carthesian frame
     sensor_msgs::PointCloud cloud;
-    pcl::PointCloud<PointXYZRGBT> pcl_cloud;
+    PointCloudXYZRGBT pcl_cloud;
 
     //laser_projector_.projectLaser(*msg, cloud, -1.0, laser_geometry::channel_option::Index);
     try {
@@ -150,7 +150,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     }
 
 
-    dropNarrowPaths(&pcl_cloud);
+    classifyPointCloud(&pcl_cloud);
 
     updateMap(pcl_cloud);
 
@@ -361,51 +361,19 @@ void TerrainClassifier::checkPointNeighbourhood(vector<PointClassification> *sca
 }
 
 
-void TerrainClassifier::dropNarrowPaths(pcl::PointCloud<PointXYZRGBT> *cloud)
+void TerrainClassifier::classifyPointCloud(PointCloudXYZRGBT *cloud)
 {
+    /* **** Check traversable segments **** */
     size_t index_start = 0;       //!< Index of the first point of a traversable segment.
     bool on_trav_segment = false; //!< True if currently iterating in a traversable segment, otherwise false.
 
-
     for (size_t i = 0; i < cloud->points.size(); ++i) {
-        if (on_trav_segment && (!cloud->points[i].traversable || i == cloud->points.size()-1)) {
+        if (on_trav_segment && !cloud->points[i].traversable) {
             // end traversable segment
             on_trav_segment = false;
 
-            PointXYZRGBT point_start = cloud->points[index_start];
-            PointXYZRGBT point_end = cloud->points[i-1]; // i > 0 because on_trav_segment is init. with false
-
-            // check path width
-            double distance = sqrt( pow(point_start.x - point_end.x, 2) +
-                                    pow(point_start.y - point_end.y, 2) +
-                                    pow(point_start.z - point_end.z, 2) );
-
-            if (distance < config_.min_path_width) {
-                // make this segment untraversable
-                for (size_t j = index_start; j < i; ++j) {
-                    cloud->points[j].setTraversability(false);
-                }
-                ROS_DEBUG("Drop too narrow path (index %zu to %zu, distance: %.2fm)", index_start, i-1, distance);
-                continue; // no need of other checks
-            }
-
-            // check slope
-            /** \todo is this useful? -> test if this has any effekt. If not dropping it may makes the use of tf
-                unnecessary */
-            const double b = fabs(point_start.z - point_end.z);
-            const double a = sqrt( pow(point_start.x - point_end.x, 2) +  pow(point_start.y - point_end.y, 2));
-            double angle_of_slope = atan2(b,a);
-            //ROS_DEBUG("slope: %d-%d, atan(%g, %g) = %g", index_start, i, b, a, angle_of_slope);
-
-            if (angle_of_slope > 0.2) { /** \todo To drop "paths" on walls, the limit angle depends on the laser tilt */
-                // make this segment untraversable
-                for (size_t j = index_start; j < i; ++j) {
-                    cloud->points[j].setTraversability(false);
-                }
-                ROS_DEBUG("Drop too steep path (index %zu to %zu, angle of slope: %.2fm)", index_start, i-1,
-                          angle_of_slope);
-            }
-
+            ROS_DEBUG("Check traversable segment (index %zu to %zu)", index_start, i-1);
+            checkTraversableSegment(cloud->points.begin()+index_start, cloud->points.begin()+i);
         }
         else if (!on_trav_segment && cloud->points[i].traversable) {
             // begin new traversable segment
@@ -414,10 +382,58 @@ void TerrainClassifier::dropNarrowPaths(pcl::PointCloud<PointXYZRGBT> *cloud)
         }
         // else continue;
     }
+
+    // if the last point is part of a traversable segment, the loop above will not check this segment any more.
+    if (on_trav_segment) {
+        ROS_DEBUG("Check traversable segment (index %zu to %zu)", index_start, cloud->points.size()-1);
+        checkTraversableSegment(cloud->points.begin()+index_start, cloud->points.end());
+    }
+}
+
+void TerrainClassifier::checkTraversableSegment(PointCloudXYZRGBT::iterator begin,
+                                                PointCloudXYZRGBT::iterator end)
+{
+    PointXYZRGBT point_start = *begin;
+    PointXYZRGBT point_end = *(end-1);
+
+    /* *********** check path width ************* */
+    double distance = sqrt( pow(point_start.x - point_end.x, 2) +
+                            pow(point_start.y - point_end.y, 2) +
+                            pow(point_start.z - point_end.z, 2) );
+
+    if (distance < config_.min_path_width) {
+        ROS_DEBUG("Drop too narrow path (distance: %.2fm)", distance);
+        goto untraversable;
+    }
+
+
+    /* *********** check slope ************* */
+    /** \todo is this useful? -> test if this has any effekt. If not dropping it may makes the use of tf
+        unnecessary */
+    {
+        const double b = fabs(point_start.z - point_end.z);
+        const double a = sqrt( pow(point_start.x - point_end.x, 2) + pow(point_start.y - point_end.y, 2));
+        double angle_of_slope = atan2(b,a);
+        //ROS_DEBUG("slope: %d-%d, atan(%g, %g) = %g", index_start, i, b, a, angle_of_slope);
+
+        if (angle_of_slope > 0.2) { /** \todo To drop "paths" on walls, the limit angle depends on the laser tilt */
+            ROS_DEBUG("Drop too steep path (angle: %.2f)", angle_of_slope);
+            goto untraversable;
+        }
+    }
+
+    return;
+
+    // sorry for the goto. I found no better solution to avoid copy pasting of the following code.
+    untraversable:
+    // make this segment untraversable
+    for (PointCloudXYZRGBT::iterator cloud_it = begin; cloud_it != end; ++cloud_it) {
+        cloud_it->setTraversability(false);
+    }
 }
 
 
-void TerrainClassifier::updateMap(pcl::PointCloud<PointXYZRGBT> cloud)
+void TerrainClassifier::updateMap(PointCloudXYZRGBT cloud)
 {
     if (map_.data.size() == 0) {
         map_.info.resolution = 0.05;
@@ -433,7 +449,7 @@ void TerrainClassifier::updateMap(pcl::PointCloud<PointXYZRGBT> cloud)
     /** \todo maybe only call moveMap() if a scan point is outside the map? */
     moveMap();
 
-    for (pcl::PointCloud<PointXYZRGBT>::iterator point_it = cloud.begin(); point_it != cloud.end(); ++point_it) {
+    for (PointCloudXYZRGBT::iterator point_it = cloud.begin(); point_it != cloud.end(); ++point_it) {
         int col, row;
         col = (point_it->x - map_.info.origin.position.x) / map_.info.resolution;
         row = (point_it->y - map_.info.origin.position.y) / map_.info.resolution;

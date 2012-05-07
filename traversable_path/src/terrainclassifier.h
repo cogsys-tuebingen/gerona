@@ -33,6 +33,7 @@ public:
 
 private:
     typedef traversable_path::classify_terrainConfig Config;
+    typedef pcl::PointCloud<PointXYZRGBT> PointCloudXYZRGBT;
 
     //! Default path/name of the range calibration file
     const static std::string DEFAULT_RANGE_CALIBRATION_FILE;
@@ -73,7 +74,7 @@ private:
 
     nav_msgs::OccupancyGrid map_;
     ros::Publisher publish_map_;
-    void updateMap(pcl::PointCloud<PointXYZRGBT> cloud);
+    void updateMap(PointCloudXYZRGBT cloud);
     void moveMap();
     double distance(geometry_msgs::Point a, geometry_msgs::Point b);
 
@@ -111,12 +112,27 @@ private:
     void checkPointNeighbourhood(std::vector<PointClassification> *scan_classification);
 
     /**
-     * @brief Drop traversable segments, that are too narrow for the robot.
+     * @brief Does some feature checks that requires a point cloud.
      *
-     * @param points The classification and position of the points. The points of too narrow paths will be marked as
-     *               untraversable within points.
+     * This method calls all feature checks that require the scan data as a point cloud (e.g. width of the path).
+     * Please note: A requirement is, that the points are already classified! However the classification of some points
+     * may be changed by calling this method (e.g. to narrow traversable segments will be made untraversable).
+     *
+     * @param cloud Point cloud of the laser scan. The points already have to be classified. Classification of the
+     *              points may be changed by this method.
      */
-    void dropNarrowPaths(pcl::PointCloud<PointXYZRGBT> *cloud);
+    void classifyPointCloud(PointCloudXYZRGBT *cloud);
+
+    /**
+     * @brief Checks a single traversable segment some features.
+     *
+     * The given segment is checked for the feaures width and slope. If the segment is too narrow or too steep, it is
+     * marked as untraversable.
+     * @param begin Start of the traversable segment
+     * @param end   End of the traversable segment
+     */
+    void checkTraversableSegment(PointCloudXYZRGBT::iterator begin,
+                                 PointCloudXYZRGBT::iterator end);
 
     //! Callback for dynamic reconfigure.
     void dynamicReconfigureCallback(Config &config, uint32_t level);
