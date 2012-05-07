@@ -11,6 +11,7 @@
 #include <string>
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
+#include <sensor_msgs/PointCloud.h>
 
 using namespace Eigen;
 using namespace motion_control;
@@ -18,6 +19,7 @@ class MotionControlNode;
 class MotionController
 {
 public:
+  MotionController();
 
   virtual void start ()=0;
   virtual void stop ()=0;
@@ -30,6 +32,7 @@ public:
   virtual void configure ()=0;
   virtual void setGoal (const motion_control::MotionGoal& goal)=0;
   virtual void laserCallback(const sensor_msgs::LaserScanConstPtr& scan);
+  virtual void sonarCallback(const sensor_msgs::PointCloudConstPtr& data);
   void setFilteredSpeed( const float speed ) {
       filtered_speed_ = speed;
   }
@@ -43,6 +46,8 @@ protected:
   sensor_msgs::LaserScan laser_scan_;
   LaserEnvironment laser_env_;
   float filtered_speed_;
+  bool backwards_collision_;
+  ros::Time sonar_stamp_;
 };
 
 

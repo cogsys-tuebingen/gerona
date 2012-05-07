@@ -22,6 +22,7 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& nh, const std::string& nam
       ("/ramaxx_cmd", 10 );
   scan_sub_ = nh_.subscribe<sensor_msgs::LaserScan>( "/scan", 1, boost::bind(&MotionControlNode::laserCallback, this, _1 ));
   odom_sub_ = nh_.subscribe<nav_msgs::Odometry>( "/odom", 1, boost::bind( &MotionControlNode::odometryCallback, this, _1 ));
+  sonar_sub_ = nh_.subscribe<sensor_msgs::PointCloud>( "/sonar", 1, boost::bind( &MotionControlNode::sonarCallback, this, _1 ));
   active_ctrl_ = NULL;
   calib_driver_ = new CalibDriver (cmd_ramaxx_pub_, this);
   simple_goal_driver_ = new SimpleGoalDriver (cmd_ramaxx_pub_,this);
@@ -148,6 +149,12 @@ void MotionControlNode::odometryCallback( const nav_msgs::OdometryConstPtr &odom
    odometry_ = *odom;
    float current_speed = sqrt( pow( odom->twist.twist.linear.x, 2 ) + pow( odom->twist.twist.linear.y, 2 ));
    speed_filter_.Update( current_speed );
+}
+
+void MotionControlNode::sonarCallback( const sensor_msgs::PointCloudConstPtr &data )
+{
+    if ( active_ctrl_ != NULL )
+        active_ctrl_->sonarCallback( data );
 }
 
 void MotionControlNode::preemptCallback()
