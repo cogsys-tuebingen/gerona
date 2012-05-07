@@ -22,7 +22,7 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& nh, const std::string& nam
       ("/ramaxx_cmd", 10 );
   scan_sub_ = nh_.subscribe<sensor_msgs::LaserScan>( "/scan", 1, boost::bind(&MotionControlNode::laserCallback, this, _1 ));
   odom_sub_ = nh_.subscribe<nav_msgs::Odometry>( "/odom", 1, boost::bind( &MotionControlNode::odometryCallback, this, _1 ));
-  sonar_sub_ = nh_.subscribe<sensor_msgs::PointCloud>( "/sonar", 1, boost::bind( &MotionControlNode::sonarCallback, this, _1 ));
+  sonar_sub_ = nh_.subscribe<sensor_msgs::PointCloud>( "/sonar_raw", 1, boost::bind( &MotionControlNode::sonarCallback, this, _1 ));
   active_ctrl_ = NULL;
   calib_driver_ = new CalibDriver (cmd_ramaxx_pub_, this);
   simple_goal_driver_ = new SimpleGoalDriver (cmd_ramaxx_pub_,this);

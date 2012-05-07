@@ -46,7 +46,7 @@ protected:
   sensor_msgs::LaserScan laser_scan_;
   LaserEnvironment laser_env_;
   float filtered_speed_;
-  bool backwards_collision_;
+  bool sonar_collision_;
   ros::Time sonar_stamp_;
 };
 
