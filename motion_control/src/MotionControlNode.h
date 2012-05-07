@@ -29,6 +29,7 @@ public:
   void path_callback (const nav_msgs::PathConstPtr &path);
   void action_callback (const geometry_msgs::PoseStampedConstPtr &goal_pose);
   void laserCallback(const sensor_msgs::LaserScanConstPtr& scan);
+  void sonarCallback(const sensor_msgs::PointCloudConstPtr &data);
   void goalCallback();
   void preemptCallback();
 
@@ -48,6 +49,7 @@ private:
   actionlib::SimpleActionServer<motion_control::MotionAction> action_server_;
   ros::Subscriber scan_sub_;
   ros::Subscriber odom_sub_;
+  ros::Subscriber sonar_sub_;
   ros::Publisher cmd_ramaxx_pub_;
 
   tf::TransformListener pose_listener_;
