@@ -37,6 +37,12 @@ void Ranger::setRange( float range, bool valid ) {
     mRange = range;
 }
 
+void Ranger::getRange( float &x, float &y, float &z ) const {
+    x = mPos.x; y = mPos.y; z = mPos.z;
+    x += mRange*cos( mPos.a );
+    y += mRange*sin( mPos.a );
+}
+
 //// class SonarRanger ////////////////////////////////////////////////////////
 
 // TODO Error handling (values are always valid at current state)

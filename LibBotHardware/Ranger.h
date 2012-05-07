@@ -32,17 +32,28 @@
 struct RangerPosition {
 
     /**
-     * Default constructor.
+     * All member default to zero.
      */
     RangerPosition() {
-        x = y = a = 0.0f;
+        x = y  = z = a = 0.0f;
     }
 
-    /** x coordinate [m] */
+    /**
+     * Initialize all member
+     */
+    RangerPosition( float x_, float y_, float z_, float a_ )
+        : x( x_ ), y( y_ ), z( z_ ), a( a_ ) {}
+
+    /// x coordinate [m]
     float x;
-    /** y coordinate [m] */
+
+    /// y coordinate [m]
     float y;
-    /** Viewing angle [rad] */
+
+    /// z coordinate [m]
+    float z;
+
+    /// Viewing angle [rad]
     float a;
 
 };
@@ -80,11 +91,22 @@ public:
     void getRangerPosition(  RangerPosition * pos ) const { *pos = mPos; }
 
     /**
-     * Returns the current range of the sensor.
+     * Returns the current range measurement.
      *.
      * @return The current range [m].
      */
     float getRange() const { return mRange; }
+
+    /**
+     * @brief Returns the range measurement in robot coordinates.
+     * Call getRange() to get the raw distance measurement. Check if
+     * this value is valid.
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param z z coordinate
+     */
+    void getRange( float &x, float &y, float &z ) const;
 
     /**
      * Returns the type of the range sensor.

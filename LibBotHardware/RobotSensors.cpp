@@ -50,35 +50,12 @@ RobotSensors::RobotSensors( RamaxxConnection * conn )
     mAvrVoltage = new Avr32Voltage( conn );
 
     // Sonar ranger
-    mSonarE0 = new SonarRanger( 0xE0, conn );
-    mSonarE2 = new SonarRanger( 0xE2, conn );
-    mSonarE4 = new SonarRanger( 0xE4, conn );
-    mSonarE6 = new SonarRanger( 0xE6, conn );
-    mSonarE8 = new SonarRanger( 0xE8, conn );
-    mSonarEA = new SonarRanger( 0xEA, conn );
-
-    // Set default sonar ranger position
-    RangerPosition rangerPos;
-    // Address 0xE0
-    rangerPos.x = -0.2;
-    rangerPos.y = 0.0;
-    rangerPos.a = 0.0;
-    mSonarE0->setPosition( rangerPos );
-    // Address 0xE2
-    rangerPos.y = 0.01;
-    mSonarE2->setPosition( rangerPos );
-    // Address 0xE4
-    rangerPos.y = 0.02;
-    mSonarE4->setPosition( rangerPos );
-    // Address 0xE6
-    rangerPos.y = 0.03;
-    mSonarE6->setPosition( rangerPos );
-    // Address 0xE8
-    rangerPos.y = 0.04;
-    mSonarE8->setPosition( rangerPos );
-    // Address 0xEA
-    rangerPos.y = 0.05;
-    mSonarEA->setPosition( rangerPos );
+    mSonarE0 = new SonarRanger( 0xE0, conn, RangerPosition( 20, -6, 0, -20.0*M_PI/180.0 ));
+    mSonarE2 = new SonarRanger( 0xE2, conn, RangerPosition( 20, 6, 0, 20.0*M_PI/180.0  ));
+    mSonarE4 = new SonarRanger( 0xE4, conn, RangerPosition( -20, 15, 0, 135.0*M_PI/180.0 ));
+    mSonarE6 = new SonarRanger( 0xE6, conn, RangerPosition( -20, 6, 0, 155.0*M_PI/180.0 ));
+    mSonarE8 = new SonarRanger( 0xE8, conn, RangerPosition( -20, -6, 0, 195.0*M_PI/180.0 ));
+    mSonarEA = new SonarRanger( 0xEA, conn, RangerPosition( -20, -15, 0, 225.0*M_PI/180.0 ));
 
     // Fill vectors
     mCompassVec.push_back( mI2cCompass );
