@@ -64,6 +64,8 @@ void TerrainClassifier::dynamicReconfigureCallback(Config &config, uint32_t leve
 
 void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 {
+    ros::Time start_time = ros::Time::now();
+
     // with uncalibrated laser, classification will not work
     if (!this->is_calibrated_) {
         return;
@@ -160,6 +162,10 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     /** @todo This topic is only for debugging. Remove in later versions */
     smoothed.intensities = msg->intensities;
     publish_normalized_.publish(smoothed);
+
+    ros::Time end_time = ros::Time::now();
+    ros::Duration running_duration = end_time - start_time;
+    ROS_DEBUG("classify scan duration: %fs", running_duration.toSec());
 }
 
 bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)

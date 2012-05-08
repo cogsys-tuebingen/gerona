@@ -4,6 +4,8 @@
 
 MapProcessor::MapProcessor()
 {
+    cv::namedWindow("map", CV_WINDOW_FREERATIO);
+    cv::namedWindow("processed map", CV_WINDOW_FREERATIO);
 }
 
 cv::Mat1b MapProcessor::mapToImage()
@@ -45,11 +47,11 @@ nav_msgs::OccupancyGrid MapProcessor::process(const nav_msgs::OccupancyGrid &map
     //cv::dilate(img, dilated, cv::Mat());
 
     cv::Mat foo(3, 3, CV_8U, cv::Scalar(1));
-    cv::morphologyEx(img, processed, cv::MORPH_OPEN, foo);
+    cv::morphologyEx(img, processed, cv::MORPH_CLOSE, foo);
 
-    cv::imshow("map", img);
-    cv::imshow("processed map", processed);
-    cv::waitKey(3);
+//    cv::imshow("map", img);
+//    cv::imshow("processed map", processed);
+//    cv::waitKey(3);
 
     imageToMap(processed);
 
