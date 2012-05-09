@@ -56,6 +56,11 @@ public:
     SpeedController( RamaxxConnection * conn );
 
     /**
+     * @brief Does neccessary stuff.
+     */
+    virtual ~SpeedController();
+
+    /**
      * Sets the calibration values.
      *
      * @param calib The new calibration data.
@@ -90,7 +95,7 @@ public:
      * Send the current speed value to the avr32 if necessary.
      *
      * @param immediately: true if update should be done immediately
-     *                     false if update should be done only each 0.3 secs
+     *                     false if update should be done only each ~0.3 secs
      */
     virtual void update( bool immediately ) = 0;
 
@@ -117,12 +122,13 @@ protected:
     /// Current calibration
     SpeedCtrlCalibration mCalib;
 
-private:
-    /// Flag if we should enable the Avr32 speed controller
-    bool mAvr32Ctrl;
-
     /// Connection to the robot
     RamaxxConnection * mConn;
+
+private:
+
+    /// Flag if we should enable the Avr32 speed controller
+    bool mAvr32Ctrl;
 };
 
 /**

@@ -116,7 +116,7 @@ void Ramaxx::setSpeedCtrlType( SpeedCtrlType type ) {
     float requestedSpeed = 0;
     if ( mSpeed != NULL ) {
         requestedSpeed = mSpeed->getSpeed();
-        //delete mSpeed;
+        delete mSpeed;
     }
 
     // Create new speed controller object

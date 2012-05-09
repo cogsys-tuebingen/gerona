@@ -32,6 +32,11 @@
 SpeedController::SpeedController( RamaxxConnection *conn )
     : mAvr32Ctrl( false ), mConn( conn ) {
     mConn->addQuMsgHandler( MT_SPEEDCTRL, *this );
+
+}
+
+SpeedController::~SpeedController() {
+    mConn->removeQuMsgHandler( MT_SPEEDCTRL );
 }
 
 void SpeedController::setAvr32SpeedCtrlEnabled( bool arg ) {
@@ -78,8 +83,6 @@ void SpeedController::connectionEstablished() {
         msg.data.resize( 1 );
         msg.data[0] = 0;
     }
-
-    mConn->queueMsg( msg );
 }
 
 //// class Avr32SpeedController ///////////////////////////////////////////////

@@ -58,156 +58,166 @@ typedef map<U8, vector<QuMsgHandler*>* > QuMsgListenerMap ;
 class RamaxxConnection {
 public:
 
-    /**
+  /**
      * Contructor. Does not open the device.
      */
-	RamaxxConnection();
+  RamaxxConnection();
 
-	/**
-	 * Destructor. Closes the device.
-	 */
-	virtual ~RamaxxConnection();
+  /**
+   * Destructor. Closes the device.
+   */
+  virtual ~RamaxxConnection();
 
-	/**
-	 * Checks if the AVR32 is present.
-	 *
-	 * @return
-	 *     True if the device is available.
-	 */
-	bool isAvr32Present();
+  /**
+   * Checks if the AVR32 is present.
+   *
+   * @return
+   *     True if the device is available.
+   */
+  bool isAvr32Present();
 
-	/**
-	 * Opens the device.
-	 *
-	 * @return
-	 *     False if there was any error, true otherwise.
-	 */
-	bool openAvr32();
+  /**
+   * Opens the device.
+   *
+   * @return
+   *     False if there was any error, true otherwise.
+   */
+  bool openAvr32();
 
-	/**
-	 * Checks if the device is opened.
-	 *
-	 * @return
-	 *     True if the device is open and ready.
-	 */
-	bool isOpen();
+  /**
+   * Checks if the device is opened.
+   *
+   * @return
+   *     True if the device is open and ready.
+   */
+  bool isOpen();
 
-	/**
-	 * Closes the AVR32 device. Any errors will be ignored.
-	 */
-	void closeAvr32();
+  /**
+   * Closes the AVR32 device. Any errors will be ignored.
+   */
+  void closeAvr32();
 
-	/**
-	 * Sends a setup request to the AVR32.
-	 *
-	 * @return
-	 *     False if any error occurred, true otherwise.
-	 */
-	bool sendSetupRequest();
+  /**
+   * Sends a setup request to the AVR32.
+   *
+   * @return
+   *     False if any error occurred, true otherwise.
+   */
+  bool sendSetupRequest();
 
-	/**
-	 * Sends a watchdog reset request to the AVR32.
-	 *
-	 * @return
+  /**
+   * Sends a watchdog reset request to the AVR32.
+   *
+   * @return
      *     False if any error occurred, true otherwise.
-	 */
-	bool sendWdtResetRequest();
+   */
+  bool sendWdtResetRequest();
 
-	/**
+  /**
      * Sends a shutdown reset request to the AVR32.
      *
      * @return
      *     False if any error occurred, true otherwise.
      */
-	bool sendShutdownRequest();
+  bool sendShutdownRequest();
 
-	/**
-	 * Queues a message. Invoke sendMsgs the send all queued messages.
-	 *
-	 * @param msg
-	 *     The message.
-	 *
-	 * @return
-	 *     True if the message length is valid and the message was
-	 *     pushed on the queue, false otherwise.
-	 */
-	bool queueMsg( const QuMessage &msg );
+  /**
+   * Queues a message. Invoke sendMsgs the send all queued messages.
+   *
+   * @param msg
+   *     The message.
+   *
+   * @return
+   *     True if the message length is valid and the message was
+   *     pushed on the queue, false otherwise.
+   */
+  bool queueMsg( const QuMessage &msg );
 
-	/**
-	 * Sends all queued messages.
-	 *
-	 * @return
-	 *     True if all messages were send without an error, false otherwise.
-	 */
-	bool sendMsgs();
+  /**
+   * Sends all queued messages.
+   *
+   * @return
+   *     True if all messages were send without an error, false otherwise.
+   */
+  bool sendMsgs();
 
-	/**
-	 * Reads all robot messages and relays them to the message listeners.
-	 *
-	 * @return
-	 *     True if there was no error, false otherwise.
-	 */
-	bool processRobotMsgs();
+  /**
+   * Reads all robot messages and relays them to the message listeners.
+   *
+   * @return
+   *     True if there was no error, false otherwise.
+   */
+  bool processRobotMsgs();
 
-	/**
+  /**
      * Register a message handler. The handler will receive messages from the robot.
      *
      * @param msgType Type of the message that will be relayed to the handler.
      * @param handler The message handler.
      */
-    void addQuMsgHandler( U8 msgType, QuMsgHandler &handler );
+  void addQuMsgHandler( U8 msgType, QuMsgHandler &handler );
 
-    /**
+  /**
      * Register a message handler. The handler will receive messages from the robot.
      *
      * @param msgType Types of the messages that will be relayed to the handler.
      * @param length Size of msgTypes.
      * @param handler The message handler.
      */
-    void addQuMsgHandler( U8 msgTypes[], size_t length, QuMsgHandler &handler );
+  void addQuMsgHandler( U8 msgTypes[], size_t length, QuMsgHandler &handler );
 
-    /**
+  /**
      * Register a message handler. The handler will receive all messages.
      *
      * @param handler The message handler.
      */
-    void addQuMsgHandler( QuMsgHandler &handler );
+  void addQuMsgHandler( QuMsgHandler &handler );
+
+  /**
+     * @brief Remove all handlers for one message type.
+     *
+     * @param msgType Message type
+     */
+  void removeQuMsgHandler( U8 msgType );
 
 private:
-	bool sendStdRequest( int request );
-	bool sendData( unsigned char * data, int size );
-	bool readData( unsigned char * buffer, int * size );
-	bool readMsg( U8 * buffer, int bufferSize, int * bufferPos, QuMessage &msg );
-	struct usb_device * searchAvr32();
+  bool sendStdRequest( int request );
+  bool sendData( unsigned char * data, int size );
+  bool readData( unsigned char * buffer, int * size );
+  bool readMsg( U8 * buffer, int bufferSize, int * bufferPos, QuMessage &msg );
+  struct usb_device * searchAvr32();
 
-	/**
+  /**
      * Relays a message to all registered listeners.
      *
      * @param msg The message.
      */
-    void relayQuMessage( const QuMessage &msg );
+  void relayQuMessage( const QuMessage &msg );
 
-    void fireConnectionEstablished();
-    void fireConnectionClosed();
+  void fireConnectionEstablished();
+  void fireConnectionClosed();
 
-	/** The USB device, NULL if not opened. */
-	usb_dev_handle * mDevHandle;
+  /** The USB device, NULL if not opened. */
+  usb_dev_handle * mDevHandle;
 
-	/** Message queue. */
-	QuMsgQueue mMsgQueue;
-	/** Error counter. */
-	U32        mErrorCount;
+  /** Message queue. */
+  QuMsgQueue mMsgQueue;
+  /** Error counter. */
+  U32        mErrorCount;
 
-	/** Message handlers listening to specific message types. */
-    QuMsgListenerMap        mListenerMap;
-    /** Message handlers listening to all message types. */
-    vector<QuMsgHandler*>   mListener;
+  /** Message handlers listening to specific message types. */
+  QuMsgListenerMap        mListenerMap;
+  /** Message handlers listening to all message types. */
+  vector<QuMsgHandler*>   mListener;
 
-    /** True if we have the communication marker. */
-    bool mHasMarker;
-    int msgOutCnt,msgInCnt;
-    std::map<int,int> mMsgStatsMap;
-    Stopwatch msgCntTimer;
+  /// Flag if we have to notify all listeners that the connection was established
+  bool mFireConnEstablished;
+
+  /** True if we have the communication marker. */
+  bool mHasMarker;
+  int msgOutCnt,msgInCnt;
+  std::map<int,int> mMsgStatsMap;
+  Stopwatch msgCntTimer;
 };
 
 #endif /* USBCONN_H_ */
