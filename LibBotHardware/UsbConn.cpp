@@ -126,11 +126,6 @@ bool RamaxxConnection::queueMsg( const QuMessage &msg ) {
 bool RamaxxConnection::sendMsgs() {
   bool error = false;
 
-  if ( mFireConnEstablished ) {
-    fireConnectionEstablished();
-    mFireConnEstablished = false;
-  }
-
   // USB send buffer
   U8 buffer[MAX_MSG_LENGTH + MSG_HEADER_LENGTH];
 
@@ -188,13 +183,18 @@ bool RamaxxConnection::processRobotMsgs() {
     return false;
   }
 
+  if ( mFireConnEstablished ) {
+    fireConnectionEstablished();
+    mFireConnEstablished = false;
+  }
+
   // Send all queued messages and the token if we have the token
   if ( mHasMarker ) {
     QuMessage marker( MT_MARKER, 0, NULL );
     queueMsg( marker );
     mHasMarker = false;
     if ( !sendMsgs()) {
-      //player: ERRORPRINT( "ERROR. Cannot send messages" );
+      ERRORPRINT( "ERROR. Cannot send messages" );
       mErrorCount++;
       return false;
     }

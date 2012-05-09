@@ -83,6 +83,8 @@ void SpeedController::connectionEstablished() {
         msg.data.resize( 1 );
         msg.data[0] = 0;
     }
+    
+    mConn->queueMsg( msg );
 }
 
 //// class Avr32SpeedController ///////////////////////////////////////////////
