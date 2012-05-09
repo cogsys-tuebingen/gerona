@@ -12,12 +12,12 @@ bool PointClassification::operator!=(PointClassification p)
 }
 
 
-classification_t PointClassification::classification()
+classification_t PointClassification::classification() const
 {
     return classification_;
 }
 
-short PointClassification::obstacle_value()
+short PointClassification::obstacle_value() const
 {
     return obstacle_value_;
 }
@@ -50,7 +50,7 @@ short PointClassification::weightByFlag(uint8_t flag)
     }
 }
 
-bool PointClassification::isTraversable()
+bool PointClassification::isTraversable() const
 {
     return obstacle_value_ < OBSTACLE_VALUE_LIMIT;
 }

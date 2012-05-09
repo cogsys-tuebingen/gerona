@@ -76,7 +76,7 @@ private:
     ros::Publisher publish_map_;
     void updateMap(PointCloudXYZRGBT cloud);
     void moveMap();
-    double distance(geometry_msgs::Point a, geometry_msgs::Point b);
+    static double distance(geometry_msgs::Point a, geometry_msgs::Point b);
 
     /**
      * @brief Classifies the laser scan points.
@@ -92,14 +92,14 @@ private:
     /**
      * @brief Smoothes the curve describted by data.
      */
-    std::vector<float> smooth(std::vector<float> data, const unsigned int num_values);
+    static std::vector<float> smooth(std::vector<float> data, const unsigned int num_values);
 
     /**
      * @brief Calculates average of the elements of a float list.
      * @param A list of float-values.
      * @return Average of the list-values.
      */
-    float avg(const boost::circular_buffer<float> &xs);
+    static float avg(const boost::circular_buffer<float> &xs);
 
     //! Classifies the points of the given scan.
     std::vector<PointClassification> detectObstacles(const sensor_msgs::LaserScan &data, std::vector<float> &out);
@@ -109,7 +109,7 @@ private:
      *
      * @param Classification of the points. This method will set flags to some points, depending on their neighbours.
      */
-    void checkPointNeighbourhood(std::vector<PointClassification> *scan_classification);
+    void checkPointNeighbourhood(std::vector<PointClassification> *scan_classification) const;
 
     /**
      * @brief Does some feature checks that requires a point cloud.
@@ -121,7 +121,7 @@ private:
      * @param cloud Point cloud of the laser scan. The points already have to be classified. Classification of the
      *              points may be changed by this method.
      */
-    void classifyPointCloud(PointCloudXYZRGBT *cloud);
+    void classifyPointCloud(PointCloudXYZRGBT *cloud) const;
 
     /**
      * @brief Checks a single traversable segment some features.
@@ -132,10 +132,13 @@ private:
      * @param end   End of the traversable segment
      */
     void checkTraversableSegment(PointCloudXYZRGBT::iterator begin,
-                                 PointCloudXYZRGBT::iterator end);
+                                 PointCloudXYZRGBT::iterator end) const;
 
     //! Callback for dynamic reconfigure.
     void dynamicReconfigureCallback(Config &config, uint32_t level);
+
+    void laserScanToCloud(const sensor_msgs::LaserScanPtr &scan, const std::vector<PointClassification> &traversable,
+                          PointCloudXYZRGBT *cloud);
 };
 
 const std::string TerrainClassifier::DEFAULT_RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)

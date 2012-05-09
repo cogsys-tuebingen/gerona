@@ -29,7 +29,7 @@ private:
     short obstacle_value_;
 
     //! Get the weight of the specified flag.
-    short weightByFlag(uint8_t flag);
+    static short weightByFlag(uint8_t flag);
 
 public:
     static const short OBSTACLE_VALUE_LIMIT = 100;
@@ -58,7 +58,7 @@ public:
      *
      * @return Classification flags.
      */
-    classification_t classification();
+    classification_t classification() const;
 
     /**
      * @brief Get obstacle value of the point.
@@ -67,7 +67,7 @@ public:
      * otherwise as traversable.
      * @return Obstacle value.
      */
-    short obstacle_value();
+    short obstacle_value() const;
 
     /**
      * @brief Set a classification flag.
@@ -77,7 +77,7 @@ public:
     void setFlag(uint8_t flag);
 
     //! True, if the point is traversable, false if not.
-    bool isTraversable();
+    bool isTraversable() const;
 };
 
 #endif // POINTCLASSIFICATION_H

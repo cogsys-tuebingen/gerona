@@ -100,9 +100,10 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     traversable = detectObstacles(smoothed, msg->intensities);
 
     // get projection to carthesian frame
-    sensor_msgs::PointCloud cloud;
+    //sensor_msgs::PointCloud cloud;
     PointCloudXYZRGBT pcl_cloud;
 
+    /*
     //laser_projector_.projectLaser(*msg, cloud, -1.0, laser_geometry::channel_option::Index);
     try {
         laser_projector_.transformLaserScanToPointCloud("/odom", *msg, cloud, tf_listener_, -1.0,
@@ -150,7 +151,10 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
         pcl_cloud.push_back(point);
     }
+    */
 
+
+    laserScanToCloud(msg, traversable, &pcl_cloud);
 
     classifyPointCloud(&pcl_cloud);
 
@@ -166,6 +170,61 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     ros::Time end_time = ros::Time::now();
     ros::Duration running_duration = end_time - start_time;
     ROS_DEBUG("classify scan duration: %fs", running_duration.toSec());
+}
+
+void TerrainClassifier::laserScanToCloud(const sensor_msgs::LaserScanPtr &scan,
+                                         const vector<PointClassification> &traversable, PointCloudXYZRGBT *cloud)
+{
+    // get projection to carthesian frame
+    sensor_msgs::PointCloud cloud_msg;
+    //sensor_msgs::ChannelFloat32 channel_index;
+
+    try {
+        /** \todo use /map instead of /odom? */
+        laser_projector_.transformLaserScanToPointCloud("/odom", *scan, cloud_msg, tf_listener_, -1.0,
+                                                        laser_geometry::channel_option::Index);
+    }
+    catch (tf::TransformException e) {
+        ROS_WARN("Unable to transform laser scan. tf says: %s", e.what());
+        return;
+    }
+
+    // get index channel
+    vector<sensor_msgs::ChannelFloat32>::iterator channel_it;
+    for (channel_it = cloud_msg.channels.begin(); channel_it != cloud_msg.channels.end(); ++channel_it) {
+        if (channel_it->name.compare("index") == 0) {
+            //channel_index = *channel_it;
+            break;
+        }
+    }
+
+    // assign points and traversability-data to the pcl point cloud
+    cloud->header = cloud_msg.header;
+    cloud->reserve(cloud_msg.points.size());
+    for (size_t i = 0; i < cloud_msg.points.size(); ++i) {
+        //size_t index = channel_index.values[i];
+        size_t index = channel_it->values[i];
+
+        PointXYZRGBT point;
+        point.x = cloud_msg.points[index].x;
+        point.y = cloud_msg.points[index].y;
+        point.z = cloud_msg.points[index].z;
+
+        point.traversable = traversable[index].isTraversable();
+
+        // color (for visualization)
+        if (point.traversable) {
+            // traversable. green to yellow depending on obstacle_value.
+            point.r = (float) traversable[i].obstacle_value() / PointClassification::OBSTACLE_VALUE_LIMIT * 255;
+            point.g = 255;
+            point.b = 0;
+        } else {
+            // untraversable -> red
+            point.r = 255; point.g = 0; point.b = 0;
+        }
+
+        cloud->push_back(point);
+    }
 }
 
 bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
@@ -309,7 +368,7 @@ vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs
 }
 
 
-void TerrainClassifier::checkPointNeighbourhood(vector<PointClassification> *scan_classification)
+void TerrainClassifier::checkPointNeighbourhood(vector<PointClassification> *scan_classification) const
 {
     /*
      * Check neighbourhood of the points. This is done by buffering NEIGHBOURHOOD_RANGE points before and after the
@@ -367,7 +426,7 @@ void TerrainClassifier::checkPointNeighbourhood(vector<PointClassification> *sca
 }
 
 
-void TerrainClassifier::classifyPointCloud(PointCloudXYZRGBT *cloud)
+void TerrainClassifier::classifyPointCloud(PointCloudXYZRGBT *cloud) const
 {
     /* **** Check traversable segments **** */
     size_t index_start = 0;       //!< Index of the first point of a traversable segment.
@@ -397,7 +456,7 @@ void TerrainClassifier::classifyPointCloud(PointCloudXYZRGBT *cloud)
 }
 
 void TerrainClassifier::checkTraversableSegment(PointCloudXYZRGBT::iterator begin,
-                                                PointCloudXYZRGBT::iterator end)
+                                                PointCloudXYZRGBT::iterator end) const
 {
     PointXYZRGBT point_start = *begin;
     PointXYZRGBT point_end = *(end-1);
@@ -452,7 +511,6 @@ void TerrainClassifier::updateMap(PointCloudXYZRGBT cloud)
         map_.data.resize(map_.info.width * map_.info.height, -1);
     }
 
-    /** \todo maybe only call moveMap() if a scan point is outside the map? */
     moveMap();
 
     for (PointCloudXYZRGBT::iterator point_it = cloud.begin(); point_it != cloud.end(); ++point_it) {
@@ -473,7 +531,8 @@ void TerrainClassifier::updateMap(PointCloudXYZRGBT cloud)
     // remove noise
     MapProcessor foo;
 
-    publish_map_.publish(foo.process(map_));
+    //publish_map_.publish(foo.process(map_));
+    publish_map_.publish(map_);
 }
 
 void TerrainClassifier::moveMap()

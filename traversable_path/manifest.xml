@@ -20,8 +20,8 @@
   <depend package="actionlib"/>
   <depend package="actionlib_msgs"/>
   <depend package="visualization_msgs" />
-  <depent package="dynamic_reconfigure"/>
-  <depent package="pcl"/>
-  <depent package="pcl_ros"/>
+  <depend package="dynamic_reconfigure"/>
+  <depend package="pcl"/>
+  <depend package="pcl_ros"/>
 
 </package>
