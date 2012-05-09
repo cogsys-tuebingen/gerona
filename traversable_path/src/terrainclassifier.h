@@ -18,6 +18,7 @@
 
 #include "point_types.h"
 #include "pointclassification.h"
+#include "mapprocessor.h"
 #include "traversable_path/classify_terrainConfig.h"
 
 /**
@@ -72,8 +73,10 @@ private:
     //! dynamic reconfigure values.
     Config config_;
 
+    static const int8_t MAP_DEFAULT_VALUE = 50;
     nav_msgs::OccupancyGrid map_;
     ros::Publisher publish_map_;
+    MapProcessor map_processor_;
     void updateMap(PointCloudXYZRGBT cloud);
     void moveMap();
     static double distance(geometry_msgs::Point a, geometry_msgs::Point b);

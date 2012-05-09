@@ -5,7 +5,6 @@
 #include <math.h>
 #include "ramaxxbase/PTZ.h"
 #include "vectorsaver.h"
-#include "mapprocessor.h"
 
 using namespace std;
 using namespace traversable_path;
@@ -501,6 +500,7 @@ void TerrainClassifier::checkTraversableSegment(PointCloudXYZRGBT::iterator begi
 void TerrainClassifier::updateMap(PointCloudXYZRGBT cloud)
 {
     if (map_.data.size() == 0) {
+        /** \todo why not put this to the constructor? */
         map_.info.resolution = 0.05;
         map_.info.width  = 200;
         map_.info.height = 200;
@@ -508,7 +508,7 @@ void TerrainClassifier::updateMap(PointCloudXYZRGBT cloud)
         map_.info.origin.orientation.y = 0.0;
         map_.info.origin.orientation.z = 0.0;
         map_.info.origin.orientation.w = 1.0;
-        map_.data.resize(map_.info.width * map_.info.height, -1);
+        map_.data.resize(map_.info.width * map_.info.height, MAP_DEFAULT_VALUE );
     }
 
     moveMap();
@@ -522,17 +522,29 @@ void TerrainClassifier::updateMap(PointCloudXYZRGBT cloud)
         if (col < (int)map_.info.width && row < (int)map_.info.height && col >= 0 && row >= 0) {
             size_t index = row * map_.info.width + col;
             // 0 = traversable, 100 = untraversable
-            map_.data[index] = point_it->traversable ? 0 : 100;
+            map_.data[index] += point_it->traversable ? -10 : 10;
+
+            // check range
+            if (map_.data[index] < 0) {
+                map_.data[index] = 0;
+            } else if(map_.data[index] > 100) {
+                map_.data[index] = 100;
+            }
         } else {
             //ROS_WARN("Out of Map. (row,col) = (%d, %d)", col, row);
         }
     }
 
-    // remove noise
-    MapProcessor foo;
+    nav_msgs::OccupancyGrid final_map = map_;
 
-    //publish_map_.publish(foo.process(map_));
-    publish_map_.publish(map_);
+    for (vector<int8_t>::iterator map_it = final_map.data.begin(); map_it != final_map.data.end(); ++map_it) {
+        *map_it = *map_it < 50 ? 0 : 100;
+    }
+
+    // remove noise
+    final_map = map_processor_.process(final_map);
+
+    publish_map_.publish(final_map);
 }
 
 void TerrainClassifier::moveMap()
@@ -559,7 +571,7 @@ void TerrainClassifier::moveMap()
     // only update if the robot has moved more than 5m since last update
     if (distance(map_origin.point, map_.info.origin.position) > 2.0) {
         // transform map cells
-        vector<int8_t> newdata(map_.data.size(), -1);
+        vector<int8_t> newdata(map_.data.size(), MAP_DEFAULT_VALUE);
 
         // get transformation from old map to new.
         int transform_x = (map_origin.point.x - map_.info.origin.position.x) / map_.info.resolution;
