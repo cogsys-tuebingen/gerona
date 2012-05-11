@@ -7,9 +7,16 @@
 #include <actionlib/client/simple_action_client.h>
 #include <geometry_msgs/Point32.h>
 #include <visualization_msgs/Marker.h>
+#include <nav_msgs/OccupancyGrid.h>
 #include <pcl_ros/point_cloud.h>
 
+#define EIGEN_USE_NEW_STDVECTOR
+#include <Eigen/Core>
+#include <Eigen/StdVector>
+//#include <Eigen/LeastSquares>
+
 #include "point_types.h"
+#include "exceptions.h"
 
 /**
  * @brief Main class of the follow_path node.
@@ -23,12 +30,17 @@
 class PathFollower
 {
 public:
+    typedef std::vector<Eigen::Vector2f, Eigen::aligned_allocator<Eigen::Vector2f> > vectorVector2f;
+
     PathFollower();
 
 private:
+
     ros::NodeHandle node_handle_;
     //! Subscriber for the terrain classification of the node classify_path.
     ros::Subscriber subscribe_scan_classification_;
+    //! Subscriber for the traversability map.
+    ros::Subscriber subscribe_map_;
     //! Publisher for rvis markers.
     ros::Publisher publish_rviz_marker_;
     ros::Publisher publish_goal_;
@@ -39,6 +51,8 @@ private:
 
     //! The current goal.
     geometry_msgs::Point current_goal_;
+
+    nav_msgs::OccupancyGridConstPtr map_;
 
 
     /**
@@ -52,6 +66,9 @@ private:
      * @param The terrain classification of the current laser scan.
      */
     void scan_classification_callback(const pcl::PointCloud<PointXYZRGBT>::ConstPtr& scan_classification);
+
+    //! Callback for the traversability map subscriber.
+    void mapCallback(const nav_msgs::OccupancyGridConstPtr &msg);
 
     /**
      * @brief Sends a marker to rviz which visualizes the goal as an arrow.
@@ -69,6 +86,25 @@ private:
      * @param header Header information of the points a and b.
      */
     void publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, std_msgs::Header header);
+
+    /**
+     * @brief Find some points of the egdes of the current path.
+     *
+     * Searchs for points of the edges of the path in front of the robot. Using this points an function can be fitted
+     * to them which will provied "cleaner" edges.
+     *
+     * @param out_points_left Output parameter.
+     * @return True on success, False if some failure occures (e.g. transform failes).
+     */
+    bool findPathEdgePoints(vectorVector2f *out_points_left, vectorVector2f *out_points_right);
+
+    /**
+     * @brief Transform coordinates of a point to the map cell.
+     * @param point Some point. Has to be in the same frame than the map (which is '/map').
+     * @return Index of the map cell.
+     * @throws traversable_path::TransformMapException if point lies outside of the map.
+     */
+    size_t transformToMap(Eigen::Vector2f point);
 };
 
 #endif // PATHFOLLOWER_H

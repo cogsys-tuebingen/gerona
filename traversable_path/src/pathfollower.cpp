@@ -1,10 +1,13 @@
 #include "pathfollower.h"
 
+using namespace traversable_path;
+
 PathFollower::PathFollower() :
         motion_control_action_client_("motion_control")
 {
     subscribe_scan_classification_ = node_handle_.subscribe("path_classification_cloud", 100,
                                                             &PathFollower::scan_classification_callback, this);
+    subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
     publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 1);
     publish_goal_ = node_handle_.advertise<geometry_msgs::PoseStamped>("traversable_path/goal", 1);
 }
@@ -65,7 +68,8 @@ void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRG
     tf::quaternionTFToMsg(tf::createQuaternionFromYaw(theta), goal_point_laser.pose.orientation);
     ROS_DEBUG("B: %g, %g; E: %g, %g", scan->points[beginning].x, scan->points[beginning].y, scan->points[end].x, scan->points[end].y);
     ROS_DEBUG("dx = %f, dy = %f, atan2 = %f, theta = %f", delta_x, delta_y, atan2(delta_y, delta_x), theta);
-    publishTraversaleLineMarker(scan->points[beginning], scan->points[end], scan->header);
+    /** \todo wieder einkommentieren */
+    //publishTraversaleLineMarker(scan->points[beginning], scan->points[end], scan->header);
 
 
     try {
@@ -111,6 +115,16 @@ void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRG
         ROS_DEBUG("Didn't update goal. New goal is %.2f m distant from the current goal. Minimum distance is %f",
                   distance, MIN_DISTANCE_BETWEEN_GOALS);
     }
+}
+
+
+void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
+{
+    map_ = msg;
+
+    /** \todo only for testing */
+    vectorVector2f foo1, foo2;
+    findPathEdgePoints(&foo1, &foo2);
 }
 
 
@@ -202,6 +216,112 @@ void PathFollower::publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, s
 
     publish_rviz_marker_.publish(points);
     publish_rviz_marker_.publish(line_strip);
+}
+
+bool PathFollower::findPathEdgePoints(vectorVector2f *out_points_left, vectorVector2f *out_points_right)
+{
+    // Work in frame /map
+
+    /* *** get robot position and direction and orthonormal vector of the direction *** */
+    Eigen::Vector2f robot_pos, robot_direction, orthogonal;
+
+    try {
+        // position/orientation of the robot
+        tf::StampedTransform robot_pose;
+        tf_listener_.lookupTransform("/map", "/base_link", ros::Time(0), robot_pose);
+        // position
+        robot_pos[0] = robot_pose.getOrigin().getX();
+        robot_pos[1] = robot_pose.getOrigin().getY();
+        // orientation
+        btVector3 tmp(1,0,0);
+        tmp = tmp.rotate(robot_pose.getRotation().getAxis(), robot_pose.getRotation().getAngle());
+        robot_direction[0] = tmp.getX();
+        robot_direction[1] = tmp.getY();
+    }
+    catch (tf::TransformException e) {
+        ROS_WARN("tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
+        return false;
+    }
+
+    // Orthogonal vector of robot_direction: (x,y) -> (-y,x)
+    // Points left of the direction (should be the y-axis)
+    orthogonal[0] = - robot_direction[1];
+    orthogonal[1] = robot_direction[0];
+
+
+    /* *** get edge points *** */
+    //! Size of the steps when looking for the edge points.
+    /** Using map resolution gives the greates possible step size which ensures that we miss no cell. */
+    float step_size = map_->info.resolution;
+
+    // go forward
+    //! Position of the current forward step.
+    Eigen::Vector2f forward_pos = robot_pos - robot_direction;
+    for (float forward = -1.0; forward < 0.7; forward += step_size) {
+        forward_pos += robot_direction * step_size;
+
+        // break, if obstacle is in front.
+        try {
+            if (map_->data[transformToMap(forward_pos)] != 0) {
+                break;
+            }
+        } catch (TransformMapException e) {
+            ROS_WARN("Ahead: %s", e.what());
+            break;
+        }
+
+        // find left edge
+        try {
+            Eigen::Vector2f left_edge = forward_pos;
+            do {
+                left_edge += orthogonal * step_size;
+            } while( map_->data[transformToMap(left_edge)] == 0 );
+            out_points_left->push_back(left_edge);
+        } catch (TransformMapException e) {
+            ROS_WARN("Left: %s", e.what());
+        }
+
+        // find right edge
+        try {
+            Eigen::Vector2f right_edge = forward_pos;
+            do {
+                right_edge += -orthogonal * step_size;
+            } while( map_->data[transformToMap(right_edge)] == 0 );
+            out_points_right->push_back(right_edge);
+        } catch (TransformMapException e) {
+            ROS_WARN("Right: %s", e.what());
+        }
+    }
+
+
+
+    if (out_points_right->size()) {
+        PointXYZRGBT a,b;
+        a.x = (out_points_right->front())[0];
+        a.y = (out_points_right->front())[1];
+        b.x = (out_points_right->back())[0];
+        b.y = (out_points_right->back())[1];
+        a.z = b.z = 0;
+        std_msgs::Header h;
+        h.frame_id = "/map";
+        publishTraversaleLineMarker(a,b,h);
+    }
+
+
+    return true;
+}
+
+size_t PathFollower::transformToMap(Eigen::Vector2f point)
+{
+    int x, y;
+    x = (point[0] - map_->info.origin.position.x) / map_->info.resolution;
+    y = (point[1] - map_->info.origin.position.y) / map_->info.resolution;
+
+    if (x < 0 || x >= (int)map_->info.width || y < 0 || y >= (int)map_->info.height) {
+        throw TransformMapException();
+    }
+
+    return y * map_->info.width + x;
 }
 
 //--------------------------------------------------------------------------

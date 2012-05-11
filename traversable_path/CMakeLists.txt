@@ -17,6 +17,10 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+find_package(Eigen REQUIRED)
+include_directories(${Eigen_INCLUDE_DIRS})
+
 #uncomment if you have defined messages
 #rosbuild_genmsg()
 #uncomment if you have defined services
@@ -43,7 +47,7 @@ rosbuild_add_executable(classify_terrain
     src/mapprocessor.cpp
 )
 
-rosbuild_add_executable(follow_path src/pathfollower.cpp)
+rosbuild_add_executable(follow_path src/pathfollower.cpp src/point_types.h src/exceptions.h)
 
 rosbuild_add_executable(display_path src/node_display_path.cpp src/visualization.cpp src/GraphUtils.cpp)
 
