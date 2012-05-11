@@ -514,13 +514,13 @@ void TerrainClassifier::updateMap(PointCloudXYZRGBT cloud)
     moveMap();
 
     for (PointCloudXYZRGBT::iterator point_it = cloud.begin(); point_it != cloud.end(); ++point_it) {
-        int col, row;
-        col = (point_it->x - map_.info.origin.position.x) / map_.info.resolution;
-        row = (point_it->y - map_.info.origin.position.y) / map_.info.resolution;
+        int x, y;
+        x = (point_it->x - map_.info.origin.position.x) / map_.info.resolution;
+        y = (point_it->y - map_.info.origin.position.y) / map_.info.resolution;
 
         // (int)-casts to supress comparison warning (no danger of overflow here)
-        if (col < (int)map_.info.width && row < (int)map_.info.height && col >= 0 && row >= 0) {
-            size_t index = row * map_.info.width + col;
+        if (x < (int)map_.info.width && y < (int)map_.info.height && x >= 0 && y >= 0) {
+            size_t index = y * map_.info.width + x;
             // 0 = traversable, 100 = untraversable
             map_.data[index] += point_it->traversable ? -10 : 10;
 
@@ -579,15 +579,15 @@ void TerrainClassifier::moveMap()
 
         for (size_t i = 0; i < map_.data.size(); ++i) {
             if (map_.data[i] != -1) {
-                int row, col, newrow, newcol;
-                row = i % map_.info.width;
-                col = i / map_.info.width;
-                newrow = row - transform_x;
-                newcol = col - transform_y;
+                int x, y, new_x, new_y;
+                x = i % map_.info.width;
+                y = i / map_.info.width;
+                new_x = x - transform_x;
+                new_y = y - transform_y;
 
                 // (int)-casts to supress comparison warning (no danger of overflow here)
-                if (newrow >= 0 && newrow < (int)map_.info.height && newcol >= 0 && newcol < (int)map_.info.width) {
-                    int offset = newcol * map_.info.width + newrow;
+                if (new_x >= 0 && new_x < (int)map_.info.width && new_y >= 0 && new_y < (int)map_.info.height) {
+                    int offset = new_y * map_.info.width + new_x;
                     newdata[offset] = map_.data[i];
                 }
             }
