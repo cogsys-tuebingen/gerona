@@ -3,41 +3,64 @@
  */
 #include <stdio.h>
 #include <ros/ros.h>
-#include <nav_msgs/OccupancyGrid.h>
+#include <Eigen/Core>
+#include <Eigen/SVD>
 
 using namespace std;
+using namespace Eigen;
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "test");
-    ros::NodeHandle node_handle;
+    //ros::init(argc, argv, "test");
+    //ros::NodeHandle node_handle;
 
-    nav_msgs::OccupancyGrid map;
+    MatrixXf A(4,2);
+    VectorXf b(4), x;
 
-    map.info.resolution = 0.05;
-    map.info.width  = 10;
-    map.info.height = 5;
-    map.info.origin.orientation.x = 0.0;
-    map.info.origin.orientation.y = 0.0;
-    map.info.origin.orientation.z = 0.0;
-    map.info.origin.orientation.w = 1.0;
-    map.data.resize(map.info.width * map.info.height, 0);
-    map.header.frame_id = "/map";
+    A(0,0) = 1;
+    A(1,0) = 2;
+    A(2,0) = 3;
+    A(3,0) = 4;
+    A(0,1) = 1;
+    A(1,1) = 1;
+    A(2,1) = 1;
+    A(3,1) = 1;
+    b(0) = 1;
+    b(1) = 3;
+    b(2) = 2;
+    b(3) = 4;
 
-    int x = 3, y = 1;
 
-    size_t index = y * map.info.width + x;
+    //A.svd().solve(b, &x);
+    JacobiSVD<MatrixXf> svd(A, ComputeThinU | ComputeThinV);
+    x = svd.solve(b);
 
-    map.data[index] = 100;
+    cout << "a = " << x[0] << ", b = " << x[1] << endl;
 
-    ros::Publisher pub = node_handle.advertise<nav_msgs::OccupancyGrid>("/testmap", 0);
 
-    ros::Rate rate(1);
-    while(ros::ok()) {
-        pub.publish(map);
-        ros::spinOnce();
-        rate.sleep();
+    vector<int> foo(5);
+    foo[0] = 1;
+    foo[1] = 2;
+    foo[2] = 3;
+    foo[3] = 4;
+    foo[4] = 5;
+
+    cout << "FOO: ";
+    for (vector<int>::iterator foo_it = foo.begin(); foo_it != foo.end(); ++foo_it) {
+        cout << *foo_it << " ";
     }
+    cout << endl;
+
+
+    foo.pop_back();
+    foo.pop_back();
+
+
+    cout << "FOO: ";
+    for (vector<int>::iterator foo_it = foo.begin(); foo_it != foo.end(); ++foo_it) {
+        cout << *foo_it << " ";
+    }
+    cout << endl;
 
     return 0;
 }

@@ -11,7 +11,7 @@
 #include <pcl_ros/point_cloud.h>
 
 #define EIGEN_USE_NEW_STDVECTOR
-#include <Eigen/Core>
+#include <Eigen/Dense>
 #include <Eigen/StdVector>
 //#include <Eigen/LeastSquares>
 
@@ -87,6 +87,14 @@ private:
      */
     void publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, std_msgs::Header header);
 
+
+    /**
+     * @brief Get the angle of the path direction (related to frame /map).
+     *
+     * @return Angle of the path direction as it can be used by motion_control.
+     */
+    float getPathDirectionAngle();
+
     /**
      * @brief Find some points of the egdes of the current path.
      *
@@ -105,6 +113,14 @@ private:
      * @throws traversable_path::TransformMapException if point lies outside of the map.
      */
     size_t transformToMap(Eigen::Vector2f point);
+
+    /**
+     * @brief Fit a linear function (y = a*x + b) to the given points (using least squares).
+     *
+     * @param points A list of points.
+     * @return The coefficients a and b of the resulting function.
+     */
+    Eigen::Vector2f fitLinear(const vectorVector2f &points);
 };
 
 #endif // PATHFOLLOWER_H
