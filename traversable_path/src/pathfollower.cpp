@@ -8,7 +8,7 @@ PathFollower::PathFollower() :
     subscribe_scan_classification_ = node_handle_.subscribe("path_classification_cloud", 100,
                                                             &PathFollower::scan_classification_callback, this);
     subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
-    publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 1);
+    publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
     publish_goal_ = node_handle_.advertise<geometry_msgs::PoseStamped>("traversable_path/goal", 1);
 }
 
@@ -222,6 +222,33 @@ void PathFollower::publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, s
     publish_rviz_marker_.publish(line_strip);
 }
 
+void PathFollower::publishLineMarker(Eigen::Vector2f coefficients, int min_x, int max_x, int id, std_msgs::ColorRGBA color)
+{
+    visualization_msgs::Marker line;
+
+    line.header.frame_id = "/map";
+    line.ns = "follow_path/lines";
+    line.action = visualization_msgs::Marker::ADD;
+    line.pose.orientation.w = 1.0;
+    line.id = id;
+    line.type = visualization_msgs::Marker::LINE_STRIP;
+
+    // LINE_STRIP/LINE_LIST markers use only the x component of scale, for the line width
+    line.scale.x = 0.03;
+    line.color = color;
+
+    // set the points
+    geometry_msgs::Point p;
+    p.x = min_x;
+    p.y = coefficients[0]*min_x + coefficients[1];
+    line.points.push_back(p);
+    p.x = max_x;
+    p.y = coefficients[0]*max_x + coefficients[1];
+    line.points.push_back(p);
+
+    publish_rviz_marker_.publish(line);
+}
+
 float PathFollower::getPathDirectionAngle()
 {
     vectorVector2f points_left, points_right;
@@ -239,57 +266,37 @@ float PathFollower::getPathDirectionAngle()
 
 
     /////////////////////////////// test marker
-    visualization_msgs::Marker points, line_strip_left, line_strip_right;
+//    visualization_msgs::Marker points;
+//    points.header.frame_id = "/map";
+//    points.ns = "follow_path/path_edge";
+//    points.action = visualization_msgs::Marker::ADD;
+//    points.pose.orientation.w = 1.0;
+//    points.id = 1;
+//    points.type = visualization_msgs::Marker::POINTS;
+//    // POINTS markers use x and y scale for width/height respectively
+//    points.scale.x = 0.05;
+//    points.scale.y = 0.05;
+//    // Points are blue
+//    points.color.b = 1.0;
+//    points.color.a = 1.0;
+//    for (vectorVector2f::iterator it = points_left.begin(); it != points_left.end(); ++it) {
+//        geometry_msgs::Point p;
+//        p.x = (*it)[0];
+//        p.y = (*it)[1];
+//        p.z = 0;
+//        points.points.push_back(p);
+//    }
+//    publish_rviz_marker_.publish(points);
 
-    points.header.frame_id = line_strip_left.header.frame_id = line_strip_right.header.frame_id = "/map";
-    points.ns = line_strip_left.ns = line_strip_right.ns = "follow_path/path_edge";
-    points.action = line_strip_left.action = line_strip_right.action = visualization_msgs::Marker::ADD;
-    points.pose.orientation.w = line_strip_left.pose.orientation.w = line_strip_right.pose.orientation.w = 1.0;
+    std_msgs::ColorRGBA green, blue;
+    green.g = 1.0; green.a = 1.0;
+    blue.b = 1.0; blue.a = 1.0;
+    publishLineMarker(left_coeff, points_left.back()[0]-3, points_left.back()[0]+3, 1, green);
+    publishLineMarker(right_coeff, points_right.back()[0]-3, points_right.back()[0]+3, 2, green);
 
-    points.id = 1;
-    line_strip_left.id = 2;
-    line_strip_right.id = 3;
-
-    points.type = visualization_msgs::Marker::POINTS;
-    line_strip_left.type = line_strip_right.type = visualization_msgs::Marker::LINE_STRIP;
-
-    // POINTS markers use x and y scale for width/height respectively
-    points.scale.x = 0.05;
-    points.scale.y = 0.05;
-
-    // LINE_STRIP/LINE_LIST markers use only the x component of scale, for the line width
-    line_strip_left.scale.x =  line_strip_right.scale.x = 0.03;
-
-    // Points are blue
-    points.color.b = 1.0;
-    points.color.a = 1.0;
-
-    // Line strip is green
-    line_strip_left.color.g = line_strip_right.color.g = 1.0;
-    line_strip_left.color.a = line_strip_right.color.a = 1.0;
-
-    for (vectorVector2f::iterator it = points_left.begin(); it != points_left.end(); ++it) {
-        geometry_msgs::Point p;
-        p.x = (*it)[0];
-        p.y = (*it)[1];
-        p.z = 0;
-        points.points.push_back(p);
-    }
-
-    int min_x = points_left.front()[0]-5;
-    int max_x = points_left.front()[0]+5;
-    for (int i = min_x; i < max_x; ++i) {
-        geometry_msgs::Point p;
-        p.x = i;
-        p.y = left_coeff[0]*i + left_coeff[1];
-        line_strip_left.points.push_back(p);
-        p.y = right_coeff[0]*i + right_coeff[1];
-        line_strip_right.points.push_back(p);
-    }
-
-    //publish_rviz_marker_.publish(points);
-    publish_rviz_marker_.publish(line_strip_right);
-    publish_rviz_marker_.publish(line_strip_left);
+    // middle line m(x) = r(x) + (l(x)-r(x))/2,  (l: left edge line, r: right edge line)
+    Eigen::Vector2f mid_coeff( (right_coeff[0] + left_coeff[0])/2, (right_coeff[1] + left_coeff[1])/2 );
+    publishLineMarker(mid_coeff, points_right.back()[0]-3, points_right.back()[0]+3, 3, blue);
 
     return 0.0;
 }

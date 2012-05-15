@@ -87,6 +87,20 @@ private:
      */
     void publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, std_msgs::Header header);
 
+    /**
+     * @brief Sends a line marker to rviz.
+     *
+     * This method helps to print lines in rviz. It takes the coefficients a,b that represent a line (y = a*x + b) and
+     * visualize it on the interval [min_x; max_x]. The z-value is set to 0.
+     *
+     * @param coefficients Coeeficients a,b of the line (y = a*x + b).
+     * @param min_x Minimum x value. Start line at this value.
+     * @param max_x Maximum x value. End line at this value.
+     * @param id Id of the line. A published line will replace older lines with the same id.
+     * @param color Color of the line.
+     */
+    void publishLineMarker(Eigen::Vector2f coefficients, int min_x, int max_x, int id, std_msgs::ColorRGBA color);
+
 
     /**
      * @brief Get the angle of the path direction (related to frame /map).
