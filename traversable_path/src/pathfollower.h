@@ -13,10 +13,35 @@
 #define EIGEN_USE_NEW_STDVECTOR
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
-//#include <Eigen/LeastSquares>
 
 #include "point_types.h"
 #include "exceptions.h"
+
+
+/**
+ * @brief Simple wrapper for linear functions f(x) = mx+c.
+ * @author Felix Widmaier
+ * @version 1.0
+ */
+class LinearFunction
+{
+public:
+    float m;
+    float c;
+
+    LinearFunction(Eigen::Vector2f coeff)
+    {
+        m = coeff[0];
+        c = coeff[1];
+    }
+
+    //! Calculate f(x).
+    float operator()(float x)
+    {
+        return m * x + c;
+    }
+};
+
 
 /**
  * @brief Main class of the follow_path node.

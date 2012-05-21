@@ -5,7 +5,7 @@ using namespace traversable_path;
 PathFollower::PathFollower() :
         motion_control_action_client_("motion_control")
 {
-    subscribe_scan_classification_ = node_handle_.subscribe("path_classification_cloud", 100,
+    subscribe_scan_classification_ = node_handle_.subscribe("path_classification_cloud", 10,
                                                             &PathFollower::scan_classification_callback, this);
     subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
     publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
@@ -295,7 +295,81 @@ float PathFollower::getPathDirectionAngle()
     publishLineMarker(right_coeff, points_right.back()[0]-3, points_right.back()[0]+3, 2, green);
 
     // middle line m(x) = r(x) + (l(x)-r(x))/2,  (l: left edge line, r: right edge line)
-    Eigen::Vector2f mid_coeff( (right_coeff[0] + left_coeff[0])/2, (right_coeff[1] + left_coeff[1])/2 );
+    //Eigen::Vector2f mid_coeff( (right_coeff[0] + left_coeff[0])/2, (right_coeff[1] + left_coeff[1])/2 );
+
+    Eigen::Vector2f mid_coeff;
+
+    // are edges parallel?
+    if (left_coeff[0] == right_coeff[0]) {
+        // yes, they are. Middle line is simply the average line of the edges.
+        mid_coeff = (right_coeff + left_coeff)/2;
+    } else {
+        /* no, thery're not. Now it gets a bit more compilated:
+         *  - get intersection point of the edge lines
+         *  - get normed vectors pointing in the direction of the edgelines
+         *  - use the vectors to get a point of the middle line
+         */
+        LinearFunction left(left_coeff), right(right_coeff);
+
+        // intersection point
+        Eigen::Vector2f intersection;
+        intersection[0] = (left.c - right.c) / (right.m - left.m);
+        intersection[1] = left(intersection[0]);
+
+        // direction vectors
+        Eigen::Vector2f dir_left(1, left.m);
+        Eigen::Vector2f dir_right(1, right.m);
+        // normalize them
+        dir_left.normalize();
+        dir_right.normalize();
+
+        // robot position
+        /** \todo this is redundand in this class... */
+        Eigen::Vector2f robot_pos;
+        try {
+            // position/orientation of the robot
+            geometry_msgs::PointStamped base, map;
+            base.point.x = base.point.y = base.point.z = 0;
+            base.header.frame_id = "/base_link";
+            tf_listener_.transformPoint("/map", base, map);
+            // position
+            robot_pos[0] = map.point.x;
+            robot_pos[1] = map.point.y;
+        }
+        catch (tf::TransformException e) {
+            ROS_WARN("tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
+            return false;
+        }
+
+        // get the points that are nearer to the robot, to be sure that the middle line points along the path and not
+        // cross it.
+        Eigen::Vector2f tmp_point1, tmp_point2, point_L, point_R;
+
+        tmp_point1 = intersection + dir_left;
+        tmp_point2 = intersection - dir_left;
+        if ((robot_pos - tmp_point1).norm() < (robot_pos - tmp_point2).norm()) {
+            point_L = tmp_point1;
+        } else {
+            point_L = tmp_point2;
+        }
+
+        tmp_point1 = intersection + dir_right;
+        tmp_point2 = intersection - dir_right;
+        if ((robot_pos - tmp_point1).norm() < (robot_pos - tmp_point2).norm()) {
+            point_R = tmp_point1;
+        } else {
+            point_R = tmp_point2;
+        }
+
+        // now calculate a point of the middle line
+        Eigen::Vector2f middle = (point_L + point_R) / 2;
+
+
+        // finally the line through middle and intersection:
+        mid_coeff[0] = (intersection[1] - middle[1]) / (intersection[0] - middle[0]);
+        mid_coeff[1] = middle[1] - mid_coeff[0] * middle[0];
+    }
+
     publishLineMarker(mid_coeff, points_right.back()[0]-3, points_right.back()[0]+3, 3, blue);
 
     return 0.0;

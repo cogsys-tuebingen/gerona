@@ -9,58 +9,41 @@
 using namespace std;
 using namespace Eigen;
 
+
+class LinearFunction
+{
+private:
+    Vector2f coeff_;
+
+public:
+    LinearFunction(Vector2f coeff): coeff_(coeff) {}
+    float a()
+    {
+        return coeff_[0];
+    }
+    float b()
+    {
+        return coeff_[1];
+    }
+    float operator()(float x)
+    {
+        return coeff_[0] * x + coeff_[1];
+    }
+};
+
 int main(int argc, char** argv)
 {
     //ros::init(argc, argv, "test");
     //ros::NodeHandle node_handle;
 
-    MatrixXf A(4,2);
-    VectorXf b(4), x;
+    Vector2f coeff(2, 1), right_coeff(1,1), left_coeff(32,145), mid_coeff;
 
-    A(0,0) = 1;
-    A(1,0) = 2;
-    A(2,0) = 3;
-    A(3,0) = 4;
-    A(0,1) = 1;
-    A(1,1) = 1;
-    A(2,1) = 1;
-    A(3,1) = 1;
-    b(0) = 1;
-    b(1) = 3;
-    b(2) = 2;
-    b(3) = 4;
+//    LinearFunction f(coeff);
 
+//    cout << "f(x) = " << f.a() << "*x + " << f.b() << endl;
+//    cout << f(3) << endl;
 
-    //A.svd().solve(b, &x);
-    JacobiSVD<MatrixXf> svd(A, ComputeThinU | ComputeThinV);
-    x = svd.solve(b);
-
-    cout << "a = " << x[0] << ", b = " << x[1] << endl;
-
-
-    vector<int> foo(5);
-    foo[0] = 1;
-    foo[1] = 2;
-    foo[2] = 3;
-    foo[3] = 4;
-    foo[4] = 5;
-
-    cout << "FOO: ";
-    for (vector<int>::iterator foo_it = foo.begin(); foo_it != foo.end(); ++foo_it) {
-        cout << *foo_it << " ";
-    }
-    cout << endl;
-
-
-    foo.pop_back();
-    foo.pop_back();
-
-
-    cout << "FOO: ";
-    for (vector<int>::iterator foo_it = foo.begin(); foo_it != foo.end(); ++foo_it) {
-        cout << *foo_it << " ";
-    }
-    cout << endl;
+    cout << right_coeff.norm() << endl;
 
     return 0;
 }
