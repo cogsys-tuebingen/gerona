@@ -125,6 +125,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
     /** \todo only for testing */
     try {
         getPathDirectionAngle();
+        getPathDirectionAngleUsingEdges();
     }
     catch (Exception e) {
         ROS_WARN("Unknown path direction: %s", e.what());
@@ -250,6 +251,88 @@ void PathFollower::publishLineMarker(Eigen::Vector2f coefficients, int min_x, in
 }
 
 float PathFollower::getPathDirectionAngle()
+{
+    vectorVector2f points_middle;
+    findPathMiddlePoints(&points_middle);
+
+    if (points_middle.size() == 0) {
+        throw Exception("Missing edge points");
+    }
+
+    // fit a line to the edge points
+    Eigen::Vector2f mid_coeff;
+    mid_coeff = fitLinear(points_middle);
+
+    // calculate angle
+    float theta = atan(mid_coeff[0]);
+
+
+
+    /////////////// MARKER
+    // points
+    visualization_msgs::Marker points;
+    points.header.frame_id = "/map";
+    points.ns = "follow_path/path_edge";
+    points.action = visualization_msgs::Marker::ADD;
+    points.pose.orientation.w = 1.0;
+    points.id = 1;
+    points.type = visualization_msgs::Marker::POINTS;
+    // POINTS markers use x and y scale for width/height respectively
+    points.scale.x = 0.05;
+    points.scale.y = 0.05;
+    // Points are cyan
+    points.color.g = 1.0;
+    points.color.b = 1.0;
+    points.color.a = 1.0;
+    for (vectorVector2f::iterator it = points_middle.begin(); it != points_middle.end(); ++it) {
+        geometry_msgs::Point p;
+        p.x = (*it)[0];
+        p.y = (*it)[1];
+        p.z = 0;
+        points.points.push_back(p);
+    }
+    publish_rviz_marker_.publish(points);
+
+    // line
+    std_msgs::ColorRGBA color;
+    color.r = 1.0; color.g = 0.5; color.a = 1.0; // orange
+    publishLineMarker(mid_coeff, points_middle.back()[0]-4, points_middle.back()[0]+4, 5, color);
+
+    // direction arrow
+    visualization_msgs::Marker direction_marker;
+    direction_marker.header.frame_id = "/map";
+    direction_marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
+    /** \todo this is redundand in this class... */
+    try {
+        // position/orientation of the robot
+        geometry_msgs::PointStamped base, map;
+        base.point.x = base.point.y = base.point.z = 0;
+        base.header.frame_id = "/base_link";
+        tf_listener_.transformPoint("/map", base, map);
+        // position
+        direction_marker.pose.position.x = map.point.x;
+        direction_marker.pose.position.y = map.point.y;
+        direction_marker.pose.position.z = 0;
+    }
+    catch (tf::TransformException e) {
+        ROS_WARN("tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
+        return false;
+    }
+    direction_marker.ns = "follow_path/direction";
+    direction_marker.id = 0;
+    direction_marker.type = visualization_msgs::Marker::ARROW;
+    direction_marker.action = visualization_msgs::Marker::ADD;
+    direction_marker.scale.x = direction_marker.scale.y = direction_marker.scale.z = 1;
+    direction_marker.color.g = 1.0;
+    direction_marker.color.a = 1.0;
+    publish_rviz_marker_.publish(direction_marker);
+    /////////////// END MARKER
+
+
+    return theta;
+}
+
+float PathFollower::getPathDirectionAngleUsingEdges()
 {
     vectorVector2f points_left, points_right;
     findPathEdgePoints(&points_left, &points_right);
@@ -471,6 +554,89 @@ bool PathFollower::findPathEdgePoints(vectorVector2f *out_points_left, vectorVec
 //        publishTraversaleLineMarker(a,b,h);
 //    }
 
+
+    return true;
+}
+
+bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out)
+{
+    // Work in frame /map
+
+    /* *** get robot position and direction and orthonormal vector of the direction *** */
+    Eigen::Vector2f robot_pos, robot_direction, orthogonal;
+
+    try {
+        // position/orientation of the robot
+        tf::StampedTransform robot_pose;
+        tf_listener_.lookupTransform("/map", "/base_link", ros::Time(0), robot_pose);
+        // position
+        robot_pos[0] = robot_pose.getOrigin().getX();
+        robot_pos[1] = robot_pose.getOrigin().getY();
+        // orientation
+        btVector3 tmp(1,0,0);
+        tmp = tmp.rotate(robot_pose.getRotation().getAxis(), robot_pose.getRotation().getAngle());
+        robot_direction[0] = tmp.getX();
+        robot_direction[1] = tmp.getY();
+    }
+    catch (tf::TransformException e) {
+        ROS_WARN("tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
+        return false;
+    }
+
+    // Orthogonal vector of robot_direction: (x,y) -> (-y,x)
+    // Points left of the direction (should be the y-axis)
+    orthogonal[0] = - robot_direction[1];
+    orthogonal[1] = robot_direction[0];
+
+
+    /* *** get path middle points *** */
+    //! Size of the steps when looking for the edge points.
+    /** Using map resolution gives the greates possible step size which ensures that we miss no cell. */
+    float step_size = map_->info.resolution;
+
+    // go forward
+    //! Position of the current forward step.
+    Eigen::Vector2f forward_pos = robot_pos - robot_direction;
+    for (float forward = -1.0; forward < 1.0; forward += 3*step_size) {
+        /** \todo better exception handling here? */
+        forward_pos += robot_direction * 3*step_size;
+
+        // break, if obstacle is in front.
+        try {
+            if (map_->data[transformToMap(forward_pos)] != 0) {
+                continue;
+            }
+        } catch (TransformMapException e) {
+            ROS_WARN("Ahead: %s", e.what());
+            continue;
+        }
+
+        Eigen::Vector2f left_edge = forward_pos, right_edge = forward_pos;
+        try {
+            // find left edge
+            do {
+                left_edge += orthogonal * step_size;
+            }
+            while( map_->data[transformToMap(left_edge)] == 0 );
+
+            // find right edge
+            do {
+                right_edge += -orthogonal * step_size;
+            }
+            while( map_->data[transformToMap(right_edge)] == 0 );
+        } catch (TransformMapException e) {
+            //ROS_WARN("Cant find Edge: %s", e.what());
+        }
+
+        // middle of this points
+        Eigen::Vector2f middle_point = (left_edge + right_edge) / 2;
+        out->push_back(middle_point);
+    }
+
+    // drop last point for it might disturb the line
+    if (out->size()) {
+        out->pop_back();
+    }
 
     return true;
 }

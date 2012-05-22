@@ -135,6 +135,13 @@ private:
     float getPathDirectionAngle();
 
     /**
+     * @brief Get the angle of the path direction (related to frame /map), using edge lines.
+     * @deprecated Use getPathDirectionAngle() instead.
+     * @return Angle of the path direction as it can be used by motion_control.
+     */
+    float getPathDirectionAngleUsingEdges();
+
+    /**
      * @brief Find some points of the egdes of the current path.
      *
      * Searchs for points of the edges of the path in front of the robot. Using this points an function can be fitted
@@ -144,6 +151,15 @@ private:
      * @return True on success, False if some failure occures (e.g. transform failes).
      */
     bool findPathEdgePoints(vectorVector2f *out_points_left, vectorVector2f *out_points_right);
+
+    /**
+     * @brief Find some points of the moddle of the curretn path.
+     *
+     * Searches for points of the middle of the path. This points can then be used to fit a "path middle line" to them.
+     * @param out Output parameter. The points will be stored to this vector.
+     * @return True on success, False if some failure occures (e.g. transform failes).
+     */
+    bool findPathMiddlePoints(vectorVector2f *out);
 
     /**
      * @brief Transform coordinates of a point to the map cell.
