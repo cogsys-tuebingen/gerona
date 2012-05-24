@@ -3,12 +3,13 @@
 using namespace traversable_path;
 
 PathFollower::PathFollower() :
-        motion_control_action_client_("motion_control")
+        motion_control_action_client_("motion_control"),
+    path_angle_(NAN)
 {
     subscribe_scan_classification_ = node_handle_.subscribe("path_classification_cloud", 10,
                                                             &PathFollower::scan_classification_callback, this);
     subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
-    publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
+    publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 100);
     publish_goal_ = node_handle_.advertise<geometry_msgs::PoseStamped>("traversable_path/goal", 1);
 }
 
@@ -124,8 +125,10 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 
     /** \todo only for testing */
     try {
-        getPathDirectionAngle();
-        getPathDirectionAngleUsingEdges();
+        if (refreshRobotPose()) {
+            getPathDirectionAngle();
+            getPathDirectionAngleUsingEdges();
+        }
     }
     catch (Exception e) {
         ROS_WARN("Unknown path direction: %s", e.what());
@@ -263,9 +266,27 @@ float PathFollower::getPathDirectionAngle()
     Eigen::Vector2f mid_coeff;
     mid_coeff = fitLinear(points_middle);
 
-    // calculate angle
+    //// calculate angle
+    // angle of the path
     float theta = atan(mid_coeff[0]);
 
+    // make sure we follow the path in the right direction (if angle of robot to path is > 90°, change direction about
+    // 180°).
+    float angle_robot = atan2(robot_pose_.orientation[1], robot_pose_.orientation[0]);
+    float angle_to_path = angle_robot - theta;
+    if (fabs(angle_to_path) > M_PI/2) {
+        theta = theta - M_PI;
+    }
+
+
+    // Filter
+    /** \todo auslagern */
+    if (isnan(path_angle_)) {
+        // first time initialization
+        path_angle_ = theta;
+    } else {
+        path_angle_ = 0.9*path_angle_ + 0.1*theta;
+    }
 
 
     /////////////// MARKER
@@ -298,33 +319,29 @@ float PathFollower::getPathDirectionAngle()
     color.r = 1.0; color.g = 0.5; color.a = 1.0; // orange
     publishLineMarker(mid_coeff, points_middle.back()[0]-4, points_middle.back()[0]+4, 5, color);
 
-    // direction arrow
+    // direction arrow (red)
     visualization_msgs::Marker direction_marker;
     direction_marker.header.frame_id = "/map";
     direction_marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
-    /** \todo this is redundand in this class... */
-    try {
-        // position/orientation of the robot
-        geometry_msgs::PointStamped base, map;
-        base.point.x = base.point.y = base.point.z = 0;
-        base.header.frame_id = "/base_link";
-        tf_listener_.transformPoint("/map", base, map);
-        // position
-        direction_marker.pose.position.x = map.point.x;
-        direction_marker.pose.position.y = map.point.y;
-        direction_marker.pose.position.z = 0;
-    }
-    catch (tf::TransformException e) {
-        ROS_WARN("tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
-        return false;
-    }
+    direction_marker.pose.position.x = robot_pose_.position[0];
+    direction_marker.pose.position.y = robot_pose_.position[1];
+    direction_marker.pose.position.z = 0;
     direction_marker.ns = "follow_path/direction";
     direction_marker.id = 0;
     direction_marker.type = visualization_msgs::Marker::ARROW;
     direction_marker.action = visualization_msgs::Marker::ADD;
-    direction_marker.scale.x = direction_marker.scale.y = direction_marker.scale.z = 1;
-    direction_marker.color.g = 1.0;
+    direction_marker.scale.x = 1.0;
+    direction_marker.scale.y = direction_marker.scale.z = 0.8;
+    direction_marker.color.r = 1.0;
     direction_marker.color.a = 1.0;
+    publish_rviz_marker_.publish(direction_marker);
+
+    // direction arrow filtered (green)
+    direction_marker.pose.orientation = tf::createQuaternionMsgFromYaw(path_angle_);
+    direction_marker.id = 2;
+    direction_marker.scale.x = direction_marker.scale.y = direction_marker.scale.z = 1.0;
+    direction_marker.color.g = 1.0;
+    direction_marker.color.r = 0.0;
     publish_rviz_marker_.publish(direction_marker);
     /////////////// END MARKER
 
@@ -462,31 +479,11 @@ bool PathFollower::findPathEdgePoints(vectorVector2f *out_points_left, vectorVec
 {
     // Work in frame /map
 
-    /* *** get robot position and direction and orthonormal vector of the direction *** */
-    Eigen::Vector2f robot_pos, robot_direction, orthogonal;
-
-    try {
-        // position/orientation of the robot
-        tf::StampedTransform robot_pose;
-        tf_listener_.lookupTransform("/map", "/base_link", ros::Time(0), robot_pose);
-        // position
-        robot_pos[0] = robot_pose.getOrigin().getX();
-        robot_pos[1] = robot_pose.getOrigin().getY();
-        // orientation
-        btVector3 tmp(1,0,0);
-        tmp = tmp.rotate(robot_pose.getRotation().getAxis(), robot_pose.getRotation().getAngle());
-        robot_direction[0] = tmp.getX();
-        robot_direction[1] = tmp.getY();
-    }
-    catch (tf::TransformException e) {
-        ROS_WARN("tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
-        return false;
-    }
-
     // Orthogonal vector of robot_direction: (x,y) -> (-y,x)
     // Points left of the direction (should be the y-axis)
-    orthogonal[0] = - robot_direction[1];
-    orthogonal[1] = robot_direction[0];
+    Eigen::Vector2f orthogonal;
+    orthogonal[0] = - robot_pose_.orientation[1];
+    orthogonal[1] = robot_pose_.orientation[0];
 
 
     /* *** get edge points *** */
@@ -496,10 +493,10 @@ bool PathFollower::findPathEdgePoints(vectorVector2f *out_points_left, vectorVec
 
     // go forward
     //! Position of the current forward step.
-    Eigen::Vector2f forward_pos = robot_pos - robot_direction;
+    Eigen::Vector2f forward_pos = robot_pose_.position - robot_pose_.orientation;
     for (float forward = -1.0; forward < 1.0; forward += 3*step_size) {
         /** \todo better exception handling here? */
-        forward_pos += robot_direction * 3*step_size;
+        forward_pos += robot_pose_.orientation * 3*step_size;
 
         // break, if obstacle is in front.
         try {
@@ -562,31 +559,11 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out)
 {
     // Work in frame /map
 
-    /* *** get robot position and direction and orthonormal vector of the direction *** */
-    Eigen::Vector2f robot_pos, robot_direction, orthogonal;
-
-    try {
-        // position/orientation of the robot
-        tf::StampedTransform robot_pose;
-        tf_listener_.lookupTransform("/map", "/base_link", ros::Time(0), robot_pose);
-        // position
-        robot_pos[0] = robot_pose.getOrigin().getX();
-        robot_pos[1] = robot_pose.getOrigin().getY();
-        // orientation
-        btVector3 tmp(1,0,0);
-        tmp = tmp.rotate(robot_pose.getRotation().getAxis(), robot_pose.getRotation().getAngle());
-        robot_direction[0] = tmp.getX();
-        robot_direction[1] = tmp.getY();
-    }
-    catch (tf::TransformException e) {
-        ROS_WARN("tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
-        return false;
-    }
-
-    // Orthogonal vector of robot_direction: (x,y) -> (-y,x)
+    // Orthogonal vector of robot direction: (x,y) -> (-y,x)
     // Points left of the direction (should be the y-axis)
-    orthogonal[0] = - robot_direction[1];
-    orthogonal[1] = robot_direction[0];
+    Eigen::Vector2f orthogonal;
+    orthogonal[0] = - robot_pose_.orientation[1];
+    orthogonal[1] = robot_pose_.orientation[0];
 
 
     /* *** get path middle points *** */
@@ -596,10 +573,10 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out)
 
     // go forward
     //! Position of the current forward step.
-    Eigen::Vector2f forward_pos = robot_pos - robot_direction;
+    Eigen::Vector2f forward_pos = robot_pose_.position - robot_pose_.orientation;
     for (float forward = -1.0; forward < 1.0; forward += 3*step_size) {
         /** \todo better exception handling here? */
-        forward_pos += robot_direction * 3*step_size;
+        forward_pos += robot_pose_.orientation * 3*step_size;
 
         // break, if obstacle is in front.
         try {
@@ -676,6 +653,28 @@ Eigen::Vector2f PathFollower::fitLinear(const PathFollower::vectorVector2f &poin
     //ROS_DEBUG("fitLinear: Coefficents: a = %f, b = %f", x[0], x[1]);
 
     return x;
+}
+
+bool PathFollower::refreshRobotPose()
+{
+    try {
+        // position/orientation of the robot
+        tf::StampedTransform robot_pose;
+        tf_listener_.lookupTransform("/map", "/base_link", ros::Time(0), robot_pose);
+        // position
+        robot_pose_.position[0] = robot_pose.getOrigin().getX();
+        robot_pose_.position[1] = robot_pose.getOrigin().getY();
+        // orientation
+        btVector3 tmp(1,0,0);
+        tmp = tmp.rotate(robot_pose.getRotation().getAxis(), robot_pose.getRotation().getAngle());
+        robot_pose_.orientation[0] = tmp.getX();
+        robot_pose_.orientation[1] = tmp.getY();
+    }
+    catch (tf::TransformException e) {
+        ROS_WARN("tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
+        return false;
+    }
+    return true;
 }
 
 //--------------------------------------------------------------------------

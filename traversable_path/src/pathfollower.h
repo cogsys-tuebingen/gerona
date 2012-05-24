@@ -60,6 +60,12 @@ public:
     PathFollower();
 
 private:
+    struct RobotPose {
+        //! Position as point.
+        Eigen::Vector2f position;
+        //! Orientation as vector.
+        Eigen::Vector2f orientation;
+    };
 
     ros::NodeHandle node_handle_;
     //! Subscriber for the terrain classification of the node classify_path.
@@ -78,6 +84,12 @@ private:
     geometry_msgs::Point current_goal_;
 
     nav_msgs::OccupancyGridConstPtr map_;
+
+    //! Pose of the robot
+    RobotPose robot_pose_;
+
+    //! Filtered path angle.
+    float path_angle_;
 
 
     /**
@@ -176,6 +188,8 @@ private:
      * @return The coefficients a and b of the resulting function.
      */
     Eigen::Vector2f fitLinear(const vectorVector2f &points);
+
+    bool refreshRobotPose();
 };
 
 #endif // PATHFOLLOWER_H
