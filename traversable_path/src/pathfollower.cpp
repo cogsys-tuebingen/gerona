@@ -1,6 +1,7 @@
 #include "pathfollower.h"
 
 using namespace traversable_path;
+using namespace Eigen;
 
 PathFollower::PathFollower() :
         motion_control_action_client_("motion_control"),
@@ -226,7 +227,7 @@ void PathFollower::publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, s
     publish_rviz_marker_.publish(line_strip);
 }
 
-void PathFollower::publishLineMarker(Eigen::Vector2f coefficients, int min_x, int max_x, int id, std_msgs::ColorRGBA color)
+void PathFollower::publishLineMarker(Vector2f coefficients, int min_x, int max_x, int id, std_msgs::ColorRGBA color)
 {
     visualization_msgs::Marker line;
 
@@ -263,7 +264,7 @@ float PathFollower::getPathDirectionAngle()
     }
 
     // fit a line to the edge points
-    Eigen::Vector2f mid_coeff;
+    Vector2f mid_coeff;
     mid_coeff = fitLinear(points_middle);
 
     //// calculate angle
@@ -327,16 +328,15 @@ float PathFollower::getPathDirectionAngle()
     direction_marker.pose.position.y = robot_pose_.position[1];
     direction_marker.pose.position.z = 0;
     direction_marker.ns = "follow_path/direction";
-    direction_marker.id = 0;
+    direction_marker.id = 1;
     direction_marker.type = visualization_msgs::Marker::ARROW;
     direction_marker.action = visualization_msgs::Marker::ADD;
-    direction_marker.scale.x = 1.0;
-    direction_marker.scale.y = direction_marker.scale.z = 0.8;
+    direction_marker.scale.x = direction_marker.scale.y = direction_marker.scale.z = 0.8;
     direction_marker.color.r = 1.0;
     direction_marker.color.a = 1.0;
     publish_rviz_marker_.publish(direction_marker);
 
-    // direction arrow filtered (green)
+    // filtered direction arrow (green)
     direction_marker.pose.orientation = tf::createQuaternionMsgFromYaw(path_angle_);
     direction_marker.id = 2;
     direction_marker.scale.x = direction_marker.scale.y = direction_marker.scale.z = 1.0;
@@ -359,7 +359,7 @@ float PathFollower::getPathDirectionAngleUsingEdges()
     }
 
     // fit a line to the edge points
-    Eigen::Vector2f left_coeff, right_coeff;
+    Vector2f left_coeff, right_coeff;
 
     left_coeff  = fitLinear(points_left);
     right_coeff = fitLinear(points_right);
@@ -395,9 +395,9 @@ float PathFollower::getPathDirectionAngleUsingEdges()
     publishLineMarker(right_coeff, points_right.back()[0]-3, points_right.back()[0]+3, 2, green);
 
     // middle line m(x) = r(x) + (l(x)-r(x))/2,  (l: left edge line, r: right edge line)
-    //Eigen::Vector2f mid_coeff( (right_coeff[0] + left_coeff[0])/2, (right_coeff[1] + left_coeff[1])/2 );
+    //Vector2f mid_coeff( (right_coeff[0] + left_coeff[0])/2, (right_coeff[1] + left_coeff[1])/2 );
 
-    Eigen::Vector2f mid_coeff;
+    Vector2f mid_coeff;
 
     // are edges parallel?
     if (left_coeff[0] == right_coeff[0]) {
@@ -412,20 +412,20 @@ float PathFollower::getPathDirectionAngleUsingEdges()
         LinearFunction left(left_coeff), right(right_coeff);
 
         // intersection point
-        Eigen::Vector2f intersection;
+        Vector2f intersection;
         intersection[0] = (left.c - right.c) / (right.m - left.m);
         intersection[1] = left(intersection[0]);
 
         // direction vectors
-        Eigen::Vector2f dir_left(1, left.m);
-        Eigen::Vector2f dir_right(1, right.m);
+        Vector2f dir_left(1, left.m);
+        Vector2f dir_right(1, right.m);
         // normalize them
         dir_left.normalize();
         dir_right.normalize();
 
         // robot position
         /** \todo this is redundand in this class... */
-        Eigen::Vector2f robot_pos;
+        Vector2f robot_pos;
         try {
             // position/orientation of the robot
             geometry_msgs::PointStamped base, map;
@@ -443,7 +443,7 @@ float PathFollower::getPathDirectionAngleUsingEdges()
 
         // get the points that are nearer to the robot, to be sure that the middle line points along the path and not
         // cross it.
-        Eigen::Vector2f tmp_point1, tmp_point2, point_L, point_R;
+        Vector2f tmp_point1, tmp_point2, point_L, point_R;
 
         tmp_point1 = intersection + dir_left;
         tmp_point2 = intersection - dir_left;
@@ -462,7 +462,7 @@ float PathFollower::getPathDirectionAngleUsingEdges()
         }
 
         // now calculate a point of the middle line
-        Eigen::Vector2f middle = (point_L + point_R) / 2;
+        Vector2f middle = (point_L + point_R) / 2;
 
 
         // finally the line through middle and intersection:
@@ -481,7 +481,7 @@ bool PathFollower::findPathEdgePoints(vectorVector2f *out_points_left, vectorVec
 
     // Orthogonal vector of robot_direction: (x,y) -> (-y,x)
     // Points left of the direction (should be the y-axis)
-    Eigen::Vector2f orthogonal;
+    Vector2f orthogonal;
     orthogonal[0] = - robot_pose_.orientation[1];
     orthogonal[1] = robot_pose_.orientation[0];
 
@@ -493,7 +493,7 @@ bool PathFollower::findPathEdgePoints(vectorVector2f *out_points_left, vectorVec
 
     // go forward
     //! Position of the current forward step.
-    Eigen::Vector2f forward_pos = robot_pose_.position - robot_pose_.orientation;
+    Vector2f forward_pos = robot_pose_.position - robot_pose_.orientation;
     for (float forward = -1.0; forward < 1.0; forward += 3*step_size) {
         /** \todo better exception handling here? */
         forward_pos += robot_pose_.orientation * 3*step_size;
@@ -510,7 +510,7 @@ bool PathFollower::findPathEdgePoints(vectorVector2f *out_points_left, vectorVec
 
         // find left edge
         try {
-            Eigen::Vector2f left_edge = forward_pos;
+            Vector2f left_edge = forward_pos;
             do {
                 left_edge += orthogonal * step_size;
             } while( map_->data[transformToMap(left_edge)] == 0 );
@@ -521,7 +521,7 @@ bool PathFollower::findPathEdgePoints(vectorVector2f *out_points_left, vectorVec
 
         // find right edge
         try {
-            Eigen::Vector2f right_edge = forward_pos;
+            Vector2f right_edge = forward_pos;
             do {
                 right_edge += -orthogonal * step_size;
             } while( map_->data[transformToMap(right_edge)] == 0 );
@@ -561,7 +561,7 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out)
 
     // Orthogonal vector of robot direction: (x,y) -> (-y,x)
     // Points left of the direction (should be the y-axis)
-    Eigen::Vector2f orthogonal;
+    Vector2f orthogonal;
     orthogonal[0] = - robot_pose_.orientation[1];
     orthogonal[1] = robot_pose_.orientation[0];
 
@@ -573,7 +573,7 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out)
 
     // go forward
     //! Position of the current forward step.
-    Eigen::Vector2f forward_pos = robot_pose_.position - robot_pose_.orientation;
+    Vector2f forward_pos = robot_pose_.position - robot_pose_.orientation;
     for (float forward = -1.0; forward < 1.0; forward += 3*step_size) {
         /** \todo better exception handling here? */
         forward_pos += robot_pose_.orientation * 3*step_size;
@@ -588,7 +588,7 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out)
             continue;
         }
 
-        Eigen::Vector2f left_edge = forward_pos, right_edge = forward_pos;
+        Vector2f left_edge = forward_pos, right_edge = forward_pos;
         try {
             // find left edge
             do {
@@ -606,7 +606,7 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out)
         }
 
         // middle of this points
-        Eigen::Vector2f middle_point = (left_edge + right_edge) / 2;
+        Vector2f middle_point = (left_edge + right_edge) / 2;
         out->push_back(middle_point);
     }
 
@@ -618,7 +618,7 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out)
     return true;
 }
 
-size_t PathFollower::transformToMap(Eigen::Vector2f point)
+size_t PathFollower::transformToMap(Vector2f point)
 {
     int x, y;
     x = (point[0] - map_->info.origin.position.x) / map_->info.resolution;
@@ -631,10 +631,8 @@ size_t PathFollower::transformToMap(Eigen::Vector2f point)
     return y * map_->info.width + x;
 }
 
-Eigen::Vector2f PathFollower::fitLinear(const PathFollower::vectorVector2f &points)
+Vector2f PathFollower::fitLinear(const PathFollower::vectorVector2f &points)
 {
-    using namespace Eigen;
-
     MatrixXf A(points.size(), 2);
     VectorXf b(points.size());
     Vector2f x;
