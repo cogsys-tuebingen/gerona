@@ -36,12 +36,11 @@ public:
     }
 
     //! Calculate f(x).
-    float operator()(float x)
+    float operator()(float x) const
     {
         return m * x + c;
     }
 };
-
 
 /**
  * @brief Main class of the follow_path node.
@@ -65,6 +64,13 @@ private:
         Eigen::Vector2f position;
         //! Orientation as vector.
         Eigen::Vector2f orientation;
+    };
+
+    struct Line {
+        Eigen::Vector2f point;
+        Eigen::Vector2f direction;
+        Eigen::Vector2f normal;
+        float soundness;
     };
 
     ros::NodeHandle node_handle_;
@@ -112,7 +118,7 @@ private:
      * The arrow starts at the goal position and points in the direction of the goal orientation.
      * @param goal The goal pose with position and orientation of the goal.
      */
-    void publishGoalMarker(const geometry_msgs::PoseStamped &goal);
+    void publishGoalMarker(const geometry_msgs::PoseStamped &goal) const;
 
     /**
      * @brief Sends a marker to rviz which visualizes the choosen traversable segment.
@@ -122,7 +128,19 @@ private:
      * @param b Right border of the traversable segment.
      * @param header Header information of the points a and b.
      */
-    void publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, std_msgs::Header header);
+    void publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, std_msgs::Header header) const;
+
+    /**
+     * @brief Sends a line marker to rviz.
+     *
+     * Creates a line marker from point p1 to point p2 (x,y-coords, z = 0) and publishes it.
+     *
+     * @param p1 Start point of the line.
+     * @param p2 End point of the line.
+     * @param id Id of the line. A published line will replace older lines with the same id.
+     * @param color Color of the line.
+     */
+    void publishLineMarker(Eigen::Vector2f p1, Eigen::Vector2f p2, int id, std_msgs::ColorRGBA color) const;
 
     /**
      * @brief Sends a line marker to rviz.
@@ -136,8 +154,7 @@ private:
      * @param id Id of the line. A published line will replace older lines with the same id.
      * @param color Color of the line.
      */
-    void publishLineMarker(Eigen::Vector2f coefficients, int min_x, int max_x, int id, std_msgs::ColorRGBA color);
-
+    void publishLineMarker(Eigen::Vector2f coefficients, int min_x, int max_x, int id, std_msgs::ColorRGBA color) const;
 
     /**
      * @brief Get the angle of the path direction (related to frame /map).
@@ -151,7 +168,7 @@ private:
      * @deprecated Use getPathDirectionAngle() instead.
      * @return Angle of the path direction as it can be used by motion_control.
      */
-    float getPathDirectionAngleUsingEdges();
+    float getPathDirectionAngleUsingEdges() const;
 
     /**
      * @brief Find some points of the egdes of the current path.
@@ -162,7 +179,7 @@ private:
      * @param out_points_left Output parameter.
      * @return True on success, False if some failure occures (e.g. transform failes).
      */
-    bool findPathEdgePoints(vectorVector2f *out_points_left, vectorVector2f *out_points_right);
+    bool findPathEdgePoints(vectorVector2f *out_points_left, vectorVector2f *out_points_right) const;
 
     /**
      * @brief Find some points of the moddle of the curretn path.
@@ -171,7 +188,7 @@ private:
      * @param out Output parameter. The points will be stored to this vector.
      * @return True on success, False if some failure occures (e.g. transform failes).
      */
-    bool findPathMiddlePoints(vectorVector2f *out);
+    bool findPathMiddlePoints(vectorVector2f *out) const;
 
     /**
      * @brief Transform coordinates of a point to the map cell.
@@ -179,7 +196,7 @@ private:
      * @return Index of the map cell.
      * @throws traversable_path::TransformMapException if point lies outside of the map.
      */
-    size_t transformToMap(Eigen::Vector2f point);
+    size_t transformToMap(Eigen::Vector2f point) const;
 
     /**
      * @brief Fit a linear function (y = a*x + b) to the given points (using least squares).
@@ -187,8 +204,24 @@ private:
      * @param points A list of points.
      * @return The coefficients a and b of the resulting function.
      */
-    Eigen::Vector2f fitLinear(const vectorVector2f &points);
+    static Eigen::Vector2f fitLinear(const vectorVector2f &points);
 
+    //! Fit line in hesse normal form (no problems with points parallel to y-axis).
+    static void fitLinearHesseNormalForm(const vectorVector2f &points, Eigen::Vector2f *n, float *d);
+
+//    /* static */ void fitFoobar(const PathFollower::vectorVector2f &points, Eigen::Hyperplane<float, 2> *result,
+//                          float *soundness = 0);
+
+     static void fitFoobar(const PathFollower::vectorVector2f &points, Line *result);
+
+    /**
+     * @brief Refresh the current position and orientation of the robot.
+     *
+     * Gets the current position and orientation of the robot and stores it to robot_pose_.
+     * Use robot_pose_ to access the pose, after refreshing it with this method.
+     *
+     * @return False if some failure occurs, otherwise true.
+     */
     bool refreshRobotPose();
 };
 

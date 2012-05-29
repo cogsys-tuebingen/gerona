@@ -126,10 +126,14 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 
     /** \todo only for testing */
     try {
+        float angle;
+
         if (refreshRobotPose()) {
-            getPathDirectionAngle();
+            angle = getPathDirectionAngle();
             getPathDirectionAngleUsingEdges();
         }
+
+
     }
     catch (Exception e) {
         ROS_WARN("Unknown path direction: %s", e.what());
@@ -137,7 +141,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 }
 
 
-void PathFollower::publishGoalMarker(const geometry_msgs::PoseStamped &goal)
+void PathFollower::publishGoalMarker(const geometry_msgs::PoseStamped &goal) const
 {
 //    geometry_msgs::PoseStamped foo = goal;
 //    foo.pose.orientation.x = 1;
@@ -180,7 +184,7 @@ void PathFollower::publishGoalMarker(const geometry_msgs::PoseStamped &goal)
     publish_rviz_marker_.publish(marker);
 }
 
-void PathFollower::publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, std_msgs::Header header)
+void PathFollower::publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, std_msgs::Header header) const
 {
     //ROS_INFO("mark line from point a(%f,%f,%f) to b(%f,%f,%f)", a.x, a.y, a.z, b.x, b.y, b.z);
 
@@ -227,7 +231,7 @@ void PathFollower::publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, s
     publish_rviz_marker_.publish(line_strip);
 }
 
-void PathFollower::publishLineMarker(Vector2f coefficients, int min_x, int max_x, int id, std_msgs::ColorRGBA color)
+void PathFollower::publishLineMarker(Eigen::Vector2f p1, Eigen::Vector2f p2, int id, std_msgs::ColorRGBA color) const
 {
     visualization_msgs::Marker line;
 
@@ -244,14 +248,27 @@ void PathFollower::publishLineMarker(Vector2f coefficients, int min_x, int max_x
 
     // set the points
     geometry_msgs::Point p;
-    p.x = min_x;
-    p.y = coefficients[0]*min_x + coefficients[1];
+    p.x = p1[0];
+    p.y = p1[1];
     line.points.push_back(p);
-    p.x = max_x;
-    p.y = coefficients[0]*max_x + coefficients[1];
+    p.x = p2[0];
+    p.y = p2[1];
     line.points.push_back(p);
 
     publish_rviz_marker_.publish(line);
+}
+
+void PathFollower::publishLineMarker(Vector2f coefficients, int min_x, int max_x, int id, std_msgs::ColorRGBA color) const
+{
+    Vector2f p1, p2;
+
+    // set the points
+    p1[0] = min_x;
+    p1[1] = coefficients[0]*min_x + coefficients[1];
+    p2[0] = max_x;
+    p2[1] = coefficients[0]*max_x + coefficients[1];
+
+    publishLineMarker(p1, p2, id, color);
 }
 
 float PathFollower::getPathDirectionAngle()
@@ -264,8 +281,19 @@ float PathFollower::getPathDirectionAngle()
     }
 
     // fit a line to the edge points
-    Vector2f mid_coeff;
-    mid_coeff = fitLinear(points_middle);
+    Vector2f mid_coeff = fitLinear(points_middle);
+
+    ///////
+//    Vector2f mid_hesse_n;
+//    float mid_hesse_d;
+//    fitLinearHesseNormalForm(points_middle, &mid_hesse_n, &mid_hesse_d);
+
+//    ROS_INFO("MID: a,b: %f,%f;  hesse: n,d: %f,%f,%f", mid_coeff[0], mid_coeff[1], mid_hesse_n[0], mid_hesse_n[1], mid_hesse_d);
+
+    ///////
+    Line moep;
+    fitFoobar(points_middle, &moep);
+
 
     //// calculate angle
     // angle of the path
@@ -320,6 +348,14 @@ float PathFollower::getPathDirectionAngle()
     color.r = 1.0; color.g = 0.5; color.a = 1.0; // orange
     publishLineMarker(mid_coeff, points_middle.back()[0]-4, points_middle.back()[0]+4, 5, color);
 
+    // other line
+    Vector2f p1, p2;
+    p1 = moep.point + 50 * moep.direction;
+    p2 = moep.point - 50 * moep.direction;
+    color.r = 0.0; color.b = 1.0;
+    publishLineMarker(p1, p2, 13, color);
+
+
     // direction arrow (red)
     visualization_msgs::Marker direction_marker;
     direction_marker.header.frame_id = "/map";
@@ -349,7 +385,7 @@ float PathFollower::getPathDirectionAngle()
     return theta;
 }
 
-float PathFollower::getPathDirectionAngleUsingEdges()
+float PathFollower::getPathDirectionAngleUsingEdges() const
 {
     vectorVector2f points_left, points_right;
     findPathEdgePoints(&points_left, &points_right);
@@ -475,7 +511,7 @@ float PathFollower::getPathDirectionAngleUsingEdges()
     return 0.0;
 }
 
-bool PathFollower::findPathEdgePoints(vectorVector2f *out_points_left, vectorVector2f *out_points_right)
+bool PathFollower::findPathEdgePoints(vectorVector2f *out_points_left, vectorVector2f *out_points_right) const
 {
     // Work in frame /map
 
@@ -516,7 +552,7 @@ bool PathFollower::findPathEdgePoints(vectorVector2f *out_points_left, vectorVec
             } while( map_->data[transformToMap(left_edge)] == 0 );
             out_points_left->push_back(left_edge);
         } catch (TransformMapException e) {
-            ROS_WARN("Left: %s", e.what());
+            //ROS_WARN("Left: %s", e.what());
         }
 
         // find right edge
@@ -527,7 +563,7 @@ bool PathFollower::findPathEdgePoints(vectorVector2f *out_points_left, vectorVec
             } while( map_->data[transformToMap(right_edge)] == 0 );
             out_points_right->push_back(right_edge);
         } catch (TransformMapException e) {
-            ROS_WARN("Right: %s", e.what());
+            //ROS_WARN("Right: %s", e.what());
         }
     }
 
@@ -555,7 +591,7 @@ bool PathFollower::findPathEdgePoints(vectorVector2f *out_points_left, vectorVec
     return true;
 }
 
-bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out)
+bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
 {
     // Work in frame /map
 
@@ -618,7 +654,7 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out)
     return true;
 }
 
-size_t PathFollower::transformToMap(Vector2f point)
+size_t PathFollower::transformToMap(Vector2f point) const
 {
     int x, y;
     x = (point[0] - map_->info.origin.position.x) / map_->info.resolution;
@@ -651,6 +687,98 @@ Vector2f PathFollower::fitLinear(const PathFollower::vectorVector2f &points)
     //ROS_DEBUG("fitLinear: Coefficents: a = %f, b = %f", x[0], x[1]);
 
     return x;
+}
+
+void PathFollower::fitLinearHesseNormalForm(const PathFollower::vectorVector2f &points, Vector2f *n, float *d)
+{
+    MatrixXf A(points.size(), 3);
+    VectorXf b;
+    b.setZero(points.size());
+    Vector3f nd;
+
+    // write points to A, so that p1*n-d = 0, p2*n-d=0, ... is equivalent to Ax = b.
+    for (size_t i = 0; i < points.size(); ++i) {
+        A(i,0) = points[i][0];
+        A(i,1) = points[i][1];
+        A(i,2) = -1;
+    }
+
+    // solve Ax = b using least squares.
+    JacobiSVD<MatrixXf> svd(A, ComputeThinU | ComputeThinV);
+    nd = svd.solve(b);
+
+    ROS_INFO_STREAM("Hesse: " << nd);
+
+    (*n)[0] = nd[0];
+    (*n)[1] = nd[1];
+    *d = nd[2];
+}
+
+
+//void PathFollower::fitFoobar(const PathFollower::vectorVector2f &points, Hyperplane<float, 2> *result, float *soundness)
+//{
+//    /*
+//     * This is a modified version of the function fitHyperplane() of eigen3 (eigen2support/LeastSquares.h).
+//     */
+
+//    // compute the mean of the data
+//    Vector2f mean = Vector2f::Zero(2);
+//    for (size_t i = 0; i < points.size(); ++i) {
+//        mean += points[i];
+//    }
+//    mean /= points.size();
+
+//    // compute the covariance matrix
+//    Matrix2f covMat = Matrix2f::Zero(2,2);
+//    for (size_t i = 0; i < points.size(); ++i) {
+//        Vector2f diff = (points[i] - mean).conjugate();
+//        covMat += diff * diff.adjoint();
+//    }
+
+//    // now we just have to pick the eigen vector with smallest eigen value
+//    SelfAdjointEigenSolver<Matrix2f> eig(covMat);
+//    result->normal() = eig.eigenvectors().col(0);
+//    if (soundness) {
+//        *soundness = eig.eigenvalues().coeff(0)/eig.eigenvalues().coeff(1);
+//    }
+
+//    for (int i = 0; i < eig.eigenvalues().size(); ++i) {
+//        ROS_INFO("i: %d, eigen: %f", i, eig.eigenvalues()[i]);
+//    }
+
+//    // let's compute the constant coefficient such that the
+//    // plane pass trough the mean point:
+//    result->offset() = - (result->normal().array() * mean.array()).sum();
+//}
+
+
+void PathFollower::fitFoobar(const PathFollower::vectorVector2f &points, PathFollower::Line *result)
+{
+    /*
+     * This is a modified version of the function fitHyperplane() of eigen3 (eigen2support/LeastSquares.h).
+     */
+
+    // compute the mean of the data
+    Vector2f mean = Vector2f::Zero(2);
+    for (size_t i = 0; i < points.size(); ++i) {
+        mean += points[i];
+    }
+    mean /= points.size();
+
+    // compute the covariance matrix
+    Matrix2f covMat = Matrix2f::Zero(2,2);
+    for (size_t i = 0; i < points.size(); ++i) {
+        Vector2f diff = (points[i] - mean).conjugate();
+        covMat += diff * diff.adjoint();
+    }
+
+    // now we just have to pick the eigen vector with largest eigen value
+    SelfAdjointEigenSolver<Matrix2f> eig(covMat);
+    result->normal    = eig.eigenvectors().col(0); // eigen vector with smallest eigen value (= normal)
+    result->direction = eig.eigenvectors().col(1); // eigen vector with largest eigen value (= direction of the line)
+
+    result->point = mean;
+    result->soundness = eig.eigenvalues().coeff(0)/eig.eigenvalues().coeff(1);
 }
 
 bool PathFollower::refreshRobotPose()
