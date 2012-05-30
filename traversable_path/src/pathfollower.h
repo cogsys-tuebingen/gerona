@@ -13,34 +13,9 @@
 #define EIGEN_USE_NEW_STDVECTOR
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
-
 #include "point_types.h"
-#include "exceptions.h"
 
 
-/**
- * @brief Simple wrapper for linear functions f(x) = mx+c.
- * @author Felix Widmaier
- * @version 1.0
- */
-class LinearFunction
-{
-public:
-    float m;
-    float c;
-
-    LinearFunction(Eigen::Vector2f coeff)
-    {
-        m = coeff[0];
-        c = coeff[1];
-    }
-
-    //! Calculate f(x).
-    float operator()(float x) const
-    {
-        return m * x + c;
-    }
-};
 
 /**
  * @brief Main class of the follow_path node.
@@ -66,10 +41,21 @@ private:
         Eigen::Vector2f orientation;
     };
 
+    /**
+     * @brief Represents a line in parametric form.
+     *
+     * This struct is meant for use with PathFollower::fitLinear(). It contains a point of the line, a direction
+     * vector and a normal vector. The vectors are expected to be normalized.
+     * Furthermore there is a soundness value. The smaller this value is, the closer fits the line to the points.
+     */
     struct Line {
+        //! A point lying on the line.
         Eigen::Vector2f point;
+        //! Direction vector.
         Eigen::Vector2f direction;
+        //! Normal vector
         Eigen::Vector2f normal;
+        //! Soundness of the fitted line (smaller values means better fitting).
         float soundness;
     };
 
@@ -91,8 +77,10 @@ private:
 
     nav_msgs::OccupancyGridConstPtr map_;
 
-    //! Pose of the robot
+    //! Pose of the robot.
     RobotPose robot_pose_;
+    //! Path middle line.
+    Line path_middle_line_;
 
     //! Filtered path angle.
     float path_angle_;
@@ -156,30 +144,27 @@ private:
      */
     void publishLineMarker(Eigen::Vector2f coefficients, int min_x, int max_x, int id, std_msgs::ColorRGBA color) const;
 
-    /**
-     * @brief Get the angle of the path direction (related to frame /map).
-     *
-     * @return Angle of the path direction as it can be used by motion_control.
-     */
-    float getPathDirectionAngle();
 
     /**
-     * @brief Get the angle of the path direction (related to frame /map), using edge lines.
-     * @deprecated Use getPathDirectionAngle() instead.
-     * @return Angle of the path direction as it can be used by motion_control.
+     * @brief Refresh the current position and orientation of the robot.
+     *
+     * Gets the current position and orientation of the robot and stores it to robot_pose_.
+     * Use robot_pose_ to access the pose, after refreshing it with this method.
+     *
+     * @return False if some failure occurs, otherwise true.
      */
-    float getPathDirectionAngleUsingEdges() const;
+    bool refreshRobotPose();
+
+    //! Get middle line of the path.
+    void refreshPathLine();
 
     /**
-     * @brief Find some points of the egdes of the current path.
+     * @brief Calculate the angle of the path direction (related to frame /map).
      *
-     * Searchs for points of the edges of the path in front of the robot. Using this points an function can be fitted
-     * to them which will provied "cleaner" edges.
-     *
-     * @param out_points_left Output parameter.
-     * @return True on success, False if some failure occures (e.g. transform failes).
+     * Calculates the angle of the path depending on the current path middle line and stores the filtered value to
+     * path_angle_.
      */
-    bool findPathEdgePoints(vectorVector2f *out_points_left, vectorVector2f *out_points_right) const;
+    void refreshPathDirectionAngle();
 
     /**
      * @brief Find some points of the moddle of the curretn path.
@@ -199,30 +184,21 @@ private:
     size_t transformToMap(Eigen::Vector2f point) const;
 
     /**
-     * @brief Fit a linear function (y = a*x + b) to the given points (using least squares).
+     * @brief Fit a line to a set of points (in 2-dim. space).
      *
-     * @param points A list of points.
-     * @return The coefficients a and b of the resulting function.
+     * The resulting line is returned in parametric form, but it also contains the normal vector.
+     * Both, direction vector and normal vector are normalized to length 1.
+     *
+     * @param points A set of points, the line shall be fitted to.
+     * @param result Output parameter with will contain the parameters of the resulting line.
+     * @see PathFollower::Line
      */
-    static Eigen::Vector2f fitLinear(const vectorVector2f &points);
-
-    //! Fit line in hesse normal form (no problems with points parallel to y-axis).
-    static void fitLinearHesseNormalForm(const vectorVector2f &points, Eigen::Vector2f *n, float *d);
-
-//    /* static */ void fitFoobar(const PathFollower::vectorVector2f &points, Eigen::Hyperplane<float, 2> *result,
-//                          float *soundness = 0);
-
-     static void fitFoobar(const PathFollower::vectorVector2f &points, Line *result);
+    static void fitLinear(const PathFollower::vectorVector2f &points, Line *result);
 
     /**
-     * @brief Refresh the current position and orientation of the robot.
-     *
-     * Gets the current position and orientation of the robot and stores it to robot_pose_.
-     * Use robot_pose_ to access the pose, after refreshing it with this method.
-     *
-     * @return False if some failure occurs, otherwise true.
+     * @brief Calculate the distance of a point to a line.
      */
-    bool refreshRobotPose();
+    static float distanceToLine(const Line &line, const Eigen::Vector2f &point);
 };
 
 #endif // PATHFOLLOWER_H

@@ -6,12 +6,12 @@
 
 #include <pcl/point_types.h>
 
-struct EIGEN_ALIGN16 PointWithIndex
-{
-  PCL_ADD_POINT4D; // This adds the members x,y,z which can also be accessed using the point (which is float[4])
-  int index;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
+//struct EIGEN_ALIGN16 PointWithIndex
+//{
+//  PCL_ADD_POINT4D; // This adds the members x,y,z which can also be accessed using the point (which is float[4])
+//  int index;
+//  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+//};
 
 struct EIGEN_ALIGN16 PointXYZRGBT
 {
@@ -55,12 +55,12 @@ inline std::ostream& operator << (std::ostream& os, const PointXYZRGBT& p)
   return (os);
 }
 
-POINT_CLOUD_REGISTER_POINT_STRUCT (PointWithIndex,
-    (float, x, x)
-    (float, y, y)
-    (float, z, z)
-    (int, index, index)
-)
+//POINT_CLOUD_REGISTER_POINT_STRUCT (PointWithIndex,
+//    (float, x, x)
+//    (float, y, y)
+//    (float, z, z)
+//    (int, index, index)
+//)
 POINT_CLOUD_REGISTER_POINT_STRUCT (PointXYZRGBT,
     (float, x, x)
     (float, y, y)
