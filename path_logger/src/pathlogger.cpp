@@ -85,8 +85,6 @@ void PathLogger::init()
 
 void PathLogger::map_callback(const nav_msgs::OccupancyGridConstPtr &msg)
 {
-    ROS_INFO("got map");
-
     latest_map_.reset(new nav_msgs::OccupancyGrid);
     latest_map_->header = msg->header;
     latest_map_->info = msg->info;
