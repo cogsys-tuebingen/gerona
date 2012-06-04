@@ -17,10 +17,12 @@ PathFollower::PathFollower() :
 
     ROS_WARN("!!! WE'RE TESTING !!!");
     // Some testing:
-    Vector2f p(1.03289, -0.0422);
+    Vector2f p1(1.03289, -0.0422);
+    Vector2f p2(2, 0);
 
     vectorVector2f points;
-    points.push_back(p);
+    points.push_back(p1);
+    points.push_back(p2);
 
     Line line;
     fitLinear(points, &line);
