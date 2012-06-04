@@ -1,11 +1,11 @@
 #include "mapprocessor.h"
-#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
 MapProcessor::MapProcessor()
 {
-    cv::namedWindow("map", CV_WINDOW_FREERATIO);
-    cv::namedWindow("processed map", CV_WINDOW_FREERATIO);
+//    cv::namedWindow("map", CV_WINDOW_FREERATIO);
+//    cv::namedWindow("processed map", CV_WINDOW_FREERATIO);
 }
 
 cv::Mat1b MapProcessor::mapToImage()

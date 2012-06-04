@@ -155,6 +155,7 @@ private:
      * Gets the current position and orientation of the robot and stores it to robot_pose_.
      * Use robot_pose_ to access the pose, after refreshing it with this method.
      *
+     * @see robot_pose_
      * @return False if some failure occurs, otherwise true.
      */
     bool refreshRobotPose();
@@ -178,6 +179,8 @@ private:
      * path_angle_.
      * As a side effect this method negates the middel line direction vector if the robot is looking in the other
      * direction.
+     *
+     * @see path_angle_
      */
     void refreshPathDirectionAngle();
 
