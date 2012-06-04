@@ -20,7 +20,6 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 {
     map_ = msg;
 
-    /** \todo only for testing */
     try {
         /** \todo extra method for all the refreshes */
         if (refreshRobotPose()) {
@@ -32,10 +31,14 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             // goal position (1m ahead):
             Vector2f goal_pos = robot_pose_.position + 1*path_middle_line_.direction + to_mid_line;
 
-            setGoalPoint(goal_pos, path_angle_);
+
+            // check if goalpoint is traversable at all.
+            size_t map_index = transformToMap(goal_pos);
+            if (map_->data[map_index] == 0) {
+                setGoalPoint(goal_pos, path_angle_);
+            }
+            /** \todo what else? */
         }
-
-
     }
     catch (Exception e) {
         ROS_WARN("Unknown path direction: %s", e.what());
