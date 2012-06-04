@@ -99,60 +99,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     traversable = detectObstacles(smoothed, msg->intensities);
 
     // get projection to carthesian frame
-    //sensor_msgs::PointCloud cloud;
     PointCloudXYZRGBT pcl_cloud;
-
-    /*
-    //laser_projector_.projectLaser(*msg, cloud, -1.0, laser_geometry::channel_option::Index);
-    try {
-        laser_projector_.transformLaserScanToPointCloud("/odom", *msg, cloud, tf_listener_, -1.0,
-                                                        laser_geometry::channel_option::Index);
-    }
-    catch (tf::TransformException e) {
-        ROS_WARN("Unable to transform laser scan. tf says: %s", e.what());
-        return;
-    }
-
-    // get index channel
-    sensor_msgs::ChannelFloat32 channel_index;
-    for (vector<sensor_msgs::ChannelFloat32>::iterator channel_it = cloud.channels.begin();
-            channel_it != cloud.channels.end();
-            ++channel_it) {
-        if (channel_it->name.compare("index") == 0) {
-            channel_index = *channel_it;
-            break;
-        }
-    }
-
-    // assign points and traversability-data to the pcl point cloud
-    pcl_cloud.header = cloud.header;
-    pcl_cloud.reserve(cloud.points.size());
-    for (size_t i = 0; i < cloud.points.size(); ++i) {
-        size_t index = channel_index.values[i];
-
-        PointXYZRGBT point;
-        point.x = cloud.points[index].x;
-        point.y = cloud.points[index].y;
-        point.z = cloud.points[index].z;
-
-        point.traversable = traversable[index].isTraversable();
-
-        // color (for visualization)
-        if (point.traversable) {
-            // traversable. green to yellow depending on obstacle_value.
-            point.r = (float) traversable[i].obstacle_value() / PointClassification::OBSTACLE_VALUE_LIMIT * 255;
-            point.g = 255;
-            point.b = 0;
-        } else {
-            // untraversable -> red
-            point.r = 255; point.g = 0; point.b = 0;
-        }
-
-        pcl_cloud.push_back(point);
-    }
-    */
-
-
     laserScanToCloud(msg, traversable, &pcl_cloud);
 
     classifyPointCloud(&pcl_cloud);
@@ -184,7 +131,7 @@ void TerrainClassifier::laserScanToCloud(const sensor_msgs::LaserScanPtr &scan,
                                                         laser_geometry::channel_option::Index);
     }
     catch (tf::TransformException e) {
-        ROS_WARN("Unable to transform laser scan. tf says: %s", e.what());
+        ROS_WARN_THROTTLE(1, "Unable to transform laser scan. tf says: %s", e.what());
         return;
     }
 
@@ -561,7 +508,7 @@ void TerrainClassifier::moveMap()
         tf_listener_.transformPoint("/map", base_link_position, map_origin);
     }
     catch (tf::TransformException e) {
-        ROS_WARN("Unable to transform robot position. tf says: %s", e.what());
+        ROS_WARN_THROTTLE(1, "Unable to transform robot position. tf says: %s", e.what());
         return;
     }
     // set origin so that the robot is in the center of the map
