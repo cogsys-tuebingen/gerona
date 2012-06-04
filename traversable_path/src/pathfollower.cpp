@@ -10,116 +10,9 @@ PathFollower::PathFollower() :
         motion_control_action_client_("motion_control"),
     path_angle_(NAN)
 {
-    subscribe_scan_classification_ = node_handle_.subscribe("path_classification_cloud", 10,
-                                                            &PathFollower::scan_classification_callback, this);
     subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
     publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 100);
     publish_goal_ = node_handle_.advertise<geometry_msgs::PoseStamped>("traversable_path/goal", 1);
-}
-
-void PathFollower::scan_classification_callback(const pcl::PointCloud<PointXYZRGBT>::ConstPtr &scan)
-{
-    int goal_index;
-
-    // search traversable area in front of the robot (assuming, "in front" is approximalty in the middle of the scan)
-    unsigned int mid = scan->points.size() / 2;
-
-    // search traversable area
-    unsigned int beginning = 0, end = 0;
-    for (unsigned int i = 0; i < mid; ++i) {
-        if (scan->points[mid+i].traversable) {
-            beginning = mid+i;
-            end = mid+i;
-            break;
-        } else if (scan->points[mid-i].traversable) {
-            beginning = mid-i;
-            end = mid-i;
-            break;
-        }
-    }
-
-    if (beginning == 0) {
-        ROS_DEBUG("No traversable paths found.");
-        /** @todo stop robot */
-        return;
-    }
-
-    // get range of the area
-    while (beginning > 0 && scan->points[beginning].traversable) {
-        --beginning;
-    }
-    while (end < scan->points.size()-1 && scan->points[end].traversable) {
-        ++end;
-    }
-
-    ROS_DEBUG("size points: %zu, beginning: %d, end: %d", scan->points.size(), beginning, end);
-
-    // goal = point in the middle of the path
-    goal_index = beginning + (end-beginning)/2;
-
-    // transform goal-pose to map-frame
-    geometry_msgs::PoseStamped goal_point_laser;
-    geometry_msgs::PoseStamped goal_point_map;
-
-    goal_point_laser.header = scan->header;
-    goal_point_laser.pose.position.x = scan->points[goal_index].x;
-    goal_point_laser.pose.position.y = scan->points[goal_index].y;
-    goal_point_laser.pose.position.z = scan->points[goal_index].z;
-
-    // orientation: orthogonal to the line of the traversable segment
-    double delta_x = scan->points[end].x - scan->points[beginning].x;
-    double delta_y = scan->points[end].y - scan->points[beginning].y;
-    double theta = atan2(delta_y, delta_x);
-    tf::quaternionTFToMsg(tf::createQuaternionFromYaw(theta), goal_point_laser.pose.orientation);
-    ROS_DEBUG("B: %g, %g; E: %g, %g", scan->points[beginning].x, scan->points[beginning].y, scan->points[end].x, scan->points[end].y);
-    ROS_DEBUG("dx = %f, dy = %f, atan2 = %f, theta = %f", delta_x, delta_y, atan2(delta_y, delta_x), theta);
-    /** \todo wieder einkommentieren */
-    //publishTraversaleLineMarker(scan->points[beginning], scan->points[end], scan->header);
-
-
-    try {
-        tf_listener_.transformPose("/map", goal_point_laser, goal_point_map);
-        goal_point_map.pose.position.z = 0;
-    }
-    catch (tf::TransformException e) {
-        ROS_WARN("Unable to transform goal. tf says: %s", e.what());
-        return;
-    }
-
-    const double MIN_DISTANCE_BETWEEN_GOALS = 0.5;
-    double distance = sqrt( pow(goal_point_map.pose.position.x - current_goal_.x, 2) +
-                            pow(goal_point_map.pose.position.y - current_goal_.y, 2) );
-
-    if (distance > MIN_DISTANCE_BETWEEN_GOALS) {
-        // send goal to motion_control
-        motion_control::MotionGoal goal;
-        goal.v     = 0.4;
-        goal.beta  = 0;
-        //goal.pos_tolerance = 0.1;
-        goal.mode  = motion_control::MotionGoal::MOTION_TO_GOAL;
-
-        goal.x     = goal_point_map.pose.position.x;
-        goal.y     = goal_point_map.pose.position.y;
-        goal.theta = tf::getYaw(goal_point_map.pose.orientation);
-
-        // send goal to motion_control
-        motion_control_action_client_.sendGoal(goal);
-        current_goal_ = goal_point_map.pose.position;
-
-        // send goal-marker to rviz for debugging
-        //publishGoalMarker(goal_point_map);
-
-        ROS_DEBUG("Goal (map): x: %f; y: %f; theta: %f;; x: %f, y: %f, z: %f, w: %f", goal_point_map.pose.position.x,
-                 goal_point_map.pose.position.y, tf::getYaw(goal_point_map.pose.orientation),
-                 goal_point_map.pose.orientation.x,
-                 goal_point_map.pose.orientation.y,
-                 goal_point_map.pose.orientation.z,
-                 goal_point_map.pose.orientation.w);
-    }
-    else {
-        ROS_DEBUG("Didn't update goal. New goal is %.2f m distant from the current goal. Minimum distance is %f",
-                  distance, MIN_DISTANCE_BETWEEN_GOALS);
-    }
 }
 
 
@@ -135,18 +28,11 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             refreshPathDirectionAngle();
 
             // distance of robot to path middle line
-            float dist = distanceToLine(path_middle_line_, robot_pose_.position);
+            Vector2f to_mid_line = vectorFromPointToLine(path_middle_line_, robot_pose_.position);
             // goal position (1m ahead):
-            Vector2f goal_pos = robot_pose_.position + 1*path_middle_line_.direction + dist*path_middle_line_.normal;
+            Vector2f goal_pos = robot_pose_.position + 1*path_middle_line_.direction + to_mid_line;
 
-            /** \todo pos buggt noch */
-
-            geometry_msgs::PoseStamped goal;
-            goal.header.frame_id = "/map";
-            goal.pose.position.x = goal_pos[0];
-            goal.pose.position.y = goal_pos[1];
-            goal.pose.orientation = tf::createQuaternionMsgFromYaw(path_angle_);
-            publishGoalMarker(goal);
+            setGoalPoint(goal_pos, path_angle_);
         }
 
 
@@ -157,20 +43,12 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 }
 
 
-void PathFollower::publishGoalMarker(const geometry_msgs::PoseStamped &goal) const
+void PathFollower::publishGoalMarker(Vector2f position, float theta) const
 {
-//    geometry_msgs::PoseStamped foo = goal;
-//    foo.pose.orientation.x = 1;
-//    foo.pose.orientation.y = 2;
-//    foo.pose.orientation.z = 3;
-//    foo.pose.orientation.w = 4;
-
-    publish_goal_.publish(goal);
-
     visualization_msgs::Marker marker;
-
-    marker.header = goal.header;
-    marker.pose   = goal.pose;
+    marker.header.frame_id = "/map";
+    marker.pose.position = vectorToPoint(position);
+    marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
 
     // Set the namespace and id for this marker.  This serves to create a unique ID
     // Any marker sent with the same namespace and id will overwrite the old one
@@ -263,13 +141,8 @@ void PathFollower::publishLineMarker(Eigen::Vector2f p1, Eigen::Vector2f p2, int
     line.color = color;
 
     // set the points
-    geometry_msgs::Point p;
-    p.x = p1[0];
-    p.y = p1[1];
-    line.points.push_back(p);
-    p.x = p2[0];
-    p.y = p2[1];
-    line.points.push_back(p);
+    line.points.push_back(vectorToPoint(p1));
+    line.points.push_back(vectorToPoint(p2));
 
     publish_rviz_marker_.publish(line);
 }
@@ -285,6 +158,43 @@ void PathFollower::publishLineMarker(Vector2f coefficients, int min_x, int max_x
     p2[1] = coefficients[0]*max_x + coefficients[1];
 
     publishLineMarker(p1, p2, id, color);
+}
+
+void PathFollower::setGoalPoint(Eigen::Vector2f position, float theta)
+{
+    const float MIN_DISTANCE_BETWEEN_GOALS = 0.5;
+
+    float distance = (position - current_goal_).norm();
+    if (distance > MIN_DISTANCE_BETWEEN_GOALS) {
+        // send goal to motion_control
+        motion_control::MotionGoal goal;
+        goal.v     = 0.4;
+        goal.beta  = 0;
+        //goal.pos_tolerance = 0.1;
+        goal.mode  = motion_control::MotionGoal::MOTION_TO_GOAL;
+
+        goal.x     = position[0];
+        goal.y     = position[1];
+        goal.theta = theta;
+
+        // send goal to motion_control
+        motion_control_action_client_.sendGoal(goal);
+        // set as current goal
+        current_goal_ = position;
+        // send goal-marker to rviz for debugging
+        publishGoalMarker(position, path_angle_);
+
+//        ROS_DEBUG("Goal (map): x: %f; y: %f; theta: %f;; x: %f, y: %f, z: %f, w: %f", goal_point_map.pose.position.x,
+//                  goal_point_map.pose.position.y, tf::getYaw(goal_point_map.pose.orientation),
+//                  goal_point_map.pose.orientation.x,
+//                  goal_point_map.pose.orientation.y,
+//                  goal_point_map.pose.orientation.z,
+//                  goal_point_map.pose.orientation.w);
+    }
+    else {
+        ROS_DEBUG("Didn't update goal. New goal is %.2f m distant from the current goal. Minimum distance is %f",
+                  distance, MIN_DISTANCE_BETWEEN_GOALS);
+    }
 }
 
 bool PathFollower::refreshRobotPose()
@@ -366,11 +276,14 @@ void PathFollower::refreshPathDirectionAngle()
     float angle_robot = atan2(robot_pose_.orientation[1], robot_pose_.orientation[0]);
     float angle_to_path = angle_robot - theta;
     if (fabs(angle_to_path) > M_PI/2) {
+        // change directory angle about 180° and also revert direction vector of the line
         theta = theta - M_PI;
+        path_middle_line_.direction *= -1;
     }
 
 
     //// Filter
+    /** \todo filter depending on line soundness */
     if (isnan(path_angle_)) {
         // first time initialization
         path_angle_ = theta;
@@ -389,9 +302,7 @@ void PathFollower::refreshPathDirectionAngle()
     visualization_msgs::Marker direction_marker;
     direction_marker.header.frame_id = "/map";
     direction_marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
-    direction_marker.pose.position.x = robot_pose_.position[0];
-    direction_marker.pose.position.y = robot_pose_.position[1];
-    direction_marker.pose.position.z = 0;
+    direction_marker.pose.position = vectorToPoint(robot_pose_.position);
     direction_marker.ns = "follow_path/direction";
     direction_marker.id = 1;
     direction_marker.type = visualization_msgs::Marker::ARROW;
@@ -519,10 +430,42 @@ void PathFollower::fitLinear(const PathFollower::vectorVector2f &points, PathFol
     result->soundness = eig.eigenvalues().coeff(0)/eig.eigenvalues().coeff(1);
 }
 
-float PathFollower::distanceToLine(const PathFollower::Line &line, const Vector2f &point)
+Vector2f PathFollower::vectorFromPointToLine(const PathFollower::Line &line, const Vector2f &point) const
 {
     float k = (point.dot(line.direction) - line.point.dot(line.direction)) / line.direction.dot(line.direction);
-    return (point - line.point - k*line.direction).norm();
+    Vector2f point_to_line = -(point - line.point - k*line.direction);
+
+    /////////////// MARKER
+    /*
+    // arrow
+    visualization_msgs::Marker direction_marker;
+    direction_marker.header.frame_id = "/map";
+    direction_marker.pose.orientation = tf::createQuaternionMsgFromYaw( atan2(point_to_line[1], point_to_line[0]) );
+    direction_marker.pose.position.x = robot_pose_.position[0];
+    direction_marker.pose.position.y = robot_pose_.position[1];
+    direction_marker.pose.position.z = 0;
+    direction_marker.ns = "follow_path/direction";
+    direction_marker.id = 19;
+    direction_marker.type = visualization_msgs::Marker::ARROW;
+    direction_marker.action = visualization_msgs::Marker::ADD;
+    direction_marker.scale.x = direction_marker.scale.y = direction_marker.scale.z = point_to_line.norm();
+    direction_marker.color.b = 1.0;
+    direction_marker.color.a = 1.0;
+    publish_rviz_marker_.publish(direction_marker);
+    /////////////////
+    */
+
+    return point_to_line;
+}
+
+geometry_msgs::Point PathFollower::vectorToPoint(Vector2f v)
+{
+    geometry_msgs::Point p;
+    p.x = v[0];
+    p.y = v[1];
+    p.z = 0;
+
+    return p;
 }
 
 

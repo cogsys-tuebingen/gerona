@@ -60,8 +60,6 @@ private:
     };
 
     ros::NodeHandle node_handle_;
-    //! Subscriber for the terrain classification of the node classify_path.
-    ros::Subscriber subscribe_scan_classification_;
     //! Subscriber for the traversability map.
     ros::Subscriber subscribe_map_;
     //! Publisher for rvis markers.
@@ -73,7 +71,7 @@ private:
     actionlib::SimpleActionClient<motion_control::MotionAction> motion_control_action_client_;
 
     //! The current goal.
-    geometry_msgs::Point current_goal_;
+    Eigen::Vector2f current_goal_;
 
     nav_msgs::OccupancyGridConstPtr map_;
 
@@ -87,18 +85,13 @@ private:
 
 
     /**
-     * @brief Chooses traversable segments on the path and determines a goal.
+     * @brief Calculate path direction and set goal point.
      *
-     * This is the callback function for the terrain classification messages. It chooses the traversable segment, that
-     * lies most in the mid of the scan (and thus should be straight in front of the robot) and determines goal points
-     * to drive in the middle of the path.
-     * The goals are send to motion_control so this method does the driving.
+     * This is the callback function for the traversability map subscriber. It takes the map, calculates the direction
+     * of the current path and sets a new goalpoint for motion_control.
      *
-     * @param The terrain classification of the current laser scan.
+     * @param msg A traversability map.
      */
-    void scan_classification_callback(const pcl::PointCloud<PointXYZRGBT>::ConstPtr& scan_classification);
-
-    //! Callback for the traversability map subscriber.
     void mapCallback(const nav_msgs::OccupancyGridConstPtr &msg);
 
     /**
@@ -106,7 +99,7 @@ private:
      * The arrow starts at the goal position and points in the direction of the goal orientation.
      * @param goal The goal pose with position and orientation of the goal.
      */
-    void publishGoalMarker(const geometry_msgs::PoseStamped &goal) const;
+    void publishGoalMarker(Eigen::Vector2f position, float theta) const;
 
     /**
      * @brief Sends a marker to rviz which visualizes the choosen traversable segment.
@@ -144,6 +137,17 @@ private:
      */
     void publishLineMarker(Eigen::Vector2f coefficients, int min_x, int max_x, int id, std_msgs::ColorRGBA color) const;
 
+    /**
+     * @brief Set the given position as navigation goal.
+     *
+     * Publishes a goal message for motion_control and a goal marker for rviz.
+     * The position and angle are expected to be respective to frame "/map".
+     *
+     * @param pos Position of the goal.
+     * @param theta Angle of the goal orientation.
+     */
+    void setGoalPoint(Eigen::Vector2f pos, float theta);
+
 
     /**
      * @brief Refresh the current position and orientation of the robot.
@@ -155,7 +159,16 @@ private:
      */
     bool refreshRobotPose();
 
-    //! Get middle line of the path.
+    /**
+     * @brief Refresh the path middle line.
+     *
+     * Calculates a line that fits to the direction of the path in front of the robot. The result is written to
+     * PathFollower::path_middle_line_ so use this class member to access the line after refreshing it.
+     *
+     * Please note: This method depends on the current robot pose so call refreshRobotPose() first.
+     * @see refreshRobotPose()
+     * @see path_middle_line_
+     */
     void refreshPathLine();
 
     /**
@@ -163,6 +176,8 @@ private:
      *
      * Calculates the angle of the path depending on the current path middle line and stores the filtered value to
      * path_angle_.
+     * As a side effect this method negates the middel line direction vector if the robot is looking in the other
+     * direction.
      */
     void refreshPathDirectionAngle();
 
@@ -196,9 +211,26 @@ private:
     static void fitLinear(const PathFollower::vectorVector2f &points, Line *result);
 
     /**
-     * @brief Calculate the distance of a point to a line.
+     * @brief Calculate the vector that points from 'point' to 'line'.
+     *
+     * The resulting vector is a normal vector of the line with length equal to the distant of the point to the line
+     * and pointing from the point to the line.
+     *
+     * @param line A line.
+     * @param point A point.
+     * @return Vector that points from point to line.
      */
-    static float distanceToLine(const Line &line, const Eigen::Vector2f &point);
+    Eigen::Vector2f vectorFromPointToLine(const Line &line, const Eigen::Vector2f &point) const;
+
+    /**
+     * @brief Convert a Eigen::Vector2f to a geometry_msgs::Point.
+     *
+     * The z-value of the point is set to 0.
+     *
+     * @param v Some vector.
+     * @return a Point with the values of the given vector.
+     */
+    static geometry_msgs::Point vectorToPoint(Eigen::Vector2f v);
 };
 
 #endif // PATHFOLLOWER_H
