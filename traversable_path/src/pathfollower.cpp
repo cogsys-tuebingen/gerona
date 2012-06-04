@@ -42,7 +42,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
         }
     }
     catch (Exception e) {
-        ROS_WARN("Unknown path direction: %s", e.what());
+        ROS_WARN_THROTTLE(1, "Unknown path direction: %s", e.what());
     }
 }
 
@@ -222,7 +222,7 @@ bool PathFollower::refreshRobotPose()
         robot_pose_.orientation[1] = tmp.getY();
     }
     catch (tf::TransformException e) {
-        ROS_WARN("tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
+        ROS_WARN_THROTTLE(1, "tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
         return false;
     }
     return true;
@@ -233,7 +233,8 @@ void PathFollower::refreshPathLine()
     vectorVector2f points_middle;
     findPathMiddlePoints(&points_middle);
 
-    if (points_middle.size() == 0) {
+    // need at least two points, otherwise the regression will fail.
+    if (points_middle.size() < 2) {
         throw Exception("Missing path points");
     }
 
@@ -361,7 +362,7 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
                 continue;
             }
         } catch (TransformMapException e) {
-            ROS_WARN("Ahead: %s", e.what());
+            ROS_WARN_THROTTLE(1, "Ahead: %s", e.what());
             continue;
         }
 
@@ -414,6 +415,8 @@ void PathFollower::fitLinear(const PathFollower::vectorVector2f &points, PathFol
      * This is a modified version of the function fitHyperplane() of eigen3 (eigen2support/LeastSquares.h),
      * which seems to be deprecated and thus is not used here directly.
      */
+    // need at least two points.
+    ROS_ASSERT(points.size() > 1);
     ROS_ASSERT(result != 0);
 
     // compute the mean of the data
