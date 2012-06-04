@@ -7,12 +7,29 @@ using namespace traversable_path;
 using namespace Eigen;
 
 PathFollower::PathFollower() :
-        motion_control_action_client_("motion_control"),
+    motion_control_action_client_("motion_control"),
+    current_goal_(0,0),
     path_angle_(NAN)
 {
-    subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
-    publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 100);
-    publish_goal_ = node_handle_.advertise<geometry_msgs::PoseStamped>("traversable_path/goal", 1);
+//    subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
+//    publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 100);
+//    publish_goal_ = node_handle_.advertise<geometry_msgs::PoseStamped>("traversable_path/goal", 1);
+
+    ROS_WARN("!!! WE'RE TESTING !!!");
+    // Some testing:
+    Vector2f p(1.03289, -0.0422);
+
+    vectorVector2f points;
+    points.push_back(p);
+
+    Line line;
+    fitLinear(points, &line);
+
+#include <cstdio>
+    using namespace std;
+    cout << "Point: " << line.point << endl
+            << "Normal: " << line.normal << endl
+            << "Direction: " << line.direction << endl;
 }
 
 
@@ -163,11 +180,16 @@ void PathFollower::publishLineMarker(Vector2f coefficients, int min_x, int max_x
     publishLineMarker(p1, p2, id, color);
 }
 
-void PathFollower::setGoalPoint(Eigen::Vector2f position, float theta)
+void PathFollower::setGoalPoint(Vector2f position, float theta)
 {
     const float MIN_DISTANCE_BETWEEN_GOALS = 0.5;
 
-    float distance = (position - current_goal_).norm();
+    // make sure the min. distance doesn't avoid the goal to be set at the first call of this method.
+    float distance = INFINITY;
+    if (!current_goal_.isZero()) {
+        distance = (position - current_goal_).norm();
+    }
+
     if (distance > MIN_DISTANCE_BETWEEN_GOALS) {
         // send goal to motion_control
         motion_control::MotionGoal goal;
