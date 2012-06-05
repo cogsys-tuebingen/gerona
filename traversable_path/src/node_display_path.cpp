@@ -9,8 +9,6 @@
  * @see Visualization
  */
 #include <ros/ros.h>
-//#include <pcl/point_cloud.h>
-#include <pcl_ros/point_cloud.h>
 #include "point_types.h"
 #include "visualization.h"
 

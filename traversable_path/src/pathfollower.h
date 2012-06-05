@@ -8,7 +8,6 @@
 #include <geometry_msgs/Point32.h>
 #include <visualization_msgs/Marker.h>
 #include <nav_msgs/OccupancyGrid.h>
-#include <pcl_ros/point_cloud.h>
 
 #define EIGEN_USE_NEW_STDVECTOR
 #include <Eigen/Dense>

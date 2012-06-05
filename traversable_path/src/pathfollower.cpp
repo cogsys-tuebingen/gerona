@@ -222,7 +222,7 @@ bool PathFollower::refreshRobotPose()
         robot_pose_.orientation[1] = tmp.getY();
     }
     catch (tf::TransformException e) {
-        ROS_WARN_THROTTLE(1, "tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
+        ROS_WARN_THROTTLE_NAMED(1, "tf", "tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
         return false;
     }
     return true;

@@ -5,6 +5,7 @@
 #define POINT_TYPES_H
 
 #include <pcl/point_types.h>
+#include <pcl_ros/point_cloud.h>
 
 //struct EIGEN_ALIGN16 PointWithIndex
 //{

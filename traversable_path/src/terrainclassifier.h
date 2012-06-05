@@ -12,8 +12,6 @@
 #include <laser_geometry/laser_geometry.h>
 #include <tf/transform_listener.h>
 #include <dynamic_reconfigure/server.h>
-#include <pcl/point_cloud.h>
-#include <pcl_ros/point_cloud.h>
 #include <nav_msgs/OccupancyGrid.h>
 
 #include "point_types.h"

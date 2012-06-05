@@ -131,7 +131,7 @@ void TerrainClassifier::laserScanToCloud(const sensor_msgs::LaserScanPtr &scan,
                                                         laser_geometry::channel_option::Index);
     }
     catch (tf::TransformException e) {
-        ROS_WARN_THROTTLE(1, "Unable to transform laser scan. tf says: %s", e.what());
+        ROS_WARN_THROTTLE_NAMED(1, "tf", "Unable to transform laser scan. tf says: %s", e.what());
         return;
     }
 
@@ -383,7 +383,7 @@ void TerrainClassifier::classifyPointCloud(PointCloudXYZRGBT *cloud) const
             // end traversable segment
             on_trav_segment = false;
 
-            ROS_DEBUG("Check traversable segment (index %zu to %zu)", index_start, i-1);
+            //ROS_DEBUG("Check traversable segment (index %zu to %zu)", index_start, i-1);
             checkTraversableSegment(cloud->points.begin()+index_start, cloud->points.begin()+i);
         }
         else if (!on_trav_segment && cloud->points[i].traversable) {

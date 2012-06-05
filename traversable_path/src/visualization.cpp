@@ -1,5 +1,5 @@
 #include "visualization.h"
-#include "GraphUtils.h"
+#include <opencv2/highgui/highgui.hpp>
 
 using namespace std;
 
@@ -50,10 +50,4 @@ void Visualization::paintPath(const pcl::PointCloud<PointXYZRGBT>::ConstPtr &clo
     cv::waitKey(3);
 
     path_pos_ = ++path_pos_ % path_.cols;
-}
-
-void Visualization::plot(std::vector<float>data)
-{
-    setGraphColor(0);
-    showFloatGraph("plot", data.data(), data.size());
 }
