@@ -1,9 +1,9 @@
 #include "terrainclassifier.h"
-#include <stdio.h>
 #include <algorithm>
 #include <numeric>
-#include <math.h>
-#include "ramaxxbase/PTZ.h"
+#include <cmath>
+
+#include <ramaxxbase/PTZ.h>
 #include "vectorsaver.h"
 
 using namespace std;

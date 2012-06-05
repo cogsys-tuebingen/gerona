@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <bitset>
-#include <ros/ros.h>
 
 //! Type of the point classification flags.
 typedef std::bitset<6> classification_t;

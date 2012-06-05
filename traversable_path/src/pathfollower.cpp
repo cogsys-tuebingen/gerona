@@ -1,7 +1,9 @@
 #include "pathfollower.h"
-
-#include "exceptions.h"
 #include <cmath>
+
+#include <Eigen/Dense>
+#include <visualization_msgs/Marker.h>
+#include "exceptions.h"
 
 using namespace traversable_path;
 using namespace Eigen;

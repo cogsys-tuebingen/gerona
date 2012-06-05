@@ -1,4 +1,5 @@
 #include "pointclassification.h"
+#include <ros/ros.h>
 
 bool PointClassification::operator==(PointClassification p)
 {

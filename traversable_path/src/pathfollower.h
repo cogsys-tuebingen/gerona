@@ -5,12 +5,12 @@
 #include <tf/transform_listener.h>
 #include <motion_control/MotionAction.h>
 #include <actionlib/client/simple_action_client.h>
-#include <geometry_msgs/Point32.h>
-#include <visualization_msgs/Marker.h>
+#include <geometry_msgs/Point.h>
+#include <std_msgs/ColorRGBA.h>
 #include <nav_msgs/OccupancyGrid.h>
 
 #define EIGEN_USE_NEW_STDVECTOR
-#include <Eigen/Dense>
+#include <Eigen/Core>
 #include <Eigen/StdVector>
 #include "point_types.h"
 

@@ -3,7 +3,6 @@
 
 #include <string>
 #include <vector>
-#include <list>
 #include <boost/circular_buffer.hpp>
 #include <ros/ros.h>
 #include <ros/package.h>
