@@ -8,52 +8,46 @@ MapProcessor::MapProcessor()
 //    cv::namedWindow("processed map", CV_WINDOW_FREERATIO);
 }
 
-cv::Mat1b MapProcessor::mapToImage()
+void MapProcessor::mapToImage(const nav_msgs::OccupancyGrid &map, cv::Mat1b *image)
 {
-    cv::Mat1b img(map_.info.width, map_.info.height);
+    *image = cv::Mat1b(map.info.width, map.info.height);
 
-    for (size_t i = 0; i < map_.data.size(); ++i) {
+    for (size_t i = 0; i < map.data.size(); ++i) {
         int row, col;
-        row = i % map_.info.width;
-        col = i / map_.info.width;
+        row = i % map.info.width;
+        col = i / map.info.width;
 
-        img[row][col] = (map_.data[i] == 0) ? 255 : 0;
-    }
-
-    return img;
-}
-
-
-void MapProcessor::imageToMap(const cv::Mat1b &img)
-{
-    for (size_t i = 0; i < map_.data.size(); ++i) {
-        int row, col;
-        row = i % map_.info.width;
-        col = i / map_.info.width;
-
-        map_.data[i] = img[row][col] == 0 ? 100 : 0;
+        (*image)[row][col] = (map.data[i] == 0) ? 255 : 0;
     }
 }
 
-nav_msgs::OccupancyGrid MapProcessor::process(const nav_msgs::OccupancyGrid &map)
+
+void MapProcessor::imageToMap(const cv::Mat1b &img, nav_msgs::OccupancyGrid *map)
 {
-    map_ = map;
+    map->info.width  = img.cols;
+    map->info.height = img.rows;
+    map->data.resize(img.cols * img.rows);
 
-    cv::Mat1b img = mapToImage();
-    //cv::Mat1b eroded;
-    cv::Mat1b processed;
+    for (size_t i = 0; i < map->data.size(); ++i) {
+        int row, col;
+        row = i % map->info.width;
+        col = i / map->info.width;
 
-    //cv::erode(img, eroded, cv::Mat());
-    //cv::dilate(img, dilated, cv::Mat());
+        map->data[i] = img[row][col] == 0 ? 100 : 0;
+    }
+}
+
+void MapProcessor::process(nav_msgs::OccupancyGrid *map)
+{
+    cv::Mat1b img;
+    mapToImage(*map, &img);
 
     cv::Mat foo(3, 3, CV_8U, cv::Scalar(1));
-    cv::morphologyEx(img, processed, cv::MORPH_CLOSE, foo);
+    cv::morphologyEx(img, img, cv::MORPH_CLOSE, foo);
 
 //    cv::imshow("map", img);
 //    cv::imshow("processed map", processed);
 //    cv::waitKey(3);
 
-    imageToMap(processed);
-
-    return map_;
+    imageToMap(img, map);
 }

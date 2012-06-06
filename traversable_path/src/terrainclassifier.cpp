@@ -489,7 +489,7 @@ void TerrainClassifier::updateMap(PointCloudXYZRGBT cloud)
     }
 
     // remove noise
-    final_map = map_processor_.process(final_map);
+    map_processor_.process(&final_map);
 
     publish_map_.publish(final_map);
 }
