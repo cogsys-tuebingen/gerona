@@ -10,6 +10,20 @@ typedef std::bitset<6> classification_t;
 /**
  * @brief Classification of a point.
  *
+ * Represents the classification of a scanned point. There are different features which influence the final
+ * classification with different weights.
+ *
+ * Each of these features has a own flag, defined as constant of the class (PointClassification::FLAG_*).
+ * The weights of this features are also defined as constants but private and thus can not be accessed from outside.
+ *
+ * Thus the classification for a single point contains a set of flags and an "obstacle value" which is simply the sum
+ * of the weights of all detected features.
+ * To set a feature as detected, use setFlag(). This will automaticly increase the obstacle value. You can not change
+ * the obstacle value directly.
+ *
+ * A point is classified as traversable if the obstacle value does not exceed PointClassification::OBSTACLE_VALUE_LIMIT.
+ * To check this, use the method isTraversable().
+ *
  * @author Felix Widmaier
  * @version $Id$
  */
@@ -31,6 +45,7 @@ private:
     static short weightByFlag(uint8_t flag);
 
 public:
+    //! The point is classified as untraversable if the obstacle value exceeds this limit.
     static const short OBSTACLE_VALUE_LIMIT = 100;
     // flags
     static const uint8_t FLAG_DIFF_RANGE_OVER_LIMIT = 0;

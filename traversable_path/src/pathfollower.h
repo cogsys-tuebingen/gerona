@@ -15,7 +15,6 @@
 #include "point_types.h"
 
 
-
 /**
  * @brief Main class of the follow_path node.
  *

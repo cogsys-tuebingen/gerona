@@ -9,7 +9,10 @@ namespace traversable_path
 /**
  * @brief Simple default exception.
  *
- * Extends std::exception and takes an optional error message as constructor argument
+ * Extends std::exception and takes an optional error message as constructor argument.
+ *
+ * @author Felix Widmaier
+ * @version $Id$
  */
 class Exception: std::exception
 {
@@ -35,6 +38,9 @@ private:
 
 /**
  * @brief Exception for map transformation failures.
+ *
+ * @author Felix Widmaier
+ * @version $Id$
  */
 class TransformMapException: Exception
 {

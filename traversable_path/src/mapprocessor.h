@@ -8,7 +8,6 @@
  * @brief Cleans an traversability map from noise.
  *
  * @author Felix Widmaier
- * @package traversable_path
  * @version $Id$
  */
 class MapProcessor

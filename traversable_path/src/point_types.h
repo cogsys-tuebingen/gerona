@@ -14,6 +14,12 @@
 //  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 //};
 
+/**
+ * @brief Point with coordinates (x,y,z), a rgb-color and a traversability-value.
+ *
+ * @author Felix Widmaier
+ * @version $Id$
+ */
 struct EIGEN_ALIGN16 PointXYZRGBT
 {
   PCL_ADD_POINT4D; // This adds the members x,y,z which can also be accessed using the point (which is float[4])
@@ -33,6 +39,7 @@ struct EIGEN_ALIGN16 PointXYZRGBT
     };
     uint32_t rgba;
   };
+  //! True iff the point is traversable.
   uint8_t traversable;
 
   //! Set traversability and automaticly change color.
