@@ -42,7 +42,12 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             if (map_->data[map_index] == 0) {
                 setGoalPoint(goal_pos, path_angle_);
             }
-            /** \todo what else? */
+            else {
+                /** \todo is this the stop commend? Ask Hendrik or Karsten */
+                motion_control_action_client_.cancelGoal();
+
+                /** \todo Handle this. Don't just stop. */
+            }
         }
     }
     catch (const TransformMapException &e) {
@@ -170,7 +175,7 @@ void PathFollower::setGoalPoint(Vector2f position, float theta)
 //                  goal_point_map.pose.orientation.w);
     }
     else {
-        ROS_DEBUG("Didn't update goal. New goal is %.2f m distant from the current goal. Minimum distance is %f",
+        ROS_DEBUG_THROTTLE(0.5, "Didn't update goal. New goal is %.2f m distant from the current goal. Minimum distance is %f",
                   distance, MIN_DISTANCE_BETWEEN_GOALS);
     }
 }

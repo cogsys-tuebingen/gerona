@@ -408,14 +408,15 @@ void TerrainClassifier::checkTraversableSegment(PointCloudXYZRGBT::iterator begi
     PointXYZRGBT point_end = *(end-1);
 
     /* *********** check path width ************* */
-    double distance = sqrt( pow(point_start.x - point_end.x, 2) +
-                            pow(point_start.y - point_end.y, 2) +
-                            pow(point_start.z - point_end.z, 2) );
+    /** \todo without width check this method may be useless */
+//    double distance = sqrt( pow(point_start.x - point_end.x, 2) +
+//                            pow(point_start.y - point_end.y, 2) +
+//                            pow(point_start.z - point_end.z, 2) );
 
-    if (distance < config_.min_path_width) {
-        ROS_DEBUG("Drop too narrow path (distance: %.2fm)", distance);
-        goto untraversable;
-    }
+//    if (distance < config_.min_path_width) {
+//        ROS_DEBUG("Drop too narrow path (distance: %.2fm)", distance);
+//        goto untraversable;
+//    }
 
 
     /* *********** check slope ************* */
