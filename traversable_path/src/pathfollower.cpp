@@ -11,6 +11,7 @@ using namespace Eigen;
 PathFollower::PathFollower() :
     motion_control_action_client_("motion_control"),
     current_goal_(0,0),
+    path_middle_line_direction_signum_(1),
     path_angle_(NAN)
 {
     subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
@@ -32,7 +33,8 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             // distance of robot to path middle line
             Vector2f to_mid_line = vectorFromPointToLine(path_middle_line_, robot_pose_.position);
             // goal position (1m ahead):
-            Vector2f goal_pos = robot_pose_.position + 1*path_middle_line_.direction + to_mid_line;
+            Vector2f goal_pos = robot_pose_.position + path_middle_line_direction_signum_ * path_middle_line_.direction
+                    + to_mid_line;
 
 
             // check if goalpoint is traversable at all.
@@ -43,7 +45,10 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             /** \todo what else? */
         }
     }
-    catch (Exception e) {
+    catch (const TransformMapException &e) {
+        ROS_WARN_THROTTLE(1, "%s", e.what());
+    }
+    catch (const Exception &e) {
         ROS_WARN_THROTTLE(1, "Unknown path direction: %s", e.what());
     }
 }
@@ -84,53 +89,6 @@ void PathFollower::publishGoalMarker(Vector2f position, float theta) const
     publish_rviz_marker_.publish(marker);
 }
 
-void PathFollower::publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, std_msgs::Header header) const
-{
-    //ROS_INFO("mark line from point a(%f,%f,%f) to b(%f,%f,%f)", a.x, a.y, a.z, b.x, b.y, b.z);
-
-    visualization_msgs::Marker points, line_strip;
-
-    points.header = line_strip.header = header;
-    points.ns = line_strip.ns = "follow_path";
-    points.action = line_strip.action = visualization_msgs::Marker::ADD;
-    points.pose.orientation.w = line_strip.pose.orientation.w = 1.0;
-
-    points.id = 1;
-    line_strip.id = 2;
-
-    points.type = visualization_msgs::Marker::POINTS;
-    line_strip.type = visualization_msgs::Marker::LINE_STRIP;
-
-    // POINTS markers use x and y scale for width/height respectively
-    points.scale.x = 0.05;
-    points.scale.y = 0.05;
-
-    // LINE_STRIP/LINE_LIST markers use only the x component of scale, for the line width
-    line_strip.scale.x = 0.03;
-
-    // Points are blue
-    points.color.b = 1.0;
-    points.color.a = 1.0;
-
-    // Line strip is green
-    line_strip.color.g = 1.0;
-    line_strip.color.a = 1.0;
-
-
-    // why the hell can't i simply cast this points??
-    geometry_msgs::Point pa, pb;
-    pa.x = a.x; pa.y = a.y; pa.z = a.z;
-    pb.x = b.x; pb.y = b.y; pb.z = b.z;
-
-    points.points.push_back(pa);
-    points.points.push_back(pb);
-    line_strip.points.push_back(pa);
-    line_strip.points.push_back(pb);
-
-    publish_rviz_marker_.publish(points);
-    publish_rviz_marker_.publish(line_strip);
-}
-
 void PathFollower::publishLineMarker(Eigen::Vector2f p1, Eigen::Vector2f p2, int id, std_msgs::ColorRGBA color) const
 {
     visualization_msgs::Marker line;
@@ -153,17 +111,26 @@ void PathFollower::publishLineMarker(Eigen::Vector2f p1, Eigen::Vector2f p2, int
     publish_rviz_marker_.publish(line);
 }
 
-void PathFollower::publishLineMarker(Vector2f coefficients, int min_x, int max_x, int id, std_msgs::ColorRGBA color) const
+void PathFollower::publishArrowMarker(Eigen::Vector2f point, float angle, int id, std_msgs::ColorRGBA color) const
 {
-    Vector2f p1, p2;
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "/map";
+    marker.pose.position = vectorToPoint(point);
+    marker.pose.orientation = tf::createQuaternionMsgFromYaw(angle);
+    marker.ns = "follow_path/arrow";
+    marker.id = id;
+    marker.type = visualization_msgs::Marker::ARROW;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.scale.x = marker.scale.y = marker.scale.z = 1.0;
+    marker.color = color;
 
-    // set the points
-    p1[0] = min_x;
-    p1[1] = coefficients[0]*min_x + coefficients[1];
-    p2[0] = max_x;
-    p2[1] = coefficients[0]*max_x + coefficients[1];
+    publish_rviz_marker_.publish(marker);
+}
 
-    publishLineMarker(p1, p2, id, color);
+void PathFollower::publishArrowMarker(Eigen::Vector2f point, Eigen::Vector2f direction, int id, std_msgs::ColorRGBA color) const
+{
+    float angle = atan2(direction[1], direction[0]);
+    publishArrowMarker(point, angle, id, color);
 }
 
 void PathFollower::setGoalPoint(Vector2f position, float theta)
@@ -241,40 +208,74 @@ void PathFollower::refreshPathLine()
     }
 
     // fit a line to the points
-    fitLinear(points_middle, &path_middle_line_);
+    Line new_line;
+    fitLinear(points_middle, &new_line);
+
+    // make sure the direction vector of the line points in the direction that is nearer to the robot orientation.
+    float angle = acos( new_line.direction.dot(robot_pose_.orientation)
+                        / (new_line.direction.norm() * robot_pose_.orientation.norm()) );
+    // if angle is greater than 90°, invert direction.
+    if (angle > M_PI/2) {
+        new_line.direction *= -1;
+    }
+
+    // filter line
+    if (path_middle_line_.direction.isZero()) {
+        path_middle_line_ = new_line;
+        ROS_DEBUG_STREAM("direction unfiltered: " << path_middle_line_.direction);
+    } else {
+
+        path_middle_line_.point = 0.9*path_middle_line_.point + 0.1*new_line.point;
+        path_middle_line_.direction = 0.9*path_middle_line_.direction + 0.1*new_line.direction;
+        path_middle_line_.direction.normalize();
+        //path_middle_line_.normal = 0.9*path_middle_line_.normal + 0.1*new_line.normal;
+        path_middle_line_.normal[0] = - path_middle_line_.direction[1];
+        path_middle_line_.normal[1] = path_middle_line_.direction[0];
+
+        ROS_DEBUG_STREAM("direction: " << new_line.direction);
+        ROS_DEBUG_STREAM("direction filtered: " << path_middle_line_.direction);
+    }
 
     /////////////// MARKER
-    // points
-    visualization_msgs::Marker points;
-    points.header.frame_id = "/map";
-    points.ns = "follow_path/mid_points";
-    points.action = visualization_msgs::Marker::ADD;
-    points.pose.orientation.w = 1.0;
-    points.id = 1;
-    points.type = visualization_msgs::Marker::POINTS;
-    // POINTS markers use x and y scale for width/height respectively
-    points.scale.x = 0.05;
-    points.scale.y = 0.05;
-    // Points are cyan
-    points.color.g = 1.0;
-    points.color.b = 1.0;
-    points.color.a = 1.0;
-    for (vectorVector2f::iterator it = points_middle.begin(); it != points_middle.end(); ++it) {
-        geometry_msgs::Point p;
-        p.x = (*it)[0];
-        p.y = (*it)[1];
-        p.z = 0;
-        points.points.push_back(p);
-    }
-    publish_rviz_marker_.publish(points);
+    {
+        // points
+        visualization_msgs::Marker points;
+        points.header.frame_id = "/map";
+        points.ns = "follow_path/mid_points";
+        points.action = visualization_msgs::Marker::ADD;
+        points.pose.orientation.w = 1.0;
+        points.id = 1;
+        points.type = visualization_msgs::Marker::POINTS;
+        // POINTS markers use x and y scale for width/height respectively
+        points.scale.x = 0.05;
+        points.scale.y = 0.05;
+        // Points are cyan
+        points.color.g = 1.0;
+        points.color.b = 1.0;
+        points.color.a = 1.0;
+        for (vectorVector2f::iterator it = points_middle.begin(); it != points_middle.end(); ++it) {
+            geometry_msgs::Point p;
+            p.x = (*it)[0];
+            p.y = (*it)[1];
+            p.z = 0;
+            points.points.push_back(p);
+        }
+        publish_rviz_marker_.publish(points);
 
-    // line
-    std_msgs::ColorRGBA color;
-    color.r = 1.0; color.g = 0.5; color.a = 1.0; // orange
-    Vector2f p1, p2;
-    p1 = path_middle_line_.point + 5 * path_middle_line_.direction;
-    p2 = path_middle_line_.point - 5 * path_middle_line_.direction;
-    publishLineMarker(p1, p2, 13, color);
+        // line
+        std_msgs::ColorRGBA color;
+        color.r = 1.0; color.g = 0.5; color.a = 1.0; // orange
+        Vector2f p1, p2;
+        p1 = path_middle_line_.point + 5 * path_middle_line_.direction;
+        p2 = path_middle_line_.point - 5 * path_middle_line_.direction;
+        publishLineMarker(p1, p2, 13, color);
+
+        // line
+        color.r = 1.0; color.g = 0.0; color.a = 1.0; //red
+        p1 = new_line.point + 3 * new_line.direction;
+        p2 = new_line.point - 3 * new_line.direction;
+        publishLineMarker(p1, p2, 14, color);
+    }
 }
 
 void PathFollower::refreshPathDirectionAngle()
@@ -285,53 +286,46 @@ void PathFollower::refreshPathDirectionAngle()
 
     // make sure we follow the path in the right direction (if angle of robot to path is > 90°, change direction about
     // 180°).
-    float angle_robot = atan2(robot_pose_.orientation[1], robot_pose_.orientation[0]);
-    float angle_to_path = angle_robot - theta;
-    if (fabs(angle_to_path) > M_PI/2) {
-        // change directory angle about 180° and also revert direction vector of the line
-        theta = theta - M_PI;
-        path_middle_line_.direction *= -1;
-    }
+//    float angle_robot = atan2(robot_pose_.orientation[1], robot_pose_.orientation[0]);
+//    float angle_to_path = angle_robot - theta;
+//    if (fabs(angle_to_path) > M_PI/2) {
+//        //ROS_BREAK(); // i think this should not happen any more.
+//        // change directory angle about 180° and also revert direction vector of the line
+//        theta = theta - M_PI;
+//        path_middle_line_direction_signum_ = -1;
+//    } else {
+//        path_middle_line_direction_signum_ = +1;
+//    }
 
 
-    //// Filter
-    /** \todo filter depending on line soundness */
-    if (isnan(path_angle_)) {
-        // first time initialization
-        path_angle_ = theta;
-    } else {
-        //path_angle_ = 0.9*path_angle_ + 0.1*theta;
-
-        // we have a problem here with the preiodic nature of angles, so it's a bit more complicated:
-        // instead of a = 0.9a+0.1n use a = 0.1(n-a) (which is the same). Take care of overflows (+pi%2pi-pi for that).
-        float delta = fmod(theta - path_angle_ + M_PI, 2*M_PI) - M_PI;
-        path_angle_ += 0.1 * delta;
-    }
+    path_angle_ = theta;
 
 
     /////////////// MARKER
-    // direction arrow (red)
-    visualization_msgs::Marker direction_marker;
-    direction_marker.header.frame_id = "/map";
-    direction_marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
-    direction_marker.pose.position = vectorToPoint(robot_pose_.position);
-    direction_marker.ns = "follow_path/direction";
-    direction_marker.id = 1;
-    direction_marker.type = visualization_msgs::Marker::ARROW;
-    direction_marker.action = visualization_msgs::Marker::ADD;
-    direction_marker.scale.x = direction_marker.scale.y = direction_marker.scale.z = 0.8;
-    direction_marker.color.r = 1.0;
-    direction_marker.color.a = 1.0;
-    publish_rviz_marker_.publish(direction_marker);
+//    {
+//        // direction arrow (red)
+//        visualization_msgs::Marker direction_marker;
+//        direction_marker.header.frame_id = "/map";
+//        direction_marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
+//        direction_marker.pose.position = vectorToPoint(robot_pose_.position);
+//        direction_marker.ns = "follow_path/direction";
+//        direction_marker.id = 1;
+//        direction_marker.type = visualization_msgs::Marker::ARROW;
+//        direction_marker.action = visualization_msgs::Marker::ADD;
+//        direction_marker.scale.x = direction_marker.scale.y = direction_marker.scale.z = 0.8;
+//        direction_marker.color.r = 1.0;
+//        direction_marker.color.a = 1.0;
+//        publish_rviz_marker_.publish(direction_marker);
 
-    // filtered direction arrow (green)
-    direction_marker.pose.orientation = tf::createQuaternionMsgFromYaw(path_angle_);
-    direction_marker.id = 2;
-    direction_marker.scale.x = direction_marker.scale.y = direction_marker.scale.z = 1.0;
-    direction_marker.color.g = 1.0;
-    direction_marker.color.r = 0.0;
-    publish_rviz_marker_.publish(direction_marker);
-    /////////////// END MARKER
+//        // filtered direction arrow (green)
+//        direction_marker.pose.orientation = tf::createQuaternionMsgFromYaw(path_angle_);
+//        direction_marker.id = 2;
+//        direction_marker.scale.x = direction_marker.scale.y = direction_marker.scale.z = 1.0;
+//        direction_marker.color.g = 1.0;
+//        direction_marker.color.r = 0.0;
+//        publish_rviz_marker_.publish(direction_marker);
+//        /////////////// END MARKER
+//    }
 }
 
 bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const

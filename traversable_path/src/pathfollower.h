@@ -55,6 +55,11 @@ private:
         Eigen::Vector2f normal;
         //! Soundness of the fitted line (smaller values means better fitting).
         float soundness;
+
+        Line() {
+            normal = direction = point = Eigen::Vector2f::Zero();
+            soundness = 0;
+        }
     };
 
     ros::NodeHandle node_handle_;
@@ -77,6 +82,7 @@ private:
     RobotPose robot_pose_;
     //! Path middle line.
     Line path_middle_line_;
+    int8_t path_middle_line_direction_signum_;
 
     //! Filtered path angle.
     float path_angle_;
@@ -100,16 +106,6 @@ private:
     void publishGoalMarker(Eigen::Vector2f position, float theta) const;
 
     /**
-     * @brief Sends a marker to rviz which visualizes the choosen traversable segment.
-     * The traversable segment will be displayed as a green line that connects the left and the right border of the
-     * segment.
-     * @param a Left border of the traversable segment.
-     * @param b Right border of the traversable segment.
-     * @param header Header information of the points a and b.
-     */
-    void publishTraversaleLineMarker(PointXYZRGBT a, PointXYZRGBT b, std_msgs::Header header) const;
-
-    /**
      * @brief Sends a line marker to rviz.
      *
      * Creates a line marker from point p1 to point p2 (x,y-coords, z = 0) and publishes it.
@@ -121,19 +117,9 @@ private:
      */
     void publishLineMarker(Eigen::Vector2f p1, Eigen::Vector2f p2, int id, std_msgs::ColorRGBA color) const;
 
-    /**
-     * @brief Sends a line marker to rviz.
-     *
-     * This method helps to print lines in rviz. It takes the coefficients a,b that represent a line (y = a*x + b) and
-     * visualize it on the interval [min_x; max_x]. The z-value is set to 0.
-     *
-     * @param coefficients Coeeficients a,b of the line (y = a*x + b).
-     * @param min_x Minimum x value. Start line at this value.
-     * @param max_x Maximum x value. End line at this value.
-     * @param id Id of the line. A published line will replace older lines with the same id.
-     * @param color Color of the line.
-     */
-    void publishLineMarker(Eigen::Vector2f coefficients, int min_x, int max_x, int id, std_msgs::ColorRGBA color) const;
+    void publishArrowMarker(Eigen::Vector2f point, float angle, int id, std_msgs::ColorRGBA color) const;
+    void publishArrowMarker(Eigen::Vector2f point, Eigen::Vector2f direction, int id, std_msgs::ColorRGBA color) const;
+
 
     /**
      * @brief Set the given position as navigation goal.
