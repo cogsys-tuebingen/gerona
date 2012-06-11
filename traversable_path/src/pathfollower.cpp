@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include <visualization_msgs/Marker.h>
 #include "exceptions.h"
+#include "mapprocessor.h"
 
 using namespace traversable_path;
 using namespace Eigen;
@@ -11,7 +12,6 @@ using namespace Eigen;
 PathFollower::PathFollower() :
     motion_control_action_client_("motion_control"),
     current_goal_(0,0),
-    path_middle_line_direction_signum_(1),
     path_angle_(NAN)
 {
     subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
@@ -33,16 +33,24 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             // distance of robot to path middle line
             Vector2f to_mid_line = vectorFromPointToLine(path_middle_line_, robot_pose_.position);
             // goal position (1m ahead):
-            Vector2f goal_pos = robot_pose_.position + path_middle_line_direction_signum_ * path_middle_line_.direction
+            Vector2f goal_pos = robot_pose_.position + 0.8 * path_middle_line_.direction
                     + to_mid_line;
 
 
-            // check if goalpoint is traversable at all.
-            size_t map_index = transformToMap(goal_pos);
-            if (map_->data[map_index] == 0) {
+            // check if goalpoint is traversable (and reachable) at all.
+
+            // convert points to pixel coordinates of the map.
+            Vector2f robot_on_map = transformToMap(robot_pose_.position);
+            Vector2f goal_on_map = transformToMap(goal_pos);
+
+            bool noObstacle = MapProcessor::checkTraversabilityOfLine(*map_,
+                                                                      cv::Point2i(robot_on_map[0], robot_on_map[1]),
+                                                                      cv::Point2i(goal_on_map[0], goal_on_map[1]));
+            if (noObstacle) {
                 setGoalPoint(goal_pos, path_angle_);
             }
             else {
+                ROS_INFO("OBSTACLE AHEAD! Stop moving.");
                 /** \todo is this the stop commend? Ask Hendrik or Karsten */
                 motion_control_action_client_.cancelGoal();
 
@@ -359,7 +367,7 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
 
         // break, if obstacle is in front.
         try {
-            if (map_->data[transformToMap(forward_pos)] != 0) {
+            if (map_->data[transformToMapIndex(forward_pos)] != 0) {
                 continue;
             }
         } catch (TransformMapException e) {
@@ -373,13 +381,13 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
             do {
                 left_edge += orthogonal * step_size;
             }
-            while( map_->data[transformToMap(left_edge)] == 0 );
+            while( map_->data[transformToMapIndex(left_edge)] == 0 );
 
             // find right edge
             do {
                 right_edge += -orthogonal * step_size;
             }
-            while( map_->data[transformToMap(right_edge)] == 0 );
+            while( map_->data[transformToMapIndex(right_edge)] == 0 );
         } catch (TransformMapException e) {
             //ROS_WARN("Cant find Edge: %s", e.what());
         }
@@ -397,17 +405,24 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
     return true;
 }
 
-size_t PathFollower::transformToMap(Vector2f point) const
+Vector2f PathFollower::transformToMap(Vector2f point) const
 {
-    int x, y;
-    x = (point[0] - map_->info.origin.position.x) / map_->info.resolution;
-    y = (point[1] - map_->info.origin.position.y) / map_->info.resolution;
+    Vector2f result;
+    result[0] = (point[0] - map_->info.origin.position.x) / map_->info.resolution;
+    result[1] = (point[1] - map_->info.origin.position.y) / map_->info.resolution;
 
-    if (x < 0 || x >= (int)map_->info.width || y < 0 || y >= (int)map_->info.height) {
+    if (result[0] < 0 || result[0] >= (int)map_->info.width || result[1] < 0 || result[1] >= (int)map_->info.height) {
         throw TransformMapException();
     }
 
-    return y * map_->info.width + x;
+    return result;
+}
+
+size_t PathFollower::transformToMapIndex(Vector2f point) const
+{
+    Vector2f pixel = transformToMap(point);
+
+    return pixel[1] * map_->info.width + pixel[0];
 }
 
 void PathFollower::fitLinear(const PathFollower::vectorVector2f &points, PathFollower::Line *result)

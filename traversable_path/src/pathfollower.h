@@ -82,7 +82,6 @@ private:
     RobotPose robot_pose_;
     //! Path middle line.
     Line path_middle_line_;
-    int8_t path_middle_line_direction_signum_;
 
     //! Filtered path angle.
     float path_angle_;
@@ -180,10 +179,21 @@ private:
     /**
      * @brief Transform coordinates of a point to the map cell.
      * @param point Some point. Has to be in the same frame than the map (which is '/map').
+     * @return Pixel coordinates on the map.
+     * @throws traversable_path::TransformMapException if point lies outside of the map.
+     */
+    Eigen::Vector2f transformToMap(Eigen::Vector2f point) const;
+
+    /**
+     * @brief Transform coordinates of a point to the map cell index.
+     *
+     * This method returns the index of the map cell with which it can be accessed via map_.data[index].
+     *
+     * @param point Some point. Has to be in the same frame than the map (which is '/map').
      * @return Index of the map cell.
      * @throws traversable_path::TransformMapException if point lies outside of the map.
      */
-    size_t transformToMap(Eigen::Vector2f point) const;
+    size_t transformToMapIndex(Eigen::Vector2f point) const;
 
     /**
      * @brief Fit a line to a set of points (in 2-dim. space).

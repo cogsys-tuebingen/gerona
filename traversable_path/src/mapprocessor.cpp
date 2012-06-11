@@ -1,5 +1,5 @@
 #include "mapprocessor.h"
-#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
 MapProcessor::MapProcessor()
@@ -65,11 +65,8 @@ bool MapProcessor::checkTraversabilityOfLine(const nav_msgs::OccupancyGrid &map,
     cv::LineIterator line_it(img, robot, goal, 8);
     for (int i = 0; i < line_it.count; ++i, ++line_it) {
         if (*line_it == 0) {
-            cv::imshow("line", img); cv::waitKey(3);
             return false;
         }
-        img.at<uint8_t>(line_it.pos()) = 0;
     }
-    cv::imshow("line", img); cv::waitKey(3);
     return true;
 }
