@@ -21,6 +21,16 @@ public:
      */
     void process(nav_msgs::OccupancyGrid *map);
 
+    /**
+     * @brief Checks if all points on the line from robot to goal are traversable.
+     * @param map The map.
+     * @param robot Position of the robot.
+     * @param goal Position of the goal.
+     * @return True if all points on the line between robot and goal are traversable, otherwise false.
+     */
+    static bool checkTraversabilityOfLine(const nav_msgs::OccupancyGrid &map, cv::Point2i robot,
+                                          cv::Point2i goal);
+
 private:
     //! Convert map to image.
     static void mapToImage(const nav_msgs::OccupancyGrid &map, cv::Mat1b *image);

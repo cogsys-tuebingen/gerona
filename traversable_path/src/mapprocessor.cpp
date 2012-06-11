@@ -14,8 +14,8 @@ void MapProcessor::mapToImage(const nav_msgs::OccupancyGrid &map, cv::Mat1b *ima
 
     for (size_t i = 0; i < map.data.size(); ++i) {
         int row, col;
-        row = i % map.info.width;
-        col = i / map.info.width;
+        row = i / map.info.width;
+        col = i % map.info.width;
 
         (*image)[row][col] = (map.data[i] == 0) ? 255 : 0;
     }
@@ -30,8 +30,8 @@ void MapProcessor::imageToMap(const cv::Mat1b &img, nav_msgs::OccupancyGrid *map
 
     for (size_t i = 0; i < map->data.size(); ++i) {
         int row, col;
-        row = i % map->info.width;
-        col = i / map->info.width;
+        row = i / map->info.width;
+        col = i % map->info.width;
 
         map->data[i] = img[row][col] == 0 ? 100 : 0;
     }
@@ -50,4 +50,18 @@ void MapProcessor::process(nav_msgs::OccupancyGrid *map)
 //    cv::waitKey(3);
 
     imageToMap(img, map);
+}
+
+bool MapProcessor::checkTraversabilityOfLine(const nav_msgs::OccupancyGrid &map, cv::Point2i robot, cv::Point2i goal)
+{
+    cv::Mat1b img;
+    mapToImage(map, &img);
+
+    cv::LineIterator line_it(img, robot, goal, 8);
+    for (int i = 0; i < line_it.count; ++i, ++line_it) {
+        if (*line_it != 0) {
+            return false;
+        }
+    }
+    return true;
 }
