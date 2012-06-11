@@ -1,5 +1,5 @@
 #include "mapprocessor.h"
-//#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
 MapProcessor::MapProcessor()
@@ -10,7 +10,12 @@ MapProcessor::MapProcessor()
 
 void MapProcessor::mapToImage(const nav_msgs::OccupancyGrid &map, cv::Mat1b *image)
 {
-    *image = cv::Mat1b(map.info.width, map.info.height);
+    // PLEASE NOTE: since cv::Mat is a matrix, here the row comes first.
+    // This means the Point (x,y) can be accessed via image[y][x] (note the different order of x,y).
+    *image = cv::Mat1b(map.info.height, map.info.width);
+
+    ROS_INFO("map: %dx%d", map.info.width, map.info.height);
+    ROS_INFO("img: %dx%d", image->cols, image->rows);
 
     for (size_t i = 0; i < map.data.size(); ++i) {
         int row, col;
@@ -59,9 +64,12 @@ bool MapProcessor::checkTraversabilityOfLine(const nav_msgs::OccupancyGrid &map,
 
     cv::LineIterator line_it(img, robot, goal, 8);
     for (int i = 0; i < line_it.count; ++i, ++line_it) {
-        if (*line_it != 0) {
+        if (*line_it == 0) {
+            cv::imshow("line", img); cv::waitKey(3);
             return false;
         }
+        img.at<uint8_t>(line_it.pos()) = 0;
     }
+    cv::imshow("line", img); cv::waitKey(3);
     return true;
 }

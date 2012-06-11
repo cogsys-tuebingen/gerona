@@ -31,7 +31,6 @@ public:
     static bool checkTraversabilityOfLine(const nav_msgs::OccupancyGrid &map, cv::Point2i robot,
                                           cv::Point2i goal);
 
-private:
     //! Convert map to image.
     static void mapToImage(const nav_msgs::OccupancyGrid &map, cv::Mat1b *image);
     //! Convert image to map.

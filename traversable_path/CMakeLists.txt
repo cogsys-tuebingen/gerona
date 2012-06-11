@@ -47,9 +47,14 @@ rosbuild_add_executable(classify_terrain
     src/mapprocessor.cpp
 )
 
-rosbuild_add_executable(follow_path src/pathfollower.cpp src/point_types.h src/exceptions.h)
+rosbuild_add_executable(follow_path
+    src/pathfollower.cpp
+    src/point_types.h
+    src/exceptions.h
+    src/mapprocessor.cpp
+)
 
 rosbuild_add_executable(display_path src/node_display_path.cpp src/visualization.cpp)
 
 # for testing some simple things TODO: remove if not required any more
-rosbuild_add_executable(testblub src/test.cpp) # it seams, that an excutable with name 'test' makes problems...
+rosbuild_add_executable(testblub src/test.cpp src/mapprocessor.cpp) # it seams, that an excutable with name 'test' makes problems...
