@@ -78,11 +78,27 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
                 setGoalPoint(goal_pos, path_angle_);
             }
             else {
-                ROS_INFO("OBSTACLE AHEAD! Stop moving.");
-                /** \todo is this the stop commend? Ask Hendrik or Karsten */
-                motion_control_action_client_.cancelGoal();
-
+                ROS_INFO("OBSTACLE AHEAD!");
                 /** \todo Handle this. Don't just stop. */
+
+                // turn
+                Vector2f goal_direction = - robot_pose_.orientation;
+                float goal_angle = atan2(goal_direction[1], goal_direction[0]);
+                goal_pos = robot_pose_.position + 0.5*goal_direction;
+
+                // check again (TODO: this could be made better with less redundand code)
+                goal_on_map = transformToMap(goal_pos);
+                noObstacle = MapProcessor::checkTraversabilityOfLine(*map_,
+                                                                     cv::Point2i(robot_on_map[0], robot_on_map[1]),
+                                                                     cv::Point2i(goal_on_map[0], goal_on_map[1]));
+                if (noObstacle) {
+                    ROS_INFO("Turning.");
+                    setGoalPoint(goal_pos, goal_angle);
+                } else {
+                    ROS_INFO("Stop moving.");
+                    /** \todo is this the stop commend? Ask Hendrik or Karsten */
+                    motion_control_action_client_.cancelGoal();
+                }
             }
         }
     }

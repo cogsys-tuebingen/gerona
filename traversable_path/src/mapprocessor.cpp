@@ -61,7 +61,7 @@ bool MapProcessor::checkTraversabilityOfLine(const nav_msgs::OccupancyGrid &map,
 
     cv::LineIterator line_it(img, robot, goal, 8);
     for (int i = 0; i < line_it.count; ++i, ++line_it) {
-        if (*line_it == 0) {
+        if (*((uchar*) *line_it) == 0) {
             return false;
         }
     }
