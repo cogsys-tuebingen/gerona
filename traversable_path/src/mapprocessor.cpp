@@ -14,9 +14,6 @@ void MapProcessor::mapToImage(const nav_msgs::OccupancyGrid &map, cv::Mat1b *ima
     // This means the Point (x,y) can be accessed via image[y][x] (note the different order of x,y).
     *image = cv::Mat1b(map.info.height, map.info.width);
 
-    ROS_INFO("map: %dx%d", map.info.width, map.info.height);
-    ROS_INFO("img: %dx%d", image->cols, image->rows);
-
     for (size_t i = 0; i < map.data.size(); ++i) {
         int row, col;
         row = i / map.info.width;

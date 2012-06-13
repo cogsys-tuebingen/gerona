@@ -40,8 +40,36 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             // check if goalpoint is traversable (and reachable) at all.
 
             // convert points to pixel coordinates of the map.
-            Vector2f robot_on_map = transformToMap(robot_pose_.position);
-            Vector2f goal_on_map = transformToMap(goal_pos);
+            Vector2i robot_on_map = transformToMap(robot_pose_.position);
+            Vector2i goal_on_map = transformToMap(goal_pos);
+
+
+            /////////////// MARKER
+            {
+                // points
+                visualization_msgs::Marker points;
+                points.header.frame_id = "/map";
+                points.ns = "follow_path/goal";
+                points.action = visualization_msgs::Marker::ADD;
+                points.pose.orientation.w = 1.0;
+                points.id = 1;
+                points.type = visualization_msgs::Marker::POINTS;
+                // POINTS markers use x and y scale for width/height respectively
+                points.scale.x = 0.1;
+                points.scale.y = 0.1;
+                size_t index = transformToMapIndex(goal_pos);
+                if (map_->data[index] != 0) {
+                    points.color.r = 1.0;
+                } else {
+                    points.color.g = 1.0;
+                }
+                points.color.a = 1.0;
+                geometry_msgs::Point p;
+                p.x = goal_pos[0];
+                p.y = goal_pos[1];
+                points.points.push_back(p);
+                publish_rviz_marker_.publish(points);
+            }
 
             bool noObstacle = MapProcessor::checkTraversabilityOfLine(*map_,
                                                                       cv::Point2i(robot_on_map[0], robot_on_map[1]),
@@ -315,7 +343,7 @@ void PathFollower::refreshPathDirectionAngle()
 
 
     /////////////// MARKER
-//    {
+    {
 //        // direction arrow (red)
 //        visualization_msgs::Marker direction_marker;
 //        direction_marker.header.frame_id = "/map";
@@ -338,7 +366,7 @@ void PathFollower::refreshPathDirectionAngle()
 //        direction_marker.color.r = 0.0;
 //        publish_rviz_marker_.publish(direction_marker);
 //        /////////////// END MARKER
-//    }
+    }
 }
 
 bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
@@ -405,12 +433,14 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
     return true;
 }
 
-Vector2f PathFollower::transformToMap(Vector2f point) const
+Vector2i PathFollower::transformToMap(Vector2f point) const
 {
-    Vector2f result;
-    result[0] = (point[0] - map_->info.origin.position.x) / map_->info.resolution;
-    result[1] = (point[1] - map_->info.origin.position.y) / map_->info.resolution;
+    Vector2i result;
+    result[0] = (int) ((point[0] - map_->info.origin.position.x) / map_->info.resolution);
+    result[1] = (int) ((point[1] - map_->info.origin.position.y) / map_->info.resolution);
 
+    // cast map width/height from uint to int here, to avoid warnings. There will be nor overflow problems since the
+    // values will much less than 2*10^9.
     if (result[0] < 0 || result[0] >= (int)map_->info.width || result[1] < 0 || result[1] >= (int)map_->info.height) {
         throw TransformMapException();
     }
@@ -420,7 +450,7 @@ Vector2f PathFollower::transformToMap(Vector2f point) const
 
 size_t PathFollower::transformToMapIndex(Vector2f point) const
 {
-    Vector2f pixel = transformToMap(point);
+    Vector2i pixel = transformToMap(point);
 
     return pixel[1] * map_->info.width + pixel[0];
 }

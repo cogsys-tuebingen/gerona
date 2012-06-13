@@ -182,7 +182,7 @@ private:
      * @return Pixel coordinates on the map.
      * @throws traversable_path::TransformMapException if point lies outside of the map.
      */
-    Eigen::Vector2f transformToMap(Eigen::Vector2f point) const;
+    Eigen::Vector2i transformToMap(Eigen::Vector2f point) const;
 
     /**
      * @brief Transform coordinates of a point to the map cell index.
