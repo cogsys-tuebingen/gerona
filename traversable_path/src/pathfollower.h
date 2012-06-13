@@ -126,10 +126,14 @@ private:
      * Publishes a goal message for motion_control and a goal marker for rviz.
      * The position and angle are expected to be respective to frame "/map".
      *
+     * If the new goal is too near at the current goal, it will not be set. This is necessary due to the way how
+     * motion_control works.
+     *
      * @param pos Position of the goal.
      * @param theta Angle of the goal orientation.
+     * @param force If this value is true, the new goal will be set, no matter how near it is to the current goal.
      */
-    void setGoalPoint(Eigen::Vector2f pos, float theta);
+    void setGoalPoint(Eigen::Vector2f pos, float theta, bool force=false);
 
 
     /**

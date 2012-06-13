@@ -82,7 +82,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
                 /** \todo Handle this. Don't just stop. */
 
                 // turn
-                Vector2f goal_direction = - robot_pose_.orientation;
+                Vector2f goal_direction = - path_middle_line_.direction;
                 float goal_angle = atan2(goal_direction[1], goal_direction[0]);
                 goal_pos = robot_pose_.position + 0.5*goal_direction;
 
@@ -93,7 +93,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
                                                                      cv::Point2i(goal_on_map[0], goal_on_map[1]));
                 if (noObstacle) {
                     ROS_INFO("Turning.");
-                    setGoalPoint(goal_pos, goal_angle);
+                    setGoalPoint(goal_pos, goal_angle, true);
                 } else {
                     ROS_INFO("Stop moving.");
                     /** \todo is this the stop commend? Ask Hendrik or Karsten */
@@ -190,7 +190,7 @@ void PathFollower::publishArrowMarker(Eigen::Vector2f point, Eigen::Vector2f dir
     publishArrowMarker(point, angle, id, color);
 }
 
-void PathFollower::setGoalPoint(Vector2f position, float theta)
+void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
 {
     const float MIN_DISTANCE_BETWEEN_GOALS = 0.5;
 
@@ -200,7 +200,7 @@ void PathFollower::setGoalPoint(Vector2f position, float theta)
         distance = (position - current_goal_).norm();
     }
 
-    if (distance > MIN_DISTANCE_BETWEEN_GOALS) {
+    if (distance > MIN_DISTANCE_BETWEEN_GOALS || force) {
         // send goal to motion_control
         motion_control::MotionGoal goal;
         goal.v     = 0.4;
@@ -217,14 +217,7 @@ void PathFollower::setGoalPoint(Vector2f position, float theta)
         // set as current goal
         current_goal_ = position;
         // send goal-marker to rviz for debugging
-        publishGoalMarker(position, path_angle_);
-
-//        ROS_DEBUG("Goal (map): x: %f; y: %f; theta: %f;; x: %f, y: %f, z: %f, w: %f", goal_point_map.pose.position.x,
-//                  goal_point_map.pose.position.y, tf::getYaw(goal_point_map.pose.orientation),
-//                  goal_point_map.pose.orientation.x,
-//                  goal_point_map.pose.orientation.y,
-//                  goal_point_map.pose.orientation.z,
-//                  goal_point_map.pose.orientation.w);
+        publishGoalMarker(position, theta);
     }
     else {
         ROS_DEBUG_THROTTLE(0.5, "Didn't update goal. New goal is %.2f m distant from the current goal. Minimum distance is %f",
@@ -289,8 +282,8 @@ void PathFollower::refreshPathLine()
         path_middle_line_.normal[0] = - path_middle_line_.direction[1];
         path_middle_line_.normal[1] = path_middle_line_.direction[0];
 
-        ROS_DEBUG_STREAM("direction: " << new_line.direction);
-        ROS_DEBUG_STREAM("direction filtered: " << path_middle_line_.direction);
+//        ROS_DEBUG_STREAM("direction: " << new_line.direction);
+//        ROS_DEBUG_STREAM("direction filtered: " << path_middle_line_.direction);
     }
 
     /////////////// MARKER
