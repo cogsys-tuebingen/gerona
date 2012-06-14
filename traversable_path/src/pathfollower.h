@@ -14,6 +14,9 @@
 #include <Eigen/StdVector>
 #include "point_types.h"
 
+// forward declarations
+class MapProcessor;
+
 
 /**
  * @brief Main class of the follow_path node.
@@ -30,6 +33,7 @@ public:
     typedef std::vector<Eigen::Vector2f, Eigen::aligned_allocator<Eigen::Vector2f> > vectorVector2f;
 
     PathFollower();
+    ~PathFollower();
 
 private:
     struct RobotPose {
@@ -85,6 +89,9 @@ private:
 
     //! Filtered path angle.
     float path_angle_;
+
+    //! Does image processing on the map.
+    MapProcessor* map_processor_;
 
 
     /**
@@ -224,7 +231,7 @@ private:
     Eigen::Vector2f vectorFromPointToLine(const Line &line, const Eigen::Vector2f &point) const;
 
     /**
-     * @brief Convert a Eigen::Vector2f to a geometry_msgs::Point.
+     * @brief Convert an Eigen::Vector2f to a geometry_msgs::Point.
      *
      * The z-value of the point is set to 0.
      *

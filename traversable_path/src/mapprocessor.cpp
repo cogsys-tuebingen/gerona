@@ -8,6 +8,11 @@ MapProcessor::MapProcessor()
 //    cv::namedWindow("processed map", CV_WINDOW_FREERATIO);
 }
 
+void MapProcessor::setMap(const nav_msgs::OccupancyGrid &map)
+{
+    mapToImage(map, &map_img_);
+}
+
 void MapProcessor::mapToImage(const nav_msgs::OccupancyGrid &map, cv::Mat1b *image)
 {
     // PLEASE NOTE: since cv::Mat is a matrix, here the row comes first.
@@ -44,8 +49,8 @@ void MapProcessor::process(nav_msgs::OccupancyGrid *map)
     cv::Mat1b img;
     mapToImage(*map, &img);
 
-    cv::Mat foo(3, 3, CV_8U, cv::Scalar(1));
-    cv::morphologyEx(img, img, cv::MORPH_CLOSE, foo);
+    cv::Mat kernel(3, 3, CV_8U, cv::Scalar(1));
+    cv::morphologyEx(img, img, cv::MORPH_CLOSE, kernel);
 
 //    cv::imshow("map", img);
 //    cv::imshow("processed map", processed);
@@ -54,12 +59,14 @@ void MapProcessor::process(nav_msgs::OccupancyGrid *map)
     imageToMap(img, map);
 }
 
-bool MapProcessor::checkTraversabilityOfLine(const nav_msgs::OccupancyGrid &map, cv::Point2i robot, cv::Point2i goal)
+cv::LineIterator MapProcessor::getLineIterator(const cv::Point2i &p1, const cv::Point2i &p2) const
 {
-    cv::Mat1b img;
-    mapToImage(map, &img);
+    return cv::LineIterator(map_img_, p1, p2);
+}
 
-    cv::LineIterator line_it(img, robot, goal, 8);
+bool MapProcessor::checkTraversabilityOfLine(const cv::Point2i &robot, const cv::Point2i &goal) const
+{
+    cv::LineIterator line_it = getLineIterator(robot, goal);
     for (int i = 0; i < line_it.count; ++i, ++line_it) {
         if (*((uchar*) *line_it) == 0) {
             return false;

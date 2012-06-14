@@ -17,6 +17,13 @@ PathFollower::PathFollower() :
     subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
     publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 100);
     publish_goal_ = node_handle_.advertise<geometry_msgs::PoseStamped>("traversable_path/goal", 1);
+
+    map_processor_ = new MapProcessor();
+}
+
+PathFollower::~PathFollower()
+{
+    delete map_processor_;
 }
 
 
@@ -29,6 +36,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
         if (refreshRobotPose()) {
             refreshPathLine();
             refreshPathDirectionAngle();
+            map_processor_->setMap(*msg);
 
             // distance of robot to path middle line
             Vector2f to_mid_line = vectorFromPointToLine(path_middle_line_, robot_pose_.position);
@@ -71,9 +79,8 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
                 publish_rviz_marker_.publish(points);
             }
 
-            bool noObstacle = MapProcessor::checkTraversabilityOfLine(*map_,
-                                                                      cv::Point2i(robot_on_map[0], robot_on_map[1]),
-                                                                      cv::Point2i(goal_on_map[0], goal_on_map[1]));
+            bool noObstacle = map_processor_->checkTraversabilityOfLine(cv::Point2i(robot_on_map[0], robot_on_map[1]),
+                                                                        cv::Point2i(goal_on_map[0], goal_on_map[1]));
             if (noObstacle) {
                 setGoalPoint(goal_pos, path_angle_);
             }
@@ -88,9 +95,8 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 
                 // check again (TODO: this could be made better with less redundand code)
                 goal_on_map = transformToMap(goal_pos);
-                noObstacle = MapProcessor::checkTraversabilityOfLine(*map_,
-                                                                     cv::Point2i(robot_on_map[0], robot_on_map[1]),
-                                                                     cv::Point2i(goal_on_map[0], goal_on_map[1]));
+                noObstacle = map_processor_->checkTraversabilityOfLine(cv::Point2i(robot_on_map[0], robot_on_map[1]),
+                                                                       cv::Point2i(goal_on_map[0], goal_on_map[1]));
                 if (noObstacle) {
                     ROS_INFO("Turning.");
                     setGoalPoint(goal_pos, goal_angle, true);
