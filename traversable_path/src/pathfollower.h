@@ -188,6 +188,16 @@ private:
     bool findPathMiddlePoints(vectorVector2f *out) const;
 
     /**
+     * @brief Find the direction of the path, when standing in front of an obstacle.
+     *
+     * Assuming the robot has stopped in front of an obstacle (e.g. at a crossing or a dead end), this method tries
+     * to find the best direction to go on.
+     *
+     * @return Path direction as 2-dim. vector. If there is no possible direction, an zero-vector is returned.
+     */
+    Eigen::Vector2f findBestPathDirection() const;
+
+    /**
      * @brief Transform coordinates of a point to the map cell.
      * @param point Some point. Has to be in the same frame than the map (which is '/map').
      * @return Pixel coordinates on the map.

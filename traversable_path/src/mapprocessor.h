@@ -2,6 +2,7 @@
 #define MAPPROCESSOR_H
 
 #include <opencv2/core/core.hpp>
+#include <Eigen/Core>
 #include <nav_msgs/OccupancyGrid.h>
 
 /**
@@ -24,7 +25,19 @@ public:
      */
     void process(nav_msgs::OccupancyGrid *map);
 
+    /**
+     * @brief getLineIterator
+     *
+     * Please note that the values of the map image are different from those of the map. While on the map 0 is
+     * traversable and 100 marks an obstacle, on the image traversable cells have the value 255 and untraversable
+     * once 0.
+     *
+     * @param p1
+     * @param p2
+     * @return
+     */
     cv::LineIterator getLineIterator(const cv::Point2i &p1, const cv::Point2i &p2) const;
+    cv::LineIterator getLineIterator(const Eigen::Vector2i &p1, const Eigen::Vector2i &p2) const;
 
     /**
      * @brief Checks if all points on the line from robot to goal are traversable.
@@ -34,6 +47,8 @@ public:
      * @return True if all points on the line between robot and goal are traversable, otherwise false.
      */
     bool checkTraversabilityOfLine(const cv::Point2i &robot, const cv::Point2i &goal) const;
+    bool checkTraversabilityOfLine(const Eigen::Vector2i &robot, const Eigen::Vector2i &goal) const;
+
 
     //! Convert map to image.
     static void mapToImage(const nav_msgs::OccupancyGrid &map, cv::Mat1b *image);

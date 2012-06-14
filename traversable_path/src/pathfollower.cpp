@@ -79,8 +79,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
                 publish_rviz_marker_.publish(points);
             }
 
-            bool noObstacle = map_processor_->checkTraversabilityOfLine(cv::Point2i(robot_on_map[0], robot_on_map[1]),
-                                                                        cv::Point2i(goal_on_map[0], goal_on_map[1]));
+            bool noObstacle = map_processor_->checkTraversabilityOfLine(robot_on_map, goal_on_map);
             if (noObstacle) {
                 setGoalPoint(goal_pos, path_angle_);
             }
@@ -95,8 +94,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 
                 // check again (TODO: this could be made better with less redundand code)
                 goal_on_map = transformToMap(goal_pos);
-                noObstacle = map_processor_->checkTraversabilityOfLine(cv::Point2i(robot_on_map[0], robot_on_map[1]),
-                                                                       cv::Point2i(goal_on_map[0], goal_on_map[1]));
+                noObstacle = map_processor_->checkTraversabilityOfLine(robot_on_map, goal_on_map);
                 if (noObstacle) {
                     ROS_INFO("Turning.");
                     setGoalPoint(goal_pos, goal_angle, true);
@@ -446,6 +444,62 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
     }
 
     return true;
+}
+
+Eigen::Vector2f PathFollower::findBestPathDirection() const
+{
+    //! Minimum distance at which an direction is assessed as drivable.
+    const float MIN_FREE_DISTANCE = 1.0;
+    //! Maximum distance to search for obstacles.
+    /** If there is no obstacle within this distance, be happy and do not look further. */
+    const float MAX_SEARCHING_DISTANCE = 2.0;
+    //! Increment of the angle when searching for the path direction.
+    /** Note: Be sure that 2*pi % ANGLE_INCREMENT == 0 */
+    const float ANGLE_INCREMENT = M_PI / 9; // = 20°
+
+    // transform position of the robot to the map.
+    const Vector2i robot_pos_on_map = transformToMap(robot_pose_.position);
+
+    /*
+     * Rotate vector v about alpha degrees:
+     *   v' = Rot_z(alpha)*v = [cos(alpha), -sin(alpha); sin(alpha), cos(alpha)] * v
+     *
+     * Let v = robot_pose_.orientation to rotate around the robot.
+     */
+
+    for (float alpha = -M_PI; alpha < M_PI; alpha += ANGLE_INCREMENT) {
+        // rotate the direction vector of the robot to get the direction of this iteration step.
+        Matrix2f rotation;
+        rotation << cos(alpha), -sin(alpha),
+                    sin(alpha), cos(alpha);
+        Vector2f direction = rotation * robot_pose_.orientation;
+
+        // Using the direction, get the end point of the line to check.
+        /** \todo catch exceptions! */
+        Vector2i line_end = transformToMap( robot_pose_.position + MAX_SEARCHING_DISTANCE * direction );
+
+        // check the distance to the first untraversable cell
+        cv::LineIterator line_it = map_processor_->getLineIterator(robot_pos_on_map, line_end);
+        bool foundObstacle = false;
+        for (int i = 0; i < line_it.count; ++i, ++line_it) {
+            if (!*line_it) {
+                foundObstacle = true;
+
+                // distance of the robot to the obstacle
+                float distance_to_robot = map_->info.resolution * sqrt(
+                              pow(robot_pos_on_map[0] - line_it.pos().x, 2)
+                            + pow(robot_pos_on_map[1] - line_it.pos().y, 2) );
+                if (distance_to_robot > MIN_FREE_DISTANCE) {
+                    //TODO
+                }
+
+                break;
+            }
+        }
+        if (!foundObstacle) {
+            //TODO - this is the case if there are no obstacles within the distance of MAS_SEARCHING_DISTANCE.
+        }
+    }
 }
 
 Vector2i PathFollower::transformToMap(Vector2f point) const

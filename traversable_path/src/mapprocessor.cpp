@@ -64,6 +64,11 @@ cv::LineIterator MapProcessor::getLineIterator(const cv::Point2i &p1, const cv::
     return cv::LineIterator(map_img_, p1, p2);
 }
 
+cv::LineIterator MapProcessor::getLineIterator(const Eigen::Vector2i &p1, const Eigen::Vector2i &p2) const
+{
+    return getLineIterator(cv::Point2i(p1[0], p1[1]), cv::Point2i(p2[0], p2[1]));
+}
+
 bool MapProcessor::checkTraversabilityOfLine(const cv::Point2i &robot, const cv::Point2i &goal) const
 {
     cv::LineIterator line_it = getLineIterator(robot, goal);
@@ -73,4 +78,9 @@ bool MapProcessor::checkTraversabilityOfLine(const cv::Point2i &robot, const cv:
         }
     }
     return true;
+}
+
+bool MapProcessor::checkTraversabilityOfLine(const Eigen::Vector2i &robot, const Eigen::Vector2i &goal) const
+{
+    return checkTraversabilityOfLine(cv::Point2i(robot[0], robot[1]), cv::Point2i(goal[0], goal[1]));
 }
