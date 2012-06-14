@@ -51,6 +51,17 @@ TerrainClassifier::TerrainClassifier() :
     ROS_INFO("done.");
 
 
+    // initialize map
+    map_.info.resolution = 0.05; // 5cm per cell
+    map_.info.width  = 200;
+    map_.info.height = 200;
+    map_.info.origin.orientation.x = 0.0;
+    map_.info.origin.orientation.y = 0.0;
+    map_.info.origin.orientation.z = 0.0;
+    map_.info.origin.orientation.w = 1.0;
+    map_.data.resize(map_.info.width * map_.info.height, MAP_DEFAULT_VALUE );
+
+
     // register reconfigure callback (which will also initialize config_ with the default values)
     reconfig_server_.setCallback(boost::bind(&TerrainClassifier::dynamicReconfigureCallback, this, _1, _2));
 }
@@ -447,18 +458,6 @@ void TerrainClassifier::checkTraversableSegment(PointCloudXYZRGBT::iterator begi
 
 void TerrainClassifier::updateMap(PointCloudXYZRGBT cloud)
 {
-    if (map_.data.size() == 0) {
-        /** \todo why not put this to the constructor? */
-        map_.info.resolution = 0.05;
-        map_.info.width  = 200;
-        map_.info.height = 200;
-        map_.info.origin.orientation.x = 0.0;
-        map_.info.origin.orientation.y = 0.0;
-        map_.info.origin.orientation.z = 0.0;
-        map_.info.origin.orientation.w = 1.0;
-        map_.data.resize(map_.info.width * map_.info.height, MAP_DEFAULT_VALUE );
-    }
-
     moveMap();
 
     for (PointCloudXYZRGBT::iterator point_it = cloud.begin(); point_it != cloud.end(); ++point_it) {
