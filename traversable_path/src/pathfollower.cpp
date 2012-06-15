@@ -54,7 +54,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 
             /////////////// MARKER
             {
-                // points
+                // point
                 visualization_msgs::Marker points;
                 points.header.frame_id = "/map";
                 points.ns = "follow_path/goal";
@@ -88,14 +88,15 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
                 /** \todo Handle this. Don't just stop. */
 
                 // turn
-                Vector2f goal_direction = - path_middle_line_.direction;
-                float goal_angle = atan2(goal_direction[1], goal_direction[0]);
-                goal_pos = robot_pose_.position + 0.5*goal_direction;
+                Vector2f goal_direction = findBestPathDirection();
 
-                // check again (TODO: this could be made better with less redundand code)
-                goal_on_map = transformToMap(goal_pos);
-                noObstacle = map_processor_->checkTraversabilityOfLine(robot_on_map, goal_on_map);
-                if (noObstacle) {
+                if (!goal_direction.isZero()) {
+                    float goal_angle = atan2(goal_direction[1], goal_direction[0]);
+                    goal_pos = robot_pose_.position + goal_direction;
+                    // Note: since findBestPathDirection() returned goal_direction and this method requires at least
+                    // 1m of free space to return an direction at all, there are no further traversability-checks
+                    // necessary
+
                     ROS_INFO("Turning.");
                     setGoalPoint(goal_pos, goal_angle, true);
                 } else {
@@ -222,6 +223,9 @@ void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
         current_goal_ = position;
         // send goal-marker to rviz for debugging
         publishGoalMarker(position, theta);
+
+
+        ROS_DEBUG_STREAM("Send goal" << (force ? " (forced): " : ": ") << position << "\ntheta: " << theta);
     }
     else {
         ROS_DEBUG_THROTTLE(0.5, "Didn't update goal. New goal is %.2f m distant from the current goal. Minimum distance is %f",
@@ -452,10 +456,28 @@ Eigen::Vector2f PathFollower::findBestPathDirection() const
     const float MIN_FREE_DISTANCE = 1.0;
     //! Maximum distance to search for obstacles.
     /** If there is no obstacle within this distance, be happy and do not look further. */
-    const float MAX_SEARCHING_DISTANCE = 2.0;
+    const float MAX_SEARCHING_DISTANCE = 3.0;
     //! Increment of the angle when searching for the path direction.
     /** Note: Be sure that 2*pi % ANGLE_INCREMENT == 0 */
-    const float ANGLE_INCREMENT = M_PI / 9; // = 20°
+    const float ANGLE_INCREMENT = M_PI / 9.0; // = 20°
+
+
+    ////////// MARKER
+    visualization_msgs::Marker line_marker;
+    line_marker.header.frame_id = "/map";
+    line_marker.ns = "follow_path/findBestPathDirection";
+    line_marker.action = visualization_msgs::Marker::ADD;
+    line_marker.pose.orientation.w = 1.0;
+    line_marker.id = 0;
+    line_marker.type = visualization_msgs::Marker::LINE_LIST;
+    // LINE_STRIP/LINE_LIST markers use only the x component of scale, for the line width
+    line_marker.scale.x = 0.02;
+    line_marker.color.a = 0.3;
+    line_marker.color.r = 1.0;
+    line_marker.color.b = 1.0;
+    line_marker.lifetime = ros::Duration(1.0);
+    ////////// END
+
 
     // transform position of the robot to the map.
     const Vector2i robot_pos_on_map = transformToMap(robot_pose_.position);
@@ -467,38 +489,86 @@ Eigen::Vector2f PathFollower::findBestPathDirection() const
      * Let v = robot_pose_.orientation to rotate around the robot.
      */
 
+    Vector2f bestDirection(0,0);
+    float bestDirectionValue = -INFINITY;
+
     for (float alpha = -M_PI; alpha < M_PI; alpha += ANGLE_INCREMENT) {
+        //ROS_DEBUG("alpha = %.0f", alpha*180/M_PI);
+
         // rotate the direction vector of the robot to get the direction of this iteration step.
         Matrix2f rotation;
         rotation << cos(alpha), -sin(alpha),
                     sin(alpha), cos(alpha);
+        // direction to check in this iteration. Note that since robot_pose_.orientation is normalized, direction will
+        // be normalized to.
         Vector2f direction = rotation * robot_pose_.orientation;
+        Vector2f end_of_line = robot_pose_.position + MAX_SEARCHING_DISTANCE * direction;
 
         // Using the direction, get the end point of the line to check.
-        /** \todo catch exceptions! */
-        Vector2i line_end = transformToMap( robot_pose_.position + MAX_SEARCHING_DISTANCE * direction );
+        /** \todo handle exceptions! */
+        Vector2i line_end;
+        try {
+            line_end = transformToMap(end_of_line);
+        } catch (...) {
+            ROS_DEBUG("findBestPathDirection - MEEEP");
+        }
+
+        //ROS_DEBUG_STREAM("Robot: " << robot_pos_on_map << "\nLine end: " << line_end);
 
         // check the distance to the first untraversable cell
         cv::LineIterator line_it = map_processor_->getLineIterator(robot_pos_on_map, line_end);
-        bool foundObstacle = false;
         for (int i = 0; i < line_it.count; ++i, ++line_it) {
-            if (!*line_it) {
-                foundObstacle = true;
-
-                // distance of the robot to the obstacle
-                float distance_to_robot = map_->info.resolution * sqrt(
-                              pow(robot_pos_on_map[0] - line_it.pos().x, 2)
-                            + pow(robot_pos_on_map[1] - line_it.pos().y, 2) );
-                if (distance_to_robot > MIN_FREE_DISTANCE) {
-                    //TODO
-                }
+            if (*((uchar*) *line_it) == 0) {
+                end_of_line = Vector2f(map_->info.origin.position.x, map_->info.origin.position.y) +
+                        Vector2f(line_it.pos().x, line_it.pos().y)*map_->info.resolution;
 
                 break;
             }
         }
-        if (!foundObstacle) {
-            //TODO - this is the case if there are no obstacles within the distance of MAS_SEARCHING_DISTANCE.
+
+        ////////// MARKER
+        line_marker.points.push_back(vectorToPoint(robot_pose_.position));
+        line_marker.points.push_back(vectorToPoint(end_of_line));
+        ////////// END
+
+        // distance of the robot to the obstacle
+        float distance_to_robot = (robot_pose_.position - end_of_line).norm();
+        //ROS_DEBUG("Distant of obstacle to robot: %f m", distance_to_robot);
+
+        /** \todo is MIN_FREE_DISTANCE really necessary or can this be handled with the weights? */
+        if (distance_to_robot > MIN_FREE_DISTANCE) {
+            // calculate the "value" of this vector
+            float value = helperAngleWeight(alpha) * distance_to_robot;
+            if (value > bestDirectionValue) {
+                bestDirection = direction;
+                bestDirectionValue = value;
+            }
+
+            //ROS_DEBUG("Weight: %f", helperAngleWeight(alpha));
+            //ROS_DEBUG("Value: %f", value);
         }
+    }
+
+    ////////// MARKER
+    publish_rviz_marker_.publish(line_marker);
+
+    return bestDirection;
+}
+
+float PathFollower::helperAngleWeight(float angle)
+{
+    angle = fabs(angle);
+    if (angle < M_PI/4.0) { // 0-45°
+        return 0.7;
+    }
+    else if (angle < 5.0/9.0*M_PI) { // 45-100°
+        return 1.0;
+    }
+    else if (angle < 2.0/3.0*M_PI) { // 100-120°
+        return 0.7;
+    } else {
+        /** \todo this weight should depend on MAX_SEARCHING_DISTANCE */
+        return 0.3;
     }
 }
 

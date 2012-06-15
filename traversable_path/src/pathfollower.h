@@ -193,9 +193,21 @@ private:
      * Assuming the robot has stopped in front of an obstacle (e.g. at a crossing or a dead end), this method tries
      * to find the best direction to go on.
      *
-     * @return Path direction as 2-dim. vector. If there is no possible direction, an zero-vector is returned.
+     * @return Path direction as normalized 2-dim. vector. If there is no possible direction, an zero-vector is
+     *         returned.
      */
     Eigen::Vector2f findBestPathDirection() const;
+
+    /**
+     * @brief Get weight of the specified angle.
+     *
+     * This is a helper method for findBestPathDirection().
+     * @param angle An angle (radian) of the intervall [-pi,pi].
+     * @return The weight of this angle.
+     */
+    static float helperAngleWeight(float angle);
+
+
 
     /**
      * @brief Transform coordinates of a point to the map cell.
