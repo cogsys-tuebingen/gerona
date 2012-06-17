@@ -1,7 +1,7 @@
 # Utils/LibUtil/CMakeLists.txt
 
 # Load OpenCV cmake module, if wasn't looked for or found yet
-find_package( OpenCV REQUIRED)
+find_package(OpenCV REQUIRED)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/ros/eigen/include
@@ -33,7 +33,7 @@ add_library (LibUtil SHARED
 )
 
 target_link_libraries(LibUtil
-    ${OpenCV_LIBRARIES}
+    ${OpenCV_LIBS}
 )
 
 install (TARGETS LibUtil LIBRARY DESTINATION lib)

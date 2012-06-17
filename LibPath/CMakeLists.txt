@@ -37,10 +37,11 @@ target_link_libraries(LibPath LibUtil)
 
 #install(TARGETS ReedsShepp LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 
-#if(NOT OpenCV_FOUND)
-#    message( "OpenCV NOT found, not building test program" )
+find_package(OpenCV)
+if(NOT OpenCV_FOUND)
+    message( "OpenCV NOT found, not building test program" )
 
-#else(NOT OpenCV_FOUND)
+else(NOT OpenCV_FOUND)
     rosbuild_add_executable (ReedsSheppCurveTest
                              ReedsShepp/CurveTest.cpp
                              ReedsShepp/CurveRenderer.cpp)
@@ -51,7 +52,7 @@ target_link_libraries(LibPath LibUtil)
     )
 
  #   install(TARGETS ReedsSheppCurveTest RUNTIME DESTINATION bin)
-#endif(NOT OpenCV_FOUND)
+endif(NOT OpenCV_FOUND)
 
 
 #add_executable(unit_tests ReedsShepp/UnitTest.cpp)
