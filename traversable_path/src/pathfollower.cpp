@@ -32,78 +32,75 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
     map_ = msg;
 
     try {
-        /** \todo extra method for all the refreshes */
-        if (refreshRobotPose()) {
-            refreshPathLine();
-            refreshPathDirectionAngle();
-            map_processor_->setMap(*msg);
+        map_processor_->setMap(*msg);
+        refreshAll();
 
-            // distance of robot to path middle line
-            Vector2f to_mid_line = vectorFromPointToLine(path_middle_line_, robot_pose_.position);
-            // goal position (1m ahead):
-            Vector2f goal_pos = robot_pose_.position + 0.8 * path_middle_line_.direction
-                    + to_mid_line;
+        // distance of robot to path middle line
+        Vector2f to_mid_line = vectorFromPointToLine(path_middle_line_, robot_pose_.position);
+        // goal position (1m ahead):
+        Vector2f goal_pos = robot_pose_.position + 0.8 * path_middle_line_.direction
+                + to_mid_line;
 
 
-            // check if goalpoint is traversable (and reachable) at all.
+        // check if goalpoint is traversable (and reachable) at all.
 
-            // convert points to pixel coordinates of the map.
-            Vector2i robot_on_map = transformToMap(robot_pose_.position);
-            Vector2i goal_on_map = transformToMap(goal_pos);
+        // convert points to pixel coordinates of the map.
+        Vector2i robot_on_map = transformToMap(robot_pose_.position);
+        Vector2i goal_on_map = transformToMap(goal_pos);
 
 
-            /////////////// MARKER
-            {
-                // point
-                visualization_msgs::Marker points;
-                points.header.frame_id = "/map";
-                points.ns = "follow_path/goal";
-                points.action = visualization_msgs::Marker::ADD;
-                points.pose.orientation.w = 1.0;
-                points.id = 1;
-                points.type = visualization_msgs::Marker::POINTS;
-                // POINTS markers use x and y scale for width/height respectively
-                points.scale.x = 0.1;
-                points.scale.y = 0.1;
-                size_t index = transformToMapIndex(goal_pos);
-                if (map_->data[index] != 0) {
-                    points.color.r = 1.0;
-                } else {
-                    points.color.g = 1.0;
-                }
-                points.color.a = 1.0;
-                geometry_msgs::Point p;
-                p.x = goal_pos[0];
-                p.y = goal_pos[1];
-                points.points.push_back(p);
-                publish_rviz_marker_.publish(points);
+        /////////////// MARKER
+        {
+            // point
+            visualization_msgs::Marker points;
+            points.header.frame_id = "/map";
+            points.ns = "follow_path/goal";
+            points.action = visualization_msgs::Marker::ADD;
+            points.pose.orientation.w = 1.0;
+            points.id = 1;
+            points.type = visualization_msgs::Marker::POINTS;
+            // POINTS markers use x and y scale for width/height respectively
+            points.scale.x = 0.1;
+            points.scale.y = 0.1;
+            size_t index = transformToMapIndex(goal_pos);
+            if (map_->data[index] != 0) {
+                points.color.r = 1.0;
+            } else {
+                points.color.g = 1.0;
             }
+            points.color.a = 1.0;
+            geometry_msgs::Point p;
+            p.x = goal_pos[0];
+            p.y = goal_pos[1];
+            points.points.push_back(p);
+            publish_rviz_marker_.publish(points);
+        }
 
-            bool noObstacle = map_processor_->checkTraversabilityOfLine(robot_on_map, goal_on_map);
-            if (noObstacle) {
-                setGoalPoint(goal_pos, path_angle_);
-            }
-            else {
-                ROS_INFO("OBSTACLE AHEAD!");
-                /** \todo Handle this. Don't just stop. */
+        bool noObstacle = map_processor_->checkTraversabilityOfLine(robot_on_map, goal_on_map);
+        if (noObstacle) {
+            setGoalPoint(goal_pos, path_angle_);
+        }
+        else {
+            ROS_INFO("OBSTACLE AHEAD!");
+            /** \todo Handle this. Don't just stop. */
 
-                // turn
-                Vector2f goal_direction = findBestPathDirection();
+            // turn
+            Vector2f goal_direction = findBestPathDirection();
 
-                if (!goal_direction.isZero()) {
-                    float goal_angle = atan2(goal_direction[1], goal_direction[0]);
-                    goal_pos = robot_pose_.position + goal_direction;
-                    // Note: since findBestPathDirection() returned goal_direction and this method requires at least
-                    // 1m of free space to return an direction at all, there are no further traversability-checks
-                    // necessary
+            if (!goal_direction.isZero()) {
+                float goal_angle = atan2(goal_direction[1], goal_direction[0]);
+                goal_pos = robot_pose_.position + goal_direction;
+                // Note: since findBestPathDirection() returned goal_direction and this method requires at least
+                // 1m of free space to return an direction at all, there are no further traversability-checks
+                // necessary.
 
-                    ROS_INFO("Turning.");
-                    setGoalPoint(goal_pos, goal_angle, true);
-                } else {
-                    ROS_INFO("Stop moving.");
-                    /** \todo is this the stop commend? Ask Hendrik or Karsten */
-                    motion_control_action_client_.cancelGoal();
-                }
+                ROS_INFO("Turning.");
+                /** \todo always forcing the goal where will likely lead to problems... */
+                setGoalPoint(goal_pos, goal_angle, true);
+            } else {
+                ROS_INFO("Stop moving.");
+                /** \todo is this the stop command? Ask Hendrik or Karsten */
+                motion_control_action_client_.cancelGoal();
             }
         }
     }
@@ -111,7 +108,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
         ROS_WARN_THROTTLE(1, "%s", e.what());
     }
     catch (const Exception &e) {
-        ROS_WARN_THROTTLE(1, "Unknown path direction: %s", e.what());
+        ROS_WARN_THROTTLE(1, "Exception in mapCallback(): %s", e.what());
     }
 }
 
@@ -233,7 +230,15 @@ void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
     }
 }
 
-bool PathFollower::refreshRobotPose()
+void PathFollower::refreshAll()
+{
+    // do not change the order of the following method calls!
+    refreshRobotPose();
+    refreshPathLine();
+    refreshPathDirectionAngle();
+}
+
+void PathFollower::refreshRobotPose()
 {
     try {
         // position/orientation of the robot
@@ -250,9 +255,8 @@ bool PathFollower::refreshRobotPose()
     }
     catch (tf::TransformException e) {
         ROS_WARN_THROTTLE_NAMED(1, "tf", "tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
-        return false;
+        throw Exception("refreshRobotPose failed.");
     }
-    return true;
 }
 
 void PathFollower::refreshPathLine()
@@ -269,6 +273,8 @@ void PathFollower::refreshPathLine()
     Line new_line;
     fitLinear(points_middle, &new_line);
 
+    ROS_DEBUG("Soundness: %f", new_line.soundness);
+
     // make sure the direction vector of the line points in the direction that is nearer to the robot orientation.
     float angle = acos( new_line.direction.dot(robot_pose_.orientation)
                         / (new_line.direction.norm() * robot_pose_.orientation.norm()) );
@@ -280,13 +286,20 @@ void PathFollower::refreshPathLine()
     // filter line
     if (path_middle_line_.direction.isZero()) {
         path_middle_line_ = new_line;
-        ROS_DEBUG_STREAM("direction unfiltered: " << path_middle_line_.direction);
+//        ROS_DEBUG_STREAM("direction unfiltered: " << path_middle_line_.direction);
     } else {
+        // soundness of < 0.1 is a good line, > 0.1 is rather bad.
+        // Make the weight of the new value higher if soundness is better.
+        float filter_factor = 0.8;
+        filter_factor += new_line.soundness;
+        filter_factor = filter_factor > 0.95 ? 0.95 : filter_factor;
 
-        path_middle_line_.point = 0.9*path_middle_line_.point + 0.1*new_line.point;
-        path_middle_line_.direction = 0.9*path_middle_line_.direction + 0.1*new_line.direction;
+        path_middle_line_.point     = filter_factor * path_middle_line_.point + (1-filter_factor) * new_line.point;
+        path_middle_line_.direction = filter_factor * path_middle_line_.direction
+                                      + (1-filter_factor) * new_line.direction;
         path_middle_line_.direction.normalize();
-        //path_middle_line_.normal = 0.9*path_middle_line_.normal + 0.1*new_line.normal;
+
+        /** \todo is the normal used at all? maybe this can be droped. */
         path_middle_line_.normal[0] = - path_middle_line_.direction[1];
         path_middle_line_.normal[1] = path_middle_line_.direction[0];
 
@@ -413,7 +426,14 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
         // break, if obstacle is in front.
         try {
             if (map_->data[transformToMapIndex(forward_pos)] != 0) {
-                continue;
+                if (forward < 0) {
+                    // there is an obstacle between the points and the robot. Drop all this points.
+                    out->clear();
+                    continue;
+                } else {
+                    // Obstacle in front of the robot. Dont go any futher.
+                    break;
+                }
             }
         } catch (TransformMapException e) {
             ROS_WARN_THROTTLE(1, "Ahead: %s", e.what());
@@ -421,20 +441,24 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
         }
 
         Vector2f left_edge = forward_pos, right_edge = forward_pos;
+        // find left edge
         try {
-            // find left edge
             do {
                 left_edge += orthogonal * step_size;
             }
             while( map_->data[transformToMapIndex(left_edge)] == 0 );
+        } catch (TransformMapException e) {
+            // Do nothing here. Reaching the end of the map will then be handled as if there is an obstacle.
+        }
 
-            // find right edge
+        // find right edge
+        try {
             do {
                 right_edge += -orthogonal * step_size;
             }
             while( map_->data[transformToMapIndex(right_edge)] == 0 );
         } catch (TransformMapException e) {
-            //ROS_WARN("Cant find Edge: %s", e.what());
+            // Do nothing here. Reaching the end of the map will then be handled as if there is an obstacle.
         }
 
         // middle of this points
@@ -452,10 +476,28 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
 
 Eigen::Vector2f PathFollower::findBestPathDirection() const
 {
+    /*
+     * Description of how this method works:
+     *  - Starting from the Robot, go cell by cell forward, until there is an untraversable cell.
+     *  - Do this in all directions (increasing the angle alpha stepwise about ANGLE_INCREMENT).
+     *  - Calcuate the distance d(alpha) from robot to obstacle.
+     *  - Multiply distance with an weight w(alpha) that depends on the angle (to make turns about 180 degree less
+     *    likely). This gives us the value v(alpha) = w(alpha)*d(alpha)
+     *  - The angle of the direction which will be assumed as best is then determined by argmax_alpha( d(alpha) )
+     *
+     * Additionally there is an minimum distance for an direction to be used and the maximum distance at which
+     * obstacles are searched is limited (see constants below).
+     */
+
     //! Minimum distance at which an direction is assessed as drivable.
     const float MIN_FREE_DISTANCE = 1.0;
     //! Maximum distance to search for obstacles.
-    /** If there is no obstacle within this distance, be happy and do not look further. */
+    /**
+     * If there is no obstacle within this distance, be happy and do not look further.
+     * This is necessary since the search is done with the cv::LineIterator which needs a fixed end point of the line.
+     * Anyway, since the range of the scanner is limited and search that goes futher would only find the way back to
+     * where the robot comes from.
+     */
     const float MAX_SEARCHING_DISTANCE = 3.0;
     //! Increment of the angle when searching for the path direction.
     /** Note: Be sure that 2*pi % ANGLE_INCREMENT == 0 */
@@ -505,12 +547,14 @@ Eigen::Vector2f PathFollower::findBestPathDirection() const
         Vector2f end_of_line = robot_pose_.position + MAX_SEARCHING_DISTANCE * direction;
 
         // Using the direction, get the end point of the line to check.
-        /** \todo handle exceptions! */
+        /** \todo handle exceptions? */
         Vector2i line_end;
         try {
             line_end = transformToMap(end_of_line);
         } catch (...) {
+            // This should never happen, as long as MAX_SEARCHING_DISTANCE, map size and map move rate are well aligned.
             ROS_DEBUG("findBestPathDirection - MEEEP");
+            continue;
         }
 
         //ROS_DEBUG_STREAM("Robot: " << robot_pos_on_map << "\nLine end: " << line_end);
@@ -535,7 +579,6 @@ Eigen::Vector2f PathFollower::findBestPathDirection() const
         float distance_to_robot = (robot_pose_.position - end_of_line).norm();
         //ROS_DEBUG("Distant of obstacle to robot: %f m", distance_to_robot);
 
-        /** \todo is MIN_FREE_DISTANCE really necessary or can this be handled with the weights? */
         if (distance_to_robot > MIN_FREE_DISTANCE) {
             // calculate the "value" of this vector
             float value = helperAngleWeight(alpha) * distance_to_robot;
@@ -558,6 +601,8 @@ Eigen::Vector2f PathFollower::findBestPathDirection() const
 float PathFollower::helperAngleWeight(float angle)
 {
     angle = fabs(angle);
+    ROS_ASSERT_MSG(angle >= 0 && angle <= M_PI+0.1, "Angle %f is out of range", angle*180/M_PI);
+
     if (angle < M_PI/4.0) { // 0-45°
         return 0.7;
     }
@@ -578,7 +623,7 @@ Vector2i PathFollower::transformToMap(Vector2f point) const
     result[0] = (int) ((point[0] - map_->info.origin.position.x) / map_->info.resolution);
     result[1] = (int) ((point[1] - map_->info.origin.position.y) / map_->info.resolution);
 
-    // cast map width/height from uint to int here, to avoid warnings. There will be nor overflow problems since the
+    // cast map width/height from uint to int here, to avoid warnings. There will be no overflow problems since the
     // values will much less than 2*10^9.
     if (result[0] < 0 || result[0] >= (int)map_->info.width || result[1] < 0 || result[1] >= (int)map_->info.height) {
         throw TransformMapException();

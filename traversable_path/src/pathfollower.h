@@ -142,6 +142,12 @@ private:
      */
     void setGoalPoint(Eigen::Vector2f pos, float theta, bool force=false);
 
+    /**
+     * @brief Refreshes all cached values (like robot pose and path line).
+     * @see refreshRobotPose(), refreshPathLine(), refreshPathDirectionAngle()
+     * @return True if all refreshes succeed, false if an error occures.
+     */
+    void refreshAll();
 
     /**
      * @brief Refresh the current position and orientation of the robot.
@@ -152,7 +158,7 @@ private:
      * @see robot_pose_
      * @return False if some failure occurs, otherwise true.
      */
-    bool refreshRobotPose();
+    void refreshRobotPose();
 
     /**
      * @brief Refresh the path middle line.
@@ -201,7 +207,7 @@ private:
     /**
      * @brief Get weight of the specified angle.
      *
-     * This is a helper method for findBestPathDirection().
+     * This is a helper method for findBestPathDirection(). It is not meant to be used in an other context.
      * @param angle An angle (radian) of the intervall [-pi,pi].
      * @return The weight of this angle.
      */

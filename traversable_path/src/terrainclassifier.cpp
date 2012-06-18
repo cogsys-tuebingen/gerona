@@ -74,7 +74,7 @@ void TerrainClassifier::dynamicReconfigureCallback(Config &config, uint32_t leve
 
 void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 {
-    ros::Time start_time = ros::Time::now();
+//    ros::Time start_time = ros::Time::now();
 
     // with uncalibrated laser, classification will not work
     if (!this->is_calibrated_) {
@@ -119,14 +119,14 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
     // publish modified message
     publish_classification_cloud_.publish(pcl_cloud);
-    ROS_DEBUG("Published %zu traversability points", pcl_cloud.points.size());
+    //ROS_DEBUG("Published %zu traversability points", pcl_cloud.points.size());
     /** @todo This topic is only for debugging. Remove in later versions */
     smoothed.intensities = msg->intensities;
     publish_normalized_.publish(smoothed);
 
-    ros::Time end_time = ros::Time::now();
-    ros::Duration running_duration = end_time - start_time;
-    ROS_DEBUG("classify scan duration: %fs", running_duration.toSec());
+//    ros::Time end_time = ros::Time::now();
+//    ros::Duration running_duration = end_time - start_time;
+//    ROS_DEBUG("classify scan duration: %fs", running_duration.toSec());
 }
 
 void TerrainClassifier::laserScanToCloud(const sensor_msgs::LaserScanPtr &scan,
@@ -496,6 +496,9 @@ void TerrainClassifier::updateMap(PointCloudXYZRGBT cloud)
 
 void TerrainClassifier::moveMap()
 {
+    //! The minimum distance, the robot must have moved, to recenter the map to the robot.
+    const float MIN_ROBOT_MOVEMENT_DISTANCE = 2.0;
+
     // get robot position
     geometry_msgs::PointStamped base_link_position, map_origin;
     base_link_position.header.frame_id = "/base_link";
@@ -515,8 +518,9 @@ void TerrainClassifier::moveMap()
     map_origin.point.x -= (signed int) map_.info.width  * map_.info.resolution / 2;
     map_origin.point.y -= (signed int) map_.info.height * map_.info.resolution / 2;
 
-    // only update if the robot has moved more than 5m since last update
-    if (distance(map_origin.point, map_.info.origin.position) > 2.0) {
+    // only update if the robot has moved more than MIN_ROBOT_MOVEMENT_DISTANCE since last update (to improve
+    // performance)
+    if (distance(map_origin.point, map_.info.origin.position) > MIN_ROBOT_MOVEMENT_DISTANCE) {
         // transform map cells
         vector<int8_t> newdata(map_.data.size(), MAP_DEFAULT_VALUE);
 
