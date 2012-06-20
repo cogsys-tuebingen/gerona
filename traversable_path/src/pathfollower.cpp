@@ -273,8 +273,6 @@ void PathFollower::refreshPathLine()
     Line new_line;
     fitLinear(points_middle, &new_line);
 
-    ROS_DEBUG("Soundness: %f", new_line.soundness);
-
     // make sure the direction vector of the line points in the direction that is nearer to the robot orientation.
     float angle = acos( new_line.direction.dot(robot_pose_.orientation)
                         / (new_line.direction.norm() * robot_pose_.orientation.norm()) );
@@ -501,7 +499,7 @@ Eigen::Vector2f PathFollower::findBestPathDirection() const
     const float MAX_SEARCHING_DISTANCE = 3.0;
     //! Increment of the angle when searching for the path direction.
     /** Note: Be sure that 2*pi % ANGLE_INCREMENT == 0 */
-    const float ANGLE_INCREMENT = M_PI / 9.0; // = 20°
+    const double ANGLE_INCREMENT = M_PI / 9.0; // = 20°
 
 
     ////////// MARKER
@@ -532,9 +530,9 @@ Eigen::Vector2f PathFollower::findBestPathDirection() const
      */
 
     Vector2f bestDirection(0,0);
-    float bestDirectionValue = -INFINITY;
+    double bestDirectionValue = -INFINITY;
 
-    for (float alpha = -M_PI; alpha < M_PI; alpha += ANGLE_INCREMENT) {
+    for (double alpha = -M_PI; alpha < M_PI; alpha += ANGLE_INCREMENT) {
         //ROS_DEBUG("alpha = %.0f", alpha*180/M_PI);
 
         // rotate the direction vector of the robot to get the direction of this iteration step.
