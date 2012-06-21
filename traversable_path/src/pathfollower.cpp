@@ -357,52 +357,8 @@ void PathFollower::refreshPathLine()
 
 void PathFollower::refreshPathDirectionAngle()
 {
-    //// calculate angle
-    // angle of the path
-    float theta = atan2(path_middle_line_.direction[1], path_middle_line_.direction[0]);
-
-    // make sure we follow the path in the right direction (if angle of robot to path is > 90°, change direction about
-    // 180°).
-//    float angle_robot = atan2(robot_pose_.orientation[1], robot_pose_.orientation[0]);
-//    float angle_to_path = angle_robot - theta;
-//    if (fabs(angle_to_path) > M_PI/2) {
-//        //ROS_BREAK(); // i think this should not happen any more.
-//        // change directory angle about 180° and also revert direction vector of the line
-//        theta = theta - M_PI;
-//        path_middle_line_direction_signum_ = -1;
-//    } else {
-//        path_middle_line_direction_signum_ = +1;
-//    }
-
-
-    path_angle_ = theta;
-
-
-    /////////////// MARKER
-    {
-//        // direction arrow (red)
-//        visualization_msgs::Marker direction_marker;
-//        direction_marker.header.frame_id = "/map";
-//        direction_marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
-//        direction_marker.pose.position = vectorToPoint(robot_pose_.position);
-//        direction_marker.ns = "follow_path/direction";
-//        direction_marker.id = 1;
-//        direction_marker.type = visualization_msgs::Marker::ARROW;
-//        direction_marker.action = visualization_msgs::Marker::ADD;
-//        direction_marker.scale.x = direction_marker.scale.y = direction_marker.scale.z = 0.8;
-//        direction_marker.color.r = 1.0;
-//        direction_marker.color.a = 1.0;
-//        publish_rviz_marker_.publish(direction_marker);
-
-//        // filtered direction arrow (green)
-//        direction_marker.pose.orientation = tf::createQuaternionMsgFromYaw(path_angle_);
-//        direction_marker.id = 2;
-//        direction_marker.scale.x = direction_marker.scale.y = direction_marker.scale.z = 1.0;
-//        direction_marker.color.g = 1.0;
-//        direction_marker.color.r = 0.0;
-//        publish_rviz_marker_.publish(direction_marker);
-//        /////////////// END MARKER
-    }
+    // calculate angle
+    path_angle_ = atan2(path_middle_line_.direction[1], path_middle_line_.direction[0]);
 }
 
 bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
@@ -423,9 +379,12 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
     float step_size = map_->info.resolution;
 
     // go forward
+    const float DISTANCE_BEHIND_ROBOT = 1.0; /** \todo experimentiere mit kleineren werten */
+    const float DISTANCE_IN_FRONT_OF_ROBOT = 1.0;
+
     //! Position of the current forward step.
-    Vector2f forward_pos = robot_pose_.position - robot_pose_.orientation;
-    for (float forward = -1.0; forward < 1.0; forward += 3*step_size) {
+    Vector2f forward_pos = robot_pose_.position - DISTANCE_BEHIND_ROBOT*robot_pose_.orientation;
+    for (float forward = - DISTANCE_BEHIND_ROBOT; forward < DISTANCE_IN_FRONT_OF_ROBOT; forward += 3*step_size) {
         /** \todo better exception handling here? */
         forward_pos += robot_pose_.orientation * 3*step_size;
 
@@ -437,7 +396,7 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
                     out->clear();
                     continue;
                 } else {
-                    // Obstacle in front of the robot. Dont go any futher.
+                    // Obstacle in front of the robot. Do not go any futher.
                     break;
                 }
             }
