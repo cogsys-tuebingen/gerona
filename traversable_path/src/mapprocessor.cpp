@@ -40,6 +40,7 @@ void MapProcessor::imageToMap(const cv::Mat1b &img, nav_msgs::OccupancyGrid *map
         row = i / map->info.width;
         col = i % map->info.width;
 
+        /** \todo img.data */
         map->data[i] = img[row][col] == 0 ? 100 : 0;
     }
 }

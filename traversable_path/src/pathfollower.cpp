@@ -19,6 +19,9 @@ PathFollower::PathFollower() :
     publish_goal_ = node_handle_.advertise<geometry_msgs::PoseStamped>("traversable_path/goal", 1);
 
     map_processor_ = new MapProcessor();
+
+    // register reconfigure callback (which will also initialize config_ with the default values)
+    reconfig_server_.setCallback(boost::bind(&PathFollower::dynamicReconfigureCallback, this, _1, _2));
 }
 
 PathFollower::~PathFollower()
@@ -26,6 +29,11 @@ PathFollower::~PathFollower()
     delete map_processor_;
 }
 
+void PathFollower::dynamicReconfigureCallback(const follow_pathConfig &config, uint32_t level)
+{
+    config_ = config;
+    ROS_DEBUG("Reconfigure path follower.");
+}
 
 void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 {
@@ -205,7 +213,7 @@ void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
     if (distance > MIN_DISTANCE_BETWEEN_GOALS || force) {
         // send goal to motion_control
         motion_control::MotionGoal goal;
-        goal.v     = 0.4;
+        goal.v     = config_.velocity;
         goal.beta  = 0;
         //goal.pos_tolerance = 0.1;
         goal.mode  = motion_control::MotionGoal::MOTION_TO_GOAL;

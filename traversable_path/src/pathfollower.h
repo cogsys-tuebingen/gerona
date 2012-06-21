@@ -8,11 +8,14 @@
 #include <geometry_msgs/Point.h>
 #include <std_msgs/ColorRGBA.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <dynamic_reconfigure/server.h>
 
 #define EIGEN_USE_NEW_STDVECTOR
 #include <Eigen/Core>
 #include <Eigen/StdVector>
 #include "point_types.h"
+
+#include "traversable_path/follow_pathConfig.h"
 
 // forward declarations
 class MapProcessor;
@@ -76,6 +79,8 @@ private:
     tf::TransformListener tf_listener_;
     //! Sends commands to motion_control
     actionlib::SimpleActionClient<motion_control::MotionAction> motion_control_action_client_;
+    //! dynamic reconfigure server.
+    dynamic_reconfigure::Server<traversable_path::follow_pathConfig> reconfig_server_;
 
     //! The current goal.
     Eigen::Vector2f current_goal_;
@@ -93,6 +98,10 @@ private:
     //! Does image processing on the map.
     MapProcessor* map_processor_;
 
+    //! Dynamic reconfigure values.
+    traversable_path::follow_pathConfig config_;
+
+    void dynamicReconfigureCallback(const traversable_path::follow_pathConfig &config, uint32_t level);
 
     /**
      * @brief Calculate path direction and set goal point.
