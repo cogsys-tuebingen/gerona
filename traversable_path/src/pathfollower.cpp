@@ -12,7 +12,8 @@ using namespace Eigen;
 PathFollower::PathFollower() :
     motion_control_action_client_("motion_control"),
     current_goal_(0,0),
-    path_angle_(NAN)
+    path_angle_(NAN),
+    lock_goal_(false)
 {
     subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
     publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 100);
@@ -104,7 +105,10 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 
                 ROS_INFO("Turning.");
                 /** \todo always forcing the goal where will likely lead to problems... Otherwise... does this problem still exists at all, when using a map? */
+
                 setGoalPoint(goal_pos, goal_angle, true);
+                // lock this goal until the robot reached it. Otherwise the robot will not turn well.
+                lock_goal_ = true;
             } else {
                 ROS_INFO("Stop moving.");
                 /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
@@ -118,6 +122,13 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
     catch (const Exception &e) {
         ROS_WARN_THROTTLE(1, "Exception in mapCallback(): %s", e.what());
     }
+}
+
+void PathFollower::motionControlDoneCallback(const actionlib::SimpleClientGoalState &state,
+                                             const motion_control::MotionResultConstPtr &result)
+{
+    // unlock goal.
+    lock_goal_ = false;
 }
 
 
@@ -202,6 +213,11 @@ void PathFollower::publishArrowMarker(Eigen::Vector2f point, Eigen::Vector2f dir
 
 void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
 {
+    // don't set new goal, if the current goal is locked.
+    if (lock_goal_) {
+        return;
+    }
+
     const float MIN_DISTANCE_BETWEEN_GOALS = 0.5;
 
     // make sure the min. distance doesn't avoid the goal to be set at the first call of this method.

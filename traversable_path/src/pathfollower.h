@@ -101,6 +101,8 @@ private:
     //! Dynamic reconfigure values.
     traversable_path::follow_pathConfig config_;
 
+    bool lock_goal_;
+
     void dynamicReconfigureCallback(const traversable_path::follow_pathConfig &config, uint32_t level);
 
     /**
@@ -112,6 +114,9 @@ private:
      * @param msg A traversability map.
      */
     void mapCallback(const nav_msgs::OccupancyGridConstPtr &msg);
+
+    void motionControlDoneCallback(const actionlib::SimpleClientGoalState& state,
+                                   const motion_control::MotionResultConstPtr& result);
 
     /**
      * @brief Sends a marker to rviz which visualizes the goal as an arrow.
