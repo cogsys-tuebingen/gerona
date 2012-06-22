@@ -83,7 +83,12 @@ private:
     dynamic_reconfigure::Server<traversable_path::follow_pathConfig> reconfig_server_;
 
     //! The current goal.
-    Eigen::Vector2f current_goal_;
+    struct {
+        //! This is true, if the current goal is still active. If it is false, the robot does not drive to this goal.
+        bool is_set;
+        //! Coordinates of the goal (frame_id = /map)
+        Eigen::Vector2f goal;
+    } current_goal_;
 
     nav_msgs::OccupancyGridConstPtr map_;
 

@@ -11,7 +11,6 @@ using namespace Eigen;
 
 PathFollower::PathFollower() :
     motion_control_action_client_("motion_control"),
-    current_goal_(0,0),
     path_angle_(NAN),
     lock_goal_(false)
 {
@@ -20,6 +19,9 @@ PathFollower::PathFollower() :
     publish_goal_ = node_handle_.advertise<geometry_msgs::PoseStamped>("traversable_path/goal", 1);
 
     map_processor_ = new MapProcessor();
+
+    // at the beginning there is no goal.
+    current_goal_.is_set = false;
 
     // register reconfigure callback (which will also initialize config_ with the default values)
     reconfig_server_.setCallback(boost::bind(&PathFollower::dynamicReconfigureCallback, this, _1, _2));
@@ -85,6 +87,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             publish_rviz_marker_.publish(points);
         }
 
+        /** \todo auch ein bisschen den raum um das ziel checken */
         bool noObstacle = map_processor_->checkTraversabilityOfLine(robot_on_map, goal_on_map);
         if (noObstacle) {
             setGoalPoint(goal_pos, path_angle_);
@@ -113,6 +116,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
                 ROS_INFO("Stop moving.");
                 /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
                 motion_control_action_client_.cancelAllGoals();
+                current_goal_.is_set = false;
             }
         }
     }
@@ -141,6 +145,7 @@ void PathFollower::motionControlDoneCallback(const actionlib::SimpleClientGoalSt
 
     // unlock goal.
     lock_goal_ = false;
+    current_goal_.is_set = false;
 }
 
 void PathFollower::motionControlFeedbackCallback(const motion_control::MotionFeedbackConstPtr &feedback)
@@ -239,8 +244,8 @@ void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
 
     // make sure the min. distance doesn't avoid the goal to be set at the first call of this method.
     float distance = INFINITY;
-    if (!current_goal_.isZero()) {
-        distance = (position - current_goal_).norm();
+    if (!current_goal_.is_set) {
+        distance = (position - current_goal_.goal).norm();
     }
 
     if (distance > MIN_DISTANCE_BETWEEN_GOALS || force) {
@@ -261,7 +266,8 @@ void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
                                                boost::bind(&PathFollower::motionControlFeedbackCallback,this,_1));
 
         // set as current goal
-        current_goal_ = position;
+        current_goal_.is_set = true;
+        current_goal_.goal = position;
         // send goal-marker to rviz for debugging
         publishGoalMarker(position, theta);
 
