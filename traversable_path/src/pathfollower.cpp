@@ -103,12 +103,12 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
                 // necessary.
 
                 ROS_INFO("Turning.");
-                /** \todo always forcing the goal where will likely lead to problems... */
+                /** \todo always forcing the goal where will likely lead to problems... Otherwise... does this problem still exists at all, when using a map? */
                 setGoalPoint(goal_pos, goal_angle, true);
             } else {
                 ROS_INFO("Stop moving.");
-                /** \todo is this the stop command? Ask Hendrik or Karsten */
-                motion_control_action_client_.cancelGoal();
+                /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
+                motion_control_action_client_.cancelAllGoals();
             }
         }
     }
