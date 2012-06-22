@@ -127,14 +127,25 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 void PathFollower::motionControlDoneCallback(const actionlib::SimpleClientGoalState &state,
                                              const motion_control::MotionResultConstPtr &result)
 {
-    ROS_INFO("Reached Goal");
+    switch (result->status) {
+    case motion_control::MotionResult::MOTION_STATUS_SUCCESS:
+        ROS_INFO_NAMED("motion_control", "Reached Goal");
+        break;
+    case motion_control::MotionResult::MOTION_STATUS_COLLISION:
+        ROS_INFO_NAMED("motion_control", "Collision!");
+        break;
+    default:
+        ROS_INFO_NAMED("motion_control", "fail code=%d",result->status);
+        break;
+    }
+
     // unlock goal.
     lock_goal_ = false;
 }
 
 void PathFollower::motionControlFeedbackCallback(const motion_control::MotionFeedbackConstPtr &feedback)
 {
-    ROS_INFO("Distance to goal: %f",feedback->dist_goal);
+    ROS_INFO_NAMED("motion_control", "Distance to goal: %f",feedback->dist_goal);
 }
 
 
