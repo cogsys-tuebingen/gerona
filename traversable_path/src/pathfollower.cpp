@@ -93,31 +93,33 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             setGoalPoint(goal_pos, path_angle_);
         }
         else {
-            ROS_INFO("OBSTACLE AHEAD!");
-            /** \todo Handle this. Don't just stop. */
+//            ROS_INFO("OBSTACLE AHEAD!");
+//            /** \todo Handle this. Don't just stop. */
 
-            // turn
-            Vector2f goal_direction = findBestPathDirection();
+//            // turn
+//            Vector2f goal_direction = findBestPathDirection();
 
-            if (!goal_direction.isZero()) {
-                float goal_angle = atan2(goal_direction[1], goal_direction[0]);
-                goal_pos = robot_pose_.position + goal_direction;
-                // Note: since findBestPathDirection() returned goal_direction and this method requires at least
-                // 1m of free space to return an direction at all, there are no further traversability-checks
-                // necessary.
+//            if (!goal_direction.isZero()) {
+//                float goal_angle = atan2(goal_direction[1], goal_direction[0]);
+//                goal_pos = robot_pose_.position + goal_direction;
+//                // Note: since findBestPathDirection() returned goal_direction and this method requires at least
+//                // 1m of free space to return an direction at all, there are no further traversability-checks
+//                // necessary.
 
-                ROS_INFO("Turning.");
-                /** \todo always forcing the goal where will likely lead to problems... Otherwise... does this problem still exists at all, when using a map? */
+//                ROS_INFO("Turning.");
+//                /** \todo always forcing the goal where will likely lead to problems... Otherwise... does this problem still exists at all, when using a map? */
 
-                setGoalPoint(goal_pos, goal_angle, true);
-                // lock this goal until the robot reached it. Otherwise the robot will not turn well.
-                lock_goal_ = true;
-            } else {
-                ROS_INFO("Stop moving.");
-                /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
-                motion_control_action_client_.cancelAllGoals();
-                current_goal_.is_set = false;
-            }
+//                setGoalPoint(goal_pos, goal_angle, true);
+//                // lock this goal until the robot reached it. Otherwise the robot will not turn well.
+//                lock_goal_ = true;
+//            } else {
+//                ROS_INFO("Stop moving.");
+//                /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
+//                motion_control_action_client_.cancelAllGoals();
+//                current_goal_.is_set = false;
+//            }
+
+            handleObstacle();
         }
     }
     catch (const TransformMapException &e) {
@@ -245,7 +247,7 @@ void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
     // make sure the min. distance doesn't avoid the goal to be set at the first call of this method.
     float distance = INFINITY;
     if (current_goal_.is_set) {
-        distance = (position - current_goal_.goal).norm();
+        distance = (position - current_goal_.position).norm();
     }
 
     if (distance > MIN_DISTANCE_BETWEEN_GOALS || force) {
@@ -260,6 +262,9 @@ void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
         goal.y     = position[1];
         goal.theta = theta;
 
+        // save current pose
+        last_pose_ = robot_pose_;
+
         // send goal to motion_control
         motion_control_action_client_.sendGoal(goal, boost::bind(&PathFollower::motionControlDoneCallback,this,_1,_2),
                                                boost::function<void () >(), // do not set an active callback
@@ -267,7 +272,8 @@ void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
 
         // set as current goal
         current_goal_.is_set = true;
-        current_goal_.goal = position;
+        current_goal_.position = position;
+        current_goal_.theta = theta;
         // send goal-marker to rviz for debugging
         publishGoalMarker(position, theta);
 
@@ -620,8 +626,57 @@ float PathFollower::helperAngleWeight(float angle)
         return 0.7;
     } else {
         /** \todo this weight should depend on MAX_SEARCHING_DISTANCE */
-        return 0.3;
+        return 0.4;
     }
+}
+
+void PathFollower::handleObstacle()
+{
+    ROS_INFO("OBSTACLE AHEAD!");
+
+    // first stop the robot
+    stopRobot();
+
+    // ...then look for a new goal
+    Vector2f goal_direction = findBestPathDirection();
+    if (!goal_direction.isZero()) {
+        // drive back to last save position.
+        ROS_INFO("Drive back");
+        motion_control::MotionGoal goal;
+        goal.v     = 0.3;
+        goal.beta  = 0;
+        //goal.pos_tolerance = 0.1;
+        goal.mode  = motion_control::MotionGoal::MOTION_TO_GOAL;
+        goal.x     = last_pose_.position[0];
+        goal.y     = last_pose_.position[1];
+        goal.theta = atan2(last_pose_.orientation[1], last_pose_.orientation[0]);
+        // no need to set current_goal_ here, since we wait for the end of the action right here.
+        publishGoalMarker(last_pose_.position, goal.theta);
+        motion_control_action_client_.sendGoalAndWait(goal, ros::Duration(3), ros::Duration(0.1));
+
+        float goal_angle = atan2(goal_direction[1], goal_direction[0]);
+        Vector2f goal_pos = robot_pose_.position + goal_direction;
+        // Note: since findBestPathDirection() returned goal_direction and this method requires at least
+        // 1m of free space to return an direction at all, there are no further traversability-checks
+        // necessary.
+
+        ROS_INFO("Go on");
+        /** \todo always forcing the goal here will likely lead to problems... Otherwise... does this problem still exists at all, when using a map? */
+
+        setGoalPoint(goal_pos, goal_angle);
+        // lock this goal until the robot reached it. Otherwise the robot will to fast choose an other goal.
+        /** \todo total lock is not a good solution... */
+        lock_goal_ = true;
+    } else {
+        ROS_INFO("Stop moving.");
+    }
+}
+
+void PathFollower::stopRobot()
+{
+    /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
+    motion_control_action_client_.cancelAllGoals();
+    current_goal_.is_set = false;
 }
 
 Vector2i PathFollower::transformToMap(Vector2f point) const

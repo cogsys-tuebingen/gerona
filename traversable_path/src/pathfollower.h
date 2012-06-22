@@ -46,6 +46,21 @@ private:
         Eigen::Vector2f orientation;
     };
 
+    struct Goal {
+        //! This is true, if the current goal is still active. If it is false, the robot does not drive to this goal.
+        bool is_set;
+        //! Coordinates of the goal (frame_id = /map)
+        Eigen::Vector2f position;
+        //! Angle of the goal orientation.
+        float theta;
+
+        Goal() {}
+        Goal(Eigen::Vector2f pos, float theta) {
+            this->position = pos;
+            this->theta = theta;
+        }
+    };
+
     /**
      * @brief Represents a line in parametric form.
      *
@@ -83,12 +98,12 @@ private:
     dynamic_reconfigure::Server<traversable_path::follow_pathConfig> reconfig_server_;
 
     //! The current goal.
-    struct {
-        //! This is true, if the current goal is still active. If it is false, the robot does not drive to this goal.
-        bool is_set;
-        //! Coordinates of the goal (frame_id = /map)
-        Eigen::Vector2f goal;
-    } current_goal_;
+    Goal current_goal_;
+
+//    //! The last goal (goal before current_goal_).
+//    Goal last_goal_;
+    //! Pose of the robot when it recieved the current goal.
+    RobotPose last_pose_;
 
     nav_msgs::OccupancyGridConstPtr map_;
 
@@ -234,6 +249,10 @@ private:
     static float helperAngleWeight(float angle);
 
 
+    void handleObstacle();
+
+    //! Stop immediatly and cancle current goal
+    void stopRobot();
 
     /**
      * @brief Transform coordinates of a point to the map cell.
