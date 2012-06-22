@@ -117,6 +117,7 @@ private:
 
     void motionControlDoneCallback(const actionlib::SimpleClientGoalState& state,
                                    const motion_control::MotionResultConstPtr& result);
+    void motionControlFeedbackCallback(const motion_control::MotionFeedbackConstPtr& feedback);
 
     /**
      * @brief Sends a marker to rviz which visualizes the goal as an arrow.

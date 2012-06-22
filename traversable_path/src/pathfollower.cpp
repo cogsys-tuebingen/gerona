@@ -127,8 +127,14 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 void PathFollower::motionControlDoneCallback(const actionlib::SimpleClientGoalState &state,
                                              const motion_control::MotionResultConstPtr &result)
 {
+    ROS_INFO("Reached Goal");
     // unlock goal.
     lock_goal_ = false;
+}
+
+void PathFollower::motionControlFeedbackCallback(const motion_control::MotionFeedbackConstPtr &feedback)
+{
+    ROS_INFO("Distance to goal: %f",feedback->dist_goal);
 }
 
 
@@ -239,7 +245,10 @@ void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
         goal.theta = theta;
 
         // send goal to motion_control
-        motion_control_action_client_.sendGoal(goal);
+        motion_control_action_client_.sendGoal(goal, boost::bind(&PathFollower::motionControlDoneCallback,this,_1,_2),
+                                               boost::function<void () >(), // do not set an active callback
+                                               boost::bind(&PathFollower::motionControlFeedbackCallback,this,_1));
+
         // set as current goal
         current_goal_ = position;
         // send goal-marker to rviz for debugging
