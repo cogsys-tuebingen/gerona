@@ -244,7 +244,7 @@ void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
 
     // make sure the min. distance doesn't avoid the goal to be set at the first call of this method.
     float distance = INFINITY;
-    if (!current_goal_.is_set) {
+    if (current_goal_.is_set) {
         distance = (position - current_goal_.goal).norm();
     }
 
