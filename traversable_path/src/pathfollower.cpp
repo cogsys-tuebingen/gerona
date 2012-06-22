@@ -48,7 +48,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 
         // distance of robot to path middle line
         Vector2f to_mid_line = vectorFromPointToLine(path_middle_line_, robot_pose_.position);
-        // goal position (1m ahead):
+        // goal position (0.8m ahead):
         Vector2f goal_pos = robot_pose_.position + 0.8 * path_middle_line_.direction
                 + to_mid_line;
 
@@ -133,21 +133,22 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 void PathFollower::motionControlDoneCallback(const actionlib::SimpleClientGoalState &state,
                                              const motion_control::MotionResultConstPtr &result)
 {
+    // unlock goal.
+    lock_goal_ = false;
+    current_goal_.is_set = false;
+
     switch (result->status) {
     case motion_control::MotionResult::MOTION_STATUS_SUCCESS:
         ROS_INFO_NAMED("motion_control", "Reached Goal");
         break;
     case motion_control::MotionResult::MOTION_STATUS_COLLISION:
         ROS_INFO_NAMED("motion_control", "Collision!");
+        handleObstacle();
         break;
     default:
         ROS_INFO_NAMED("motion_control", "fail code=%d",result->status);
         break;
     }
-
-    // unlock goal.
-    lock_goal_ = false;
-    current_goal_.is_set = false;
 }
 
 void PathFollower::motionControlFeedbackCallback(const motion_control::MotionFeedbackConstPtr &feedback)
@@ -665,7 +666,7 @@ void PathFollower::handleObstacle()
 
         setGoalPoint(goal_pos, goal_angle);
         // lock this goal until the robot reached it. Otherwise the robot will to fast choose an other goal.
-        /** \todo total lock is not a good solution... */
+        /** \todo total lock is not a good solution... better make a timeout or something like this. */
         lock_goal_ = true;
     } else {
         ROS_INFO("Stop moving.");

@@ -248,10 +248,16 @@ private:
      */
     static float helperAngleWeight(float angle);
 
-
+    /**
+     * @brief Handles the navigation if the robot stands in front of an obstacle.
+     *
+     * If the robot stands in front of an obstacle (which is also the case at crossigns and dead ends), the direction of
+     * the path (and thus a new goal) is determined. Before moving to the new goal, the robot first has to move a bit
+     * backward to have enought space to maneuver.
+     */
     void handleObstacle();
 
-    //! Stop immediatly and cancle current goal
+    //! Stop immediatly and cancle current goal.
     void stopRobot();
 
     /**
