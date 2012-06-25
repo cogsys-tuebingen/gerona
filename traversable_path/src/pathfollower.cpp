@@ -571,7 +571,10 @@ void PathFollower::handleObstacle()
         goal.theta = atan2(last_pose_.orientation[1], last_pose_.orientation[0]);
         // no need to set current_goal_ here, since we wait for the end of the action right here.
         rviz_marker_->publishGoalMarker(last_pose_.position, goal.theta);
-        motion_control_action_client_.sendGoalAndWait(goal, ros::Duration(3), ros::Duration(0.1));
+        actionlib::SimpleClientGoalState motion_state =
+                motion_control_action_client_.sendGoalAndWait(goal, ros::Duration(3), ros::Duration(0.1));
+        ROS_INFO_STREAM("Resulting State: " << motion_state.toString());
+        rviz_marker_->removeGoalMarker();
 
         float goal_angle = atan2(goal_direction[1], goal_direction[0]);
         Vector2f goal_pos = robot_pose_.position + goal_direction;
