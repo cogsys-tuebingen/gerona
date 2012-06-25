@@ -52,6 +52,7 @@ rosbuild_add_executable(follow_path
     src/point_types.h
     src/exceptions.h
     src/mapprocessor.cpp
+    src/markerpublisher.cpp
 )
 
 rosbuild_add_executable(display_path src/node_display_path.cpp src/visualization.cpp)

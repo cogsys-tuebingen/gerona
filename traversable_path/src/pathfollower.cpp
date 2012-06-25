@@ -5,6 +5,7 @@
 #include <visualization_msgs/Marker.h>
 #include "exceptions.h"
 #include "mapprocessor.h"
+#include "markerpublisher.h"
 
 using namespace traversable_path;
 using namespace Eigen;
@@ -12,16 +13,19 @@ using namespace Eigen;
 PathFollower::PathFollower() :
     motion_control_action_client_("motion_control"),
     path_angle_(NAN),
-    lock_goal_(false)
+    goal_locked_(false)
 {
     subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
-    publish_rviz_marker_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 100);
-    publish_goal_ = node_handle_.advertise<geometry_msgs::PoseStamped>("traversable_path/goal", 1);
 
     map_processor_ = new MapProcessor();
+    rviz_marker_ = new MarkerPublisher();
 
     // at the beginning there is no goal.
     current_goal_.is_set = false;
+
+    /** \todo wieviel timeout ist hier sinnvoll? */
+    goal_lock_timer_ = node_handle_.createTimer(ros::Duration(10), &PathFollower::goalLockTimerCallback, this,
+                                                true, false);
 
     // register reconfigure callback (which will also initialize config_ with the default values)
     reconfig_server_.setCallback(boost::bind(&PathFollower::dynamicReconfigureCallback, this, _1, _2));
@@ -30,6 +34,7 @@ PathFollower::PathFollower() :
 PathFollower::~PathFollower()
 {
     delete map_processor_;
+    delete rviz_marker_;
 }
 
 void PathFollower::dynamicReconfigureCallback(const follow_pathConfig &config, uint32_t level)
@@ -84,7 +89,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             p.x = goal_pos[0];
             p.y = goal_pos[1];
             points.points.push_back(p);
-            publish_rviz_marker_.publish(points);
+            rviz_marker_->publish(points);
         }
 
         /** \todo auch ein bisschen den raum um das ziel checken */
@@ -134,8 +139,9 @@ void PathFollower::motionControlDoneCallback(const actionlib::SimpleClientGoalSt
                                              const motion_control::MotionResultConstPtr &result)
 {
     // unlock goal.
-    lock_goal_ = false;
+    goal_locked_ = false;
     current_goal_.is_set = false;
+    rviz_marker_->removeGoalMarker();
 
     switch (result->status) {
     case motion_control::MotionResult::MOTION_STATUS_SUCCESS:
@@ -156,91 +162,21 @@ void PathFollower::motionControlFeedbackCallback(const motion_control::MotionFee
     ROS_INFO_NAMED("motion_control", "Distance to goal: %f",feedback->dist_goal);
 }
 
-
-void PathFollower::publishGoalMarker(Vector2f position, float theta) const
+void PathFollower::goalLockTimerCallback(const ros::TimerEvent &event)
 {
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "/map";
-    marker.pose.position = vectorToPoint(position);
-    marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
-
-    // Set the namespace and id for this marker.  This serves to create a unique ID
-    // Any marker sent with the same namespace and id will overwrite the old one
-    marker.ns = "follow_path";
-    marker.id = 0;
-
-    // Set the marker type.
-    marker.type = visualization_msgs::Marker::ARROW;
-
-    // Set the marker action.  Options are ADD and DELETE
-    marker.action = visualization_msgs::Marker::ADD;
-
-    // Set the scale of the marker
-    marker.scale.x = 0.8;
-    marker.scale.y = 0.8;
-    marker.scale.z = 0.8;
-
-    // Set the color -- be sure to set alpha to something non-zero!
-    marker.color.r = 1.0f;
-    marker.color.g = 1.0f;
-    marker.color.b = 0.0f;
-    marker.color.a = 1.0f;
-
-    marker.lifetime = ros::Duration();
-
-    // Publish the marker
-    publish_rviz_marker_.publish(marker);
+    goal_locked_ = false;
 }
 
-void PathFollower::publishLineMarker(Eigen::Vector2f p1, Eigen::Vector2f p2, int id, std_msgs::ColorRGBA color) const
-{
-    visualization_msgs::Marker line;
 
-    line.header.frame_id = "/map";
-    line.ns = "follow_path/lines";
-    line.action = visualization_msgs::Marker::ADD;
-    line.pose.orientation.w = 1.0;
-    line.id = id;
-    line.type = visualization_msgs::Marker::LINE_STRIP;
-
-    // LINE_STRIP/LINE_LIST markers use only the x component of scale, for the line width
-    line.scale.x = 0.03;
-    line.color = color;
-
-    // set the points
-    line.points.push_back(vectorToPoint(p1));
-    line.points.push_back(vectorToPoint(p2));
-
-    publish_rviz_marker_.publish(line);
-}
-
-void PathFollower::publishArrowMarker(Eigen::Vector2f point, float angle, int id, std_msgs::ColorRGBA color) const
-{
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "/map";
-    marker.pose.position = vectorToPoint(point);
-    marker.pose.orientation = tf::createQuaternionMsgFromYaw(angle);
-    marker.ns = "follow_path/arrow";
-    marker.id = id;
-    marker.type = visualization_msgs::Marker::ARROW;
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.scale.x = marker.scale.y = marker.scale.z = 1.0;
-    marker.color = color;
-
-    publish_rviz_marker_.publish(marker);
-}
-
-void PathFollower::publishArrowMarker(Eigen::Vector2f point, Eigen::Vector2f direction, int id, std_msgs::ColorRGBA color) const
-{
-    float angle = atan2(direction[1], direction[0]);
-    publishArrowMarker(point, angle, id, color);
-}
-
-void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
+void PathFollower::setGoalPoint(Vector2f position, float theta, bool lock_goal)
 {
     // don't set new goal, if the current goal is locked.
-    if (lock_goal_) {
+    if (goal_locked_) {
         return;
+    }
+    // lock this goal if lock_goal is set
+    if (lock_goal) {
+        lockGoal();
     }
 
     const float MIN_DISTANCE_BETWEEN_GOALS = 0.5;
@@ -251,7 +187,9 @@ void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
         distance = (position - current_goal_.position).norm();
     }
 
-    if (distance > MIN_DISTANCE_BETWEEN_GOALS || force) {
+    // only set goal it is far enought from the old goal or if the new goal is to be locked (locking also overwrites the
+    // current goal).
+    if (distance > MIN_DISTANCE_BETWEEN_GOALS || lock_goal) {
         // send goal to motion_control
         motion_control::MotionGoal goal;
         goal.v     = config_.velocity;
@@ -276,10 +214,10 @@ void PathFollower::setGoalPoint(Vector2f position, float theta, bool force)
         current_goal_.position = position;
         current_goal_.theta = theta;
         // send goal-marker to rviz for debugging
-        publishGoalMarker(position, theta);
+        rviz_marker_->publishGoalMarker(position, theta);
 
 
-        ROS_DEBUG_STREAM("Send goal" << (force ? " (forced): " : ": ") << position << "\ntheta: " << theta);
+        ROS_DEBUG_STREAM("Send goal" << (lock_goal ? " (locked): " : ": ") << position << "\ntheta: " << theta);
     }
     else {
         ROS_DEBUG_THROTTLE(0.5, "Didn't update goal. New goal is %.2f m distant from the current goal. Minimum distance is %f",
@@ -386,7 +324,7 @@ void PathFollower::refreshPathLine()
             p.z = 0;
             points.points.push_back(p);
         }
-        publish_rviz_marker_.publish(points);
+        rviz_marker_->publish(points);
 
         // line
         std_msgs::ColorRGBA color;
@@ -394,13 +332,13 @@ void PathFollower::refreshPathLine()
         Vector2f p1, p2;
         p1 = path_middle_line_.point + 5 * path_middle_line_.direction;
         p2 = path_middle_line_.point - 5 * path_middle_line_.direction;
-        publishLineMarker(p1, p2, 13, color);
+        rviz_marker_->publishLineMarker(p1, p2, 13, color);
 
         // line
         color.r = 1.0; color.g = 0.0; color.a = 1.0; //red
         p1 = new_line.point + 3 * new_line.direction;
         p2 = new_line.point - 3 * new_line.direction;
-        publishLineMarker(p1, p2, 14, color);
+        rviz_marker_->publishLineMarker(p1, p2, 14, color);
     }
 }
 
@@ -607,7 +545,7 @@ Eigen::Vector2f PathFollower::findBestPathDirection() const
     }
 
     ////////// MARKER
-    publish_rviz_marker_.publish(line_marker);
+    rviz_marker_->publish(line_marker);
 
     return bestDirection;
 }
@@ -652,7 +590,7 @@ void PathFollower::handleObstacle()
         goal.y     = last_pose_.position[1];
         goal.theta = atan2(last_pose_.orientation[1], last_pose_.orientation[0]);
         // no need to set current_goal_ here, since we wait for the end of the action right here.
-        publishGoalMarker(last_pose_.position, goal.theta);
+        rviz_marker_->publishGoalMarker(last_pose_.position, goal.theta);
         motion_control_action_client_.sendGoalAndWait(goal, ros::Duration(3), ros::Duration(0.1));
 
         float goal_angle = atan2(goal_direction[1], goal_direction[0]);
@@ -662,12 +600,8 @@ void PathFollower::handleObstacle()
         // necessary.
 
         ROS_INFO("Go on");
-        /** \todo always forcing the goal here will likely lead to problems... Otherwise... does this problem still exists at all, when using a map? */
-
-        setGoalPoint(goal_pos, goal_angle);
         // lock this goal until the robot reached it. Otherwise the robot will to fast choose an other goal.
-        /** \todo total lock is not a good solution... better make a timeout or something like this. */
-        lock_goal_ = true;
+        setGoalPoint(goal_pos, goal_angle, true);
     } else {
         ROS_INFO("Stop moving.");
     }
@@ -678,6 +612,13 @@ void PathFollower::stopRobot()
     /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
     motion_control_action_client_.cancelAllGoals();
     current_goal_.is_set = false;
+    rviz_marker_->removeGoalMarker();
+}
+
+void PathFollower::lockGoal()
+{
+    goal_locked_ = true;
+    goal_lock_timer_.start();
 }
 
 Vector2i PathFollower::transformToMap(Vector2f point) const
@@ -763,6 +704,7 @@ Vector2f PathFollower::vectorFromPointToLine(const PathFollower::Line &line, con
     return point_to_line;
 }
 
+/** \todo duplicated code!!! */
 geometry_msgs::Point PathFollower::vectorToPoint(Vector2f v)
 {
     geometry_msgs::Point p;

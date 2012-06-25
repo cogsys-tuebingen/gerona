@@ -19,6 +19,7 @@
 
 // forward declarations
 class MapProcessor;
+class MarkerPublisher;
 
 
 /**
@@ -88,8 +89,7 @@ private:
     //! Subscriber for the traversability map.
     ros::Subscriber subscribe_map_;
     //! Publisher for rvis markers.
-    ros::Publisher publish_rviz_marker_;
-    ros::Publisher publish_goal_;
+    MarkerPublisher *rviz_marker_;
     //! Listener for tf data.
     tf::TransformListener tf_listener_;
     //! Sends commands to motion_control
@@ -121,7 +121,8 @@ private:
     //! Dynamic reconfigure values.
     traversable_path::follow_pathConfig config_;
 
-    bool lock_goal_;
+    bool goal_locked_;
+    ros::Timer goal_lock_timer_;
 
     void dynamicReconfigureCallback(const traversable_path::follow_pathConfig &config, uint32_t level);
 
@@ -139,28 +140,7 @@ private:
                                    const motion_control::MotionResultConstPtr& result);
     void motionControlFeedbackCallback(const motion_control::MotionFeedbackConstPtr& feedback);
 
-    /**
-     * @brief Sends a marker to rviz which visualizes the goal as an arrow.
-     * The arrow starts at the goal position and points in the direction of the goal orientation.
-     * @param goal The goal pose with position and orientation of the goal.
-     */
-    void publishGoalMarker(Eigen::Vector2f position, float theta) const;
-
-    /**
-     * @brief Sends a line marker to rviz.
-     *
-     * Creates a line marker from point p1 to point p2 (x,y-coords, z = 0) and publishes it.
-     *
-     * @param p1 Start point of the line.
-     * @param p2 End point of the line.
-     * @param id Id of the line. A published line will replace older lines with the same id.
-     * @param color Color of the line.
-     */
-    void publishLineMarker(Eigen::Vector2f p1, Eigen::Vector2f p2, int id, std_msgs::ColorRGBA color) const;
-
-    void publishArrowMarker(Eigen::Vector2f point, float angle, int id, std_msgs::ColorRGBA color) const;
-    void publishArrowMarker(Eigen::Vector2f point, Eigen::Vector2f direction, int id, std_msgs::ColorRGBA color) const;
-
+    void goalLockTimerCallback(const ros::TimerEvent& event);
 
     /**
      * @brief Set the given position as navigation goal.
@@ -169,13 +149,15 @@ private:
      * The position and angle are expected to be respective to frame "/map".
      *
      * If the new goal is too near at the current goal, it will not be set. This is necessary due to the way how
-     * motion_control works.
+     * motion_control works. An exception is made if lock_goal is set.
      *
      * @param pos Position of the goal.
      * @param theta Angle of the goal orientation.
-     * @param force If this value is true, the new goal will be set, no matter how near it is to the current goal.
+     * @param lock_goal If this value is true, the new goal will be locked. That is other goals will be ignored until
+     *                  this goal is reached or a certain time has elapsed. Furthermore this option forces the new goal
+     *                  to be set no matter if the goal is too near to the current goal or not.
      */
-    void setGoalPoint(Eigen::Vector2f pos, float theta, bool force=false);
+    void setGoalPoint(Eigen::Vector2f pos, float theta, bool lock_goal=false);
 
     /**
      * @brief Refreshes all cached values (like robot pose and path line).
@@ -259,6 +241,9 @@ private:
 
     //! Stop immediatly and cancle current goal.
     void stopRobot();
+
+    //! Locks to goal until the robot reached it or a certain duration is over.
+    void lockGoal();
 
     /**
      * @brief Transform coordinates of a point to the map cell.
