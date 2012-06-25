@@ -137,6 +137,7 @@ void TerrainClassifier::laserScanToCloud(const sensor_msgs::LaserScanPtr &scan,
     //sensor_msgs::ChannelFloat32 channel_index;
 
     try {
+        tf_listener_.waitForTransform("/odom", scan->header.frame_id, ros::Time(0), ros::Duration(0.01));
         /** \todo use /map instead of /odom? */
         laser_projector_.transformLaserScanToPointCloud("/odom", *scan, cloud_msg, tf_listener_, -1.0,
                                                         laser_geometry::channel_option::Index);
