@@ -92,40 +92,20 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             rviz_marker_->publish(points);
         }
 
+        // remember last obstacle-state to recognize if the current obstacle is still the same than in the method call
+        // before.
+        static bool still_an_obstacle = false; /** \todo static is ugly in times of oop. this is just for fast testing*/
+
         /** \todo auch ein bisschen den raum um das ziel checken */
-        bool noObstacle = map_processor_->checkTraversabilityOfLine(robot_on_map, goal_on_map);
-        if (noObstacle) {
+        bool no_obstacle = map_processor_->checkTraversabilityOfLine(robot_on_map, goal_on_map);
+        if (no_obstacle) {
             setGoalPoint(goal_pos, path_angle_);
+        } else {
+            if (!still_an_obstacle) {
+                handleObstacle();
+            }
         }
-        else {
-//            ROS_INFO("OBSTACLE AHEAD!");
-//            /** \todo Handle this. Don't just stop. */
-
-//            // turn
-//            Vector2f goal_direction = findBestPathDirection();
-
-//            if (!goal_direction.isZero()) {
-//                float goal_angle = atan2(goal_direction[1], goal_direction[0]);
-//                goal_pos = robot_pose_.position + goal_direction;
-//                // Note: since findBestPathDirection() returned goal_direction and this method requires at least
-//                // 1m of free space to return an direction at all, there are no further traversability-checks
-//                // necessary.
-
-//                ROS_INFO("Turning.");
-//                /** \todo always forcing the goal where will likely lead to problems... Otherwise... does this problem still exists at all, when using a map? */
-
-//                setGoalPoint(goal_pos, goal_angle, true);
-//                // lock this goal until the robot reached it. Otherwise the robot will not turn well.
-//                lock_goal_ = true;
-//            } else {
-//                ROS_INFO("Stop moving.");
-//                /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
-//                motion_control_action_client_.cancelAllGoals();
-//                current_goal_.is_set = false;
-//            }
-
-            handleObstacle();
-        }
+        still_an_obstacle = !no_obstacle;
     }
     catch (const TransformMapException &e) {
         ROS_WARN_THROTTLE(1, "%s", e.what());
