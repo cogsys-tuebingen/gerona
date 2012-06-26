@@ -102,6 +102,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             setGoal(goal_pos, path_angle_);
         } else {
             if (!still_an_obstacle) {
+                ROS_INFO("Untraversable area ahead.");
                 handleObstacle();
             }
         }
@@ -556,7 +557,7 @@ float PathFollower::helperAngleWeight(float angle)
 
 void PathFollower::handleObstacle()
 {
-    ROS_INFO("OBSTACLE AHEAD!");
+    ROS_INFO("Handle obstacle...");
 
     // first stop the robot
     stopRobot();
@@ -565,10 +566,13 @@ void PathFollower::handleObstacle()
     Vector2f goal_direction = findBestPathDirection();
     if (!goal_direction.isZero()) {
         // drive back to last save position.
-        ROS_INFO("Drive back");
+        ROS_INFO("Drive back.");
 
-        float theta = atan2(last_pose_.orientation[1], last_pose_.orientation[0]);
-        setGoal(last_pose_.position, theta);
+//        float theta = atan2(last_pose_.orientation[1], last_pose_.orientation[0]);
+//        setGoal(last_pose_.position, theta);
+        // test: don't use last save position but simply drive 0.5m back.
+        float theta = atan2(robot_pose_.orientation[1], robot_pose_.orientation[0]);
+        setGoal(robot_pose_.position - 0.5*robot_pose_.orientation, theta);
         // give the robot some time to move
         ros::Duration(4).sleep(); /** \todo stop waiting if goal is reached */
 
@@ -579,7 +583,7 @@ void PathFollower::handleObstacle()
         // 1m of free space to return an direction at all, there are no further traversability-checks
         // necessary.
 
-        ROS_INFO("Go on");
+        ROS_INFO("Go on.");
         // lock this goal until the robot reached it. Otherwise the robot will to fast choose an other goal.
         setGoal(goal_pos, goal_angle, true);
     } else {
@@ -589,6 +593,7 @@ void PathFollower::handleObstacle()
 
 void PathFollower::stopRobot()
 {
+    ROS_INFO("Stop robot..");
     /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
     motion_control_action_client_.cancelAllGoals();
     current_goal_.is_set = false;
