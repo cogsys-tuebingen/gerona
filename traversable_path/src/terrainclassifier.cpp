@@ -12,6 +12,7 @@ using namespace traversable_path;
 
 
 TerrainClassifier::TerrainClassifier() :
+        tf_listener_(ros::Duration(20)),
         is_calibrated_(false),
         scan_buffer_(3)
 {

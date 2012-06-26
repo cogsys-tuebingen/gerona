@@ -99,7 +99,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
         /** \todo auch ein bisschen den raum um das ziel checken */
         bool no_obstacle = map_processor_->checkTraversabilityOfLine(robot_on_map, goal_on_map);
         if (no_obstacle) {
-            setGoalPoint(goal_pos, path_angle_);
+            setGoal(goal_pos, path_angle_);
         } else {
             if (!still_an_obstacle) {
                 handleObstacle();
@@ -148,7 +148,7 @@ void PathFollower::goalLockTimerCallback(const ros::TimerEvent &event)
 }
 
 
-void PathFollower::setGoalPoint(Vector2f position, float theta, bool lock_goal)
+void PathFollower::setGoal(Vector2f position, float theta, bool lock_goal)
 {
     // don't set new goal, if the current goal is locked.
     if (goal_locked_) {
@@ -203,6 +203,11 @@ void PathFollower::setGoalPoint(Vector2f position, float theta, bool lock_goal)
         ROS_DEBUG_THROTTLE(0.5, "Didn't update goal. New goal is %.2f m distant from the current goal. Minimum distance is %f",
                   distance, MIN_DISTANCE_BETWEEN_GOALS);
     }
+}
+
+void PathFollower::setGoal(PathFollower::Goal goal, bool lock_goal)
+{
+    setGoal(goal.position, goal.theta, lock_goal);
 }
 
 void PathFollower::refreshAll()
@@ -561,20 +566,12 @@ void PathFollower::handleObstacle()
     if (!goal_direction.isZero()) {
         // drive back to last save position.
         ROS_INFO("Drive back");
-        motion_control::MotionGoal goal;
-        goal.v     = 0.3;
-        goal.beta  = 0;
-        //goal.pos_tolerance = 0.1;
-        goal.mode  = motion_control::MotionGoal::MOTION_TO_GOAL;
-        goal.x     = last_pose_.position[0];
-        goal.y     = last_pose_.position[1];
-        goal.theta = atan2(last_pose_.orientation[1], last_pose_.orientation[0]);
-        // no need to set current_goal_ here, since we wait for the end of the action right here.
-        rviz_marker_->publishGoalMarker(last_pose_.position, goal.theta);
-        actionlib::SimpleClientGoalState motion_state =
-                motion_control_action_client_.sendGoalAndWait(goal, ros::Duration(3), ros::Duration(0.1));
-        ROS_INFO_STREAM("Resulting State: " << motion_state.toString());
-        rviz_marker_->removeGoalMarker();
+
+        float theta = atan2(last_pose_.orientation[1], last_pose_.orientation[0]);
+        setGoal(last_pose_.position, theta);
+        // give the robot some time to move
+        ros::Duration(4).sleep(); /** \todo stop waiting if goal is reached */
+
 
         float goal_angle = atan2(goal_direction[1], goal_direction[0]);
         Vector2f goal_pos = robot_pose_.position + goal_direction;
@@ -584,7 +581,7 @@ void PathFollower::handleObstacle()
 
         ROS_INFO("Go on");
         // lock this goal until the robot reached it. Otherwise the robot will to fast choose an other goal.
-        setGoalPoint(goal_pos, goal_angle, true);
+        setGoal(goal_pos, goal_angle, true);
     } else {
         ROS_INFO("Stop moving.");
     }
