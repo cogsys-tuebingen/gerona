@@ -7,35 +7,22 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include "mapprocessor.h"
 #include <opencv2/highgui/highgui.hpp>
+#include <std_msgs/Empty.h>
 
 using namespace std;
 using namespace Eigen;
 
-void printMap(const nav_msgs::OccupancyGrid &map) {
-    for (size_t i = 0; i < map.data.size(); ++i) {
-        cout << (map.data[i] == 0 ? 'F' : (map.data[i] == 100 ? 'O' : '?'));
+ros::Timer timer;
 
-        if ((i+1)%map.info.width == 0) {
-            cout << endl;
-        }
-    }
+void timerCallback(const ros::TimerEvent &event)
+{
+    cout << "Timer!" << endl;
 }
 
-void printImg(const cv::Mat1b &img) {
-    for (int x = 0; x < img.cols; ++x) {
-        for (int y = 0; y < img.rows; ++y) {
-            switch (img[x][y]) {
-            case 0:
-                cout << 'O';
-                break;
-            case 255:
-                cout << 'F';
-            default:
-                cout << '?';
-            }
-        }
-        cout << endl;
-    }
+void foo(const std_msgs::EmptyConstPtr &msg)
+{
+    cout << "Start Timer" << endl;
+    timer.start();
 }
 
 int main(int argc, char** argv)
@@ -43,6 +30,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "test");
     ros::NodeHandle node_handle;
 
+    /*
     nav_msgs::OccupancyGrid map;
     map.header.frame_id = "map";
     map.info.resolution = 0.05;
@@ -87,6 +75,12 @@ int main(int argc, char** argv)
         pub.publish(map);
         rate.sleep();
     }
+    */
+
+    ros::Subscriber sub = node_handle.subscribe("foo", 0, &foo);
+    timer = node_handle.createTimer(ros::Duration(5), timerCallback, true, false);
+
+    ros::spin();
 
     return 0;
 }

@@ -159,12 +159,6 @@ private:
      *                  to be set no matter if the goal is too near to the current goal or not.
      */
     void setGoal(Eigen::Vector2f pos, float theta, bool lock_goal=false);
-    /**
-     * @brief Overloaded variant of setGoal().
-     * @param goal The goal to drive to.
-     * @param lock_goal Same as in other method.
-     */
-    void setGoal(Goal goal, bool lock_goal=false);
 
     /**
      * @brief Refreshes all cached values (like robot pose and path line).

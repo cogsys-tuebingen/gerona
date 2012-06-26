@@ -148,6 +148,7 @@ void PathFollower::motionControlFeedbackCallback(const motion_control::MotionFee
 
 void PathFollower::goalLockTimerCallback(const ros::TimerEvent &event)
 {
+    ROS_INFO("Unlock goal after timeout.");
     goal_locked_ = false;
 }
 
@@ -207,11 +208,6 @@ void PathFollower::setGoal(Vector2f position, float theta, bool lock_goal)
         ROS_DEBUG_THROTTLE(0.5, "Didn't update goal. New goal is %.2f m distant from the current goal. Minimum distance is %f",
                   distance, MIN_DISTANCE_BETWEEN_GOALS);
     }
-}
-
-void PathFollower::setGoal(PathFollower::Goal goal, bool lock_goal)
-{
-    setGoal(goal.position, goal.theta, lock_goal);
 }
 
 void PathFollower::refreshAll()
@@ -600,11 +596,13 @@ void PathFollower::stopRobot()
     /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
     motion_control_action_client_.cancelAllGoals();
     current_goal_.is_set = false;
+    goal_locked_ = false;
     rviz_marker_->removeGoalMarker();
 }
 
 void PathFollower::lockGoal()
 {
+    ROS_INFO("Lock goal.");
     goal_locked_ = true;
     goal_lock_timer_.start();
 }
