@@ -79,7 +79,10 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             points.scale.x = 0.1;
             points.scale.y = 0.1;
             size_t index = transformToMapIndex(goal_pos);
-            if (map_->data[index] != 0) {
+            if (goal_locked_) {
+                points.color.r = 1.0;
+                points.color.g = 1.0;
+            } else if (map_->data[index] != 0) {
                 points.color.r = 1.0;
             } else {
                 points.color.g = 1.0;
@@ -525,8 +528,8 @@ Eigen::Vector2f PathFollower::findBestPathDirection() const
                 bestDirectionValue = value;
             }
 
-            //ROS_DEBUG("Weight: %f", helperAngleWeight(alpha));
-            //ROS_DEBUG("Value: %f", value);
+            ROS_DEBUG("Weight: %f", helperAngleWeight(alpha));
+            ROS_DEBUG("Value: %f", value);
         }
     }
 
@@ -551,7 +554,7 @@ float PathFollower::helperAngleWeight(float angle)
         return 0.7;
     } else {
         /** \todo this weight should depend on MAX_SEARCHING_DISTANCE */
-        return 0.4;
+        return 0.5;
     }
 }
 
