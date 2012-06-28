@@ -13,7 +13,11 @@ public:
     VectorCell();
     void include(short int height, short int varHeight, int gapSize); // height in cm, gapSize in cm
     Surface getSurface(int index);
+    void addSurface(const Surface& s);
     vector<Surface>& getSurfaces();
+    const vector<Surface>& getSurfaces() const {
+        return surfaces;
+    }
 
 private:
     vector<Surface> surfaces; // Idee: Patches sortiert halten, damit finden des zu updatenden Patches einfacher

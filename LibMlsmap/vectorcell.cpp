@@ -103,3 +103,6 @@ vector<Surface>& VectorCell::getSurfaces(){
     return this->surfaces;
 }
 
+void VectorCell::addSurface(const Surface &s){
+    surfaces.push_back( s );
+}

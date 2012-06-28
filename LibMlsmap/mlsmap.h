@@ -30,6 +30,8 @@ public:
     unsigned int getFieldNumber();
     int toIndex(double x);
     void getBounds(double &minX, double &maxX, double &minY, double &maxY);
+    void setField( Field<CellT>* f, int f_index );
+
 private:
     const int mCellSize; // Size of Patch in cm
     const int mGapSize; // minimum distance between two surfaces in the same patch (in cm)
@@ -101,6 +103,7 @@ CellT* MLSmap<CellT>::getCell(int x, int y)
 template <class CellT>
 int MLSmap<CellT>::getFieldIndex(int x, int y)
 {
+    // Should never use more than 16 byte. See binary.cpp
     return (((x>>8)&0xf)<<4) + ((y>>8)&0xf);
 }
 
@@ -122,6 +125,12 @@ void MLSmap<CellT>::addField(int x, int y)
   cout << "addfield " << getFieldIndex(x,y) << " for coordinates x="<<x << " y="<<y <<endl;
   cout.flush();
     mFields[ getFieldIndex(x,y) ] = new Field<CellT>();
+}
+
+template <class CellT>
+void MLSmap<CellT>::setField( Field<CellT> *f, int f_index )
+{
+    mFields[f_index] = f;
 }
 
 template <class CellT>

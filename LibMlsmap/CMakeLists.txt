@@ -12,6 +12,9 @@ rosbuild_add_library (LibMlsmap
     vectorcell.cpp
     surface.cpp
     visualizer.cpp
+    binarywriter.cpp
+    binaryreader.cpp
+    binary.cpp
 )
 
 rosbuild_add_executable (TestMls TestMls.cpp)

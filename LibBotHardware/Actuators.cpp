@@ -40,7 +40,7 @@ Actuators::Actuators( RamaxxConnection * conn ) {
     }
 
     // Set speed servo default config
-    defaultConfig.min = 700;
+    defaultConfig.min = 1000;
     defaultConfig.zero = 2250;
     defaultConfig.max = 3000;
     mActuStatus[ACTUATOR_SPEED].config = defaultConfig;
