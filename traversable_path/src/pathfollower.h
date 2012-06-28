@@ -247,6 +247,12 @@ private:
     void lockGoal();
 
     /**
+     * Unlocks the goal.
+     * @see lockGoal()
+     */
+    void unlockGoal();
+
+    /**
      * @brief Transform coordinates of a point to the map cell.
      * @param point Some point. Has to be in the same frame than the map (which is '/map').
      * @return Pixel coordinates on the map.

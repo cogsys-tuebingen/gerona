@@ -47,6 +47,9 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 {
     map_ = msg;
 
+    ROS_DEBUG_STREAM("UnlockTimerStatus: isValid: " << goal_lock_timer_.isValid()
+                     << "hasPending: " << goal_lock_timer_.hasPending());
+
     try {
         map_processor_->setMap(*msg);
         refreshAll();
@@ -122,8 +125,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 void PathFollower::motionControlDoneCallback(const actionlib::SimpleClientGoalState &state,
                                              const motion_control::MotionResultConstPtr &result)
 {
-    // unlock goal.
-    goal_locked_ = false;
+    unlockGoal();
     current_goal_.is_set = false;
     rviz_marker_->removeGoalMarker();
 
@@ -596,15 +598,22 @@ void PathFollower::stopRobot()
     /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
     motion_control_action_client_.cancelAllGoals();
     current_goal_.is_set = false;
-    goal_locked_ = false;
+    unlockGoal();
     rviz_marker_->removeGoalMarker();
 }
 
 void PathFollower::lockGoal()
 {
-    ROS_INFO("Lock goal.");
+    ROS_DEBUG("Lock goal.");
     goal_locked_ = true;
     goal_lock_timer_.start();
+}
+
+void PathFollower::unlockGoal()
+{
+    ROS_DEBUG("Unock goal.");
+    goal_locked_ = false;
+    goal_lock_timer_.stop();
 }
 
 Vector2i PathFollower::transformToMap(Vector2f point) const
