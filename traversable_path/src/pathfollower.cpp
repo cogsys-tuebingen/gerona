@@ -530,6 +530,9 @@ Eigen::Vector2f PathFollower::findBestPathDirection() const
 
     ////////// MARKER
     rviz_marker_->publish(line_marker);
+    std_msgs::ColorRGBA col;
+    col.a = 0.5; col.r=0.8; col.g=0.8;
+    rviz_marker_->publishArrowMarker(robot_pose_.position, bestDirection, __LINE__, col);
 
     return bestDirection;
 }
