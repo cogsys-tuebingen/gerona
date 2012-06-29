@@ -253,25 +253,6 @@ private:
     void unlockGoal();
 
     /**
-     * @brief Transform coordinates of a point to the map cell.
-     * @param point Some point. Has to be in the same frame than the map (which is '/map').
-     * @return Pixel coordinates on the map.
-     * @throws traversable_path::TransformMapException if point lies outside of the map.
-     */
-    Eigen::Vector2i transformToMap(Eigen::Vector2f point) const;
-
-    /**
-     * @brief Transform coordinates of a point to the map cell index.
-     *
-     * This method returns the index of the map cell with which it can be accessed via map_.data[index].
-     *
-     * @param point Some point. Has to be in the same frame than the map (which is '/map').
-     * @return Index of the map cell.
-     * @throws traversable_path::TransformMapException if point lies outside of the map.
-     */
-    size_t transformToMapIndex(Eigen::Vector2f point) const;
-
-    /**
      * @brief Fit a line to a set of points (in 2-dim. space).
      *
      * The resulting line is returned in parametric form, but it also contains the normal vector.

@@ -29,8 +29,8 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "test");
     ros::NodeHandle node_handle;
+    MapProcessor map_processor;
 
-    /*
     nav_msgs::OccupancyGrid map;
     map.header.frame_id = "map";
     map.info.resolution = 0.05;
@@ -51,6 +51,9 @@ int main(int argc, char** argv)
     ros::Publisher pub = node_handle.advertise<nav_msgs::OccupancyGrid>("testmap", 0);
 
     cv::namedWindow("testmap", CV_WINDOW_FREERATIO);
+
+    map_processor.setMap(map);
+    ROS_INFO("Circle Traversability: %d", map_processor.checkTraversabilityOfCircle(Vector2i(50,20), 15));
 
     cv::Mat1b img;
     MapProcessor::mapToImage(map, &img);
@@ -75,12 +78,11 @@ int main(int argc, char** argv)
         pub.publish(map);
         rate.sleep();
     }
-    */
 
-    ros::Subscriber sub = node_handle.subscribe("foo", 0, &foo);
-    timer = node_handle.createTimer(ros::Duration(5), timerCallback, true, false);
+//    ros::Subscriber sub = node_handle.subscribe("foo", 0, &foo);
+//    timer = node_handle.createTimer(ros::Duration(5), timerCallback, true, false);
 
-    ros::spin();
+//    ros::spin();
 
     return 0;
 }

@@ -47,9 +47,6 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 {
     map_ = msg;
 
-    ROS_DEBUG_STREAM("UnlockTimerStatus: isValid: " << goal_lock_timer_.isValid()
-                     << "hasPending: " << goal_lock_timer_.hasPending());
-
     try {
         map_processor_->setMap(*msg);
         refreshAll();
@@ -62,11 +59,10 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 
 
         // check if goalpoint is traversable (and reachable) at all.
+        ROS_INFO("Now checking GoalTraversability...");
+        bool no_obstacle = map_processor_->checkGoalTraversability(robot_pose_.position, goal_pos);
 
-        // convert points to pixel coordinates of the map.
-        Vector2i robot_on_map = transformToMap(robot_pose_.position);
-        Vector2i goal_on_map = transformToMap(goal_pos);
-
+        ROS_INFO("GoalTraversability: %d", no_obstacle);
 
         /////////////// MARKER
         {
@@ -81,12 +77,15 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             // POINTS markers use x and y scale for width/height respectively
             points.scale.x = 0.1;
             points.scale.y = 0.1;
-            size_t index = transformToMapIndex(goal_pos);
+            size_t index = map_processor_->transformToMapIndex(goal_pos);
             if (goal_locked_) {
                 points.color.r = 1.0;
                 points.color.g = 1.0;
             } else if (map_->data[index] != 0) {
                 points.color.r = 1.0;
+            } else if (!no_obstacle) {
+                points.color.r = 1.0;
+                points.color.g = 0.5;
             } else {
                 points.color.g = 1.0;
             }
@@ -102,8 +101,6 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
         // before.
         static bool still_an_obstacle = false; /** \todo static is ugly in times of oop. this is just for fast testing*/
 
-        /** \todo auch ein bisschen den raum um das ziel checken */
-        bool no_obstacle = map_processor_->checkTraversabilityOfLine(robot_on_map, goal_on_map);
         if (no_obstacle) {
             setGoal(goal_pos, path_angle_);
         } else {
@@ -364,7 +361,7 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
 
         // break, if obstacle is in front.
         try {
-            if (map_->data[transformToMapIndex(forward_pos)] != 0) {
+            if (map_->data[map_processor_->transformToMapIndex(forward_pos)] != 0) {
                 if (forward < 0) {
                     // there is an obstacle between the points and the robot. Drop all this points.
                     out->clear();
@@ -385,7 +382,7 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
             do {
                 left_edge += orthogonal * step_size;
             }
-            while( map_->data[transformToMapIndex(left_edge)] == 0 );
+            while( map_->data[map_processor_->transformToMapIndex(left_edge)] == 0 );
         } catch (TransformMapException e) {
             // Do nothing here. Reaching the end of the map will then be handled as if there is an obstacle.
         }
@@ -395,7 +392,7 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
             do {
                 right_edge += -orthogonal * step_size;
             }
-            while( map_->data[transformToMapIndex(right_edge)] == 0 );
+            while( map_->data[map_processor_->transformToMapIndex(right_edge)] == 0 );
         } catch (TransformMapException e) {
             // Do nothing here. Reaching the end of the map will then be handled as if there is an obstacle.
         }
@@ -461,7 +458,7 @@ Eigen::Vector2f PathFollower::findBestPathDirection() const
 
 
     // transform position of the robot to the map.
-    const Vector2i robot_pos_on_map = transformToMap(robot_pose_.position);
+    const Vector2i robot_pos_on_map = map_processor_->transformToMap(robot_pose_.position);
 
     /*
      * Rotate vector v about alpha degrees:
@@ -489,7 +486,7 @@ Eigen::Vector2f PathFollower::findBestPathDirection() const
         /** \todo handle exceptions? */
         Vector2i line_end;
         try {
-            line_end = transformToMap(end_of_line);
+            line_end = map_processor_->transformToMap(end_of_line);
         } catch (...) {
             // This should never happen, as long as MAX_SEARCHING_DISTANCE, map size and map move rate are well aligned.
             ROS_DEBUG("findBestPathDirection - MEEEP");
@@ -573,7 +570,18 @@ void PathFollower::handleObstacle()
 //        setGoal(last_pose_.position, theta);
         // test: don't use last save position but simply drive 0.5m back.
         float theta = atan2(robot_pose_.orientation[1], robot_pose_.orientation[0]);
-        setGoal(robot_pose_.position - 0.5*robot_pose_.orientation, theta);
+
+        // try to drive back 1m. If not possible trie 50cm
+        /** \todo this could be done better */
+        Vector2f drive_back_goal = robot_pose_.position - robot_pose_.orientation;
+        if (!map_processor_->checkGoalTraversability(robot_pose_.position, drive_back_goal)) {
+            drive_back_goal = robot_pose_.position - 0.5*robot_pose_.orientation;
+            if (!map_processor_->checkGoalTraversability(robot_pose_.position, drive_back_goal)) {
+                ROS_INFO("Can not move back. Stop moving.");
+                return;
+            }
+        }
+        setGoal(drive_back_goal, theta);
         // give the robot some time to move
         ros::Duration(4).sleep(); /** \todo stop waiting if goal is reached */
 
@@ -614,28 +622,6 @@ void PathFollower::unlockGoal()
     ROS_DEBUG("Unock goal.");
     goal_locked_ = false;
     goal_lock_timer_.stop();
-}
-
-Vector2i PathFollower::transformToMap(Vector2f point) const
-{
-    Vector2i result;
-    result[0] = (int) ((point[0] - map_->info.origin.position.x) / map_->info.resolution);
-    result[1] = (int) ((point[1] - map_->info.origin.position.y) / map_->info.resolution);
-
-    // cast map width/height from uint to int here, to avoid warnings. There will be no overflow problems since the
-    // values will much less than 2*10^9.
-    if (result[0] < 0 || result[0] >= (int)map_->info.width || result[1] < 0 || result[1] >= (int)map_->info.height) {
-        throw TransformMapException();
-    }
-
-    return result;
-}
-
-size_t PathFollower::transformToMapIndex(Vector2f point) const
-{
-    Vector2i pixel = transformToMap(point);
-
-    return pixel[1] * map_->info.width + pixel[0];
 }
 
 void PathFollower::fitLinear(const PathFollower::vectorVector2f &points, PathFollower::Line *result)
