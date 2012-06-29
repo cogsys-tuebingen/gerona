@@ -157,8 +157,10 @@ private:
      * @param lock_goal If this value is true, the new goal will be locked. That is other goals will be ignored until
      *                  this goal is reached or a certain time has elapsed. Furthermore this option forces the new goal
      *                  to be set no matter if the goal is too near to the current goal or not.
+     * @param velocity Velocity of the robot when driving to this goal. If set to -1.0 the default value set by dynamic
+     *                 reconfigure will be used.
      */
-    void setGoal(Eigen::Vector2f pos, float theta, bool lock_goal=false);
+    void setGoal(Eigen::Vector2f pos, float theta, bool lock_goal=false, float velocity = -1.0);
 
     /**
      * @brief Refreshes all cached values (like robot pose and path line).

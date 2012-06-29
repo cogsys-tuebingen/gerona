@@ -152,7 +152,7 @@ void PathFollower::goalLockTimerCallback(const ros::TimerEvent &event)
 }
 
 
-void PathFollower::setGoal(Vector2f position, float theta, bool lock_goal)
+void PathFollower::setGoal(Vector2f position, float theta, bool lock_goal, float velocity)
 {
     // don't set new goal, if the current goal is locked.
     if (goal_locked_) {
@@ -176,7 +176,7 @@ void PathFollower::setGoal(Vector2f position, float theta, bool lock_goal)
     if (distance > MIN_DISTANCE_BETWEEN_GOALS || lock_goal) {
         // send goal to motion_control
         motion_control::MotionGoal goal;
-        goal.v     = config_.velocity;
+        goal.v     = velocity != -1 ? velocity : config_.velocity;
         goal.beta  = 0;
         //goal.pos_tolerance = 0.1;
         goal.mode  = motion_control::MotionGoal::MOTION_TO_GOAL;
@@ -581,7 +581,7 @@ void PathFollower::handleObstacle()
                 return;
             }
         }
-        setGoal(drive_back_goal, theta);
+        setGoal(drive_back_goal, theta, false, 0.3);
         // give the robot some time to move
         ros::Duration(4).sleep(); /** \todo stop waiting if goal is reached */
 
@@ -594,7 +594,7 @@ void PathFollower::handleObstacle()
 
         ROS_INFO("Go on.");
         // lock this goal until the robot reached it. Otherwise the robot will to fast choose an other goal.
-        setGoal(goal_pos, goal_angle, true);
+        setGoal(goal_pos, goal_angle, true, 0.3);
     } else {
         ROS_INFO("Stop moving.");
     }
