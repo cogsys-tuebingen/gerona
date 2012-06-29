@@ -117,6 +117,47 @@ bool Binary::toField( int16_t& f_index,
     return true;
 }
 
+void Binary::fromHeader( MLSmap<VectorCell>* map,
+                         char maj_ver,
+                         char min_ver,
+                         std::vector<int16_t> &b )
+{
+    // File id 'MLSMAP'
+    b.push_back( 19533 );
+    b.push_back( 19795 );
+    b.push_back( 20545 );
+
+    // Major and minor format version
+    int16_t c( 0 );
+    c |= (int16_t)(maj_ver << 8) & 0xFF00;
+    c |= (int16_t)min_ver & 0x00FF;
+    b.push_back( c );
+
+    /// @todo Number of cells per field etc
+
+    // Number of allocated fields
+    b.push_back( map->getFieldNumber());
+}
+
+void Binary::toHeader( char &maj_ver, char &min_ver,
+                       uint16_t &f_num,
+                       const std::vector<int16_t> &b,
+                       std::size_t &i )
+{
+    // Check start bytes (should be MLSMAP)
+    if ( b[i++] != 19533 || b[i++] != 19795 || b[i++] != 20545 )
+        throw BinaryException( "Start of data != \"MLSMAP\"" );
+
+    // Check version (only 1.0 supported)
+    min_ver = (b[i] >> 8) & 0xFF;
+    maj_ver = b[i++] & 0xFF;
+    if ( maj_ver != 1 || min_ver != 0 )
+        throw BinaryException( "Format version not supported" );
+
+    // Read number of fields
+    f_num = b[i++];
+}
+
 uint32_t Binary::getFieldSize( const Field<VectorCell> &f )
 {
     uint32_t f_size = 4; // Header

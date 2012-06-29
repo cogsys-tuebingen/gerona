@@ -31,6 +31,7 @@ public:
     int toIndex(double x);
     void getBounds(double &minX, double &maxX, double &minY, double &maxY);
     void setField( Field<CellT>* f, int f_index );
+    void getCoord( int field_index, int cell_index, double& x, double& y ) const;
 
 private:
     const int mCellSize; // Size of Patch in cm
@@ -122,8 +123,6 @@ bool MLSmap<CellT>::isValidCoord(int x, int y)
 template <class CellT>
 void MLSmap<CellT>::addField(int x, int y)
 {
-  cout << "addfield " << getFieldIndex(x,y) << " for coordinates x="<<x << " y="<<y <<endl;
-  cout.flush();
     mFields[ getFieldIndex(x,y) ] = new Field<CellT>();
 }
 
@@ -143,6 +142,15 @@ template <class CellT>
 CellT* MLSmap<CellT>::getCellByCoord(double x, double y)
 {
     return getCell(floor(x/mCellSize), floor(y/mCellSize));
+}
+
+template <class CellT>
+void MLSmap<CellT>::getCoord( int field_index, int cell_index, double &x, double &y ) const
+{
+    x = (double)((cell_index >> 8) & 0xFF) * mCellSize / 100.0;
+    y = (double)(cell_index & 0xFF) * mCellSize / 100.0;
+    x += ((double)((field_index & 0xF0) << 4) * mCellSize - mHalfMapSize) / 100.0;
+    y += ((double)((field_index & 0x0F) << 8) * mCellSize - mHalfMapSize) / 100.0;
 }
 
 template <class CellT>
