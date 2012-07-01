@@ -16,17 +16,6 @@
 #include "vectorcell.h"
 #include "mlsmap.h"
 
-class BinaryReaderException : public std::exception
-{
-public:
-    BinaryReaderException( std::string msg ) : msg_( msg ) {}
-    virtual ~BinaryReaderException() throw() {}
-    virtual const char* what() const throw() { return msg_.c_str(); }
-
-private:
-    std::string msg_;
-};
-
 class BinaryReader
 {
 public:
@@ -46,6 +35,9 @@ private:
 
     /// Number of surfaces
     std::size_t surfaces_;
+
+    /// Write debug output
+    bool verbose_;
 };
 
 #endif // BINARYREADER_H

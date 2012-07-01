@@ -27,6 +27,9 @@ public:
     void merge(MLSmap mlsmap);
     std::vector<Field<CellT>*> getFields();
     int getCellSize();
+    int getGapSize();
+    void setCellSize(int cellSize);
+    void setGapSize(int gapSize);
     unsigned int getFieldNumber();
     int toIndex(double x);
     void getBounds(double &minX, double &maxX, double &minY, double &maxY);
@@ -34,8 +37,8 @@ public:
     void getCoord( int field_index, int cell_index, double& x, double& y ) const;
 
 private:
-    const int mCellSize; // Size of Patch in cm
-    const int mGapSize; // minimum distance between two surfaces in the same patch (in cm)
+    int mCellSize; // Size of Patch in cm
+    int mGapSize; // minimum distance between two surfaces in the same patch (in cm)
     const int mHalfMapSize; //don't change this value. The hash functions getFieldIndex() and getCellIndex depend on this
     const int mMetersToCentimeters;
 
@@ -149,8 +152,8 @@ void MLSmap<CellT>::getCoord( int field_index, int cell_index, double &x, double
 {
     x = (double)((cell_index >> 8) & 0xFF) * mCellSize / 100.0;
     y = (double)(cell_index & 0xFF) * mCellSize / 100.0;
-    x += ((double)((field_index & 0xF0) << 4) * mCellSize - mHalfMapSize) / 100.0;
-    y += ((double)((field_index & 0x0F) << 8) * mCellSize - mHalfMapSize) / 100.0;
+    x += (double)((((field_index & 0xF0) << 4) - mHalfMapSize)*mCellSize )/100.0;
+    y += (double)((((field_index & 0x0F) << 8) - mHalfMapSize)*mCellSize )/100.0;
 }
 
 template <class CellT>
@@ -205,6 +208,21 @@ std::vector<Field<CellT>*> MLSmap<CellT>::getFields(){
 template <class CellT>
 int MLSmap<CellT>::getCellSize(){
     return mCellSize;
+}
+
+template <class CellT>
+int MLSmap<CellT>::getGapSize(){
+    return mGapSize;
+}
+
+template <class CellT>
+void MLSmap<CellT>::setCellSize( int cellSize ){
+    mCellSize = cellSize;
+}
+
+template <class CellT>
+void MLSmap<CellT>::setGapSize( int gapSize ){
+    mGapSize = gapSize;
 }
 
 template <class CellT>

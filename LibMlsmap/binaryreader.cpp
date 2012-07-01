@@ -14,7 +14,7 @@
 using namespace std;
 
 BinaryReader::BinaryReader( MLSmap<VectorCell> *map )
-    : map_( map )
+    : map_( map ), verbose_( false )
 {
 }
 
@@ -23,53 +23,58 @@ void BinaryReader::read( std::string filename )
     // Open file
     ifstream in( filename.c_str());
     if ( !in.good())
-        throw BinaryReaderException( "Cannot open file" );
+        throw BinaryException( "Cannot open file" );
 
+    // Read header
     vector<int16_t> b;
-    readDataVector( b, 5, in );
+    std::size_t i( 0 );
+    readDataVector( b, Binary::getMapHeaderSize(), in );
+    MapHeader mh;
+    Binary::readMapHeader( mh, b, i );
 
-    // Check start bytes (should be MLSMAP)
-    if ( b[0] != 19533 || b[1] != 19795 || b[2] != 20545 )
-        throw BinaryReaderException( "Start of file != \"MLSMAP\"" );
+    // Map header info
+    if ( verbose_ ) {
+        cout << "Map header:\n"
+             << " - Cell size: " << mh.cell_size << "\n"
+             << " - Gap size:  " << mh.gap_size << "\n"
+             << " - Fields:    " << mh.num_fields << endl;
+    }
 
-    // Check version (only 1.0 supported)
-    char minor_ver = b[3] >> 8;
-    char major_ver = b[3] & 0xFF;
-    if ( major_ver != 1 || minor_ver != 0 )
-        throw BinaryReaderException( "File format version not supported" );
+    // Check file version
+    if ( mh.major_version != 1 || mh.minor_version != 0 )
+        throw BinaryException( "Unsupported format version" );
 
-    // Read number of fields
-    uint16_t num_fields = b[4];
-    fields_ = num_fields;
+    // Header looks good
+    map_->setCellSize( mh.cell_size );
+    map_->setGapSize( mh.gap_size );
 
     // Read fields
-    for ( uint16_t j = 0; j < num_fields; ++j ) {
-        // Check for field header and get field size
-        b.clear();
-        readDataVector( b, 3, in );
+    FieldHeader fh;
+    for ( uint16_t j = 0; j < mh.num_fields; ++j ) {
+        // Read field header
+        b.clear(); i = 0;
+        readDataVector( b, Binary::getFieldHeaderSize(), in );
+        Binary::readFieldHeader( fh, b, i );
 
-        // Start of field?
-        cout << "Field header is: " << b[0] << endl;
-        if ( b[0] != BINARY_FIELD_START )
-            throw BinaryReaderException( "Invalid field header" );
+        // Field info
+        if ( verbose_ ) {
+            cout << "Field header #" << j << "\n"
+                 << " - Index:    " << fh.index << "\n"
+                 << " - Bin size: " << fh.binary_size << endl;
+        }
 
-        // Binary size of field
-        uint32_t f_size = 0;
-        f_size |= ((uint32_t)b[1] << 16) & 0xFFFF0000;
-        f_size |= (uint32_t)b[2] & 0x0000FFFF;
-        cout << "Field size is: " << f_size << " (" << b[1] << ", " << b[2] << ")" << endl;
+        // Check
+        if ( fh.binary_size == 0 )
+            throw BinaryException( "Field with binary size 0" );
 
         // Read field data
-        readDataVector( b, f_size - 3, in );
+        b.clear(); i = 0;
+        readDataVector( b, fh.binary_size - Binary::getFieldHeaderSize(), in );
 
         // Parse data
-        int16_t f_index = 0;
-        size_t i = 0;
         Field<VectorCell>* f = new Field<VectorCell>;
-        Binary::toField( f_index, f, b, i );
-        map_->setField( f, f_index );
-
-        cout << "Added field with index " << f_index << " successfully" << endl;
+        Binary::readField( fh, f, b, i );
+        map_->setField( f, fh.index );
     }
 }
 
@@ -82,7 +87,7 @@ void BinaryReader::readDataVector( std::vector<int16_t> &b, std::size_t n, std::
     for ( size_t i = 0; i < n; ++i ) {
         in.read( buff, 2 );
         if ( i != n - 1 && !in.good())
-            throw BinaryReaderException( "IO error or unexpected end of file" );
+            throw BinaryException( "IO error or unexpected end of file" );
         d = (buff[1] << 8) & 0xFF00;
         d |= buff[0] & 0x00FF;
         b.push_back( d );

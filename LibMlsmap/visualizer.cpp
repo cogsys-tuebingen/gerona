@@ -229,9 +229,6 @@ void Visualizer::writePLY(string filename, MLSmap<VectorCell>* map, double max_h
         }
     }
 
-    cout << "visualization: ready to write ply file" << endl;
-    cout << "map has " << surfaceCounter << " surfaces" << endl;
-
 
     ofstream plyFile(filename.c_str());
 
@@ -241,8 +238,6 @@ void Visualizer::writePLY(string filename, MLSmap<VectorCell>* map, double max_h
         writeData(plyFile);
 
         plyFile.close();
-
-        cout << "visualization: ply file written" << endl;
     }
 
     else{

@@ -39,6 +39,9 @@ private:
 
     /// Filesize of written file (in bytes)
     std::size_t filesize_;
+
+    /// Write debug info to cout
+    bool verbose_;
 };
 
 #endif // BINARYWRITER_H
