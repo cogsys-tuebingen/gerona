@@ -5,9 +5,15 @@
 using namespace std;
 using namespace Eigen;
 
-MarkerPublisher::MarkerPublisher()
+MarkerPublisher::MarkerPublisher():
+    time_(0)
 {
     publisher_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 100);
+}
+
+void MarkerPublisher::setTime(const ros::Time &time)
+{
+    time_ = time;
 }
 
 void MarkerPublisher::publish(const visualization_msgs::Marker &marker) const
@@ -19,6 +25,7 @@ void MarkerPublisher::publishGoalMarker(Vector2f position, float theta) const
 {
     visualization_msgs::Marker marker;
     marker.header.frame_id = "/map";
+    marker.header.stamp = time_;
     marker.pose.position = vectorToPoint(position);
     marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
 
@@ -66,6 +73,7 @@ void MarkerPublisher::publishLineMarker(Eigen::Vector2f p1, Eigen::Vector2f p2, 
     visualization_msgs::Marker line;
 
     line.header.frame_id = "/map";
+    line.header.stamp = time_;
     line.ns = "follow_path/lines";
     line.action = visualization_msgs::Marker::ADD;
     line.pose.orientation.w = 1.0;
@@ -87,6 +95,7 @@ void MarkerPublisher::publishArrowMarker(Eigen::Vector2f point, float angle, int
 {
     visualization_msgs::Marker marker;
     marker.header.frame_id = "/map";
+    marker.header.stamp = time_;
     marker.pose.position = vectorToPoint(point);
     marker.pose.orientation = tf::createQuaternionMsgFromYaw(angle);
     marker.ns = "follow_path/arrow";

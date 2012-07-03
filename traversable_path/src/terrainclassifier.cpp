@@ -484,6 +484,7 @@ void TerrainClassifier::updateMap(PointCloudXYZRGBT cloud)
     }
 
     nav_msgs::OccupancyGrid final_map = map_;
+    final_map.header.stamp = ros::Time::now();
 
     for (vector<int8_t>::iterator map_it = final_map.data.begin(); map_it != final_map.data.end(); ++map_it) {
         *map_it = *map_it < 50 ? 0 : 100;

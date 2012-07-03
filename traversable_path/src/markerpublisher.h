@@ -21,6 +21,8 @@ public:
 
     MarkerPublisher();
 
+    void setTime(const ros::Time &time);
+
     /**
      * @brief Publish a rviz marker.
      * @param marker The marker.
@@ -57,6 +59,7 @@ public:
 private:
     ros::NodeHandle node_handle_;
     ros::Publisher publisher_;
+    ros::Time time_;
 
     /**
      * @brief Convert an Eigen::Vector2f to a geometry_msgs::Point.

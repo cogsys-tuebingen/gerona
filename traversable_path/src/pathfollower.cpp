@@ -49,6 +49,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 
     try {
         map_processor_->setMap(*msg);
+        rviz_marker_->setTime(msg->header.stamp);
         refreshAll();
 
         // distance of robot to path middle line
@@ -597,7 +598,7 @@ void PathFollower::handleObstacle()
 
         ROS_INFO("Go on.");
         // lock this goal until the robot reached it. Otherwise the robot will to fast choose an other goal.
-        setGoal(goal_pos, goal_angle, true, 0.3);
+        setGoal(goal_pos, goal_angle, true, 0.2);
     } else {
         ROS_INFO("Stop moving.");
     }
