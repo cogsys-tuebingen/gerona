@@ -136,9 +136,8 @@ bool MapProcessor::checkGoalTraversability(const Eigen::Vector2f &robot, const E
     Vector2i robot_on_map = transformToMap(robot);
     Vector2i goal_on_map = transformToMap(goal);
 
-    /** \todo use circle check... */
-    return checkTraversabilityOfLine(robot_on_map, goal_on_map);
-            //&& checkTraversabilityOfCircle(goal_on_map, CHECK_GOAL_RADIUS/map_.info.resolution);
+    return checkTraversabilityOfLine(robot_on_map, goal_on_map)
+            && checkTraversabilityOfCircle(goal_on_map, CHECK_GOAL_RADIUS/map_.info.resolution);
 }
 
 Eigen::Vector2i MapProcessor::transformToMap(Eigen::Vector2f point) const

@@ -54,8 +54,8 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 
         // distance of robot to path middle line
         Vector2f to_mid_line = vectorFromPointToLine(path_middle_line_, robot_pose_.position);
-        // goal position (0.8m ahead):
-        Vector2f goal_pos = robot_pose_.position + 0.8 * path_middle_line_.direction
+        // goal position (0.6m ahead):
+        Vector2f goal_pos = robot_pose_.position + 0.6 * path_middle_line_.direction
                 + to_mid_line;
 
 
