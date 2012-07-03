@@ -544,7 +544,7 @@ float PathFollower::helperAngleWeight(float angle)
     ROS_ASSERT_MSG(angle >= 0 && angle <= M_PI+0.1, "Angle %f is out of range", angle*180/M_PI);
 
     if (angle < M_PI/4.0) { // 0-45°
-        return 0.7;
+        return 1.3;
     }
     else if (angle < 5.0/9.0*M_PI) { // 45-100°
         return 1.0;

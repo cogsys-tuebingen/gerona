@@ -13,5 +13,5 @@
     <include file="$(find traversable_path)/launch/classify_terrain.launch" />
     <node name="follow_path" pkg="traversable_path" type="follow_path" />
 
-    <node name="rviz" pkg="rviz" type="rviz" />
+    <!-- <node name="rviz" pkg="rviz" type="rviz" /> -->
 </launch>
