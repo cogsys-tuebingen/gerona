@@ -566,6 +566,7 @@ void PathFollower::handleObstacle()
 
     // ...then look for a new goal
     Vector2f goal_direction = findBestPathDirection();
+    Vector2f goal_pos = robot_pose_.position + goal_direction;
     if (!goal_direction.isZero()) {
         // drive back to last save position.
         ROS_INFO("Drive back.");
@@ -591,7 +592,6 @@ void PathFollower::handleObstacle()
 
 
         float goal_angle = atan2(goal_direction[1], goal_direction[0]);
-        Vector2f goal_pos = robot_pose_.position + goal_direction;
         // Note: since findBestPathDirection() returned goal_direction and this method requires at least
         // 1m of free space to return an direction at all, there are no further traversability-checks
         // necessary.
