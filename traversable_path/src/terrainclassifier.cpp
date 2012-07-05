@@ -44,7 +44,7 @@ TerrainClassifier::TerrainClassifier() :
     /** Set laser tilt @todo load the angle from calibration file */
     ros::Publisher pub_laser_rtz = node_handle_.advertise<ramaxxbase::PTZ>("/cmd_rtz", 1, true);
     ramaxxbase::PTZ laser_rtz;
-    laser_rtz.tilt = -0.11; // other values default to 0
+    laser_rtz.tilt = -0.16; // other values default to 0
     pub_laser_rtz.publish(laser_rtz);
     ROS_INFO("Published laser tilt angle. Waiting 2 seconds for rtz...");
     sleep(2); // the rtz unit needs some time to move the laser scanner. 2 sec should be enought.
