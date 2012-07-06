@@ -54,8 +54,8 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 
         // distance of robot to path middle line
         Vector2f to_mid_line = vectorFromPointToLine(path_middle_line_, robot_pose_.position);
-        // goal position (0.7m ahead):
-        Vector2f goal_pos = robot_pose_.position + 0.7 * path_middle_line_.direction
+        // goal position (0.6m ahead):
+        Vector2f goal_pos = robot_pose_.position + 0.6 * path_middle_line_.direction
                 + to_mid_line;
 
 
@@ -164,7 +164,7 @@ void PathFollower::setGoal(Vector2f position, float theta, bool lock_goal, float
         lockGoal();
     }
 
-    const float MIN_DISTANCE_BETWEEN_GOALS = 0.4;
+    const float MIN_DISTANCE_BETWEEN_GOALS = 0.5;
 
     // make sure the min. distance doesn't avoid the goal to be set at the first call of this method.
     float distance = INFINITY;
@@ -351,7 +351,7 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
     float step_size = map_->info.resolution;
 
     // go forward
-    const float DISTANCE_BEHIND_ROBOT = 1.0; /** \todo experimentiere mit kleineren werten */
+    const float DISTANCE_BEHIND_ROBOT = 0.8; /** \todo experimentiere mit kleineren werten */
     const float DISTANCE_IN_FRONT_OF_ROBOT = 1.0;
 
     //! Position of the current forward step.
