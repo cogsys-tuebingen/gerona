@@ -58,6 +58,8 @@ void MapProcessor::process(nav_msgs::OccupancyGrid *map)
 
     cv::Mat kernel(3, 3, CV_8U, cv::Scalar(1));
     cv::morphologyEx(img, img, cv::MORPH_CLOSE, kernel);
+    kernel = cv::Mat(5, 5, CV_8U, cv::Scalar(1));
+    cv::morphologyEx(img, img, cv::MORPH_OPEN, kernel);
 
 //    cv::imshow("map", img);
 //    cv::imshow("processed map", processed);

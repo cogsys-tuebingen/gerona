@@ -7,28 +7,17 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include "mapprocessor.h"
 #include <opencv2/highgui/highgui.hpp>
-#include <std_msgs/Empty.h>
+
+#include <vector>
 
 using namespace std;
 using namespace Eigen;
-
-ros::Timer timer;
-
-void timerCallback(const ros::TimerEvent &event)
-{
-    cout << "Timer!" << endl;
-}
-
-void foo(const std_msgs::EmptyConstPtr &msg)
-{
-    cout << "Start Timer" << endl;
-    timer.start();
-}
 
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "test");
     ros::NodeHandle node_handle;
+    /*
     MapProcessor map_processor;
 
     nav_msgs::OccupancyGrid map;
@@ -78,11 +67,36 @@ int main(int argc, char** argv)
         pub.publish(map);
         rate.sleep();
     }
+    */
 
-//    ros::Subscriber sub = node_handle.subscribe("foo", 0, &foo);
-//    timer = node_handle.createTimer(ros::Duration(5), timerCallback, true, false);
 
-//    ros::spin();
+    typedef vector<uchar> vc;
+    vc foo(1000);
+    for (size_t i = 0;  i< foo.size(); ++i) {
+        foo[i] = (i%2 ? 0 : 100);
+    }
+
+    vc bar(1000);
+
+    ros::Time start = ros::Time::now();
+
+    for (int i = 0; i < 100000; ++i) {
+        for (size_t j = 0; j < foo.size(); ++j) {
+            bar[i] = (foo[i] == 0) ? 255 : 0;
+        }
+    }
+
+    ros::Time end = ros::Time::now();
+
+    for (vc::iterator it = bar.begin(); it != bar.end(); ++it) {
+        cout << (int)*it << ", ";
+    }
+    cout << endl << endl;
+
+
+    cout << "Duration: " << (end-start) << endl;
+
+    ros::spin();
 
     return 0;
 }
