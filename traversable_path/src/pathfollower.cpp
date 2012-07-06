@@ -164,7 +164,7 @@ void PathFollower::setGoal(Vector2f position, float theta, bool lock_goal, float
         lockGoal();
     }
 
-    const float MIN_DISTANCE_BETWEEN_GOALS = 0.5;
+    const float MIN_DISTANCE_BETWEEN_GOALS = 0.4;
 
     // make sure the min. distance doesn't avoid the goal to be set at the first call of this method.
     float distance = INFINITY;
