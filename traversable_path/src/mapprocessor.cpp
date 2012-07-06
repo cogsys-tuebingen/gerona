@@ -132,7 +132,8 @@ bool MapProcessor::isPointTraversable(const Eigen::Vector2i &point) const
 
 bool MapProcessor::checkGoalTraversability(const Eigen::Vector2f &robot, const Eigen::Vector2f &goal) const
 {
-    const float CHECK_GOAL_RADIUS = 0.2;
+    //! Radius of the circle around the goal, that is checked (in meters)
+    const float CHECK_GOAL_RADIUS = 0.3;
 
     // convert points to pixel coordinates of the map.
     Vector2i robot_on_map = transformToMap(robot);
