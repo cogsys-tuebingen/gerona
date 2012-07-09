@@ -95,6 +95,7 @@ private:
     tf::TransformListener tf_listener_;
     //! Sends commands to motion_control
     actionlib::SimpleActionClient<motion_control::MotionAction> motion_control_action_client_;
+    ros::Publisher vel_publisher_;
     //! dynamic reconfigure server.
     dynamic_reconfigure::Server<traversable_path::follow_pathConfig> reconfig_server_;
 
@@ -158,13 +159,12 @@ private:
      *
      * @param pos Position of the goal.
      * @param theta Angle of the goal orientation.
+     * @param velocity Velocity of the robot when driving to this goal.
      * @param lock_goal If this value is true, the new goal will be locked. That is other goals will be ignored until
      *                  this goal is reached or a certain time has elapsed. Furthermore this option forces the new goal
      *                  to be set no matter if the goal is too near to the current goal or not.
-     * @param velocity Velocity of the robot when driving to this goal. If set to -1.0 the default value set by dynamic
-     *                 reconfigure will be used.
      */
-    void setGoal(Eigen::Vector2f pos, float theta, bool lock_goal=false, float velocity = -1.0);
+    void setGoal(Eigen::Vector2f pos, float theta, float velocity, bool lock_goal=false);
 
     /**
      * @brief Refreshes all cached values (like robot pose and path line).

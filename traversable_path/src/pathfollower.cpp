@@ -3,6 +3,7 @@
 
 #include <Eigen/Dense>
 #include <visualization_msgs/Marker.h>
+#include <geometry_msgs/Twist.h>
 #include "exceptions.h"
 #include "mapprocessor.h"
 #include "markerpublisher.h"
@@ -17,6 +18,7 @@ PathFollower::PathFollower() :
     path_angle_(NAN)
 {
     subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
+    vel_publisher_ = node_handle_.advertise<geometry_msgs::Twist>("/cmd_vel", 0);
 
     map_processor_ = new MapProcessor();
     rviz_marker_   = new MarkerPublisher();
@@ -98,7 +100,14 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
         }
 
         if (no_obstacle) {
-            setGoal(goal_pos, path_angle_);
+            // velocity (differentiate between straight and bend)
+            // calculate angle between goal direction and robot direction
+            float angle = acos( path_middle_line_.direction.dot(robot_pose_.direction)
+                                / (path_middle_line_.direction.norm() * robot_pose_.direction.norm()) );
+
+            float velocity = angle < M_PI/6 ? config_.velocity_straight : config_.velocity_bend;
+
+            setGoal(goal_pos, path_angle_, velocity);
         } else {
             if (!obstacle_at_last_callback_) {
                 ROS_INFO("Untraversable area ahead.");
@@ -142,7 +151,7 @@ void PathFollower::motionControlFeedbackCallback(const motion_control::MotionFee
     ROS_INFO_NAMED("motion_control", "Distance to goal: %f",feedback->dist_goal);
 }
 
-void PathFollower::setGoal(Vector2f position, float theta, bool lock_goal, float velocity)
+void PathFollower::setGoal(Vector2f position, float theta, float velocity, bool lock_goal)
 {
     // don't set new goal, if the current goal is locked.
     if (goal_locker_->isLocked()) {
@@ -166,7 +175,7 @@ void PathFollower::setGoal(Vector2f position, float theta, bool lock_goal, float
     if (distance > MIN_DISTANCE_BETWEEN_GOALS || lock_goal) {
         // send goal to motion_control
         motion_control::MotionGoal goal;
-        goal.v     = velocity != -1 ? velocity : config_.velocity;
+        goal.v     = velocity;
         goal.beta  = 0;
         //goal.pos_tolerance = 0.1;
         goal.mode  = motion_control::MotionGoal::MOTION_TO_GOAL;
@@ -525,7 +534,10 @@ float PathFollower::helperAngleWeight(float angle)
     angle = fabs(angle);
     ROS_ASSERT_MSG(angle >= 0 && angle <= M_PI+0.1, "Angle %f is out of range", angle*180/M_PI);
 
-    if (angle < M_PI/4.0) { // 0-45°
+    if (angle < M_PI/18.0) { // 0-10°
+            return 1.5;
+    }
+    else if (angle < M_PI/4.0) { // 10-45°
         return 1.3;
     }
     else if (angle < 5.0/9.0*M_PI) { // 45-100°
@@ -564,7 +576,7 @@ void PathFollower::handleObstacle()
                 return;
             }
         }
-        setGoal(drive_back_goal, robot_angle, false, 0.3);
+        setGoal(drive_back_goal, robot_angle, 0.3, false);
         // give the robot some time to move
         ros::Duration(4).sleep(); /** \todo stop waiting if goal is reached */
 
@@ -576,7 +588,7 @@ void PathFollower::handleObstacle()
 
         ROS_INFO("Go on.");
         // lock this goal until the robot reached it. Otherwise the robot will to fast choose an other goal.
-        setGoal(goal_pos, goal_angle, true, 0.2);
+        setGoal(goal_pos, goal_angle, 0.2, true);
     } else {
         ROS_INFO("Stop moving.");
     }
@@ -587,6 +599,11 @@ void PathFollower::stopRobot()
     ROS_INFO("Stop robot..");
     /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
     motion_control_action_client_.cancelAllGoals();
+
+    // set velocity to zero to stop immediatly
+    geometry_msgs::Twist twist; // all values are initialized to 0 by default
+    vel_publisher_.publish(twist);
+
     current_goal_.is_set = false;
     goal_locker_->unlock();
     rviz_marker_->removeGoalMarker();
