@@ -175,9 +175,6 @@ void PathFollower::setGoal(Vector2f position, float theta, bool lock_goal, float
         goal.y     = position[1];
         goal.theta = theta;
 
-        // save current pose
-        last_pose_ = robot_pose_;
-
         // send goal to motion_control
         motion_control_action_client_.sendGoal(goal, boost::bind(&PathFollower::motionControlDoneCallback,this,_1,_2),
                                                boost::function<void () >(), // do not set an active callback
@@ -219,8 +216,8 @@ void PathFollower::refreshRobotPose()
         // orientation
         btVector3 tmp(1,0,0);
         tmp = tmp.rotate(robot_pose.getRotation().getAxis(), robot_pose.getRotation().getAngle());
-        robot_pose_.orientation[0] = tmp.getX();
-        robot_pose_.orientation[1] = tmp.getY();
+        robot_pose_.direction[0] = tmp.getX();
+        robot_pose_.direction[1] = tmp.getY();
     }
     catch (tf::TransformException e) {
         ROS_WARN_THROTTLE_NAMED(1, "tf", "tf::TransformException in %s (line %d):\n%s", __FILE__, __LINE__, e.what());
@@ -243,8 +240,8 @@ void PathFollower::refreshPathLine()
     fitLinear(points_middle, &new_line);
 
     // make sure the direction vector of the line points in the direction that is nearer to the robot orientation.
-    float angle = acos( new_line.direction.dot(robot_pose_.orientation)
-                        / (new_line.direction.norm() * robot_pose_.orientation.norm()) );
+    float angle = acos( new_line.direction.dot(robot_pose_.direction)
+                        / (new_line.direction.norm() * robot_pose_.direction.norm()) );
     // if angle is greater than 90°, invert direction.
     if (angle > M_PI/2) {
         new_line.direction *= -1;
@@ -326,8 +323,8 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
     // Orthogonal vector of robot direction: (x,y) -> (-y,x)
     // Points left of the direction (should be the y-axis)
     Vector2f orthogonal;
-    orthogonal[0] = - robot_pose_.orientation[1];
-    orthogonal[1] = robot_pose_.orientation[0];
+    orthogonal[0] = - robot_pose_.direction[1];
+    orthogonal[1] = robot_pose_.direction[0];
 
 
     /* *** get path middle points *** */
@@ -340,10 +337,10 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
     const float DISTANCE_IN_FRONT_OF_ROBOT = 1.0;
 
     //! Position of the current forward step.
-    Vector2f forward_pos = robot_pose_.position - DISTANCE_BEHIND_ROBOT*robot_pose_.orientation;
+    Vector2f forward_pos = robot_pose_.position - DISTANCE_BEHIND_ROBOT*robot_pose_.direction;
     for (float forward = - DISTANCE_BEHIND_ROBOT; forward < DISTANCE_IN_FRONT_OF_ROBOT; forward += 3*step_size) {
         /** \todo better exception handling here? */
-        forward_pos += robot_pose_.orientation * 3*step_size;
+        forward_pos += robot_pose_.direction * 3*step_size;
 
         // break, if obstacle is in front.
         try {
@@ -465,7 +462,7 @@ Eigen::Vector2f PathFollower::findBestPathDirection() const
                     sin(alpha), cos(alpha);
         // direction to check in this iteration. Note that since robot_pose_.orientation is normalized, direction will
         // be normalized to.
-        Vector2f direction = rotation * robot_pose_.orientation;
+        Vector2f direction = rotation * robot_pose_.direction;
         Vector2f end_of_line = robot_pose_.position + MAX_SEARCHING_DISTANCE * direction;
 
         // Using the direction, get the end point of the line to check.
@@ -537,7 +534,7 @@ float PathFollower::helperAngleWeight(float angle)
     else if (angle < 2.0/3.0*M_PI) { // 100-120°
         return 0.7;
     } else {
-        /** \todo this weight should depend on MAX_SEARCHING_DISTANCE */
+        // this weight should depend on MAX_SEARCHING_DISTANCE
         return 0.5;
     }
 }
@@ -553,25 +550,21 @@ void PathFollower::handleObstacle()
     Vector2f goal_direction = findBestPathDirection();
     Vector2f goal_pos = robot_pose_.position + goal_direction;
     if (!goal_direction.isZero()) {
-        // drive back to last save position.
         ROS_INFO("Drive back.");
 
-//        float theta = atan2(last_pose_.orientation[1], last_pose_.orientation[0]);
-//        setGoal(last_pose_.position, theta);
-        // test: don't use last save position but simply drive 0.5m back.
-        float theta = atan2(robot_pose_.orientation[1], robot_pose_.orientation[0]);
+        float robot_angle = atan2(robot_pose_.direction[1], robot_pose_.direction[0]);
 
-        // try to drive back 1m. If not possible trie 50cm
+        // try to drive back 1m. If not possible try 50cm
         /** \todo this could be done better */
-        Vector2f drive_back_goal = robot_pose_.position - robot_pose_.orientation;
+        Vector2f drive_back_goal = robot_pose_.position - robot_pose_.direction;
         if (!map_processor_->checkGoalTraversability(robot_pose_.position, drive_back_goal)) {
-            drive_back_goal = robot_pose_.position - 0.5*robot_pose_.orientation;
+            drive_back_goal = robot_pose_.position - 0.5*robot_pose_.direction;
             if (!map_processor_->checkGoalTraversability(robot_pose_.position, drive_back_goal)) {
                 ROS_INFO("Can not move back. Stop moving.");
                 return;
             }
         }
-        setGoal(drive_back_goal, theta, false, 0.3);
+        setGoal(drive_back_goal, robot_angle, false, 0.3);
         // give the robot some time to move
         ros::Duration(4).sleep(); /** \todo stop waiting if goal is reached */
 

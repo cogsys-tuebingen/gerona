@@ -41,11 +41,12 @@ public:
     ~PathFollower();
 
 private:
+    //! Pose of the robot with position and direction.
     struct RobotPose {
         //! Position as point.
         Eigen::Vector2f position;
         //! Orientation as vector.
-        Eigen::Vector2f orientation;
+        Eigen::Vector2f direction;
     };
 
     struct Goal {
@@ -76,13 +77,11 @@ private:
         Eigen::Vector2f point;
         //! Direction vector.
         Eigen::Vector2f direction;
-        //! Normal vector
-        Eigen::Vector2f normal;
         //! Soundness of the fitted line (smaller values means better fitting).
         float soundness;
 
         Line() {
-            normal = direction = point = Eigen::Vector2f::Zero();
+            direction = point = Eigen::Vector2f::Zero();
             soundness = 0;
         }
     };
@@ -101,9 +100,6 @@ private:
 
     //! The current goal.
     Goal current_goal_;
-
-    //! Pose of the robot when it recieved the current goal.
-    RobotPose last_pose_;
 
     /**
      * @brief Tells if the last cal of the map callback encountered an obstacle.
