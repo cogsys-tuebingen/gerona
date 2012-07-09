@@ -294,8 +294,6 @@ vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs
 
     // points will only be marked as traversable if they are traversable in more than the half of the scans in the
     // scan buffer.
-    /** \todo I think this can be removed when multiple scans are processed as 3d point cloud. the neighbourhood-
-        check should have the same effect then. */
     const unsigned int scan_buffer_size = scan_buffer_.size();
 
     for (unsigned int i = 0; i < LENGTH; ++i) {
@@ -306,7 +304,6 @@ vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs
                 ++sum_traversable;
         }
 
-        /** \todo this does not realy work as intended */
         if (sum_traversable < scan_buffer_size/2) {
             scan_classification[i].setFlag(PointClassification::FLAG_UNTRAVERSABLE_IN_PAST_SCANS);
         }
@@ -420,7 +417,7 @@ void TerrainClassifier::checkTraversableSegment(PointCloudXYZRGBT::iterator begi
     PointXYZRGBT point_end = *(end-1);
 
     /* *********** check path width ************* */
-    /** \todo without width check this method may be useless */
+    // width check is bad when working on a map, so comment it here.
 //    double distance = sqrt( pow(point_start.x - point_end.x, 2) +
 //                            pow(point_start.y - point_end.y, 2) +
 //                            pow(point_start.z - point_end.z, 2) );
@@ -432,16 +429,13 @@ void TerrainClassifier::checkTraversableSegment(PointCloudXYZRGBT::iterator begi
 
 
     /* *********** check slope ************* */
-    /** \todo is this useful? -> test if this has any effekt. If not dropping it may makes the use of tf
-        unnecessary */
     {
         const double b = fabs(point_start.z - point_end.z);
         const double a = sqrt( pow(point_start.x - point_end.x, 2) + pow(point_start.y - point_end.y, 2));
         double angle_of_slope = atan2(b,a);
-        //ROS_DEBUG("slope: %d-%d, atan(%g, %g) = %g", index_start, i, b, a, angle_of_slope);
 
-        if (angle_of_slope > 0.2) { /** \todo To drop "paths" on walls, the limit angle depends on the laser tilt */
-            ROS_DEBUG("Drop too steep path (angle: %.2f)", angle_of_slope);
+        if (angle_of_slope > 0.2) { // To drop "paths" on walls, the limit angle depends on the laser tilt
+            ROS_DEBUG("Drop too steep path (angle: %.2f, distance: %.2f)", angle_of_slope, a);
             goto untraversable;
         }
     }

@@ -6,26 +6,24 @@
 #include "exceptions.h"
 #include "mapprocessor.h"
 #include "markerpublisher.h"
+#include "timeoutlocker.h"
 
 using namespace traversable_path;
 using namespace Eigen;
 
 PathFollower::PathFollower() :
     motion_control_action_client_("motion_control"),
-    path_angle_(NAN),
-    goal_locked_(false)
+    obstacle_at_last_callback_(false),
+    path_angle_(NAN)
 {
     subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
 
     map_processor_ = new MapProcessor();
-    rviz_marker_ = new MarkerPublisher();
+    rviz_marker_   = new MarkerPublisher();
+    goal_locker_   = new TimeoutLocker(ros::Duration(7));
 
     // at the beginning there is no goal.
     current_goal_.is_set = false;
-
-    /** \todo wieviel timeout ist hier sinnvoll? */
-    goal_lock_timer_ = node_handle_.createTimer(ros::Duration(10), &PathFollower::goalLockTimerCallback, this,
-                                                true, false);
 
     // register reconfigure callback (which will also initialize config_ with the default values)
     reconfig_server_.setCallback(boost::bind(&PathFollower::dynamicReconfigureCallback, this, _1, _2));
@@ -35,6 +33,7 @@ PathFollower::~PathFollower()
 {
     delete map_processor_;
     delete rviz_marker_;
+    delete goal_locker_;
 }
 
 void PathFollower::dynamicReconfigureCallback(const follow_pathConfig &config, uint32_t level)
@@ -79,7 +78,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             points.scale.x = 0.1;
             points.scale.y = 0.1;
             size_t index = map_processor_->transformToMapIndex(goal_pos);
-            if (goal_locked_) {
+            if (goal_locker_->isLocked()) {
                 points.color.r = 1.0;
                 points.color.g = 1.0;
             } else if (map_->data[index] != 0) {
@@ -98,19 +97,16 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
             rviz_marker_->publish(points);
         }
 
-        // remember last obstacle-state to recognize if the current obstacle is still the same than in the method call
-        // before.
-        static bool still_an_obstacle = false; /** \todo static is ugly in times of oop. this is just for fast testing*/
-
         if (no_obstacle) {
             setGoal(goal_pos, path_angle_);
         } else {
-            if (!still_an_obstacle) {
+            if (!obstacle_at_last_callback_) {
                 ROS_INFO("Untraversable area ahead.");
                 handleObstacle();
             }
         }
-        still_an_obstacle = !no_obstacle;
+        // remeber current state.
+        obstacle_at_last_callback_ = !no_obstacle;
     }
     catch (const TransformMapException &e) {
         ROS_WARN_THROTTLE(1, "%s", e.what());
@@ -123,7 +119,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 void PathFollower::motionControlDoneCallback(const actionlib::SimpleClientGoalState &state,
                                              const motion_control::MotionResultConstPtr &result)
 {
-    unlockGoal();
+    goal_locker_->unlock();
     current_goal_.is_set = false;
     rviz_marker_->removeGoalMarker();
 
@@ -146,22 +142,15 @@ void PathFollower::motionControlFeedbackCallback(const motion_control::MotionFee
     ROS_INFO_NAMED("motion_control", "Distance to goal: %f",feedback->dist_goal);
 }
 
-void PathFollower::goalLockTimerCallback(const ros::TimerEvent &event)
-{
-    ROS_INFO("Unlock goal after timeout.");
-    goal_locked_ = false;
-}
-
-
 void PathFollower::setGoal(Vector2f position, float theta, bool lock_goal, float velocity)
 {
     // don't set new goal, if the current goal is locked.
-    if (goal_locked_) {
+    if (goal_locker_->isLocked()) {
         return;
     }
     // lock this goal if lock_goal is set
     if (lock_goal) {
-        lockGoal();
+        goal_locker_->lock();
     }
 
     const float MIN_DISTANCE_BETWEEN_GOALS = 0.4;
@@ -276,10 +265,6 @@ void PathFollower::refreshPathLine()
         path_middle_line_.direction = filter_factor * path_middle_line_.direction
                                       + (1-filter_factor) * new_line.direction;
         path_middle_line_.direction.normalize();
-
-        /** \todo is the normal used at all? maybe this can be droped. */
-        path_middle_line_.normal[0] = - path_middle_line_.direction[1];
-        path_middle_line_.normal[1] = path_middle_line_.direction[0];
 
 //        ROS_DEBUG_STREAM("direction: " << new_line.direction);
 //        ROS_DEBUG_STREAM("direction filtered: " << path_middle_line_.direction);
@@ -610,22 +595,8 @@ void PathFollower::stopRobot()
     /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
     motion_control_action_client_.cancelAllGoals();
     current_goal_.is_set = false;
-    unlockGoal();
+    goal_locker_->unlock();
     rviz_marker_->removeGoalMarker();
-}
-
-void PathFollower::lockGoal()
-{
-    ROS_DEBUG("Lock goal.");
-    goal_locked_ = true;
-    goal_lock_timer_.start();
-}
-
-void PathFollower::unlockGoal()
-{
-    ROS_DEBUG("Unock goal.");
-    goal_locked_ = false;
-    goal_lock_timer_.stop();
 }
 
 void PathFollower::fitLinear(const PathFollower::vectorVector2f &points, PathFollower::Line *result)
@@ -654,7 +625,6 @@ void PathFollower::fitLinear(const PathFollower::vectorVector2f &points, PathFol
 
     // now we just have to pick the eigen vector with largest eigen value
     SelfAdjointEigenSolver<Matrix2f> eig(covMat);
-    result->normal    = eig.eigenvectors().col(0); // eigen vector with smallest eigen value (= normal)
     result->direction = eig.eigenvectors().col(1); // eigen vector with largest eigen value (= direction of the line)
 
     result->point = mean;

@@ -20,6 +20,7 @@
 // forward declarations
 class MapProcessor;
 class MarkerPublisher;
+class TimeoutLocker;
 
 
 /**
@@ -101,11 +102,17 @@ private:
     //! The current goal.
     Goal current_goal_;
 
-//    //! The last goal (goal before current_goal_).
-//    Goal last_goal_;
     //! Pose of the robot when it recieved the current goal.
     RobotPose last_pose_;
 
+    /**
+     * @brief Tells if the last cal of the map callback encountered an obstacle.
+     * Always remember last obstacle-state to recognize if the current obstacle is still the same than in the method
+     * call before.
+     */
+    bool obstacle_at_last_callback_;
+
+    //! The traversability map.
     nav_msgs::OccupancyGridConstPtr map_;
 
     //! Pose of the robot.
@@ -117,13 +124,16 @@ private:
     float path_angle_;
 
     //! Does image processing on the map.
-    MapProcessor* map_processor_;
+    MapProcessor *map_processor_;
 
     //! Dynamic reconfigure values.
     traversable_path::follow_pathConfig config_;
 
-    bool goal_locked_;
-    ros::Timer goal_lock_timer_;
+    /**
+     * @brief Locks/unlocks the goal.
+     * Locked means, that new goals will be ignored until the goal is reached or the timeout expired.
+     */
+    TimeoutLocker *goal_locker_;
 
     void dynamicReconfigureCallback(const traversable_path::follow_pathConfig &config, uint32_t level);
 
@@ -140,8 +150,6 @@ private:
     void motionControlDoneCallback(const actionlib::SimpleClientGoalState& state,
                                    const motion_control::MotionResultConstPtr& result);
     void motionControlFeedbackCallback(const motion_control::MotionFeedbackConstPtr& feedback);
-
-    void goalLockTimerCallback(const ros::TimerEvent& event);
 
     /**
      * @brief Set the given position as navigation goal.
@@ -244,15 +252,6 @@ private:
 
     //! Stop immediatly and cancle current goal.
     void stopRobot();
-
-    //! Locks to goal until the robot reached it or a certain duration is over.
-    void lockGoal();
-
-    /**
-     * Unlocks the goal.
-     * @see lockGoal()
-     */
-    void unlockGoal();
 
     /**
      * @brief Fit a line to a set of points (in 2-dim. space).
