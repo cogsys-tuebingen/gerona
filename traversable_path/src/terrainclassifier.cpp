@@ -2,13 +2,13 @@
 #include <algorithm>
 #include <numeric>
 #include <cmath>
-#include <Eigen/Core>
 
 #include <ramaxxbase/PTZ.h>
 #include "vectorsaver.h"
 
 using namespace std;
 using namespace traversable_path;
+
 
 
 TerrainClassifier::TerrainClassifier() :
@@ -52,24 +52,18 @@ TerrainClassifier::TerrainClassifier() :
 
 
     // initialize map
-    nav_msgs::OccupancyGrid map;
-    map.info.resolution = 0.05; // 5cm per cell
-    map.info.width  = 200;
-    map.info.height = 200;
-    map.info.origin.orientation.x = 0.0;
-    map.info.origin.orientation.y = 0.0;
-    map.info.origin.orientation.z = 0.0;
-    map.info.origin.orientation.w = 1.0;
-    map.data.resize(map.info.width * map.info.height);
-    gridmap_ = new GridMap(map);
+    map_.info.resolution = 0.05; // 5cm per cell
+    map_.info.width  = 200;
+    map_.info.height = 200;
+    map_.info.origin.orientation.x = 0.0;
+    map_.info.origin.orientation.y = 0.0;
+    map_.info.origin.orientation.z = 0.0;
+    map_.info.origin.orientation.w = 1.0;
+    map_.data.resize(map_.info.width * map_.info.height, MAP_DEFAULT_VALUE );
+
 
     // register reconfigure callback (which will also initialize config_ with the default values)
     reconfig_server_.setCallback(boost::bind(&TerrainClassifier::dynamicReconfigureCallback, this, _1, _2));
-}
-
-TerrainClassifier::~TerrainClassifier()
-{
-    delete gridmap_;
 }
 
 void TerrainClassifier::dynamicReconfigureCallback(Config &config, uint32_t level)
@@ -459,30 +453,101 @@ void TerrainClassifier::checkTraversableSegment(PointCloudXYZRGBT::iterator begi
 
 void TerrainClassifier::updateMap(PointCloudXYZRGBT cloud)
 {
-    // get robot position
+    moveMap();
 
-    Eigen::Vector2f robot_position;
-    try {
-        geometry_msgs::PointStamped base_link_position, map_origin;
-        base_link_position.header.frame_id = "/base_link";
-        // x,y,z = 0 is already initialization default
-        tf_listener_.transformPoint("/map", base_link_position, map_origin);
-        robot_position[0] = map_origin.point.x;
-        robot_position[1] = map_origin.point.y;
-    }
-    catch (tf::TransformException e) {
-        ROS_WARN_THROTTLE(1, "Unable to transform robot position. tf says: %s", e.what());
-        return;
+    for (PointCloudXYZRGBT::iterator point_it = cloud.begin(); point_it != cloud.end(); ++point_it) {
+        int x, y;
+        x = (point_it->x - map_.info.origin.position.x) / map_.info.resolution;
+        y = (point_it->y - map_.info.origin.position.y) / map_.info.resolution;
+
+        // (int)-casts to supress comparison warning (no danger of overflow here)
+        if (x < (int)map_.info.width && y < (int)map_.info.height && x >= 0 && y >= 0) {
+            size_t index = y * map_.info.width + x;
+            // 0 = traversable, 100 = untraversable
+            map_.data[index] += point_it->traversable ? -10 : 10;
+
+            // check range
+            if (map_.data[index] < 0) {
+                map_.data[index] = 0;
+            } else if(map_.data[index] > 100) {
+                map_.data[index] = 100;
+            }
+        } else {
+            //ROS_WARN("Out of Map. (row,col) = (%d, %d)", col, row);
+        }
     }
 
-    gridmap_->update(robot_position, cloud);
-    nav_msgs::OccupancyGrid final_map = gridmap_->getMap();
+    nav_msgs::OccupancyGrid final_map = map_;
     final_map.header.stamp = ros::Time::now();
+
+    for (vector<int8_t>::iterator map_it = final_map.data.begin(); map_it != final_map.data.end(); ++map_it) {
+        *map_it = *map_it < 50 ? 0 : 100;
+    }
 
     // remove noise
     map_processor_.process(&final_map);
 
     publish_map_.publish(final_map);
+}
+
+void TerrainClassifier::moveMap()
+{
+    //! The minimum distance, the robot must have moved, to recenter the map to the robot.
+    const float MIN_ROBOT_MOVEMENT_DISTANCE = 2.0;
+
+    // get robot position
+    geometry_msgs::PointStamped base_link_position, map_origin;
+    base_link_position.header.frame_id = "/base_link";
+    // x,y,z = 0 is already initialization default
+    //base_link_position.point.x = 0.0;
+    //base_link_position.point.y = 0.0;
+    //base_link_position.point.z = 0.0;
+
+    try {
+        tf_listener_.transformPoint("/map", base_link_position, map_origin);
+    }
+    catch (tf::TransformException e) {
+        ROS_WARN_THROTTLE(1, "Unable to transform robot position. tf says: %s", e.what());
+        return;
+    }
+    // set origin so that the robot is in the center of the map
+    map_origin.point.x -= (signed int) map_.info.width  * map_.info.resolution / 2;
+    map_origin.point.y -= (signed int) map_.info.height * map_.info.resolution / 2;
+
+    // only update if the robot has moved more than MIN_ROBOT_MOVEMENT_DISTANCE since last update (to improve
+    // performance)
+    if (distance(map_origin.point, map_.info.origin.position) > MIN_ROBOT_MOVEMENT_DISTANCE) {
+        // transform map cells
+        vector<int8_t> newdata(map_.data.size(), MAP_DEFAULT_VALUE);
+
+        // get transformation from old map to new.
+        int transform_x = (map_origin.point.x - map_.info.origin.position.x) / map_.info.resolution;
+        int transform_y = (map_origin.point.y - map_.info.origin.position.y) / map_.info.resolution;
+
+        for (size_t i = 0; i < map_.data.size(); ++i) {
+            if (map_.data[i] != -1) {
+                int x, y, new_x, new_y;
+                x = i % map_.info.width;
+                y = i / map_.info.width;
+                new_x = x - transform_x;
+                new_y = y - transform_y;
+
+                // (int)-casts to supress comparison warning (no danger of overflow here)
+                if (new_x >= 0 && new_x < (int)map_.info.width && new_y >= 0 && new_y < (int)map_.info.height) {
+                    int offset = new_y * map_.info.width + new_x;
+                    newdata[offset] = map_.data[i];
+                }
+            }
+        }
+
+        map_.info.origin.position = map_origin.point;
+        map_.data = newdata;
+    }
+}
+
+double TerrainClassifier::distance(geometry_msgs::Point a, geometry_msgs::Point b)
+{
+    return sqrt( pow(a.x - b.x, 2) + pow(a.y - b.y, 2) + pow(a.z - b.z, 2) );
 }
 
 //--------------------------------------------------------------------------

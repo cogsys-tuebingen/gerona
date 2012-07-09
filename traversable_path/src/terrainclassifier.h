@@ -18,8 +18,6 @@
 #include "mapprocessor.h"
 #include "traversable_path/classify_terrainConfig.h"
 
-#include "gridmap.h"
-
 /**
  * @brief Subscribes for the laser scans and classifies them.
  *
@@ -30,7 +28,6 @@ class TerrainClassifier
 {
 public:
     TerrainClassifier();
-    ~TerrainClassifier();
 
 private:
     typedef traversable_path::classify_terrainConfig Config;
@@ -74,11 +71,12 @@ private:
     Config config_;
 
     static const int8_t MAP_DEFAULT_VALUE = 50;
-    //nav_msgs::OccupancyGrid map_;
+    nav_msgs::OccupancyGrid map_;
     ros::Publisher publish_map_;
     MapProcessor map_processor_;
-    GridMap *gridmap_;
     void updateMap(PointCloudXYZRGBT cloud);
+    void moveMap();
+    static double distance(geometry_msgs::Point a, geometry_msgs::Point b);
 
     /**
      * @brief Classifies the laser scan points.

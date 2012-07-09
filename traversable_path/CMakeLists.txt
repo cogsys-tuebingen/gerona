@@ -45,7 +45,6 @@ rosbuild_add_executable(classify_terrain
     src/pointclassification.cpp
     src/point_types.h
     src/mapprocessor.cpp
-    src/gridmap.cpp
 )
 
 rosbuild_add_executable(follow_path
