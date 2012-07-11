@@ -18,7 +18,6 @@ PathFollower::PathFollower() :
     path_angle_(NAN)
 {
     subscribe_map_ = node_handle_.subscribe("traversability_map", 0, &PathFollower::mapCallback, this);
-    vel_publisher_ = node_handle_.advertise<geometry_msgs::Twist>("/cmd_vel", 0);
 
     map_processor_ = new MapProcessor();
     rviz_marker_   = new MarkerPublisher();
@@ -599,12 +598,6 @@ void PathFollower::stopRobot()
     ROS_INFO("Stop robot..");
     /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
     motion_control_action_client_.cancelAllGoals();
-
-    // set velocity to zero to stop immediatly
-    geometry_msgs::Twist twist;
-    twist.linear.x = -0.2; // negative velocity may cause breaking.
-    vel_publisher_.publish(twist);
-
     current_goal_.is_set = false;
     goal_locker_->unlock();
     rviz_marker_->removeGoalMarker();
