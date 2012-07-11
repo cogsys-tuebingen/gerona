@@ -14,7 +14,7 @@ namespace lib_path {
 
 double NORMALIZE_0_2PI(double angle)
 {
-  while (angle > 2 * M_PI)
+  while (angle >= 2 * M_PI)
     angle -= 2 * M_PI;
   while (angle < 0)
     angle += 2 * M_PI;
@@ -24,7 +24,7 @@ double NORMALIZE_0_2PI(double angle)
 
 double NORMALIZE_0_360(double angle)
 {
-  while (angle > 360)
+  while (angle >= 360)
     angle -= 360;
   while (angle < 0)
     angle += 360;

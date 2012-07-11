@@ -47,6 +47,7 @@ void CircleSegment::set_null_direction_angle(double angle)
   m_angle_start = angle + DTOR(90);
   if(m_orientation == CircleSegment::LEFT)
     m_angle_start += DTOR(180);
+  m_angle_start = NORMALIZE_0_2PI( m_angle_start );
 }
 
 void CircleSegment::set_end_angle(double angle)
@@ -454,8 +455,17 @@ void CircleSegment::reset_iteration()
   m_iterating = true;
   m_output = 0;
 
-  float no_of_points_in_output = fabs(m_arc_span * m_radius) / m_max_distance;
+  float no_of_points_in_output = fabs( MathHelper::AngleClamp( m_arc_span ) * m_radius) / m_max_distance;
   m_jump_over = std::max(1, (int) (m_steps / no_of_points_in_output));
+
+  /*if ( fabs( m_arc_span - 2.0*M_PI ) < 1E-2 ) {
+      std::cout << "arc span close to 2 pi: " << m_arc_span << "\n"
+                << "direction: " << m_direction << "\n"
+                << "mode: " << m_mode << "\n"
+                << "ori: " << m_orientation << "\n"
+                << "tangent: " << m_tangent_angle << "\n"
+                << "start: " << m_angle_start << std::endl;
+  }*/
 }
 
 bool CircleSegment::has_next()
