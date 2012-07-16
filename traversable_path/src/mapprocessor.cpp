@@ -56,6 +56,8 @@ void MapProcessor::process(nav_msgs::OccupancyGrid *map)
     cv::Mat1b img;
     mapToImage(*map, &img);
 
+	// First open the untraversable areas of the map to remove single untraversable cells. Then close to remove little holes in the untraversable areas.
+	// Please note that OpenCV defines background as 0 and foreground as > 0. Thus opening the untraversable area (which is black) means closing the image and vice versa.
     cv::Mat kernel(3, 3, CV_8U, cv::Scalar(1));
     cv::morphologyEx(img, img, cv::MORPH_CLOSE, kernel);
     kernel = cv::Mat(5, 5, CV_8U, cv::Scalar(1));
