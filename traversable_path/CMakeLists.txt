@@ -58,5 +58,7 @@ rosbuild_add_executable(follow_path
 
 rosbuild_add_executable(display_path src/node_display_path.cpp src/visualization.cpp)
 
+rosbuild_add_executable(get_steer_angles src/node_get_steer_angles.cpp)
+
 # for testing some simple things TODO: remove if not required any more
 rosbuild_add_executable(testblub src/test.cpp src/mapprocessor.cpp) # it seams, that an excutable with name 'test' makes problems...
