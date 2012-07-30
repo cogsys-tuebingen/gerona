@@ -1,8 +1,10 @@
 <package>
   <description brief="Find traversable paths in unknown terrain and follow them.">
+    Classifies the ground in front of the robot in traversable and untraversable areas,
+    using a down tilted laser scanner.
 
-     traversable_path
-
+    Using the classification, the robot is navigated to follow the traversable path on
+    which it currently stands.
   </description>
   <author>Felix Widmaier</author>
   <license>BSD</license>
