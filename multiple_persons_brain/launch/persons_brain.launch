@@ -3,6 +3,7 @@
    <node pkg="multiple_persons_brain" type="brain_node" name="persons_brain" output="screen">
 
       <param name="num_persons" value="6"/>
+      <param name="targets" value="[10.0, 12.0]"/>
 
    </node>
 

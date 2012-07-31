@@ -9,12 +9,39 @@
 
 // C/C++
 #include <vector>
+#include <string>
 
 // ROS
 #include <ros/ros.h>
-#include <geometry_msgs/Point.h>
+#include <geometry_msgs/Pose.h>
+#include <tf/transform_listener.h>
 
 namespace multiple_persons_brain {
+
+/**
+ * @brief Represents one simulated person.
+ */
+struct Person {
+
+    /// Current target
+    geometry_msgs::Point target;
+
+    /// Index in stage
+    int idx;
+
+    /// Flag is we ahve send a target to this person
+    bool has_target;
+
+    /// Used to publish new targets
+    ros::Publisher target_pub;
+
+    /**
+     * @brief Create a person.
+     */
+    Person()
+        : idx( 0 ), has_target( false )
+    {}
+};
 
 class BrainNode {
 public:
@@ -37,11 +64,36 @@ public:
 
 protected:
 
+    void selectAndPublishTarget( Person& person, const geometry_msgs::Pose& p );
+
+    /**
+     * @brief Get the current position of a simulated person.
+     *
+     * @param robot_idx Index of that person
+     * @param p Current pose
+     * @return False if an error occurred. True if the pose is valid.
+     */
+    bool getRobotPose( const int robot_idx, geometry_msgs::Pose &p );
+
+    std::string getRobotName( const int robot_idx, const std::string &name );
+
+    /// Node handle
+    ros::NodeHandle n_;
+
+    /// Used to get the positions of the robots
+    tf::TransformListener tf_;
+
     /// Update timer
     ros::Timer update_timer_;
 
     /// List of all target points
     std::vector<geometry_msgs::Point> targets_;
+
+    /// All simulated persons
+    std::vector<Person> persons_;
+
+    /// Name of the world frame
+    std::string map_frame_;
 };
 
 } // namespace
