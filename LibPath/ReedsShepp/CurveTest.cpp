@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
   goal.x = w / 2;
   goal.y = h / 2;
 
-  img = cvCreateImage(cvSize(w, h), IPL_DEPTH_8U, 3);
+  img = cvCreateImage(cvSize(w, h), IPL_DEPTH_8U, 1);
 
   IplImage* orig_map = cvCreateImage(cvSize(img->width, img->height),
                                      img->depth, 1);

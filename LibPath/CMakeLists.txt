@@ -50,6 +50,17 @@ else(NOT OpenCV_FOUND)
         LibPath
         ${OpenCV_LIBS}
     )
+    rosbuild_add_executable (Path4wsSimulator
+                             common/path4ws_simulator.cpp
+                             common/path4ws_sim.cpp
+    )
+    target_link_libraries (Path4wsSimulator
+        LibUtil
+        LibPath
+        ${OpenCV_LIBS}
+    )
+
+
 
  #   install(TARGETS ReedsSheppCurveTest RUNTIME DESTINATION bin)
 endif(NOT OpenCV_FOUND)
