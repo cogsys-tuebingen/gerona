@@ -54,6 +54,7 @@ void Path4wsSimulator::reset()
   cvSet(map_, cvScalarAll(255));
   t_=0;
   update_count_=0;
+  cloud_->clear();
 }
 
 
