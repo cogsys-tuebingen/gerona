@@ -2,8 +2,14 @@
 
    <node pkg="multiple_persons_brain" type="brain_node" name="persons_brain" output="screen">
 
+      <!-- Number of controlled person robots -->
       <param name="num_persons" value="6"/>
-      <param name="targets" value="[10.0, 12.0]"/>
+   
+      <!-- Index of the first person robot -->
+      <param name="first_idx" value="1" />
+
+      <!-- Whitespace seperated list of x y coordinates -->
+      <param name="targets" value="2.0 0.0 6.0 -34.0 -8.0 40.0"/>
 
    </node>
 

@@ -25,44 +25,39 @@ BrainNode::BrainNode()
     : n_( "~" ),
       map_frame_( "/map" )
 {
+    // Target points
+    std::string target_list;
+    n_.param( "targets", target_list, std::string( "" ));
+    std::stringstream target_ss( target_list );
+    double target_x, target_y;
+    while ( target_ss >> target_x && target_ss >> target_y ) {
+        geometry_msgs::Point p;
+        p.x = target_x;
+        p.y = target_y;
+        p.z = 0;
+        targets_.push_back( p );
+        ROS_INFO( "Added target coordinates: %f %f", target_x, target_y );
+    }
+    ROS_ASSERT( targets_.size() > 1 );
+
     // Number of person robots
-    int num_persons = 0;
+    int num_persons( 0 );
     n_.param( "num_persons", num_persons, 0 );
     ROS_ASSERT( num_persons > 0 );
 
-    // Target points
-    /*XmlRpc::XmlRpcValue target_list;
-    n_.getParam( "targets", target_list );
-    ROS_ASSERT( target_list.getType() == XmlRpc::XmlRpcValue::TypeArray );
-    for ( int i = 0; i + 2 < target_list.size(); i += 2 ) {
-        geometry_msgs::Point p;
-        //p.x = target_list[i];
-        //p.y = target_list[i];
-        p.z = 0;
-        ROS_INFO( "Target point %d: %f %f", i, p.x, p.y );
-    }*/
-    Point p;
-    p.x = 2.0;
-    p.y = 0.0;
-    p.z = 0.0;
-    targets_.push_back( p );
-    p.x = 6.0;
-    p.y = -34.0;
-    targets_.push_back( p );
+    // Index of the first person robot
+    int first_idx( 0 );
+    n_.param( "first_idx", first_idx, 0 );
 
-    persons_.resize( 6 );
-    persons_[0].idx = 1;
-    persons_[0].target_pub = n_.advertise<geometry_msgs::PoseStamped>( "/move_base_simple_robot_1/goal", 1, true );
-    persons_[1].idx = 2;
-    persons_[1].target_pub = n_.advertise<geometry_msgs::PoseStamped>( "/move_base_simple_robot_2/goal", 1, true );
-    persons_[2].idx = 3;
-    persons_[2].target_pub = n_.advertise<geometry_msgs::PoseStamped>( "/move_base_simple_robot_3/goal", 1, true );
-    persons_[3].idx = 4;
-    persons_[3].target_pub = n_.advertise<geometry_msgs::PoseStamped>( "/move_base_simple_robot_4/goal", 1, true );
-    persons_[4].idx = 5;
-    persons_[4].target_pub = n_.advertise<geometry_msgs::PoseStamped>( "/move_base_simple_robot_5/goal", 1, true );
-    persons_[5].idx = 6;
-    persons_[5].target_pub = n_.advertise<geometry_msgs::PoseStamped>( "/move_base_simple_robot_6/goal", 1, true );
+    // For each person robot
+    persons_.resize( num_persons );
+    for ( int i = 0; i < num_persons; ++i ) {
+        persons_[i].idx = first_idx + i;
+        std::stringstream ss;
+        ss << "/move_base_simple_robot_" << persons_[i].idx << "/goal";
+        persons_[i].target_pub = n_.advertise<geometry_msgs::PoseStamped>( ss.str(), 1, true );
+    }
+    ROS_INFO( "Added %d person robots. Index of first person robot is: %d", num_persons, first_idx );
 
     // Create update timer
     update_timer_ = n_.createTimer( ros::Duration( 0.1 ), &BrainNode::updateCallback, this );
