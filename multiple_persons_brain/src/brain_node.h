@@ -94,6 +94,9 @@ protected:
 
     /// Name of the world frame
     std::string map_frame_;
+
+    /// Startup delay in seconds
+    double start_delay_;
 };
 
 } // namespace

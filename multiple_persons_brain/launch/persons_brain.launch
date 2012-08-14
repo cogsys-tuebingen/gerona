@@ -2,6 +2,12 @@
 
    <node pkg="multiple_persons_brain" type="brain_node" name="persons_brain" output="screen">
 
+      <!-- Startup delay in seconds -->
+      <param name="startup_delay" value="2.0"/>
+
+      <!-- Map frame id -->
+      <param name="map_frame" value="/map"/>
+
       <!-- Number of controlled person robots -->
       <param name="num_persons" value="6"/>
    

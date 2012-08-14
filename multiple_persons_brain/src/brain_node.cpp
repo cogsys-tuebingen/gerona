@@ -22,9 +22,12 @@ using namespace geometry_msgs;
 namespace multiple_persons_brain {
 
 BrainNode::BrainNode()
-    : n_( "~" ),
-      map_frame_( "/map" )
+    : n_( "~" )
 {
+    // Misc configuration
+    n_.param( "map_frame", map_frame_, std::string( "/map" ));
+    n_.param( "startup_delay", start_delay_, 2.0 );
+
     // Target points
     std::string target_list;
     n_.param( "targets", target_list, std::string( "" ));
@@ -130,6 +133,12 @@ std::string BrainNode::getRobotName( const int robot_idx, const std::string &nam
 
 void BrainNode::spin()
 {
+    // Start delay
+    ROS_INFO( "Start delay is: %f sec", start_delay_ );
+    ros::Duration delay( start_delay_ );
+    delay.sleep();
+
+    // Do your work
     ros::spin();
 }
 
