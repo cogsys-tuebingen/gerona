@@ -79,11 +79,22 @@ void BrainNode::updateCallback( const ros::TimerEvent &e )
         if ( !getRobotPose( persons_[i].idx, p ))
             continue;
 
-        // Check distance to target
+        // Is the robot still moving?
+        if ( persons_[i].has_target && !RosMath::isEqual2d( p, persons_[i].pose, 0.01, 0.02 )) {
+            persons_[i].pose = p;
+            persons_[i].stalled_count = 0;
+        } else {
+            persons_[i].stalled_count++;
+        }
+
+        // Check and send new target if neccessary
         if ( !persons_[i].has_target
+             || persons_[i].stalled_count > 100
              || RosMath::distance2d( p.position, persons_[i].target ) < 1.0 ) {
             // Select new target randomly
             selectAndPublishTarget( persons_[i], p );
+            persons_[i].stalled_count = 0;
+            persons_[i].pose = p;
         }
     }
 }

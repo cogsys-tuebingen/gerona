@@ -29,17 +29,23 @@ struct Person {
     /// Index in stage
     int idx;
 
-    /// Flag is we ahve send a target to this person
+    /// Flag is we have send a target to this person
     bool has_target;
 
     /// Used to publish new targets
     ros::Publisher target_pub;
 
+    /// Current pose
+    geometry_msgs::Pose pose;
+
+    /// Used to determine if the robot is moving or not
+    int stalled_count;
+
     /**
      * @brief Create a person.
      */
     Person()
-        : idx( 0 ), has_target( false )
+        : idx( 0 ), has_target( false ), stalled_count( 0 )
     {}
 };
 
