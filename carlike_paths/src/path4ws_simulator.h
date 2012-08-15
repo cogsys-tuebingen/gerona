@@ -37,6 +37,7 @@ public:
   void step ();
   void reset ();
   CvArr* getImage() {return map_;}
+  void setTimeStep (float t_step) {t_step_=t_step;}
 protected:
   void updateMap();
   void randomizeSteerAngles();
