@@ -24,9 +24,10 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 rosbuild_add_executable(path4ws_sim
 src/path4ws_sim.cpp
 src/path4ws_simulator.cpp
+src/path_field.cpp
 )
 
-
+target_link_libraries(path4ws_sim -lvtkCommon -lvtkHybrid -lvtkFiltering -lvtkRendering -lboost_system -lboost_filesystem)
 
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)

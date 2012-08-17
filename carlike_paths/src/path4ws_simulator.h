@@ -37,9 +37,14 @@ public:
   void step ();
   void reset ();
   CvArr* getImage() {return map_;}
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr getCloud() {
+    return cloud_;
+  }
+
   void setTimeStep (float t_step) {t_step_=t_step;}
 protected:
   void updateMap();
+  void updatePointCloud();
   void randomizeSteerAngles();
   unsigned n_;
   vector<Bot4ws> bots_;
@@ -56,7 +61,8 @@ protected:
   CvArr *map_;
   float map_res_;
   unsigned map_width_,map_height_;
-  pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_;
+  bool use_3d_vis_;
 };
 
 #endif // BOT4WS_SIMULATOR_H

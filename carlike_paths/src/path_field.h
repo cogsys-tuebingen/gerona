@@ -12,7 +12,10 @@
 
 struct PathCell
 {
-  short steer_astep_;
+  unsigned short steer_conf_;
+  unsigned short  count_;
+  unsigned int prev_;
+  unsigned int next_;
 };
 
 

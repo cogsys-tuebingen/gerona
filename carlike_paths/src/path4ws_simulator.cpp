@@ -11,7 +11,7 @@
 #include <time.h>
 #include <iostream>
 #include "path4ws_simulator.h"
-
+#include "MathHelper.h"
 void Bot4ws::update(float d)
 {
   float nbeta=atan(0.5*(tan(deltaf_)+tan(deltar_)));
@@ -19,12 +19,15 @@ void Bot4ws::update(float d)
   x_=x_+d*cos(theta_+dtheta/2.0+(beta_+nbeta)/2.0);
   y_=y_+d*sin(theta_+dtheta/2.0+(beta_+nbeta)/2.0);
   theta_=theta_+dtheta;
+/*  while (theta_>2*M_PI) theta_-=2*M_PI;
+  while (theta_<2*M_PI) theta_+=2*M_PI;*/
+  theta_=MathHelper::AngleClamp(theta_);
   beta_=nbeta;
 }
 
 
 Path4wsSimulator::Path4wsSimulator()
-  : cloud_(new pcl::PointCloud<pcl::PointXYZI>)
+  : cloud_(new pcl::PointCloud<pcl::PointXYZRGB>),use_3d_vis_(true)
 {
   setNumBots(1000);
   l_=0.5;
@@ -55,6 +58,10 @@ void Path4wsSimulator::reset()
   t_=0;
   update_count_=0;
   cloud_->clear();
+  time_t seconds;
+  time(&seconds);
+  srand((unsigned int)seconds);
+
 }
 
 
@@ -71,8 +78,31 @@ void Path4wsSimulator::step()
     Bot4ws& bot=bots_[i];
     bot.update(d);
   }
-  updateMap();
+  if (!use_3d_vis_) {
+    updateMap();
+  } else {
+    updatePointCloud();
+  }
 }
+
+
+void Path4wsSimulator::updatePointCloud()
+{
+  pcl::PointXYZRGB point(255,255,0);
+  uint8_t r = 255, g = 255, b = 255;    // Example: Red color
+  uint32_t rgb = ((uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b);
+  float frgb = *reinterpret_cast<float*>(&rgb);
+  for (unsigned i=0;i<n_;++i) {
+    Bot4ws& bot=bots_[i];
+    if (bot.y_<0) continue;
+    point.x=bot.x_;
+    point.y=bot.y_;
+    point.z=bot.theta_;
+    point.rgb=frgb;
+    cloud_->push_back(point);
+  }
+}
+
 
 
 void Path4wsSimulator::updateMap()
@@ -97,15 +127,15 @@ void Path4wsSimulator::updateMap()
 
 void Path4wsSimulator::randomizeSteerAngles()
 {
-  time_t seconds;
-  time(&seconds);
 
-  srand((unsigned int)seconds);
+  std::cout<< "randomize deltasteps="<<delta_steps_<<" step="<<delta_step_*180.0/M_PI<<std::endl;
+
   for (unsigned i=0;i<n_;++i) {
     unsigned sf=rand()%(delta_steps_+1);
     unsigned sr=rand()%(delta_steps_+1);
     bots_[i].deltaf_=sf*delta_step_-delta_max_;
     bots_[i].deltar_=sr*delta_step_-delta_max_;
+    //bots_[i].deltar_=0;
   }
 }
 
