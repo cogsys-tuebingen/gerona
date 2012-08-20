@@ -12,7 +12,7 @@
 #include <iostream>
 #include "path4ws_simulator.h"
 #include "MathHelper.h"
-void Bot4ws::update(float d)
+void SimBot4ws::update(float d)
 {
   float nbeta=atan(0.5*(tan(deltaf_)+tan(deltar_)));
   float dtheta = cos(beta_)*(tan(deltaf_)-tan(deltar_))*d/l_;
@@ -75,7 +75,7 @@ void Path4wsSimulator::step()
   }
   float d=v_*t_step_;
   for (unsigned i=0;i<n_;++i) {
-    Bot4ws& bot=bots_[i];
+    SimBot4ws& bot=bots_[i];
     bot.update(d);
   }
   if (!use_3d_vis_) {
@@ -93,7 +93,7 @@ void Path4wsSimulator::updatePointCloud()
   uint32_t rgb = ((uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b);
   float frgb = *reinterpret_cast<float*>(&rgb);
   for (unsigned i=0;i<n_;++i) {
-    Bot4ws& bot=bots_[i];
+    SimBot4ws& bot=bots_[i];
     if (bot.y_<0) continue;
     point.x=bot.x_;
     point.y=bot.y_;
@@ -110,7 +110,7 @@ void Path4wsSimulator::updateMap()
   int offx=map_width_/2;
   int offy=map_height_/2;
   for (unsigned i=0;i<n_;++i) {
-    Bot4ws& bot=bots_[i];
+    SimBot4ws& bot=bots_[i];
     int x=bot.x_/map_res_+offx;
     int y=bot.y_/map_res_+offy;
     //std::cout<< "x:"<<bot.x_ << " offx:"<<offx<< " y:"<<bot.y_<< " ix:"<<x<<std::endl;

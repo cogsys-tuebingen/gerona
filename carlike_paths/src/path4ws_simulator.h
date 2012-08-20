@@ -13,21 +13,9 @@
 #include <opencv/cv.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
-
+#include "simbot4ws.h"
 
 using namespace std;
-struct Bot4ws
-{
-  Bot4ws()
-    :x_(0.0),y_(0.0),theta_(0.0),beta_(0.0),deltaf_(0.0),deltar_(0.0),l_(0.5)
-  {
-
-  }
-  void update(float d);
-  float x_,y_,theta_, beta_;
-  float deltaf_,deltar_;
-  float l_;
-};
 
 class Path4wsSimulator
 {
@@ -47,7 +35,7 @@ protected:
   void updatePointCloud();
   void randomizeSteerAngles();
   unsigned n_;
-  vector<Bot4ws> bots_;
+  vector<SimBot4ws> bots_;
 
   float l_; // wheelbase
   float t_;
