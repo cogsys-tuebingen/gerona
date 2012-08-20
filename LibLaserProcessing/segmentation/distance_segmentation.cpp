@@ -13,38 +13,36 @@ DistanceSegmentation::DistanceSegmentation( float threshold )
     : threshold_( threshold )
 {}
 
-void DistanceSegmentation::findSegments( const std::vector<LaserBeam> &beams, std::vector<DistanceSegment> &segments)
+void DistanceSegmentation::update( const std::vector<LaserBeam> &beams )
 {
-    segments.clear();
+    beams_ = beams;
+    segms_.clear();
+    DistanceSegment s;
+    s.start = 0;
+    s.length = 1;
 
-    unsigned int seg_length = 1;
+    // For all beams
     bool in_segment = true;
-    float d;
-    DistanceSegment seg;
-    seg.start = 0;
-
-    unsigned int size = beams.size();
-    for ( unsigned int i = 0; i < size - 1; ++i ) {
-        d = beams[i+1].range - beams[i].range;
-
-        if ( std::abs(d) < threshold_ ) {
-            ++seg_length;
-            in_segment = true;
+    int end = beams.size() - 1;
+    for ( int i = 0; i < end - 1; ++i ) {
+        // End of segment?
+        if ( !beams_[i+1].valid
+             || std::abs( beams_[i].range - beams_[i+1].range ) > threshold_ ) {
+            segms_.push_back( s );
+            s.start = i + 1;
+            s.length = 1;
+            in_segment = false;
             continue;
         }
 
-        // segment is over
-        seg.length = seg_length;
-        lengths.push_back( seg );
-        seg_length = 1;
-        seg.start = i;
-        in_segment = false;
+        // Still in segment
+        ++s.length;
+        in_segment = true;
     }
 
-    // last segment is not closed?
-    if ( in_segment ) {
-        lengths.push_back( seg );
-    }
+    // Close last segment?
+    if ( in_segment )
+        segms_.push_back( s );
 }
 
 } // namespace

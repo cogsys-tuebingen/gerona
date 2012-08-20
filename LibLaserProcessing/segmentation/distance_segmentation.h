@@ -15,21 +15,109 @@
 
 namespace lib_laser_processing {
 
+/**
+ * @brief Represents one segment. Internally used
+ */
 struct DistanceSegment
 {
+    /// Start index of segment
     unsigned int start;
+
+    /// Number of beams
     unsigned int length;
 };
 
+/**
+ * @brief Provides a simple distance based segmentation of laser data
+ */
 class DistanceSegmentation
 {
 public:
-    DistanceSegmentation( loat threshold );
+    /**
+     * @brief Create and initialize
+     * @param threshold Distance threshold
+     */
+    DistanceSegmentation( float threshold );
 
-    void findSegments( const std::vector<LaserBeam>& beams, std::vector<DistanceSegment>& segments );
+    /**
+     * @brief Process new laser data
+     * @param beams Laser range measurements
+     */
+    void update( const std::vector<LaserBeam>& beams );
+
+    /**
+     * @brief Interates over all segments
+     */
+    class Iterator {
+    public:
+
+        Iterator( DistanceSegmentation* obj ) : seg_idx_(-1), beam_idx_(-1), obj_(obj)
+        {}
+
+        /**
+         * @brief Select next segment
+         * @return False if there is no next segment
+         */
+        bool nextSegment() {
+            ++seg_idx_;
+            beam_idx_ = -1;
+            return seg_idx_ < (int)(obj_->segms_.size());
+        }
+
+        /**
+         * @brief Get the length of the current segment
+         * @return Number of beams in current segment
+         */
+        unsigned int length() {
+            return obj_->segms_[seg_idx_].length;
+        }
+
+        /**
+         * @brief Select next beam in current segment
+         * @return False if there is no next beam in the current segment
+         */
+        bool nextBeam() {
+            ++beam_idx_;
+            return beam_idx_ < obj_->segms_[seg_idx_].length;
+        }
+
+        /**
+         * @brief Get the selected beam in the current segment
+         * @return The laser beam
+         */
+        const LaserBeam& beam() {
+            return obj_->beams_[obj_->segms_[seg_idx_].start + beam_idx_];
+        }
+
+    private:
+        /// Index of current segment
+        int seg_idx_;
+
+        /// Index of current beam
+        unsigned int beam_idx_;
+
+        /// We are iteration over the segments of this object
+        DistanceSegmentation* obj_;
+    };
+
+    /**
+     * @brief Create an iterator to iterate over all segments
+     * @return The iterator object
+     */
+    Iterator iterator() {
+        return Iterator( this );
+    }
 
 private:
+
+    /// Distance threshold [m]
     float threshold_;
+
+    /// All segments
+    std::vector<DistanceSegment> segms_;
+
+    /// Laser data
+    std::vector<LaserBeam> beams_;
 
 };
 
