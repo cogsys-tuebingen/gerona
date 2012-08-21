@@ -107,7 +107,7 @@ public:
 
 protected:
 
-  void initMap();
+  void initGrid();
   unsigned size_x_,size_y_,size_angle_;
   float xy_resolution_;
   float angle_resolution_;
