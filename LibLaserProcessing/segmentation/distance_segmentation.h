@@ -85,8 +85,27 @@ public:
          * @brief Get the selected beam in the current segment
          * @return The laser beam
          */
-        const LaserBeam& beam() {
+        LaserBeam& beam() {
             return obj_->beams_[obj_->segms_[seg_idx_].start + beam_idx_];
+        }
+
+        /**
+         * @brief Reset beam iteration
+         */
+        void resetBeams() {
+            beam_idx_ = 0;
+        }
+
+        /**
+         * @brief Set status of all beams of the selected segment to invalid
+         * @attention This method is not thread safe
+         */
+        void invalidateSegment() {
+            unsigned int old_beam_idx = beam_idx_;
+            resetBeams();
+            while ( nextBeam())
+                beam().valid = false;
+            beam_idx_ = old_beam_idx;
         }
 
     private:

@@ -23,6 +23,10 @@ public:
 
     void update( DistanceSegmentation& segments );
 
+private:
+
+    /// Minimum number of beams per leg
+    unsigned int min_beams_;
 };
 
 }
