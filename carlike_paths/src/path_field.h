@@ -67,8 +67,13 @@ public:
     @param origin_x xpos of the leftmost point of map
     @param origin_y ypos of the bottommost point of map
     */
-  PathField(unsigned cells_size_x, unsigned cells_size_y, unsigned cells_size_z,
-            double xy_resolution, double angle_resolution, double origin_x, double origin_y);
+  PathField(unsigned cells_size_x, unsigned cells_size_y, unsigned cells_size_angle, float xy_resolution,
+             unsigned steer_conf_num, float origin_x, float origin_y);
+
+  /**
+    destructor
+    */
+  ~PathField ();
 
   /**
     returns a code for the current steering configuration of the robot
@@ -108,11 +113,13 @@ public:
 protected:
 
   void initGrid();
+  float origin_x_,origin_y_, origin_angle_;
   unsigned size_x_,size_y_,size_angle_;
   float xy_resolution_;
   float angle_resolution_;
-  float origin_x_,origin_y_, origin_angle_;
+  unsigned steer_conf_num_;
   short rotation_angle_;
+  int grid_size_,grid_row_size_y_,grid_row_size_angle_;
   PathCell *grid_;
 };
 
