@@ -1,5 +1,15 @@
+/**
+ * (c) Cognitive Systems, University of Tübingen
+ *
+ * @date Aug 2012
+ * @author marks
+ */
+
 // C/C++
 #include <cmath>
+
+// Eigen
+#include <Eigen/LU>
 
 // Project
 #include "person_filter.h"
@@ -11,86 +21,129 @@ namespace lib_laser_processing {
 
 PersonFilter::PersonFilter()
 {
+    config_.noise
+            << pow( 1.0, 2 ), 0, 0, 0,
+            0, pow( 1.0, 2 ), 0, 0,
+            0, 0, 1.0, 0,
+            0, 0, 0, 1.0;
+    config_.measurement_noise
+            << pow( 0.4, 2 ), 0, 0, 0,
+            0, pow( 0.4, 2 ), 0, 0,
+            0, 0, pow( 2.0, 2 ), 0,
+            0, 0, 0, pow( 2.0, 2 );
+    config_.initial_cov
+            << pow( 0.6, 2 ), 0, 0, 0,
+            0, pow( 0.6, 2 ), 0, 0,
+            0, 0, pow( 1.0, 2 ), 0,
+            0, 0, 0, pow( 1.0, 2 );
+    config_.max_position_var = pow( 0.91, 2 );
+    config_.slow_down = 0.95;
 }
 
-void PersonFilter::update( const std::vector<Person> &pers )
+void PersonFilter::update( const vector<Person> &pers, const double dt )
 {
-    // For each hypo
-    std::vector<PersonProbability>::iterator it = hypo_.begin();
-    for ( ; it != hypo_.end(); ++it ) {
-        it->cov(0,0) += 0.05;
-        it->cov(1,1) += 0.05;
+    // Prediction step for each hypothesis
+    for ( list<Hypothesis>::iterator it = hypo_.begin(); it != hypo_.end(); ++it ) {
+        // Slow down
+        it->state.tail<2>() *= config_.slow_down;
 
-        if ( sqrt( it->cov(0,0)) > 1.0 || sqrt( it->cov(1,1)) > 1.0 ) {
-            it = hypo_.erase( it );
-            /// TODO
-            it = hypo_.begin();
-        }
+        // Estimated movement
+        it->state.head<2>() += dt*it->state.tail<2>();
+
+        // Add uncertainty
+        it->cov += dt*config_.noise;
     }
 
-    // For each detected person
-    Person p;
-    for ( std::size_t i = 0; i < pers.size(); ++i ) {
-        p = pers[i];
-
+    // For each detected person blob
+    for ( vector<Person>::const_iterator it = pers.begin(); it != pers.end(); ++it ) {
         // Get best matching existing hypothesis
-        int hypo_idx = getMatchingHypo( p );
+        Hypothesis* h = getMatchingHypo( *it, dt );
 
-        // No hypothesis found?
-        if ( hypo_idx < 0 ) {
-            hypo_.push_back( createNewHypo( p ));
+        // No hypothesis found? Create one
+        if ( !h ) {
+            hypo_.push_back( createNewHypo( *it ));
             continue;
         }
 
-        // Hypothesis found. Update
-        PersonProbability* h = &hypo_[hypo_idx];
-        double k = h->cov(0,0)/(h->cov(0,0) + 0.4*0.4 );
-        h->pos(0) = h->pos(0) + k*(p.pos(0) - h->pos(0));
-        h->cov(0,0) *= (1.0 - k);
-        k = h->cov(1,1)/(h->cov(1,1) + 0.4*0.4 );
-        h->pos(1) = h->pos(1) + k*(p.pos(1) - h->pos(1));
-        h->cov(1,1) *= (1.0 - k);
+        // Calculate velocity
+        Vector4d m;
+        m.head<2>() = it->pos;
+        m.tail<2>() = (it->pos - h->state.head<2>())/dt;
+
+        // Correction step
+        Matrix4d k = h->cov*(h->cov + config_.measurement_noise).inverse();
+        h->state += k*(m - h->state);
+        h->cov = (Matrix4d::Identity() - k)*h->cov;
+    }
+
+    // Delete bad hypotheses and update person probability
+    list<Hypothesis>::iterator it = hypo_.begin();
+    while (  it != hypo_.end()) {
+        if ( it->cov(0,0) > config_.max_position_var || it->cov(1,1) > config_.max_position_var ) {
+            it = hypo_.erase( it );
+            continue;
+        }
+
+        if ( it->state.tail<2>().norm() > 0.2 )
+            it->person_prob += 0.005;
+        else
+            it->person_prob -= 0.02;
+
+        if ((it->state.head<2>() - it->first_seen).norm() > 0.5 )
+            it->person_prob += 0.01;
+
+        if ( it->cov(0,0) < 0.1 )
+            it->person_prob += 0.01;
+        else
+            it->person_prob -= 0.05;
+
+        if ( it->person_prob > 1.0 )
+            it->person_prob = 1.0;
+        if ( it->person_prob < 0 )
+            it->person_prob = 0;
+
+        ++it;
     }
 }
 
-PersonProbability PersonFilter::createNewHypo(const Person &p)
+PersonFilter::Hypothesis PersonFilter::createNewHypo( const Person &p )
 {
-    PersonProbability h;
-    h.pos = h.first_seen = p.pos;
-    h.vel = Vector2d::Zero();
-    h.state.head<2>() = h.pos;
-    h.state.tail<2>() = h.vel;
-    h.cov << 0.7*0.7, 0, 0, 0,
-            0, 0.7*0.7, 0, 0,
-            0, 0, 1.0, 0,
-            0, 0, 0, 1.0;
+    Hypothesis h;
+    h.state = Vector4d::Zero();
+    h.state.head<2>() = p.pos;
+    h.cov = config_.initial_cov;
+    h.first_seen = p.pos;
+    h.person_prob = 0.3;
     return h;
 }
 
-int PersonFilter::getMatchingHypo(const Person &pers)
+PersonFilter::Hypothesis* PersonFilter::getMatchingHypo( const Person &pers, const double dt )
 {
-    int ret_idx = -1;
+    Hypothesis* ret( NULL );
 
     // Check all hypotheses
     double p;
-    double p_best = 0.1;
-    Eigen::Vector2d x;
-    PersonProbability* h;
-    for ( std::size_t i = 0; i < hypo_.size(); ++i ) {
-        h = &hypo_[i];
-        p = probability( pers.pos(0), h->pos(0), sqrt( h->cov(0,0)));
-        p *= probability( pers.pos(1), h->pos(1), sqrt( h->cov(1,1)));
+    double p_best = 0.4;
+    Vector4d x;
+    x.head<2>() = pers.pos;
+    list<Hypothesis>::iterator it = hypo_.begin();
+    while ( it != hypo_.end()) {
+        x.tail<2>() = (pers.pos - it->state.head<2>())/dt;
+        p = positionProbability( x, it->state, it->cov );
         if ( p > p_best ) {
             p_best = p;
-            ret_idx = i;
+            ret = &(*it);
         }
+        ++it;
     }
-    return ret_idx;
+    return ret;
 }
 
-double PersonFilter::probability( double x, double u, double s )
+double PersonFilter::positionProbability( const Vector4d& x, const Vector4d& state, const Matrix4d& cov )
 {
-    return exp(-0.5*pow((x - u)/s, 2 ))/(sqrt( 2.0*M_PI)*s);
+    double p = -0.5*(x.head<2>() - state.head<2>()).transpose()*cov.topLeftCorner<2,2>().inverse()*(x.head<2>() - state.head<2>());
+    p = exp(p)/(sqrt( pow( 2.0*M_PI, 2 )*cov.topLeftCorner<2,2>().determinant()));
+    return p;
 }
 
 } // namespace

@@ -153,7 +153,7 @@ void LegDetector::update( DistanceSegmentation &segms )
 
         Leg leg;
         leg.pos = com;
-        leg.is_single_leg = max < 0.1;
+        leg.is_single_leg = max < 0.12;
         legs_.push_back( leg );
     }
 }
