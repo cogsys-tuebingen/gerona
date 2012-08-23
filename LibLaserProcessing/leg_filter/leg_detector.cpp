@@ -116,8 +116,8 @@ void LegDetector::update( DistanceSegmentation &segms )
         }
         double std_dev = std::sqrt( variance( dists ));
         //std::cout << std_dev << std::endl;
-        if ( std_dev > 0.06 ) {
-            it.invalidateSegment();
+        if ( std_dev > 0.05 ) {
+            //it.invalidateSegment();
             continue;
         }
 
@@ -150,6 +150,10 @@ void LegDetector::update( DistanceSegmentation &segms )
             //it.invalidateSegment();
            // continue;
         }*/
+
+        /// @todo hack
+        if ( com.norm() > 15.0 )
+            continue;
 
         Leg leg;
         leg.pos = com;

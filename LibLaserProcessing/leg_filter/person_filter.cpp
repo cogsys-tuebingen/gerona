@@ -36,7 +36,7 @@ PersonFilter::PersonFilter()
             0, pow( 0.6, 2 ), 0, 0,
             0, 0, pow( 1.0, 2 ), 0,
             0, 0, 0, pow( 1.0, 2 );
-    config_.max_position_var = pow( 0.91, 2 );
+    config_.max_position_var = pow( 0.7, 2 );
     config_.slow_down = 0.95;
 }
 
@@ -71,7 +71,11 @@ void PersonFilter::update( const vector<Person> &pers, const double dt )
         m.tail<2>() = (it->pos - h->state.head<2>())/dt;
 
         // Correction step
-        Matrix4d k = h->cov*(h->cov + config_.measurement_noise).inverse();
+        Matrix4d k;
+        if ( it->legs.size() > 1 )
+            k = h->cov*(h->cov + config_.measurement_noise).inverse();
+        else
+            k = h->cov*(h->cov + 2.5*config_.measurement_noise).inverse(); /// @todo hack
         h->state += k*(m - h->state);
         h->cov = (Matrix4d::Identity() - k)*h->cov;
     }
@@ -84,16 +88,17 @@ void PersonFilter::update( const vector<Person> &pers, const double dt )
             continue;
         }
 
+        /// @todo Hack
         if ( it->state.tail<2>().norm() > 0.2 )
             it->person_prob += 0.005;
         else
             it->person_prob -= 0.02;
 
-        if ((it->state.head<2>() - it->first_seen).norm() > 0.5 )
+        if ((it->state.head<2>() - it->first_seen).norm() > 0.3 )
             it->person_prob += 0.01;
 
         if ( it->cov(0,0) < 0.1 )
-            it->person_prob += 0.01;
+            it->person_prob += 0.0;
         else
             it->person_prob -= 0.05;
 
@@ -123,7 +128,7 @@ PersonFilter::Hypothesis* PersonFilter::getMatchingHypo( const Person &pers, con
 
     // Check all hypotheses
     double p;
-    double p_best = 0.4;
+    double p_best = 0.37;
     Vector4d x;
     x.head<2>() = pers.pos;
     list<Hypothesis>::iterator it = hypo_.begin();
