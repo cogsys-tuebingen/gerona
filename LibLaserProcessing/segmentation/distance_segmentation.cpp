@@ -1,5 +1,6 @@
 /**
- * @file distance_segmentation.cpp
+ * (c) Cognitive Systems, University of Tübingen
+ *
  * @date Aug 2012
  * @author marks, buck
  */

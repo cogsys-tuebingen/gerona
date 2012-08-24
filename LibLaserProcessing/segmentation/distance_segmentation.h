@@ -1,5 +1,6 @@
 /**
- * @file distance_segmentation.h
+ * (c) Cognitive Systems, University of Tübingen
+ *
  * @date Aug 2012
  * @author marks, buck
  */
@@ -11,21 +12,9 @@
 #include <vector>
 
 // Project
-#include "../LaserBeam.h"
+#include <utils/LibLaserProcessing/laser_beam.h>
 
 namespace lib_laser_processing {
-
-/**
- * @brief Represents one segment. Internally used
- */
-struct DistanceSegment
-{
-    /// Start index of segment
-    unsigned int start;
-
-    /// Number of beams
-    unsigned int length;
-};
 
 /**
  * @brief Provides a simple distance based segmentation of laser data
@@ -33,6 +22,7 @@ struct DistanceSegment
 class DistanceSegmentation
 {
 public:
+
     /**
      * @brief Create and initialize
      * @param threshold Distance threshold
@@ -46,9 +36,22 @@ public:
     void update( const std::vector<LaserBeam>& beams );
 
     /**
+     * @brief Represents one segment
+     */
+    struct DistanceSegment
+    {
+        /// Start index of segment
+        unsigned int start;
+
+        /// Number of beams
+        unsigned int length;
+    };
+
+    /**
      * @brief Interates over all segments
      */
-    class Iterator {
+    class Iterator
+    {
     public:
 
         Iterator( DistanceSegmentation* obj ) : seg_idx_(-1), beam_idx_(-1), obj_(obj)

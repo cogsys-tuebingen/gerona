@@ -1,3 +1,11 @@
+/**
+ * (c) Cognitive Systems, University of Tübingen
+ *
+ * @date Aug 2012
+ * @author marks
+ */
+
+// Project
 #include "person_detector.h"
 
 namespace lib_laser_processing {
@@ -8,6 +16,11 @@ PersonDetector::PersonDetector()
 
 void PersonDetector::update(const std::vector<Leg> &legs)
 {
+    /**
+     * @todo Use something like graph matching to Compute
+     * an optimal solution. This basic version fails with many persons
+     */
+
     persons_.clear();
 
     std::vector<bool> processed;

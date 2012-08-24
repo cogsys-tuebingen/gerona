@@ -13,8 +13,7 @@
 #include <list>
 
 // Project
-#include <utils/LibLaserProcessing/leg_filter/person.h>
-#include <utils/LibLaserProcessing/leg_filter/person_probability.h>
+#include <utils/LibLaserProcessing/person_filter/person.h>
 
 namespace lib_laser_processing {
 
@@ -112,6 +111,9 @@ private:
      */
     Hypothesis createNewHypo( const Person& p );
 
+    /**
+     * @brief Return probability of x relative to state and cov
+     */
     double positionProbability( const Eigen::Vector4d& x,
                                 const Eigen::Vector4d& state,
                                 const Eigen::Matrix4d& cov );

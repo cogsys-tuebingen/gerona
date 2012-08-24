@@ -75,7 +75,7 @@ void PersonFilter::update( const vector<Person> &pers, const double dt )
         if ( it->legs.size() > 1 )
             k = h->cov*(h->cov + config_.measurement_noise).inverse();
         else
-            k = h->cov*(h->cov + 2.5*config_.measurement_noise).inverse(); /// @todo hack
+            k = h->cov*(h->cov + 2.5*config_.measurement_noise).inverse(); /// @todo This is a hack
         h->state += k*(m - h->state);
         h->cov = (Matrix4d::Identity() - k)*h->cov;
     }
@@ -88,7 +88,7 @@ void PersonFilter::update( const vector<Person> &pers, const double dt )
             continue;
         }
 
-        /// @todo Hack
+        /// @todo This is a hack. Use at least Bayes or something like that
         if ( it->state.tail<2>().norm() > 0.2 )
             it->person_prob += 0.005;
         else
@@ -124,6 +124,9 @@ PersonFilter::Hypothesis PersonFilter::createNewHypo( const Person &p )
 
 PersonFilter::Hypothesis* PersonFilter::getMatchingHypo( const Person &pers, const double dt )
 {
+    /// @todo It might be possible to use the estimated velocity as well
+    /// @todo Update only one hypothesis per person?
+
     Hypothesis* ret( NULL );
 
     // Check all hypotheses
@@ -146,6 +149,7 @@ PersonFilter::Hypothesis* PersonFilter::getMatchingHypo( const Person &pers, con
 
 double PersonFilter::positionProbability( const Vector4d& x, const Vector4d& state, const Matrix4d& cov )
 {
+    /// @todo Correct scaling
     double p = -0.5*(x.head<2>() - state.head<2>()).transpose()*cov.topLeftCorner<2,2>().inverse()*(x.head<2>() - state.head<2>());
     p = exp(p)/(sqrt( pow( 2.0*M_PI, 2 )*cov.topLeftCorner<2,2>().determinant()));
     return p;

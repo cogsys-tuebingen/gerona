@@ -1,3 +1,10 @@
+/**
+ * (c) Cognitive Systems, University of Tübingen
+ *
+ * @date Aug 2012
+ * @author marks
+ */
+
 #ifndef PERSON_H
 #define PERSON_H
 
@@ -8,10 +15,14 @@
 #include <Eigen/Core>
 
 // Project
-#include <utils/LibLaserProcessing/leg_filter/leg.h>
+#include <utils/LibLaserProcessing/person_filter/leg.h>
 
 namespace lib_laser_processing {
 
+/**
+ * @brief Represents a detected person. A person has one or two legs
+ * and a position.
+ */
 class Person
 {
 public:
@@ -22,7 +33,6 @@ public:
 
     /// Legs corresponding to this person
     std::vector<Leg> legs;
-
 };
 
 } // namespace
