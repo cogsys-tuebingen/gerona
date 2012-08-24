@@ -16,6 +16,8 @@
 
 namespace lib_laser_processing {
 
+/// @todo Extract a parent class to make switching between different algorithms easier
+
 /**
  * @brief Provides a simple distance based segmentation of laser data
  */
