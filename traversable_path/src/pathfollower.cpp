@@ -341,13 +341,12 @@ bool PathFollower::findPathMiddlePoints(PathFollower::vectorVector2f *out) const
     float step_size = map_->info.resolution;
 
     // go forward
-    const float DISTANCE_BEHIND_ROBOT = 0.8; /** \todo experimentiere mit kleineren werten */
+    const float DISTANCE_BEHIND_ROBOT = 0.8;
     const float DISTANCE_IN_FRONT_OF_ROBOT = 1.0;
 
     //! Position of the current forward step.
     Vector2f forward_pos = robot_pose_.position - DISTANCE_BEHIND_ROBOT*robot_pose_.direction;
     for (float forward = - DISTANCE_BEHIND_ROBOT; forward < DISTANCE_IN_FRONT_OF_ROBOT; forward += 3*step_size) {
-        /** \todo better exception handling here? */
         forward_pos += robot_pose_.direction * 3*step_size;
 
         // break, if obstacle is in front.
@@ -566,7 +565,6 @@ void PathFollower::handleObstacle()
         float robot_angle = atan2(robot_pose_.direction[1], robot_pose_.direction[0]);
 
         // try to drive back 1m. If not possible try 50cm
-        /** \todo this could be done better */
         Vector2f drive_back_goal = robot_pose_.position - robot_pose_.direction;
         if (!map_processor_->checkGoalTraversability(robot_pose_.position, drive_back_goal)) {
             drive_back_goal = robot_pose_.position - 0.5*robot_pose_.direction;
@@ -596,7 +594,6 @@ void PathFollower::handleObstacle()
 void PathFollower::stopRobot()
 {
     ROS_INFO("Stop robot..");
-    /** \todo testen ob cancelAllGoals das gewünschte tut :) Wenn nicht setze neues Ziel mit v = 0 */
     motion_control_action_client_.cancelAllGoals();
     current_goal_.is_set = false;
     goal_locker_->unlock();
