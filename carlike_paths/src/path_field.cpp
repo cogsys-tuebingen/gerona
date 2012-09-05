@@ -28,17 +28,16 @@ PathField::~PathField()
 void PathField::initGrid()
 {
   angle_resolution_=2*M_PI/size_angle_;
-  grid_row_size_steer_=
   grid_row_size_angle_=steer_conf_num_+1;
   grid_row_size_y_=(size_angle_+1)*grid_row_size_angle_;
-  grid_size_=size_x_*grid_row_size_y_;
+  grid_row_size_x_=size_y_*grid_row_size_y_;
+  grid_size_=size_x_*grid_row_size_x_;
   grid_ = new PathCell[grid_size];
 }
 
 
 int PathField::calcGridIndex(unsigned int mx, unsigned int my, unsigned int ma, unsigned int msteer)
 {
-  return mx*grid_row_size_y_+my*grid_row_size_angle_+ma*(steer
 }
 
 

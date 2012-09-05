@@ -47,15 +47,14 @@
 #include "simbot4ws.h"
 struct PathCell
 {
-  unsigned short steer_conf_;
   unsigned short  count_;
   unsigned int  next_;
-  unsigned  int cost_;
+  unsigned  short cost_;
 
 };
 
 struct PathXyCell {
-  vector<PathCell> cells_;
+  std::vector<PathCell> cells_;
 
 };
 
@@ -79,7 +78,10 @@ public:
     returns a code for the current steering configuration of the robot
 
     */
-  unsigned short getSteerConf(float deltaf, float deltar);
+  unsigned int getSteerConf(float deltaf, float deltar)
+  {
+
+  }
 
 
   void intersect (const PathField& other_field);
@@ -104,11 +106,26 @@ public:
     wy = origin_y_ + (my + 0.5) * xy_resolution_;
   }
 
-  inline void calcGridIndex(unsigned int mx, unsigned int my, unsigned int ma, unsigned int msteer)
+  inline unsigned int calcGridIndex(unsigned int mx, unsigned int my, unsigned int ma, unsigned int msteer)
   {
-
-
+    return mx*grid_row_size_x_+my*grid_row_size_y_+ma*grid_row_size_angle_+msteer;
   }
+
+  inline bool calcGridIndex (float wx, float wy, float angle, float deltaf, float deltar, unsigned& idx)
+  {
+    unsigned int mx,my,ma,msteer;
+    bool status;
+    status= worldToMap2D(wx,wy,mx,my);
+    if (!status) return false;
+    // normalize angle to [0,2pi]
+    while (angle<0) angle+=2*M_PI;
+    while (angle>2*M_PI) angle-=2*M_PI;
+    ma=angle/angle_resolution_;
+    msteer=getSteerConf(deltaf,deltar);
+    return true;
+  }
+
+
 
 protected:
 
@@ -119,7 +136,7 @@ protected:
   float angle_resolution_;
   unsigned steer_conf_num_;
   short rotation_angle_;
-  int grid_size_,grid_row_size_y_,grid_row_size_angle_;
+  int grid_size_,grid_row_size_y_,grid_row_size_y_,grid_row_size_angle_;
   PathCell *grid_;
 };
 
