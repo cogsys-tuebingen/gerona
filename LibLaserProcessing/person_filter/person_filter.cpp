@@ -21,18 +21,22 @@ namespace lib_laser_processing {
 
 PersonFilter::PersonFilter()
 {
-    config_.noise
-            << pow( 1.0, 2 ), 0, 0, 0,
+    // Misc initialization
+    last_id_ = 0;
+
+    // Default config
+    config_.noise <<
+            pow( 1.0, 2 ), 0, 0, 0,
             0, pow( 1.0, 2 ), 0, 0,
             0, 0, 1.0, 0,
             0, 0, 0, 1.0;
-    config_.measurement_noise
-            << pow( 0.4, 2 ), 0, 0, 0,
+    config_.measurement_noise <<
+            pow( 0.4, 2 ), 0, 0, 0,
             0, pow( 0.4, 2 ), 0, 0,
             0, 0, pow( 2.0, 2 ), 0,
             0, 0, 0, pow( 2.0, 2 );
-    config_.initial_cov
-            << pow( 0.6, 2 ), 0, 0, 0,
+    config_.initial_cov <<
+            pow( 0.6, 2 ), 0, 0, 0,
             0, pow( 0.6, 2 ), 0, 0,
             0, 0, pow( 1.0, 2 ), 0,
             0, 0, 0, pow( 1.0, 2 );
@@ -119,6 +123,7 @@ PersonFilter::Hypothesis PersonFilter::createNewHypo( const Person &p )
     h.cov = config_.initial_cov;
     h.first_seen = p.pos;
     h.person_prob = 0.3;
+    h.id = last_id_++;
     return h;
 }
 

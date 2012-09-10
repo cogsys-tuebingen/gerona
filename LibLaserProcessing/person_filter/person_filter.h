@@ -42,6 +42,9 @@ public:
         Eigen::Vector2d first_seen;
 
         double person_prob;
+
+        /// Unique id (used for testing)
+        long id;
     };
 
 
@@ -123,6 +126,9 @@ private:
 
     /// Filter configuration
     Config config_;
+
+    /// Used to generate unique IDs
+    long last_id_;
 };
 
 } // namespace
