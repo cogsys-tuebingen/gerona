@@ -44,6 +44,8 @@
 *********************************************************************/
 #ifndef PATH_FIELD_H
 #define PATH_FIELD_H
+#include <vector>
+#include <cmath>
 #include "simbot4ws.h"
 struct PathCell
 {
@@ -80,7 +82,7 @@ public:
     */
   unsigned int getSteerConf(float deltaf, float deltar)
   {
-
+    return 0;
   }
 
 
@@ -136,7 +138,7 @@ protected:
   float angle_resolution_;
   unsigned steer_conf_num_;
   short rotation_angle_;
-  int grid_size_,grid_row_size_y_,grid_row_size_y_,grid_row_size_angle_;
+  int grid_size_,grid_row_size_x_,grid_row_size_y_,grid_row_size_angle_;
   PathCell *grid_;
 };
 
