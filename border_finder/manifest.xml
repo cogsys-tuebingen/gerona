@@ -1,0 +1,23 @@
+<package>
+  <description brief="border_finder">
+
+     border_finder
+
+  </description>
+  <author>bohlmann, masselli</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+
+  <depend package="roscpp"/>
+  <depend package="nav_msgs" />
+  <depend package="visualization_msgs" />
+  <depend package="opencv2" />
+  <depend package="eigen"/>
+  <depend package="tf"/>
+  <depend package="geometry_msgs" />
+
+  <url>http://ros.org/wiki/border_finder</url>
+
+</package>
+
+
