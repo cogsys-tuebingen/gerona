@@ -29,6 +29,7 @@ rosbuild_add_library (LibOdoCalib
     SteerAngleController.cpp
     StraightLineDriver.cpp
     TrajectoryMission.cpp
+    AxisbaseEstimator.cpp
 )
 
 target_link_libraries( LibOdoCalib
