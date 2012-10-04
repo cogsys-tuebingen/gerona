@@ -31,7 +31,7 @@ double AxisbaseEstimator::calcAxisbase( double wheelbase, double enc_coeff_left,
         CircleData d = data_[i];
 
         // Effective circle radius
-        double r_eff = sqrt( pow( d.radius, 2 ) + 0.25*pow( wheelbase, 2 ));
+        double r_eff = sqrt( pow( d.radius, 2 ) - 0.25*pow( wheelbase, 2 ));
 
         // Left encoder distance
         double d_l = enc_coeff_left*(d.end_ticks_left - d.start_ticks_left);
