@@ -444,6 +444,8 @@ public:
      */
     void setLogInfo( bool isLogging, U16 fileNumber, U32 size );
 
+
+    void setRawSteerMode(bool flag) {mRawSteerServoMode=flag;}
 private:
     /**
      * Standard constructor.
@@ -485,6 +487,8 @@ private:
     Stopwatch               mDiagnosisTimer;
     /** Sensor diagnosis interval [ms] */
     int                     mDiagnosisInterval;
+
+    bool                    mRawSteerServoMode;
 
     /** Command mode */
     Ra::RobotCmdMode mCmdMode;

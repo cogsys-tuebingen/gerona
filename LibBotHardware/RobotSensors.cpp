@@ -41,10 +41,11 @@ RobotSensors::RobotSensors( RamaxxConnection * conn )
     mPniCompass = new PniCompass();
 
     // Ptz voltage
-    mPtzVoltage = new Ads7828voltage( Voltage::PAN_TILT, 0x48, conn );
+/* Attention: Switched steer and pan/tilt voltage sensor id */
+    mPtzVoltage = new Ads7828voltage( Voltage::PAN_TILT, 0x4B, conn );
 
     // Steer angle voltage
-    mSteerVoltage = new Ads7828voltage( Voltage::STEER, 0x4B, conn );
+    mSteerVoltage = new Ads7828voltage( Voltage::STEER, 0x48, conn );
 
     // Avr voltage sensor
     mAvrVoltage = new Avr32Voltage( conn );

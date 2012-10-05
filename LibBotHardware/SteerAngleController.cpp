@@ -85,21 +85,19 @@ int SteerAngleController::getStaticServoValue (double delta)
     // TODO Jup, do this.
 
     // values for thrain
-    if (position_==0) {
+    /*if (position_==0) {
         return round(1152.818069*delta+2201.367827);
     } else {
-        return round( 1371.449133*delta+2218.744219);
-    }
+        return round( 1371.449133*delta+2210.744219);
+    }*/
 
-    /*
     if (position_==0) {
 
         // values for gloin front servo
         // todo config
-        return  round(1109.401709*delta+2166.786176);
+        return  round(1109.401709*delta+2150.0);
     } else {
-        return round(1480.456139*delta+2226.536816);
+        return round(1480.456139*delta+2030.536816);
     }
-    */
 }
 

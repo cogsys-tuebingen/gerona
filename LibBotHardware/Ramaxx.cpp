@@ -54,7 +54,7 @@ Ramaxx::Ramaxx()
     mSteerBack( &mActuators, &mSensors ),
     mRamaxxOdo( &mSensors, &mSteerFront, &mSteerBack ),
     mPtz( &mActuators, &mSensors), mRtz( &mActuators ),
-    mBackSteerAvail( false ), mCmdMode(Ra::AUTO), mAvrUi( &mUsbConn ),
+      mBackSteerAvail( false ),mRawSteerServoMode(false), mCmdMode(Ra::AUTO), mAvrUi( &mUsbConn ),
     mAvrParams( &mUsbConn, &mSensors, &mActuators )
 {
     mOdo = &mRamaxxOdo;
@@ -198,6 +198,7 @@ void Ramaxx::setSteerMode( const RobotSteerMode &mode ) {
 }
 
 void Ramaxx::setSteerDegrees( float angle ) {
+    mRawSteerServoMode=false;
     if ( mSteerMode == FRONT ) {
         mSteerFront.setAngleDeg( angle );
         mSteerBack.setAngleDeg( 0 );
@@ -241,8 +242,10 @@ void Ramaxx::update () {
     // Update speed controller
     mSpeed->update( false );
     // Update steer controller
-    mSteerFront.update();
-    mSteerBack.update();
+    if (!mRawSteerServoMode) {
+        mSteerFront.update();
+        mSteerBack.update();
+    }
     // Update ptz & rtz controller
     mPtz.update();
     mRtz.update();
@@ -257,10 +260,12 @@ void Ramaxx::update () {
 }
 
 void Ramaxx::setSteerFrontDegrees( float angle ) {
+    mRawSteerServoMode=false;
     mSteerFront.setAngleDeg( angle );
 }
 
 void Ramaxx::setSteerBackDegrees( float angle ) {
+    mRawSteerServoMode=false;
     mSteerBack.setAngleDeg( angle );
 }
 
