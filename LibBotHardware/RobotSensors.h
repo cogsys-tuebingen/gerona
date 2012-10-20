@@ -248,6 +248,13 @@ public:
     int getWheelEncoderCount() const { return mWheelencVec.size(); }
 
     /**
+     * Returns the ADNS flowdometry sensor.
+     *
+     * @param ADNS flowdometry sensor.
+     */
+    AdnsSensor* getAdnsSensor() { return mAdns; }
+
+    /**
      * Sets the position of sonar ranger i.
      *
      * @param pos The position of the ranger.
@@ -305,6 +312,9 @@ private:
 
     /** Sonar ranger with address EA */
     SonarRanger *mSonarEA;
+
+    /** ADNS 2620 flowdometry */
+    AdnsSensor *mAdns;
 
     //// Sensor vectors ////
 

@@ -51,6 +51,15 @@ const string LOG_GPS_E=           "gps_e";
 const string LOG_GPS_ALT=         "gps_alt";
 const string LOG_GPS_FIX=         "gps_fix";
 const string LOG_GPS_SATS=        "gps_sats";
+const string LOG_ADNS_0_XSUM=     "adns_0_xsum";
+const string LOG_ADNS_0_YSUM=     "adns_0_ysum";
+const string LOG_ADNS_0_SQUAL=    "adns_0_squal";
+const string LOG_ADNS_1_XSUM=     "adns_1_xsum";
+const string LOG_ADNS_1_YSUM=     "adns_1_ysum";
+const string LOG_ADNS_1_SQUAL=    "adns_1_squal";
+const string LOG_ADNS_2_XSUM=     "adns_2_xsum";
+const string LOG_ADNS_2_YSUM=     "adns_2_ysum";
+const string LOG_ADNS_2_SQUAL=    "adns_2_squal";
 
 void configureRamaxxLog(LogCollector& logger);
 

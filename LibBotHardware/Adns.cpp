@@ -13,6 +13,7 @@
 #include <iostream>
 #include <math.h>
 #include <sstream>
+#include <fstream>
 
 // GSL
 #include <gsl/gsl_blas.h>
@@ -45,7 +46,9 @@ void AdnsChip::set( int dx, int dy, int squal ) {
 
 //// class AdnsSensor /////////////////////////////////////////////////////////
 
-AdnsSensor::AdnsSensor( U8 sensorId, size_t chipCount, RamaxxConnection * conn ) {
+AdnsSensor::AdnsSensor( U8 sensorId, size_t chipCount, RamaxxConnection * conn )
+{
+    mName = "Flowdometry";
     mSensorId = sensorId;
     mChips.resize( chipCount );
 
@@ -59,10 +62,10 @@ void AdnsSensor::processQuMessage( const QuMessage &msg ) {
         processPositionMsg( msg );
         break;
     case MT_ADNS_PIXDUMP:
-        //processDumpMsg( msg );
+        processDumpMsg( msg );
         break;
     case MT_ADNS_ERROR:
-        //processErrorMsg( msg );
+        processErrorMsg( msg );
         break;
     default:
         break;
@@ -99,13 +102,42 @@ bool AdnsSensor::processPositionMsg( const QuMessage &msg ) {
         dy |= ( msg.data[dataPos + 3] );
         U8 sq = msg.data[dataPos + 4];
         getChip( i )->set( dx, dy, sq );
-        cout << "Adns: " << (int)dx << " " << (int)dy << " " << (int)sq << endl;
+        //cout << "Adns: " << (int)i << " " << getChip( i )->getDxSum() << "\t" << getChip( i )->getDySum() << "\t" << (int)sq << endl;
     }
 
     return true;
 }
 
+void AdnsSensor::processDumpMsg( const QuMessage& msg ) {
+    AdnsSensorId id;
 
+    if ( msg.length < 2 )
+        return;
+
+    // Parse id
+    id.setSensorId( msg.data[0] );
+    id.setChipNumber( msg.data[1] );
+
+    // Copy data
+    // TODO: Remove
+
+    cout << "Got pixdump, writing pgm..." << endl;
+    ofstream of( "/tmp/pixdump.pgm" );
+    of << "P2\n18 18\n63" << endl;
+    vector<int> pixelData( msg.length - 2 );
+    for ( int i = 3; i < msg.length; ++i ) {
+        pixelData[i - 2] = msg.data[i];
+        of << (int)msg.data[i] << " ";
+    }
+    of << endl;
+    cout << "Done writing pixdump." << endl;
+}
+
+void AdnsSensor::processErrorMsg( const QuMessage &msg )
+{
+    AdnsError err( msg );
+    cout << "ERROR: " << err.toString() << endl;
+}
 
 //// class AdnsSensorId ///////////////////////////////////////////////////////
 

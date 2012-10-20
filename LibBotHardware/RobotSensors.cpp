@@ -12,6 +12,7 @@
 // Project
 #include "RobotSensors.h"
 #include "QuMessage.h"
+#include "Adns.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // IMPLEMENTATION
@@ -58,6 +59,9 @@ RobotSensors::RobotSensors( RamaxxConnection * conn )
     mSonarE8 = new SonarRanger( 0xE8, conn, RangerPosition( -0.2, -0.06, 0, 195.0*M_PI/180.0 ));
     mSonarEA = new SonarRanger( 0xEA, conn, RangerPosition( -0.2, -0.15, 0, 225.0*M_PI/180.0 ));
 
+    // Flowdometry
+    mAdns = new AdnsSensor( 0, 3, conn );
+
     // Fill vectors
     mCompassVec.push_back( mI2cCompass );
     mCompassVec.push_back( mPniCompass );
@@ -86,6 +90,7 @@ RobotSensors::~RobotSensors() {
     delete mSonarE6;
     delete mSonarE8;
     delete mSonarEA;
+    delete mAdns;
 }
 
 void RobotSensors::runDiagnosis( int timeDiff ) {
@@ -98,6 +103,7 @@ void RobotSensors::runDiagnosis( int timeDiff ) {
         mSonarVec[i]->diagnosis( timeDiff );
     for ( size_t i = 0; i < mCompassVec.size(); ++i )
         mCompassVec[i]->diagnosis( timeDiff );
+    mAdns->diagnosis( timeDiff );
 }
 
 void RobotSensors::setSonarRangerPosition( const RangerPosition &pos, int i ) {

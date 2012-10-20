@@ -28,6 +28,7 @@
 #include "QuMessage.h"
 #include "UsbConn.h"
 #include "DataListener.h"
+#include "Sensor.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // DEFINITIONS
@@ -145,7 +146,7 @@ private:
 
 typedef vector<AdnsChip> AdnsChipVector;
 
-class AdnsSensor : public DataOwner, public QuMsgHandler {
+class AdnsSensor : public QuMsgHandler, public Sensor {
 public:
 
     /**
@@ -158,17 +159,17 @@ public:
     AdnsSensor( U8 sensorId, size_t chipCount, RamaxxConnection * conn );
 
     /**
-     * Returns the number of connected chips.
-     *
-     * @return Tzhe number of connected chips.
-     */
-    AdnsChip* getChip( size_t i ) { return &mChips[i]; }
-
-    /**
      * Returns chip i.
      *
      * @param i Index of the chip.
      * @return Chip i.
+     */
+    AdnsChip* getChip( size_t i ) { return &mChips[i]; }
+
+    /**
+     * Returns number of connected chips.
+     *
+     * @return Number of connected chips.
      */
     size_t getChipCount() const { return mChips.size(); }
 
@@ -186,6 +187,19 @@ private:
      */
     bool processPositionMsg( const QuMessage &msg );
 
+    /**
+     * Process a pixdump message.
+     *
+     * @param msg The message.
+     */
+    void processDumpMsg( const QuMessage& msg );
+
+    /**
+     * Process a error msg.
+     *
+     * @param msg The messages_base
+     */
+    void processErrorMsg( const QuMessage &msg );
 
     /** All ADNS chips. */
     AdnsChipVector mChips;

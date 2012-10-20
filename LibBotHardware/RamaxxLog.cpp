@@ -46,4 +46,13 @@ void configureRamaxxLog(LogCollector &logger)
   logger.addColumn(LOG_IMUQ1);
   logger.addColumn(LOG_IMUQ2);
   logger.addColumn(LOG_IMUQ3);
+  logger.addColumn(LOG_ADNS_0_XSUM);
+  logger.addColumn(LOG_ADNS_0_YSUM);
+  logger.addColumn(LOG_ADNS_0_SQUAL);
+  logger.addColumn(LOG_ADNS_1_XSUM);
+  logger.addColumn(LOG_ADNS_1_YSUM);
+  logger.addColumn(LOG_ADNS_1_SQUAL);
+  logger.addColumn(LOG_ADNS_2_XSUM);
+  logger.addColumn(LOG_ADNS_2_YSUM);
+  logger.addColumn(LOG_ADNS_2_SQUAL);
 }
