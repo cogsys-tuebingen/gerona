@@ -19,6 +19,7 @@ const string& LOG_HALL3_MEAN="hall3_mean";
 const string& LOG_HALL3_STD="hall3_std";
 const string& LOG_HALL4_MEAN="hall4_mean";
 const string& LOG_HALL4_STD="hall4_std";
+const string& LOG_BETA_BEST_MEAN="beta_best_mean";
 
 const int HALL_SENSOR_NUMBER=4;
 HallEstimator::HallEstimator()
@@ -72,6 +73,7 @@ void HallEstimator::configureLog()
   logger_.addColumn(LOG_HALL3_STD);
   logger_.addColumn(LOG_HALL4_MEAN);
   logger_.addColumn(LOG_HALL4_STD);
+  logger_.addColumn(LOG_BETA_BEST_MEAN);
 
 }
 
@@ -86,7 +88,7 @@ void HallEstimator::addHallVoltage(int idx, double val)
 }
 
 
-void HallEstimator::finishRun(double beta, int count)
+void HallEstimator::finishRun(double beta, int count,double beta_best_mean)
 {
   logger_.addValue(LOG_RUNNO,run_counter_);
   logger_.addValue(LOG_BETA_TARGET,beta);
@@ -98,7 +100,7 @@ void HallEstimator::finishRun(double beta, int count)
   logger_.addValue(LOG_HALL2_STD,current_stats_[1].getStd());
   logger_.addValue(LOG_HALL3_STD,current_stats_[2].getStd());
   logger_.addValue(LOG_HALL4_STD,current_stats_[3].getStd());
-
+  logger_.addValue(LOG_BETA_BEST_MEAN,beta_best_mean);
   logger_.writeLogLine();
   HallDataSet *set = new HallDataSet(beta,current_stats_);
 

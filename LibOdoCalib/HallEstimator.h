@@ -20,7 +20,7 @@ public:
   HallEstimator();
   ~HallEstimator();
   void addHallVoltage(int idx,double val);
-  void finishRun(double beta, int count);
+  void finishRun(double beta, int count,double beta_best_mean);
   void startResultLog(const string& fname);
   bool isStarted() {return started_;}
   void analyze();
