@@ -13,11 +13,13 @@ SteerAngleController::SteerAngleController()
 
 void SteerAngleController::setTargetAngle (double delta)
 {
-    target_rad_ = delta;
-    operating_point_ = getStaticServoValue(delta);
-    //cout << "operating point:"<<operating_point_<< endl;
+    if (fabs(delta-target_rad_)>0.5*M_PI/180.0) {
+        target_rad_ = delta;
+        operating_point_ = getStaticServoValue(delta);
+        //cout << "operating point:"<<operating_point_<< endl;
 
-    sum_t_e_=0;
+        sum_t_e_=0;
+    }
 }
 
 
@@ -47,6 +49,7 @@ void SteerAngleController::setPiParameters(double kp, double ki)
 {
     Kp_ = kp;
     Ki_ = ki;
+    cout << "Angle ctrl: " << position_ << " : " << kp << " : "  << ki << endl;
 }
 
 

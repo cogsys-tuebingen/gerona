@@ -56,15 +56,20 @@ SteerServo::~SteerServo() {
 }
 
 void SteerServo::setAngleDeg( float angle ) {
-    if ( !mConfig.enableCtrl || !mHallOk ) {
-        // TODO Check
-        //setValue( angleToServo( angle ));
-        mTargetAngleDeg = angle;
-    } else {
-        mTargetAngleDeg = angle;
-        float rad = angle*M_PI/180.0;
-        mCtrl.setTargetAngle( rad );
-        setValue( mCtrl.getStaticServoValue( rad ));
+
+    if (fabs(angle-mTargetAngleDeg)>0.5) {
+
+        if ( !mConfig.enableCtrl || !mHallOk ) {
+            // TODO Check
+            //setValue( angleToServo( angle ));
+            printf("hallok %d,enablctrl %d",mHallOk,mConfig.enableCtrl);
+            mTargetAngleDeg = angle;
+        } else {
+            mTargetAngleDeg = angle;
+            float rad = angle*M_PI/180.0;
+            mCtrl.setTargetAngle( rad );
+            setValue( mCtrl.getStaticServoValue( rad ));
+        }
     }
 }
 
@@ -93,7 +98,7 @@ float SteerServo::getAngleDeg() {
 }
 
 void SteerServo::update() {
-    if ( mUpdateTimer.msElapsed() >= mConfig.updateIntervalMs ) {
+    if ( mUpdateTimer.msElapsed() >= 20 ) { //mConfig.updateIntervalMs ) {
         S32 servoVal = getServoZero();
 
         // Use steer angle controller?
@@ -218,7 +223,7 @@ void FrontSteerServo::getHallVoltages( Voltage *sensor, double &outVoltage1, dou
 
 BackSteerServo::BackSteerServo( Actuators *actuators, RobotSensors *sensors ) :
         SteerServo( actuators, sensors ) {
-  mCtrl.setPosition( 0 );
+  mCtrl.setPosition( 1 );
 }
 
 S32 BackSteerServo::angleToServo( const float angleDeg ) const {
