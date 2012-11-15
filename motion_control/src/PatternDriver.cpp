@@ -71,8 +71,9 @@ bool PatternDriver::update( Vector3d& slam_pose )
     double angle_delta = MathHelper::AngleDelta( atan2( delta.y(), delta.x()),
                                                  slam_pose(2));
 
-    const double steer_p = 1.3;
+    const double steer_p = 0.7;
     cmd_front_rad_ = -steer_p * angle_delta;
+    cmd_rear_rad_ = steer_p * angle_delta;
     //cout << "Angle d: " << angle_delta << " Front steer: " << cmd_front_rad_ << endl;
 
     return true;
@@ -80,7 +81,7 @@ bool PatternDriver::update( Vector3d& slam_pose )
 
 void PatternDriver::nextWaypoint( Vector3d &slam_pose )
 {
-    const double max_wp_dist = 0.30;
+    const double max_wp_dist = 0.25;
     while ( !waypoints_.empty() &&
             (slam_pose.head<2>()- waypoints_.front().head<2>()).norm() < max_wp_dist )
         waypoints_.pop_front();
@@ -91,7 +92,7 @@ void PatternDriver::generateWaypoints( double delta_f )
     waypoints_.clear();
 
     // Distance between waypoints
-    const double wp_dist = 0.25;
+    const double wp_dist = 0.20;
 
     // Calculate turn radius
     const double l = 0.38;
@@ -186,10 +187,11 @@ int PatternDriver::execute(MotionFeedback &fb, MotionResult &result)
     case MotionResult::MOTION_STATUS_COLLISION:
         cmd_v_=0;
         state_=  MotionResult::MOTION_STATUS_STOP;
-
+        result.status=MotionResult::MOTION_STATUS_STOP;
         break;
     case MotionResult::MOTION_STATUS_SUCCESS:
         state_=MotionResult::MOTION_STATUS_STOP;
+        result.status=MotionResult::MOTION_STATUS_STOP;
         cmd_v_=0;
         break;
     case MotionResult::MOTION_STATUS_STOP:
@@ -210,7 +212,7 @@ int PatternDriver::execute(MotionFeedback &fb, MotionResult &result)
             result.status = MotionResult::MOTION_STATUS_MOVING;
         } else {
             cmd_v_ = 0;
-            result.status = state_ = MotionResult::MOTION_STATUS_STOP;
+            result.status = state_ = MotionResult::MOTION_STATUS_SUCCESS;
         }
 
         double delta_dist=(slam_pose.head<2>()-last_pose_.head<2>()).norm();
