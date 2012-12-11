@@ -14,6 +14,7 @@
 
 #include "serialgps.h"
 #include "ubloxmsg.h"
+
 namespace GPS {
 
     const int UBLOX_BAUDRATE = 115200;
@@ -86,6 +87,15 @@ namespace GPS {
         x01x03 getNAVSTATUS(){return NAVSTATUS;};
 
     private:
+
+        /**
+         * Read data from the given serial device and print an error message if
+         * no data is available
+         */
+        unsigned int readData( int serial_fd, char* c );
+
+        /// True if the last package had a faulty checksum.
+        bool cksum_err_;
 
         x02x20 RXMSVIS;
         x01x06 NAVSOL;

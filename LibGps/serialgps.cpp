@@ -80,12 +80,10 @@ namespace GPS {
             baudFlag = B57600;
             break;
         }
-
-        cout << "opening " << serialDevice << endl;
         
         *fdptr = open(serialDevice, O_RDWR | O_NOCTTY );
         if (*fdptr <0) {
-            cout << "error opening" << serialDevice <<endl;
+            cout << "[Serial Gps]: ERROR. Cannot open " << serialDevice << endl;
             return EHW;
         }
         

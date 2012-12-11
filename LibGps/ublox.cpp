@@ -18,7 +18,7 @@
 namespace GPS {
 
     Ublox::Ublox(const string& serialDevice)
-        : SerialGps(serialDevice,UBLOX_BAUDRATE)
+        : SerialGps(serialDevice,UBLOX_BAUDRATE), cksum_err_(false)
     {
 
     }
@@ -106,10 +106,9 @@ namespace GPS {
 
     bool Ublox::Update()
     {
-        bool  status;         // Status of port read.
         char  readChar;         // One byte received from the port.
         bool  start;          // Has the start of an UBX sentence been read?
-        unsigned int numBytesRead;       // Number of bytes read from each call to ReadFile().
+        unsigned int numBytesRead = 0;       // Number of bytes read from each call to ReadFile().
         unsigned int count;       // Number of bytes read for a sentence.
         // for the UBX Protocol
         unsigned char Binary_Class;   // UBX Message-class
@@ -127,140 +126,175 @@ namespace GPS {
         char  sentence[1024];
         unsigned char sentence2[1024];
 
-        double PosGK[3];
-
         start = false;
-        numBytesRead = read (mSerialFd, &readChar, 1);
-        //    cout<<"1 ReadChar: "<<hex<<(int)readChar<<endl;
-        if (numBytesRead!=1 ) {
-            cout << "timeout UBLOX serial port \n";
-            start = false;
-        } else {
-            if (readChar == '\xB5' && start == false)
-            {  // sync char 1
-                numBytesRead = read (mSerialFd, &readChar, 1);
-                if (readChar == '\x62' && start == false) {   // sync char 2
-                    start = true;
-                    count = 0;
-                }
+        if ( cksum_err_ ) {
+            /*
+               Checksum failed for last packet. We may have lost syncronization.
+               This is a workaround for the fractional GPS data in logfiles.
+               Reason for the wrong checksum is still unknown.
+
+               We should read all data available during one call of this function.
+               Possible buffer overflow if there is too much unread data? What is
+               the default buffer length of a emulated serial device?
+
+                                                                  (Author: Marks)
+             */
+            cout << "[Ublox Gps]: Trying to recover from checksum error." << endl;
+
+            // Read until '\xB5' or max. 256 bytes
+            for ( int i = 0; i < 256; ++i ) {
+                readData (mSerialFd, &readChar);
+                if ( readChar == '\xB5' )
+                    break;
             }
-            else
-            {
-                cout << "faield to read valid UBX packet"<< endl;
+
+        } else {
+            // No checksum error. Read first byte
+            numBytesRead = readData (mSerialFd, &readChar);
+            if ( numBytesRead != 1 )  {
+                cout << "[Ublox Gps]: ERROR. Timeout UBLOX serial port." << endl;
                 return false;
             }
-            if (start == true) {
-                // A sentence is currently being read; add the character read
-                // from the com port.
-                if (count == 0)
-                {
-                    numBytesRead = read (mSerialFd, &readChar, 1);
-                    Binary_Class = readChar;
+        }
+        if ( readChar == '\xB5' )
+        {  // sync char 1
+            numBytesRead = readData (mSerialFd, &readChar);
+            if (readChar == '\x62') {   // sync char 2
+                start = true;
+                count = 0;
+            }
+        } else {
+            cout << "[Ublox Gps]: ERROR. Failed to read valid UBX packet."<< endl;
+            return false;
+        }
 
-                    numBytesRead = read (mSerialFd, &readChar, 1);
-                    Binary_ID = readChar;
+        if (start == true) {
+            // Info if the last packet had a faulty checksum
+            if ( cksum_err_ ) {
+                cout << "[Ublox Gps]: Successfully recovered from checksum error." << endl;
+            }
 
-                    numBytesRead = read (mSerialFd, &readChar, 1);
-                    Binary_Lenght[0] = readChar;
-                    numBytesRead = read (mSerialFd, &readChar, 1);
-                    Binary_Lenght[1] = readChar;
+            // A sentence is currently being read; add the character read
+            // from the com port.
+            if (count == 0)
+            {
+                numBytesRead = readData (mSerialFd, &readChar);
+                Binary_Class = readChar;
 
-                    Binary_Lenght_out = (unsigned char) Binary_Lenght[0] + (unsigned char) Binary_Lenght[1] *256;
+                numBytesRead = readData (mSerialFd, &readChar);
+                Binary_ID = readChar;
 
-                }
+                numBytesRead = readData (mSerialFd, &readChar);
+                Binary_Lenght[0] = readChar;
+                numBytesRead = readData (mSerialFd, &readChar);
+                Binary_Lenght[1] = readChar;
 
-                Binary_CKA = Binary_Class  + Binary_ID + (unsigned char) Binary_Lenght[0] + (unsigned char) Binary_Lenght[1];
-                Binary_CKB = 4*Binary_Class  + 3*Binary_ID + 2*(unsigned char) Binary_Lenght[0] + (unsigned char) Binary_Lenght[1];
-
-                if(Binary_Lenght_out>1023)
-                {
-                    cout<<(this->mSerialDevice)<<": Incredible Binary_Length_out "<<endl;
-                    check_ok = false;
-                    return false;
-                }
-
-                for (count = 0; count < Binary_Lenght_out; count++)
-                {
-                    numBytesRead = read (mSerialFd, &readChar, 1);
-                    sentence[count] = readChar;
-                    sentence2[count] = readChar;
-                    Binary_CKA = Binary_CKA + (unsigned char) readChar;     // 8-Bit Fletcher Algorithm
-                    Binary_CKB = Binary_CKB + Binary_CKA;
-                }
-
-                numBytesRead = read (mSerialFd, &readChar, 1);  // read CKA
-                temp = (unsigned char) readChar;
-                check_ok = false;
-
-                if (Binary_CKA == temp)
-                {
-                    numBytesRead = read (mSerialFd, &readChar, 1);  // read CKB
-
-                    if (Binary_CKB == (unsigned char) readChar)
-                    {
-                        check_ok = true;
-                    }
-                }
-                if(!check_ok)
-                {
-                    cout<<"Fletcher Check failed...."<<endl;
-                    return false;
-                }
-                //          TimeStamp ts;
-
-                if((Binary_Class == '\x01') && (check_ok == true))
-                {
-                    //           cout<<"msg:"<<(int)Binary_Class<<" "<<(int)Binary_ID<<endl;
-                    if (Binary_ID == '\x06')
-                    {
-
-                        NAVSOL.read(sentence);
-                    }
-                }
-
-                if((Binary_Class == '\x01') && (check_ok == true))
-                {
-                    //           cout<<"msg:"<<(int)Binary_Class<<" "<<(int)Binary_ID<<endl;
-                    if (Binary_ID == '\x02')
-                    {
-                        NAVPOSLLH.read(sentence);
-                    }
-                }
-
-                if((Binary_Class == '\x01') && (check_ok == true))
-                {
-                    //           cout<<"msg:"<<(int)Binary_Class<<" "<<(int)Binary_ID<<endl;
-                    if (Binary_ID == '\x12')
-                    {
-                        NAVVELNED.read(sentence);
-                    }
-                }
-
-                if((Binary_Class == '\x01') && (check_ok == true))
-                {
-                    //           cout<<"msg:"<<(int)Binary_Class<<" "<<(int)Binary_ID<<endl;
-                    if (Binary_ID == '\x04')
-                    {
-                        NAVDOP.read(sentence);
-                    }
-                }
-
-                if((Binary_Class == '\x01') && (check_ok == true))
-                {
-                    //           cout<<"msg:"<<(int)Binary_Class<<" "<<(int)Binary_ID<<endl;
-                    if (Binary_ID == '\x03')
-                    {
-                        NAVSTATUS.read(sentence);
-                    }
-                }
+                Binary_Lenght_out = (unsigned char) Binary_Lenght[0] + (unsigned char) Binary_Lenght[1] *256;
 
             }
-            start = false;
-            sentence[count] = '\0';
+
+            Binary_CKA = Binary_Class  + Binary_ID + (unsigned char) Binary_Lenght[0] + (unsigned char) Binary_Lenght[1];
+            Binary_CKB = 4*Binary_Class  + 3*Binary_ID + 2*(unsigned char) Binary_Lenght[0] + (unsigned char) Binary_Lenght[1];
+
+            if( Binary_Lenght_out > 1023 )
+            {
+                cout << "[Ublox Gps]: ERROR. Incredible Binary_Length_out. Skipping data." << endl;
+                check_ok = false;
+                return false;
+            }
+
+            for (count = 0; count < Binary_Lenght_out; count++)
+            {
+                numBytesRead = readData (mSerialFd, &readChar);
+                sentence[count] = readChar;
+                sentence2[count] = readChar;
+                Binary_CKA = Binary_CKA + (unsigned char) readChar;     // 8-Bit Fletcher Algorithm
+                Binary_CKB = Binary_CKB + Binary_CKA;
+            }
+
+            numBytesRead = read (mSerialFd, &readChar, 1);  // read CKA
+            temp = (unsigned char) readChar;
+            check_ok = false;
+
+            if (Binary_CKA == temp)
+            {
+                numBytesRead = readData (mSerialFd, &readChar);  // read CKB
+                if (Binary_CKB == (unsigned char) readChar)
+                {
+                    check_ok = true;
+                    cksum_err_ = false;
+                }
+            }
+            if(!check_ok)
+            {
+                cout << "[Ublox Gps]: ERROR. Fletcher checksum failed for UBX packet." << endl;
+                cksum_err_ = true;
+                return false;
+            }
+
+            if((Binary_Class == '\x01') && (check_ok == true))
+            {
+                //           cout<<"msg:"<<(int)Binary_Class<<" "<<(int)Binary_ID<<endl;
+                if (Binary_ID == '\x06')
+                {
+
+                    NAVSOL.read(sentence);
+                }
+            }
+
+            if((Binary_Class == '\x01') && (check_ok == true))
+            {
+                //           cout<<"msg:"<<(int)Binary_Class<<" "<<(int)Binary_ID<<endl;
+                if (Binary_ID == '\x02')
+                {
+                    NAVPOSLLH.read(sentence);
+                }
+            }
+
+            if((Binary_Class == '\x01') && (check_ok == true))
+            {
+                //           cout<<"msg:"<<(int)Binary_Class<<" "<<(int)Binary_ID<<endl;
+                if (Binary_ID == '\x12')
+                {
+                    NAVVELNED.read(sentence);
+                }
+            }
+
+            if((Binary_Class == '\x01') && (check_ok == true))
+            {
+                //           cout<<"msg:"<<(int)Binary_Class<<" "<<(int)Binary_ID<<endl;
+                if (Binary_ID == '\x04')
+                {
+                    NAVDOP.read(sentence);
+                }
+            }
+
+            if((Binary_Class == '\x01') && (check_ok == true))
+            {
+                //           cout<<"msg:"<<(int)Binary_Class<<" "<<(int)Binary_ID<<endl;
+                if (Binary_ID == '\x03')
+                {
+                    NAVSTATUS.read(sentence);
+                }
+            }
 
         }
-        // markStopped();
+        start = false;
+        sentence[count] = '\0';
+
         // success
         return true;
     }
+
+    unsigned int Ublox::readData(int serial_fd, char *c)
+    {
+        int num_read = read( serial_fd, c, 1 );
+        if ( num_read != 1 ) {
+            cout << "[Ublox Gps]: ERROR: Could not read data. Read returned: " << num_read << endl;
+            return 0;
+        }
+
+        return 1;
+    }
+
 }
