@@ -222,7 +222,7 @@ void PathFollower::refreshRobotPose()
         robot_pose_.position[0] = robot_pose.getOrigin().getX();
         robot_pose_.position[1] = robot_pose.getOrigin().getY();
         // orientation
-        btVector3 tmp(1,0,0);
+        tf::Vector3 tmp(1,0,0);
         tmp = tmp.rotate(robot_pose.getRotation().getAxis(), robot_pose.getRotation().getAngle());
         robot_pose_.direction[0] = tmp.getX();
         robot_pose_.direction[1] = tmp.getY();

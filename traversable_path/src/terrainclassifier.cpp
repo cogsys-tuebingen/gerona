@@ -196,8 +196,8 @@ bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::E
 //    // get laser tilt
 //    tf::StampedTransform laser_transform;
 //    tf_listener_.lookupTransform("/laser", "/base_link", ros::Time(0), laser_transform);
-//    btScalar roll, pitch, yaw;
-//    btMatrix3x3(laser_transform.getRotation()).getRPY(roll,pitch,yaw);
+//    tfScalar roll, pitch, yaw;
+//    tf::Matrix3x3(laser_transform.getRotation()).getRPY(roll,pitch,yaw);
 //    // - for roll is 180°. Cation! this may only work on thrain?
 //    float tilt = -pitch;
 

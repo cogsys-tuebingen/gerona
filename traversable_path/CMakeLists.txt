@@ -46,6 +46,7 @@ rosbuild_add_executable(classify_terrain
     src/point_types.h
     src/mapprocessor.cpp
 )
+target_link_libraries(classify_terrain yaml-cpp)
 
 rosbuild_add_executable(follow_path
     src/pathfollower.cpp
