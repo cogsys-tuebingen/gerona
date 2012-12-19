@@ -33,4 +33,4 @@ rosbuild_add_library(LibRobot
 )
 
 
-target_link_libraries( LibRobot boost_thread-mt ${OpenCV_LIBRARIES})
+target_link_libraries( LibRobot boost_thread-mt ${OpenCV_LIBRARIES} LibUtil)

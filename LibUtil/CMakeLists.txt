@@ -32,8 +32,8 @@ add_library (LibUtil SHARED
     Line2dSegment.cpp
 )
 
-#target_link_libraries(LibUtil
-#    ${OpenCV_LIBS}
-#)
+target_link_libraries(LibUtil
+    ${OpenCV_LIBS}
+)
 
 install (TARGETS LibUtil LIBRARY DESTINATION lib)

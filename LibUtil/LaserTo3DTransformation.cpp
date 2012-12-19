@@ -40,20 +40,20 @@ void LaserTo3DTransformation::transform(double angle, double dist, const Eigen::
         res[2] = -res[2];
 
         // rotiere um die Roll- und Tiltwinkel des PNI
-        btVector3 resBt;
+        tf::Vector3 resBt;
         resBt[0] = res[0];
         resBt[1] = res[1];
         resBt[2] = res[2];
-        btScalar roll, pitch, yaw;
-        btQuaternion quatBt;
+        tfScalar roll, pitch, yaw;
+        tf::Quaternion quatBt;
         quatBt.setX(quat.x());
         quatBt.setY(quat.y());
         quatBt.setZ(quat.z());
         quatBt.setW(quat.w());
 
-        btMatrix3x3(quatBt).getRPY(roll, pitch, yaw);
+        tf::Matrix3x3(quatBt).getRPY(roll, pitch, yaw);
 
-        btMatrix3x3 rotMatrix;
+        tf::Matrix3x3 rotMatrix;
         rotMatrix.setRPY(roll, pitch, 0);
         resBt = rotMatrix * resBt;
 
