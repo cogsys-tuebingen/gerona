@@ -21,6 +21,8 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #uncomment if you have defined services
 #rosbuild_gensrv()
 
+find_package(OpenCV REQUIRED)
+
 #common commands for building c++ executables and libraries
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
@@ -42,3 +44,4 @@ rosbuild_add_executable(largest_empty_circle_finder src/largest_empty_circle.cpp
                                                     src/CircleFinder.cpp
                                                     src/VoronoiDiagramGenerator.cpp
                                                     src/Timer.cpp)
+target_link_libraries(largest_empty_circle_finder ${OpenCV_LIBS})

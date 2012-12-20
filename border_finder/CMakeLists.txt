@@ -21,6 +21,8 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #uncomment if you have defined services
 #rosbuild_gensrv()
 
+find_package(OpenCV REQUIRED)
+
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
@@ -30,4 +32,4 @@ rosbuild_add_executable(border_finder
 src/BorderFinder.cpp
 src/BorderFunctions.cpp
 src/Path2d.cpp)
-#target_link_libraries(example ${PROJECT_NAME})
+target_link_libraries(border_finder ${OpenCV_LIBS})
