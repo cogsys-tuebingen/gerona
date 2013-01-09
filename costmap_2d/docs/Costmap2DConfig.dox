@@ -18,13 +18,13 @@ Reads and maintains the following parameters on the ROS server
 - \b "~width" : \b [int] The width of the map in meters. min: 0, default: 0, max: 20
 - \b "~height" : \b [int] The height of the map in meters. min: 0, default: 10, max: 20
 - \b "~resolution" : \b [double] The resolution of the map in meters/cell. min: 0.0, default: 0.05, max: 50.0
-- \b "~origin_x" : \b [double] The x origin of the map in the global frame in meters. min: 0.0, default: 0.0, max: std::numeric_limits<double>::infinity()
-- \b "~origin_y" : \b [double] The y origin of the map in the global frame in meters. min: 0.0, default: 0.0, max: std::numeric_limits<double>::infinity()
+- \b "~origin_x" : \b [double] The x origin of the map in the global frame in meters. min: 0.0, default: 0.0, max: inf
+- \b "~origin_y" : \b [double] The y origin of the map in the global frame in meters. min: 0.0, default: 0.0, max: inf
 - \b "~publish_voxel_map" : \b [bool] Whether or not to publish the underlying voxel grid for visualization purposes. min: False, default: False, max: True
 - \b "~lethal_cost_threshold" : \b [int] The threshold value at which to consider a cost lethal when reading in a map from the map server. min: 0, default: 100, max: 255
 - \b "~map_topic" : \b [str] The topic that the costmap subscribes to for the static map. min: , default: map, max: 
 - \b "~map_type" : \b [str] What map type to use. voxel or costmap are the supported types min: , default: costmap, max: 
-- \b "~origin_z" : \b [double] The z origin of the map in meters. min: 0.0, default: 0.0, max: std::numeric_limits<double>::infinity()
+- \b "~origin_z" : \b [double] The z origin of the map in meters. min: 0.0, default: 0.0, max: inf
 - \b "~z_resolution" : \b [double] The z resolution of the map in meters/cell. min: 0.0, default: 0.2, max: 50.0
 - \b "~z_voxels" : \b [int] The number of voxels to in each vertical column. min: 0, default: 10, max: 16
 - \b "~unknown_threshold" : \b [int] The number of unknown cells allowed in a column considered to be known min: 0, default: 15, max: 16
