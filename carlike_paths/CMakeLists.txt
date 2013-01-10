@@ -8,6 +8,7 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
 #set(ROS_BUILD_TYPE RelWithDebInfo)
+set(ROS_COMPILE_FLAGS "-W -Wall -fno-strict-aliasing -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-but-set-variable")
 
 rosbuild_init()
 

@@ -28,6 +28,7 @@ void keyboardEventOccurred (const pcl::visualization::KeyboardEvent &event,
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer =
       *static_cast<boost::shared_ptr<pcl::visualization::PCLVisualizer> *> (viewer_void);
   if (event.keyDown()) {
+    printf("%s",event.getKeySym().c_str());
     if (event.getKeySym () == "q" ||event.getKeySym () == "x") {
       exit(0);
     }
@@ -64,7 +65,7 @@ int main(int argc, char *argv[])
   for (int i=0;i<100;++i) {
     path4ws_sim.step();
   }
-  ROS_INFO("number of points: %d",path4ws_sim.getCloud()->size());
+  ROS_INFO("number of points: %ld",path4ws_sim.getCloud()->size());
 
   viewer->addPointCloud(path4ws_sim.getCloud(),"pathcloud");
 
@@ -76,7 +77,7 @@ int main(int argc, char *argv[])
         path4ws_sim.step();
       }
       viewer->removePointCloud("pathcloud");
-      ROS_INFO("number of points: %d",path4ws_sim.getCloud()->size());
+      ROS_INFO("number of points: %ld",path4ws_sim.getCloud()->size());
       viewer->addPointCloud(path4ws_sim.getCloud(),"pathcloud");
       do_step=false;
     }

@@ -22,8 +22,9 @@ PathField::PathField(unsigned cells_size_x, unsigned cells_size_y, unsigned cell
 
 PathField::~PathField()
 {
-  delete[] grid_;
+
 }
+
 
 void PathField::initGrid()
 {
@@ -32,9 +33,8 @@ void PathField::initGrid()
   grid_row_size_y_=(size_angle_+1)*grid_row_size_angle_;
   grid_row_size_x_=size_y_*grid_row_size_y_;
   grid_size_=size_x_*grid_row_size_x_;
-  grid_ = new PathCell[grid_size_];
+  grid_.resize(grid_size_);
 }
-
 
 
 
