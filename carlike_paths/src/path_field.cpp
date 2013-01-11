@@ -9,6 +9,18 @@
 
 #include "path_field.h"
 
+
+SteerConfig::SteerConfig(float max_angle, float max_step)
+  :max_angle_(max_angle),max_step_(max_step)
+{
+
+}
+
+
+
+
+
+
 PathField::PathField(unsigned cells_size_x, unsigned cells_size_y, unsigned cells_size_angle, float xy_resolution,
                      unsigned steer_conf_num, float origin_x, float origin_y)
   :origin_x_(origin_x),origin_y_(origin_y),origin_angle_(0),

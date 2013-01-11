@@ -15,7 +15,7 @@
 #include "simbot4ws.h"
 struct PathCell
 {
-  unsigned short  count_;
+  unsigned short  track_id_;
   unsigned int  next_;
   unsigned  short cost_;
 
@@ -25,6 +25,20 @@ struct PathXyCell {
   std::vector<PathCell> cells_;
 
 };
+
+class SteerConfig {
+public:
+  SteerConfig(float max_angle,float max_step);
+
+  unsigned int getSteerConf (float deltaf, float deltar);
+
+private:
+  unsigned int getSteerConf(float delta);
+
+  float max_angle_, max_step_;
+
+};
+
 
 class PathField
 {
