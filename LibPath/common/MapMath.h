@@ -13,7 +13,7 @@
 
 #define RTOD(r)   ((r) * 180 / M_PI)
 #define DTOR(d)   ((d) * M_PI / 180)
-#define NORMALIZE(z) MathHelper::AngleClamp((z));
+#define NORMALIZE(z) MathHelper::AngleClamp((z))
 
 namespace lib_path {
 class GridMap2d;

@@ -28,7 +28,7 @@ public:
    *
    * @param OpenCV image to draw to
    */
-  CurveRenderer(IplImage* debug_image);
+  CurveRenderer(cv::Mat& debug_image);
 
   /**
    * Creates a new window and displays a curve
@@ -37,12 +37,14 @@ public:
    */
   void snapshot_in_new_window(Curve * curve);
 
+  void draw_map(GridMap2d* m_map);
+
   /**
    * Draws a curve onto the image of this instance
    *
    * @param curve Reeds-Shepp curve to draw
    */
-  void draw(Curve * curve);
+  void draw(Curve * curve, cv::Scalar bg_color = cv::Scalar(80, 30, 30, 0.4));
 
   /**
    * Draws an arrow onto the image of this instance
@@ -60,7 +62,7 @@ public:
   void display_overlay(Curve * curve);
 
 private:
-  IplImage * m_debug_image;
+  cv::Mat m_debug_image;
 };
 
 }

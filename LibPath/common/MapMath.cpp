@@ -12,26 +12,6 @@
 
 namespace lib_path {
 
-double NORMALIZE_0_2PI(double angle)
-{
-  while (angle >= 2 * M_PI)
-    angle -= 2 * M_PI;
-  while (angle < 0)
-    angle += 2 * M_PI;
-
-  return angle;
-}
-
-double NORMALIZE_0_360(double angle)
-{
-  while (angle >= 360)
-    angle -= 360;
-  while (angle < 0)
-    angle += 360;
-
-  return angle;
-}
-
 void pos2map(double px, double py, double& mx, double&my, const GridMap2d& map)
 {
   mx = (px - map.getOrigin().x) / map.getResolution();

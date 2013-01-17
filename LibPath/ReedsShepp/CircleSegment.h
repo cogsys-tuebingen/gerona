@@ -9,173 +9,131 @@
 #define CIRCLESEGMENT_H
 
 #include "CurveSegment.h"
-#include "LineSegment.h"
 
 #include "../common/Point2d.h"
 
-namespace lib_path {
+namespace lib_path
+{
 
 class CircleSegment: public CurveSegment
 {
-public:
-  enum ORIENTATION {
-    LEFT,
-    RIGHT
-  };
-
-  enum MODE {
-    AWAY_FROM_POINT,
-    TOWARDS_POINT
-  };
+    friend class GeometryHelper;
+    friend class CurveRenderer;
 
 public:
-  /**
-   * Constructor, that sets the orientation and the direction
-   *
-   * @param orientation LEFT or RIGHT
-   * @param direction FORWARD or BACKWARD
-   */
-  CircleSegment(ORIENTATION orientation, DIRECTION direction);
+    enum ORIENTATION {
+        LEFT_CURVE,
+        RIGHT_CURVE
+    };
 
-  /**
-   * Copy constructor
-   */
-  // not necessary, use default
+public:
+    /**
+     * Constructor, that sets the orientation and the direction
+     *
+     * @param orientation LEFT or RIGHT
+     * @param direction FORWARD or BACKWARD
+     */
+    CircleSegment(ORIENTATION orientation, DIRECTION direction);
 
-  /**
-   * Computes a circle, that touches this circle and circle3 both tangentially.
-   * This computation takes into consideration the orientation and direction of all three circles.
-   * Since there are two possibilities, the combination with the lower weight is chosen.
-   *
-   * @param circle2 gets the information computed written into
-   * @param circle3 the other circle, that must be touched
-   */
-  bool get_tangential_circle(CircleSegment &circle2, CircleSegment &circle3,
-                             bool ignore_obstacles);
+    /**
+     * Copy constructor
+     */
+    // not necessary, use default
 
-  /**
-   * Computes two touching circles, that touch this circle and circle4 both tangentially.
-   * This computation takes into consideration the orientation and direction of all four circles.
-   * Since there are two possibilities, the combination with the lower weight is chosen.
-   *
-   * @param circle2 gets the information computed written into
-   * @param circle3 gets the information computed written into
-   * @param circle4 the other circle, that must be touched
-   */
-  bool get_tangential_double_circle(CircleSegment &circle2, CircleSegment &circle3, CircleSegment &circle4,
-                                    bool ignore_obstacles);
+    CurveSegment* clone() const;
 
+    /**
+     * Sets the center for this circle
+     *
+     * @param center point in map coordinates
+     */
+    void set_center_of_rotation(Point2d& center);
 
-  /**
-   * Computes a tangent, that touches this circle and the given one.
-   * This computation takes into consideration the orientation and direction of both circles and the tangent.
-   * The tangent fits onto both circles such that a continous trajectory (respecting the 3 directions) results.
-   *
-   * @param circle the second circle for the tangent
-   * @param line_is_reverse
-   */
-  bool get_common_tangent(CircleSegment &checkCircle, LineSegment &out_tangent, bool line_is_reverse);
+    /**
+     * Sets the radius of the circle
+     *
+     * @param radius radius of the circle, NOT maximum steering angle!
+     */
+    void set_curve_radius(double radius);
 
-  /**
-   * Sets the center for this circle
-   *
-   * @param center point in map coordinates
-   */
-  void set_center_of_rotation(Point2d &center);
+    void set_start_angle_for_orientation(double orientation);
+    void set_end_angle_for_orientation(double orientation);
 
-  /**
-   * Sets the radius of the circle
-   *
-   * @param radius radius of the circle, NOT maximum steering angle!
-   */
-  void set_curve_radius(double radius);
+    void set_start_angle(double angle);
+    void set_end_angle(double angle);
 
-  /**
-   * Sets the orientation of the circle
-   *
-   * @param angle rotation of the "null-point"
-   */
-  void set_null_direction_angle(double angle);
+    double get_start_angle() const;
+    double get_end_angle() const;
 
-  void set_end_angle(double angle);
+    Point2d get_start_point() const;
+    Point2d get_end_point() const;
 
-  /**
-   * Sets the role of this circle
-   *
-   * @param mode TOWARDS_POINT, if the circle is the goal, or
-   *             AWAY_FROM_POINT, if the circle is the start
-   */
-  void set_mode(MODE mode);
+    /**
+     * Getter for the orientation
+     */
+    ORIENTATION orientation();
 
-  /**
-   * Getter for the orientation
-   */
-  ORIENTATION orientation();
+    bool has_orientation(ORIENTATION orientation);
 
-  /**
-   * Getter for the center
-   */
-  Point2d center_of_orientation();
+    /**
+     * Getter for the center
+     */
+    Point2d get_center() const;
 
-  /**
-   * Getter for the curve radius
-   */
-  double radius();
+    /**
+     * Getter for the curve radius
+     */
+    double radius();
 
-  /**
-   * Start iterating over the points on this segment
-   */
-  virtual void reset_iteration();
+    /**
+     * Start iterating over the points on this segment
+     */
+    virtual void reset_iteration();
 
-  /**
-   * Check, if another point exists
-   *
-   * @return true, iff there exists another point
-   */
-  virtual bool has_next();
+    /**
+     * Check, if another point exists
+     *
+     * @return true, iff there exists another point
+     */
+    virtual bool has_next();
 
-  /**
-   * Get the next point in this iteration
-   */
-  virtual Pose2d next();
+    /**
+     * Get the next point in this iteration
+     */
+    virtual Pose2d next();
 
 
 
-  /**
-   * Computes the weight of this segment
-   */
-  virtual float weight(bool ignore_obstacles);
+    /**
+     * Computes the weight of this segment
+     */
+    virtual float weight(bool ignore_obstacles);
 
 private:
-  bool getTangentiaCircleHelper(CircleSegment &circle2, CircleSegment &circle3, bool choose_positive_solution);
-  bool getTangentialDoubleCircleHelper(CircleSegment &circle2, CircleSegment &circle3, CircleSegment &circle4, bool choose_positive_solution);
+    void compute_arc_length();
 
-  void computeArcSpan(bool is_center_circle);
+    // midpoint circle
+    bool checkCircle(int cx, int cy, int radius, bool ignore_obstacles);
+    bool test8Points(int cx, int cy, int x, int y, bool ignore_obstacles);
+    bool test4Points(int cx, int cy, int x, int y, bool ignore_obstacles);
+    bool testPixel(int cx, int cy, int x, int y, bool ignore_obstacles);
 
-  // midpoint circle
-  bool checkCircle(int cx, int cy, int radius, bool ignore_obstacles);
-  bool test8Points(int cx, int cy, int x, int y, bool ignore_obstacles);
-  bool test4Points(int cx, int cy, int x, int y, bool ignore_obstacles);
-  bool testPixel(int cx, int cy, int x, int y, bool ignore_obstacles);
+    ORIENTATION m_orientation;
 
-  ORIENTATION m_orientation;
-  MODE m_mode;
+    Point2d m_center;
+    double m_radius;
 
-  Point2d m_center;
-  double m_radius;
+    double m_angle_start;
+    double m_angle_end;
 
-  double m_angle_start;
-  double m_tangent_angle;
+    double m_arc_length;
+    double m_angle_step_size;
 
-  double m_arc_span;
-  double m_stepsize;
+    bool m_iterating;
+    int m_output;
+    int m_steps;
 
-  bool m_iterating;
-  int m_output;
-  int m_steps;
-  int m_jump_over;
-
-  double m_weight;
+    double m_weight;
 };
 
 }

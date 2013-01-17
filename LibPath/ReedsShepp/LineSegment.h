@@ -11,78 +11,82 @@
 #include "CurveSegment.h"
 #include "../common/Point2d.h"
 
-namespace lib_path {
+namespace lib_path
+{
 
 class LineSegment: public CurveSegment
 {
+    friend class CurveRenderer;
+
 public:
-  /**
-   * Constructor, that sets the direction
-   *
-   * @param direction FORWARD or BACKWARD
-   */
-  LineSegment(DIRECTION direction);
+    /**
+     * Constructor, that sets the direction
+     *
+     * @param direction FORWARD or BACKWARD
+     */
+    LineSegment(DIRECTION direction);
 
-  /**
-   * Copy constructor
-   */
-  // not necessary, use default
+    /**
+     * Copy constructor
+     */
+    // not necessary, use default
 
+    CurveSegment* clone() const;
 
-  /**
-   * Sets the points that describe the line
-   *
-   * @param start start point
-   * @param end end point
-   */
-  void set_points(Point2d start, Point2d end);
-
-
-  /**
-   * Start iterating over the points on this segment
-   */
-  virtual void reset_iteration();
-
-  /**
-   * Check, if another point exists
-   *
-   * @return true, iff there exists another point
-   */
-  virtual bool has_next();
-
-  /**
-   * Get the next point in this iteration
-   */
-  virtual Pose2d next();
+    /**
+     * Sets the points that describe the line
+     *
+     * @param start start point
+     * @param end end point
+     */
+    void set_points(Point2d start, Point2d end);
 
 
+    /**
+     * Start iterating over the points on this segment
+     */
+    virtual void reset_iteration();
 
-  /**
-   * Get the start point
-   */
-  virtual Pose2d start();
+    /**
+     * Check, if another point exists
+     *
+     * @return true, iff there exists another point
+     */
+    virtual bool has_next();
 
-  /**
-   * Get the end point
-   */
-  virtual Pose2d end();
+    /**
+     * Get the next point in this iteration
+     */
+    virtual Pose2d next();
 
 
 
-  /**
-   * Computes the weight of this segment
-   */
-  virtual float weight(bool ignore_obstacles);
+    /**
+     * Get the start point
+     */
+    virtual Pose2d start();
+
+    /**
+     * Get the end point
+     */
+    virtual Pose2d end();
+
+
+
+    /**
+     * Computes the weight of this segment
+     */
+    virtual float weight(bool ignore_obstacles);
 
 private:
-  Pose2d m_start;
-  Pose2d m_end;
+    Pose2d m_start;
+    Pose2d m_end;
 
-  bool m_iterating;
-  int m_output;
-  int m_segments;
+    bool m_iterating;
+    int m_output;
+    int m_segments;
 
-  float m_slope;
+    float m_theta;
 };
 
 }
