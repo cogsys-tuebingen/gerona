@@ -2,19 +2,24 @@
  * CircleSegment.h
  *
  *  Created on: Aug 15, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
 #ifndef CIRCLESEGMENT_H
 #define CIRCLESEGMENT_H
 
+/// COMPONENT
 #include "CurveSegment.h"
 
+/// PROJECT
 #include "../common/Point2d.h"
 
 namespace lib_path
 {
 
+/**
+ * The CircleSegment class represents a circle arc that has a direction
+ */
 class CircleSegment: public CurveSegment
 {
     friend class GeometryHelper;
@@ -33,57 +38,19 @@ public:
      * @param orientation LEFT or RIGHT
      * @param direction FORWARD or BACKWARD
      */
-    CircleSegment(ORIENTATION orientation, DIRECTION direction);
+    CircleSegment(ORIENTATION get_orientation, DIRECTION direction);
 
     /**
      * Copy constructor
      */
     // not necessary, use default
 
+    /**
+     * Creates a new segment that is an exact copy of this one
+     *
+     * @return copy of this segment
+     */
     CurveSegment* clone() const;
-
-    /**
-     * Sets the center for this circle
-     *
-     * @param center point in map coordinates
-     */
-    void set_center_of_rotation(Point2d& center);
-
-    /**
-     * Sets the radius of the circle
-     *
-     * @param radius radius of the circle, NOT maximum steering angle!
-     */
-    void set_curve_radius(double radius);
-
-    void set_start_angle_for_orientation(double orientation);
-    void set_end_angle_for_orientation(double orientation);
-
-    void set_start_angle(double angle);
-    void set_end_angle(double angle);
-
-    double get_start_angle() const;
-    double get_end_angle() const;
-
-    Point2d get_start_point() const;
-    Point2d get_end_point() const;
-
-    /**
-     * Getter for the orientation
-     */
-    ORIENTATION orientation();
-
-    bool has_orientation(ORIENTATION orientation);
-
-    /**
-     * Getter for the center
-     */
-    Point2d get_center() const;
-
-    /**
-     * Getter for the curve radius
-     */
-    double radius();
 
     /**
      * Start iterating over the points on this segment
@@ -102,18 +69,40 @@ public:
      */
     virtual Pose2d next();
 
-
-
     /**
      * Computes the weight of this segment
      */
     virtual float weight(bool ignore_obstacles);
 
+
+    /// SETTERS
+    void set_center(Point2d& center);
+    void set_radius(double get_radius);
+
+    void set_start_angle_for_orientation(double orientation);
+    void set_end_angle_for_orientation(double orientation);
+
+    void set_start_angle(double angle);
+    void set_end_angle(double angle);
+
+    /// GETTERS
+    double get_start_angle() const;
+    double get_end_angle() const;
+
+    Point2d get_start_point() const;
+    Point2d get_end_point() const;
+
+    ORIENTATION get_orientation() const;
+
+    Point2d get_center() const;
+
+    double get_radius() const;
+
 private:
     void compute_arc_length();
 
     // midpoint circle
-    bool checkCircle(int cx, int cy, int radius, bool ignore_obstacles);
+    bool checkCircle(int cx, int cy, int get_radius, bool ignore_obstacles);
     bool test8Points(int cx, int cy, int x, int y, bool ignore_obstacles);
     bool test4Points(int cx, int cy, int x, int y, bool ignore_obstacles);
     bool testPixel(int cx, int cy, int x, int y, bool ignore_obstacles);

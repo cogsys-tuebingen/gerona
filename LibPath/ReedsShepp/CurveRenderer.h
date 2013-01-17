@@ -2,24 +2,30 @@
  * CurveRenderer.h
  *
  *  Created on: Aug 21, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
 #ifndef CURVERENDERER_H
 #define CURVERENDERER_H
 
+/// COMPONENT
 #include "Curve.h"
+
+/// PROJECT
 #include "../common/Point2d.h"
 
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
+/// SYSTE;
+#include <opencv2/opencv.hpp>
 
 namespace lib_path {
 
-inline CvPoint p2cv(Point2d p, int img_height) {
-  return cvPoint(p.x, img_height-p.y);
+inline cv::Point p2cv(Point2d p, int img_height) {
+  return cv::Point(p.x, img_height-p.y);
 }
 
+/**
+ * The CurveRenderer class is a helper class to visualize a curve for debugging.
+ */
 class CurveRenderer
 {
 public:
@@ -37,6 +43,11 @@ public:
    */
   void snapshot_in_new_window(Curve * curve);
 
+  /**
+   * Draws a map onto the image of this instance
+   *
+   * @param m_map the map to render
+   */
   void draw_map(GridMap2d* m_map);
 
   /**

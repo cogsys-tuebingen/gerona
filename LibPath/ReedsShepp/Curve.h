@@ -2,14 +2,16 @@
  * Curve.h
  *
  *  Created on: Apr 2, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
 #ifndef CURVE_H_
 #define CURVE_H_
 
+/// COMPONENT
 #include "GeometryHelper.h"
 
+/// SYSTEM
 #include <vector>
 
 namespace lib_path
@@ -22,6 +24,9 @@ public:
     Point2d center_right;
 };
 
+/**
+ * The Curve class represents a Reeds-Shepp Curve consisting of a sequence of circle and line shapes
+ */
 class Curve
 {
     friend class CurveGenerator;
@@ -34,8 +39,14 @@ private:
     Curve();
 
 public:
+    /**
+     * Constructor
+     */
     Curve(const Curve& c);
 
+    /**
+     * Destructor
+     */
     virtual ~Curve();
 
     /**
@@ -65,21 +76,15 @@ public:
      */
     virtual Pose2d next();
 
-    Pose2d goal() {
-        return m_goal;
-    }
-
-    void set_trace(int value) {
-        m_trace = value;
-    }
+    /// ACCESSORS
+    Pose2d start();
+    Pose2d goal();
 
 private:
+    void set_trace(int value);
     int count();
-
     const CurveSegment& get_segment(int index);
-
     void add(const CurveSegment& segment);
-
 
 private:
     double check_if_admissible();

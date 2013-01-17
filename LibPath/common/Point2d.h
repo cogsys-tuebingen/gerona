@@ -2,7 +2,7 @@
  * Point2d.h
  *
  *  Created on: Apr 4, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
 #ifndef POINT2D_H
@@ -46,7 +46,6 @@ public:
      * Computes the length of the position vector
      */
     double length() const;
-
 
     /**
      * Computes the angle between the x-axis and the line throug the point

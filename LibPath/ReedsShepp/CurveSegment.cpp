@@ -2,11 +2,13 @@
  * CurveSegment.cpp
  *
  *  Created on: Aug 15, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
+/// HEADER
 #include "CurveSegment.h"
 
+/// SYSTEM
 #include <assert.h>
 
 using namespace lib_path;
@@ -22,6 +24,11 @@ CurveSegment::CurveSegment(DIRECTION direction)
 void CurveSegment::set_map(GridMap2d* map)
 {
     m_map = map;
+}
+
+void CurveSegment::set_trace(int value)
+{
+    m_trace = value;
 }
 
 CurveSegment::DIRECTION CurveSegment::direction() const

@@ -2,7 +2,7 @@
  * CurveTest.cpp
  *
  *  Created on: Apr 2, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
 /**
@@ -15,14 +15,16 @@
  * Using the key 'p' a snapshot is taken into a new window
  */
 
-#include <iostream>
-
+/// COMPONENT
 #include "Curve.h"
 #include "CurveGenerator.h"
 #include "CurveRenderer.h"
 
+/// PROJECT
 #include "../common/SimpleGridMap2d.h"
 
+/// SYSTEM
+#include <iostream>
 #include <opencv2/opencv.hpp>
 
 /**

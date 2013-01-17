@@ -2,11 +2,13 @@
  * CurveRenderer.cpp
  *
  *  Created on: Aug 21, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
+/// HEADER
 #include "CurveRenderer.h"
 
+/// SYSTEM
 #include <sstream>
 #include <typeinfo>
 
@@ -65,7 +67,7 @@ void CurveRenderer::draw(Curve* curve, cv::Scalar bg_color)
             if(typeid(*s) == typeid(CircleSegment)) {
                 cs = dynamic_cast<CircleSegment*>(s);
                 cv::circle(m_debug_image,
-                           p2cv(cs->get_center(), m_debug_image.rows), cs->radius(),
+                           p2cv(cs->get_center(), m_debug_image.rows), cs->get_radius(),
                            bg_color, 4, CV_AA);
                 std::stringstream txt;
                 txt << cs->m_angle_step_size;

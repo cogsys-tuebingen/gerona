@@ -2,14 +2,14 @@
  * CurveGenerator.cpp
  *
  *  Created on: Aug 15, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
+/// HEADER
 #include "CurveGenerator.h"
+
+/// SYSTEM
 #include <stdio.h>
-#include <iostream>
-#include <limits>
-#include <vector>
 #include <typeinfo>
 
 using namespace lib_path;
@@ -51,6 +51,11 @@ void CurveGenerator::set_cost_curve(double cost_curve)
 void CurveGenerator::set_cost_straight(double cost_straight)
 {
     m_cost_straight = cost_straight;
+}
+
+void CurveGenerator::set_trace(int value)
+{
+    m_trace = value;
 }
 
 void CurveGenerator::set_use_map_cost(bool arg)

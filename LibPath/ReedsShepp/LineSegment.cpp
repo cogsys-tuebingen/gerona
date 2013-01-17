@@ -2,12 +2,17 @@
  * LineSegment.cpp
  *
  *  Created on: Aug 15, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
-#include <stdlib.h>
+
+/// HEADER
 #include "LineSegment.h"
 
+/// PROJECT
 #include "../common/MapMath.h"
+
+/// SYSTEM
+#include <stdlib.h>
 
 using namespace lib_path;
 

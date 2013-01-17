@@ -2,7 +2,7 @@
  * Pose2d.cpp
  *
  *  Created on: Apr 4, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
 

@@ -1,3 +1,11 @@
+/*
+ * GeometryHelper.cpp
+ *
+ *  Created on: Jan 16, 2013
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
+ */
+
+/// HEADER
 #include "GeometryHelper.h"
 
 using namespace lib_path;
@@ -125,7 +133,7 @@ bool GeometryHelper::get_tangential_circle(CircleSegment& circle1, CircleSegment
     segments.push_back(&circle2);
     segments.push_back(&circle3);
 
-    return symmetry_helper(segments, 4, ignore_obstacles, boost::bind(&GeometryHelper::test_tantential_circle_vector, _1, _2));
+    return symmetry_helper(segments, 4, ignore_obstacles, boost::bind(&GeometryHelper::calculate_tangential_circle_vector, _1, _2));
 }
 
 bool GeometryHelper::get_tangential_double_circle(CircleSegment& circle_from, CircleSegment& circle2, CircleSegment& circle3, CircleSegment& circle_to,
@@ -140,15 +148,15 @@ bool GeometryHelper::get_tangential_double_circle(CircleSegment& circle_from, Ci
     return symmetry_helper(segments, 6, ignore_obstacles, boost::bind(&GeometryHelper::test_tangential_double_circle_vector, _1, _2));
 }
 
-bool GeometryHelper::test_tantential_circle_vector(const std::vector<CircleSegment*>& segments, bool choose_positive_solution)
+bool GeometryHelper::calculate_tangential_circle_vector(const std::vector<CircleSegment*>& segments, bool choose_positive_solution)
 {
     assert(segments.size() == 3);
 
-    return test_tantential_circle(*segments[0], *segments[1], *segments[2], choose_positive_solution);
+    return calculate_tangential_circle(*segments[0], *segments[1], *segments[2], choose_positive_solution);
 }
 
 
-bool GeometryHelper::test_tantential_circle(CircleSegment& circle_from, CircleSegment& circle2, CircleSegment& circle_to,
+bool GeometryHelper::calculate_tangential_circle(CircleSegment& circle_from, CircleSegment& circle2, CircleSegment& circle_to,
         bool choose_positive_solution)
 {
     /*      |----------------| delta
@@ -191,7 +199,7 @@ bool GeometryHelper::test_tantential_circle(CircleSegment& circle_from, CircleSe
 
     Point2d C = s + center_1_to_2;
 
-    circle2.set_center_of_rotation(C);
+    circle2.set_center(C);
 
     circle_from.set_end_angle((C - s).angle());
     circle_to.set_start_angle((C - g).angle());
@@ -257,8 +265,8 @@ bool GeometryHelper::test_tangential_double_circle(CircleSegment& circle_from, C
     Point2d C2 = s + center_1_to_2;
     Point2d C3 = C2 + center_2_to_3;
 
-    circle2.set_center_of_rotation(C2);
-    circle3.set_center_of_rotation(C3);
+    circle2.set_center(C2);
+    circle3.set_center(C3);
 
     circle2.set_end_angle(center_2_to_3.angle());
     circle3.set_start_angle(center_2_to_3.angle() + M_PI);

@@ -2,12 +2,11 @@
  * CircleSegment.cpp
  *
  *  Created on: Aug 15, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
+/// HEADER
 #include "CircleSegment.h"
-
-#include <iostream>
 
 using namespace lib_path;
 
@@ -23,17 +22,12 @@ CurveSegment* CircleSegment::clone() const
     return new CircleSegment(*this);
 }
 
-CircleSegment::ORIENTATION CircleSegment::orientation()
+CircleSegment::ORIENTATION CircleSegment::get_orientation() const
 {
     return m_orientation;
 }
 
-bool CircleSegment::has_orientation(ORIENTATION orientation)
-{
-    return m_orientation == orientation;
-}
-
-void CircleSegment::set_center_of_rotation(Point2d& center)
+void CircleSegment::set_center(Point2d& center)
 {
     m_center = center;
 }
@@ -43,12 +37,12 @@ Point2d CircleSegment::get_center() const
     return m_center;
 }
 
-double CircleSegment::radius()
+double CircleSegment::get_radius() const
 {
     return m_radius;
 }
 
-void CircleSegment::set_curve_radius(double radius)
+void CircleSegment::set_radius(double radius)
 {
     m_radius = radius;
     m_steps = m_radius * 2 * M_PI;

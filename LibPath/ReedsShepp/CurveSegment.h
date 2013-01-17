@@ -2,15 +2,17 @@
  * CurveSegment.h
  *
  *  Created on: Aug 15, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
 #ifndef CURVESEGMENT_H
 #define CURVESEGMENT_H
 
+/// PROJECT
 #include "../common/GridMap2d.h"
 #include "../common/Point2d.h"
 
+/// SYSTEM
 #include <assert.h>
 
 #define NOT_FREE 999999
@@ -18,6 +20,9 @@
 namespace lib_path
 {
 
+/**
+ * The CurveSegment class is the base class for all segments a curve can constist of.
+ */
 class CurveSegment
 {
 public:
@@ -34,6 +39,11 @@ public:
      */
     CurveSegment(DIRECTION direction);
 
+    /**
+     * Creates a new segment that is an exact copy of this one
+     *
+     * @return copy of this segment
+     */
     virtual CurveSegment* clone() const = 0;
 
     /**
@@ -76,17 +86,12 @@ public:
      * Debugging function:
      *   set the mapvalue to this value, where a "free check" has happened
      */
-    virtual void set_trace(int value) {
-        m_trace = value;
-    }
-
+    virtual void set_trace(int value);
 
     /**
      * Getter for the direction
      */
     DIRECTION direction() const;
-
-
 
     /**
      * Start iterating over the points on this segment
@@ -104,8 +109,6 @@ public:
      * Get the next point in this iteration
      */
     virtual Pose2d next() = 0;
-
-
 
     /**
      * Computes the weight of this segment
@@ -129,7 +132,6 @@ protected:
     float m_cost_straight;
 
     int m_trace;
-
 };
 
 }

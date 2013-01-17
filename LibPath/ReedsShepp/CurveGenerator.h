@@ -2,16 +2,20 @@
  * CurveGenerator.h
  *
  *  Created on: Aug 15, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
 #ifndef CURVEGENERATOR_H
 #define CURVEGENERATOR_H
 
+/// COMPONENT
 #include "Curve.h"
 #include "CurveSegment.h"
+
+/// PROJECT
 #include "../common/GridMap2d.h"
 
+/// SYSTEM
 #include <vector>
 #include <string>
 #include <ostream>
@@ -19,6 +23,10 @@
 namespace lib_path
 {
 
+/**
+ * The CurveGenerator class is the facade to this module.
+ * It is responsible for managing different curve sequences and allows to plan a path between two points.
+ */
 class CurveGenerator
 {
 public:
@@ -57,17 +65,13 @@ public:
      */
     void set_circle_radius(double circle_radius);
     void set_max_waypoint_distance(double max_waypoint_distance);
-
     void set_use_map_cost(bool arg);
     void set_min_cell_cost(uint8_t cost);
     void set_cost_forwards(double cost_forwards);
     void set_cost_backwards(double cost_backwards);
     void set_cost_curve(double cost_curve);
     void set_cost_straight(double cost_straight);
-
-    void set_trace(int value) {
-        m_trace = value;
-    }
+    void set_trace(int value);
 
 private:
     std::vector< Curve > m_curves;

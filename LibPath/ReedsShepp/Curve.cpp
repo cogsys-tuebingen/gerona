@@ -2,13 +2,16 @@
  * Curve.cpp
  *
  *  Created on: Apr 2, 2011
- *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
+ *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
-#include "../common/MapMath.h"
-
+/// HEADER
 #include "Curve.h"
 
+/// PROJECT
+#include "../common/MapMath.h"
+
+/// COMPONENT
 #include <iostream>
 #include <typeinfo>
 
@@ -49,6 +52,21 @@ Curve::~Curve()
             it != m_sequence.end(); ++it) {
         delete *it;
     }
+}
+
+Pose2d Curve::start()
+{
+    return m_start;
+}
+
+Pose2d Curve::goal()
+{
+    return m_goal;
+}
+
+void Curve::set_trace(int value)
+{
+    m_trace = value;
 }
 
 int Curve::count()
@@ -124,7 +142,7 @@ void Curve::init_segments()
 
         if(typeid(**it) == typeid(CircleSegment)) {
             CircleSegment* c = dynamic_cast<CircleSegment*>(*it);
-            c->set_curve_radius(m_circle_radius);
+            c->set_radius(m_circle_radius);
         }
     }
 
@@ -133,15 +151,15 @@ void Curve::init_segments()
 
     assert(start && goal);
 
-    if(start->orientation() == CircleSegment::LEFT_CURVE)
-        start->set_center_of_rotation(m_circle_start.center_left);
+    if(start->get_orientation() == CircleSegment::LEFT_CURVE)
+        start->set_center(m_circle_start.center_left);
     else
-        start->set_center_of_rotation(m_circle_start.center_right);
+        start->set_center(m_circle_start.center_right);
 
-    if(goal->orientation() == CircleSegment::LEFT_CURVE)
-        goal->set_center_of_rotation(m_circle_goal.center_left);
+    if(goal->get_orientation() == CircleSegment::LEFT_CURVE)
+        goal->set_center(m_circle_goal.center_left);
     else
-        goal->set_center_of_rotation(m_circle_goal.center_right);
+        goal->set_center(m_circle_goal.center_right);
 
     start->set_start_angle_for_orientation(m_start.theta);
     goal->set_end_angle_for_orientation(m_goal.theta);
