@@ -30,6 +30,7 @@ add_library (LibUtil SHARED
     runningstat.cpp
     Line2d.cpp
     Line2dSegment.cpp
+    QtCvImageConverter.cpp
 )
 
 target_link_libraries(LibUtil
