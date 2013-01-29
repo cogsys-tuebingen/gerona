@@ -64,7 +64,7 @@ public:
                                       bool ignore_obstacles);
 
 private:
-    static void external_tangent(CircleSegment& circle_to, LineSegment& tangent_out, CircleSegment& circle_from);
+    static void external_tangent(CircleSegment& circle_from, LineSegment& tangent_out, CircleSegment& circle_to);
     static void internal_tangent(CircleSegment& circle_from, LineSegment& tangent_out, CircleSegment& circle_to);
 
     static bool symmetry_helper(const std::vector<CircleSegment *>& circles, double max_dist, bool ignore_obstacles,

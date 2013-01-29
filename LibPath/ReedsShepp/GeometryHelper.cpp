@@ -26,7 +26,7 @@ bool GeometryHelper::get_common_tangent(CircleSegment& circle_from, CircleSegmen
     }
 
     if(circle_from.m_orientation == circle_to.m_orientation) {
-        external_tangent(circle_to, tangent_out, circle_from);
+        external_tangent(circle_from, tangent_out, circle_to);
     } else {
         internal_tangent(circle_from, tangent_out, circle_to);
     }
@@ -34,7 +34,7 @@ bool GeometryHelper::get_common_tangent(CircleSegment& circle_from, CircleSegmen
     return true;
 }
 
-void GeometryHelper::external_tangent(CircleSegment& circle_to, LineSegment& tangent_out, CircleSegment& circle_from)
+void GeometryHelper::external_tangent(CircleSegment& circle_from, LineSegment& tangent_out, CircleSegment& circle_to)
 {
     /*  external tangent
      *    p         q
