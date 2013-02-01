@@ -12,6 +12,7 @@
 #include <tf/transform_listener.h>
 #include <dynamic_reconfigure/server.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <std_msgs/Empty.h>
 
 #include "point_types.h"
 #include "pointclassification.h"
@@ -44,6 +45,7 @@ private:
      * @todo This is only for debugging and should be removed in later versions.
      */
     ros::Publisher publish_normalized_;
+    ros::Publisher publish_normalized_2_;
 
     //! Publisher for the classification point cloud
     ros::Publisher publish_classification_cloud_;
@@ -77,6 +79,10 @@ private:
     void updateMap(PointCloudXYZRGBT cloud);
     void moveMap();
     static double distance(geometry_msgs::Point a, geometry_msgs::Point b);
+
+    bool save_next_scan_;
+    ros::Subscriber subscribe_save_scan_;
+    void saveScanCallback(const std_msgs::EmptyConstPtr &msg);
 
     /**
      * @brief Classifies the laser scan points.
@@ -139,6 +145,8 @@ private:
 
     void laserScanToCloud(const sensor_msgs::LaserScanPtr &scan, const std::vector<PointClassification> &traversable,
                           PointCloudXYZRGBT *cloud);
+
+    bool scanToFile(std::string filename, const sensor_msgs::LaserScan &scan);
 };
 
 const std::string TerrainClassifier::DEFAULT_RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)

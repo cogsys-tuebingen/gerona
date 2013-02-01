@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <numeric>
 #include <cmath>
+#include <fstream>
+#include <iostream>
 
 #include <ramaxxbase/PTZ.h>
 #include "vectorsaver.h"
@@ -13,18 +15,21 @@ using namespace traversable_path;
 
 TerrainClassifier::TerrainClassifier() :
         is_calibrated_(false),
-        scan_buffer_(3)
+        scan_buffer_(3),
+        save_next_scan_(false)
 {
     // private node handle for parameter access
     ros::NodeHandle private_node_handle("~");
 
     // advertise
     publish_normalized_   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
+    publish_normalized_2_   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend2", 100);
     publish_classification_cloud_ = node_handle_.advertise<PointCloudXYZRGBT >("path_classification_cloud", 10);
     publish_map_ = node_handle_.advertise<nav_msgs::OccupancyGrid>("traversability_map", 1);
 
     // subscribe laser scanner
     subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &TerrainClassifier::classifyLaserScan, this);
+    subscribe_save_scan_ = node_handle_.subscribe("savescan", 0, &TerrainClassifier::saveScanCallback, this);
 
     // register calibration service
     calibration_service_ = node_handle_.advertiseService("calibrate_plane", &TerrainClassifier::calibrate, this);
@@ -76,6 +81,8 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 {
 //    ros::Time start_time = ros::Time::now();
 
+    sensor_msgs::LaserScan original_scan = *msg;
+
     // with uncalibrated laser, classification will not work
     if (!this->is_calibrated_) {
         return;
@@ -117,12 +124,22 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
     updateMap(pcl_cloud);
 
+    if (save_next_scan_) {
+        save_next_scan_ = false;
+        scanToFile("/localhome/widmaier/scan_raw.dat", original_scan);
+        scanToFile("/localhome/widmaier/scan_normalized.dat", smoothed);
+        smoothed.intensities = msg->intensities;
+        scanToFile("/localhome/widmaier/scan_classification.dat", smoothed);
+    }
+
     // publish modified message
     publish_classification_cloud_.publish(pcl_cloud);
     //ROS_DEBUG("Published %zu traversability points", pcl_cloud.points.size());
     /** @todo This topic is only for debugging. Remove in later versions */
     smoothed.intensities = msg->intensities;
     publish_normalized_.publish(smoothed);
+
+
 
 //    ros::Time end_time = ros::Time::now();
 //    ros::Duration running_duration = end_time - start_time;
@@ -183,6 +200,29 @@ void TerrainClassifier::laserScanToCloud(const sensor_msgs::LaserScanPtr &scan,
 
         cloud->push_back(point);
     }
+}
+
+bool TerrainClassifier::scanToFile(string filename, const sensor_msgs::LaserScan &scan)
+{
+    // write data to file, truncate file before writing
+    std::ofstream out_file(filename.c_str(), std::ios::out | std::ios::trunc);
+    if (!out_file.is_open()) {
+        ROS_ERROR("scanToFile could not open file");
+        return false;
+    }
+
+    out_file << "#angle\trange\tintensity\n";
+
+    for (size_t i = 0; i < scan.ranges.size(); ++i) {
+        float angle = scan.angle_min + i*scan.angle_increment;
+        out_file << angle << "\t" << scan.ranges[i] << "\t" << scan.intensities[i] << "\n";
+    }
+
+    if (!out_file.good()) {
+        ROS_ERROR("scanToFile: Failure when writing data to file.");
+        return false;
+    }
+    return true;
 }
 
 bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
@@ -550,15 +590,7 @@ double TerrainClassifier::distance(geometry_msgs::Point a, geometry_msgs::Point 
     return sqrt( pow(a.x - b.x, 2) + pow(a.y - b.y, 2) + pow(a.z - b.z, 2) );
 }
 
-//--------------------------------------------------------------------------
-
-int main(int argc, char **argv)
+void TerrainClassifier::saveScanCallback(const std_msgs::EmptyConstPtr &msg)
 {
-    ros::init(argc, argv, "classify_terrain");
-
-    TerrainClassifier dls;
-
-    // main loop
-    ros::spin();
-    return 0;
+    save_next_scan_ = true;
 }
