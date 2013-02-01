@@ -40,6 +40,7 @@ gencfg()
 #target_link_libraries(example ${PROJECT_NAME})
 
 rosbuild_add_executable(classify_terrain
+    src/node_classify_terrain.cpp
     src/terrainclassifier.cpp
     src/vectorsaver.h
     src/pointclassification.cpp
@@ -61,5 +62,7 @@ rosbuild_add_executable(display_path src/node_display_path.cpp src/visualization
 
 rosbuild_add_executable(get_steer_angles src/node_get_steer_angles.cpp)
 
+rosbuild_add_executable(driven_distance src/node_driven_distance.cpp)
+
 # for testing some simple things TODO: remove if not required any more
-rosbuild_add_executable(testblub src/test.cpp src/mapprocessor.cpp) # it seams, that an excutable with name 'test' makes problems...
+#rosbuild_add_executable(testblub src/test.cpp src/mapprocessor.cpp) # it seams, that an excutable with name 'test' makes problems...
