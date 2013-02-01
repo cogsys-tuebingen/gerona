@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
     tf::TransformListener tf_listener;
 
     ros::Rate rate(5);
-    btVector3 last_pos(0,0,0);
+    tf::Vector3 last_pos(0,0,0);
     float distance = 0;
 
     while (ros::ok()) {
@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
             point_base.header.frame_id = "/base_link";
             tf_listener.transformPoint("/odom", point_base, point_odom);
 
-            btVector3 cur_pos = btVector3(point_odom.point.x, point_odom.point.y, point_odom.point.z);
+            tf::Vector3 cur_pos = tf::Vector3(point_odom.point.x, point_odom.point.y, point_odom.point.z);
             //ROS_INFO("pos: %f,%f,%f",cur_pos[0],cur_pos[1],cur_pos[2] );
 
             if (last_pos.isZero()) {

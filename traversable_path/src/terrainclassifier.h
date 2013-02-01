@@ -149,7 +149,4 @@ private:
     bool scanToFile(std::string filename, const sensor_msgs::LaserScan &scan);
 };
 
-const std::string TerrainClassifier::DEFAULT_RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)
-                                                             + std::string("/rangecalibration.yaml");
-
 #endif // DISPLAY_LASER_DATA_H

@@ -12,6 +12,8 @@ using namespace std;
 using namespace traversable_path;
 
 
+const std::string TerrainClassifier::DEFAULT_RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)
+                                                             + std::string("/rangecalibration.yaml");
 
 TerrainClassifier::TerrainClassifier() :
         is_calibrated_(false),
