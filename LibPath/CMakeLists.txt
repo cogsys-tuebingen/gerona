@@ -24,12 +24,20 @@ rosbuild_add_library(LibPath  ReedsShepp/CurveGenerator.cpp
     common/MapMath.cpp
     common/Point2d.cpp
     common/Pose2d.cpp
+    common/Path.cpp
     common/GridMap2d.cpp
     common/SimpleGridMap2d.cpp
     common/Bresenham2d.cpp
     a_star/AStar.cpp
     a_star/Node.cpp
     a_star/OpenList.cpp
+    generic/Common.hpp
+    generic/SearchAlgorithm.hpp
+    generic/BreadthFirstSearch.hpp
+    generic/Neighborhood.hpp
+    generic/MapManager.hpp
+    generic/NodeManager.hpp
+    evaluation/PathRenderer.hpp
 )
 
 target_link_libraries(LibPath LibUtil)
@@ -60,12 +68,19 @@ else(NOT OpenCV_FOUND)
         LibPath
         ${OpenCV_LIBS}
     )
+    rosbuild_add_executable (Evaluator
+                             evaluation/evaluator.cpp)
+    target_link_libraries (Evaluator
+        LibUtil
+        LibPath
+        ${OpenCV_LIBS})
 
 
 
  #   install(TARGETS ReedsSheppCurveTest RUNTIME DESTINATION bin)
 endif(NOT OpenCV_FOUND)
 
+#set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_BAK})
 
 #add_executable(unit_tests ReedsShepp/UnitTest.cpp)
 

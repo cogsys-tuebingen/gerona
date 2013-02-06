@@ -1,0 +1,36 @@
+# Configure RandomLib
+#
+# Set
+#  Randomlib_FOUND = RANDOMLIB_FOUND = TRUE
+#  RandomLib_INCLUDE_DIRS = /usr/local/include
+#  RandomLib_LIBRARIES = Random
+#  RandomLib_LIBRARY_DIRS = /usr/local/lib
+#  RandomLib_VERSION = 1.0 (for example)
+
+message (STATUS "Reading ${CMAKE_CURRENT_LIST_FILE}")
+set (RandomLib_VERSION "@RandomLib_VERSION@")
+message (STATUS "RandomLib configuration, version "
+  ${RandomLib_VERSION})
+
+# Tell the user project where to find our headers and libraries
+get_filename_component (_DIR ${CMAKE_CURRENT_LIST_FILE} PATH)
+if (IS_ABSOLUTE "@RANDOMLIB_ROOT_DIR@")
+  # This is an uninstalled package (still in the build tree)
+  set (RANDOMLIB_ROOT_DIR "@RANDOMLIB_ROOT_DIR@")
+  set (RandomLib_INCLUDE_DIRS "@RandomLib_INCLUDE_DIRS@")
+  set (RandomLib_LIBRARY_DIRS "${RANDOMLIB_ROOT_DIR}/src")
+else ()
+  # This is an installed package; figure out the paths relative to the
+  # current directory.
+  get_filename_component (RANDOMLIB_ROOT_DIR
+    "${_DIR}/@RANDOMLIB_ROOT_DIR@" ABSOLUTE)
+  set (RandomLib_INCLUDE_DIRS "${RANDOMLIB_ROOT_DIR}/include")
+  set (RandomLib_LIBRARY_DIRS "${RANDOMLIB_ROOT_DIR}/lib")
+endif ()
+
+# Read in the exported definition of the library
+include ("${_DIR}/randomlib-depends.cmake")
+set (RandomLib_LIBRARIES Random)
+
+# RandomLib_FOUND is set to 1 automatically
+set (RANDOMLIB_FOUND TRUE) # for backwards compatibility
