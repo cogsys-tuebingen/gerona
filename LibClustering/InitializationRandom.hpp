@@ -8,6 +8,8 @@
 #ifndef INITIALIZATIONRANDOM_HPP
 #define INITIALIZATIONRANDOM_HPP
 
+namespace lib_clustering {
+
 /**
  * @brief The RandomInitialization struct implements a random initialization policy
  */
@@ -54,5 +56,7 @@ private:
         return result;
     }
 };
+
+}
 
 #endif // INITIALIZATIONRANDOM_HPP

@@ -12,7 +12,7 @@
 #include "Common.hpp"
 
 /// PROJECT
-#include <LibGeneric/Intermission.hpp>
+#include <utils/LibGeneric/Intermission.hpp>
 #include "../common/Path.h"
 
 /// SYSTEM

@@ -12,6 +12,8 @@
 #include <assert.h>
 #include <iostream>
 
+namespace lib_clustering {
+
 /**
  * @brief The VectorImp struct represents a N dimensional vector of arbitrary value type
  */
@@ -92,5 +94,7 @@ public:
     ValueType weight;
     double distance;
 };
+
+}
 
 #endif // VECTOR_HPP

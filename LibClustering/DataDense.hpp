@@ -14,6 +14,8 @@
 /// SYSTEM
 #include <cstdlib>
 
+namespace lib_clustering {
+
 /**
  * @brief The Dense struct implements a sparse dense structure
  */
@@ -56,8 +58,10 @@ struct Dense : public DataStructure<Cluster, InputDataType> {
                 }
             }
 
-            pushVectorIfValid(raw[idx], current_index);
+            mergeVectorIfValid(raw[idx], current_index);
         }
     }
 };
+
+}
 #endif // DENSE_HPP

@@ -10,8 +10,9 @@
 
 /// PROJECT
 #include "Cluster.hpp"
-#include "Distance.hpp"
-#include "Intermission.hpp"
+#include "Vector.hpp"
+
+#include <utils/LibGeneric/Intermission.hpp>
 
 /// SYSTEM
 #include <assert.h>
@@ -19,6 +20,8 @@
 #include <stdio.h>
 #include <vector>
 #include <boost/function.hpp>
+
+namespace lib_clustering {
 
 /**
  * @brief The KMeansParameter struct eases the handling of KMeansImps parameters
@@ -170,5 +173,7 @@ private:
     unsigned K;
     long seed_;
 };
+
+}
 
 #endif // KMEANS_H

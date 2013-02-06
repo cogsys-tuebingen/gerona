@@ -8,6 +8,8 @@
 #ifndef TRAITS_HPP
 #define TRAITS_HPP
 
+namespace lib_clustering {
+
 /**
  * @brief The AccessTraits struct maps input data to internal data
  */
@@ -66,5 +68,7 @@ private:
         }
     }
 };
+
+}
 
 #endif // TRAITS_HPP

@@ -14,6 +14,8 @@
 /// SYSTEM
 #include <cmath>
 
+namespace lib_clustering {
+
 /**
  * @brief The EuclideanDistance struct implements a distance measure using the euclidean distance
  */
@@ -37,5 +39,7 @@ struct EuclideanDistance {
         return std::sqrt(distance_squared);
     }
 };
+
+}
 
 #endif // DISTANCE_HPP

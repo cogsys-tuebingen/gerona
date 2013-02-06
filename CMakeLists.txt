@@ -4,7 +4,6 @@ include_directories (
     LibUtil
     LibGeneric
     LibRobot
-    .
 )
 
 add_subdirectory (LibUtil)

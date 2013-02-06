@@ -24,7 +24,7 @@ class QImage;
  * @brief The Converter class is a helper class template for converting QImages to cv images
  * @note It is a template so that Qt doesn't have to be linked to this library
  */
-template <class TargetClass = QImage, class RGBConverter = QTRGBConverter>
+template <class TargetClass, template <class> class Pointer, class RGBConverter = QTRGBConverter>
 class Converter
 {
 private:
@@ -36,20 +36,20 @@ private:
 public:
     /**
      * @brief mat2QImage converts an OpenCV image to a Qt image
-     * @param mat OpenCV
+     * @param mat OpenCV image
      * @return Qt image
      */
-    static TargetClass* mat2QImage(const cv::Mat &mat) {
+    static Pointer<TargetClass> mat2QImage(const cv::Mat &mat) {
         const IplImage& i = mat;
         return ipl2QImage(&i);
     }
 
     /**
-     * @brief ipl2QImage converts a Qt image to an OpenCV image
-     * @param iplImg Qt image
-     * @return OpenCV image
+     * @brief mat2QImage converts an OpenCV image to a Qt image
+     * @param iplImg OpenCV
+     * @return Qt image image
      */
-    static TargetClass* ipl2QImage(const IplImage *iplImg) {
+    static Pointer<TargetClass> ipl2QImage(const IplImage *iplImg) {
         int h = iplImg->height;
         int w = iplImg->width;
         int channels = iplImg->nChannels;
@@ -81,7 +81,7 @@ public:
                 }
             }
         }
-        return qimg;
+        return Pointer<TargetClass>(qimg);
     }
 };
 

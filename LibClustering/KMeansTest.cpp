@@ -13,6 +13,8 @@
 #include <cmath>
 #include <opencv2/opencv.hpp>
 
+using namespace lib_clustering;
+
 typedef std::pair<cv::Point, uchar> PointT;
 typedef std::vector<PointT> PointList;
 
@@ -21,6 +23,7 @@ typedef KMeans<2, RandomInitialization, EuclideanDistance, SparseNonUnique, Poin
 typedef KMeans<2, PlusPlusInitialization, EuclideanDistance, SparseNonUnique, PointList > KMeansSparsePP;
 
 // register the custom point type for the generic k means implementation
+namespace lib_clustering {
 template <>
 struct AccessTraits<int, PointList> {
     static int index(const PointT& in, unsigned index) {
@@ -55,6 +58,7 @@ struct AccessTraits<int, PointList> {
         }
     }
 };
+}
 
 /**
  * @brief The KMeansTest class wraps a test scenario

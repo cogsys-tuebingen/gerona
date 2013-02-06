@@ -15,6 +15,8 @@
 /// SYSTEM
 #include "assert.h"
 
+namespace lib_clustering {
+
 /**
  * @brief The RandomInitialization struct implements the k-means++ initialization policy
  */
@@ -78,5 +80,7 @@ struct PlusPlusInitialization :
         }
     }
 };
+
+}
 
 #endif // INITIALIZATIONPLUSPLUS_HPP

@@ -15,6 +15,9 @@
 #include "DataDense.hpp"
 #include "InitializationPlusPlus.hpp"
 #include "InitializationRandom.hpp"
+#include "Distance.hpp"
+
+namespace lib_clustering {
 
 /**
  * @brief The KMeans struct wraps the implementation of KMeans to make it easier to use
@@ -33,5 +36,7 @@ struct KMeans :
         : KMeansImp< KMeansParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, IndexDataType, WeightDataType> >(K)
     {}
 };
+
+}
 
 #endif // CLUSTERING_H

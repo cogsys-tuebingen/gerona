@@ -14,6 +14,8 @@
 /// SYSTEM
 #include <vector>
 
+namespace lib_clustering {
+
 /**
  * @brief The Cluster struct represents one cluster
  */
@@ -74,5 +76,7 @@ public:
     VectorT centroid;
     std::vector<VectorT*> members;
 };
+
+}
 
 #endif // CLUSTER_HPP
