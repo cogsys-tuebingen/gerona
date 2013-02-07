@@ -15,6 +15,8 @@ namespace lib_clustering {
  */
 template <typename IndexType, class T>
 struct AccessTraits {
+    typedef void UserData;
+
     /**
      * @brief index accesses the ith index component of the input data
      * @param in input data

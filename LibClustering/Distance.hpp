@@ -21,7 +21,6 @@ namespace lib_clustering {
  */
 template <unsigned Dimensions>
 struct EuclideanDistance {
-    template <typename TypeAI, typename TypeAV, typename TypeBI, typename TypeBV>
 
     /**
      * @brief distance between two vectors
@@ -29,10 +28,13 @@ struct EuclideanDistance {
      * @param b
      * @return euclidean distance between a and b
      */
-    static double distance(const VectorImp<Dimensions, TypeAI, TypeAV>& a, const VectorImp<Dimensions, TypeBI, TypeBV>& b) {
+    //    template <typename TypeAI, typename TypeAV, typename TypeBI, typename TypeBV>
+
+    template <class VectorA, class VectorB>
+    static double distance(const VectorA& a, const VectorB& b) {
         double distance_squared = 0;
         for(unsigned dim = 0; dim < Dimensions; ++dim) {
-            TypeAI delta = (a.index[dim] - b.index[dim]);
+            typename VectorA::IndexType delta = (a.index[dim] - b.index[dim]);
             distance_squared += delta * delta;
         }
 

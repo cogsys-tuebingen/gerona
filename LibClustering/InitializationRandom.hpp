@@ -34,16 +34,13 @@ struct RandomInitialization :
      */
     void init(unsigned K, const std::vector<std::pair<VectorIndexType, VectorIndexType> >& limits) {
         for(unsigned i = 0; i < K; ++i) {
-            clusters.push_back(ClusterT());
-
-            VectorT random_center = random(limits);
-            clusters[i].setCentroid(random_center);
+            clusters.push_back(ClusterT(random(limits)));
         }
     }
 
 private:
     static VectorT random(const std::vector<std::pair<VectorIndexType, VectorIndexType> >& limits) {
-        VectorT result;
+        VectorT result(1);
 
         for(unsigned dim = 0; dim < Dimension; ++dim) {
             VectorIndexType minv = limits[dim].first;

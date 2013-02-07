@@ -27,13 +27,14 @@ template <unsigned Dimensions,
          template <unsigned> class Distance,
          template <class, typename> class DataType,
          typename InputDataType,
+         typename UserData = void,
          typename IndexDataType = int,
          typename WeightDataType = unsigned char>
 struct KMeans :
-    public KMeansImp< KMeansParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, IndexDataType, WeightDataType> >
+    public KMeansImp< KMeansParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, UserData, IndexDataType, WeightDataType> >
 {
     KMeans(int K)
-        : KMeansImp< KMeansParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, IndexDataType, WeightDataType> >(K)
+        : KMeansImp< KMeansParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, UserData, IndexDataType, WeightDataType> >(K)
     {}
 };
 

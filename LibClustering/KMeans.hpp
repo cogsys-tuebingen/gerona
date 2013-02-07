@@ -31,6 +31,7 @@ template <unsigned Dimensions,
          template <unsigned> class Distance,
          template <class, typename> class DataType,
          typename InputDataType,
+         typename UserDataType,
          typename IndexDataType,
          typename WeightDataType>
 struct KMeansParameter
@@ -41,8 +42,9 @@ struct KMeansParameter
     typedef WeightDataType WeightDataTypeT;
 
     typedef InputDataType InputDataTypeT;
+    typedef UserDataType UserDataTypeT;
 
-    typedef VectorImp<Dimension, IndexDataTypeT, WeightDataTypeT> VectorT;
+    typedef VectorImp<Dimension, IndexDataTypeT, WeightDataTypeT, UserDataTypeT> VectorT;
     typedef Cluster<VectorT, Distance<Dimension> > ClusterT;
     typedef DataType<ClusterT, InputDataType> DataT;
     typedef Distance<Dimension> DistanceT;
@@ -133,9 +135,12 @@ private:
                  std::vector<ClusterT>& result,
                  boost::function<void()> intermission) {
 
-        assert(limits.size() == Dimension);
-
         DataT::prepare(input, limits);
+
+        if(data.size() <= 1){
+            return;
+        }
+
         initialize(input, limits);
 
         int maxIter = 50;
@@ -148,7 +153,10 @@ private:
             }
         }
 
-        result = clusters;
+        result.clear();
+        std::copy(clusters.begin(), clusters.end(), std::back_inserter(result));
+
+//        result = clusters;
     }
 
     typename ClusterT::MoveResult recomputeCentroids() {

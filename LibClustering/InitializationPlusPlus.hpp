@@ -39,13 +39,9 @@ struct PlusPlusInitialization :
      * @param limits pairs of limits for each dimension
      */
     void init(unsigned K, const std::vector<std::pair<VectorIndexType, VectorIndexType> >& limits) {
-        assert(data.size() >= K);
-
         // select one random input item
         unsigned first = rand() % data.size();
-        VectorT center = data[first];
-        clusters.push_back(ClusterT());
-        clusters[0].setCentroid(center);
+        clusters.push_back(ClusterT(data[first]));
 
         std::vector<unsigned> already_selected;
         already_selected.push_back(first);
@@ -74,9 +70,7 @@ struct PlusPlusInitialization :
             // remember that this one has been taken
             already_selected.push_back(next);
 
-            VectorT random_center = data[next];
-            clusters.push_back(ClusterT());
-            clusters[i].setCentroid(random_center);
+            clusters.push_back(ClusterT(data[next]));
         }
     }
 };

@@ -38,6 +38,8 @@ struct Dense : public DataStructure<Cluster, InputDataType> {
      */
     void prepare(InputDataType raw,
                  const std::vector<std::pair<VectorIndexType, VectorIndexType> >& limits) {
+        assert(limits.size() == Dimension);
+
         DataStruct::clear();
 
         long entries = 1;

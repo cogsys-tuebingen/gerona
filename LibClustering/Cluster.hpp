@@ -24,6 +24,7 @@ struct Cluster {
     typedef Vector VectorT;
     typedef typename VectorT::IndexType VectorIndexType;
     typedef typename VectorT::ValueType VectorValueType;
+    typedef typename VectorT::UserDataType VectorUserDataType;
     typedef DistanceT Distance;
 
     /**
@@ -34,12 +35,12 @@ struct Cluster {
     };
 
     /**
-     * @brief setCentroid setter
-     * @param c
+     * @brief Cluster Constructor
+     * @param c initial centroid
      */
-    void setCentroid(VectorT& c) {
-        centroid = c;
-    }
+    Cluster(const VectorT& c)
+        : centroid(c)
+    {}
 
     /**
      * @brief recomputeCentroid moves the center of each cluster to the centroid of all its members
@@ -52,7 +53,7 @@ struct Cluster {
 
         double norm = 0;
 
-        VectorImp<VectorT::Dimension, double, VectorValueType> c;
+        VectorImp<VectorT::Dimension, double, VectorValueType, VectorUserDataType> c(0);
         for(typename std::vector<VectorT*>::iterator member = members.begin(); member != members.end(); ++member) {
             VectorT& v = **member;
             c += (v * v.weight);
