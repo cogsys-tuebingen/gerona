@@ -38,6 +38,8 @@ rosbuild_add_library(LibPath  ReedsShepp/CurveGenerator.cpp
     generic/MapManager.hpp
     generic/NodeManager.hpp
     evaluation/PathRenderer.hpp
+    evaluation/MapRenderer.hpp
+    evaluation/Util.hpp
 )
 
 target_link_libraries(LibPath LibUtil)

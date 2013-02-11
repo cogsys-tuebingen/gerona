@@ -16,30 +16,28 @@
 #include "../common/GridMap2d.h"
 #include "../common/Pose2d.h"
 
-#define DEFINE_CONCRETE_ALGORITHM(name, Point, Heuristic, Neighbor, Map, NeighborSelector, MapManager, QueueManager) \
-    template <class PointT, class MapT, int Neighborhood=8, int Stepsize=5, int DrawInterval=0> \
-    class name##Search : public GenericSearchAlgorithm<Point,Heuristic,Neighbor<Neighborhood, Stepsize>,Map,NeighborSelector,MapManager,QueueManager,DrawInterval> {};\
-    template <int DrawInterval, class PointT, class MapT, int Neighborhood=8, int Stepsize=5>\
-    class name##Search_Debug : public name##Search<PointT, MapT, Neighborhood, Stepsize, DrawInterval> {};
+#define DEFINE_CONCRETE_ALGORITHM(name, Heuristic, MapManager, QueueManager) \
+    template <class PointT, class MapT, class Neighborhood, int DrawInterval=0, template <class> class Extension = MapManagerExtension, class SubParam = NoSubParameter> \
+    class name##Search : public GenericSearchAlgorithm<GenericParameter<PointT,Heuristic,MapT,Neighborhood,QueueManager,DrawInterval, SubParam>,\
+                                                       MapManager,Extension> {};\
+    template <int DrawInterval, class SubParam, template <class> class Extension, class PointT, class MapT, class Neighborhood>\
+    class name##Search_Debug : public name##Search<PointT, MapT, Neighborhood, DrawInterval,Extension, SubParam> {};
 
 namespace lib_path
 {
 DEFINE_CONCRETE_ALGORITHM(BreadthFirst,
-                          PointT,
                           NoHeuristic,
-                          DirectNeighborhood,
-                          MapT,
-                          GridNeighbor,
                           GridMapManager,
                           QueueManager)
 
-DEFINE_CONCRETE_ALGORITHM(AStar,
-                          PointT,
+DEFINE_CONCRETE_ALGORITHM(AStar2d,
                           HeuristicDistToGoal,
-                          DirectNeighborhood,
-                          MapT,
-                          GridNeighbor,
                           GridMapManager,
+                          PriorityQueueManager)
+
+DEFINE_CONCRETE_ALGORITHM(AStar,
+                          HeuristicDistToGoal,
+                          StateSpaceManager,
                           PriorityQueueManager)
 }
 

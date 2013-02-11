@@ -145,7 +145,7 @@ public:
     }
 
     bool isInMap( const int x, const int y ) const
-        { return !(x < 0 || y < 0 || x > (int)width_ || y > (int)height_); }
+        { return !(x < 0 || y < 0 || x >= (int)width_ || y >= (int)height_); }
 
     bool isInMap( const double x, const double y ) const
         { return (x - origin_.x)/res_ < width_ && (y - origin_.y)/res_ < height_; }

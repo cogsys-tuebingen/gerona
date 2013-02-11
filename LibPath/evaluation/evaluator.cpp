@@ -11,6 +11,9 @@
 /// COMPONENT
 #include "PathRenderer.hpp"
 
+/// PROJECT
+#include <utils/LibUtil/Stopwatch.h>
+
 /// SYSTEM
 #include <boost/bind.hpp>
 
@@ -25,20 +28,24 @@ Evaluator::Evaluator(int w, int h)
 
     cv::namedWindow(window);
 
-    initMap();
+    if(w > 200){
+        initHighResMap();
+    } else {
+        initLowResMap();
+    }
 
-    start.x = 20;
-    start.y = 20;
-
-    goal.x = w / 2;
-    goal.y = h / 2;
-    goal.theta = M_PI / 2;
-
-    img = cv::Mat(map_info.getHeight(), map_info.getWidth(), CV_8UC3, cv::Scalar::all(127));
+    img = cv::Mat(map_info.getHeight() * SCALE, map_info.getWidth() * SCALE, CV_8UC3, cv::Scalar::all(127));
 }
 
-void Evaluator::initMap()
+void Evaluator::initHighResMap()
 {
+    start.x = 20;
+    start.y = 200;
+    start.theta = M_PI / 2;
+
+    goal.x = w / 2 + 20;
+    goal.y = h / 2 + 40;
+    goal.theta = 0;//M_PI;
 
     map_info.setOrigin(Point2d(0, 0));
     map_info.setResolution(1);
@@ -49,7 +56,10 @@ void Evaluator::initMap()
 
     if(obstacles) {
         // Obstacles
-        cv::rectangle(orig_map, cv::Point(80, 80), cv::Point(120, 400), cv::Scalar::all(0),
+        cv::rectangle(orig_map, cv::Point(180, 80), cv::Point(120, 400), cv::Scalar::all(0),
+                      CV_FILLED, CV_AA, 0);
+
+        cv::rectangle(orig_map, cv::Point(280, 0), cv::Point(220, 300), cv::Scalar::all(0),
                       CV_FILLED, CV_AA, 0);
 
         cv::rectangle(orig_map, cv::Point(0, 0), cv::Point(10, 10), cv::Scalar::all(0),
@@ -62,7 +72,7 @@ void Evaluator::initMap()
                       CV_FILLED, CV_AA, 0);
 
         // "cage"
-        cv::rectangle(orig_map, cv::Point(300, 220), cv::Point(340, 240), cv::Scalar::all(0),
+        cv::rectangle(orig_map, cv::Point(300, 200), cv::Point(340, 220), cv::Scalar::all(0),
                       CV_FILLED, CV_AA, 0);
         cv::rectangle(orig_map, cv::Point(300, 260), cv::Point(340, 280), cv::Scalar::all(0),
                       CV_FILLED, CV_AA, 0);
@@ -84,16 +94,76 @@ void Evaluator::initMap()
     }
 }
 
-void Evaluator::intermission()
+
+void Evaluator::initLowResMap()
 {
-    PathRenderer<> renderer(map_info, img);
+    start.x = 2;
+    start.y = 20;
+    start.theta = 0;//M_PI / 2;
+
+    goal.x = w - 4;
+    goal.y = h - 4;
+    goal.theta = M_PI / 2;
+
+    map_info.setOrigin(Point2d(0, 0));
+    map_info.setResolution(SCALE);
+    map_info.setLowerThreshold(20);
+    map_info.setUpperThreshold(50);
+
+    cv::Mat orig_map(h, w, CV_8UC1, cv::Scalar::all(255));
+
+    if(obstacles) {
+        // Obstacles
+        cv::rectangle(orig_map, cv::Point(18, 8), cv::Point(14, 40), cv::Scalar::all(0),
+                      CV_FILLED, CV_AA, 0);
+
+        cv::rectangle(orig_map, cv::Point(0, 0), cv::Point(1, 1), cv::Scalar::all(0),
+                      CV_FILLED, CV_AA, 0);
+
+        cv::rectangle(orig_map, cv::Point(30, 8), cv::Point(32, 10), cv::Scalar::all(0),
+                      CV_FILLED, CV_AA, 0);
+
+        cv::rectangle(orig_map, cv::Point(34, 12), cv::Point(36, 14), cv::Scalar::all(0),
+                      CV_FILLED, CV_AA, 0);
+
+        // "cage"
+        cv::rectangle(orig_map, cv::Point(30, 22), cv::Point(34, 24), cv::Scalar::all(0),
+                      CV_FILLED, CV_AA, 0);
+        cv::rectangle(orig_map, cv::Point(30, 26), cv::Point(34, 28), cv::Scalar::all(0),
+                      CV_FILLED, CV_AA, 0);
+    }
+
+    for(int y=0; y<h; y++) {
+        for(int x=0; x<w; x++) {
+            uint8_t val = orig_map.at<uint8_t>(y, x);
+
+            if(val == 0){
+                /// OBSTACLE
+                map_info.setValue(x, y, 255);
+                assert(!map_info.isFree(x, y));
+            } else {
+                map_info.setValue(x, y, 0);
+                assert(map_info.isFree(x, y));
+            }
+        }
+    }
+}
+
+void Evaluator::draw(cv::Scalar color)
+{
+    PathRenderer<SCALE, AStar::NodeT, AStar::PathT> renderer(map_info, img);
     renderer.renderMap();
-    renderer.draw_arrow(start, cv::Scalar::all(-1));
-    renderer.draw_arrow(goal,  cv::Scalar::all(-1));
+    renderer.draw_arrow(start, color);
+    renderer.draw_arrow(goal,  color);
     searchAlgorithm.visualize(img);
 
+    std::stringstream ss;
+    ss << "expansions: " << searchAlgorithm.noExpansions();
+    cv::putText(img, ss.str(), cv::Point(40, 40), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar::all(255), 3, CV_AA);
+    cv::putText(img, ss.str(), cv::Point(40, 40), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar::all(0), 1, CV_AA);
+
     cv::imshow(window.c_str(), img);
-    int key = cv::waitKey(100) & 0xFF;
+    int key = cv::waitKey(20);
 
     if(key == 27 || cvGetWindowHandle(window.c_str()) == NULL){
         exit(0);
@@ -104,13 +174,15 @@ void Evaluator::run()
 {
     searchAlgorithm.setMap(&map_info);
 
-    Path path = searchAlgorithm.findPath(start, goal, boost::bind(&Evaluator::intermission, this));
+    Stopwatch watch;
 
-    PathRenderer<> renderer(map_info, img);
-    renderer.renderMap();
-    renderer.draw_arrow(start, cv::Scalar::all(-1));
-    renderer.draw_arrow(goal,  cv::Scalar::all(-1));
-    searchAlgorithm.visualize(img);
+    AStar::PathT path = searchAlgorithm.findPath(start, goal, boost::bind(&Evaluator::draw, this, cv::Scalar::all(0)));
+
+    std::cout << "path search took " << watch.msElapsed() << "ms" << std::endl;
+
+    draw(cv::Scalar(0,0,255));
+
+    PathRenderer<SCALE, AStar::NodeT, AStar::PathT> renderer(map_info, img);
     renderer.render(path);
 
     while(cvGetWindowHandle(window.c_str()) != NULL) {
@@ -131,5 +203,6 @@ void Evaluator::run()
 int main(int argc, char* argv[])
 {
     Evaluator eval(600, 400);
+    //Evaluator eval(60, 40);
     eval.run();
 }

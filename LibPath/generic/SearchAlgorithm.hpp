@@ -23,60 +23,103 @@
 
 namespace lib_path
 {
+
+struct NoSubParameter {
+    enum { SCALE = 2};
+    typedef int Connector;
+};
+
 template <class PointT,
-          class HeuristicType,
-          class Neighborhood,
-          class MapT,
-          class NeighborType,
-          class MapManager,
-          template <class> class OpenNodesManager,
-          int DRAW_N_STEPS = 0
-          >
+         template <class> class HeuristicT,
+         class MapT,
+         class Neighborhood,
+         template <class> class OpenNodesManager,
+         int DRAW_N_STEPS = 0,
+         class SubParameter = NoSubParameter
+         >
+struct GenericParameter : public SubParameter
+{
+    typedef PointT PointType;
+    typedef HeuristicT<PointT> HeuristicType;
+    typedef MapT MapType;
+    typedef Neighborhood NeighborhoodType;
+    typedef NeighborSelection<typename HeuristicType::NodeType, NeighborhoodType> NeighborhoodSelection;
+    typedef typename NeighborhoodSelection::NodeType NodeType;
+
+    typedef OpenNodesManager<NodeType> OpenNodesManagerType;
+
+    enum { DRAW_STEPS = DRAW_N_STEPS};
+};
+
+template <class Param,
+         template <class, class> class MapManager,
+         template <class> class Extension = MapManagerExtension>
 class GenericSearchAlgorithm :
-        public NeighborSelection<Neighborhood, MapManager, typename HeuristicSelection<HeuristicType, PointT>::NodeType, MapT, NeighborType>
+    public Param::NeighborhoodSelection,
+    public MapManager<typename Param::NodeType, Extension<Param> >
 {
 public:
-    static const GenericPath<PointT> empty() {
-        return GenericPath<PointT>();
+
+    enum { DRAW_N_STEPS = Param::DRAW_STEPS };
+    enum { SCALE = Param::SCALE };
+
+    typedef typename Param::OpenNodesManagerType OpenNodesManager;
+    typedef typename Param::PointType PointT;
+    typedef typename Param::NodeType NodeT;
+    typedef typename Param::HeuristicType Heuristic;
+//    typedef NeighborSelection<Neighborhood, MapManager, typename Heuristic::NodeType, MapT, Extension> NeighborhoodT;
+
+    typedef GenericPath<NodeT> PathT;
+
+    static const PathT empty() {
+        return PathT();
     }
 
-    typedef HeuristicSelection<HeuristicType, PointT> Heuristic;
-    typedef typename Heuristic::NodeType NodeT;
+    double noExpansions() const {
+        return expansions;
+    }
 
-    GenericPath<PointT> findPath(const PointT& from, const PointT& to)
-    {
+    PathT findPath(const PointT& from, const PointT& to) {
         return findPathImp<generic::NoIntermission>(from, to, boost::function<void()>());
     }
-    GenericPath<PointT> findPath(const PointT& from, const PointT& to, boost::function<void()> intermission)
-    {
+    PathT findPath(const PointT& from, const PointT& to, boost::function<void()> intermission) {
         return findPathImp<generic::CallbackIntermission<DRAW_N_STEPS> >(from, to, intermission);
     }
 
 private:
     template <class Intermission>
-    GenericPath<PointT> findPathImp(const PointT& from, const PointT& to, boost::function<void()> intermission)
-    {
+    PathT findPathImp(const PointT& from, const PointT& to, boost::function<void()> intermission) {
+        expansions = 0;
+
         start = lookup(from);
         goal = lookup(to);
 
-        if(!isFree(start) || !isFree(goal)){
+        if(!isFree(start) || !isFree(goal)) {
             return empty();
         }
 
+        start->theta = from.theta;
+        goal->theta = to.theta;
+
         start->distance = 0;
-        start->mark();
+        start->mark(NodeT::MARK_OPEN);
 
         open.add(start);
 
         while(!open.empty()) {
             NodeT* current = open.next();
+            current->mark(NodeT::MARK_CLOSED);
 
-            if(isNearEnough(goal, current)){
-                goal->prev = current;
+            if(isNearEnough(goal, current)) {
+                if(goal != current) {
+                    goal->prev = current;
+                    std::cout << "near goal: theta=" << current->theta << ", goal=" << goal->theta << std::endl;
+                }
+                std::cout << "found goal: theta=" << current->theta << ", goal=" << goal->theta << std::endl;
                 return backtrack(start, goal);
             }
 
-            iterateFreeNeighbors(current);
+            iterateFreeNeighbors(this, current);
 
             Intermission::call(intermission);
         }
@@ -86,31 +129,46 @@ private:
         return empty();
     }
 
-    void forEachFreeNeighbor(NodeT* current, NodeT* neighbor){
-        double distance = current->distance + neighbor->delta;
-        bool closer = distance < neighbor->distance;
-        if(!neighbor->isMarked() || closer) {
-            open.add(neighbor);
-            neighbor->mark();
+    bool forEachFreeNeighbor(NodeT* current, NodeT* neighbor, double delta) {
+        if(neighbor->isMarked(NodeT::MARK_CLOSED)) {
+            return false;
+        }
 
+        double distance = current->distance + delta;
+        bool closer = distance < neighbor->distance;
+        bool notInOpenList = !neighbor->isMarked(NodeT::MARK_OPEN);
+
+        if(notInOpenList) {
+            open.add(neighbor);
+            neighbor->mark(NodeT::MARK_OPEN);
+
+            expansions ++;
+        }
+
+        if(closer) {
             Heuristic::compute(neighbor, goal);
 
-            if(closer) {
-                neighbor->distance = distance;
-                neighbor->prev = current;
-            }
+            neighbor->distance = distance;
+
+            assert(neighbor != current);
+            neighbor->prev = current;
+
+            return true;
         }
+
+        return false;
     }
 
-    GenericPath<PointT> backtrack(NodeT* start, NodeT* goal)
-    {
-        GenericPath<PointT> path;
+    PathT backtrack(NodeT* start, NodeT* goal) {
+        PathT path;
 
-        Node<PointT>* current = goal;
+        NodeT* current = goal;
 
         while(current != start) {
+            assert(current != NULL);
+            assert(current != current->prev);
             path.push_back(*current);
-            current = current->prev;
+            current = dynamic_cast<NodeT*>(current->prev);
         }
         path.push_back(*start);
 
@@ -119,9 +177,11 @@ private:
         return path;
     }
 
-    OpenNodesManager<NodeT > open;
+    OpenNodesManager open;
     NodeT* start;
     NodeT* goal;
+
+    int expansions;
 };
 
 }

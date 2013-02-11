@@ -41,6 +41,29 @@ void Bresenham2d::set( const GridMap2d *map, const Point2d start, const Point2d 
     y_ = y0_;
 }
 
+void Bresenham2d::setGrid(const GridMap2d *map, int start_x, int start_y, int end_x, int end_y)
+{
+    // Start or end outside of map?
+    if ( !map->isInMap(start_x, start_y) || !map->isInMap(end_x, end_y)) {
+        x0_ = y0_ = x_ = y_ = x1_ = y1_ = 0;
+        return;
+    }
+
+    // Start/end in cell coordinates
+    map_ = map;
+    x0_ = start_x; y0_ = start_y;
+    x1_ = end_x; y1_ = end_y;
+
+    // Initialize Bresenham variables
+    dx_ =  abs( x1_ - x0_ ), sx_ = x0_ < x1_ ? 1 : -1;
+    dy_ = -abs( y1_ - y0_ ), sy_ = y0_ < y1_ ? 1 : -1;
+    err_ = dx_ + dy_;
+
+    // Initial cell
+    x_ = x0_;
+    y_ = y0_;
+}
+
 bool Bresenham2d::next()
 {
     if ( x_ == x1_ && y_ == y1_ )

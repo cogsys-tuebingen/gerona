@@ -34,6 +34,16 @@ public:
     void set( const GridMap2d *map, const Point2d start, const Point2d end );
 
     /**
+     * @brief Set the map, start and end
+     * If start or end lies outside of the map bounds we will do
+     * just nothing.
+     * @param map The map
+     * @param start Start of the line (grid coordinates)
+     * @param end End of the line (grid coordinates)
+     */
+    void setGrid(const GridMap2d *map, int start_x, int start_y, int end_x, int end_y );
+
+    /**
      * @brief Select next cell
      * @return False if we reached the end
      */
