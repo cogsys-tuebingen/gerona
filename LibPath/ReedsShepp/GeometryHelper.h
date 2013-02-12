@@ -37,7 +37,7 @@ public:
      * @param circle_to the second circle for the tangent
      * @param tangent_out the tangent output
      */
-    static bool get_common_tangent(CircleSegment &circle_from, CircleSegment& circle_to, LineSegment& tangent_out);
+    static bool get_common_tangent(CircleSegment& circle_from, CircleSegment& circle_to, LineSegment& tangent_out);
 
     /**
      * Computes a circle, that touches circle_from and circle_to both tangentially.
@@ -48,7 +48,7 @@ public:
      * @param circle_out gets the information computed written into
      * @param circle_to the other circle, that must be touched
      */
-    static bool get_tangential_circle(CircleSegment &circle_from, CircleSegment& circle_out, CircleSegment& circle_to, bool ignore_obstacles);
+    static bool get_tangential_circle(CircleSegment& circle_from, CircleSegment& circle_out, CircleSegment& circle_to, bool ignore_obstacles);
 
     /**
      * Computes two touching circles, that touch circle_from and circle_to both tangentially.
@@ -60,22 +60,22 @@ public:
      * @param circle3 gets the information computed written into
      * @param circle_to the other circle, that must be touched
      */
-    static bool get_tangential_double_circle(CircleSegment &circle_from, CircleSegment& circle2, CircleSegment& circle3, CircleSegment& circle_to,
-                                      bool ignore_obstacles);
+    static bool get_tangential_double_circle(CircleSegment& circle_from, CircleSegment& circle2, CircleSegment& circle3, CircleSegment& circle_to,
+            bool ignore_obstacles);
 
 private:
     static void external_tangent(CircleSegment& circle_from, LineSegment& tangent_out, CircleSegment& circle_to);
     static void internal_tangent(CircleSegment& circle_from, LineSegment& tangent_out, CircleSegment& circle_to);
 
-    static bool symmetry_helper(const std::vector<CircleSegment *>& circles, double max_dist, bool ignore_obstacles,
-                                boost::function<bool (const std::vector<CircleSegment *>&, bool)> callback);
+    static bool symmetry_helper(const std::vector<CircleSegment*>& circles, double max_dist, bool ignore_obstacles,
+                                boost::function<bool (const std::vector<CircleSegment*>&, bool)> callback);
 
     static bool calculate_tangential_circle_vector(const std::vector<CircleSegment*>& segments, bool choose_positive_solution);
-    static bool calculate_tangential_circle(CircleSegment &circle_from, CircleSegment& circle2, CircleSegment& circle_to, bool choose_positive_solution);
+    static bool calculate_tangential_circle(CircleSegment& circle_from, CircleSegment& circle2, CircleSegment& circle_to, bool choose_positive_solution);
 
     static bool test_tangential_double_circle_vector(const std::vector<CircleSegment*>& segments, bool choose_positive_solution);
-    static bool test_tangential_double_circle(CircleSegment &circle_from, CircleSegment& circle2, CircleSegment& circle3, CircleSegment& circle_to,
-                                                bool choose_positive_solution);
+    static bool test_tangential_double_circle(CircleSegment& circle_from, CircleSegment& circle2, CircleSegment& circle3, CircleSegment& circle_to,
+            bool choose_positive_solution);
 
 };
 

@@ -43,7 +43,7 @@ public:
      *                   | - change driving direction (forward <-> backward)
      * @returns true, iff the sequence was specified correctly
      */
-    bool parse(const string &sequence, std::ostream& out=std::cerr);
+    bool parse(const string& sequence, std::ostream& out=std::cerr);
 
     /**
      * Uses all parsed sequences to find the shortest path in a map

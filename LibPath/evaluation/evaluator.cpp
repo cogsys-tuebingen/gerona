@@ -28,7 +28,7 @@ Evaluator::Evaluator(int w, int h)
 
     cv::namedWindow(window);
 
-    if(w > 200){
+    if(w > 200) {
         initHighResMap();
     } else {
         initLowResMap();
@@ -43,7 +43,8 @@ void Evaluator::initHighResMap()
     start.y = 200;
     start.theta = M_PI / 2;
 
-    goal.x = w / 2 + 20;
+    //goal.x = w / 2 + 20;
+    goal.x = w - 20;
     goal.y = h / 2 + 40;
     goal.theta = 0;//M_PI;
 
@@ -59,7 +60,7 @@ void Evaluator::initHighResMap()
         cv::rectangle(orig_map, cv::Point(180, 80), cv::Point(120, 400), cv::Scalar::all(0),
                       CV_FILLED, CV_AA, 0);
 
-        cv::rectangle(orig_map, cv::Point(280, 0), cv::Point(220, 300), cv::Scalar::all(0),
+        cv::rectangle(orig_map, cv::Point(280, 80), cv::Point(220, 400), cv::Scalar::all(0),
                       CV_FILLED, CV_AA, 0);
 
         cv::rectangle(orig_map, cv::Point(0, 0), cv::Point(10, 10), cv::Scalar::all(0),
@@ -82,7 +83,7 @@ void Evaluator::initHighResMap()
         for(int x=0; x<w; x++) {
             uint8_t val = orig_map.at<uint8_t>(y, x);
 
-            if(val == 0){
+            if(val == 0) {
                 /// OBSTACLE
                 map_info.setValue(x, y, 255);
                 assert(!map_info.isFree(x, y));
@@ -137,7 +138,7 @@ void Evaluator::initLowResMap()
         for(int x=0; x<w; x++) {
             uint8_t val = orig_map.at<uint8_t>(y, x);
 
-            if(val == 0){
+            if(val == 0) {
                 /// OBSTACLE
                 map_info.setValue(x, y, 255);
                 assert(!map_info.isFree(x, y));
@@ -151,7 +152,7 @@ void Evaluator::initLowResMap()
 
 void Evaluator::draw(cv::Scalar color)
 {
-    PathRenderer<SCALE, AStar::NodeT, AStar::PathT> renderer(map_info, img);
+    PathRenderer<SCALE, SearchAlgorithm::NodeT, SearchAlgorithm::PathT> renderer(map_info, img);
     renderer.renderMap();
     renderer.draw_arrow(start, color);
     renderer.draw_arrow(goal,  color);
@@ -165,7 +166,7 @@ void Evaluator::draw(cv::Scalar color)
     cv::imshow(window.c_str(), img);
     int key = cv::waitKey(20);
 
-    if(key == 27 || cvGetWindowHandle(window.c_str()) == NULL){
+    if(key == 27 || cvGetWindowHandle(window.c_str()) == NULL) {
         exit(0);
     }
 }
@@ -176,13 +177,13 @@ void Evaluator::run()
 
     Stopwatch watch;
 
-    AStar::PathT path = searchAlgorithm.findPath(start, goal, boost::bind(&Evaluator::draw, this, cv::Scalar::all(0)));
+    SearchAlgorithm::PathT path = searchAlgorithm.findPath(start, goal, boost::bind(&Evaluator::draw, this, cv::Scalar::all(0)));
 
-    std::cout << "path search took " << watch.msElapsed() << "ms" << std::endl;
+    std::cout << "path search took " << watch.usElapsed() / 1e3 << "ms" << std::endl;
 
     draw(cv::Scalar(0,0,255));
 
-    PathRenderer<SCALE, AStar::NodeT, AStar::PathT> renderer(map_info, img);
+    PathRenderer<SCALE, SearchAlgorithm::NodeT, SearchAlgorithm::PathT> renderer(map_info, img);
     renderer.render(path);
 
     while(cvGetWindowHandle(window.c_str()) != NULL) {
@@ -193,7 +194,7 @@ void Evaluator::run()
         if(cvGetWindowHandle(window.c_str()) != NULL) {
             int key = cv::waitKey(100) & 0xFF;
 
-            if(key == 27){
+            if(key == 27) {
                 break;
             }
         }

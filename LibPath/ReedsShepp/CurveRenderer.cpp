@@ -121,11 +121,11 @@ void CurveRenderer::draw_arrow(Curve* curve, Pose2d& pose, CvScalar color, float
 
     Point2d tip = t + dir.rotate(pose.theta);
     cv::line(m_debug_image, p2cv(pose, curve->m_map->getHeight()), p2cv(t + dir.rotate(pose.theta), curve->m_map->getHeight()),
-           color, 2.0f * scale, CV_AA);
+             color, 2.0f * scale, CV_AA);
     cv::line(m_debug_image, p2cv(tip, curve->m_map->getHeight()), p2cv(t + left.rotate(pose.theta), curve->m_map->getHeight()),
-           color, 2.0f * scale, CV_AA);
+             color, 2.0f * scale, CV_AA);
     cv::line(m_debug_image, p2cv(tip, curve->m_map->getHeight()), p2cv(t + right.rotate(pose.theta), curve->m_map->getHeight()),
-           color, 2.0f * scale, CV_AA);
+             color, 2.0f * scale, CV_AA);
 }
 
 void CurveRenderer::display_overlay(Curve* curve)

@@ -63,7 +63,7 @@ struct DirectNeighborhoodImp<generic::Int2Type<8>, distance> {
     enum { SIZE = 8 };
     enum { DISTANCE = distance };
 
-    static const double COST_DIAG = M_SQRT2 * DISTANCE;
+    static const double COST_DIAG = M_SQRT2* DISTANCE;
     static const double COST_HORI = DISTANCE;
 
     static int dx(int x,int i) {
@@ -228,7 +228,7 @@ struct NeighborSelection<NodeT, NonHolonomicNeighborhood<d,a> >
             cost *= 5;
         }
 
-        if(reference->forward != forward_){
+        if(reference->forward != forward_) {
             cost *= 5;
         }
 

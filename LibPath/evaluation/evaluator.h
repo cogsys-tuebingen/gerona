@@ -19,7 +19,8 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
-namespace lib_path {
+namespace lib_path
+{
 
 class Evaluator
 {
@@ -30,8 +31,11 @@ class Evaluator
         typedef int Connector;
     };
 
-//    typedef AStar2dSearch_Debug<8000, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, DirectNeighborhood<8,5> > AStar;
-    typedef AStarSearch_Debug<0, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, NonHolonomicNeighborhood<250, 80> > AStar;
+    typedef AStar2dSearch_Debug<8000, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, DirectNeighborhood<8,5> > AStar;
+    typedef AStarSearch_Debug<0, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, NonHolonomicNeighborhood<250, 80> > AStarNH;
+    typedef BreadthFirstSearch_Debug<0, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, DirectNeighborhood<8,5> > BFS;
+
+    typedef AStarNH SearchAlgorithm;
 
 public:
     Evaluator(int w, int h);
@@ -46,7 +50,7 @@ private:
 
 private:
     SimpleGridMap2d map_info;
-    AStar searchAlgorithm;
+    SearchAlgorithm searchAlgorithm;
 
     cv::Mat img;
     Pose2d start, goal;

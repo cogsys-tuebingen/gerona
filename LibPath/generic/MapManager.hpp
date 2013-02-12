@@ -85,8 +85,7 @@ protected:
 
 template <class NodeT, class Extension>
 struct GridMapManager :
-    public Manager<NodeT, Extension>
-{
+    public Manager<NodeT, Extension> {
     typedef NodeT NodeType;
     typedef Manager<NodeT, Extension> ManagerT;
 
@@ -103,7 +102,7 @@ struct GridMapManager :
         }
     }
 
-    inline unsigned index(unsigned x, unsigned y, unsigned t = 1){
+    inline unsigned index(unsigned x, unsigned y, unsigned t = 1) {
         return y * w + x;
     }
 
@@ -157,10 +156,10 @@ public:
     }
 
 
-    inline unsigned index(unsigned x, unsigned y, unsigned t){
+    inline unsigned index(unsigned x, unsigned y, unsigned t) {
         return y * w + x + t*w*h;
     }
-    inline unsigned angle2index(double theta){
+    inline unsigned angle2index(double theta) {
         return (MathHelper::AngleClamp(theta) + M_PI) / (2 * M_PI) * theta_slots;
     }
 

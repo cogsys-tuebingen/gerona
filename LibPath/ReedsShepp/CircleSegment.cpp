@@ -255,17 +255,17 @@ void CircleSegment::compute_arc_length()
     //
     //   => POSITIVE = (LEFT xor BACKWARD)
 
-    bool must_be_positive = (m_orientation == LEFT_CURVE) ^ (m_direction == BACKWARD);
+    bool must_be_positive = (m_orientation == LEFT_CURVE) ^(m_direction == BACKWARD);
     bool is_positive = (arc_angle >= 0);
 
     // if arc must be positive, but is negative
     //  -> arc has to be > PI and has been normalized to a negative number -> add 2 PI
     // similarly, if arc must be negative, but is positive
     //  -> subtract 2 PI
-    if(must_be_positive && !is_positive){
+    if(must_be_positive && !is_positive) {
         m_arc_length = arc_angle + 2 * M_PI;
 
-    } else if(!must_be_positive && is_positive){
+    } else if(!must_be_positive && is_positive) {
         m_arc_length = arc_angle - 2 * M_PI;
 
     } else {

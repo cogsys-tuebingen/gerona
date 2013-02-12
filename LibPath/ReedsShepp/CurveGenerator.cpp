@@ -177,7 +177,7 @@ Curve* CurveGenerator::find_path(const Pose2d& start, const Pose2d& goal, GridMa
     Curve* best_curve = NULL;
     double best_weight = INFINITY;
 
-    for(std::vector<Curve>::iterator c = m_curves.begin(); c != m_curves.end(); ++c){
+    for(std::vector<Curve>::iterator c = m_curves.begin(); c != m_curves.end(); ++c) {
         c->m_start = start;
         c->m_goal = goal;
         c->m_map = map;
@@ -198,7 +198,7 @@ Curve* CurveGenerator::find_path(const Pose2d& start, const Pose2d& goal, GridMa
 
         double weight = c->check_if_admissible();
 
-        if(weight < best_weight){
+        if(weight < best_weight) {
             best_curve = &*c;
             best_weight = weight;
         }

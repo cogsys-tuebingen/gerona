@@ -18,7 +18,8 @@
 #include <math.h>
 #include <cstdlib>
 
-namespace lib_path {
+namespace lib_path
+{
 
 template <class NodeT, class NeighborhoodType>
 struct NeighborSelection {};
@@ -30,6 +31,9 @@ struct HeuristicSelection {};
 
 template <class PointT>
 struct Node : public PointT {
+    typedef PointT PointType;
+    typedef Node<PointT> NodeType;
+
     static const char MARK_NONE = 0;
     static const char MARK_OPEN = 0x1;
     static const char MARK_CLOSED = 0x2;
@@ -56,27 +60,9 @@ struct Node : public PointT {
 
     double distance;
     char marked;
-    Node * prev;
+    Node* prev;
 };
 
-template <class PointT>
-struct HeuristicNode : public Node<PointT> {
-    using Node<PointT>::distance;
-
-    typedef PointT PointType;
-    typedef HeuristicNode<PointT> NodeType;
-
-    virtual double getTotalCost() const {
-        return distance + h;
-    }
-
-    static void init(HeuristicNode<PointT> &memory, int x, int y) {
-        Node<PointT>::init(memory, x, y);
-        memory.h = 0;
-    }
-
-    double h;
-};
 
 template <class Node>
 struct HybridNode : public Node {
@@ -99,30 +85,9 @@ struct HybridNode : public Node {
 };
 
 template <class Node>
-struct CompareNode : public std::binary_function<Node*, Node*, bool>
-{
-    bool operator()(const Node* lhs, const Node* rhs) const
-    {
+struct CompareNode : public std::binary_function<Node*, Node*, bool> {
+    bool operator()(const Node* lhs, const Node* rhs) const {
         return lhs->getTotalCost() > rhs->getTotalCost();
-    }
-};
-
-template <class PointT>
-struct NoHeuristic {
-    typedef Node<PointT> NodeType;
-
-    template <class NodeType>
-    static void compute(...) {
-    }
-};
-
-template <class PointT>
-struct HeuristicDistToGoal {
-    typedef HeuristicNode<PointT> NodeType;
-
-    template <class NodeType>
-    static void compute(NodeType* current, NodeType* goal) {
-        current->h = hypot(current->x - goal->x, current->y - goal->y);
     }
 };
 
@@ -133,12 +98,11 @@ struct MapManagerExtension {
     typedef typename Param::NodeType NodeType;
 
     MapManagerExtension()
-        : data(NULL), w(0), h(0), theta_slots(1)
-    {
+        : data(NULL), w(0), h(0), theta_slots(1) {
     }
 
     virtual ~MapManagerExtension() {
-        if(data != NULL){
+        if(data != NULL) {
             delete [] data;
         }
     }

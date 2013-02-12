@@ -8,7 +8,8 @@
 #ifndef INTERMISSION_HPP
 #define INTERMISSION_HPP
 
-namespace generic {
+namespace generic
+{
 
 template <int steps>
 struct CallbackIntermission {

@@ -8,15 +8,15 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-namespace generic {
+namespace generic
+{
 
 /**
  * @brief The Int2Type struct creates a unique type for an integer.
  *        Useful for typematching integer template parameters
  */
 template <int v>
-struct Int2Type
-{
+struct Int2Type {
     enum { value = v };
 };
 
@@ -27,8 +27,7 @@ struct Int2Type
  *        Member functions can't normaly be partially specialized, so you have to use overloading.
  */
 template <class v>
-struct Type2Type
-{
+struct Type2Type {
     typedef v value;
 };
 

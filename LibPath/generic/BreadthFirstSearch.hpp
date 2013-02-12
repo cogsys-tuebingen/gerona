@@ -12,6 +12,7 @@
 #include "SearchAlgorithm.hpp"
 #include "Neighborhood.hpp"
 #include "NodeManager.hpp"
+#include "Heuristics.hpp"
 
 #include "../common/GridMap2d.h"
 #include "../common/Pose2d.h"

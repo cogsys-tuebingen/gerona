@@ -191,7 +191,7 @@ bool GeometryHelper::calculate_tangential_circle(CircleSegment& circle_from, Cir
 
     double theta = delta.angle();
     double gamma = acos((delta.length() / 2) / diameter);
-    if(!choose_positive_solution){
+    if(!choose_positive_solution) {
         gamma = -gamma;
     }
 
@@ -254,8 +254,8 @@ bool GeometryHelper::test_tangential_double_circle(CircleSegment& circle_from, C
     double diameter = 2 * r;
 
     double theta = delta.angle();
-    double gamma = acos( (delta.length() / 2.0 - r) / diameter);
-    if(!choose_positive_solution){
+    double gamma = acos((delta.length() / 2.0 - r) / diameter);
+    if(!choose_positive_solution) {
         gamma = -gamma;
     }
 
@@ -282,7 +282,7 @@ bool GeometryHelper::test_tangential_double_circle(CircleSegment& circle_from, C
 
 
 bool GeometryHelper::symmetry_helper(const std::vector<CircleSegment*>& circles, double max_dist, bool ignore_obstacles,
-                                     boost::function<bool (const std::vector<CircleSegment *>&, bool)> callback)
+                                     boost::function<bool (const std::vector<CircleSegment*>&, bool)> callback)
 {
     const CircleSegment& circle_from = *circles.at(0);
     const CircleSegment& circle_to = *circles.at(circles.size() - 1);
@@ -306,13 +306,13 @@ bool GeometryHelper::symmetry_helper(const std::vector<CircleSegment*>& circles,
     // here we have to symmetric cases, test them both an use the better one
     if(callback(circles, true)) {
         weight_positive = 0;
-        for(std::vector<CircleSegment*>::const_iterator it = circles.begin(); it != circles.end(); ++it){
+        for(std::vector<CircleSegment*>::const_iterator it = circles.begin(); it != circles.end(); ++it) {
             weight_positive += (*it)->weight(ignore_obstacles);
         }
     }
     if(callback(circles, false)) {
         weight_negative = 0;
-        for(std::vector<CircleSegment*>::const_iterator it = circles.begin(); it != circles.end(); ++it){
+        for(std::vector<CircleSegment*>::const_iterator it = circles.begin(); it != circles.end(); ++it) {
             weight_negative += (*it)->weight(ignore_obstacles);
         }
     }

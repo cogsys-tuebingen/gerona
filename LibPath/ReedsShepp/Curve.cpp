@@ -95,7 +95,7 @@ double Curve::check_if_admissible()
 {
     m_weight = NOT_FREE;
 
-    if(m_sequence.size() < 3 || m_sequence.size() > 4){
+    if(m_sequence.size() < 3 || m_sequence.size() > 4) {
         std::cerr << "invalid sequence" << std::endl;
         return NOT_FREE;
     }
@@ -112,7 +112,7 @@ double Curve::check_if_admissible()
 
     init_segments();
 
-    if(!handle_sequence()){
+    if(!handle_sequence()) {
         std::cerr << "unknown sequence" << std::endl;
     }
 
