@@ -62,23 +62,26 @@ void CurveRenderer::draw(Curve* curve, cv::Scalar bg_color)
         CircleSegment* cs;
         LineSegment* ls;
         std::vector<CurveSegment*>::iterator it;
+
+        double hs = curve->m_map->getHeight();
+
         for(it = curve->m_sequence.begin(); it != curve->m_sequence.end(); ++it) {
             s = *it;
             if(typeid(*s) == typeid(CircleSegment)) {
                 cs = dynamic_cast<CircleSegment*>(s);
                 cv::circle(m_debug_image,
-                           p2cv(cs->get_center(), m_debug_image.rows), cs->get_radius(),
+                           p2cv(cs->get_center(), hs), cs->get_radius(),
                            bg_color, 4, CV_AA);
                 std::stringstream txt;
                 txt << cs->m_angle_step_size;
-                cv::Point c(cs->m_center.x, m_debug_image.rows - cs->m_center.y);
+                cv::Point c(cs->m_center.x, hs - cs->m_center.y);
                 cv::putText(m_debug_image, txt.str(), c, cv::FONT_HERSHEY_SIMPLEX, 0.3,
                             cv::Scalar(0, 0, 0));
 
             } else if(typeid(*s) == typeid(LineSegment)) {
                 ls = dynamic_cast<LineSegment*>(s);
                 cv::line(m_debug_image,
-                         p2cv(ls->start(), m_debug_image.rows), p2cv(ls->end(), m_debug_image.rows),
+                         p2cv(ls->start(), hs), p2cv(ls->end(), hs),
                          bg_color, 4, CV_AA);
 
             } else {
@@ -91,7 +94,7 @@ void CurveRenderer::draw(Curve* curve, cv::Scalar bg_color)
         curve->reset_iteration();
         while(curve->has_next()) {
             Pose2d n = curve->next();
-            cv::line(m_debug_image, p2cv(last, m_debug_image.rows), p2cv(n, m_debug_image.rows),
+            cv::line(m_debug_image, p2cv(last, hs), p2cv(n, hs),
                      cv::Scalar(100,100,100,0.1f), 1, CV_AA);
             last = n;
         }
@@ -119,12 +122,14 @@ void CurveRenderer::draw_arrow(Curve* curve, Pose2d& pose, CvScalar color, float
     left *= scale;
     dir *= scale;
 
+    double hs = curve->m_map->getHeight();
+
     Point2d tip = t + dir.rotate(pose.theta);
-    cv::line(m_debug_image, p2cv(pose, curve->m_map->getHeight()), p2cv(t + dir.rotate(pose.theta), curve->m_map->getHeight()),
+    cv::line(m_debug_image, p2cv(pose, hs), p2cv(t + dir.rotate(pose.theta), hs),
              color, 2.0f * scale, CV_AA);
-    cv::line(m_debug_image, p2cv(tip, curve->m_map->getHeight()), p2cv(t + left.rotate(pose.theta), curve->m_map->getHeight()),
+    cv::line(m_debug_image, p2cv(tip, hs), p2cv(t + left.rotate(pose.theta), hs),
              color, 2.0f * scale, CV_AA);
-    cv::line(m_debug_image, p2cv(tip, curve->m_map->getHeight()), p2cv(t + right.rotate(pose.theta), curve->m_map->getHeight()),
+    cv::line(m_debug_image, p2cv(tip, hs), p2cv(t + right.rotate(pose.theta), hs),
              color, 2.0f * scale, CV_AA);
 }
 

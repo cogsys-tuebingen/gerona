@@ -31,11 +31,12 @@ class Evaluator
         typedef int Connector;
     };
 
+    typedef BreadthFirstSearch_Debug<0, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, DirectNeighborhood<8,5> > BFS;
     typedef AStar2dSearch_Debug<8000, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, DirectNeighborhood<8,5> > AStar;
     typedef AStarSearch_Debug<0, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, NonHolonomicNeighborhood<250, 80> > AStarNH;
-    typedef BreadthFirstSearch_Debug<0, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, DirectNeighborhood<8,5> > BFS;
+    typedef AStarHybridHeuristicsSearch_Debug<0, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, NonHolonomicNeighborhood<250, 80> > AStarNHHH;
 
-    typedef AStarNH SearchAlgorithm;
+    typedef AStarNHHH SearchAlgorithm;
 
 public:
     Evaluator(int w, int h);

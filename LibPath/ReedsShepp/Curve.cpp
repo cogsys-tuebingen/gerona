@@ -127,18 +127,22 @@ void Curve::init_segments()
     std::vector<CurveSegment*>::iterator it;
 
     for(it=m_sequence.begin(); it!=m_sequence.end(); ++it) {
-        (*it)->set_map(m_map);
+        CurveSegment* c = *it;
 
-        (*it)->set_max_distance(m_max_waypoint_distance);
+        assert(c != NULL);
 
-        (*it)->set_use_map_cost(m_use_map_cost);
-        (*it)->set_min_cell_cost(m_min_cell_cost);
-        (*it)->set_cost_backwards(m_cost_backwards);
-        (*it)->set_cost_forwards(m_cost_forwards);
-        (*it)->set_cost_curve(m_cost_curve);
-        (*it)->set_cost_straight(m_cost_straight);
+        c->set_map(m_map);
 
-        (*it)->set_trace(m_trace);
+        c->set_max_distance(m_max_waypoint_distance);
+
+        c->set_use_map_cost(m_use_map_cost);
+        c->set_min_cell_cost(m_min_cell_cost);
+        c->set_cost_backwards(m_cost_backwards);
+        c->set_cost_forwards(m_cost_forwards);
+        c->set_cost_curve(m_cost_curve);
+        c->set_cost_straight(m_cost_straight);
+
+        c->set_trace(m_trace);
 
         if(typeid(**it) == typeid(CircleSegment)) {
             CircleSegment* c = dynamic_cast<CircleSegment*>(*it);

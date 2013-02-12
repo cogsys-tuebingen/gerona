@@ -30,7 +30,7 @@ struct NoSubParameter {
 };
 
 template <class PointT,
-         template <class> class HeuristicT,
+         class HeuristicT,
          class MapT,
          class Neighborhood,
          template <class> class OpenNodesManager,
@@ -40,10 +40,10 @@ template <class PointT,
 struct GenericParameter : public SubParameter
 {
     typedef PointT PointType;
-    typedef HeuristicT<PointT> HeuristicType;
+    typedef HeuristicT HeuristicType;
     typedef MapT MapType;
     typedef Neighborhood NeighborhoodType;
-    typedef NeighborSelection<typename HeuristicType::NodeType, NeighborhoodType> NeighborhoodSelection;
+    typedef NeighborSelection<typename HeuristicType::template NodeHolder<PointT>::NodeType, NeighborhoodType> NeighborhoodSelection;
     typedef typename NeighborhoodSelection::NodeType NodeType;
 
     typedef OpenNodesManager<NodeType> OpenNodesManagerType;

@@ -54,6 +54,18 @@ if(NOT OpenCV_FOUND)
     message( "OpenCV NOT found, not building test program" )
 
 else(NOT OpenCV_FOUND)
+
+
+    rosbuild_add_executable (CostPrecomputation
+                             ReedsShepp/CostPrecomputation.cpp
+                             ReedsShepp/CurveRenderer.cpp)
+    target_link_libraries (CostPrecomputation
+        LibUtil
+        LibPath
+        ${OpenCV_LIBS}
+    )
+
+
     rosbuild_add_executable (ReedsSheppCurveTest
                              ReedsShepp/CurveTest.cpp
                              ReedsShepp/CurveRenderer.cpp)

@@ -49,7 +49,7 @@ float LineSegment::weight(bool ignore_obstacles)
     int x1 = m_end.x;
     int y1 = m_end.y;
 
-    if(!m_map->isInMap(x0, y0)) {
+    if(!m_map->isInMap(x0, y0) && !ignore_obstacles) {
         return NOT_FREE;
     }
 

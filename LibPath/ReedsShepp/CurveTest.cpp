@@ -30,8 +30,8 @@
 /**
  * Window dimension
  */
-#define w 600
-#define h 500
+#define w 10 /*m*/
+#define h 10 /*m*/
 
 /**
  * Display some obstacles?
@@ -49,11 +49,12 @@ cv::Mat img;
 Pose2d start, goal;
 int trace = -1;
 bool ignore = false;
+double res = 0.02f;
 
 void mouseHandler(int event, int x, int y, int flags, void* param)
 {
     start.x = x;
-    start.y = h-y;
+    start.y = h/res -y;
 }
 
 int main(int argc, char* argv[])
@@ -65,10 +66,10 @@ int main(int argc, char* argv[])
     start.x = 10;
     start.y = 10;
 
-    goal.x = w / 2;
-    goal.y = h / 2;
+    goal.x = w / res / 2;
+    goal.y = h / res / 2;
 
-    cv::Mat orig_map(h, w, CV_8UC1, cv::Scalar::all(0));
+    cv::Mat orig_map(h / res, w / res, CV_8UC1, cv::Scalar::all(0));
 
     if(obstacles) {
         // Obstacles
@@ -178,7 +179,7 @@ int main(int argc, char* argv[])
     // TODO: ALLOW SPECIAL QUARTER CIRCLE COMBINATIONS!!!
 
     while(cvGetWindowHandle("Reeds Shepp Curve Test") != NULL) {
-        SimpleGridMap2d map_info(orig_map.cols, orig_map.rows, 0.02f);
+        SimpleGridMap2d map_info(orig_map.cols, orig_map.rows, res);
         map_info.setOrigin(Point2d(0, 0));
         map_info.setLowerThreshold(20);
         map_info.setUpperThreshold(50);
@@ -197,7 +198,6 @@ int main(int argc, char* argv[])
                 map_info.setValue(x, y, orig_map.at<char>(y, x));
             }
         }
-//        cv::cvtColor(orig_map, img, CV_GRAY2BGR);
 
         generator.set_trace(trace);
         lib_path::Curve* curve = generator.find_path(start, goal, &map_info, ignore);

@@ -8,6 +8,9 @@
 #ifndef HEURISTICS_HPP
 #define HEURISTICS_HPP
 
+/// SYSTEM
+#include <boost/static_assert.hpp>
+
 namespace lib_path
 {
 
@@ -33,22 +36,53 @@ struct HeuristicNode : public Node<PointT> {
 
 
 
-template <class PointT>
 struct NoHeuristic {
-    typedef Node<PointT> NodeType;
+    template <class PointT>
+    struct NodeHolder {
+        typedef Node<PointT> NodeType;
+    };
 
     template <class NodeType>
     static void compute(const NodeType*, const NodeType*) {
     }
 };
 
-template <class PointT>
 struct HeuristicDistToGoal {
-    typedef HeuristicNode<PointT> NodeType;
+    template <class PointT>
+    struct NodeHolder {
+        typedef HeuristicNode<PointT> NodeType;
+    };
 
     template <class NodeType>
     static void compute(NodeType* current, NodeType* goal) {
         current->h = hypot(current->x - goal->x, current->y - goal->y);
+    }
+};
+
+template <class H1, class H2>
+struct MaxHeuristic
+{
+    template <class PointT>
+    struct NodeHolder {
+        typedef typename H1::template NodeHolder<PointT> H1NH;
+        typedef typename H1NH::NodeType T1;
+
+        typedef typename H2::template NodeHolder<PointT> H2NH;
+        typedef typename H2NH::NodeType T2;
+
+        BOOST_STATIC_ASSERT((boost::is_same<T1, T2>::value));
+
+        typedef T1 NodeType;
+    };
+
+    template <class NodeType>
+    static void compute(NodeType* current, NodeType* goal) {
+        H1::compute(current, goal);
+        double h2 = current->h;
+
+        H2::compute(current, goal);
+
+        current->h = std::max(current->h, h2);
     }
 };
 

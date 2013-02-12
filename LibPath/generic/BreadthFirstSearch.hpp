@@ -40,6 +40,13 @@ DEFINE_CONCRETE_ALGORITHM(AStar,
                           HeuristicDistToGoal,
                           StateSpaceManager,
                           PriorityQueueManager)
+
+typedef MaxHeuristic<HeuristicDistToGoal, HeuristicDistToGoal> MH1;
+
+DEFINE_CONCRETE_ALGORITHM(AStarHybridHeuristics,
+                          MH1,
+                          StateSpaceManager,
+                          PriorityQueueManager)
 }
 
 #endif // BREADTHFIRSTSEARCH_H
