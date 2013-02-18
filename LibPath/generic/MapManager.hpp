@@ -21,12 +21,13 @@
 namespace lib_path
 {
 
-template <class NodeT, class Extension>
+template <class Param, class Extension>
 class Manager :
     public Extension
 {
 public:
-    typedef NodeT NodeType;
+    typedef typename Param::NodeType NodeType;
+    typedef typename Param::HeuristicType HeuristicType;
 
     using Extension::data;
     using Extension::w;
@@ -41,6 +42,8 @@ public:
         map_ = map;
         w = map_->getWidth();
         h = map_->getHeight();
+
+        HeuristicType::setMapResolution(map_->getResolution());
 
         initMap();
     }
@@ -83,11 +86,11 @@ protected:
 
 
 
-template <class NodeT, class Extension>
+template <class Param, class Extension>
 struct GridMapManager :
-    public Manager<NodeT, Extension> {
-    typedef NodeT NodeType;
-    typedef Manager<NodeT, Extension> ManagerT;
+    public Manager<Param, Extension> {
+    typedef Manager<Param, Extension> ManagerT;
+    typedef typename ManagerT::NodeType NodeType;
 
     using ManagerT::data;
     using ManagerT::w;
@@ -127,13 +130,13 @@ struct GridMapManager :
 
 
 
-template <class NodeT, class Extension>
+template <class Param, class Extension>
 class StateSpaceManager :
-    public Manager<NodeT, Extension>
+    public Manager<Param, Extension>
 {
 public:
-    typedef NodeT NodeType;
-    typedef Manager<NodeT, Extension> ManagerT;
+    typedef Manager<Param, Extension> ManagerT;
+    typedef typename ManagerT::NodeType NodeType;
 
     using ManagerT::data;
     using ManagerT::w;

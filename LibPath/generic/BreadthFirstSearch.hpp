@@ -41,7 +41,7 @@ DEFINE_CONCRETE_ALGORITHM(AStar,
                           StateSpaceManager,
                           PriorityQueueManager)
 
-typedef MaxHeuristic<HeuristicDistToGoal, HeuristicDistToGoal> MH1;
+typedef MaxHeuristic<HeuristicDistToGoal, HeuristicHolonomicNoObstacles> MH1;
 
 DEFINE_CONCRETE_ALGORITHM(AStarHybridHeuristics,
                           MH1,

@@ -19,7 +19,7 @@
 namespace po = boost::program_options;
 using namespace lib_path;
 
-void precompute(const std::string& dir, int dimension, int angles)
+void precompute(const std::string& dir, int dimension, int angles, double res)
 {
 
     lib_path::CurveGenerator generator;
@@ -29,14 +29,14 @@ void precompute(const std::string& dir, int dimension, int angles)
     generator.parse("LSR");
     generator.parse("RSL");
     generator.parse("RSR");
-    generator.parse("|LSL");
-    generator.parse("|LSR");
-    generator.parse("|RSL");
-    generator.parse("|RSR");
-    generator.parse("|L|SL");
-    generator.parse("|L|SR");
-    generator.parse("|R|SL");
-    generator.parse("|R|SR");
+//    generator.parse("|LSL");
+//    generator.parse("|LSR");
+//    generator.parse("|RSL");
+//    generator.parse("|RSR");
+//    generator.parse("|L|SL");
+//    generator.parse("|L|SR");
+//    generator.parse("|R|SL");
+//    generator.parse("|R|SR");
     generator.parse("LS|L");
     generator.parse("LS|R");
     generator.parse("RS|L");
@@ -49,41 +49,40 @@ void precompute(const std::string& dir, int dimension, int angles)
     generator.parse("L|S|R");
     generator.parse("R|S|L");
     generator.parse("R|S|R");
-    generator.parse("|LS|L");
-    generator.parse("|LS|R");
-    generator.parse("|RS|L");
-    generator.parse("|RS|R");
-    generator.parse("|L|S|L");
-    generator.parse("|L|S|R");
-    generator.parse("|R|S|L");
-    generator.parse("|R|S|R");
+//    generator.parse("|LS|L");
+//    generator.parse("|LS|R");
+//    generator.parse("|RS|L");
+//    generator.parse("|RS|R");
+//    generator.parse("|L|S|L");
+//    generator.parse("|L|S|R");
+//    generator.parse("|R|S|L");
+//    generator.parse("|R|S|R");
 
     ///// CCC
     generator.parse("LRL");
     generator.parse("RLR");
     generator.parse("L|R|L");
     generator.parse("R|L|R");
-    generator.parse("|L|R|L");
-    generator.parse("|R|L|R");
+//    generator.parse("|L|R|L");
+//    generator.parse("|R|L|R");
     generator.parse("LR|L");
     generator.parse("RL|R");
-    generator.parse("|LR|L");
-    generator.parse("|RL|R");
+//    generator.parse("|LR|L");
+//    generator.parse("|RL|R");
     generator.parse("L|RL");
     generator.parse("R|LR");
-    generator.parse("|L|RL");
-    generator.parse("|R|LR");
+//    generator.parse("|L|RL");
+//    generator.parse("|R|LR");
     generator.parse("LR(b)|L(b)R");
-    generator.parse("|LR(b)|L(b)R");
+//    generator.parse("|LR(b)|L(b)R");
     generator.parse("RL(b)|R(b)L");
-    generator.parse("|RL(b)|R(b)L");
+//    generator.parse("|RL(b)|R(b)L");
     generator.parse("L|R(b)L(b)|R");
     generator.parse("R|L(b)R(b)|L");
-    generator.parse("|L|R(b)L(b)|R");
-    generator.parse("|R|L(b)R(b)|L");
+//    generator.parse("|L|R(b)L(b)|R");
+//    generator.parse("|R|L(b)R(b)|L");
 
-    double curve_rad = 1.5; // m
-    double res = 0.1f;
+    double curve_rad = 2.5; // m
 
     double anglestep = 2 * M_PI / angles;
 
@@ -95,7 +94,7 @@ void precompute(const std::string& dir, int dimension, int angles)
     map_info.setUpperThreshold(50);
 
     generator.set_circle_radius(curve_rad);
-    generator.set_cost_backwards(3.0);
+    generator.set_cost_backwards(20.0);
 
     std::vector<std::pair<double, std::vector<double> > > costs;
 
@@ -150,10 +149,12 @@ void precompute(const std::string& dir, int dimension, int angles)
 
     std::ofstream ofs((dir + "/heuristic_holo_no_obst.txt").c_str());
     ofs << dimension << '\n';
+    ofs << angles << '\n';
+    ofs << res << '\n';
     for(std::vector<std::pair<double, std::vector<double> > >::iterator i = costs.begin(); i != costs.end(); ++i){
         ofs << i->first << '\n';
         for(std::vector<double>::iterator j = i->second.begin(); j != i->second.end(); ++j){
-            ofs << *j << '\t';
+            ofs << *j << ' ';
         }
         ofs << '\n';
     }
@@ -168,7 +169,8 @@ int main(int argc, char** argv)
     ("help", "show help message")
     ("dimension", po::value<int>()->required(), "width and height of the window")
     ("angles", po::value<int>()->required(), "number of discretized angle bins")
-            ("directory", po::value<std::string>()->required(), "working directory")
+    ("resolution", po::value<double>()->required(), "resolution (^= width of one cell in [m])")
+    ("directory", po::value<std::string>()->required(), "working directory")
     ;
 
     po::variables_map vm;
@@ -176,13 +178,16 @@ int main(int argc, char** argv)
     po::positional_options_description p;
     p.add("directory", -1);
 
+
     try {
-        po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+        po::parsed_options parsed = po::parse_command_line(argc, argv, desc, po::command_line_style::unix_style);
+        po::store(parsed, vm);
 
     } catch(po::unknown_option& e) {
         std::cerr << "Error parsing parameters: " << e.what() << "\n";
         return 2;
     }
+
 
     if(vm.count("help")) {
         std::cout << desc << std::endl;
@@ -199,15 +204,24 @@ int main(int argc, char** argv)
     int dimension = vm["dimension"].as<int>();
     if(dimension < 0 || dimension > 1024) {
         std::cerr << "Error dimension out of range [0, 1024]: " << dimension << "\n";
+        return 2;
     }
 
 
     int angles = vm["angles"].as<int>();
     if(angles < 1 || angles > 36) {
-        std::cerr << "Error dimension out of range [1, 36]: " << angles << "\n";
+        std::cerr << "Error angles out of range [1, 36]: " << angles << "\n";
+        return 2;
     }
 
-    precompute(vm["directory"].as<std::string>(), dimension, angles);
+
+    double resolution = vm["resolution"].as<double>();
+    if(resolution <= 0.0 || resolution > 2.0) {
+        std::cerr << "Error resolution out of range ]0.0, 2.0]: " << resolution << "\n";
+        return 2;
+    }
+
+    precompute(vm["directory"].as<std::string>(), dimension, angles, resolution);
 
     return 0;
 }

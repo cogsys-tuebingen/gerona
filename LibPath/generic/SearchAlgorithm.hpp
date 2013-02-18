@@ -56,7 +56,7 @@ template <class Param,
          template <class> class Extension = MapManagerExtension>
 class GenericSearchAlgorithm :
     public Param::NeighborhoodSelection,
-    public MapManager<typename Param::NodeType, Extension<Param> >
+    public MapManager<Param, Extension<Param> >
 {
 public:
 

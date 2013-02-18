@@ -19,8 +19,8 @@
 
 using namespace lib_path;
 
-Evaluator::Evaluator(int w, int h)
-    : map_info(w, h, 0.02f), w(w), h(h)
+Evaluator::Evaluator(int w, int h, double resolution)
+    : map_info(w, h, resolution), w(w), h(h), res(resolution)
 {
     obstacles = true;
 
@@ -44,12 +44,12 @@ void Evaluator::initHighResMap()
     start.theta = M_PI / 2;
 
     //goal.x = w / 2 + 20;
-    goal.x = w - 20;
+    goal.x = w - 80;
     goal.y = h / 2 + 40;
     goal.theta = 0;//M_PI;
 
     map_info.setOrigin(Point2d(0, 0));
-    map_info.setResolution(1);
+    map_info.setResolution(res);
     map_info.setLowerThreshold(20);
     map_info.setUpperThreshold(50);
 
@@ -104,7 +104,7 @@ void Evaluator::initLowResMap()
 
     goal.x = w - 4;
     goal.y = h - 4;
-    goal.theta = M_PI / 2;
+    goal.theta = -M_PI / 2;
 
     map_info.setOrigin(Point2d(0, 0));
     map_info.setResolution(SCALE);
@@ -152,7 +152,7 @@ void Evaluator::initLowResMap()
 
 void Evaluator::draw(cv::Scalar color)
 {
-    PathRenderer<SCALE, SearchAlgorithm::NodeT, SearchAlgorithm::PathT> renderer(map_info, img);
+    PathRenderer<SCALE, SearchAlgorithm::NodeT, SearchAlgorithm::PathT, SearchAlgorithm::Heuristic> renderer(map_info, start, goal, img);
     renderer.renderMap();
     renderer.draw_arrow(start, color);
     renderer.draw_arrow(goal,  color);
@@ -175,15 +175,17 @@ void Evaluator::run()
 {
     searchAlgorithm.setMap(&map_info);
 
+    SearchAlgorithm::Heuristic::init("heuristic_holo_no_obst.txt");
+
     Stopwatch watch;
 
+    std::cout << "stoping time" << std::endl;
     SearchAlgorithm::PathT path = searchAlgorithm.findPath(start, goal, boost::bind(&Evaluator::draw, this, cv::Scalar::all(0)));
-
     std::cout << "path search took " << watch.usElapsed() / 1e3 << "ms" << std::endl;
 
     draw(cv::Scalar(0,0,255));
 
-    PathRenderer<SCALE, SearchAlgorithm::NodeT, SearchAlgorithm::PathT> renderer(map_info, img);
+    PathRenderer<SCALE, SearchAlgorithm::NodeT, SearchAlgorithm::PathT, SearchAlgorithm::Heuristic> renderer(map_info, start, goal, img);
     renderer.render(path);
 
     while(cvGetWindowHandle(window.c_str()) != NULL) {
@@ -203,7 +205,7 @@ void Evaluator::run()
 
 int main(int argc, char* argv[])
 {
-    Evaluator eval(600, 400);
+    Evaluator eval(600, 400, 0.1);
     //Evaluator eval(60, 40);
     eval.run();
 }

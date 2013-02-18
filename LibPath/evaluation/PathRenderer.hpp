@@ -24,12 +24,23 @@ namespace lib_path
 template <int Scale,
          class PointT,
          class PathT,
+         class Heuristic,
          template <class, int> class Connector = DirectConnector >
 class PathRenderer : public Connector<PointT, Scale>
 {
 public:
-    PathRenderer(const GridMap2d& map, cv::Mat& out)
+    PathRenderer(const GridMap2d& map, const Pose2d& start, const Pose2d& goal, cv::Mat& out)
         : map_(map), out_(out) {
+        start_.x = start.x;
+        start_.y = start.y;
+        start_.center_x = start.x;
+        start_.center_y = start.y;
+        start_.theta = start.theta;
+        goal_.x = goal.x;
+        goal_.y = goal.y;
+        goal_.center_x = goal.x;
+        goal_.center_y = goal.y;
+        goal_.theta = goal.theta;
     }
 
     void renderMap() {
@@ -41,11 +52,36 @@ public:
                 cv::Vec3b col;
                 if(map_.isFree(x, y)) {
                     col = cv::Vec3b::all(255);
+
+//                    PointT c;
+//                    c.x = x;
+//                    c.y = y;
+//                    c.center_x = x;
+//                    c.center_y = y;
+//                    Heuristic::H2T::compute(&c, &goal_);
+//                    Heuristic::compute(&c, &goal_);
+
+//                    unsigned v = std::min(255.0, (c.h * 0.5));
+                    //unsigned v = std::min(255.0, c.distance);
+
+                    //col = cv::Vec3b(0, 255-v, v);
+
+
                 } else {
                     col = cv::Vec3b::all(0);
                 }
 
                 fill(generic::Int2Type<Scale>(), x, y, col);
+            }
+        }
+
+        unsigned meterInCells = Scale / map_.getResolution();
+
+        if(meterInCells > 2) {
+            for(int y=0; y<out_.rows; y+=meterInCells) {
+                for(int x=0; x<out_.cols; x+=meterInCells) {
+                    cv::rectangle(out_, cv::Rect(x,y,meterInCells+1,meterInCells+1), cv::Scalar::all(32), 1);
+                }
             }
         }
     }
@@ -67,7 +103,8 @@ public:
             }
         }
 
-        cv::rectangle(out_, cv::Rect(sx, out_.rows-1-sy-W, W+1, W+1), cv::Scalar::all(222), 1);
+        unsigned yy = out_.rows-1-sy-W;
+      //  cv::rectangle(out_, cv::Rect(sx, yy, W+1, W+1), cv::Scalar::all(222), 1);
     }
 
     void render(const PathT& path) {
@@ -92,7 +129,9 @@ public:
         Point2d left(12, -5);
         Point2d dir(18, 0);
 
-        double f = scale * Scale / map_.getResolution() / 18.0;
+
+        unsigned meterInCells = 1 / map_.getResolution();
+        double f = (1/18.0) * scale * meterInCells;
 
         right *= f;
         left *= f;
@@ -110,6 +149,8 @@ public:
 protected:
     const GridMap2d& map_;
     cv::Mat out_;
+    PointT start_;
+    PointT goal_;
 };
 
 }

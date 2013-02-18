@@ -33,13 +33,13 @@ class Evaluator
 
     typedef BreadthFirstSearch_Debug<0, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, DirectNeighborhood<8,5> > BFS;
     typedef AStar2dSearch_Debug<8000, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, DirectNeighborhood<8,5> > AStar;
-    typedef AStarSearch_Debug<0, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, NonHolonomicNeighborhood<250, 80> > AStarNH;
-    typedef AStarHybridHeuristicsSearch_Debug<0, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, NonHolonomicNeighborhood<250, 80> > AStarNHHH;
+    typedef AStarSearch_Debug<1000, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, NonHolonomicNeighborhood<250, 80> > AStarNH;
+    typedef AStarHybridHeuristicsSearch_Debug<1000, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, NonHolonomicNeighborhood<250, 80> > AStarNHHH;
 
-    typedef AStarNHHH SearchAlgorithm;
+    typedef AStarNH SearchAlgorithm;
 
 public:
-    Evaluator(int w, int h);
+    Evaluator(int w, int h, double resolution);
 
     void run();
 
@@ -58,6 +58,7 @@ private:
 
     int w;
     int h;
+    double res;
     bool obstacles;
 
     std::string window;
