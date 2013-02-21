@@ -1,5 +1,5 @@
 /*
- * KMeansTest.cpp
+ * EMMaxTest.cpp
  *
  *  Created on: Feb 04, 2013
  *      Author: buck <sebastian.buck@uni-tuebingen.de>
@@ -65,18 +65,18 @@ struct AccessTraits<int, PointList> {
 }
 
 /**
- * @brief The KMeansTest class wraps a test scenario
+ * @brief The EMMaxTest class wraps a test scenario
  */
-class KMeansTest
+class EMMaxTest
 {
 public:
-    KMeansTest(int k, long seed)
+    EMMaxTest(int k, long seed)
         : k(k), seed(seed), densealgo(k), sparsealgo(k), sparsealgo_pp(k) {
     }
 
     void loop() {
-        double avgs[] = {0,0,0,0};
-        std::string experiments[] = { "dense   ", "sparse  ", "dense pp", "opencv "};
+        double avgs[] = {0};
+        std::string experiments[] = { "opencv "};
         int experiment_counter = 0;
         bool draw_results = true;
 
@@ -86,33 +86,6 @@ public:
             makeRandomSet();
 
             int experiment = 0;
-
-            {
-                window = experiments[experiment];
-                Stopwatch stop;
-                densealgo.find(dataimage.data, limits, centers, /*boost::bind(&EMMaxTest::draw, this),*/ seed);
-                avgs[experiment] += stop.usElapsed();
-                experiment++;
-                if(draw_results) draw();
-            }
-
-            {
-                window = experiments[experiment];
-                Stopwatch stop;
-                sparsealgo.find(datapoints, limits, centers, /*boost::bind(&EMMaxTest::draw, this),*/ seed);
-                avgs[experiment] += stop.usElapsed();
-                experiment++;
-                if(draw_results) draw();
-            }
-
-            {
-                window = experiments[experiment];
-                Stopwatch stop;
-                sparsealgo_pp.find(datapoints, limits, centers, /*boost::bind(&EMMaxTest::draw, this),*/ seed);
-                avgs[experiment] += stop.usElapsed();
-                experiment++;
-                if(draw_results) draw();
-            }
 
             {
                 // CV version
@@ -128,11 +101,16 @@ public:
 
                 cv::Mat out, centers;
                 Stopwatch stop;
-                cv::kmeans(data, k, out, cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 50, 0.5), 4, cv::KMEANS_PP_CENTERS, centers);
+                cv::EM em(k);
+                em.train(data, cv::noArray(), out);
                 avgs[experiment] += stop.usElapsed();
                 experiment++;
-                if(draw_results) drawCV(centers, data, out);
+                if(draw_results) {
+                    cv::Mat centers = em.get<cv::Mat>("means");
+                    drawCV(centers, data, out);
+                }
             }
+
             experiment_counter++;
             seed++;
 
@@ -173,32 +151,6 @@ public:
         return cv::Scalar(s[0], s[1], s[2]);
     }
 
-    void draw() {
-        cv::Mat result(h, w, CV_8UC3);
-        cv::cvtColor(dataimage, result, CV_GRAY2BGR);
-
-        for(unsigned i = 0; i < centers.size(); ++i) {
-            KMeansSparsePP::ClusterT& c = centers[i];
-
-            cv::Scalar col = color(i, k);
-
-            for(unsigned j = 0; j < centers[i].members.size(); ++j) {
-                //cv::circle(result, cv::Point((*centers[i].members[j])[0], (*centers[i].members[j])[1]), 5, col, 1, CV_AA);
-                cv::circle(result, cv::Point((*centers[i].members[j])[0], (*centers[i].members[j])[1]), 2, col, CV_FILLED, CV_AA);
-                //result.at<cv::Vec3b>((*centers[i].members[j])[1], (*centers[i].members[j])[0]) = cv::Vec3b(col[0], col[1], col[2]);
-            }
-
-            cv::circle(result, cv::Point(c.centroid[0], c.centroid[1]), 5, col, 1, CV_AA);
-        }
-
-        cv::imshow(window.c_str(), result);
-
-        if((cv::waitKey(100) & 0xFF) == 27 || !cvGetWindowHandle(window.c_str())) {
-            exit(0);
-        }
-    }
-
-
     void drawCV(cv::Mat centers, cv::Mat data, cv::Mat out) {
         cv::Mat result(h, w, CV_8UC3);
         cv::cvtColor(dataimage, result, CV_GRAY2BGR);
@@ -231,7 +183,7 @@ public:
 
         int rand_clusters = std::max(k/2, rand() % int(k * 2));
 
-        int spread = std::min(w, h) / 3;
+        int spread = std::min(w, h) / 10;
 
         std::cout << "creating " << rand_clusters << " clusters" << std::endl;
 
@@ -301,6 +253,6 @@ int main(int argc, char** argv)
             exit(2);
         }
     }
-    KMeansTest test(k, 1337);
+    EMMaxTest test(k, 1337);
     test.loop();
 }

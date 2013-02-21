@@ -8,17 +8,17 @@ include_directories(
 )
 
 set (LibClustering
+    Cluster.hpp
     Clustering.h
+    ClusteringAlgorithm.hpp
     DataStructure.hpp
     DataDense.hpp
     DataSparse.hpp
-    Cluster.hpp
     Distance.hpp
-    Vector.hpp
-    Traits.hpp
     InitializationRandom.hpp
     InitializationPlusPlus.hpp
-    KMeans.hpp
+    Traits.hpp
+    Vector.hpp
 )
 add_custom_target(LibClustering SOURCES ${LibClustering})
 
@@ -31,5 +31,13 @@ else(NOT OpenCV_FOUND)
     target_link_libraries (KMeansTest
         ${OpenCV_LIBS}
         Random
+        LibUtil
+    )
+
+    add_executable (EMMaxTest EMMaxTest.cpp)
+    target_link_libraries (EMMaxTest
+        ${OpenCV_LIBS}
+        Random
+        LibUtil
     )
 endif(NOT OpenCV_FOUND)

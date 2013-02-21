@@ -9,7 +9,7 @@
 #define CLUSTERING_H
 
 /// COMPONENT
-#include "KMeans.hpp"
+#include "ClusteringAlgorithm.hpp"
 
 #include "DataSparse.hpp"
 #include "DataDense.hpp"
@@ -31,10 +31,10 @@ template <unsigned Dimensions,
          typename IndexDataType = int,
          typename WeightDataType = unsigned char>
 struct KMeans :
-    public KMeansImp< KMeansParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, UserData, IndexDataType, WeightDataType> >
+    public ClusteringAlgorithm< KMeansParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, UserData, IndexDataType, WeightDataType> >
 {
     KMeans(int K)
-        : KMeansImp< KMeansParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, UserData, IndexDataType, WeightDataType> >(K)
+        : ClusteringAlgorithm< KMeansParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, UserData, IndexDataType, WeightDataType> >(K)
     {}
 };
 

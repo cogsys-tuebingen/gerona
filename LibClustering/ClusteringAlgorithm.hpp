@@ -56,7 +56,7 @@ struct KMeansParameter
  * @brief The KMeansImp struct implements k-means clustering
  */
 template <class KMeansParameter>
-struct KMeansImp : public KMeansParameter::InitializationMethodPolicy {
+struct ClusteringAlgorithm : public KMeansParameter::InitializationMethodPolicy {
     enum { Dimension = KMeansParameter::Dimension };
 
     typedef typename KMeansParameter::VectorT VectorT;
@@ -78,7 +78,7 @@ struct KMeansImp : public KMeansParameter::InitializationMethodPolicy {
      * @brief KMeansImp Constructor
      * @param K no of clusters
      */
-    KMeansImp(int K)
+    ClusteringAlgorithm(int K)
         : K(K) {
         assert(K > 0);
     }
