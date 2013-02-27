@@ -78,7 +78,7 @@ public:
         double avgs[] = {0,0,0,0};
         std::string experiments[] = { "dense   ", "sparse  ", "dense pp", "opencv "};
         int experiment_counter = 0;
-        bool draw_results = true;
+        bool draw_results = false;
 
         do {
             srand(seed);
@@ -128,7 +128,7 @@ public:
 
                 cv::Mat out, centers;
                 Stopwatch stop;
-                cv::kmeans(data, k, out, cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 50, 0.5), 4, cv::KMEANS_PP_CENTERS, centers);
+                cv::kmeans(data, k, out, cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 50, 0.5), 1, cv::KMEANS_PP_CENTERS, centers);
                 avgs[experiment] += stop.usElapsed();
                 experiment++;
                 if(draw_results) drawCV(centers, data, out);
@@ -215,7 +215,8 @@ public:
             }
 
             cv::Mat c = centers.row(i);
-            cv::circle(result, cv::Point(c.at<float>(0,0), c.at<float>(0,1)), 5, col, 1, CV_AA);
+            assert(c.type() == CV_64FC1);
+            cv::circle(result, cv::Point(c.at<double>(0,0), c.at<double>(0,1)), 5, col, 1, CV_AA);
         }
 
         cv::imshow(window.c_str(), result);

@@ -21,9 +21,7 @@ using namespace lib_clustering;
 typedef std::pair<cv::Point, uchar> PointT;
 typedef std::vector<PointT> PointList;
 
-typedef KMeans<2, RandomInitialization, EuclideanDistance, Dense, uchar* > KMeansDense;
-typedef KMeans<2, RandomInitialization, EuclideanDistance, SparseNonUnique, PointList > KMeansSparse;
-typedef KMeans<2, PlusPlusInitialization, EuclideanDistance, SparseNonUnique, PointList > KMeansSparsePP;
+typedef KMeans<2, RandomInitialization, EuclideanDistance, Dense, uchar* > EMMax;
 
 // register the custom point type for the generic k means implementation
 namespace lib_clustering
@@ -71,12 +69,12 @@ class EMMaxTest
 {
 public:
     EMMaxTest(int k, long seed)
-        : k(k), seed(seed), densealgo(k), sparsealgo(k), sparsealgo_pp(k) {
+        : k(k), seed(seed), algo(k) {
     }
 
     void loop() {
-        double avgs[] = {0};
-        std::string experiments[] = { "opencv "};
+        double avgs[] = {0, 0};
+        std::string experiments[] = { "EM    ", "opencv"};
         int experiment_counter = 0;
         bool draw_results = true;
 
@@ -86,6 +84,15 @@ public:
             makeRandomSet();
 
             int experiment = 0;
+
+            {
+                window = experiments[experiment];
+                Stopwatch stop;
+                algo.find(dataimage.data, limits, centers, /*boost::bind(&EMMaxTest::draw, this),*/ seed);
+                avgs[experiment] += stop.usElapsed();
+                experiment++;
+                if(draw_results) draw();
+            }
 
             {
                 // CV version
@@ -99,15 +106,15 @@ public:
                     row ++;
                 }
 
-                cv::Mat out, centers;
+                cv::Mat labels, centers;
                 Stopwatch stop;
                 cv::EM em(k);
-                em.train(data, cv::noArray(), out);
+                em.train(data, cv::noArray(), labels);
                 avgs[experiment] += stop.usElapsed();
                 experiment++;
                 if(draw_results) {
                     cv::Mat centers = em.get<cv::Mat>("means");
-                    drawCV(centers, data, out);
+                    drawCV(centers, data, labels);
                 }
             }
 
@@ -151,6 +158,32 @@ public:
         return cv::Scalar(s[0], s[1], s[2]);
     }
 
+    void draw() {
+        cv::Mat result(h, w, CV_8UC3);
+        cv::cvtColor(dataimage, result, CV_GRAY2BGR);
+
+        for(unsigned i = 0; i < centers.size(); ++i) {
+            EMMax::ClusterT& c = centers[i];
+
+            cv::Scalar col = color(i, k);
+
+            for(unsigned j = 0; j < centers[i].members.size(); ++j) {
+                //cv::circle(result, cv::Point((*centers[i].members[j])[0], (*centers[i].members[j])[1]), 5, col, 1, CV_AA);
+                cv::circle(result, cv::Point((*centers[i].members[j])[0], (*centers[i].members[j])[1]), 2, col, CV_FILLED, CV_AA);
+                //result.at<cv::Vec3b>((*centers[i].members[j])[1], (*centers[i].members[j])[0]) = cv::Vec3b(col[0], col[1], col[2]);
+            }
+
+            cv::circle(result, cv::Point(c.centroid[0], c.centroid[1]), 5, col, 1, CV_AA);
+        }
+
+        cv::imshow(window.c_str(), result);
+
+        if((cv::waitKey(100) & 0xFF) == 27 || !cvGetWindowHandle(window.c_str())) {
+            exit(0);
+        }
+    }
+
+
     void drawCV(cv::Mat centers, cv::Mat data, cv::Mat out) {
         cv::Mat result(h, w, CV_8UC3);
         cv::cvtColor(dataimage, result, CV_GRAY2BGR);
@@ -167,7 +200,8 @@ public:
             }
 
             cv::Mat c = centers.row(i);
-            cv::circle(result, cv::Point(c.at<float>(0,0), c.at<float>(0,1)), 5, col, 1, CV_AA);
+            assert(c.type() == CV_64FC1);
+            cv::circle(result, cv::Point(c.at<double>(0,0), c.at<double>(0,1)), 5, col, 1, CV_AA);
         }
 
         cv::imshow(window.c_str(), result);
@@ -183,11 +217,11 @@ public:
 
         int rand_clusters = std::max(k/2, rand() % int(k * 2));
 
-        int spread = std::min(w, h) / 10;
 
         std::cout << "creating " << rand_clusters << " clusters" << std::endl;
 
         for(int cluster = 0; cluster < rand_clusters; ++cluster) {
+            int spread = std::max(10, rand() % (std::min(w, h) / 4));
             int rand_pts = std::max(5, rand() % 300);
             int cx = std::abs(rand()) % w;
             int cy = std::abs(rand()) % h;
@@ -216,8 +250,8 @@ public:
 
 
         limits.clear();
-        limits.push_back(KMeansSparsePP::LimitPair(0, w));
-        limits.push_back(KMeansSparsePP::LimitPair(0, h));
+        limits.push_back(EMMax::LimitPair(0, w));
+        limits.push_back(EMMax::LimitPair(0, h));
     }
 
 
@@ -229,18 +263,16 @@ private:
 
     long seed;
 
-    KMeansDense densealgo;
-    KMeansSparse sparsealgo;
-    KMeansSparsePP sparsealgo_pp;
+    EMMax algo;
 
     cv::Mat dataimage;
     PointList datapoints;
 
     std::string window;
 
-    std::vector<KMeansSparsePP::ClusterT> centers;
+    std::vector<EMMax::ClusterT> centers;
 
-    KMeansSparsePP::LimitPairList limits;
+    EMMax::LimitPairList limits;
 };
 
 int main(int argc, char** argv)

@@ -30,6 +30,7 @@ struct PlusPlusInitialization :
 
     using Datatype::data;
     using Datatype::clusters;
+    using Datatype::expectation;
 
     typedef typename VectorT::IndexType VectorIndexType;
 
@@ -48,7 +49,7 @@ struct PlusPlusInitialization :
 
         for(unsigned i = 1; i < K; ++i) {
             // assign to nearest cluster (computes distance);
-            this->assignVectorsToNearestCluster();
+            expectation();
 
             // take the computed distances to centers
             unsigned n = data.size();

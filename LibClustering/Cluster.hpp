@@ -19,12 +19,13 @@ namespace lib_clustering {
 /**
  * @brief The Cluster struct represents one cluster
  */
-template <typename Vector, class DistanceT>
+template <typename Vector, class Centroid, class DistanceT>
 struct Cluster {
     typedef Vector VectorT;
     typedef typename VectorT::IndexType VectorIndexType;
     typedef typename VectorT::ValueType VectorValueType;
     typedef typename VectorT::UserDataType VectorUserDataType;
+    typedef Centroid CentroidT;
     typedef DistanceT Distance;
 
     /**
@@ -43,10 +44,10 @@ struct Cluster {
     {}
 
     /**
-     * @brief recomputeCentroid moves the center of each cluster to the centroid of all its members
+     * @brief recompute moves the center of each cluster to the centroid of all its members
      * @return <b>NO_CHANGE</b>, iff no significant movement took place, <b>CHANGE</b> otherwise
      */
-    MoveResult recomputeCentroid() {
+    MoveResult recompute() {
         if(members.size() == 0) {
             return NO_CHANGE;
         }
@@ -74,7 +75,7 @@ struct Cluster {
     }
 
 public:
-    VectorT centroid;
+    CentroidT centroid;
     std::vector<VectorT*> members;
 };
 

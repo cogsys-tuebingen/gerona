@@ -31,10 +31,30 @@ template <unsigned Dimensions,
          typename IndexDataType = int,
          typename WeightDataType = unsigned char>
 struct KMeans :
-    public ClusteringAlgorithm< KMeansParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, UserData, IndexDataType, WeightDataType> >
+    public ClusteringAlgorithm< ClusteringParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, UserData, IndexDataType, WeightDataType> >
 {
     KMeans(int K)
-        : ClusteringAlgorithm< KMeansParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, UserData, IndexDataType, WeightDataType> >(K)
+        : ClusteringAlgorithm< ClusteringParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, UserData, IndexDataType, WeightDataType> >(K)
+    {}
+};
+
+
+/**
+ * @brief The Expectation-Maximization struct wraps the implementation of KMeans to make it easier to use
+ */
+template <unsigned Dimensions,
+         template <class, class, typename> class InitializationMethod,
+         template <unsigned> class Distance,
+         template <class, typename> class DataType,
+         typename InputDataType,
+         typename UserData = void,
+         typename IndexDataType = int,
+         typename WeightDataType = unsigned char>
+struct EM :
+    public ClusteringAlgorithm< ClusteringParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, UserData, IndexDataType, WeightDataType> >
+{
+    EM(int K)
+        : ClusteringAlgorithm< ClusteringParameter<Dimensions, InitializationMethod, Distance, DataType, InputDataType, UserData, IndexDataType, WeightDataType> >(K)
     {}
 };
 

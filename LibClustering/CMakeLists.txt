@@ -34,8 +34,8 @@ else(NOT OpenCV_FOUND)
         LibUtil
     )
 
-    add_executable (EMMaxTest EMMaxTest.cpp)
-    target_link_libraries (EMMaxTest
+    add_executable (EMaxTest EMaxTest.cpp)
+    target_link_libraries (EMaxTest
         ${OpenCV_LIBS}
         Random
         LibUtil

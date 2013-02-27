@@ -28,8 +28,6 @@ struct EuclideanDistance {
      * @param b
      * @return euclidean distance between a and b
      */
-    //    template <typename TypeAI, typename TypeAV, typename TypeBI, typename TypeBV>
-
     template <class VectorA, class VectorB>
     static double distance(const VectorA& a, const VectorB& b) {
         double distance_squared = 0;

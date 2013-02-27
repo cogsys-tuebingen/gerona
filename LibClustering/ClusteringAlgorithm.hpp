@@ -24,7 +24,7 @@
 namespace lib_clustering {
 
 /**
- * @brief The KMeansParameter struct eases the handling of KMeansImps parameters
+ * @brief The ClusteringParameter struct eases the handling of KMeansImps parameters
  */
 template <unsigned Dimensions,
          template <class, class, typename> class InitializationMethod,
@@ -34,7 +34,7 @@ template <unsigned Dimensions,
          typename UserDataType,
          typename IndexDataType,
          typename WeightDataType>
-struct KMeansParameter
+struct ClusteringParameter
 {
     enum { Dimension = Dimensions };
 
@@ -45,7 +45,8 @@ struct KMeansParameter
     typedef UserDataType UserDataTypeT;
 
     typedef VectorImp<Dimension, IndexDataTypeT, WeightDataTypeT, UserDataTypeT> VectorT;
-    typedef Cluster<VectorT, Distance<Dimension> > ClusterT;
+    typedef VectorT CentroidT;
+    typedef Cluster<VectorT, CentroidT, Distance<Dimension> > ClusterT;
     typedef DataType<ClusterT, InputDataType> DataT;
     typedef Distance<Dimension> DistanceT;
 
@@ -55,24 +56,27 @@ struct KMeansParameter
 /**
  * @brief The KMeansImp struct implements k-means clustering
  */
-template <class KMeansParameter>
-struct ClusteringAlgorithm : public KMeansParameter::InitializationMethodPolicy {
-    enum { Dimension = KMeansParameter::Dimension };
+template <class ClusteringParameter>
+struct ClusteringAlgorithm : public ClusteringParameter::InitializationMethodPolicy {
+    enum { Dimension = ClusteringParameter::Dimension };
 
-    typedef typename KMeansParameter::VectorT VectorT;
-    typedef typename KMeansParameter::ClusterT ClusterT;
-    typedef typename KMeansParameter::DataT DataT;
-    typedef typename KMeansParameter::IndexDataTypeT IndexDataTypeT;
-    typedef typename KMeansParameter::WeightDataTypeT WeightDataTypeT;
-    typedef typename KMeansParameter::InputDataTypeT InputDataTypeT;
-    typedef typename KMeansParameter::DistanceT Distance;
+    typedef typename ClusteringParameter::VectorT VectorT;
+    typedef typename ClusteringParameter::ClusterT ClusterT;
+    typedef typename ClusteringParameter::DataT DataT;
+    typedef typename ClusteringParameter::IndexDataTypeT IndexDataTypeT;
+    typedef typename ClusteringParameter::WeightDataTypeT WeightDataTypeT;
+    typedef typename ClusteringParameter::InputDataTypeT InputDataTypeT;
+    typedef typename ClusteringParameter::DistanceT Distance;
 
     typedef std::pair<IndexDataTypeT, IndexDataTypeT> LimitPair;
     typedef std::vector<LimitPair> LimitPairList;
 
-    typedef typename KMeansParameter::InitializationMethodPolicy InitializationMethodPolicy;
+    typedef typename ClusteringParameter::InitializationMethodPolicy InitializationMethodPolicy;
+
     using InitializationMethodPolicy::data;
     using InitializationMethodPolicy::clusters;
+    using InitializationMethodPolicy::expectation;
+    using InitializationMethodPolicy::init;
 
     /**
      * @brief KMeansImp Constructor
@@ -147,23 +151,21 @@ private:
         for(int i = 0; i < maxIter; ++i) {
             Intermission::callAndCopy(intermission, clusters, result);
 
-            InitializationMethodPolicy::assignVectorsToNearestCluster();
-            if(recomputeCentroids() == ClusterT::NO_CHANGE) {
+            expectation();
+            if(maximization() == ClusterT::NO_CHANGE) {
                 break;
             }
         }
 
         result.clear();
-        std::copy(clusters.begin(), clusters.end(), std::back_inserter(result));
-
-//        result = clusters;
+        result = clusters;
     }
 
-    typename ClusterT::MoveResult recomputeCentroids() {
+    typename ClusterT::MoveResult maximization() {
         typename ClusterT::MoveResult result = ClusterT::NO_CHANGE;
 
         for(typename std::vector<ClusterT>::iterator cluster = clusters.begin(); cluster != clusters.end(); ++cluster) {
-            if(cluster->recomputeCentroid() == ClusterT::CHANGE) {
+            if(cluster->recompute() == ClusterT::CHANGE) {
                 result = ClusterT::CHANGE;
             }
         }
@@ -174,7 +176,7 @@ private:
     void initialize(const InputDataTypeT& input, const LimitPairList& limits) {
         srand(seed_);
 
-        InitializationMethodPolicy::init(K, limits);
+        init(K, limits);
     }
 
 private:

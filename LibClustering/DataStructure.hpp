@@ -91,9 +91,9 @@ struct DataStructure {
     }
 
     /**
-     * @brief assignVectorsToNearestCluster assigns each data point to the cluster whose centroid minimizes the distance
+     * @brief expectation assigns each data point to the cluster whose centroid minimizes the distance
      */
-    void assignVectorsToNearestCluster() {
+    void expectation() {
         for(typename std::vector<ClusterT>::iterator cluster = clusters.begin(); cluster != clusters.end(); ++cluster) {
             cluster->members.clear();
         }
