@@ -33,7 +33,7 @@ rosbuild_add_library(LibPath  ReedsShepp/CurveGenerator.cpp
     a_star/OpenList.cpp
     generic/Common.hpp
     generic/SearchAlgorithm.hpp
-    generic/BreadthFirstSearch.hpp
+    generic/Algorithms.hpp
     generic/Heuristics.hpp
     generic/Neighborhood.hpp
     generic/MapManager.hpp

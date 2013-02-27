@@ -67,6 +67,8 @@ public:
     typedef typename Param::PointType PointT;
     typedef typename Param::NodeType NodeT;
     typedef typename Param::HeuristicType Heuristic;
+
+    friend class Param::NeighborhoodSelection;
 //    typedef NeighborSelection<Neighborhood, MapManager, typename Heuristic::NodeType, MapT, Extension> NeighborhoodT;
 
     typedef GenericPath<NodeT> PathT;
@@ -119,7 +121,7 @@ private:
                 return backtrack(start, goal);
             }
 
-            iterateFreeNeighbors(this, current);
+            iterateFreeNeighbors(*this, current);
 
             Intermission::call(intermission);
         }
@@ -129,10 +131,12 @@ private:
         return empty();
     }
 
-    bool forEachFreeNeighbor(NodeT* current, NodeT* neighbor, double delta) {
+    bool processNeighbor(NodeT* current, NodeT* neighbor, double delta) {
         if(neighbor->isMarked(NodeT::MARK_CLOSED)) {
             return false;
         }
+
+        neighbor->mark(NodeT::MARK_WATCHED);
 
         double distance = current->distance + delta;
         bool closer = distance < neighbor->distance;

@@ -13,6 +13,7 @@
 
 /// SYSTEM
 #include <boost/static_assert.hpp>
+#include <boost/type_traits.hpp>
 #include <fstream>
 
 namespace lib_path
@@ -39,6 +40,25 @@ struct HeuristicNode : public Node<PointT> {
 
 
 
+template <typename Any>
+class HasHeuristicField
+{
+    typedef char Small;
+    class Big
+    {
+        char dummy[2];
+    };
+
+    template <typename Class> static Small test(typeof(&Class::h)) ;
+    template <typename Class> static Big test(...);
+
+
+public:
+    enum { value = sizeof(test<Any>(0)) == sizeof(Small) };
+};
+
+
+
 
 struct NoHeuristic {
     template <class PointT>
@@ -49,8 +69,8 @@ struct NoHeuristic {
     template <class NodeType>
     static void compute(const NodeType*, const NodeType*) {
     }
-    static void setMapResolution(double res){}
-    static void init(const std::string& param){}
+    static void setMapResolution(double res) {}
+    static void init(const std::string& param) {}
 };
 
 struct HeuristicDistToGoal {
@@ -63,8 +83,8 @@ struct HeuristicDistToGoal {
     static void compute(NodeType* current, NodeType* goal) {
         current->h = hypot(current->x - goal->x, current->y - goal->y);
     }
-    static void setMapResolution(double res){}
-    static void init(const std::string& param){}
+    static void setMapResolution(double res) {}
+    static void init(const std::string& param) {}
 };
 
 struct HeuristicHolonomicNoObstacles {
@@ -83,11 +103,11 @@ struct HeuristicHolonomicNoObstacles {
         return instance;
     }
 
-    static void setMapResolution(double res){
+    static void setMapResolution(double res) {
         instance().resolution_map = res;
         instance().updateResolutionFactor();
     }
-    static void init(const std::string& param){
+    static void init(const std::string& param) {
         instance().file_ = param;
         instance().read(param);
     }
@@ -98,7 +118,7 @@ private:
     }
 
     template <class NodeType>
-    void computeImp(NodeType* current, NodeType* goal){
+    void computeImp(NodeType* current, NodeType* goal) {
         double x_grid = current->center_x;
         double y_grid = current->center_y;
         double t = current->theta;
@@ -111,6 +131,7 @@ private:
         /// rotation so that goal is at (0,0,0)
         double gt = -goal->theta;
         double x_grid_rot,y_grid_rot;
+
         x_grid_rot = x_grid * std::cos(gt) - y_grid * std::sin(gt);
         y_grid_rot = x_grid * std::sin(gt) + y_grid * std::cos(gt);
 
@@ -118,32 +139,40 @@ private:
         int y_precomp = y_grid_rot / resolution_factor + dimension / 2;
 
         t = MathHelper::AngleClamp(t+gt);
+        assert(-M_PI <= t);
+        assert(t < M_PI);
 
         // access lut with new currents state
-        int a = std::floor((t + M_PI) / (2 * M_PI) * angles);
-        if(x_precomp < 0 || x_precomp >= dimension){
+        const double epsilon = 0.001;
+
+        if(t < 0) {
+            t += 2*M_PI;
+        }
+        int a = std::floor(t / (2 * M_PI + epsilon) * angles);
+        assert(0 <= a);
+        assert(a < angles);
+
+        if(x_precomp < 0 || x_precomp >= dimension) {
 //            std::cout << "x=" << x_grid_rot * resolution_map << " is out of range +-" << (dimension / 2 * resolution_precomp) << std::endl;
             current->h = 0;
             return;
         }
-        if(y_precomp < 0 || y_precomp >= dimension){
+        if(y_precomp < 0 || y_precomp >= dimension) {
 //            std::cout << "y=" << y_grid_rot * resolution_map << " is out of range +-" << (dimension / 2 * resolution_precomp) << std::endl;
             current->h = 0;
             return;
         }
 
-        int idx = y_precomp * dimension + x_precomp;
+        int idx = (dimension - y_precomp) * dimension + x_precomp;
 
-        assert(0 <= a); assert(a < angles);
-
-        current->h = costs[a].second[idx] ;//* resolution_factor;
+        current->h = costs[a].second[idx];//* resolution_factor;
     }
 
-    void updateResolutionFactor(){
+    void updateResolutionFactor() {
         resolution_factor = resolution_precomp / resolution_map;
     }
 
-    void read(const std::string& file){
+    void read(const std::string& file) {
         std::ifstream ifs(file.c_str());
 
         std::cout << "reading: " << file << std::endl;
@@ -157,12 +186,12 @@ private:
 
         unsigned D = dimension * dimension;
 
-        for(int a = 0; a < angles; ++a){
+        for(int a = 0; a < angles; ++a) {
             std::pair<double, std::vector<double> > layer(0, std::vector<double>(D));
 
             ifs >> layer.first;
 
-            for(unsigned i = 0; i < D; ++i){
+            for(unsigned i = 0; i < D; ++i) {
                 ifs >> layer.second[i];
             }
 
@@ -183,8 +212,7 @@ private:
 
 
 template <class H1, class H2>
-struct MaxHeuristic
-{
+struct MaxHeuristic {
     typedef H1 H1T;
     typedef H2 H2T;
 
@@ -208,19 +236,19 @@ struct MaxHeuristic
 
         H2::compute(current, goal);
 
-        if(current->h > h1){
+        if(current->h > h1) {
 //            std::cout << "using heuristic 2" << current->h << " > " << h1 << std::endl;
         }
 
         current->h = std::max(current->h, h1);
     }
-    static void setMapResolution(double res){
+    static void setMapResolution(double res) {
         H1::setMapResolution(res);
         H2::setMapResolution(res);
     }
 
 
-    static void init(const std::string& param){
+    static void init(const std::string& param) {
         H1::init(param);
         H2::init(param);
     }

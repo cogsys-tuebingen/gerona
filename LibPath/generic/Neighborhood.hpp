@@ -143,23 +143,23 @@ struct NeighborSelection<NodeT, DirectNeighborhood<N,d> > :
     typedef DirectNeighborhoodImp<generic::Int2Type<N> ,d> Neighborhood;
     typedef NodeT NodeType;
 
-    virtual bool forEachFreeNeighbor(NodeType* current, NodeType* neighbor, double delta) = 0;
+    virtual bool processNeighbor(NodeType* current, NodeType* neighbor, double delta) = 0;
 
     template <class Map>
-    void iterateFreeNeighbors(Map* map, NodeType* reference) {
+    void iterateFreeNeighbors(Map& map, NodeType* reference) {
         int x = reference->x;
         int y = reference->y;
         for(unsigned i = 0; i < Neighborhood::SIZE; ++i) {
             int xx = Neighborhood::dx(x,i);
             int yy = Neighborhood::dy(y,i);
-            if(map->contains(xx, yy)) {
-                NodeType* n = map->lookup(xx, yy);
+            if(map.contains(xx, yy)) {
+                NodeType* n = map.lookup(xx, yy);
 
-                if(!map->isFree(n)) {
+                if(!map.isFree(n)) {
                     continue;
                 }
 
-                forEachFreeNeighbor(reference, n, Neighborhood::delta(i));
+                processNeighbor(reference, n, Neighborhood::delta(i));
             }
         }
     }
@@ -187,7 +187,7 @@ struct NeighborSelection<NodeT, NonHolonomicNeighborhood<d,a> >
     typedef NonHolonomicNeighborhood<d,a> Neighborhood;
     typedef HybridNode<NodeT> NodeType;
 
-    enum { SIZE = 6 };
+    enum { SIZE = 3 };
     enum { DIST = Neighborhood::DISTANCE };
     enum { STEER_ANGLE = Neighborhood::STEER_ANGLE };
 
@@ -201,16 +201,19 @@ struct NeighborSelection<NodeT, NonHolonomicNeighborhood<d,a> >
 
         switch(i) {
         case 0:
+        case 3:
             t = reference->theta - DELTA_THETA;
-            cost *= 1.2;
+            cost *= 1.1;
             break;
         default:
         case 1:
+        case 4:
             t = reference->theta;
             break;
         case 2:
+        case 5:
             t = reference->theta + DELTA_THETA;
-            cost *= 1.2;
+            cost *= 1.1;
             break;
         }
 
@@ -237,23 +240,21 @@ struct NeighborSelection<NodeT, NonHolonomicNeighborhood<d,a> >
         return cost;
     }
 
-    virtual bool forEachFreeNeighbor(NodeType* current, NodeType* neighbor, double delta) = 0;
-
-    template <class Map>
-    void iterateFreeNeighbors(Map* map, NodeType* reference) {
+    template <class T>
+    void iterateFreeNeighbors(T& search, NodeType* reference) {
         for(unsigned i = 0; i < SIZE; ++i) {
             double to_x,to_y, to_theta;
             bool forward;
             double cost = advance(reference, i, to_x,to_y,to_theta,forward);
 
-            if(map->contains(to_x, to_y) && map->isFree(reference->center_x,reference->center_y, to_x,to_y)) {
-                NodeType* n = map->lookup(to_x, to_y, to_theta);
+            if(search.contains(to_x, to_y) && search.isFree(reference->center_x,reference->center_y, to_x,to_y)) {
+                NodeType* n = search.lookup(to_x, to_y, to_theta);
 
-                if(n == NULL || !map->isFree(n)) {
+                if(n == NULL || !search.isFree(n)) {
                     continue;
                 }
 
-                if(forEachFreeNeighbor(reference, n, cost))  {
+                if(search.processNeighbor(reference, n, cost))  {
                     n->center_x = to_x;
                     n->center_y = to_y;
                     n->theta = to_theta;

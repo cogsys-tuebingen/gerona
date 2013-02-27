@@ -9,11 +9,12 @@
 #define EVALUATOR_H
 
 /// COMPONENT
+#include "PathRenderer.hpp"
 #include "MapRenderer.hpp"
 
 /// PROJECT
 #include "../common/SimpleGridMap2d.h"
-#include "../generic/BreadthFirstSearch.hpp"
+#include "../generic/Algorithms.hpp"
 
 /// SYSTEM
 #include <iostream>
@@ -28,36 +29,50 @@ class Evaluator
 
     struct EvalSubParameter {
         enum { SCALE = Evaluator::SCALE};
-        typedef int Connector;
     };
 
-    typedef BreadthFirstSearch_Debug<0, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, DirectNeighborhood<8,5> > BFS;
-    typedef AStar2dSearch_Debug<8000, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, DirectNeighborhood<8,5> > AStar;
-    typedef AStarSearch_Debug<1000, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, NonHolonomicNeighborhood<250, 80> > AStarNH;
-    typedef AStarHybridHeuristicsSearch_Debug<1000, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, NonHolonomicNeighborhood<250, 80> > AStarNHHH;
+    typedef DirectNeighborhood<8,5> DNeighbor;
+    typedef NonHolonomicNeighborhood<200, 120> NHNeighbor;
 
-    typedef AStarNH SearchAlgorithm;
+    typedef BreadthFirstSearch_Debug<0, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, DNeighbor> BFS;
+    typedef BreadthFirstStateSearch_Debug<10000, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, NHNeighbor> BFS3d;
+
+    typedef AStar2dSearch_Debug<8000, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, DNeighbor> AStar;
+    typedef AStarSearch_Debug<10000, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, NHNeighbor > AStarNH;
+    typedef AStarHybridHeuristicsSearch_Debug<10000, EvalSubParameter, MapRenderer, Pose2d, GridMap2d, NHNeighbor> AStarNHHH;
+
+    typedef AStarNHHH SearchAlgorithm;
+
+    typedef PathRenderer<SCALE, SearchAlgorithm::NodeT, SearchAlgorithm::PathT, SearchAlgorithm::Heuristic> Renderer;
 
 public:
     Evaluator(int w, int h, double resolution);
 
     void run();
 
-    void render(Path path);
+    void render(const Path& path);
+
+    void setFocus(int x, int y);
+
 private:
     void initHighResMap();
     void initLowResMap();
-    void draw(cv::Scalar color);
+    void draw(cv::Scalar color, bool use_wait = true);
+    bool handleKey(int key);
 
 private:
     SimpleGridMap2d map_info;
     SearchAlgorithm searchAlgorithm;
+
+    Renderer* active_renderer;
 
     cv::Mat img;
     Pose2d start, goal;
 
     int w;
     int h;
+    int focus_x;
+    int focus_y;
     double res;
     bool obstacles;
 

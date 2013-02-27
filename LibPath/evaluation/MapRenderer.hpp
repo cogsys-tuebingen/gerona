@@ -28,11 +28,8 @@ struct MapRenderer : public MapManagerExtension<typename Param::NodeType> {
 
     typedef typename Param::NodeType NodeType;
     typedef MapManagerExtension<NodeType> Ext;
-    typedef typename Param::Connector Connector;
 
     //BOOST_STATIC_ASSERT(sizeof(NodeType) == sizeof(HybridNode<HeuristicNode<typename Param::PointType> >));
-
-    Connector connector;
 
     virtual unsigned index(unsigned x, unsigned y, unsigned t = 0) = 0;
 
@@ -68,7 +65,7 @@ struct MapRenderer : public MapManagerExtension<typename Param::NodeType> {
                         cv::LineIterator it(out, p2cvRef(node, h, Scale), p2cvRef(*prev, h, Scale));
                         for(int i = 0; i < it.count; ++i, ++it) {
                             cv::Vec3b& v = *(cv::Vec3b*) *it;
-                            v = cv::Vec3b(v[0], v[1]-50, v[2]-50);
+                            v = cv::Vec3b(v[0], std::max(0, v[1]-50), std::max(0, v[2]-50));
                         }
                     }
                 }
@@ -86,8 +83,12 @@ struct MapRenderer : public MapManagerExtension<typename Param::NodeType> {
                         cv::LineIterator it(out, p2cvRef(node, h, Scale), p2cvRef(*prev, h, Scale));
                         for(int i = 0; i < it.count; ++i, ++it) {
                             cv::Vec3b& v = *(cv::Vec3b*) *it;
-                            v = cv::Vec3b(v[0], v[1]-50, v[2]-50);
+                            v = cv::Vec3b(std::min(255, v[0]+20), std::min(255, v[1]+20), std::min(255, v[2]+20));
                         }
+                    }
+                    if(node.isMarked(NodeType::MARK_WATCHED)) {
+                        cv::Point p = p2cvRef(node, h, Scale);
+                        out.at<cv::Vec3b> (p) = cv::Vec3b(255, 127, 0);
                     }
                 }
             }

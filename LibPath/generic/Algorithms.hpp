@@ -31,6 +31,11 @@ DEFINE_CONCRETE_ALGORITHM(BreadthFirst,
                           GridMapManager,
                           QueueManager)
 
+DEFINE_CONCRETE_ALGORITHM(BreadthFirstState,
+                          NoHeuristic,
+                          StateSpaceManager,
+                          QueueManager)
+
 DEFINE_CONCRETE_ALGORITHM(AStar2d,
                           HeuristicDistToGoal,
                           GridMapManager,

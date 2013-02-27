@@ -121,7 +121,7 @@ struct GridMapManager :
         assert(y >= 0);
         return &data[index(x,y)];
     }
-    NodeType* lookup(const double x, const double y) {
+    NodeType* lookup(const double x, const double y, double ignored = 0) {
         assert(x >= 0);
         assert(y >= 0);
         return lookup((int) std::floor(x), (int) std::floor(y));

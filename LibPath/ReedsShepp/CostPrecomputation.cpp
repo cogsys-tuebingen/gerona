@@ -37,18 +37,18 @@ void precompute(const std::string& dir, int dimension, int angles, double res)
 //    generator.parse("|L|SR");
 //    generator.parse("|R|SL");
 //    generator.parse("|R|SR");
-    generator.parse("LS|L");
-    generator.parse("LS|R");
-    generator.parse("RS|L");
-    generator.parse("RS|R");
-    generator.parse("L|SL");
-    generator.parse("L|SR");
-    generator.parse("R|SL");
-    generator.parse("R|SR");
-    generator.parse("L|S|L");
-    generator.parse("L|S|R");
-    generator.parse("R|S|L");
-    generator.parse("R|S|R");
+//    generator.parse("LS|L");
+//    generator.parse("LS|R");
+//    generator.parse("RS|L");
+//    generator.parse("RS|R");
+//    generator.parse("L|SL");
+//    generator.parse("L|SR");
+//    generator.parse("R|SL");
+//    generator.parse("R|SR");
+//    generator.parse("L|S|L");
+//    generator.parse("L|S|R");
+//    generator.parse("R|S|L");
+//    generator.parse("R|S|R");
 //    generator.parse("|LS|L");
 //    generator.parse("|LS|R");
 //    generator.parse("|RS|L");
@@ -61,28 +61,28 @@ void precompute(const std::string& dir, int dimension, int angles, double res)
     ///// CCC
     generator.parse("LRL");
     generator.parse("RLR");
-    generator.parse("L|R|L");
-    generator.parse("R|L|R");
+//    generator.parse("L|R|L");
+//    generator.parse("R|L|R");
 //    generator.parse("|L|R|L");
 //    generator.parse("|R|L|R");
-    generator.parse("LR|L");
-    generator.parse("RL|R");
+//    generator.parse("LR|L");
+//    generator.parse("RL|R");
 //    generator.parse("|LR|L");
 //    generator.parse("|RL|R");
-    generator.parse("L|RL");
-    generator.parse("R|LR");
+//    generator.parse("L|RL");
+//    generator.parse("R|LR");
 //    generator.parse("|L|RL");
 //    generator.parse("|R|LR");
-    generator.parse("LR(b)|L(b)R");
+//    generator.parse("LR(b)|L(b)R");
 //    generator.parse("|LR(b)|L(b)R");
-    generator.parse("RL(b)|R(b)L");
+//    generator.parse("RL(b)|R(b)L");
 //    generator.parse("|RL(b)|R(b)L");
-    generator.parse("L|R(b)L(b)|R");
-    generator.parse("R|L(b)R(b)|L");
+//    generator.parse("L|R(b)L(b)|R");
+//    generator.parse("R|L(b)R(b)|L");
 //    generator.parse("|L|R(b)L(b)|R");
 //    generator.parse("|R|L(b)R(b)|L");
 
-    double curve_rad = 2.5; // m
+    double curve_rad = 5; // m
 
     double anglestep = 2 * M_PI / angles;
 
@@ -95,6 +95,7 @@ void precompute(const std::string& dir, int dimension, int angles, double res)
 
     generator.set_circle_radius(curve_rad);
     generator.set_cost_backwards(20.0);
+    generator.set_cost_curve(2.0);
 
     std::vector<std::pair<double, std::vector<double> > > costs;
 
@@ -109,6 +110,7 @@ void precompute(const std::string& dir, int dimension, int angles, double res)
         cv::Mat debug(dimension, dimension, CV_8UC3, cv::Scalar::all(128));
 
         int i = 0;
+        int padding = 10;
         for(int y = 0; y < dimension; ++y) {
             for(int x = 0; x < dimension; ++x) {
                 Pose2d start(x,y, angle_rad);
@@ -119,7 +121,25 @@ void precompute(const std::string& dir, int dimension, int angles, double res)
                 delete c;
 
                 if(v < NOT_FREE) {
-                    data[i++] = v;
+                    double fx = 1.0;
+                    double fy = 1.0;
+
+                    if(x < padding) {
+                        fx = x / double(padding);
+                    } else if(x >= dimension - padding) {
+                        fx = (-x + dimension) / double(padding);
+                    }
+
+                    if(y < padding) {
+                        fy = y / double(padding);
+                    } else if(y >= dimension - padding) {
+                        fy = (-y + dimension) / double(padding);
+                    }
+
+                    double f = std::min(fx, fy);
+
+                    double euclid_dist = hypot(x - target.x, y - target.y);
+                    data[i++] = f * v + (1.0 - f) * euclid_dist;
 
                     max_cost = std::max(v, max_cost);
                     min_cost = std::min(v, min_cost);
@@ -140,7 +160,23 @@ void precompute(const std::string& dir, int dimension, int angles, double res)
             ss << "computing (angle=" << angle_rad << ")";
             cv::resize(debug, output, cv::Size(), 4,4, cv::INTER_NEAREST);
             cv::imshow(ss.str(), output);
+
+
+//            int cx = dimension / 2;
+//            int cy = dimension / 2;
+//            double fac = 128.0 / hypot(cx, cy);
+//            for(int yy = 0; yy < dimension; ++yy) {
+//                unsigned ws = yy * dimension;
+//                for(int xx = 0; xx < dimension; ++xx) {
+//                    debug.at<cv::Vec3b>(yy,xx) = cv::Vec3b::all(hypot(xx - cx, yy - cy) * fac);
+//                }
+//            }
+//            cv::resize(debug, output, cv::Size(), 4,4, cv::INTER_NEAREST);
+//            cv::imshow("euclidean", output);
+
             cv::waitKey(3);
+
+
         }
 
         std::pair<double, std::vector<double> > entry(angle_rad, data);
@@ -151,9 +187,9 @@ void precompute(const std::string& dir, int dimension, int angles, double res)
     ofs << dimension << '\n';
     ofs << angles << '\n';
     ofs << res << '\n';
-    for(std::vector<std::pair<double, std::vector<double> > >::iterator i = costs.begin(); i != costs.end(); ++i){
+    for(std::vector<std::pair<double, std::vector<double> > >::iterator i = costs.begin(); i != costs.end(); ++i) {
         ofs << i->first << '\n';
-        for(std::vector<double>::iterator j = i->second.begin(); j != i->second.end(); ++j){
+        for(std::vector<double>::iterator j = i->second.begin(); j != i->second.end(); ++j) {
             ofs << *j << ' ';
         }
         ofs << '\n';

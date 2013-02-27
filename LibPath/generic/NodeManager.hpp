@@ -39,46 +39,35 @@ private:
     std::deque<Node*> queue;
 };
 
-template <class Node>
-struct PriorityQueueManager {
+template <class Node, class Container>
+struct GenericManager {
     void add(Node* node) {
-        queue.push(node);
+        container.push(node);
     }
 
     bool empty() {
-        return queue.empty();
+        return container.empty();
     }
 
     Node* next() {
-        assert(!queue.empty());
-        Node* next = queue.top();
-        queue.pop();
+        assert(!container.empty());
+        Node* next = container.top();
+        container.pop();
         return next;
     }
 
 private:
-    std::priority_queue<Node*, std::vector<Node*>, CompareNode<Node> > queue;
+    Container container;
 };
 
+
 template <class Node>
-struct StackManager {
-    void add(Node* node) {
-        stack.push(node);
-    }
-
-    bool empty() {
-        return stack.empty();
-    }
-
-    Node* next() {
-        assert(!stack.empty());
-        Node* next = stack.top();
-        stack.pop();
-        return next;
-    }
-
-private:
-    std::stack<Node*> stack;
+class PriorityQueueManager : public GenericManager<Node, std::priority_queue<Node*, std::vector<Node*>, CompareNode<Node> > >
+{
+};
+template <class Node>
+class StackManager : public GenericManager<Node, std::stack<Node*> >
+{
 };
 
 }

@@ -8,9 +8,6 @@
 /// HEADER
 #include "evaluator.h"
 
-/// COMPONENT
-#include "PathRenderer.hpp"
-
 /// PROJECT
 #include <utils/LibUtil/Stopwatch.h>
 
@@ -19,8 +16,32 @@
 
 using namespace lib_path;
 
+namespace
+{
+
+bool drag = false;
+
+void mouse_cb(int event, int x, int y, int flags, void* userdata)
+{
+    Evaluator* eval = static_cast<Evaluator*>(userdata);
+
+    if(event == CV_EVENT_LBUTTONDOWN) {
+        eval->setFocus(x, y);
+        drag = true;
+
+    } else  if(event == CV_EVENT_LBUTTONUP) {
+        drag = false;
+    }
+
+    if(event == CV_EVENT_MOUSEMOVE && drag) {
+        eval->setFocus(x, y);
+    }
+}
+
+}
+
 Evaluator::Evaluator(int w, int h, double resolution)
-    : map_info(w, h, resolution), w(w), h(h), res(resolution)
+    : map_info(w, h, resolution), active_renderer(NULL), w(w), h(h), focus_x(-1), focus_y(-1), res(resolution)
 {
     obstacles = true;
 
@@ -37,6 +58,13 @@ Evaluator::Evaluator(int w, int h, double resolution)
     img = cv::Mat(map_info.getHeight() * SCALE, map_info.getWidth() * SCALE, CV_8UC3, cv::Scalar::all(127));
 }
 
+void Evaluator::setFocus(int x, int y)
+{
+    assert(active_renderer);
+
+    active_renderer->setFocus(x, y);
+}
+
 void Evaluator::initHighResMap()
 {
     start.x = 20;
@@ -44,9 +72,9 @@ void Evaluator::initHighResMap()
     start.theta = M_PI / 2;
 
     //goal.x = w / 2 + 20;
-    goal.x = w - 80;
+    goal.x = w - 160;
     goal.y = h / 2 + 40;
-    goal.theta = 0;//M_PI;
+    goal.theta = 0*M_PI;
 
     map_info.setOrigin(Point2d(0, 0));
     map_info.setResolution(res);
@@ -150,12 +178,13 @@ void Evaluator::initLowResMap()
     }
 }
 
-void Evaluator::draw(cv::Scalar color)
+void Evaluator::draw(cv::Scalar color, bool use_wait)
 {
-    PathRenderer<SCALE, SearchAlgorithm::NodeT, SearchAlgorithm::PathT, SearchAlgorithm::Heuristic> renderer(map_info, start, goal, img);
-    renderer.renderMap();
-    renderer.draw_arrow(start, color);
-    renderer.draw_arrow(goal,  color);
+    assert(active_renderer);
+
+    active_renderer->renderMap();
+    active_renderer->draw_arrow(start, color);
+    active_renderer->draw_arrow(goal,  color);
     searchAlgorithm.visualize(img);
 
     std::stringstream ss;
@@ -164,11 +193,52 @@ void Evaluator::draw(cv::Scalar color)
     cv::putText(img, ss.str(), cv::Point(40, 40), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar::all(0), 1, CV_AA);
 
     cv::imshow(window.c_str(), img);
-    int key = cv::waitKey(20);
+
+    if(!use_wait) {
+        return;
+    }
+
+    int key = cv::waitKey(20) & 0xFF;
+    handleKey(key);
 
     if(key == 27 || cvGetWindowHandle(window.c_str()) == NULL) {
         exit(0);
     }
+}
+
+bool Evaluator::handleKey(int key)
+{
+    assert(active_renderer);
+
+    if(key == 45) {
+        active_renderer->render_factor_mult(0.75);
+
+    } else if(key == 43) {
+        active_renderer->render_factor_mult(1.25);
+
+    } else if(key == 119) {
+        goal.theta += M_PI / 32;
+        active_renderer->setGoal(goal);
+
+    } else if(key == 115) {
+        goal.theta -= M_PI / 32;
+        active_renderer->setGoal(goal);
+
+    } else if(key == 100) {
+        active_renderer->render_offset_add(0.1);
+
+    } else if(key == 101) {
+        active_renderer->render_offset_add(-0.1);
+
+    } else if(key == 32) {
+        return true;
+    } else if(key == 27) {
+        exit(0);
+    } else if(key != 255) {
+        std::cout << "unbound key " << key << " pressed" << std::endl;
+    }
+
+    return false;
 }
 
 void Evaluator::run()
@@ -177,24 +247,40 @@ void Evaluator::run()
 
     SearchAlgorithm::Heuristic::init("heuristic_holo_no_obst.txt");
 
-    Stopwatch watch;
+    Renderer renderer(map_info, start, goal, img);
+    active_renderer = &renderer;
 
-    std::cout << "stoping time" << std::endl;
-    SearchAlgorithm::PathT path = searchAlgorithm.findPath(start, goal, boost::bind(&Evaluator::draw, this, cv::Scalar::all(0)));
-    std::cout << "path search took " << watch.usElapsed() / 1e3 << "ms" << std::endl;
+    cv::setMouseCallback(window.c_str(), mouse_cb, this);
 
-    draw(cv::Scalar(0,0,255));
 
-    PathRenderer<SCALE, SearchAlgorithm::NodeT, SearchAlgorithm::PathT, SearchAlgorithm::Heuristic> renderer(map_info, start, goal, img);
-    renderer.render(path);
 
     while(cvGetWindowHandle(window.c_str()) != NULL) {
+        draw(cv::Scalar::all(0), false);
+        int key = cv::waitKey(33) & 0xFF;
+
+        if(handleKey(key)) {
+            break;
+        }
+    }
+
+    std::cout << "start search" << std::endl;
+
+    Stopwatch watch;
+    SearchAlgorithm::PathT path = searchAlgorithm.findPath(start, goal, boost::bind(&Evaluator::draw, this, cv::Scalar::all(0), true));
+    std::cout << "path search took " << watch.usElapsed() / 1e3 << "ms" << std::endl;
+
+    while(cvGetWindowHandle(window.c_str()) != NULL) {
+        draw(cv::Scalar(0,0,255));
+        renderer.render(path);
+
         if(cvGetWindowHandle(window.c_str()) != NULL) {
             cv::imshow(window.c_str(), img);
         }
 
         if(cvGetWindowHandle(window.c_str()) != NULL) {
             int key = cv::waitKey(100) & 0xFF;
+
+            handleKey(key);
 
             if(key == 27) {
                 break;
@@ -205,7 +291,7 @@ void Evaluator::run()
 
 int main(int argc, char* argv[])
 {
-    Evaluator eval(600, 400, 0.1);
+    Evaluator eval(600, 400, 0.2);
     //Evaluator eval(60, 40);
     eval.run();
 }

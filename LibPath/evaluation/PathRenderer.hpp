@@ -13,6 +13,8 @@
 #include "../common/GridMap2d.h"
 
 #include <utils/LibGeneric/Utils.hpp>
+#include "Util.hpp"
+#include "../generic/Heuristics.hpp"
 
 /// SYSTEM
 #include <boost/foreach.hpp>
@@ -30,7 +32,7 @@ class PathRenderer : public Connector<PointT, Scale>
 {
 public:
     PathRenderer(const GridMap2d& map, const Pose2d& start, const Pose2d& goal, cv::Mat& out)
-        : map_(map), out_(out) {
+        : map_(map), out_(out), render_factor(1.0), render_offset(0.0) {
         start_.x = start.x;
         start_.y = start.y;
         start_.center_x = start.x;
@@ -43,6 +45,31 @@ public:
         goal_.theta = goal.theta;
     }
 
+
+    void setGoal(const Pose2d& goal) {
+        goal_.x = goal.x;
+        goal_.y = goal.y;
+        goal_.theta = goal.theta;
+    }
+
+    void render_factor_mult(double d) {
+        render_factor = std::max(0.2, render_factor * d);
+        std::cout << "new factor:" << render_factor << std::endl;
+    }
+
+    void render_offset_add(double offset) {
+        offset_ += offset;
+    }
+
+    template <typename V>
+    unsigned readVal(generic::Int2Type<1>, V c) {
+        return c.h;
+    }
+    template <typename V>
+    unsigned readVal(generic::Int2Type<0>, V c) {
+        return 127;
+    }
+
     void renderMap() {
         assert(out_.rows > 0);
         assert(out_.cols > 0);
@@ -53,18 +80,19 @@ public:
                 if(map_.isFree(x, y)) {
                     col = cv::Vec3b::all(255);
 
-//                    PointT c;
-//                    c.x = x;
-//                    c.y = y;
-//                    c.center_x = x;
-//                    c.center_y = y;
+                    PointT c;
+                    c.x = x;
+                    c.y = y;
+                    c.theta = goal_.theta + offset_;
+                    c.center_x = x;
+                    c.center_y = y;
 //                    Heuristic::H2T::compute(&c, &goal_);
-//                    Heuristic::compute(&c, &goal_);
+                    Heuristic::compute(&c, &goal_);
 
-//                    unsigned v = std::min(255.0, (c.h * 0.5));
-                    //unsigned v = std::min(255.0, c.distance);
+                    unsigned v = std::min(255.0, std::max(0.0, ((readVal(generic::Int2Type<HasHeuristicField<PointT>::value>(), c) + render_offset) * render_factor)));
+//                    unsigned v = std::min(255.0, c.distance);
 
-                    //col = cv::Vec3b(0, 255-v, v);
+                    col = cv::Vec3b(0, 255-v, v);
 
 
                 } else {
@@ -74,6 +102,11 @@ public:
                 fill(generic::Int2Type<Scale>(), x, y, col);
             }
         }
+
+        Pose2d indicator = goal_ + Pose2d(15, 0, 0);
+        indicator.theta =  goal_.theta + offset_;
+
+        draw_arrow(indicator, cv::Scalar(128, 0, 0));
 
         unsigned meterInCells = Scale / map_.getResolution();
 
@@ -103,8 +136,11 @@ public:
             }
         }
 
-        unsigned yy = out_.rows-1-sy-W;
-      //  cv::rectangle(out_, cv::Rect(sx, yy, W+1, W+1), cv::Scalar::all(222), 1);
+
+        if(N > 2) {
+            unsigned yy = out_.rows-1-sy-W;
+            cv::rectangle(out_, cv::Rect(sx, yy, W+1, W+1), cv::Scalar::all(127), 1);
+        }
     }
 
     void render(const PathT& path) {
@@ -146,11 +182,57 @@ public:
                  color, 2.0f * scale, CV_AA);
     }
 
+    void setFocus(int x_img, int y_img) {
+        int area = 40;
+
+        int x = x_img /** map_.getResolution()*/ / (double) Scale;
+        int y = (out_.rows - y_img) /** map_.getResolution()*/ / (double) Scale;
+
+        int min = std::numeric_limits<int>::max();
+        int max = std::numeric_limits<int>::min();
+
+        for(int dy=-area; dy<=area; ++dy) {
+            for(int dx=-area; dx<=area; ++dx) {
+                int mx = x + dx;
+                int my = y + dy;
+
+                cv::Vec3b col;
+                if(map_.isInMap(mx, my) && map_.isFree(mx, my)) {
+                    PointT c;
+                    c.x = mx;
+                    c.y = my;
+                    c.theta = goal_.theta + offset_;
+                    c.center_x = mx;
+                    c.center_y = my;
+//                    Heuristic::H2T::compute(&c, &goal_);
+                    Heuristic::compute(&c, &goal_);
+
+                    int v = readVal(generic::Int2Type<HasHeuristicField<PointT>::value>(), c);
+//                    unsigned v = std::min(255.0, c.distance);
+
+                    if(v > max) {
+                        max = v;
+                    }
+                    if(v < min) {
+                        min = v;
+                    }
+                }
+            }
+        }
+
+        render_offset = -min;
+        render_factor = 255.0 / (max - min);
+    }
+
 protected:
     const GridMap2d& map_;
     cv::Mat out_;
     PointT start_;
     PointT goal_;
+
+    double render_factor;
+    double render_offset;
+    double offset_;
 };
 
 }

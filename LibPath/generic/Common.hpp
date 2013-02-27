@@ -35,8 +35,9 @@ struct Node : public PointT {
     typedef Node<PointT> NodeType;
 
     static const char MARK_NONE = 0;
-    static const char MARK_OPEN = 0x1;
-    static const char MARK_CLOSED = 0x2;
+    static const char MARK_OPEN = 1;
+    static const char MARK_CLOSED = 2;
+    static const char MARK_WATCHED = 4;
 
     void mark(char mark) {
         marked |= mark;
@@ -71,7 +72,6 @@ struct HybridNode : public Node {
 
     double center_x;
     double center_y;
-    double theta;
     bool forward;
 
     static void init(HybridNode<Node> &memory, int x, int y, double theta = 0.0) {
