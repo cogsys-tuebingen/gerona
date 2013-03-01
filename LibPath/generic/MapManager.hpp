@@ -43,9 +43,15 @@ public:
         w = map_->getWidth();
         h = map_->getHeight();
 
-        HeuristicType::setMapResolution(map_->getResolution());
+        setMap(generic::Int2Type<HeuristicMapTraits<HeuristicType>::HeuristicUsesMapResolution>(), map);
 
         initMap();
+    }
+
+    void setMap(generic::Int2Type<false>, const GridMap2d* map){}
+
+    void setMap(generic::Int2Type<true>, const GridMap2d* map){
+        HeuristicType::setMapResolution(map_->getResolution());
     }
 
     virtual void initMap() = 0;

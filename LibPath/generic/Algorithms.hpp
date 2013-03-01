@@ -37,16 +37,26 @@ DEFINE_CONCRETE_ALGORITHM(BreadthFirstState,
                           QueueManager)
 
 DEFINE_CONCRETE_ALGORITHM(AStar2d,
-                          HeuristicDistToGoal,
+                          HeuristicL2,
                           GridMapManager,
                           PriorityQueueManager)
 
-DEFINE_CONCRETE_ALGORITHM(AStar,
-                          HeuristicDistToGoal,
-                          StateSpaceManager,
+DEFINE_CONCRETE_ALGORITHM(AStar2dTaxi,
+                          HeuristicL1,
+                          GridMapManager,
                           PriorityQueueManager)
 
-typedef MaxHeuristic<HeuristicDistToGoal, HeuristicHolonomicNoObstacles> MH1;
+DEFINE_CONCRETE_ALGORITHM(AStar2dInf,
+                          HeuristicLInf,
+                          GridMapManager,
+                          PriorityQueueManager)
+
+
+DEFINE_CONCRETE_ALGORITHM(AStar,
+                          HeuristicL2,
+                          StateSpaceManager,
+                          PriorityQueueManager)
+typedef MaxHeuristic<HeuristicL2, HeuristicHolonomicNoObstacles> MH1;
 
 DEFINE_CONCRETE_ALGORITHM(AStarHybridHeuristics,
                           MH1,

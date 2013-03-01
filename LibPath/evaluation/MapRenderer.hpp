@@ -65,7 +65,7 @@ struct MapRenderer : public MapManagerExtension<typename Param::NodeType> {
                         cv::LineIterator it(out, p2cvRef(node, h, Scale), p2cvRef(*prev, h, Scale));
                         for(int i = 0; i < it.count; ++i, ++it) {
                             cv::Vec3b& v = *(cv::Vec3b*) *it;
-                            v = cv::Vec3b(v[0], std::max(0, v[1]-50), std::max(0, v[2]-50));
+                            v = cv::Vec3b(std::min(255, v[0]+80), std::min(255, v[1]+80), std::min(255, v[2]+80));
                         }
                     }
                 }
@@ -95,7 +95,7 @@ struct MapRenderer : public MapManagerExtension<typename Param::NodeType> {
         }
     }
 
-    inline void fill(generic::Int2Type<1>, cv::Mat& out, unsigned x, unsigned y, uint8_t v) {
+    inline void fill(generic::Int2Type<true>, cv::Mat& out, unsigned x, unsigned y, uint8_t v) {
         out.at<cv::Vec3b>(out.rows-1-y, x) = cv::Vec3b(255, v, v);
     }
 

@@ -209,6 +209,8 @@ int main(int argc, char** argv)
     ("directory", po::value<std::string>()->required(), "working directory")
     ;
 
+    // --dimensions=128 --angles=16 --resolution=0.5 --directory=
+
     po::variables_map vm;
 
     po::positional_options_description p;

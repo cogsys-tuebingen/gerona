@@ -41,7 +41,7 @@ struct HeuristicNode : public Node<PointT> {
 
 
 template <typename Any>
-class HasHeuristicField
+class NodeTraits
 {
     typedef char Small;
     class Big
@@ -54,8 +54,43 @@ class HasHeuristicField
 
 
 public:
-    enum { value = sizeof(test<Any>(0)) == sizeof(Small) };
+    enum { HasHeuristicField = sizeof(test<Any>(0)) == sizeof(Small) };
 };
+
+
+template <class H>
+struct HeuristicMapTraits {
+private:
+    typedef char Small;
+    class Big
+    {
+        char dummy[2];
+    };
+
+    template <typename Class> static Small test(typeof(&Class::setMapResolution)) ;
+    template <typename Class> static Big test(...);
+
+    template <bool, class HH>
+    struct If {
+        static void init(const std::string& param){}
+        static void setMapRes(double res){}
+    };
+
+    template <class HH>
+    struct If<true, HH> {
+        static void init(const std::string& param){
+            HH::init(param);
+        }
+        static void setMapRes(double res){
+            HH::setMapResolution(res);
+        }
+    };
+public:
+    enum { HeuristicUsesMapResolution = sizeof(test<H>(0)) == sizeof(Small) };
+    typedef If<HeuristicUsesMapResolution, H> Do;
+};
+
+
 
 
 
@@ -69,11 +104,9 @@ struct NoHeuristic {
     template <class NodeType>
     static void compute(const NodeType*, const NodeType*) {
     }
-    static void setMapResolution(double res) {}
-    static void init(const std::string& param) {}
 };
 
-struct HeuristicDistToGoal {
+struct HeuristicL2 {
     template <class PointT>
     struct NodeHolder {
         typedef HeuristicNode<PointT> NodeType;
@@ -83,8 +116,30 @@ struct HeuristicDistToGoal {
     static void compute(NodeType* current, NodeType* goal) {
         current->h = hypot(current->x - goal->x, current->y - goal->y);
     }
-    static void setMapResolution(double res) {}
-    static void init(const std::string& param) {}
+};
+
+struct HeuristicL1 {
+    template <class PointT>
+    struct NodeHolder {
+        typedef HeuristicNode<PointT> NodeType;
+    };
+
+    template <class NodeType>
+    static void compute(NodeType* current, NodeType* goal) {
+        current->h = std::abs(current->x - goal->x) + std::abs(current->y - goal->y);
+    }
+};
+
+struct HeuristicLInf {
+    template <class PointT>
+    struct NodeHolder {
+        typedef HeuristicNode<PointT> NodeType;
+    };
+
+    template <class NodeType>
+    static void compute(NodeType* current, NodeType* goal) {
+        current->h = std::max(std::abs(current->x - goal->x), std::abs(current->y - goal->y));
+    }
 };
 
 struct HeuristicHolonomicNoObstacles {
@@ -236,22 +291,19 @@ struct MaxHeuristic {
 
         H2::compute(current, goal);
 
-        if(current->h > h1) {
-//            std::cout << "using heuristic 2" << current->h << " > " << h1 << std::endl;
-        }
-
         current->h = std::max(current->h, h1);
     }
-    static void setMapResolution(double res) {
-        H1::setMapResolution(res);
-        H2::setMapResolution(res);
-    }
 
+    static void setMapResolution(double res) {
+        HeuristicMapTraits<H1>::Do::setMapRes(res);
+        HeuristicMapTraits<H1>::Do::setMapRes(res);
+    }
 
     static void init(const std::string& param) {
-        H1::init(param);
-        H2::init(param);
+        HeuristicMapTraits<H1>::Do::init(param);
+        HeuristicMapTraits<H2>::Do::init(param);
     }
+
 };
 
 

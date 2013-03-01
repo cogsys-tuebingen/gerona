@@ -32,8 +32,8 @@ struct NoSubParameter {
 template <class PointT,
          class HeuristicT,
          class MapT,
-         class Neighborhood,
-         template <class> class OpenNodesManager,
+         class NeighborhoodT,
+         template <class> class OpenNodesPolicy,
          int DRAW_N_STEPS = 0,
          class SubParameter = NoSubParameter
          >
@@ -42,34 +42,33 @@ struct GenericParameter : public SubParameter
     typedef PointT PointType;
     typedef HeuristicT HeuristicType;
     typedef MapT MapType;
-    typedef Neighborhood NeighborhoodType;
-    typedef NeighborSelection<typename HeuristicType::template NodeHolder<PointT>::NodeType, NeighborhoodType> NeighborhoodSelection;
-    typedef typename NeighborhoodSelection::NodeType NodeType;
+    typedef NeighborhoodT NeighborhoodType;
+    typedef NeighborSelection<typename HeuristicType::template NodeHolder<PointT>::NodeType, NeighborhoodType> NeighborhoodSelectionPolicy;
+    typedef typename NeighborhoodSelectionPolicy::NodeType NodeType;
 
-    typedef OpenNodesManager<NodeType> OpenNodesManagerType;
+    typedef OpenNodesPolicy<NodeType> OpenNodesManager;
 
     enum { DRAW_STEPS = DRAW_N_STEPS};
 };
 
 template <class Param,
-         template <class, class> class MapManager,
+         template <class, class> class MapManagerPolicy,
          template <class> class Extension = MapManagerExtension>
 class GenericSearchAlgorithm :
-    public Param::NeighborhoodSelection,
-    public MapManager<Param, Extension<Param> >
+    public Param::NeighborhoodSelectionPolicy,
+    public MapManagerPolicy<Param, Extension<Param> >
 {
 public:
 
     enum { DRAW_N_STEPS = Param::DRAW_STEPS };
     enum { SCALE = Param::SCALE };
 
-    typedef typename Param::OpenNodesManagerType OpenNodesManager;
+    typedef typename Param::OpenNodesManager OpenNodesManager;
     typedef typename Param::PointType PointT;
     typedef typename Param::NodeType NodeT;
     typedef typename Param::HeuristicType Heuristic;
 
-    friend class Param::NeighborhoodSelection;
-//    typedef NeighborSelection<Neighborhood, MapManager, typename Heuristic::NodeType, MapT, Extension> NeighborhoodT;
+    friend class Param::NeighborhoodSelectionPolicy;
 
     typedef GenericPath<NodeT> PathT;
 

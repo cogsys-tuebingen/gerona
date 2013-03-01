@@ -245,7 +245,7 @@ void Evaluator::run()
 {
     searchAlgorithm.setMap(&map_info);
 
-    SearchAlgorithm::Heuristic::init("heuristic_holo_no_obst.txt");
+    init<SearchAlgorithm::Heuristic>(generic::Int2Type<HeuristicMapTraits<SearchAlgorithm::Heuristic>::HeuristicUsesMapResolution>());
 
     Renderer renderer(map_info, start, goal, img);
     active_renderer = &renderer;

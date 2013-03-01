@@ -50,13 +50,13 @@ public:
     }
 
 private:
-    void connectImp(generic::Int2Type<1>, const GridMap2d& map, const PointT& from, const PointT& to, cv::Mat out, CvScalar color, float scale) {
+    void connectImp(generic::Int2Type<true>, const GridMap2d& map, const PointT& from, const PointT& to, cv::Mat out, CvScalar color, float scale) {
         color = from.forward ? cv::Scalar(0,255,0) : cv::Scalar(0,0,255);
 
-        connectImp(generic::Int2Type<0>(), map, from, to, out, color, scale);
+        connectImp(generic::Int2Type<false>(), map, from, to, out, color, scale);
     }
 
-    void connectImp(generic::Int2Type<0>, const GridMap2d& map, const PointT& from, const PointT& to, cv::Mat out, CvScalar color, float scale) {
+    void connectImp(generic::Int2Type<false>, const GridMap2d& map, const PointT& from, const PointT& to, cv::Mat out, CvScalar color, float scale) {
         cv::line(out, p2cvRef(from, map.getHeight(), Scale), p2cvRef(to, map.getHeight(), Scale), color, 5.0f * scale, CV_AA);
     }
 
@@ -72,7 +72,6 @@ private:
 
         template <typename Class> static Small test(typeof(&Class::forward)) ;
         template <typename Class> static Big test(...);
-
 
     public:
         enum { value = sizeof(test<Any>(0)) == sizeof(Small) };

@@ -35,13 +35,13 @@ public:
         : map_(map), out_(out), render_factor(1.0), render_offset(0.0) {
         start_.x = start.x;
         start_.y = start.y;
-        start_.center_x = start.x;
-        start_.center_y = start.y;
+//        start_.center_x = start.x;
+//        start_.center_y = start.y;
         start_.theta = start.theta;
         goal_.x = goal.x;
         goal_.y = goal.y;
-        goal_.center_x = goal.x;
-        goal_.center_y = goal.y;
+//        goal_.center_x = goal.x;
+//        goal_.center_y = goal.y;
         goal_.theta = goal.theta;
     }
 
@@ -61,15 +61,7 @@ public:
         offset_ += offset;
     }
 
-    template <typename V>
-    unsigned readVal(generic::Int2Type<1>, V c) {
-        return c.h;
-    }
-    template <typename V>
-    unsigned readVal(generic::Int2Type<0>, V c) {
-        return 127;
-    }
-
+public:
     void renderMap() {
         assert(out_.rows > 0);
         assert(out_.cols > 0);
@@ -84,12 +76,12 @@ public:
                     c.x = x;
                     c.y = y;
                     c.theta = goal_.theta + offset_;
-                    c.center_x = x;
-                    c.center_y = y;
+//                    c.center_x = x;
+//                    c.center_y = y;
 //                    Heuristic::H2T::compute(&c, &goal_);
                     Heuristic::compute(&c, &goal_);
 
-                    unsigned v = std::min(255.0, std::max(0.0, ((readVal(generic::Int2Type<HasHeuristicField<PointT>::value>(), c) + render_offset) * render_factor)));
+                    unsigned v = std::min(255.0, std::max(0.0, ((ValueReader<PointT>::read(c) + render_offset) * render_factor)));
 //                    unsigned v = std::min(255.0, c.distance);
 
                     col = cv::Vec3b(0, 255-v, v);
@@ -119,7 +111,7 @@ public:
         }
     }
 
-    void fill(generic::Int2Type<1>, unsigned x, unsigned y, cv::Vec3b& col) {
+    void fill(generic::Int2Type<true>, unsigned x, unsigned y, cv::Vec3b& col) {
         out_.at<cv::Vec3b>(out_.rows-1-y, x) = col;
     }
 
@@ -202,12 +194,12 @@ public:
                     c.x = mx;
                     c.y = my;
                     c.theta = goal_.theta + offset_;
-                    c.center_x = mx;
-                    c.center_y = my;
+//                    c.center_x = mx;
+//                    c.center_y = my;
 //                    Heuristic::H2T::compute(&c, &goal_);
                     Heuristic::compute(&c, &goal_);
 
-                    int v = readVal(generic::Int2Type<HasHeuristicField<PointT>::value>(), c);
+                    int v = ValueReader<PointT>::read(c);
 //                    unsigned v = std::min(255.0, c.distance);
 
                     if(v > max) {
@@ -223,6 +215,31 @@ public:
         render_offset = -min;
         render_factor = 255.0 / (max - min);
     }
+
+private:
+    template <class P>
+    struct ValueReader {
+        template <class V>
+        static unsigned read(V& c) {
+            return If<NodeTraits<P>::HasHeuristicField, void>::read(c);
+        }
+
+    private:
+        template <bool, class Dummy> // Dummy is there to make the specialization of <true> not explicit
+        struct If {
+            template <typename Value>
+            static unsigned read(Value& c) {
+                return 127;
+            }
+        };
+        template <class Dummy> // Dummy is there to make the specialization of <true> not explicit
+        struct If<true, Dummy> {
+            template <typename Value>
+            static unsigned read(Value& c) {
+                return c.h;
+            }
+        };
+    };
 
 protected:
     const GridMap2d& map_;
