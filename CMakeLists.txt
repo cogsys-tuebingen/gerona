@@ -1,4 +1,6 @@
 # src/CMakeLists.txt
+cmake_minimum_required (VERSION 2.6)
+project (Utils)
 
 include_directories (
     LibUtil
@@ -14,7 +16,6 @@ add_subdirectory (LibGps)
 add_subdirectory (LibRobot)
 add_subdirectory (LibMlsmap)
 add_subdirectory (LibPath)
-add_subdirectory (brisk)
 add_subdirectory (LibLaserProcessing)
 add_subdirectory (LibRandom)
 add_subdirectory (LibGeneric)

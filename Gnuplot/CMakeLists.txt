@@ -1,6 +1,6 @@
 # Utils/Gnuplot/CMakeLists.txt
 
-rosbuild_add_library (Gnuplot
+add_library (Gnuplot
    Gnuplot.cpp
 )
 

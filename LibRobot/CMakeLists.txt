@@ -23,7 +23,7 @@ find_package(OpenCV REQUIRED)
 include_directories(/opt/intel/ipp/include/)
 
 
-rosbuild_add_library(LibRobot
+add_library(LibRobot
     AckermannSteering.cpp
     BoundaryFinder.cpp
     Laser2dScan.cpp

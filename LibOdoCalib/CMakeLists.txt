@@ -8,7 +8,7 @@ include_directories (
     ../../Utils/LibBotHardware
 )
 
-rosbuild_add_library (LibOdoCalib
+add_library (LibOdoCalib
     BetaEstimator.cpp
     DriveCircleAction.cpp
     DriveCircleMission.cpp

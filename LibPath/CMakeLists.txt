@@ -10,7 +10,9 @@
 
 #link_directories($ENV{RABOT}/lib)
 
-rosbuild_add_library(LibPath  ReedsShepp/CurveGenerator.cpp
+find_package(Boost COMPONENTS program_options REQUIRED)
+
+add_library(LibPath  ReedsShepp/CurveGenerator.cpp
     ReedsShepp/Curve.cpp
     ReedsShepp/CurveSegment.cpp
     ReedsShepp/CircleSegment.cpp
@@ -56,17 +58,18 @@ if(NOT OpenCV_FOUND)
 else(NOT OpenCV_FOUND)
 
 
-    rosbuild_add_executable (CostPrecomputation
+    add_executable (CostPrecomputation
                              ReedsShepp/CostPrecomputation.cpp
                              ReedsShepp/CurveRenderer.cpp)
     target_link_libraries (CostPrecomputation
         LibUtil
         LibPath
         ${OpenCV_LIBS}
+        ${Boost_LIBRARIES}
     )
 
 
-    rosbuild_add_executable (ReedsSheppCurveTest
+    add_executable (ReedsSheppCurveTest
                              ReedsShepp/CurveTest.cpp
                              ReedsShepp/CurveRenderer.cpp)
     target_link_libraries (ReedsSheppCurveTest
@@ -74,7 +77,7 @@ else(NOT OpenCV_FOUND)
         LibPath
         ${OpenCV_LIBS}
     )
-    rosbuild_add_executable (Path4wsSimulator
+    add_executable (Path4wsSimulator
                              common/path4ws_simulator.cpp
                              common/path4ws_sim.cpp
     )
@@ -83,7 +86,7 @@ else(NOT OpenCV_FOUND)
         LibPath
         ${OpenCV_LIBS}
     )
-    rosbuild_add_executable (Evaluator
+    add_executable (Evaluator
                              evaluation/evaluator.cpp)
     target_link_libraries (Evaluator
         LibUtil
