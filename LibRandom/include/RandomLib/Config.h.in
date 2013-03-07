@@ -1,7 +1,0 @@
-#define RANDOMLIB_VERSION_STRING "@RandomLib_VERSION@"
-
-// These are macros which affect the building of the library
-#cmakedefine01 RANDOM_SHARED_LIB
-#cmakedefine01 HAVE_SSE2
-#cmakedefine01 HAVE_ALTIVEC
-#cmakedefine01 HAVE_LONG_DOUBLE
