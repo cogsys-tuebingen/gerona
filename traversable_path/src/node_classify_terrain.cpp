@@ -14,8 +14,6 @@ int main(int argc, char **argv)
 
     TerrainClassifier dls;
 
-    ROS_INFO("BLA!");
-
     // main loop
     ros::spin();
     return 0;

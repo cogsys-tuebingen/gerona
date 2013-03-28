@@ -45,12 +45,12 @@ private:
      * @todo This is only for debugging and should be removed in later versions.
      */
     ros::Publisher publish_normalized_;
-    ros::Publisher publish_normalized_2_;
+    ros::Publisher publish_normalized_diff;
 
     //! Publisher for the classification point cloud
     ros::Publisher publish_classification_cloud_;
     //! Subscribes for laser scans.
-    ros::Subscriber subscribe_laser_scan_;
+    ros::Subscriber subscribe_laser_scan_[4];
     //! Listener for tf data.
     tf::TransformListener tf_listener_;
     //! Registers calibration service.

@@ -25,12 +25,17 @@ TerrainClassifier::TerrainClassifier() :
 
     // advertise
     publish_normalized_   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
-    publish_normalized_2_   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend2", 100);
+    publish_normalized_diff   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/normalized_diff", 100);
     publish_classification_cloud_ = node_handle_.advertise<PointCloudXYZRGBT >("path_classification_cloud", 10);
     publish_map_ = node_handle_.advertise<nav_msgs::OccupancyGrid>("traversability_map", 1);
 
     // subscribe laser scanner
-    subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &TerrainClassifier::classifyLaserScan, this);
+    //subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &TerrainClassifier::classifyLaserScan, this);
+    subscribe_laser_scan_[0] = node_handle_.subscribe("/sick_ldmrs/scan0", 100, &TerrainClassifier::classifyLaserScan, this);
+    subscribe_laser_scan_[1] = node_handle_.subscribe("/sick_ldmrs/scan1", 100, &TerrainClassifier::classifyLaserScan, this);
+    subscribe_laser_scan_[2] = node_handle_.subscribe("/sick_ldmrs/scan2", 100, &TerrainClassifier::classifyLaserScan, this);
+    subscribe_laser_scan_[3] = node_handle_.subscribe("/sick_ldmrs/scan3", 100, &TerrainClassifier::classifyLaserScan, this);
+
     subscribe_save_scan_ = node_handle_.subscribe("savescan", 0, &TerrainClassifier::saveScanCallback, this);
 
     // register calibration service
@@ -48,14 +53,14 @@ TerrainClassifier::TerrainClassifier() :
     VectorSaver<float> vs(range_calibration_file_);
     is_calibrated_ = vs.load(&plane_ranges_);
 
-    /** Set laser tilt @todo load the angle from calibration file */
-    ros::Publisher pub_laser_rtz = node_handle_.advertise<ramaxxbase::PTZ>("/cmd_rtz", 1, true);
-    ramaxxbase::PTZ laser_rtz;
-    laser_rtz.tilt = -0.22; // other values default to 0
-    pub_laser_rtz.publish(laser_rtz);
-    ROS_INFO("Published laser tilt angle. Waiting 2 seconds for rtz...");
-    sleep(2); // the rtz unit needs some time to move the laser scanner. 2 sec should be enought.
-    ROS_INFO("done.");
+//    /** Set laser tilt @todo load the angle from calibration file */
+//    ros::Publisher pub_laser_rtz = node_handle_.advertise<ramaxxbase::PTZ>("/cmd_rtz", 1, true);
+//    ramaxxbase::PTZ laser_rtz;
+//    laser_rtz.tilt = -0.22; // other values default to 0
+//    pub_laser_rtz.publish(laser_rtz);
+//    ROS_INFO("Published laser tilt angle. Waiting 2 seconds for rtz...");
+//    sleep(2); // the rtz unit needs some time to move the laser scanner. 2 sec should be enought.
+//    ROS_INFO("done.");
 
 
     // initialize map
@@ -306,8 +311,15 @@ vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs
     diff_intensities[LENGTH-1] = diff_intensities[LENGTH-2];
 
     // smooth differential of intensity
-    diff_intensities = smooth(diff_intensities, 6);
+    //diff_intensities = smooth(diff_intensities, 6);
 
+    //////
+    sensor_msgs::LaserScan scan_diff;
+    scan_diff = data;
+    scan_diff.ranges = diff_ranges;
+    scan_diff.intensities = diff_intensities;
+    publish_normalized_diff.publish(scan_diff);
+    //////
 
     vector<PointClassification> scan_classification(LENGTH);
 
@@ -358,7 +370,9 @@ vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs
      */
     for (unsigned int i = 0; i < LENGTH; ++i) {
         if (!scan_classification[i].isTraversable())
-            out[i] = 5000.0;
+            out[i] = 100.0;
+        else
+            out[i] = 0.0;
     }
 
     return scan_classification;

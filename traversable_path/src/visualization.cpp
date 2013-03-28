@@ -49,5 +49,6 @@ void Visualization::paintPath(const pcl::PointCloud<PointXYZRGBT>::ConstPtr &clo
     cv::imshow("path", path_);
     cv::waitKey(3);
 
-    path_pos_ = ++path_pos_ % path_.cols;
+
+    path_pos_ = (path_pos_ + 1) % path_.cols;
 }
