@@ -6,6 +6,7 @@
  *  Created on: Jan 12, 2012
  *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
  */
+
 #include "Stopwatch.h"
 #include "CostmapNode.h"
 
@@ -17,21 +18,42 @@ CostmapNode::CostmapNode(ros::NodeHandle &nh)
   nh.param<int> ("erode", erode_, 4);
   nh.param<int> ("sampling", sampling_, 1);
 
-  std::string map ("/map");
-  std::string map_res ("/map_inflated");
-  nh.param<std::string> ("topic_mac", map, map);
-  nh.param<std::string> ("topic_mac_result", map_res, map_res);
+  std::string map_topic ("/map");
+  std::string map_topic_result ("/map/inflated");
+  std::string map_service ("/dynamic_map/inflated");
+  nh.param("topic_map", map_topic, map_topic);
+  nh.param("topic_map_result", map_topic_result, map_topic_result);
+  nh.param("service_map", map_service, map_service);
 
-  map_subscriber_ = nh.subscribe<nav_msgs::OccupancyGrid> (map, 10, boost::bind(&CostmapNode::updateMap, this, _1));
-  map_publisher_ = nh.advertise<nav_msgs::OccupancyGrid> (map_res, 10);
+  map_subscriber_ = nh.subscribe<nav_msgs::OccupancyGrid> (map_topic, 10, boost::bind(&CostmapNode::updateMapCallback, this, _1));
+  map_publisher_ = nh.advertise<nav_msgs::OccupancyGrid> (map_topic_result, 10);
+
+
+  map_service_client = nh.serviceClient<nav_msgs::GetMap> ("/dynamic_map");
+  map_service_ = nh.advertiseService (map_service, &CostmapNode::getMap, this);
 }
 
-void CostmapNode::updateMap(const nav_msgs::OccupancyGridConstPtr &ptr)
+bool CostmapNode::getMap(nav_msgs::GetMap::Request &req, nav_msgs::GetMap::Response &res)
 {
-  map_data_.resize( ptr->info.width *ptr->info.height);
+  nav_msgs::GetMap map_service;
+  map_service_client.call(map_service);
+  updateMap(map_service.response.map);
+
+  res.map = current_map_;
+  return true;
+}
+
+void CostmapNode::updateMapCallback(const nav_msgs::OccupancyGridConstPtr &ptr)
+{
+  updateMap(*ptr);
+}
+
+void CostmapNode::updateMap(const nav_msgs::OccupancyGrid &map)
+  {
+  map_data_.resize( map.info.width *map.info.height);
 
   Stopwatch timer;
-  costmap_.grow(ptr->data, ptr->info.width, ptr->info.height,
+  costmap_.grow(map.data, map.info.width, map.info.height,
                 map_data_,
                 dilate_, erode_, threshold_, sampling_);
 
@@ -41,11 +63,11 @@ void CostmapNode::updateMap(const nav_msgs::OccupancyGridConstPtr &ptr)
 //  ROS_INFO_STREAM("map inflation took " << diff << "ms [dilate: " << dilate_ << ", erode: " << erode_ <<
  //                 ", sampling: " << sampling_ << "] [avg. " << running_avg_ << "ms]");
 
-  nav_msgs::OccupancyGrid o;
-  o.data = map_data_;
-  o.info = ptr->info;
 
-  map_publisher_.publish(o);
+  current_map_.data = map_data_;
+  current_map_.info = map.info;
+
+  map_publisher_.publish(current_map_);
 }
 
 
