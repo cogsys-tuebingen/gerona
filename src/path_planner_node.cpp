@@ -29,9 +29,9 @@ using namespace lib_path;
 
 struct Planner
 {
-    enum { SCALE = 2 };
+    enum { SCALE = 1 };
 
-    typedef NonHolonomicNeighborhood<200, 120> NHNeighbor;
+    typedef NonHolonomicNeighborhood<50, 120> NHNeighbor;
 //    typedef AStarSearch_Debug<10000, NoSubParameter, MapRenderer, Pose2d, GridMap2d, NHNeighbor > AStar;
     typedef AStarSearch_Debug<10000, NoSubParameter, MapManagerExtension, Pose2d, GridMap2d, NHNeighbor > AStar;
 
@@ -145,18 +145,21 @@ struct Planner
         from_world.y = trafo.getOrigin().y();
         from_world.theta = tf::getYaw(trafo.getRotation());
 
+        ROS_WARN_STREAM("theta=" << from_world.theta);
+
         to_world.x = goal->pose.position.x;
         to_world.y = goal->pose.position.y;
         to_world.theta = tf::getYaw(goal->pose.orientation);
 
-        lib_path::Pose2d from_map = from_world;
-        lib_path::Pose2d to_map = to_world;
+        lib_path::Pose2d from_map;
+        lib_path::Pose2d to_map;
 
         {
             unsigned fx, fy;
             map_info->point2cell(from_world.x, from_world.y, fx, fy);
             from_map.x = fx;
             from_map.y = fy;
+            from_map.theta = from_world.theta;
         }
 
         {
@@ -164,6 +167,7 @@ struct Planner
             map_info->point2cell(to_world.x, to_world.y, fx, fy);
             to_map.x = fx;
             to_map.y = fy;
+            to_map.theta = to_world.theta;
         }
 
 
@@ -215,6 +219,12 @@ struct Planner
 
                 change += deltaData.distance_to_origin() + deltaSmooth.distance_to_origin();
             }
+        }
+
+        // update orientations
+        for(unsigned i = 1; i < n-1; ++i){
+            Pose2d delta = new_path[i+1] - new_path[i-1];
+            new_path[i].theta = std::atan2(delta.y, delta.x);
         }
 
         return new_path;
