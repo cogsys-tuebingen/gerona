@@ -35,7 +35,7 @@ public:
 
   void update ();
   void publish();
-  bool getWorldPose(Vector3d& pose) const;
+  bool getWorldPose(Vector3d& pose, geometry_msgs::Pose* pose_out = NULL) const;
 
   bool transformToLocal(const geometry_msgs::PoseStamped& global, geometry_msgs::PoseStamped& local );
   bool transformToLocal(const geometry_msgs::PoseStamped& global, Vector3d& local );
@@ -46,6 +46,8 @@ private:
                          float r, float g, float b, float a);
 
   ros::NodeHandle& nh_;
+  ros::NodeHandle nh_private_;
+
   actionlib::SimpleActionServer<motion_control::MotionAction> action_server_;
   ros::Subscriber scan_sub_;
   ros::Subscriber odom_sub_;
@@ -57,7 +59,12 @@ private:
   nav_msgs::Odometry odometry_;
   LowPassFilter<float> speed_filter_;
   std::string action_name_;
-  std::string world_frame_,robot_frame_;
+  std::string world_frame_;
+  std::string robot_frame_;
+
+  std::string odom_topic_;
+  std::string scan_topic_;
+  std::string cmd_topic_;
 
   MotionController *active_ctrl_;
   CalibDriver *calib_driver_;

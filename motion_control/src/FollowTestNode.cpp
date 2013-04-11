@@ -5,19 +5,17 @@
 const double DEFAULT_V = 0.6;
 
 FollowTestNode::FollowTestNode(ros::NodeHandle& nh)
-  : action_client_("motion_control"),n_(nh), state_(STATE_S_START), default_v_(DEFAULT_V),
+  : action_client_("/motion_control", true),n_(nh), state_(STATE_S_START), default_v_(DEFAULT_V),
     has_path_(false)
 {
-
-
-
+  std::string topic = "/path_planner/path";
+  nh.param("topic", topic, topic);
   path_subscriber_ = nh.subscribe<nav_msgs::Path>
-      ("/rs_path", 1, boost::bind(&FollowTestNode::pathReceived, this, _1));
+      (topic, 1, boost::bind(&FollowTestNode::pathReceived, this, _1));
 
 
-  ROS_INFO("sampling inited");
-  state_=STATE_S_WAIT_PATH;
-
+  ROS_INFO("sampling initiated");
+  state_ = STATE_S_WAIT_PATH;
 }
 
 
@@ -40,6 +38,11 @@ void FollowTestNode::pathReceived(const nav_msgs::PathConstPtr &path)
       goal.target_v=0;
       goal.path=*path;
       goal.path_topic="";
+
+      if(!action_client_.isServerConnected()) {
+          ROS_ERROR("cannot send the motion control request, server offline.");
+          return;
+      }
       action_client_.sendGoal(goal,boost::bind(&FollowTestNode::doneCallback,this,_1,_2),
                               boost::bind(&FollowTestNode::activeCallback,this),
                               boost::bind(&FollowTestNode::feedbackCallback,this,_1));
@@ -75,7 +78,7 @@ void FollowTestNode::doneCallback(const actionlib::SimpleClientGoalState &state,
 
 void FollowTestNode::feedbackCallback(const motion_control::MotionFeedbackConstPtr& feedback)
 {
-  ROS_INFO("distance to goal: %f",feedback->dist_goal);
+//  ROS_INFO("distance to goal: %f",feedback->dist_goal);
 }
 
 

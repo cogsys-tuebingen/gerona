@@ -1,13 +1,34 @@
 <launch>
-  
-  <node name="path_following" pkg="path_following" type="follow_path" respawn="false" output="screen">
-    <param name="kp" value="0.8" />
-    <param name="ki" value="0.00001" />
-    <param name="kd" value="0.1" />
-    <param name="forward_speed" value="0.15" />
-    <param name="backward_speed" value="0.1" />
-    <param name="waypoint_threshold" value="0.1" />
-    <param name="steer_max" value="20.0f" />
+  <arg name="robot_frame" default="/base_link" />
+  <arg name="world_frame" default="/map" />
+  <arg name="odom_topic" default="/odom" />
+  <arg name="scan_topic" default="/scan" />
+  <arg name="cmd_topic" default="/ramaxx_cmd" />
+
+  <node name="motion_control" pkg="motion_control" type="motion_control" respawn="false" output="screen">
+    <param name="pid/kp" value="1" />
+    <param name="pid/ki" value="0" />
+    <param name="pid/i_max" value="0" />
+    <param name="pid/delta_max" value="40.0f" />
+
+    <param name="front_only" value="true" />
+
+    <param name="dualpid/kp" value="0.7" />
+    <param name="dualpid/ki" value="0.0001" />
+    <param name="dualpid/i_max" value="0" />
+    <param name="dualpid/delta_max" value="30.0f" />
+
+    <param name="min_speed" value="0.60" />
+    <param name="reverse_speed" value="0.40" />
+    <param name="waypoint_tolerance" value="1.0" />
+    <param name="goal_tolerance" value="0.15" />
+
+    <param name="odom_topic" value="$(arg odom_topic)" />
+    <param name="scan_topic" value="$(arg scan_topic)" />
+    <param name="robot_frame" value="$(arg robot_frame)" />
+    <param name="world_frame" value="$(arg world_frame)" />
+    <param name="cmd_topic" value="$(arg cmd_topic)" />
   </node>
 
+  <node name="follow" pkg="motion_control" type="FollowTestNode" respawn="false" output="screen"/>
 </launch>

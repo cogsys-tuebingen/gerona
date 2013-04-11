@@ -10,18 +10,26 @@
 using namespace motion_control;
 
 MotionControlNode::MotionControlNode(ros::NodeHandle& nh, const std::string& name)
-    :nh_(nh),action_server_(nh,name, false), speed_filter_( 6 ), action_name_(name)
+    :nh_(nh),nh_private_("~"),action_server_(nh,name, false), speed_filter_( 6 ), action_name_(name)
 {
   action_server_.registerGoalCallback(boost::bind(&MotionControlNode::goalCallback,this));
   action_server_.registerPreemptCallback(boost::bind(&MotionControlNode::preemptCallback,this));
   action_server_.start();
 
-  nh_.param<string>("world_frame",world_frame_,"/map");
-  nh_.param<string>("robot_frame",robot_frame_,"/base_link");
-  cmd_ramaxx_pub_ = nh_.advertise<ramaxxbase::RamaxxMsg>
-      ("/ramaxx_cmd", 10 );
-  scan_sub_ = nh_.subscribe<sensor_msgs::LaserScan>( "/scan", 1, boost::bind(&MotionControlNode::laserCallback, this, _1 ));
-  odom_sub_ = nh_.subscribe<nav_msgs::Odometry>( "/odom", 1, boost::bind( &MotionControlNode::odometryCallback, this, _1 ));
+  nh_private_.param<string>("world_frame",world_frame_,"/map");
+  nh_private_.param<string>("robot_frame",robot_frame_,"/base_link");
+  nh_private_.param<string>("odom_topic",odom_topic_,"/odom");
+  nh_private_.param<string>("scan_topic",scan_topic_,"/scan");
+  nh_private_.param<string>("cmd_topic",cmd_topic_,"/ramaxx_cmd");
+
+  ROS_INFO_STREAM("world_frame: " << world_frame_);
+  ROS_INFO_STREAM("robot_frame: " << robot_frame_);
+  ROS_INFO_STREAM("odom_topic: " << odom_topic_);
+  ROS_INFO_STREAM("scan_topic: " << scan_topic_);
+
+  cmd_ramaxx_pub_ = nh_.advertise<ramaxxbase::RamaxxMsg> (cmd_topic_, 10 );
+  scan_sub_ = nh_.subscribe<sensor_msgs::LaserScan>( scan_topic_, 1, boost::bind(&MotionControlNode::laserCallback, this, _1 ));
+  odom_sub_ = nh_.subscribe<nav_msgs::Odometry>( odom_topic_, 1, boost::bind( &MotionControlNode::odometryCallback, this, _1 ));
   sonar_sub_ = nh_.subscribe<sensor_msgs::PointCloud>( "/sonar_raw", 1, boost::bind( &MotionControlNode::sonarCallback, this, _1 ));
   active_ctrl_ = NULL;
   calib_driver_ = new CalibDriver (cmd_ramaxx_pub_, this);
@@ -74,15 +82,13 @@ bool MotionControlNode::transformToLocal(const geometry_msgs::PoseStamped &globa
 }
 
 
-bool MotionControlNode::getWorldPose( Vector3d &pose ) const
+bool MotionControlNode::getWorldPose(Vector3d &pose , geometry_msgs::Pose *pose_out) const
 {
     tf::StampedTransform transform;
     geometry_msgs::TransformStamped msg;
 
-    std::string source_frame("base_link");
-    std::string target_frame("map");
     try {
-      pose_listener_.lookupTransform(target_frame, source_frame, ros::Time(0), transform);
+      pose_listener_.lookupTransform(world_frame_, robot_frame_, ros::Time(0), transform);
     } catch (tf::TransformException& ex) {
       ROS_ERROR("error with transform robot pose: %s", ex.what());
       return false;
@@ -92,6 +98,13 @@ bool MotionControlNode::getWorldPose( Vector3d &pose ) const
     pose.x() = msg.transform.translation.x;
     pose.y() = msg.transform.translation.y;
     pose(2) = tf::getYaw(msg.transform.rotation);
+
+    if(pose_out != NULL) {
+        pose_out->position.x = msg.transform.translation.x;
+        pose_out->position.y = msg.transform.translation.y;
+        pose_out->position.z = msg.transform.translation.z;
+        pose_out->orientation = msg.transform.rotation;
+    }
     return true;
 }
 
@@ -125,7 +138,7 @@ void MotionControlNode::goalCallback()
     case motion_control::MotionGoal::MOTION_FOLLOW_TARGET:
       active_ctrl_=simple_goal_driver_;
       active_ctrl_->setGoal(*goalptr);
-      break;      
+      break;
     default:
       ROS_WARN("Motioncontrol invalid motion mode %d requested",goalptr->mode);
       MotionResult result;
@@ -200,7 +213,7 @@ void MotionControlNode::update()
 
 int main(int argc, char** argv)
 {
-  ros::init(argc,argv,"");
+  ros::init(argc,argv,"motion_control");
   //ros::NodeHandle nh("~");
   ros::NodeHandle nh;
   MotionControlNode node(nh,"motion_control");

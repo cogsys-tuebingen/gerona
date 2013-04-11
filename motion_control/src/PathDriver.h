@@ -16,9 +16,11 @@
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <Eigen/Core>
+#include <visualization_msgs/Marker.h>
 
 // Project
 #include "DualPidCtrl.h"
+#include "PidCtrl.h"
 #include "MotionController.h"
 
 namespace motion_control {
@@ -105,11 +107,15 @@ protected:
      */
     void rosToEigen( const geometry_msgs::Pose &in, Eigen::Vector3d &out );
 
+    void drawArrow(int id, const geometry_msgs::Pose &pose, const std::string& ns, float r, float g, float b);
+
 private:
     MotionControlNode* node_;
 
     /// Used to publish steering/speed commands
     ros::Publisher cmd_pub_;
+
+    ros::Publisher vis_pub_;
 
     /// Used to transform waypoints into the local coordinate system
     tf::TransformListener tf_;
@@ -154,7 +160,10 @@ private:
     Eigen::Vector3d last_cmd_;
 
     /// Dual axis PID control
-    DualPidCtrl ctrl_;
+    bool front_only_;
+
+    PidCtrl mono_ctrl_;
+    DualPidCtrl dual_ctrl_;
 };
 
 } // namespace

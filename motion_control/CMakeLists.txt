@@ -74,6 +74,7 @@ target_link_libraries(FixedDriverTestNode LibUtil)
 
 rosbuild_add_executable(motion_control
 src/CalibDriver.cpp
+src/PidCtrl.cpp
 src/DualPidCtrl.cpp
 src/DualAxisDriver.cpp
 src/FixedDriver.cpp

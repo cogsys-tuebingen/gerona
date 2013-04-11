@@ -24,6 +24,17 @@ PathDriver::PathDriver( ros::Publisher& cmd_pub,MotionControlNode* node )
     cmd_pub_ = cmd_pub;
     configure();
     current_speed_ = 0;
+
+    vis_pub_ = node_->getNodeHandle().advertise<visualization_msgs::Marker>
+            ("marker", 1);
+
+    ros::NodeHandle nh_priv("~");
+    nh_priv.param("front_only", front_only_, false);
+    if(front_only_){
+        ROS_INFO("FRONT STREER MODE");
+    } else {
+        ROS_INFO("DUAL STEER MODE");
+    }
 }
 
 PathDriver::~PathDriver()
@@ -59,7 +70,8 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
 
     // Get SLAM pose
     Vector3d slam_pose;
-    if ( !node_->getWorldPose( slam_pose )) {
+    geometry_msgs::Pose slampose_p;
+    if ( !node_->getWorldPose( slam_pose, &slampose_p )) {
         stop();
         return MotionResult::MOTION_STATUS_SLAM_FAIL;
     }
@@ -92,40 +104,96 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
         }
     }
 
+    // visualize target
+    drawArrow(0, wp.pose, "waypoint", 1.0, 0.7, 0.2);
+    drawArrow(1, slampose_p, "waypoint", 2.0, 0.7, 1.0);
+
+    double dir_sign = 1.0;
+    if ( wp_local.x() < 0 )
+        dir_sign = -1.0;
+
+    double delta_f, delta_r;
+
     // Calculate target line from current to next waypoint (if there is any)
+    geometry_msgs::PoseStamped next_wp;
     Line2d target_line;
     if ( (size_t)path_idx_ + 1 < path_.size()) {
-        wp = path_[path_idx_ + 1].pose;
-        wp.header.stamp = ros::Time::now();
+        next_wp = path_[path_idx_ + 1].pose;
+        next_wp.header.stamp = ros::Time::now();
         Vector3d next_wp_local;
-        if ( !node_->transformToLocal( wp, next_wp_local )) {
+        if ( !node_->transformToLocal( next_wp, next_wp_local )) {
             stop();
             return MotionResult::MOTION_STATUS_INTERNAL_ERROR;
         }
         target_line = Line2d( next_wp_local.head<2>(), wp_local.head<2>());
     } else {
+        next_wp = wp;
         target_line.FromAngle( wp_local.head<2>(), wp_local(2) + M_PI );
     }
 
+    // draw line
+    geometry_msgs::Pose target_line_arrow;
+    target_line_arrow.position = next_wp.pose.position;
+    double dx = next_wp.pose.position.x - wp.pose.position.x;
+    double dy = next_wp.pose.position.y - wp.pose.position.y;
+    target_line_arrow.orientation = tf::createQuaternionMsgFromYaw(std::atan2(dy, dx));
+    drawArrow(2, target_line_arrow, "line", 0.7, 0.2, 1.0);
+
+    Vector2d front_pred, rear_pred;
+    predictPose( dead_time_, last_cmd_(0), last_cmd_(1), getFilteredSpeed(), front_pred, rear_pred );
+
+
     // Path lost?
-    if ( target_line.GetDistance( Vector2d( 0, 0 )) > 0.2 ) {
+    if ( target_line.GetDistance( Vector2d( 0, 0 )) > 2 * wp_tolerance_ ) {
         stop();
         return MotionResult::MOTION_STATUS_PATH_LOST;
     }
 
-    // Calculate front/rear errors
-    double dir_sign = 1.0;
-    if ( wp_local.x() < 0 )
-        dir_sign = -1.0;
-    Vector2d front_pred, rear_pred;
-    predictPose( dead_time_, last_cmd_(0), last_cmd_(1), getFilteredSpeed(), front_pred, rear_pred );
-    double e_f = target_line.GetSignedDistance( front_pred );
-    double e_r = target_line.GetSignedDistance( rear_pred );
+    if(front_only_) {
+        double e_angle = MathHelper::NormalizeAngle(tf::getYaw(wp.pose.orientation) - tf::getYaw(slampose_p.orientation));
+        double e_distance = target_line.GetSignedDistance( front_pred );
+        double e_f = e_distance + e_angle;
 
-     // Calculate steering angles
-    double delta_f, delta_r;
-    if ( !ctrl_.execute( e_f, e_r, delta_f, delta_r ))
-        return MotionResult::MOTION_STATUS_MOVING; // Nothing to do
+
+        // draw steer front
+        {
+        geometry_msgs::Pose steer_arrow = slampose_p;
+        steer_arrow.orientation = tf::createQuaternionMsgFromYaw(tf::getYaw(steer_arrow.orientation) + e_angle);
+        drawArrow(3, steer_arrow, "steer", 0.2, 1.0, 0.2);
+        }
+        {
+        geometry_msgs::Pose steer_arrow = slampose_p;
+        steer_arrow.orientation = tf::createQuaternionMsgFromYaw(tf::getYaw(steer_arrow.orientation) + e_distance);
+        drawArrow(4, steer_arrow, "steer", 0.2, 0.2, 1.0);
+        }
+        {
+        geometry_msgs::Pose steer_arrow = slampose_p;
+        steer_arrow.orientation = tf::createQuaternionMsgFromYaw(tf::getYaw(steer_arrow.orientation) + e_f);
+        drawArrow(5, steer_arrow, "steer", 1.0, 0.2, 0.2);
+        }
+
+        // Calculate steering angles
+        if ( !mono_ctrl_.execute( e_f, delta_f))
+            return MotionResult::MOTION_STATUS_MOVING; // Nothing to do
+
+        {
+        geometry_msgs::Pose steer_arrow = slampose_p;
+        steer_arrow.orientation = tf::createQuaternionMsgFromYaw(tf::getYaw(steer_arrow.orientation) + delta_f);
+        drawArrow(6, steer_arrow, "steer", 1.0, 1.0, 1.0);
+        }
+
+        delta_r = 0;
+
+    } else {
+
+        // Calculate front/rear errors
+        double e_f = target_line.GetSignedDistance( front_pred );
+        double e_r = target_line.GetSignedDistance( rear_pred );
+
+        // Calculate steering angles
+        if ( !dual_ctrl_.execute( e_f, e_r, delta_f, delta_r ))
+            return MotionResult::MOTION_STATUS_MOVING; // Nothing to do
+    }
 
     // Check collision and calculate speed
     double beta;
@@ -145,6 +213,26 @@ int PathDriver::execute( MotionFeedback& fb, MotionResult& result ) {
     last_cmd_(2) = current_speed_;
     publishCmd( last_cmd_ );
     return MotionResult::MOTION_STATUS_MOVING;
+}
+
+void PathDriver::drawArrow(int id, const geometry_msgs::Pose& pose, const std::string& ns, float r, float g, float b)
+{
+    visualization_msgs::Marker marker;
+    marker.pose = pose;
+    marker.ns = ns;
+    marker.header.frame_id = "/map";
+    marker.header.stamp = ros::Time();
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.id = id;
+    marker.color.r = r;
+    marker.color.g = g;
+    marker.color.b = b;
+    marker.color.a = 1.0;
+    marker.scale.x = 0.75;
+    marker.scale.y = 0.05;
+    marker.scale.z = 0.05;
+    marker.type = visualization_msgs::Marker::ARROW;
+    vis_pub_.publish(marker);
 }
 
 bool PathDriver::calculateSpeed( const double request, const double beta )
@@ -176,25 +264,35 @@ bool PathDriver::calculateSpeed( const double request, const double beta )
 }
 
 void PathDriver::configure() {
-    ros::NodeHandle& nh = node_->getNodeHandle();
+//    ros::NodeHandle& nh = node_->getNodeHandle();
+
+    ros::NodeHandle nh("~");
 
     // Path following/speed calculation
-    nh.param( "path_driver/waypoint_tolerance", wp_tolerance_, 0.20 );
-    nh.param( "path_driver/goal_tolerance", goal_tolerance_, 0.15 );
-    nh.param( "path_driver/l", l_, 0.38 );
-    nh.param( "path_driver/min_speed", min_speed_, 0.5 );
-    nh.param( "path_driver/reverse_speed", reverse_speed_, 0.5 );
+    nh.param( "waypoint_tolerance", wp_tolerance_, 0.20 );
+    nh.param( "goal_tolerance", goal_tolerance_, 0.15 );
+    nh.param( "l", l_, 0.38 );
+    nh.param( "min_speed", min_speed_, 0.5 );
+    nh.param( "reverse_speed", reverse_speed_, 0.5 );
 
     // Dual pid
     double ta, e_max, kp, ki, i_max, delta_max;
-    nh.param( "path_driver/dualpid/dead_time", dead_time_, 0.10 );
-    nh.param( "path_driver/dualpid/ta", ta, 0.03 );
-    nh.param( "path_driver/dualpid/e_max", e_max, 0.10 );
-    nh.param( "path_driver/dualpid/kp", kp, 0.4 );
-    nh.param( "path_driver/dualpid/ki", ki, 0.0 );
-    nh.param( "path_driver/dualpid/i_max", i_max, 0.0 );
-    nh.param( "path_driver/dualpid/delta_max", delta_max, 24.0 );
-    ctrl_.configure( kp, ki, i_max, M_PI*delta_max/180.0, e_max, 0.5, ta );
+    nh.param( "dualpid/dead_time", dead_time_, 0.10 );
+    nh.param( "dualpid/ta", ta, 0.03 );
+    nh.param( "dualpid/e_max", e_max, 0.10 );
+    nh.param( "dualpid/kp", kp, 0.4 );
+    nh.param( "dualpid/ki", ki, 0.0 );
+    nh.param( "dualpid/i_max", i_max, 0.0 );
+    nh.param( "dualpid/delta_max", delta_max, 24.0 );
+    dual_ctrl_.configure( kp, ki, i_max, M_PI*delta_max/180.0, e_max, 0.5, ta );
+
+
+    nh.param( "pid/kp", kp, 0.4 );
+    nh.param( "pid/ki", ki, 0.0 );
+    nh.param( "pid/i_max", i_max, 0.0 );
+    nh.param( "pid/delta_max", delta_max, 24.0 );
+
+    mono_ctrl_.configure( kp, ki, i_max, M_PI*delta_max/180.0, e_max, 0.5, ta );
 }
 
 
