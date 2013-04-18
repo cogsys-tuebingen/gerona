@@ -32,11 +32,12 @@ struct Planner
     enum { SCALE = 1 };
 
     typedef NonHolonomicNeighborhood<50, 120> NHNeighbor;
-//    typedef AStarSearch_Debug<10000, NoSubParameter, MapRenderer, Pose2d, GridMap2d, NHNeighbor > AStar;
-    typedef AStarSearch_Debug<10000, NoSubParameter, MapManagerExtension, Pose2d, GridMap2d, NHNeighbor > AStar;
+    //    typedef AStarSearch_Debug<10000, NoSubParameter, MapRenderer, Pose2d, GridMap2d, NHNeighbor > AStar;
+    typedef AStarSearch_Debug<0, NoSubParameter, MapManagerExtension, Pose2d, GridMap2d, NHNeighbor > AStar;
 
+    typedef AStar::PathT PathT;
 
-//    typedef PathRenderer<SCALE, AStar::NodeT, AStar::PathT, AStar::Heuristic> Renderer;
+    //    typedef PathRenderer<SCALE, AStar::NodeT, PathT, AStar::Heuristic> Renderer;
 
     //    typedef DirectNeighborhood<8,5> DNeighbor;
     //    typedef AStar2dSearch_Debug<80, NoSubParameter, MapManagerExtension, Pose2d, GridMap2d, DNeighbor> AStar;
@@ -102,7 +103,7 @@ struct Planner
         map_info->setUpperThreshold(70);
     }
 
-    nav_msgs::Path path2msg(const AStar::PathT& path)
+    nav_msgs::Path path2msg(const PathT& path)
     {
         nav_msgs::Path path_out;
         path_out.header.frame_id = "/map";
@@ -111,7 +112,7 @@ struct Planner
         BOOST_FOREACH(const Pose2d& next_map, path) {
             geometry_msgs::PoseStamped pose;
             map_info->cell2pointSubPixel(next_map.x,next_map.y,pose.pose.position.x,
-                                      pose.pose.position.y);
+                                         pose.pose.position.y);
 
             pose.pose.orientation = tf::createQuaternionMsgFromYaw(next_map.theta);
 
@@ -125,8 +126,9 @@ struct Planner
         std::cout << "got goal" << std::endl;
         if(use_map_service_) {
             nav_msgs::GetMap map_service;
-            map_service_client.call(map_service);
-            updateMap(map_service.response.map);
+            if(map_service_client.call(map_service)) {
+                updateMap(map_service.response.map);
+            }
         }
 
         if(map_info == NULL) {
@@ -162,18 +164,19 @@ struct Planner
             from_map.theta = from_world.theta;
         }
 
+        ROS_WARN_STREAM("res=" << map_info->getResolution());
         {
-            unsigned fx, fy;
-            map_info->point2cell(to_world.x, to_world.y, fx, fy);
-            to_map.x = fx;
-            to_map.y = fy;
+            unsigned tx, ty;
+            map_info->point2cell(to_world.x, to_world.y, tx, ty);
+            to_map.x = tx;
+            to_map.y = ty;
             to_map.theta = to_world.theta;
         }
 
 
         algo.setMap(map_info);
 
-        AStar::PathT path = algo.findPath(from_map, to_map);
+        PathT path = algo.findPath(from_map, to_map);
 
         if(path.empty()) {
             std::cout << "no path found" << std::endl;
@@ -183,24 +186,86 @@ struct Planner
 
 
 
-        AStar::PathT smooted_path = smoothPath(path, 0.5, 0.35);
+        PathT smooted_path = smoothPath(path, 0.5, 0.35);
 
         /// path
         raw_path_publisher.publish(path2msg(path));
         path_publisher.publish(path2msg(smooted_path));
     }
 
-    AStar::PathT smoothPath(const AStar::PathT& path, double weight_data, double weight_smooth, double tolerance = 0.000001) {
-        AStar::PathT new_path = path;
+    PathT smoothPath(const PathT& path, double weight_data, double weight_smooth, double tolerance = 0.000001) {
+        // find segments
+        unsigned n = path.size();
+        if(n < 2) {
+            return PathT();
+        }
+
+        PathT result;
+        PathT current_segment;
+
+        const PathT::NodeT * last_point = &path[0];
+        current_segment.push_back(*last_point);
+
+        for(int i = 1; i < n; ++i){
+            const PathT::NodeT* current_point = &path[i];
+
+            // append to current segment
+            current_segment.push_back(*current_point);
+
+            bool is_the_last_node = i == n-1;
+            bool segment_ends_with_this_node = false;
+
+            if(is_the_last_node) {
+                // this is the last node
+                segment_ends_with_this_node = true;
+
+            } else {
+                const PathT::NodeT* next_point = &path[i+1];
+
+                // if angle between last direction and next direction to large -> segment ends
+                Pose2d diff_last = (*current_point - *last_point);
+                double last_angle = std::atan2(diff_last.y, diff_last.x);
+
+                Pose2d diff_next = (*next_point - *current_point);
+                double next_angle = std::atan2(diff_next.y, diff_next.x);
+
+                if(std::abs(MathHelper::AngleClamp(last_angle - next_angle)) > M_PI / 2.0) {
+                    // new segment!
+                    // current node is the last one of the old segment
+                    segment_ends_with_this_node = true;
+                }
+            }
+
+            if(segment_ends_with_this_node) {
+                PathT smoothed_segment = smoothPathSegment(current_segment, weight_data, weight_smooth, tolerance);
+                result += smoothed_segment;
+
+                current_segment.clear();
+
+                if(!is_the_last_node) {
+                    // begin new segment
+
+                    // current node is also the first one of the new segment
+                    current_segment.push_back(*current_point);
+                }
+            }
+
+            last_point = current_point;
+        }
+
+        return result;
+    }
+
+    PathT smoothPathSegment(const PathT& path, double weight_data, double weight_smooth, double tolerance) {
+        PathT new_path = path;
+
+        unsigned n = path.size();
+        if(n < 2) {
+            return new_path;
+        }
 
         double last_change = -2 * tolerance;
         double change = 0;
-
-        unsigned n = path.size();
-
-        if(n < 2) {
-            return AStar::PathT();
-        }
 
         while(change > last_change + tolerance) {
             last_change = change;
@@ -222,9 +287,14 @@ struct Planner
         }
 
         // update orientations
+
         for(unsigned i = 1; i < n-1; ++i){
             Pose2d delta = new_path[i+1] - new_path[i-1];
             new_path[i].theta = std::atan2(delta.y, delta.x);
+
+            if(!new_path[i].forward) {
+                new_path[i].theta = MathHelper::AngleClamp(new_path[i].theta + M_PI);
+            }
         }
 
         return new_path;
