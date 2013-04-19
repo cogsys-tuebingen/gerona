@@ -5,7 +5,8 @@
 #include "MotionController.h"
 #include "MotionControlNode.h"
 #include "PatternDriver.h"
-#include "PathDriver.h"
+//#include "PathDriver.h"
+#include "BehaviouralPathDriver.h"
 
 using namespace motion_control;
 
@@ -36,7 +37,8 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& nh, const std::string& nam
   simple_goal_driver_ = new SimpleGoalDriver (cmd_ramaxx_pub_,this);
   fixed_driver_ =new FixedDriver(cmd_ramaxx_pub_, this);
   pattern_driver_=new PatternDriver(cmd_ramaxx_pub_, this);
-  path_driver_ = new PathDriver( cmd_ramaxx_pub_, this );
+//  path_driver_ = new PathDriver( cmd_ramaxx_pub_, this );
+  path_driver_ = new BehaviouralPathDriver(cmd_ramaxx_pub_, this);
 
   action_server_.start();
 }
@@ -81,6 +83,20 @@ bool MotionControlNode::transformToLocal(const geometry_msgs::PoseStamped &globa
   }
 }
 
+bool MotionControlNode::transformToGlobal(const geometry_msgs::PoseStamped &local_org, geometry_msgs::PoseStamped &global)
+{
+  geometry_msgs::PoseStamped local(local_org);
+  try {
+    local.header.frame_id=robot_frame_;
+    pose_listener_.transformPose(world_frame_,ros::Time(0),local,robot_frame_,global);
+    return true;
+
+  } catch (tf::TransformException& ex) {
+    ROS_ERROR("error with transform goal pose: %s", ex.what());
+    return false;
+  }
+}
+
 
 bool MotionControlNode::getWorldPose(Vector3d &pose , geometry_msgs::Pose *pose_out) const
 {
@@ -113,7 +129,7 @@ void MotionControlNode::goalCallback()
 {  
   boost::shared_ptr<const motion_control::MotionGoal_<std::allocator<void> > >
     goalptr = action_server_.acceptNewGoal();
-  if (active_ctrl_!=NULL && goalptr->mode!=active_ctrl_->getType()) {
+  if (active_ctrl_!=NULL/* && goalptr->mode!=active_ctrl_->getType()*/) {
     active_ctrl_->stop();
   }
   switch (goalptr->mode) {
@@ -195,6 +211,7 @@ void MotionControlNode::update()
     case MotionResult::MOTION_STATUS_SUCCESS:
         result.status = MotionResult::MOTION_STATUS_SUCCESS;
         action_server_.setSucceeded( result );
+        active_ctrl_ = NULL;
         break;
     case MotionResult::MOTION_STATUS_COLLISION:
     case MotionResult::MOTION_STATUS_INTERNAL_ERROR:

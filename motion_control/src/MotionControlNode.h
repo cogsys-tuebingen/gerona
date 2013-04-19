@@ -39,6 +39,7 @@ public:
 
   bool transformToLocal(const geometry_msgs::PoseStamped& global, geometry_msgs::PoseStamped& local );
   bool transformToLocal(const geometry_msgs::PoseStamped& global, Vector3d& local );
+  bool transformToGlobal(const geometry_msgs::PoseStamped& local, geometry_msgs::PoseStamped& global );
   ros::NodeHandle& getNodeHandle() {return nh_;}
 private:
   void send_arrow_marker(int id, std::string name_space, geometry_msgs::Pose &pose,

@@ -28,13 +28,18 @@ FollowTestNode::~FollowTestNode()
 
 void FollowTestNode::pathReceived(const nav_msgs::PathConstPtr &path)
 {
-  if (state_==STATE_S_WAIT_PATH) {
+  action_client_.waitForServer();
+  if (state_==STATE_S_DRIVE_PATH) {
+      ROS_WARN("aborting path following!");
+      action_client_.cancelAllGoals();
+  }
+
     ROS_INFO("pathfollower: path received with %zu poses",path->poses.size());
     if (path->poses.size()>0) {
       motion_control::MotionGoal goal;
       goal.mode=motion_control::MotionGoal::MOTION_FOLLOW_PATH;
       goal.pos_tolerance=0.1;
-      goal.v=0.5;
+      goal.v=1.5;
       goal.target_v=0;
       goal.path=*path;
       goal.path_topic="";

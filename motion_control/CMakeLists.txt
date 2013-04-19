@@ -83,6 +83,7 @@ src/MotionControlNode.cpp
 src/MotionController.cpp
 src/PathDriver.cpp
 #src/RsPathDriver.cpp
+src/BehaviouralPathDriver.cpp
 src/SimpleGoalDriver.cpp
 
 )
