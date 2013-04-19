@@ -186,7 +186,7 @@ struct Planner
 
 
 
-        PathT smooted_path = smoothPath(path, 0.5, 0.35);
+        PathT smooted_path = smoothPath(path, 0.5, 0.1);
 
         /// path
         raw_path_publisher.publish(path2msg(path));
