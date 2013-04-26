@@ -5,6 +5,7 @@
 
 bool CalibrationDataStorage::store(std::vector<std::vector<float> > data)
 {
+    // create yaml
     YAML::Emitter calib;
     calib << YAML::BeginSeq;
 
@@ -13,7 +14,7 @@ bool CalibrationDataStorage::store(std::vector<std::vector<float> > data)
     }
     calib << YAML::EndSeq;
 
-    // write data to file, truncate file before writing
+    // write yaml-data to file, truncate file before writing
     std::ofstream out_file(filename_.data(), std::ios::out | std::ios::trunc);
     if (!out_file.good()) {
         ROS_ERROR("CalibrationDataStorage::store: Could not open file '%s' for writing.", filename_.data());
@@ -43,9 +44,11 @@ bool CalibrationDataStorage::load(std::vector<std::vector<float> > *out)
         YAML::Node doc;
 
         parser.GetNextDocument(doc);
-        // yaml-sequence to vector
+        // the outer loop iterates over the layers
         for (YAML::Iterator layer_it = doc.begin(); layer_it != doc.end(); ++layer_it) {
             std::vector<float> scan;
+            // the inner loop iterates over the range values of the current layer (seems like there is no direct
+            // conversion to std::vector like it is for the other way round in store()).
             for (YAML::Iterator scan_it = layer_it->begin(); scan_it != layer_it->end(); ++scan_it) {
                 float elem;
                 *scan_it >> elem;
