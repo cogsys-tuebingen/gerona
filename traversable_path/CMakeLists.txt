@@ -43,7 +43,7 @@ gencfg()
 rosbuild_add_executable(classify_terrain
     src/node_classify_terrain.cpp
     src/terrainclassifier.cpp
-    src/vectorsaver.h
+    src/calibrationdatastorage.cpp
     src/pointclassification.cpp
     src/point_types.h
     src/mapprocessor.cpp

@@ -10,7 +10,10 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <dynamic_reconfigure/server.h>
 
-#define EIGEN_USE_NEW_STDVECTOR
+#ifndef EIGEN_USE_NEW_STDVECTOR
+    // avoid possible redefining, which would throw a warning.
+    #define EIGEN_USE_NEW_STDVECTOR
+#endif
 #include <Eigen/Core>
 #include <Eigen/StdVector>
 #include "point_types.h"

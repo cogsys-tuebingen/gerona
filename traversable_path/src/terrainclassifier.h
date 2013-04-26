@@ -48,7 +48,7 @@ private:
     ros::Publisher publish_normalized_diff;
 
     //! Publisher for the classification point cloud
-    ros::Publisher publish_classification_cloud_;
+    ros::Publisher publish_classification_cloud_[4];
     //! Subscribes for laser scans.
     ros::Subscriber subscribe_laser_scan_[4];
     //! Listener for tf data.
@@ -65,7 +65,7 @@ private:
     //! True if already calibrated, false if not.
     bool is_calibrated_;
     //! Range data of a (preferably) perfekt plane, to calibrate the laser data.
-    std::vector<float> plane_ranges_;
+    std::vector<std::vector<float> > plane_ranges_;
     //! Buffer of the last few scans.
     boost::circular_buffer< std::vector<PointClassification> > scan_buffer_;
 
@@ -90,7 +90,7 @@ private:
      * This is the callback function for the laser scans. It classifies the points, transforms them to the carthesian
      * frame of the laser and publishes the result as ScanClassification message.
      */
-    void classifyLaserScan(const sensor_msgs::LaserScanPtr &msg);
+    void classifyLaserScan(const sensor_msgs::LaserScanConstPtr &msg, uint layer);
 
     //! Calibrates the laser, assuming the current scan shows a flat plane without obstacles.
     bool calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
@@ -143,7 +143,7 @@ private:
     //! Callback for dynamic reconfigure.
     void dynamicReconfigureCallback(Config &config, uint32_t level);
 
-    void laserScanToCloud(const sensor_msgs::LaserScanPtr &scan, const std::vector<PointClassification> &traversable,
+    void laserScanToCloud(const sensor_msgs::LaserScanConstPtr &scan, const std::vector<PointClassification> &traversable,
                           PointCloudXYZRGBT *cloud);
 
     bool scanToFile(std::string filename, const sensor_msgs::LaserScan &scan);

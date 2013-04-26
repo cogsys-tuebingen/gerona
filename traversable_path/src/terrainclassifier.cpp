@@ -6,7 +6,7 @@
 #include <iostream>
 
 #include <ramaxxbase/PTZ.h>
-#include "vectorsaver.h"
+#include "calibrationdatastorage.h"
 
 using namespace std;
 using namespace traversable_path;
@@ -24,17 +24,24 @@ TerrainClassifier::TerrainClassifier() :
     ros::NodeHandle private_node_handle("~");
 
     // advertise
-    publish_normalized_   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
-    publish_normalized_diff   = node_handle_.advertise<sensor_msgs::LaserScan>("scan/normalized_diff", 100);
-    publish_classification_cloud_ = node_handle_.advertise<PointCloudXYZRGBT >("path_classification_cloud", 10);
-    publish_map_ = node_handle_.advertise<nav_msgs::OccupancyGrid>("traversability_map", 1);
+    publish_normalized_           = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
+    publish_normalized_diff       = node_handle_.advertise<sensor_msgs::LaserScan>("scan/normalized_diff", 100);
+    publish_classification_cloud_[0] = node_handle_.advertise<PointCloudXYZRGBT >("path_classification_cloud0", 10);
+    publish_classification_cloud_[1] = node_handle_.advertise<PointCloudXYZRGBT >("path_classification_cloud1", 10);
+    publish_classification_cloud_[2] = node_handle_.advertise<PointCloudXYZRGBT >("path_classification_cloud2", 10);
+    publish_classification_cloud_[3] = node_handle_.advertise<PointCloudXYZRGBT >("path_classification_cloud3", 10);
+    publish_map_                  = node_handle_.advertise<nav_msgs::OccupancyGrid>("traversability_map", 1);
 
     // subscribe laser scanner
     //subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &TerrainClassifier::classifyLaserScan, this);
-    subscribe_laser_scan_[0] = node_handle_.subscribe("/sick_ldmrs/scan0", 100, &TerrainClassifier::classifyLaserScan, this);
-    subscribe_laser_scan_[1] = node_handle_.subscribe("/sick_ldmrs/scan1", 100, &TerrainClassifier::classifyLaserScan, this);
-    subscribe_laser_scan_[2] = node_handle_.subscribe("/sick_ldmrs/scan2", 100, &TerrainClassifier::classifyLaserScan, this);
-    subscribe_laser_scan_[3] = node_handle_.subscribe("/sick_ldmrs/scan3", 100, &TerrainClassifier::classifyLaserScan, this);
+    subscribe_laser_scan_[0] = node_handle_.subscribe<sensor_msgs::LaserScan>
+            ("/sick_ldmrs/scan0", 100, boost::bind(&TerrainClassifier::classifyLaserScan, this, _1, 0));
+    subscribe_laser_scan_[1] = node_handle_.subscribe<sensor_msgs::LaserScan>
+            ("/sick_ldmrs/scan1", 100, boost::bind(&TerrainClassifier::classifyLaserScan, this, _1, 1));
+    subscribe_laser_scan_[2] = node_handle_.subscribe<sensor_msgs::LaserScan>
+            ("/sick_ldmrs/scan2", 100, boost::bind(&TerrainClassifier::classifyLaserScan, this, _1, 2));
+    subscribe_laser_scan_[3] = node_handle_.subscribe<sensor_msgs::LaserScan>
+            ("/sick_ldmrs/scan3", 100, boost::bind(&TerrainClassifier::classifyLaserScan, this, _1, 3));
 
     subscribe_save_scan_ = node_handle_.subscribe("savescan", 0, &TerrainClassifier::saveScanCallback, this);
 
@@ -50,8 +57,8 @@ TerrainClassifier::TerrainClassifier() :
     ROS_INFO("Using calibration file %s", range_calibration_file_.c_str());
 
     // look for existing range calibration file
-    VectorSaver<float> vs(range_calibration_file_);
-    is_calibrated_ = vs.load(&plane_ranges_);
+    CalibrationDataStorage cds(range_calibration_file_);
+    is_calibrated_ = cds.load(&plane_ranges_);
 
 //    /** Set laser tilt @todo load the angle from calibration file */
 //    ros::Publisher pub_laser_rtz = node_handle_.advertise<ramaxxbase::PTZ>("/cmd_rtz", 1, true);
@@ -84,7 +91,7 @@ void TerrainClassifier::dynamicReconfigureCallback(Config &config, uint32_t leve
     ROS_DEBUG("Reconfigure TerrainClassifier.");
 }
 
-void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
+void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanConstPtr &msg, uint layer)
 {
 //    ros::Time start_time = ros::Time::now();
 
@@ -100,8 +107,13 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
         return;
     }
 
-    if (msg->ranges.size() != plane_ranges_.size()) {
-        ROS_ERROR("Size of calibration data does not fit. Please reconfigure the laser scanner.");
+    if (plane_ranges_.size() <= layer) {
+        ROS_ERROR("No calibration data of layer %d. Please calibrate the laser scanner.", layer);
+        return;
+    }
+
+    if (msg->ranges.size() != plane_ranges_[layer].size()) {
+        ROS_ERROR("Size of calibration data of layer %d does not fit. Please calibrate the laser scanner.", layer);
         return;
     }
 
@@ -110,7 +122,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 
     // subtract plane calibration values to normalize the scan data
     for (size_t i=0; i < msg->ranges.size(); ++i) {
-        smoothed.ranges[i] = msg->ranges[i] - plane_ranges_[i];
+        smoothed.ranges[i] = msg->ranges[i] - plane_ranges_[layer][i];
 
         // mirror on x-axis
         smoothed.ranges[i] *= -1;
@@ -121,7 +133,8 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
     smoothed.intensities = smooth(msg->intensities, 4);
 
     // find obstacles
-    traversable = detectObstacles(smoothed, msg->intensities);
+    vector<float> debug_classification_as_intensity(msg->intensities.size());
+    traversable = detectObstacles(smoothed, debug_classification_as_intensity);
 
     // get projection to carthesian frame
     PointCloudXYZRGBT pcl_cloud;
@@ -135,15 +148,15 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
         save_next_scan_ = false;
         scanToFile("/localhome/widmaier/scan_raw.dat", original_scan);
         scanToFile("/localhome/widmaier/scan_normalized.dat", smoothed);
-        smoothed.intensities = msg->intensities;
+        smoothed.intensities = debug_classification_as_intensity;
         scanToFile("/localhome/widmaier/scan_classification.dat", smoothed);
     }
 
     // publish modified message
-    publish_classification_cloud_.publish(pcl_cloud);
+    publish_classification_cloud_[layer].publish(pcl_cloud);
     //ROS_DEBUG("Published %zu traversability points", pcl_cloud.points.size());
     /** @todo This topic is only for debugging. Remove in later versions */
-    smoothed.intensities = msg->intensities;
+    smoothed.intensities = debug_classification_as_intensity;
     publish_normalized_.publish(smoothed);
 
 
@@ -153,7 +166,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanPtr &msg)
 //    ROS_DEBUG("classify scan duration: %fs", running_duration.toSec());
 }
 
-void TerrainClassifier::laserScanToCloud(const sensor_msgs::LaserScanPtr &scan,
+void TerrainClassifier::laserScanToCloud(const sensor_msgs::LaserScanConstPtr &scan,
                                          const vector<PointClassification> &traversable, PointCloudXYZRGBT *cloud)
 {
     // get projection to carthesian frame
@@ -237,26 +250,19 @@ bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::E
     ROS_INFO("Use current laser data for calibration.");
 
     // fetch one laser scan message, which will be used for calibration
-    sensor_msgs::LaserScanConstPtr scan = ros::topic::waitForMessage<sensor_msgs::LaserScan>("scan");
+    vector<vector<float> > scans(4);
+    scans[0] = ros::topic::waitForMessage<sensor_msgs::LaserScan>("/sick_ldmrs/scan0")->ranges;
+    scans[1] = ros::topic::waitForMessage<sensor_msgs::LaserScan>("/sick_ldmrs/scan1")->ranges;
+    scans[2] = ros::topic::waitForMessage<sensor_msgs::LaserScan>("/sick_ldmrs/scan2")->ranges;
+    scans[3] = ros::topic::waitForMessage<sensor_msgs::LaserScan>("/sick_ldmrs/scan3")->ranges;
 
 
-//    // get laser tilt
-//    tf::StampedTransform laser_transform;
-//    tf_listener_.lookupTransform("/laser", "/base_link", ros::Time(0), laser_transform);
-//    tfScalar roll, pitch, yaw;
-//    tf::Matrix3x3(laser_transform.getRotation()).getRPY(roll,pitch,yaw);
-//    // - for roll is 180°. Cation! this may only work on thrain?
-//    float tilt = -pitch;
-
-
-    this->plane_ranges_  = scan->ranges;
+    this->plane_ranges_  = scans;
     this->is_calibrated_ = true;
 
     // store range-vector
-    VectorSaver<float> vs(range_calibration_file_);
-    vs.store(scan->ranges);
-
-    return true;
+    CalibrationDataStorage cds(range_calibration_file_);
+    return cds.store(scans);
 }
 
 vector<float> TerrainClassifier::smooth(std::vector<float> data, const unsigned int num_values)
