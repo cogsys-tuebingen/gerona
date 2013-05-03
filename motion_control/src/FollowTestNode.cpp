@@ -56,8 +56,6 @@ void FollowTestNode::pathReceived(const nav_msgs::PathConstPtr &path)
       ROS_ERROR("no good path received wait for new circle");
       state_=STATE_S_WAIT_PATH;
     }
-
-  }
 }
 
 
