@@ -42,8 +42,8 @@ void MarkerPublisher::publishGoalMarker(Vector2f position, float theta) const
 
     // Set the scale of the marker
     marker.scale.x = 0.8;
-    marker.scale.y = 0.8;
-    marker.scale.z = 0.8;
+    marker.scale.y = 0.1;
+    marker.scale.z = 0.1;
 
     // Set the color -- be sure to set alpha to something non-zero!
     marker.color.r = 1.0f;
@@ -102,7 +102,9 @@ void MarkerPublisher::publishArrowMarker(Eigen::Vector2f point, float angle, int
     marker.id = id;
     marker.type = visualization_msgs::Marker::ARROW;
     marker.action = visualization_msgs::Marker::ADD;
-    marker.scale.x = marker.scale.y = marker.scale.z = 1.0;
+    marker.scale.x = 1.0;
+    marker.scale.y = 0.1;
+    marker.scale.z = 0.1;
     marker.color = color;
 
     publish(marker);
