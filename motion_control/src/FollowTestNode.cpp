@@ -5,7 +5,7 @@
 const double DEFAULT_V = 0.6;
 
 FollowTestNode::FollowTestNode(ros::NodeHandle& nh)
-  : action_client_("/motion_control", true),n_(nh), state_(STATE_S_START), default_v_(DEFAULT_V),
+  : action_client_("/motion_control", true),n_(nh), state_(STATE_S_START),
     has_path_(false)
 {
   std::string topic = "/path_planner/path";
@@ -13,6 +13,8 @@ FollowTestNode::FollowTestNode(ros::NodeHandle& nh)
   path_subscriber_ = nh.subscribe<nav_msgs::Path>
       (topic, 1, boost::bind(&FollowTestNode::pathReceived, this, _1));
 
+  ros::param::param<double>("~velocity", default_v_, DEFAULT_V);
+  ROS_INFO("Set velocity to %g", default_v_);
 
   ROS_INFO("sampling initiated");
   state_ = STATE_S_WAIT_PATH;
@@ -39,7 +41,7 @@ void FollowTestNode::pathReceived(const nav_msgs::PathConstPtr &path)
       motion_control::MotionGoal goal;
       goal.mode=motion_control::MotionGoal::MOTION_FOLLOW_PATH;
       goal.pos_tolerance=0.1;
-      goal.v=1.5;
+      goal.v=default_v_;
       goal.target_v=0;
       goal.path=*path;
       goal.path_topic="";
