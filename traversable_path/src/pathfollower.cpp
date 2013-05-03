@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/PoseStamped.h>
 #include "exceptions.h"
 #include "mapprocessor.h"
 #include "markerpublisher.h"
@@ -25,6 +26,9 @@ PathFollower::PathFollower() :
 
     // at the beginning there is no goal.
     current_goal_.is_set = false;
+
+    // publish goal poses to /move_base_simple/goal which is the default topic path_planner listens to.
+    goal_publisher_ = node_handle_.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0);
 
     // register reconfigure callback (which will also initialize config_ with the default values)
     reconfig_server_.setCallback(boost::bind(&PathFollower::dynamicReconfigureCallback, this, _1, _2));
@@ -161,6 +165,7 @@ void PathFollower::setGoal(Vector2f position, float theta, float velocity, bool 
         goal_locker_->lock();
     }
 
+    /** \todo make this an parameter */
     const float MIN_DISTANCE_BETWEEN_GOALS = 0.4;
 
     // make sure the min. distance doesn't avoid the goal to be set at the first call of this method.
@@ -172,6 +177,7 @@ void PathFollower::setGoal(Vector2f position, float theta, float velocity, bool 
     // only set goal it is far enought from the old goal or if the new goal is to be locked (locking also overwrites the
     // current goal).
     if (distance > MIN_DISTANCE_BETWEEN_GOALS || lock_goal) {
+        /*
         // send goal to motion_control
         motion_control::MotionGoal goal;
         goal.v     = velocity;
@@ -187,6 +193,17 @@ void PathFollower::setGoal(Vector2f position, float theta, float velocity, bool 
         motion_control_action_client_.sendGoal(goal, boost::bind(&PathFollower::motionControlDoneCallback,this,_1,_2),
                                                boost::function<void () >(), // do not set an active callback
                                                boost::bind(&PathFollower::motionControlFeedbackCallback,this,_1));
+        */
+
+        // using the new path_planner, there is no option to set the velocity at this point any more.
+
+        geometry_msgs::PoseStamped goal;
+        goal.pose.position.x = position[0];
+        goal.pose.position.y = position[1];
+        goal.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
+
+        goal_publisher_.publish(goal);
+
 
         // set as current goal
         current_goal_.is_set = true;

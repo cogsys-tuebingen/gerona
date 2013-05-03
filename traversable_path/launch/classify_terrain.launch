@@ -1,15 +1,10 @@
 <launch>
-    <!-- configure laser -->
-    <node name="config_laser" pkg="dynamic_reconfigure" type="dynparam"
-        args="set /hokuyo_front &quot;{'allow_unsafe_settings': true, 'min_ang': -1.28, 'max_ang': 1.28, intensity: true}&quot;"
-        />
-
     <!-- laser interpolation filter (interpolates invalid laser data) -->
     <node name="interpolate_laser" pkg="laser_filters" type="scan_to_scan_filter_chain">
         <rosparam command="load" file="$(find traversable_path)/laser_filter_interpol.yaml" />
     </node>
 
     <node name="classify_terrain" pkg="traversable_path" type="classify_terrain" output="screen">
-        <remap from="scan" to="/scan_filtered" />
+        <!-- <remap from="scan" to="/scan_filtered" /> -->
     </node>
 </launch>

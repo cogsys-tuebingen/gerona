@@ -98,6 +98,8 @@ private:
     tf::TransformListener tf_listener_;
     //! Sends commands to motion_control
     actionlib::SimpleActionClient<motion_control::MotionAction> motion_control_action_client_;
+    //! Publishs goal poses to path_planner.
+    ros::Publisher goal_publisher_;
     //! dynamic reconfigure server.
     dynamic_reconfigure::Server<traversable_path::follow_pathConfig> reconfig_server_;
 
