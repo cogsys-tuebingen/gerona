@@ -141,7 +141,7 @@ struct Planner
         lib_path::Pose2d to_world;
 
         tf::StampedTransform trafo;
-        tfl.lookupTransform("/map", "/robot_0/base_link", ros::Time(0), trafo);
+        tfl.lookupTransform("/map", "/base_link", ros::Time(0), trafo);
 
         from_world.x = trafo.getOrigin().x();
         from_world.y = trafo.getOrigin().y();
