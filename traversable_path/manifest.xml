@@ -17,7 +17,7 @@
   <depend package="nav_msgs"/>
   <depend package="std_srvs"/>
   <depend package="roscpp"/>
-  <depend package="ramaxxbase"/>
+  <depend package="ramaxx_msgs"/>
   <depend package="laser_geometry"/>
   <depend package="tf"/>
   <!-- <depend package="path_planner" />  this does not work... (path_planner is a catkin package) -->

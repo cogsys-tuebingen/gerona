@@ -14,7 +14,7 @@
 #include <Eigen/Dense>
 #include <Eigen/LeastSquares>
 #include "MotionControlNode.h"
-#include "ramaxxbase/RamaxxMsg.h"
+#include "ramaxx_msgs/RamaxxMsg.h"
 #include "Misc.h"
 #include "CalibDriver.h"
 
@@ -378,11 +378,11 @@ int CalibDriver::execute(motion_control::MotionFeedback& feedback,
 
   void CalibDriver::publish()
   {
-    ramaxxbase::RamaxxMsg cmd;
+    ramaxx_msgs::RamaxxMsg cmd;
     cmd.data.resize(3);
-    cmd.data[0].key=ramaxxbase::RamaxxMsg::CMD_STEER_FRONT_SERVO;
-    cmd.data[1].key=ramaxxbase::RamaxxMsg::CMD_STEER_REAR_SERVO;
-    cmd.data[2].key=ramaxxbase::RamaxxMsg::CMD_SPEED;
+    cmd.data[0].key=ramaxx_msgs::RamaxxMsg::CMD_STEER_FRONT_SERVO;
+    cmd.data[1].key=ramaxx_msgs::RamaxxMsg::CMD_STEER_REAR_SERVO;
+    cmd.data[2].key=ramaxx_msgs::RamaxxMsg::CMD_SPEED;
     cmd.data[0].value=cmd_servof_;
     cmd.data[1].value=cmd_servor_;
     cmd.data[2].value=cmd_v_;

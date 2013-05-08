@@ -10,32 +10,32 @@
 #include <vector>
 #include <fstream>
 #include <ros/ros.h>
-#include <ramaxxbase/RamaxxMsg.h>
+#include <ramaxx_msgs/RamaxxMsg.h>
 
 using namespace std;
 
 ofstream g_out_file;
 
 //! Callback
-void callback(const ramaxxbase::RamaxxMsgConstPtr &msg)
+void callback(const ramaxx_msgs::RamaxxMsgConstPtr &msg)
 {
     float steer_front = 0.0, steer_rear = 0.0, speed = 0.0;
     int field_counter = 0;
 
     // get values
-    for (vector<ramaxxbase::key_val_pair>::const_iterator it = msg->data.begin(); it != msg->data.end(); ++it) {
+    for (vector<ramaxx_msgs::key_val_pair>::const_iterator it = msg->data.begin(); it != msg->data.end(); ++it) {
         switch (it->key) {
-        case ramaxxbase::RamaxxMsg::CMD_STEER_FRONT_DEG:
+        case ramaxx_msgs::RamaxxMsg::CMD_STEER_FRONT_DEG:
             steer_front = it->value;
             ++field_counter;
             break;
 
-        case ramaxxbase::RamaxxMsg::CMD_STEER_REAR_DEG:
+        case ramaxx_msgs::RamaxxMsg::CMD_STEER_REAR_DEG:
             steer_rear = it->value;
             ++field_counter;
             break;
 
-        case ramaxxbase::RamaxxMsg::CMD_SPEED:
+        case ramaxx_msgs::RamaxxMsg::CMD_SPEED:
             speed = it->value;
             ++field_counter;
             break;

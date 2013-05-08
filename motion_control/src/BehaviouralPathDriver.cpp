@@ -634,7 +634,7 @@ void BehaviouralPathDriver::clearActive()
 
 void BehaviouralPathDriver::publishCommand()
 {
-    ramaxxbase::RamaxxMsg msg = current_command_;
+    ramaxx_msgs::RamaxxMsg msg = current_command_;
     cmd_pub_.publish(msg);
 
     setFilteredSpeed(current_command_.v);

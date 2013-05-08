@@ -15,7 +15,7 @@
 /// SYSTEM
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
-#include <ramaxxbase/RamaxxMsg.h>
+#include <ramaxx_msgs/RamaxxMsg.h>
 #include <tf/tf.h>
 
 namespace motion_control {
@@ -53,12 +53,12 @@ public:
         double steer_front;
         double steer_back;
 
-        operator ramaxxbase::RamaxxMsg() {
-            ramaxxbase::RamaxxMsg msg;
+        operator ramaxx_msgs::RamaxxMsg() {
+            ramaxx_msgs::RamaxxMsg msg;
             msg.data.resize(3);
-            msg.data[0].key = ramaxxbase::RamaxxMsg::CMD_STEER_FRONT_DEG;
-            msg.data[1].key = ramaxxbase::RamaxxMsg::CMD_STEER_REAR_DEG;
-            msg.data[2].key = ramaxxbase::RamaxxMsg::CMD_SPEED;
+            msg.data[0].key = ramaxx_msgs::RamaxxMsg::CMD_STEER_FRONT_DEG;
+            msg.data[1].key = ramaxx_msgs::RamaxxMsg::CMD_STEER_REAR_DEG;
+            msg.data[2].key = ramaxx_msgs::RamaxxMsg::CMD_SPEED;
             msg.data[0].value = steer_front * 180.0/M_PI;
             msg.data[1].value = steer_back * 180.0/M_PI;
             msg.data[2].value = v;

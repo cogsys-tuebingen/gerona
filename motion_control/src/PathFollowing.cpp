@@ -1,6 +1,6 @@
 #include "PathFollowing.h"
 
-#include <ramaxxbase/RamaxxMsg.h>
+#include <ramaxx_msgs/RamaxxMsg.h>
 #include <visualization_msgs/Marker.h>
 #include <tf/tf.h>
 #include "DualAxisDriver.h"
@@ -14,7 +14,7 @@ PathFollowing::PathFollowing(ros::NodeHandle& node)
   m_odom_subscriber = node.subscribe<nav_msgs::Odometry>
       ("/odom", 100, boost::bind(&PathFollowing::update_odometry, this, _1));
 
-  m_command_ramaxx_publisher = node.advertise<ramaxxbase::RamaxxMsg>
+  m_command_ramaxx_publisher = node.advertise<ramaxx_msgs::RamaxxMsg>
       ("/ramaxx_cmd", 100);
 
   m_goal_subscriber = node.subscribe<geometry_msgs::PoseStamped>
@@ -98,11 +98,11 @@ void PathFollowing::update ()
     }
   }
   // publish command to robot
-  ramaxxbase::RamaxxMsg msg;
+  ramaxx_msgs::RamaxxMsg msg;
   msg.data.resize(3);
-  msg.data[0].key=ramaxxbase::RamaxxMsg::CMD_SPEED;
-  msg.data[1].key=ramaxxbase::RamaxxMsg::CMD_STEER_FRONT_DEG;
-  msg.data[2].key=ramaxxbase::RamaxxMsg::CMD_STEER_REAR_DEG;
+  msg.data[0].key=ramaxx_msgs::RamaxxMsg::CMD_SPEED;
+  msg.data[1].key=ramaxx_msgs::RamaxxMsg::CMD_STEER_FRONT_DEG;
+  msg.data[2].key=ramaxx_msgs::RamaxxMsg::CMD_STEER_REAR_DEG;
   msg.data[0].value=speed;
   msg.data[1].value=RTOD(front_rad);
   msg.data[2].value=RTOD(rear_rad);
@@ -258,11 +258,11 @@ void PathFollowing::publish()
                       fabs(speed), 1.f, 1.f,
                       0.0f, 1.0f, 0.0f, 1.0f);
 
-    ramaxxbase::RamaxxMsg msg;
-    ramaxxbase::key_val_pair msg_speed, msg_steer;
+    ramaxx_msgs::RamaxxMsg msg;
+    ramaxx_msgs::key_val_pair msg_speed, msg_steer;
 
-    msg_speed.key = ramaxxbase::RamaxxMsg::CMD_SPEED;
-    msg_steer.key = ramaxxbase::RamaxxMsg::CMD_STEER_FRONT_DEG;
+    msg_speed.key = ramaxx_msgs::RamaxxMsg::CMD_SPEED;
+    msg_steer.key = ramaxx_msgs::RamaxxMsg::CMD_STEER_FRONT_DEG;
 
     msg_speed.value = speed;
     msg_steer.value = RTOD(steer);

@@ -7,7 +7,7 @@
 #include <tf/tf.h>
 #include <utils/LibUtil/MathHelper.h>
 #include <utils/LibUtil/Line2d.h>
-#include <ramaxxbase/RamaxxMsg.h>
+#include <ramaxx_msgs/RamaxxMsg.h>
 #include "MotionControlNode.h"
 
 // Project
@@ -386,11 +386,11 @@ void PathDriver::predictPose( const double dt,
 
 void PathDriver::publishCmd( const Eigen::Vector3d &cmd )
 {
-    ramaxxbase::RamaxxMsg msg;
+    ramaxx_msgs::RamaxxMsg msg;
     msg.data.resize( 3 );
-    msg.data[0].key = ramaxxbase::RamaxxMsg::CMD_STEER_FRONT_DEG;
-    msg.data[1].key = ramaxxbase::RamaxxMsg::CMD_STEER_REAR_DEG;
-    msg.data[2].key = ramaxxbase::RamaxxMsg::CMD_SPEED;
+    msg.data[0].key = ramaxx_msgs::RamaxxMsg::CMD_STEER_FRONT_DEG;
+    msg.data[1].key = ramaxx_msgs::RamaxxMsg::CMD_STEER_REAR_DEG;
+    msg.data[2].key = ramaxx_msgs::RamaxxMsg::CMD_SPEED;
     msg.data[0].value = cmd(0)*180.0/M_PI;
     msg.data[1].value = cmd(1)*180.0/M_PI;
     msg.data[2].value = cmd(2);

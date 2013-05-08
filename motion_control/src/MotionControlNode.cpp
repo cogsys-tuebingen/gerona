@@ -1,4 +1,4 @@
-#include <ramaxxbase/RamaxxMsg.h>
+#include <ramaxx_msgs/RamaxxMsg.h>
 #include "CalibDriver.h"
 #include "SimpleGoalDriver.h"
 #include "FixedDriver.h"
@@ -28,7 +28,7 @@ MotionControlNode::MotionControlNode(ros::NodeHandle& nh, const std::string& nam
   ROS_INFO_STREAM("odom_topic: " << odom_topic_);
   ROS_INFO_STREAM("scan_topic: " << scan_topic_);
 
-  cmd_ramaxx_pub_ = nh_.advertise<ramaxxbase::RamaxxMsg> (cmd_topic_, 10 );
+  cmd_ramaxx_pub_ = nh_.advertise<ramaxx_msgs::RamaxxMsg> (cmd_topic_, 10 );
   scan_sub_ = nh_.subscribe<sensor_msgs::LaserScan>( scan_topic_, 1, boost::bind(&MotionControlNode::laserCallback, this, _1 ));
   odom_sub_ = nh_.subscribe<nav_msgs::Odometry>( odom_topic_, 1, boost::bind( &MotionControlNode::odometryCallback, this, _1 ));
   sonar_sub_ = nh_.subscribe<sensor_msgs::PointCloud>( "/sonar_raw", 1, boost::bind( &MotionControlNode::sonarCallback, this, _1 ));

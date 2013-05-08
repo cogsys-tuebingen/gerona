@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iostream>
 
-#include <ramaxxbase/PTZ.h>
+#include <ramaxx_msgs/PTZ.h>
 #include "calibrationdatastorage.h"
 
 using namespace std;
@@ -61,8 +61,8 @@ TerrainClassifier::TerrainClassifier() :
     is_calibrated_ = cds.load(&plane_ranges_);
 
 //    /** Set laser tilt @todo load the angle from calibration file */
-//    ros::Publisher pub_laser_rtz = node_handle_.advertise<ramaxxbase::PTZ>("/cmd_rtz", 1, true);
-//    ramaxxbase::PTZ laser_rtz;
+//    ros::Publisher pub_laser_rtz = node_handle_.advertise<ramaxx_msgs::PTZ>("/cmd_rtz", 1, true);
+//    ramaxx_msgs::PTZ laser_rtz;
 //    laser_rtz.tilt = -0.22; // other values default to 0
 //    pub_laser_rtz.publish(laser_rtz);
 //    ROS_INFO("Published laser tilt angle. Waiting 2 seconds for rtz...");

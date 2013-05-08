@@ -6,7 +6,7 @@
    @file   FixedDriver.cpp
 
 */ 
-#include "ramaxxbase/RamaxxMsg.h"
+#include "ramaxx_msgs/RamaxxMsg.h"
 #include "Line2d.h"
 #include "MathHelper.h"
 #include "FixedDriver.h"
@@ -97,14 +97,14 @@ int FixedDriver::execute(MotionFeedback &fb, MotionResult &result)
     break;
   }
   }
-  ramaxxbase::RamaxxMsg cmd;
+  ramaxx_msgs::RamaxxMsg cmd;
   cmd.data.resize(3);
-  cmd.data[0].key=ramaxxbase::RamaxxMsg::CMD_STEER_FRONT_DEG;
-  cmd.data[1].key=ramaxxbase::RamaxxMsg::CMD_STEER_REAR_DEG;
+  cmd.data[0].key=ramaxx_msgs::RamaxxMsg::CMD_STEER_FRONT_DEG;
+  cmd.data[1].key=ramaxx_msgs::RamaxxMsg::CMD_STEER_REAR_DEG;
   if (mode_==motion_control::MotionGoal::MOTION_DIRECT_SPEED) {
-    cmd.data[2].key=ramaxxbase::RamaxxMsg::CMD_SPEED_SERVO;
+    cmd.data[2].key=ramaxx_msgs::RamaxxMsg::CMD_SPEED_SERVO;
   } else {
-    cmd.data[2].key=ramaxxbase::RamaxxMsg::CMD_SPEED;
+    cmd.data[2].key=ramaxx_msgs::RamaxxMsg::CMD_SPEED;
   }
   cmd.data[0].value=cmd_front_rad_*180.0/M_PI;
   cmd.data[1].value=cmd_rear_rad_*180.0/M_PI;

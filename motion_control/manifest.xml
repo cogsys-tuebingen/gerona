@@ -15,7 +15,7 @@
   <depend package="nav_msgs" />
   <depend package="geometry_msgs" />
   <depend package="visualization_msgs" />
-  <depend package="ramaxxbase" />
+  <depend package="ramaxx_msgs" />
   <depend package="tf" />
   <depend package="actionlib_msgs"/>
   <depend package="actionlib"/>
