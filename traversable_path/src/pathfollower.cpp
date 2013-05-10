@@ -198,6 +198,7 @@ void PathFollower::setGoal(Vector2f position, float theta, float velocity, bool 
         // using the new path_planner, there is no option to set the velocity at this point any more.
 
         geometry_msgs::PoseStamped goal;
+        goal.header.frame_id = "/map";
         goal.pose.position.x = position[0];
         goal.pose.position.y = position[1];
         goal.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
