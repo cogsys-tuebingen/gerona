@@ -59,7 +59,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
         // distance of robot to path middle line
         Vector2f to_mid_line = vectorFromPointToLine(path_middle_line_, robot_pose_.position);
         // goal position (0.7m ahead):
-        Vector2f goal_pos = robot_pose_.position + 0.7 * path_middle_line_.direction
+        Vector2f goal_pos = robot_pose_.position + 1.2 * path_middle_line_.direction
                 + to_mid_line;
 
 
@@ -580,20 +580,21 @@ void PathFollower::handleObstacle()
     if (!goal_direction.isZero()) {
         ROS_INFO("Drive back.");
 
-        float robot_angle = atan2(robot_pose_.direction[1], robot_pose_.direction[0]);
+// Skip this, since motion_control is now using a map and can handle this better
+//        float robot_angle = atan2(robot_pose_.direction[1], robot_pose_.direction[0]);
 
-        // try to drive back 1m. If not possible try 50cm
-        Vector2f drive_back_goal = robot_pose_.position - robot_pose_.direction;
-        if (!map_processor_->checkGoalTraversability(robot_pose_.position, drive_back_goal)) {
-            drive_back_goal = robot_pose_.position - 0.5*robot_pose_.direction;
-            if (!map_processor_->checkGoalTraversability(robot_pose_.position, drive_back_goal)) {
-                ROS_INFO("Can not move back. Stop moving.");
-                return;
-            }
-        }
-        setGoal(drive_back_goal, robot_angle, 0.3, false);
-        // give the robot some time to move
-        ros::Duration(4).sleep(); /** \todo stop waiting if goal is reached */
+//        // try to drive back 1m. If not possible try 50cm
+//        Vector2f drive_back_goal = robot_pose_.position - robot_pose_.direction;
+//        if (!map_processor_->checkGoalTraversability(robot_pose_.position, drive_back_goal)) {
+//            drive_back_goal = robot_pose_.position - 0.5*robot_pose_.direction;
+//            if (!map_processor_->checkGoalTraversability(robot_pose_.position, drive_back_goal)) {
+//                ROS_INFO("Can not move back. Stop moving.");
+//                return;
+//            }
+//        }
+//        setGoal(drive_back_goal, robot_angle, 0.3, false);
+//        // give the robot some time to move
+//        ros::Duration(4).sleep(); /** \todo stop waiting if goal is reached */
 
 
         float goal_angle = atan2(goal_direction[1], goal_direction[0]);
@@ -604,6 +605,10 @@ void PathFollower::handleObstacle()
         ROS_INFO("Go on.");
         // lock this goal until the robot reached it. Otherwise the robot will to fast choose an other goal.
         setGoal(goal_pos, goal_angle, 0.2, true);
+
+        /** \todo since the drving back is not necessary any more, it may be better if this method only returns the goal
+         * and setGoal() is called in the main loop
+         */
     } else {
         ROS_INFO("Stop moving.");
     }
