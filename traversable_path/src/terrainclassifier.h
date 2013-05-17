@@ -31,6 +31,7 @@ class TerrainClassifier
 {
 public:
     TerrainClassifier();
+    ~TerrainClassifier();
 
 private:
     typedef traversable_path::classify_terrainConfig Config;
@@ -55,7 +56,8 @@ private:
     message_filters::Subscriber<sensor_msgs::LaserScan> subscriber_laser_scan_[4];
     tf::MessageFilter<sensor_msgs::LaserScan> *message_filter_tilted_scan_[4];
     //! Subscriber for the horizontal front scanner
-    ros::Subscriber subscriber_front_scan_;
+    message_filters::Subscriber<sensor_msgs::LaserScan> subscriber_front_scan_;
+    tf::MessageFilter<sensor_msgs::LaserScan> *message_filter_front_scan_;
     //! Listener for tf data.
     tf::TransformListener tf_listener_;
     //! Registers calibration service.
@@ -81,9 +83,7 @@ private:
     nav_msgs::OccupancyGrid map_;
     ros::Publisher publish_map_;
     MapProcessor map_processor_;
-    void updateMap(PointCloudXYZRGBT cloud);
-    void moveMap();
-    static double distance(geometry_msgs::Point a, geometry_msgs::Point b);
+    ros::Timer map_publish_timer_;
 
     bool save_next_scan_;
     ros::Subscriber subscribe_save_scan_;
@@ -155,6 +155,15 @@ private:
                           PointCloudXYZRGBT *cloud);
 
     bool scanToFile(std::string filename, const sensor_msgs::LaserScan &scan);
+
+
+    //TODO: kommentieren!
+
+
+    void updateMap(PointCloudXYZRGBT cloud);
+    void publishMap(const ros::TimerEvent&);
+    void moveMap();
+    static double distance(geometry_msgs::Point a, geometry_msgs::Point b);
 };
 
 #endif // DISPLAY_LASER_DATA_H
