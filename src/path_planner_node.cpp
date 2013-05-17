@@ -10,6 +10,7 @@
 
 /// PROJECT
 #include <utils/LibPath/generic/Algorithms.hpp>
+#include <utils/LibPath/generic/ReedsSheppExpansion.hpp>
 #include <utils/LibPath/common/SimpleGridMap2d.h>
 
 
@@ -51,11 +52,12 @@ struct Planner
 
 
     DEFINE_CONCRETE_ALGORITHM(AStarNoOrientation,
-                              Pose2d, GridMap2d, NHNeighborNoEndOrientation,
+                              Pose2d, GridMap2d, NHNeighborNoEndOrientation, NoExpansion,
                               HeuristicL2, DirectionalStateSpaceManager, PriorityQueueManager)
 
+//  TODO: make these two (or more?) selectable:
     typedef AStarNoOrientationSearch<> AStar;
-    //typedef AStarSearch<NHNeighbor> AStar;
+//    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100> > AStar;
 
     typedef AStar::PathT PathT;
 
@@ -79,6 +81,9 @@ struct Planner
             map_service_client = nh.serviceClient<nav_msgs::GetMap>
                     ("/dynamic_map/inflated");
         }
+
+        base_frame_ = "/base_link";
+        nh.param("base_frame", base_frame_, base_frame_);
 
 
         path_publisher = nh.advertise<nav_msgs::Path> ("path", 10);
@@ -158,7 +163,7 @@ struct Planner
         lib_path::Pose2d to_world;
 
         tf::StampedTransform trafo;
-        tfl.lookupTransform("/map", "/base_link", ros::Time(0), trafo);
+        tfl.lookupTransform("/map", base_frame_, ros::Time(0), trafo);
 
         from_world.x = trafo.getOrigin().x();
         from_world.y = trafo.getOrigin().y();
@@ -335,6 +340,7 @@ private:
     AStar algo;
 
     tf::TransformListener tfl;
+    std::string base_frame_;
 };
 
 int main(int argc, char** argv)
