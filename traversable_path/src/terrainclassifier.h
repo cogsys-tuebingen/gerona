@@ -13,6 +13,8 @@
 #include <dynamic_reconfigure/server.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/Empty.h>
+#include <tf/message_filter.h>
+#include <message_filters/subscriber.h>
 
 #include "point_types.h"
 #include "pointclassification.h"
@@ -49,8 +51,11 @@ private:
 
     //! Publisher for the classification point cloud
     ros::Publisher publish_classification_cloud_[4];
-    //! Subscribes for laser scans.
-    ros::Subscriber subscribe_laser_scan_[4];
+    //! Subscribes for the tilted laser scans.
+    message_filters::Subscriber<sensor_msgs::LaserScan> subscriber_laser_scan_[4];
+    tf::MessageFilter<sensor_msgs::LaserScan> *message_filter_tilted_scan_[4];
+    //! Subscriber for the horizontal front scanner
+    ros::Subscriber subscriber_front_scan_;
     //! Listener for tf data.
     tf::TransformListener tf_listener_;
     //! Registers calibration service.
@@ -91,6 +96,9 @@ private:
      * frame of the laser and publishes the result as ScanClassification message.
      */
     void classifyLaserScan(const sensor_msgs::LaserScanConstPtr &msg, uint layer);
+
+    //! Callback for the horizontal front scanner (for obstacle avoidance).
+    void frontScanCallback(const sensor_msgs::LaserScanConstPtr &msg);
 
     //! Calibrates the laser, assuming the current scan shows a flat plane without obstacles.
     bool calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);

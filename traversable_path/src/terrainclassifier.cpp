@@ -4,6 +4,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include <ramaxx_msgs/PTZ.h>
 #include "calibrationdatastorage.h"
@@ -33,15 +34,21 @@ TerrainClassifier::TerrainClassifier() :
     publish_map_                  = node_handle_.advertise<nav_msgs::OccupancyGrid>("traversability_map", 1);
 
     // subscribe laser scanner
-    //subscribe_laser_scan_ = node_handle_.subscribe("scan", 100, &TerrainClassifier::classifyLaserScan, this);
-    subscribe_laser_scan_[0] = node_handle_.subscribe<sensor_msgs::LaserScan>
-            ("/sick_ldmrs/scan0", 100, boost::bind(&TerrainClassifier::classifyLaserScan, this, _1, 0));
-    subscribe_laser_scan_[1] = node_handle_.subscribe<sensor_msgs::LaserScan>
-            ("/sick_ldmrs/scan1", 100, boost::bind(&TerrainClassifier::classifyLaserScan, this, _1, 1));
-    subscribe_laser_scan_[2] = node_handle_.subscribe<sensor_msgs::LaserScan>
-            ("/sick_ldmrs/scan2", 100, boost::bind(&TerrainClassifier::classifyLaserScan, this, _1, 2));
-    subscribe_laser_scan_[3] = node_handle_.subscribe<sensor_msgs::LaserScan>
-            ("/sick_ldmrs/scan3", 100, boost::bind(&TerrainClassifier::classifyLaserScan, this, _1, 3));
+    for (int layer = 0; layer < 4; ++layer) {
+        ostringstream topic;
+        topic << "/sick_ldmrs/scan" << layer;
+
+        subscriber_laser_scan_[layer].subscribe(node_handle_, topic.str(), 100);
+        message_filter_tilted_scan_[layer] = new tf::MessageFilter<sensor_msgs::LaserScan>
+                (subscriber_laser_scan_[layer], tf_listener_, "/map", 10);
+        message_filter_tilted_scan_[layer]->registerCallback( boost::bind(&TerrainClassifier::classifyLaserScan, this, _1, layer) );
+    }
+
+//    subscriber_laser_scan_[1].subscribe(node_handle_, "/sick_ldmrs/scan1", 100);//, boost::bind(&TerrainClassifier::classifyLaserScan, this, _1, 1));
+//    subscriber_laser_scan_[2].subscribe(node_handle_, "/sick_ldmrs/scan2", 100);//, boost::bind(&TerrainClassifier::classifyLaserScan, this, _1, 2));
+//    subscriber_laser_scan_[3].subscribe(node_handle_, "/sick_ldmrs/scan3", 100);//, boost::bind(&TerrainClassifier::classifyLaserScan, this, _1, 3));
+
+    subscriber_front_scan_ = node_handle_.subscribe("scan", 10, &TerrainClassifier::frontScanCallback, this);
 
     subscribe_save_scan_ = node_handle_.subscribe("savescan", 0, &TerrainClassifier::saveScanCallback, this);
 
@@ -163,7 +170,12 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanConstPtr &
 
 //    ros::Time end_time = ros::Time::now();
 //    ros::Duration running_duration = end_time - start_time;
-//    ROS_DEBUG("classify scan duration: %fs", running_duration.toSec());
+    //    ROS_DEBUG("classify scan duration: %fs", running_duration.toSec());
+}
+
+void TerrainClassifier::frontScanCallback(const sensor_msgs::LaserScanConstPtr &msg)
+{
+    /* \todo integrate into map for obstacle avoidance */
 }
 
 void TerrainClassifier::laserScanToCloud(const sensor_msgs::LaserScanConstPtr &scan,
