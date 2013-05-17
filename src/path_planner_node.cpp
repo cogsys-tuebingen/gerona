@@ -11,8 +11,6 @@
 /// PROJECT
 #include <utils/LibPath/generic/Algorithms.hpp>
 #include <utils/LibPath/common/SimpleGridMap2d.h>
-#include <utils/LibPath/evaluation/PathRenderer.hpp>
-#include <utils/LibPath/evaluation/MapRenderer.hpp>
 
 
 /// SYSTEM
@@ -27,20 +25,39 @@
 
 using namespace lib_path;
 
+
+// IGNORE END ORIENTATION
+template <int n, int distance>
+struct NonHolonomicNeighborhoodNoEndOrientation :
+        public NonHolonomicNeighborhood<n, distance> {
+    typedef NonHolonomicNeighborhood<n, distance> Parent;
+
+    using Parent::distance_step_pixel;
+
+    template <class NodeType>
+    static bool isNearEnough(NodeType* goal, NodeType* reference) {
+        return std::abs(goal->x - reference->x) <= distance_step_pixel / 2 &&
+                std::abs(goal->y - reference->y) <= distance_step_pixel / 2;
+    }
+};
+
+
 struct Planner
 {
     enum { SCALE = 1 };
 
     typedef NonHolonomicNeighborhood<50, 120> NHNeighbor;
-    //    typedef AStarSearch_Debug<10000, NoSubParameter, MapRenderer, Pose2d, GridMap2d, NHNeighbor > AStar;
-    typedef AStarSearch_Debug<0, NoSubParameter, MapManagerExtension, Pose2d, GridMap2d, NHNeighbor > AStar;
+    typedef NonHolonomicNeighborhoodNoEndOrientation<120, 200> NHNeighborNoEndOrientation;
+
+
+    DEFINE_CONCRETE_ALGORITHM(AStarNoOrientation,
+                              Pose2d, GridMap2d, NHNeighborNoEndOrientation,
+                              HeuristicL2, DirectionalStateSpaceManager, PriorityQueueManager)
+
+    typedef AStarNoOrientationSearch<> AStar;
+    //typedef AStarSearch<NHNeighbor> AStar;
 
     typedef AStar::PathT PathT;
-
-    //    typedef PathRenderer<SCALE, AStar::NodeT, PathT, AStar::Heuristic> Renderer;
-
-    //    typedef DirectNeighborhood<8,5> DNeighbor;
-    //    typedef AStar2dSearch_Debug<80, NoSubParameter, MapManagerExtension, Pose2d, GridMap2d, DNeighbor> AStar;
 
     Planner()
         : nh("~"), map_info(NULL)
