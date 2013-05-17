@@ -98,35 +98,24 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
         target_line = Line2d( next_wp_local_.head<2>(), followup_next_wp_local.head<2>());
         visualizeLine(next_wp_map_, followup_next_wp_map);
 
-        Vector2d carrot, front_pred, rear_pred;
+        Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
         parent_.predictPose(front_pred, rear_pred);
         if(dir_sign >= 0) {
-            carrot = front_pred;
+            main_carrot = front_pred;
+            alt_carrot = rear_pred;
         } else {
-            carrot = rear_pred;
-        }
-        geometry_msgs::PoseStamped carrot_local;
-        carrot_local.pose.position.x = carrot[0];
-        carrot_local.pose.position.y = carrot[1];
-
-        carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
-        geometry_msgs::PoseStamped carrot_map;
-        if (getNode().transformToGlobal(carrot_local, carrot_map)) {
-            parent_.drawMark(0, carrot_map.pose.position, "prediction", 0, 0, 0);
+            main_carrot = rear_pred;
+            alt_carrot = front_pred;
         }
 
-        return -target_line.GetSignedDistance(carrot);
+        visulizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
+        visulizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
+
+        return -target_line.GetSignedDistance(main_carrot) - 0.25 * target_line.GetSignedDistance(alt_carrot);
     }
 
-
-    double calculateDistanceError() {
-        Vector2d carrot, front_pred, rear_pred;
-        parent_.predictPose(front_pred, rear_pred);
-        if(dir_sign >= 0) {
-            carrot = front_pred;
-        } else {
-            carrot = rear_pred;
-        }
+    void visulizeCarrot(const Vector2d& carrot, int id, float r, float g, float b)
+    {
         geometry_msgs::PoseStamped carrot_local;
         carrot_local.pose.position.x = carrot[0];
         carrot_local.pose.position.y = carrot[1];
@@ -134,16 +123,8 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
         carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
         geometry_msgs::PoseStamped carrot_map;
         if (getNode().transformToGlobal(carrot_local, carrot_map)) {
-            parent_.drawMark(0, carrot_map.pose.position, "prediction", 0, 0, 0);
+            parent_.drawMark(id, carrot_map.pose.position, "prediction", r,g,b);
         }
-
-        Vector2d delta = next_wp_local_.head<2>() - carrot;
-
-        if(std::abs(delta(1)) < 0.1) {
-            return 0;
-        }
-
-        return delta(1);
     }
 
     void visualizeLine(geometry_msgs::PoseStamped wp_map, geometry_msgs::PoseStamped next_wp) {
@@ -245,6 +226,29 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase {
         *status_ptr_ = MotionResult::MOTION_STATUS_MOVING;
     }
 
+    double calculateDistanceError() {
+        Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
+        parent_.predictPose(front_pred, rear_pred);
+        if(dir_sign >= 0) {
+            main_carrot = front_pred;
+            alt_carrot = rear_pred;
+        } else {
+            main_carrot = rear_pred;
+            alt_carrot = front_pred;
+        }
+
+        visulizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
+        visulizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
+
+        Vector2d delta = next_wp_local_.head<2>() - main_carrot;
+
+        if(std::abs(delta(1)) < 0.1) {
+            return 0;
+        }
+
+        return delta(1);
+    }
+
     void checkIfDone()
     {
         Vector2d delta;
@@ -260,7 +264,10 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase {
 
         ROS_WARN_STREAM("angle=" << angle);
 
-        if(std::abs(angle) >= M_PI / 2) {
+//        bool done = std::abs(angle) >= M_PI / 2;
+        bool done = delta.dot(target_dir) < 0;
+
+        if(done) {
             opt.path_idx++;
             opt.wp_idx = 0;
 
@@ -336,8 +343,14 @@ void BehaviourOnLine::getNextWaypoint() {
 
     int last_wp_idx = current_path.size() - 1;
 
+    double tolerance = opt.wp_tolerance_;
+
+    if(dir_sign < 0) {
+        tolerance *= 2;
+    }
+
     // if distance to wp < threshold
-    while(distanceTo(current_path[opt.wp_idx]) < opt.wp_tolerance_) {
+    while(distanceTo(current_path[opt.wp_idx]) < tolerance) {
         if(opt.wp_idx >= last_wp_idx) {
             // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
             *status_ptr_ = MotionResult::MOTION_STATUS_MOVING;
