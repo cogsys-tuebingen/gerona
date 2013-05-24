@@ -157,12 +157,24 @@ private:
     bool scanToFile(std::string filename, const sensor_msgs::LaserScan &scan);
 
 
-    //TODO: kommentieren!
 
-
+    //! Update the map with a cloud of classified points.
     void updateMap(PointCloudXYZRGBT cloud);
+
+    //! Publish a filtered version of the map.
     void publishMap(const ros::TimerEvent&);
+
+    /**
+     * @brief Move the map if necessary.
+     *
+     * Move the map to make the robot be in the center. Each cell is translated, losing information about cells that
+     * are translated to a point outside the map.
+     * The moving is only done, if the robot has moved at least a minium distance from the center, to reduce the
+     * computational cost.
+     */
     void moveMap();
+
+    //! Get distance between a and b.
     static double distance(geometry_msgs::Point a, geometry_msgs::Point b);
 };
 
