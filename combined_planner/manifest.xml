@@ -16,7 +16,7 @@
   <depend package="tf" />
   <depend package="geometry_msgs" />
   <depend package="visualization_msgs" />
-  <depend package="costmap_2d" />
+  <depend package="costmap_2d_extended" />
   <depend package="motion_control" />
   <depend package="actionlib"/>
   <depend package="actionlib_msgs"/>

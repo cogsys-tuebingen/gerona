@@ -15,7 +15,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Point.h>
 #include <tf/transform_listener.h>
-#include <costmap_2d/costmap_2d_ros.h>
+#include <costmap_2d_extended/costmap_2d_ros.h>
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/server/simple_action_server.h>
 

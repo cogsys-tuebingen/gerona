@@ -12,6 +12,8 @@ set(ROS_COMPILE_FLAGS "-W -Wall -fno-strict-aliasing -Wno-unused-parameter -Wno-
 
 rosbuild_init()
 
+find_package(OpenCV REQUIRED)
+
 # Find VTK
 find_package(VTK REQUIRED)
 message(STATUS "VTK found (include: ${VTK_INCLUDE_DIRS}, lib: ${VTK_LIBRARY_DIRS})")
@@ -35,7 +37,7 @@ src/path4ws_simulator.cpp
 src/path_field.cpp
 )
 
-target_link_libraries(path4ws_sim -lvtkCommon -lvtkHybrid -lvtkFiltering -lvtkRendering -lboost_system -lboost_filesystem)
+target_link_libraries(path4ws_sim -lvtkCommon -lvtkHybrid -lvtkFiltering -lvtkRendering -lboost_system -lboost_filesystem ${OpenCV_LIBS})
 
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
