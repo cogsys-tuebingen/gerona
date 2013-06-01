@@ -4,7 +4,7 @@ project(path_planner)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS nav_msgs rabot_utils roscpp std_msgs tf)
+find_package(catkin REQUIRED COMPONENTS nav_msgs utils roscpp std_msgs tf)
 
 
 set(CMAKE_BUILD_TYPE Debug)
@@ -53,7 +53,7 @@ set(CMAKE_BUILD_TYPE Debug)
 catkin_package(
    INCLUDE_DIRS include
 #  LIBRARIES path_planner
-#  CATKIN_DEPENDS nav_msgs rabot_utils roscpp std_msgs
+  CATKIN_DEPENDS nav_msgs utils roscpp std_msgs
 #  DEPENDS system_lib
 )
 
