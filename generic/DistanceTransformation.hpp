@@ -162,15 +162,18 @@ protected:
         path.push_back(*start);
 
         while(current != goal) {
+            std::cout << current->x << ", " << current->y << std::endl;
             NodeT* best = current;
             for(int i = 0; i < NeighborhoodType::SIZE; ++i) {
                 int xx = NeighborhoodType::dx(current->x,i);
                 int yy = NeighborhoodType::dy(current->y,i);
 
-                NodeT* c = LOOKUP(xx, yy);
-                double tmp = c->distance;
-                if(tmp < best->distance) {
-                    best = c;
+                if(xx >= 0 && yy >= 0 && xx < map_.w && yy < map_.h) {
+                    NodeT* c = LOOKUP(xx, yy);
+                    double tmp = c->distance;
+                    if(tmp < best->distance) {
+                        best = c;
+                    }
                 }
             }
 

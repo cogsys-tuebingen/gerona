@@ -65,7 +65,7 @@ struct NonHolonomicNeighborhoodNoEndOrientation :
 
 namespace search_algorithms {
 
-static const int N = 10;
+static const int N = 20;
 static const int M = N;
 
 typedef BFSNeighborhood<8,1> BFSNeighbor;
@@ -92,7 +92,7 @@ DEFINE_CONCRETE_ALGORITHM(AStarSearchNoOrientation,
                           Pose2d, GridMap2d, NHNeighborNoEndOrientation, NoExpansion, HeuristicL2, DirectionalStateSpaceManager, PriorityQueueManager)
 typedef AStarSearchNoOrientationSearch_Debug<M> AStarNHNoEndOrientation;
 
-typedef DistanceTransformationSearch<GenericParameter<Pose2d,NoHeuristic,GridMap2d,DirectNeighborhood<8,4>,NoExpansion, QueueManager,GridMapManager,10*N> > DTA;
+typedef DistanceTransformationSearch<GenericParameter<Pose2d,NoHeuristic,GridMap2d,DirectNeighborhood<8,1>,NoExpansion, QueueManager,GridMapManager,5*N> > DTA;
 }
 
 
@@ -113,7 +113,7 @@ public:
     typedef typename SearchAlgorithm::PathT PathT;
 
 public:
-    Evaluator(int w, int h, double resolution);
+    Evaluator(int w, int h, double resolution, int skip_images = 0);
     ~Evaluator();
 
     void render(const string &file);
@@ -135,7 +135,7 @@ private:
         DRAG_LEFT, DRAG_RIGHT, DRAG_NONE
     };
     enum DRAG_MODE {
-        SET_GOAL, SET_START, SET_FOCUS, SET_OBSTACLE, MAKE_MAZE
+        SET_GOAL, SET_START, SET_FOCUS, SET_OBSTACLE, MAKE_MAZE, MAKE_FILLING_CURE
     };
 
 private:
@@ -144,6 +144,7 @@ private:
     void screenshot();
     void clearMap(bool save_video_frames = true);
     void makeMaze(int width);
+    void makeSpaceFillingCurve(int width);
     void generateMap(bool save_video_frames = true);
     void saveMap();
     bool loadMap();
@@ -207,6 +208,9 @@ private:
     bool save_video_frames;
     bool force_no_wait;
     int image_;
+
+    int skip_images;
+    int skipped;
 };
 }
 

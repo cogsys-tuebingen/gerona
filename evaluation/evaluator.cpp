@@ -8,6 +8,9 @@
 /// HEADER
 #include "evaluator.h"
 
+/// COMPONENT
+#include "MapGenerators.hpp"
+
 /// PROJECT
 #include <utils/LibUtil/Stopwatch.h>
 
@@ -56,7 +59,7 @@ void Evaluator<Search>::mouseCallback(int event, int x, int y, int flags)
             selection.width = -1;
             selection.height = -1;
             cv::Scalar col = drag == DRAG_LEFT ? cv::Scalar::all(0) : cv::Scalar::all(255);
-            cv::rectangle(orig_map, cv::Point(drag_start.x / SCALE, h- drag_start.y / SCALE), cv::Point(x / SCALE, h- y / SCALE), col,
+            cv::rectangle(orig_map, cv::Point(drag_start.x / (double) SCALE, h- drag_start.y / (double) SCALE), cv::Point(x / (double) SCALE, h- y / (double) SCALE), col,
                           CV_FILLED, 8, 0);
             generateMap();
             complete_repaint_ = true;
@@ -66,6 +69,15 @@ void Evaluator<Search>::mouseCallback(int event, int x, int y, int flags)
         case MAKE_MAZE:
         {
             makeMaze(selection.width);
+            selection.width = -1;
+            selection.height = -1;
+            complete_repaint_ = true;
+            refresh = true;
+            break;
+        }
+        case MAKE_FILLING_CURE:
+        {
+            makeSpaceFillingCurve(selection.width);
             selection.width = -1;
             selection.height = -1;
             complete_repaint_ = true;
@@ -105,6 +117,7 @@ void Evaluator<Search>::mouseCallback(int event, int x, int y, int flags)
             selection = cv::Rect(drag_start, cv::Point(x, y));
             break;
         case MAKE_MAZE:
+        case MAKE_FILLING_CURE:
             selection = cv::Rect(drag_start, cv::Point(x, drag_start.y + 4));
             break;
         default:
@@ -122,11 +135,11 @@ void Evaluator<Search>::mouseCallback(int event, int x, int y, int flags)
 }
 
 template <class Search>
-Evaluator<Search>::Evaluator(int w, int h, double resolution)
+Evaluator<Search>::Evaluator(int w, int h, double resolution, int skip_images)
     : map_info(w, h, resolution), lastest_path_(NULL), show_info_(true), arrow_color(uni_tuebingen::cd::primary::karmin_red),
       complete_repaint_(false), refresh_requested_(false),
       drag(DRAG_NONE), drag_mode(SET_FOCUS), w(w), h(h), circle_radius(-1), res(resolution),
-      first_or_last_frame(false), save_video_frames(false), force_no_wait(false), image_(1)
+      first_or_last_frame(false), save_video_frames(false), force_no_wait(false), image_(1), skip_images(skip_images), skipped(0)
 {
     obstacles = true;
 
@@ -208,192 +221,6 @@ void Evaluator<Search>::clearMap(bool save)
     generateMap(save);
 }
 
-namespace {
-template <class Pt>
-class Maze {
-public:
-    Maze(int width, cv::Mat orig_map)
-        : width(std::max(3, width)), orig_map(orig_map), border(1)
-    {
-        w = orig_map.rows / width;
-        h = orig_map.cols / width;
-        N = w * h;
-
-        border = std::max(1, width/4);
-
-        init();
-    }
-
-    void run(const Pt& start, const Pt& goal) {
-        cv::Point s(start.x / width, start.y / width);
-        cv::Point g(goal.x / width, goal.y / width);
-
-        expanded = 0;
-
-        std::stack<cv::Point> open;
-        cv::Point current = s;
-        mark(current);
-
-        while(expanded < N) {
-            if(hasUnvisitedNeighbor(current)) {
-                cv::Point next = getRandomUnvisitedNeighborCell(current);
-                assert(!visited[IDX(next.x, next.y)]);
-
-                open.push(current);
-
-                removeWallsBetween(current, next);
-
-                current = next;
-                mark(current);
-
-                //                cv::imshow("debug", orig_map);
-                //                cv::waitKey(25);
-
-            } else if(!open.empty()) {
-                current = open.top();
-                open.pop();
-
-            } else {
-                std::cout << "find random" << std::endl;
-                current = getRandomUnvisitedCell();
-                mark(current);
-            }
-        }
-        std::cout << "done" << std::endl;
-
-        assert(expanded == N);
-    }
-
-    ~Maze() {
-        delete[] visited;
-    }
-
-private:
-    void init() {
-        memset(dx__, 0, 4 * sizeof(int));
-        memset(dy__, 0, 4 * sizeof(int));
-        dx__[0] = -1; dx__[2] = 1;
-        dy__[1] = -1; dy__[3] = 1;
-
-        visited = new int[N];
-        memset(visited, true, (N) * sizeof(int));
-
-        for(int y=0; y<w; y++) {
-            for(int x=0; x<h; x++) {
-                visited[IDX(x,y)] = false;
-            }
-        }
-    }
-
-    void mark(const cv::Point& pt) {
-        visited[IDX(pt.x, pt.y)] = true;
-        expanded++;
-    }
-
-    bool hasUnvisitedNeighbor(const cv::Point& pt) {
-        for(int n = 0; n < 4; ++n) {
-            int idx = IDX(pt.x + dx__[n], pt.y+dy__[n]);
-            if(idx >= 0 && !visited[idx]) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    cv::Point getRandomUnvisitedCell() {
-        while(true) {
-            int x = rand() % h;
-            int y = rand() % w;
-
-            while(visited[IDX(x, y)]) {
-                ++x;
-                if(x == h) {
-                    x = 0;
-                    ++y;
-                }
-                if(y == w) {
-                    y = 0;
-                }
-            }
-
-            return cv::Point(x,y);
-        }
-
-        assert(false);
-    }
-
-    cv::Point getRandomUnvisitedNeighborCell(const cv::Point& pt) {
-        assert(hasUnvisitedNeighbor(pt));
-
-        while(true) {
-            int n = rand() % 4;
-            int dx = dx__[n];
-            int dy = dy__[n];
-
-            int idx = IDX(pt.x + dx, pt.y+dy);
-            if(idx >= 0 && !visited[idx]) {
-                cv::Point next(pt.x + dx, pt.y + dy);
-                if(next.x < 0 || next.y < 0 || next.x == h || next.y == w) {
-                    continue;
-                } else {
-                    return next;
-                }
-            }
-        }
-
-        assert(false);
-    }
-
-    void removeWallsBetween(const cv::Point& current, const cv::Point& next) {
-        cv::Rect r1 = rectFor(current);
-        cv::Rect r2 = rectFor(next);
-        cv::Rect middle(0.5 * (r1.tl() + r2.tl()), r1.size());
-
-        cv::rectangle(orig_map, r1, cv::Scalar::all(255), CV_FILLED);
-        cv::rectangle(orig_map, middle, cv::Scalar::all(255), CV_FILLED);
-        cv::rectangle(orig_map, r2, cv::Scalar::all(255), CV_FILLED);
-    }
-
-    inline int IDX(int x, int y) {
-        if(x < 0 || y < 0 || x == h || y == w) {
-            return -1;
-        }
-        return y*h + x;
-    }
-
-    inline void free(const cv::Point& pt) {
-        free(pt.x, pt.y);
-    }
-
-    inline void free(int x, int y) {
-        cv::rectangle(orig_map, rectFor(x, y), cv::Scalar::all(255), CV_FILLED);
-    }
-
-    inline cv::Rect rectFor(const cv::Point& pt) {
-        return rectFor(pt.x, pt.y);
-    }
-
-    inline cv::Rect rectFor(int x, int y){
-        return cv::Rect(x*width+border/2,y*width+border/2,width-border,width-border);
-    }
-
-private:
-    int dx__[4];
-    int dy__[4];
-
-    int width;
-    cv::Mat orig_map;
-    int border;
-
-    int N;
-    int w;
-    int h;
-
-    int* visited;
-    int expanded;
-};
-}
 
 template <class Search>
 void Evaluator<Search>::makeMaze(int width)
@@ -401,7 +228,18 @@ void Evaluator<Search>::makeMaze(int width)
     clearMap(false);
     invertMap(false);
 
-    Maze<Pose2d> m(std::max(1, width / SCALE), orig_map);
+    map_generator::Maze<Pose2d> m(std::max(1, width / SCALE), orig_map);
+    m.run(start, goal);
+
+    generateMap(true);
+}
+template <class Search>
+void Evaluator<Search>::makeSpaceFillingCurve(int width)
+{
+    clearMap(false);
+    invertMap(false);
+
+    map_generator::HilbertCurve<Pose2d> m(std::max(1, width / SCALE), orig_map);
     m.run(start, goal);
 
     generateMap(true);
@@ -580,6 +418,13 @@ void Evaluator<Search>::draw(bool use_wait)
         cv::putText(img, ss.str(), cv::Point(40, 80), cv::FONT_HERSHEY_PLAIN, 0.7, cv::Scalar::all(0), 1, CV_AA);
     }
 
+
+    std::stringstream ss;
+    ss << (skip_images+1) << "x";
+    cv::putText(img, ss.str(), cv::Point(w*SCALE-100, h*SCALE-20), cv::FONT_HERSHEY_DUPLEX, 1.5, cv::Scalar::all(255), 3, CV_AA);
+    cv::putText(img, ss.str(), cv::Point(w*SCALE-100, h*SCALE-20), cv::FONT_HERSHEY_DUPLEX, 1.5, cv::Scalar::all(0), 1, CV_AA);
+
+
     if(selection.width > 0) {
         cv::rectangle(img, selection, cv::Scalar::all(0), 1, 8, 0);
     }
@@ -596,12 +441,16 @@ void Evaluator<Search>::draw(bool use_wait)
 
         if(first_or_last_frame) {
             int fps = video_.fps();
-            for(int i = 0; i < 3 * fps; ++i) {
+            for(int i = 0; i < 0.25 * fps; ++i) {
                 video_ << img;
             }
             first_or_last_frame = false;
         } else {
-            video_ << img;
+
+            if(--skipped <= 0){
+                video_ << img;
+                skipped = skip_images;
+            }
         }
     }
 
@@ -640,6 +489,9 @@ typename Evaluator<Search>::KEY_EVENT Evaluator<Search>::keyCallback(int key)
 
     } else if(key == 'm') {
         drag_mode = MAKE_MAZE;
+
+    } else if(key == 'n') {
+        drag_mode = MAKE_FILLING_CURE;
 
     } else if(key == 'o') {
         drag_mode = SET_OBSTACLE;
@@ -819,20 +671,20 @@ int main(int argc, char* argv[])
 //    typedef search_algorithms::AStarNHOverEstimate Search;
 //        typedef search_algorithms::AStarNHNoEndOrientation Search;
 
-#define RENDER(T) { \
-    Evaluator<search_algorithms::T> eval##T(w / Evaluator<search_algorithms::T>::SCALE, h / Evaluator<search_algorithms::T>::SCALE, res); \
+#define RENDER(T,skip) { \
+    Evaluator<search_algorithms::T> eval##T(w / Evaluator<search_algorithms::T>::SCALE, h / Evaluator<search_algorithms::T>::SCALE, res, skip); \
     eval##T.render(#T); }
 
-//    RENDER(DTA);
-//    RENDER(BFS);
-//    RENDER(Dijkstra);
-//    RENDER(Dijkstra4d);
-//    RENDER(AStar);
-//    RENDER(AStarTaxi);
-//    RENDER(AStarMax);
-//    RENDER(AStarNH);
-//    RENDER(AStarNHHH);
-//    RENDER(AStarNHNoEndOrientation);
+//    RENDER(DTA, 4);
+//    RENDER(BFS, 0);
+//    RENDER(Dijkstra, 0);
+//    RENDER(Dijkstra4d, 19);
+//    RENDER(AStar, 0);
+//    RENDER(AStarTaxi, 0);
+//RENDER(AStarMax, 0);
+//    RENDER(AStarNH, 9);
+//    RENDER(AStarNHHH, 9);
+//    RENDER(AStarNHNoEndOrientation, 9);
 
     Evaluator<Search> eval(w / Evaluator<Search>::SCALE, h / Evaluator<Search>::SCALE, res); \
     bool run = eval.run();

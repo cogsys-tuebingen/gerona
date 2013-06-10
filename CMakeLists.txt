@@ -40,6 +40,7 @@ set(files ReedsShepp/CurveGenerator.cpp
     generic/ReedsSheppExpansion.hpp
     evaluation/Renderer.hpp
     evaluation/Util.hpp
+    evaluation/MapGenerators.hpp
     sampling/GoalRegion.cpp
     sampling/RingGoalRegion.cpp
     sampling/PoseListGoalRegion.cpp
