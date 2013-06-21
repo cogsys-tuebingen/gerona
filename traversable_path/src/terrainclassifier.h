@@ -116,7 +116,7 @@ private:
     static float avg(const boost::circular_buffer<float> &xs);
 
     //! Classifies the points of the given scan.
-    std::vector<PointClassification> detectObstacles(const sensor_msgs::LaserScan &data, std::vector<float> &out);
+    std::vector<PointClassification> detectObstacles(const sensor_msgs::LaserScan &data, uint layer, std::vector<float> &out);
 
     /**
      * @brief Check neighbourhood of each point for some features.

@@ -154,7 +154,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanConstPtr &
 
     // find obstacles
     vector<float> debug_classification_as_intensity(msg->intensities.size());
-    traversable = detectObstacles(smoothed, debug_classification_as_intensity);
+    traversable = detectObstacles(smoothed, layer, debug_classification_as_intensity);
 
     // get projection to carthesian frame
     PointCloudXYZRGBT pcl_cloud;
@@ -177,7 +177,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanConstPtr &
     //ROS_DEBUG("Published %zu traversability points", pcl_cloud.points.size());
     /** @todo This topic is only for debugging. Remove in later versions */
     smoothed.intensities = debug_classification_as_intensity;
-    publish_normalized_.publish(smoothed);
+    if (layer == 1) publish_normalized_.publish(smoothed);
 
 
 
@@ -354,7 +354,7 @@ float TerrainClassifier::avg(const boost::circular_buffer<float> &xs)
         return accumulate(xs.begin(), xs.end(), 0.0) / xs.size();
 }
 
-vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs::LaserScan &data,
+vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs::LaserScan &data, uint layer,
                                                                std::vector<float> &out)
 {
     // constant values
@@ -375,11 +375,13 @@ vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs
     //diff_intensities = smooth(diff_intensities, 6);
 
     //////
-    sensor_msgs::LaserScan scan_diff;
-    scan_diff = data;
-    scan_diff.ranges = diff_ranges;
-    scan_diff.intensities = diff_intensities;
-    publish_normalized_diff.publish(scan_diff);
+    if (layer == 1) {
+        sensor_msgs::LaserScan scan_diff;
+        scan_diff = data;
+        scan_diff.ranges = diff_ranges;
+        scan_diff.intensities = diff_intensities;
+        publish_normalized_diff.publish(scan_diff);
+    }
     //////
 
     vector<PointClassification> scan_classification(LENGTH);
