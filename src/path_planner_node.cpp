@@ -74,8 +74,10 @@ struct Planner
         use_map_service_ = !use_map_topic_;
 
         if(use_map_topic_) {
-            map_sub = nh.subscribe<nav_msgs::OccupancyGrid>
-                    ("/map/inflated", 1, boost::bind(&Planner::updateMapCallback, this, _1));
+          std::string map_topic = "/map/inflated";
+          nh.param("map_topic",map_topic, map_topic);
+          map_sub = nh.subscribe<nav_msgs::OccupancyGrid>
+                   (map_topic, 1, boost::bind(&Planner::updateMapCallback, this, _1));
 
         } else {
             map_service_client = nh.serviceClient<nav_msgs::GetMap>
@@ -86,8 +88,8 @@ struct Planner
         nh.param("base_frame", base_frame_, base_frame_);
 
 
-        path_publisher = nh.advertise<nav_msgs::Path> ("path", 10);
-        raw_path_publisher = nh.advertise<nav_msgs::Path> ("path_raw", 10);
+        path_publisher = nh.advertise<nav_msgs::Path> ("/path", 10);
+        raw_path_publisher = nh.advertise<nav_msgs::Path> ("/path_raw", 10);
     }
 
     void updateMapCallback (const nav_msgs::OccupancyGridConstPtr &map) {

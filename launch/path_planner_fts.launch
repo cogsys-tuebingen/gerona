@@ -1,0 +1,58 @@
+<launch>
+  <param name="use_sim_time" value="true" />
+  <!--
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_map_link" args="0 0 0 0 0 0 /base_link /map 10" />
+  -->
+  <node pkg="fake_localization" type="fake_localization" name="fake_localization">
+  </node>
+  <node name="xstage" pkg="xstage" type="xstage" args="$(env RABOT)/Config/Simulation/rs_test.world" />
+
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0 0 0 0 0 3.141592654   /base_link /laser 100" />
+
+  
+  <node name="map_server" pkg="map_server" type="map_server" args="$(env RABOT)/Config/Simulation/asick2010parcours.yaml" />
+  
+  <!--
+  <node name="Gmapping" pkg="gmapping" type="slam_gmapping" args="scan:=/base_scan" >
+    <param name="~particles" type="int" value="5" />
+    <param name="~map_update_interval" type="double" value="0.1" />
+    <param name="~iterations" type="int" value="15" />
+    <param name="~srr" type="double" value="0.5" />
+    <param name="~srt" type="double" value="0.5" />
+    <param name="~str" type="double" value="0.5" />
+    <param name="~stt" type="double" value="0.5" />
+    <param name="~delta" type="double" value="0.05" />
+    <param name="~lstep" type="double" value="0.2" />
+    <param name="~astep" type="double" value="0.2" />
+    <param name="~xmin" type="double" value="-10.0" />
+    <param name="~ymin" type="double" value="-10.0" />
+    <param name="~xmax" type="double" value="10.0" />
+    <param name="~ymax" type="double" value="10.0" />
+    <param name="~maxUrange" type="double" value="5.5" />
+
+    <param name="~linearUpdate" type="double" value="0.01" />
+    <param name="~angularUpdate" type="double" value="0.01" />
+
+    <param name="~temporalUpdate" type="double" value="1" />
+
+    <param name="lskip" type="int" value="0" />
+    <param name="~resampleThreshold" type="double" value="0.5" />
+  </node>
+  -->
+  <node pkg="costmap_2d_extended" type="costmap_2d_extended_node" name="costmap_2d_extended" output="screen"></node>
+  <group ns="/costmap_2d_extended/costmap">
+    <param name="transform_tolerance" value="1.0" />
+    <param name="update_frequency" value="2.0" />
+    <param name="publish_frequency" value="0.2" />
+    <param name="publish_nav_map" value="true" />
+    <param name="origin_bubble_radius" value="0.5" />
+    <param name="rolling_window" value="true" />
+    <param name="footprint" value="[ [1, -0.3], [1, 0.3],[-1,0.3],[-1,-0.3] ]" /> 
+    
+  </group>
+
+  <node pkg="path_planner" type="path_planner_node" name="path_planner" output="screen">
+    <param name="use_map_topic" value="true"/>
+    <param name="map_topic" value="/costmap_2d_extended/costmap/map_inflated"/>
+  </node>
+</launch>  
