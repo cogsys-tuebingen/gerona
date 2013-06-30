@@ -44,6 +44,10 @@ struct MapRenderer : public SearchAlgorithm {
         : has_focus(false), has_prev(false), max_dist(1)
     {}
 
+    bool usesOrientation() const {
+        return map_.theta_slots > 1;
+    }
+
     int noExpansions() const {
         return SearchAlgorithm::expansions;
     }
@@ -115,15 +119,16 @@ struct MapRenderer : public SearchAlgorithm {
         int w = Scale-1;
 
         static cv::Scalar stages[] = {
-            uni_tuebingen::cd::secondary::light_green,
+            //            uni_tuebingen::cd::secondary::light_green,
+            cv::Scalar::all(255),
             uni_tuebingen::cd::secondary::green,
-            uni_tuebingen::cd::secondary::dark_green,
-            uni_tuebingen::cd::secondary::dark_blue,
-            uni_tuebingen::cd::secondary::blue,
-            uni_tuebingen::cd::secondary::cyan,
+            //            uni_tuebingen::cd::secondary::dark_green,
+            //            uni_tuebingen::cd::secondary::dark_blue,
+            //            uni_tuebingen::cd::secondary::blue,
+            //            uni_tuebingen::cd::secondary::cyan,
             uni_tuebingen::cd::secondary::orange,
             uni_tuebingen::cd::secondary::red,
-            uni_tuebingen::cd::secondary::brown,
+            //            uni_tuebingen::cd::secondary::brown,
             uni_tuebingen::cd::primary::anthrazite
         };
         int stage_count = sizeof(stages) / sizeof(cv::Scalar);
@@ -144,8 +149,8 @@ struct MapRenderer : public SearchAlgorithm {
 
             cv::Scalar col = stages[a] * fa + stages[b] * fb;
 
-//            cv::Scalar col = uni_tuebingen::cd::primary::anthrazite * (1-col_angle) +
-//                    uni_tuebingen::cd::secondary::cyan * col_angle;
+            //            cv::Scalar col = uni_tuebingen::cd::primary::anthrazite * (1-col_angle) +
+            //                    uni_tuebingen::cd::secondary::cyan * col_angle;
 
             cv::rectangle(out_, cv::Point(x_, y_), cv::Point(x_+w,y_+w), col, CV_FILLED);
 
@@ -172,23 +177,29 @@ struct MapRenderer : public SearchAlgorithm {
             if(node.isMarked(NodeType::MARK_WATCHED)) {
                 NodeType* pt = &node;
                 cv::Scalar col = uni_tuebingen::cd::secondary::beige;
-                while(pt->prev != NULL) {
-                    NodeType* prev = dynamic_cast<NodeType*>(pt->prev);
-                    cv::line(out_, p2cvRef(*pt, map_h, Scale), p2cvRef(*prev, map_h, Scale), col, Scale/2);
-                    pt = prev;
+                if(usesOrientation()) {
+                    NodeType* tmp = &node;
+                    while(tmp->prev != NULL) {
+                        NodeType* prev = dynamic_cast<NodeType*>(tmp->prev);
+                        cv::line(out_, p2cvRef(*tmp, map_h, Scale), p2cvRef(*prev, map_h, Scale), uni_tuebingen::cd::primary::anthrazite, 1.5*Scale/2, CV_AA);
+                        tmp = prev;
+                    }
+                    tmp = &node;
+                    while(tmp->prev != NULL) {
+                        NodeType* prev = dynamic_cast<NodeType*>(tmp->prev);
+                        cv::line(out_, p2cvRef(*tmp, map_h, Scale), p2cvRef(*prev, map_h, Scale), colorFor(*tmp), Scale/2, CV_AA);
+                        tmp = prev;
+                    }
                 }
 
                 cv::Point p = p2cvRef(node, map_h, Scale);
                 if(p.x >= 0 && p.x < out_.cols && p.y >= 0 && p.y < out_.rows) {
-                    float scale = map_.theta_slots > 1 ? 1.0f : 0.25f;
-                    cv::circle(out_, p, 2 * Scale * scale, uni_tuebingen::cd::secondary::brown, CV_FILLED, CV_AA);
-
                     if(map_.theta_slots > 1) {
-                        double r = 2.5 * Scale;
-                        cv::Point pd = p;
-                        pd.x += std::cos(node.theta) * r;
-                        pd.y -= std::sin(node.theta) * r;
-                        cv::line(out_, p, pd,  uni_tuebingen::cd::primary::gold, Scale, CV_AA);
+                        renderArrow(node, uni_tuebingen::cd::secondary::cyan, 0.5f);
+                    } else {
+                        float scale = 0.25f;
+                        cv::circle(out_, p, 2 * Scale * scale, uni_tuebingen::cd::secondary::dark_blue, CV_FILLED, CV_AA);
+                        cv::circle(out_, p, 1.5 * Scale * scale, colorFor(node), CV_FILLED, CV_AA);
                     }
                 }
                 node.unMark(NodeType::MARK_WATCHED);
@@ -201,7 +212,9 @@ struct MapRenderer : public SearchAlgorithm {
                 if(node.isMarked(NodeType::MARK_EXPANDED)) {
                     cv::Point p = p2cvRef(node, map_h, Scale);
                     if(p.x >= 0 && p.x < out_.cols && p.y >= 0 && p.y < out_.rows) {
-                        cv::circle(out_, p, 2 * Scale, uni_tuebingen::cd::secondary::light_green, 1, CV_AA);
+                        float scale = map_.theta_slots > 1 ? 1.0f : 0.25f;
+                        cv::circle(out_, p, 3 * Scale * scale, uni_tuebingen::cd::secondary::dark_green, CV_FILLED, CV_AA);
+                        cv::circle(out_, p, 2 * Scale * scale, uni_tuebingen::cd::secondary::green, CV_FILLED, CV_AA);
                     }
                     node.unMark(NodeType::MARK_EXPANDED);
                 }
@@ -258,8 +271,7 @@ struct MapRenderer : public SearchAlgorithm {
 
                     double heuristics = readHeuristics(c);
                     if(heuristics < 0) {
-                        const cv::Scalar& s = uni_tuebingen::cd::primary::gold;
-                        col = cv::Vec3b(s[0], s[1], s[2]);
+                        col = cv::Vec3b(220,200,200);
                     } else {
                         unsigned min = 100;
                         double span = 255.0-min;
@@ -324,8 +336,8 @@ struct MapRenderer : public SearchAlgorithm {
             return;
         }
 
-        tracePath(path, uni_tuebingen::cd::primary::karmin_red, 2.25*Scale);
-        tracePath(path, cv::Scalar::all(-1), 1.25*Scale);
+        tracePath(path, uni_tuebingen::cd::primary::anthrazite, 1.25*Scale);
+        tracePath(path, cv::Scalar::all(-1), 0.75*Scale);
     }
 
     void tracePath(const PathT& path, const cv::Scalar& color, double scale) {
@@ -343,7 +355,7 @@ struct MapRenderer : public SearchAlgorithm {
     }
 
     template <class Pose>
-    void renderArrow(const Pose& pose, CvScalar color = uni_tuebingen::cd::secondary::dark_blue, float scale = 1.0f) {
+    void renderArrow(const Pose& pose, cv::Scalar color = uni_tuebingen::cd::secondary::dark_blue, float scale = 1.0f, cv::Scalar border_color = cv::Scalar::all(-1)) {
         Point2d t(pose);
         Point2d right(12, 5);
         Point2d left(12, -5);
@@ -359,11 +371,28 @@ struct MapRenderer : public SearchAlgorithm {
 
         Point2d tip = t + dir.rotate(pose.theta);
         cv::line(out_, p2cv(pose, map_h, Scale), p2cv(t + dir.rotate(pose.theta), map_h, Scale),
-                 color, 2.0f * scale * Scale, CV_AA);
+                 border_color, 2.0f * scale * Scale, CV_AA);
         cv::line(out_, p2cv(tip, map_h, Scale), p2cv(t + left.rotate(pose.theta), map_h, Scale),
-                 color, 2.0f * scale * Scale, CV_AA);
+                 border_color, 2.0f * scale * Scale, CV_AA);
         cv::line(out_, p2cv(tip, map_h, Scale), p2cv(t + right.rotate(pose.theta), map_h, Scale),
-                 color, 2.0f * scale * Scale, CV_AA);
+                 border_color, 2.0f * scale * Scale, CV_AA);
+        cv::line(out_, p2cv(pose, map_h, Scale), p2cv(t + dir.rotate(pose.theta), map_h, Scale),
+                 color, 1.5f * scale * Scale, CV_AA);
+        cv::line(out_, p2cv(tip, map_h, Scale), p2cv(t + left.rotate(pose.theta), map_h, Scale),
+                 color, 1.5f * scale * Scale, CV_AA);
+        cv::line(out_, p2cv(tip, map_h, Scale), p2cv(t + right.rotate(pose.theta), map_h, Scale),
+                 color, 1.5f * scale * Scale, CV_AA);
+    }
+
+    template <class Pose>
+    void fillCell(const Pose& pose, cv::Scalar color = uni_tuebingen::cd::secondary::dark_blue, cv::Scalar border_color = cv::Scalar::all(-1)) {
+        cv::Point tl = p2cv(pose, map_h, Scale);
+        cv::Point size(Scale, Scale);
+        cv::rectangle(out_, tl, tl + size, color, CV_FILLED);
+
+        if(border_color != cv::Scalar::all(-1)) {
+            cv::rectangle(out_, tl, tl + size, border_color, std::ceil(Scale / 4.0));
+        }
     }
 
     void setFocus(int x_img, int y_img, int radius) {
@@ -419,11 +448,11 @@ struct MapRenderer : public SearchAlgorithm {
     // specializations
     template <class T>
     cv::Scalar colorFor(const T& pt, typename boost::enable_if_c<NodeTraits<T>::HasForwardField, T>::type* = 0) {
-        return pt.forward ? uni_tuebingen::cd::primary::gold : uni_tuebingen::cd::secondary::red;
+        return pt.forward ? uni_tuebingen::cd::secondary::cyan : uni_tuebingen::cd::secondary::lila;
     }
     template <class T>
     cv::Scalar colorFor(const T& pt, typename boost::disable_if_c<NodeTraits<T>::HasForwardField, T>::type* = 0) {
-        return uni_tuebingen::cd::primary::gold;
+        return uni_tuebingen::cd::secondary::cyan;
     }
 
     template <class T>

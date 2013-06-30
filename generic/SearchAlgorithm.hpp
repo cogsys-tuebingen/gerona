@@ -35,7 +35,8 @@ template <class PointT,
           class AnalyticExpansionT,
           template <class> class OpenNodesPolicy,
           template <class> class MapManagerPolicy,
-          int INTERMISSION_N_STEPS = 0
+          int INTERMISSION_N_STEPS = 0,
+          int INTERMISSION_START_STEPS = 0
           >
 struct GenericParameter
 {
@@ -56,7 +57,7 @@ public:
     typedef MapManagerPolicy<NodeType> MapManager;
     typedef OpenNodesPolicy<NodeType> OpenNodesManager;
 
-    enum { INTERMISSION_STEPS = INTERMISSION_N_STEPS};
+    enum { INTERMISSION_STEPS = INTERMISSION_N_STEPS, INTERMISSION_START = INTERMISSION_START_STEPS};
 };
 
 
@@ -68,6 +69,7 @@ class GenericSearchAlgorithm
 {
 public:
     enum { INTERMISSION_N_STEPS = Param::INTERMISSION_STEPS };
+    enum { INTERMISSION_START_STEPS = Param::INTERMISSION_START };
 
     typedef typename Param::OpenNodesManager OpenNodesManager;
     typedef typename Param::PointType PointT;
@@ -128,7 +130,8 @@ public:
      * @return
      */
     virtual PathT findPath(const PointT& from, const PointT& to, boost::function<void()> intermission) {
-        return findPathImp<generic::CallbackIntermission<INTERMISSION_N_STEPS> >(from, to, intermission);
+        //return findPathImp<generic::CallbackIntermission<INTERMISSION_N_STEPS> >(from, to, intermission);
+        return findPathImp<generic::CallbackIntermission<INTERMISSION_N_STEPS, INTERMISSION_START_STEPS> >(from, to, intermission);
     }
 
 protected:
@@ -147,6 +150,12 @@ protected:
         Heuristic::setMap(map_.getMap(), *goal);
 
         // search can be aborted, if eather one is occupied
+        if(!map_.isFree(start)) {
+            std::cout << "start cell is not free" << std::endl;
+        }
+        if(!map_.isFree(goal)) {
+            std::cout << "goal cell is not free" << std::endl;
+        }
         if(!map_.isFree(start) || !map_.isFree(goal)) {
             return empty();
         }

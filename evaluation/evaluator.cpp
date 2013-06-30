@@ -136,7 +136,7 @@ void Evaluator<Search>::mouseCallback(int event, int x, int y, int flags)
 
 template <class Search>
 Evaluator<Search>::Evaluator(int w, int h, double resolution, int skip_images)
-    : map_info(w, h, resolution), lastest_path_(NULL), show_info_(true), arrow_color(uni_tuebingen::cd::primary::karmin_red),
+    : map_info(w, h, resolution), lastest_path_(NULL), show_info_(true), start_color(uni_tuebingen::cd::primary::gold), goal_color(uni_tuebingen::cd::primary::karmin_red),
       complete_repaint_(false), refresh_requested_(false),
       drag(DRAG_NONE), drag_mode(SET_FOCUS), w(w), h(h), circle_radius(-1), res(resolution),
       first_or_last_frame(false), save_video_frames(false), force_no_wait(false), image_(1), skip_images(skip_images), skipped(0)
@@ -152,7 +152,7 @@ Evaluator<Search>::Evaluator(int w, int h, double resolution, int skip_images)
         initDefaultMap();
     }
 
-//    worker = boost::thread(boost::bind(&Evaluator::drawThread, this));
+    //    worker = boost::thread(boost::bind(&Evaluator::drawThread, this));
 
     img = cv::Mat(map_info.getHeight() * SCALE, map_info.getWidth() * SCALE, CV_8UC3, cv::Scalar::all(127));
 }
@@ -388,6 +388,8 @@ void Evaluator<Search>::draw(bool use_wait)
     algo.setOut(img);
     algo.renderMap();
 
+    renderStartAndGoal();
+
     algo.visualizeSearchSpace();
 
     if(lastest_path_ != NULL) {
@@ -418,18 +420,22 @@ void Evaluator<Search>::draw(bool use_wait)
         cv::putText(img, ss.str(), cv::Point(40, 80), cv::FONT_HERSHEY_PLAIN, 0.7, cv::Scalar::all(0), 1, CV_AA);
     }
 
-
-    std::stringstream ss;
-    ss << (skip_images+1) << "x";
-    cv::putText(img, ss.str(), cv::Point(w*SCALE-100, h*SCALE-20), cv::FONT_HERSHEY_DUPLEX, 1.5, cv::Scalar::all(255), 3, CV_AA);
-    cv::putText(img, ss.str(), cv::Point(w*SCALE-100, h*SCALE-20), cv::FONT_HERSHEY_DUPLEX, 1.5, cv::Scalar::all(0), 1, CV_AA);
-
+    {
+        std::stringstream ss;
+        ss << (skip_images+1) << "x";
+        cv::putText(img, ss.str(), cv::Point(w*SCALE-100, h*SCALE-20), cv::FONT_HERSHEY_DUPLEX, 1.5, cv::Scalar::all(255), 3, CV_AA);
+        cv::putText(img, ss.str(), cv::Point(w*SCALE-100, h*SCALE-20), cv::FONT_HERSHEY_DUPLEX, 1.5, cv::Scalar::all(0), 1, CV_AA);
+    }
+    {
+        std::stringstream ss;
+        ss << "iteration " << (algo.noExpansions());
+        cv::putText(img, ss.str(), cv::Point(10, h*SCALE-20), cv::FONT_HERSHEY_DUPLEX, 0.5, cv::Scalar::all(255), 3, CV_AA);
+        cv::putText(img, ss.str(), cv::Point(10, h*SCALE-20), cv::FONT_HERSHEY_DUPLEX, 0.5, cv::Scalar::all(0), 1, CV_AA);
+    }
 
     if(selection.width > 0) {
         cv::rectangle(img, selection, cv::Scalar::all(0), 1, 8, 0);
     }
-    algo.renderArrow(start, arrow_color);
-    algo.renderArrow(goal, arrow_color);
 
     cv::imshow(window.c_str(), img);
 
@@ -440,10 +446,11 @@ void Evaluator<Search>::draw(bool use_wait)
         image_++;
 
         if(first_or_last_frame) {
-            int fps = video_.fps();
-            for(int i = 0; i < 0.25 * fps; ++i) {
+            renderStartAndGoal();
+//            int fps = video_.fps();
+//            for(int i = 0; i < 0.25 * fps; ++i) {
                 video_ << img;
-            }
+//            }
             first_or_last_frame = false;
         } else {
 
@@ -459,6 +466,18 @@ void Evaluator<Search>::draw(bool use_wait)
     }
 
     wait();
+}
+
+template <class Search>
+void Evaluator<Search>::renderStartAndGoal()
+{
+    if(algo.usesOrientation()) {
+        algo.renderArrow(start, start_color, 0.5f, uni_tuebingen::cd::primary::anthrazite);
+        algo.renderArrow(goal, goal_color, 0.5f, uni_tuebingen::cd::primary::anthrazite);
+    } else {
+        algo.fillCell(start, start_color, uni_tuebingen::cd::primary::anthrazite);
+        algo.fillCell(goal, goal_color, uni_tuebingen::cd::primary::anthrazite);
+    }
 }
 
 template <class Search>
@@ -542,11 +561,12 @@ bool Evaluator<Search>::run(bool skip_init, bool loop)
     std::cout << "start search" << std::endl;
 
     Stopwatch watch;
-//    SearchAlgorithm::PathT path = algo.findPath(start, goal, boost::bind(&Evaluator::drawInParallel, this));
+    //    SearchAlgorithm::PathT path = algo.findPath(start, goal, boost::bind(&Evaluator::drawInParallel, this));
     PathT path = algo.findPath(start, goal, boost::bind(&Evaluator<Search>::draw, this, true));
     std::cout << "path search took " << watch.usElapsed() / 1e3 << "ms" << std::endl;
 
     lastest_path_ = &path;
+    draw(false);
     first_or_last_frame = true;
     draw(true);
     lastest_path_ = NULL;
@@ -561,7 +581,7 @@ void Evaluator<Search>::render(const std::string& file)
 {
     save_video_frames = true;
     show_info_ = false;
-//    force_no_wait = true;
+    //    force_no_wait = true;
 
     video_.open(file + ".avi", 24, cv::Size(w, h), 25000);
 
@@ -606,8 +626,8 @@ bool Evaluator<Search>::paintLoop(PathT* path)
                 cv::circle(canvas, circle_center, circle_radius, cv::Scalar::all(0), 1, 8);
             }
 
-            algo.renderArrow(start, arrow_color);
-            algo.renderArrow(goal, arrow_color);
+
+            renderStartAndGoal();
         }
 
         while(cvGetWindowHandle(window.c_str()) != NULL) {
@@ -659,32 +679,32 @@ int main(int argc, char* argv[])
         std::cout << "w=" << w << ", h=" << h << ", res=" << res << std::endl;
     }
 
-//        typedef search_algorithms::BFS Search;
-//        typedef search_algorithms::Dijkstra Search;
-    typedef search_algorithms::AStar Search;
+        typedef search_algorithms::BFS Search;
+    //    typedef search_algorithms::Dijkstra Search;
+    //    typedef search_algorithms::AStar Search;
 //        typedef search_algorithms::AStarTaxi Search;
-//        typedef search_algorithms::Dijkstra4d Search;
-//    typedef search_algorithms::AStarMax Search;
-//        typedef search_algorithms::DTA Search;
-//            typedef search_algorithms::AStarNHHH Search;
-//    typedef search_algorithms::AStarNH Search;
-//    typedef search_algorithms::AStarNHOverEstimate Search;
-//        typedef search_algorithms::AStarNHNoEndOrientation Search;
+    //    typedef search_algorithms::Dijkstra4d Search;
+    //    typedef search_algorithms::AStarMax Search;
+//    typedef search_algorithms::DTA Search;
+    //    typedef search_algorithms::AStarNHHH Search;
+    //    typedef search_algorithms::AStarNH Search;
+    //    typedef search_algorithms::AStarNHOverEstimate Search;
+    //    typedef search_algorithms::AStarNHNoEndOrientation Search;
 
-#define RENDER(T,skip) { \
-    Evaluator<search_algorithms::T> eval##T(w / Evaluator<search_algorithms::T>::SCALE, h / Evaluator<search_algorithms::T>::SCALE, res, skip); \
+#define RENDER(T,speed) { \
+    Evaluator<search_algorithms::T> eval##T(w / Evaluator<search_algorithms::T>::SCALE, h / Evaluator<search_algorithms::T>::SCALE, res, speed-1); \
     eval##T.render(#T); }
 
-//    RENDER(DTA, 4);
-//    RENDER(BFS, 0);
-//    RENDER(Dijkstra, 0);
-//    RENDER(Dijkstra4d, 19);
-//    RENDER(AStar, 0);
-//    RENDER(AStarTaxi, 0);
-//RENDER(AStarMax, 0);
-//    RENDER(AStarNH, 9);
-//    RENDER(AStarNHHH, 9);
-//    RENDER(AStarNHNoEndOrientation, 9);
+    RENDER(DTA, 10);
+//    RENDER(BFS, 1);
+//    RENDER(Dijkstra, 1);
+//    RENDER(Dijkstra4d, 5);
+//    RENDER(AStar, 1);
+//    RENDER(AStarTaxi, 1);
+//    RENDER(AStarMax, 1);
+//    RENDER(AStarNH, 2);
+//    RENDER(AStarNHHH, 2);
+//    RENDER(AStarNHNoEndOrientation, 2);
 
     Evaluator<Search> eval(w / Evaluator<Search>::SCALE, h / Evaluator<Search>::SCALE, res); \
     bool run = eval.run();

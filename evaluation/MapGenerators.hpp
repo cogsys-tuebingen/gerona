@@ -9,7 +9,7 @@ template <class Pt>
 class Maze {
 public:
     Maze(int width, cv::Mat orig_map)
-        : width(std::max(3, width)), orig_map(orig_map), border(1)
+        : width(std::max(2, width)), orig_map(orig_map), border(1)
     {
         w = orig_map.rows / width;
         h = orig_map.cols / width;
@@ -171,7 +171,11 @@ protected:
     }
 
     inline cv::Rect rectFor(int x, int y){
-        return cv::Rect(x*width+border/2,y*width+border/2,width-border,width-border);
+        if(border == 0) {
+            return cv::Rect(x*width+border/2,y*width+border/2,width-border,width-border);
+        } else {
+            return cv::Rect(x*width+border/2,y*width+border/2,width-border,width-border);
+        }
     }
 
 protected:
@@ -196,24 +200,25 @@ template <class Pt>
 class HilbertCurve : public Maze<Pt> {
     using Maze<Pt>::width;
     using Maze<Pt>::removeWallsBetween;
+    using Maze<Pt>::border;
 
 public:
     HilbertCurve(int width, cv::Mat orig_map)
         : Maze<Pt>(width, orig_map)
     {
+        std::cout << "width: " << width << std::endl;
     }
 
     void run(const Pt& start, const Pt& goal) {
-        cv::Point s(start.x / width, start.y / width);
-        cv::Point g(goal.x / width, goal.y / width);
+//        cv::Point s(start.x / width, start.y / width);
+//        cv::Point g(goal.x / width, goal.y / width);
 
-        current = cv::Point(0, 0);
+        current = cv::Point(1, 1);
 
         int level = 8;
+        border = 1;
 
         hilbert_level(level);
-
-        std::cout << "done" << std::endl;
     }
 
     enum DIR {
@@ -241,8 +246,6 @@ public:
             next.y += 1;
           break;
         }
-
-        std::cout << next << std::endl;
 
         removeWallsBetween(current, next);
         current = next;

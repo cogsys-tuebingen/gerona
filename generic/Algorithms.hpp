@@ -19,17 +19,17 @@
 #include "../common/Pose2d.h"
 
 #define DEFINE_ALGORITHM(name, Heuristic, MapManager, QueueManager) \
-    template <class Neighborhood, class AnalyticExpansion = NoExpansion, class PointT = Pose2d, class MapT = GridMap2d, int DrawInterval=0> \
-    class name##Search : public GenericSearchAlgorithm<GenericParameter<PointT,Heuristic,MapT,Neighborhood,AnalyticExpansion,QueueManager,MapManager,DrawInterval> > {};\
-    template <int DrawInterval, class Neighborhood, class AnalyticExpansion = NoExpansion, class PointT = Pose2d, class MapT = GridMap2d>\
-    class name##Search_Debug : public name##Search<Neighborhood, AnalyticExpansion, PointT, MapT, DrawInterval> {};
+    template <class Neighborhood, class AnalyticExpansion = NoExpansion, class PointT = Pose2d, class MapT = GridMap2d, int DrawInterval=0, int DrawStartInterval=0> \
+    class name##Search : public GenericSearchAlgorithm<GenericParameter<PointT,Heuristic,MapT,Neighborhood,AnalyticExpansion,QueueManager,MapManager,DrawInterval, DrawStartInterval> > {};\
+    template <int DrawInterval, int DrawStartInterval, class Neighborhood, class AnalyticExpansion = NoExpansion, class PointT = Pose2d, class MapT = GridMap2d>\
+    class name##Search_Debug : public name##Search<Neighborhood, AnalyticExpansion, PointT, MapT, DrawInterval, DrawStartInterval> {};
 
 
 #define DEFINE_CONCRETE_ALGORITHM(name, PointT, MapT, Neighborhood, AnalyticExpansion, Heuristic, MapManager, QueueManager) \
-    template <int DrawInterval=0> \
-    class name##Search : public GenericSearchAlgorithm<GenericParameter<PointT,Heuristic,MapT,Neighborhood,AnalyticExpansion,QueueManager,MapManager,DrawInterval> > {};\
-    template <int DrawInterval>\
-    class name##Search_Debug : public name##Search<DrawInterval> {};
+    template <int DrawInterval=0, int DrawStartInterval = 0> \
+    class name##Search : public GenericSearchAlgorithm<GenericParameter<PointT,Heuristic,MapT,Neighborhood,AnalyticExpansion,QueueManager,MapManager,DrawInterval,DrawStartInterval> > {};\
+    template <int DrawInterval, int DrawStartInterval = 0>\
+    class name##Search_Debug : public name##Search<DrawInterval, DrawStartInterval> {};
 
 namespace lib_path
 {

@@ -66,33 +66,34 @@ struct NonHolonomicNeighborhoodNoEndOrientation :
 namespace search_algorithms {
 
 static const int N = 20;
-static const int M = N;
+static const int M = 20 * N;
+static const int INIT_STEPS = 150;
 
 typedef BFSNeighborhood<8,1> BFSNeighbor;
 typedef DirectNeighborhood<8,1> DNeighbor;
 typedef NonHolonomicNeighborhood<20, 75> NHNeighbor;
 typedef NonHolonomicNeighborhoodNoEndOrientation<20, 75> NHNeighborNoEndOrientation;
 
-typedef DijkstraSearch_Debug<N, DNeighbor> Dijkstra;
-typedef DijkstraStateSearch_Debug<M, NHNeighbor> Dijkstra4d;
+typedef DijkstraSearch_Debug<N,INIT_STEPS, DNeighbor> Dijkstra;
+typedef DijkstraStateSearch_Debug<M,INIT_STEPS, NHNeighbor> Dijkstra4d;
 
-typedef AStar2dTaxiSearch_Debug<N, DNeighbor> AStarTaxi;
-typedef AStar2dSearch_Debug<N, DNeighbor> AStar;
-typedef AStar2dInfSearch_Debug<N, DNeighbor> AStarMax;
+typedef AStar2dTaxiSearch_Debug<N,INIT_STEPS, DNeighbor> AStarTaxi;
+typedef AStar2dSearch_Debug<N,INIT_STEPS, DNeighbor> AStar;
+typedef AStar2dInfSearch_Debug<N,INIT_STEPS, DNeighbor> AStarMax;
 
-typedef AStarSearch_Debug<M, NHNeighbor/*, ReedsSheppExpansion<250>*/ > AStarNH;
-typedef AStarOverEstimateSearch_Debug<M, NHNeighbor/*, ReedsSheppExpansion<250>*/ > AStarNHOverEstimate;
-typedef AStarHybridHeuristicsSearch_Debug<M, NHNeighbor/*, ReedsSheppExpansion<250>*/ > AStarNHHH;
+typedef AStarSearch_Debug<M,INIT_STEPS, NHNeighbor/*, ReedsSheppExpansion<250>*/ > AStarNH;
+typedef AStarOverEstimateSearch_Debug<M,INIT_STEPS, NHNeighbor/*, ReedsSheppExpansion<250>*/ > AStarNHOverEstimate;
+typedef AStarHybridHeuristicsSearch_Debug<M,INIT_STEPS, NHNeighbor/*, ReedsSheppExpansion<250>*/ > AStarNHHH;
 
 DEFINE_CONCRETE_ALGORITHM(BreadthFirst,
                           Pose2d, GridMap2d, BFSNeighbor, NoExpansion, NoHeuristic, GridMapManager, PriorityQueueManager)
-typedef BreadthFirstSearch_Debug<N> BFS;
+typedef BreadthFirstSearch_Debug<N, INIT_STEPS> BFS;
 
 DEFINE_CONCRETE_ALGORITHM(AStarSearchNoOrientation,
                           Pose2d, GridMap2d, NHNeighborNoEndOrientation, NoExpansion, HeuristicL2, DirectionalStateSpaceManager, PriorityQueueManager)
-typedef AStarSearchNoOrientationSearch_Debug<M> AStarNHNoEndOrientation;
+typedef AStarSearchNoOrientationSearch_Debug<M,INIT_STEPS> AStarNHNoEndOrientation;
 
-typedef DistanceTransformationSearch<GenericParameter<Pose2d,NoHeuristic,GridMap2d,DirectNeighborhood<8,1>,NoExpansion, QueueManager,GridMapManager,5*N> > DTA;
+typedef DistanceTransformationSearch<GenericParameter<Pose2d,NoHeuristic,GridMap2d,DirectNeighborhood<8,1>,NoExpansion, QueueManager,GridMapManager,5> > DTA;
 }
 
 
@@ -161,6 +162,7 @@ private:
     KEY_EVENT wait();
     void drawInParallel();
     void draw(bool use_wait = true);
+    void renderStartAndGoal();
     bool paintLoop(typename SearchAlgorithm::PathT *path = NULL);
     KEY_EVENT keyCallback(int key);
 
@@ -172,7 +174,8 @@ private:
     std::string file_;
     bool show_info_;
 
-    cv::Scalar arrow_color;
+    cv::Scalar start_color;
+    cv::Scalar goal_color;
 
     cv::Mat img;
     cv::Mat orig_map;

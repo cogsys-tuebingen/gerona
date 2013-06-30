@@ -22,7 +22,7 @@ namespace lib_path
  */
 template <class Param>
 class DistanceTransformationSearch :
-    public GenericSearchAlgorithm<Param>
+        public GenericSearchAlgorithm<Param>
 {
     typedef GenericSearchAlgorithm<Param> Parent;
 
@@ -114,14 +114,19 @@ protected:
                             d = dmin;
                             change = true;
                             node->mark(NodeT::MARK_EXPANDED);
+                            if(expansions == 1) {
+                                Intermission::call(intermission);
+                            }
                         }
                         node->mark(NodeT::MARK_WATCHED);
-                        Intermission::call(intermission);
                     }
+                }
+                if(expansions != 1) {
+                    Intermission::call(intermission);
                 }
             }
 
-//            Intermission::call(intermission);
+            //            Intermission::call(intermission);
 
             for(int row = h-2; row >= 1; --row) {
                 for(int col = w-2; col >= 1; --col) {
@@ -144,12 +149,12 @@ protected:
                             node->mark(NodeT::MARK_EXPANDED);
                         }
                         node->mark(NodeT::MARK_WATCHED);
-                        Intermission::call(intermission);
                     }
                 }
+                Intermission::call(intermission);
             }
 
-//            Intermission::call(intermission);
+            //            Intermission::call(intermission);
         }
 
         return backtrack(start, goal);
