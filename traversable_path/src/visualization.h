@@ -1,6 +1,7 @@
 #ifndef VISUALIZATION_H
 #define VISUALIZATION_H
 
+#include <vector>
 #include <ros/ros.h>
 #include <opencv2/core/core.hpp>
 #include "point_types.h"

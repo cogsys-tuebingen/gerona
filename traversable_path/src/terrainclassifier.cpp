@@ -8,6 +8,7 @@
 
 #include <ramaxx_msgs/PTZ.h>
 #include "calibrationdatastorage.h"
+#include "scancleaner.h"
 
 using namespace std;
 using namespace traversable_path;
@@ -137,14 +138,19 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanConstPtr &
         return;
     }
 
+
     sensor_msgs::LaserScan smoothed = *msg;
     vector<PointClassification> traversable;
 
+
+    // first of all, remove invalid or obviosly wrong (too high) values
+    ScanCleaner::clean(smoothed);
+
     // subtract plane calibration values to normalize the scan data
     for (size_t i=0; i < msg->ranges.size(); ++i) {
-        smoothed.ranges[i] = msg->ranges[i] - plane_ranges_[layer][i];
+        smoothed.ranges[i] -= plane_ranges_[layer][i];
 
-        // mirror on x-axis
+        // mirror on x-axis (to make it more intuitive)
         smoothed.ranges[i] *= -1;
     }
 
@@ -158,7 +164,7 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanConstPtr &
 
     // get projection to carthesian frame
     PointCloudXYZRGBT pcl_cloud;
-    laserScanToCloud(msg, traversable, &pcl_cloud);
+    laserScanToCloud(msg, traversable, &pcl_cloud); /** \todo use smoothed instead of msg? */
 
     classifyPointCloud(&pcl_cloud);
 
@@ -269,8 +275,13 @@ void TerrainClassifier::laserScanToCloud(const sensor_msgs::LaserScanConstPtr &s
             point.g = 255;
             point.b = 0;
         } else {
-            // untraversable -> red
-            point.r = 255; point.g = 0; point.b = 0;
+            if (traversable[index].classification().test(PointClassification::FLAG_VARIANCE_OVER_LIMIT)) {
+                // untraversable -> red
+                point.r = 255; point.g = 0; point.b = 0;
+            } else {
+                // for evaluation: untraversable points with *no* variance over limit are blue
+                point.r = 0; point.g = 0; point.b = 255;
+            }
         }
 
         cloud->push_back(point);
@@ -371,15 +382,16 @@ vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs
     diff_ranges[LENGTH-1] = diff_ranges[LENGTH-2];
     diff_intensities[LENGTH-1] = diff_intensities[LENGTH-2];
 
-    // smooth differential of intensity
-    //diff_intensities = smooth(diff_intensities, 6);
+    vector<float> range_variance = calcVariances(data.ranges, config_.variance_window_size);
 
     //////
     if (layer == 1) {
         sensor_msgs::LaserScan scan_diff;
         scan_diff = data;
-        scan_diff.ranges = diff_ranges;
-        scan_diff.intensities = diff_intensities;
+        //scan_diff.ranges = diff_ranges;
+        //scan_diff.intensities = diff_intensities;
+        scan_diff.ranges = range_variance;
+        scan_diff.intensities = vector<float>(0);
         publish_normalized_diff.publish(scan_diff);
     }
     //////
@@ -390,6 +402,10 @@ vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs
     for (size_t i = 0; i < LENGTH; ++i) {
         if (abs(diff_ranges[i]) > config_.diff_range_limit) {
             scan_classification[i].setFlag(PointClassification::FLAG_DIFF_RANGE_OVER_LIMIT);
+        }
+
+        if (range_variance[i] > config_.variance_threshold) {
+            scan_classification[i].setFlag(PointClassification::FLAG_VARIANCE_OVER_LIMIT);
         }
 
         if (abs(diff_intensities[i]) > config_.diff_intensity_limit) {
@@ -439,6 +455,53 @@ vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs
     }
 
     return scan_classification;
+}
+
+std::vector<float> TerrainClassifier::calcVariances(const std::vector<float> &data, unsigned int window_size)
+{
+    boost::circular_buffer<float> window;
+    vector<float> variances;
+
+    vector<float>::const_iterator data_it = data.begin() + (window_size/2);
+
+    // init window
+    window.assign(window_size, data.begin(), data_it);
+
+    variances.reserve(data.size());
+    for (; data_it != data.end(); ++data_it) {
+        window.push_back(*data_it);
+        variances.push_back( variance(window) );
+    }
+
+    while (window.size() > (window_size+1)/2) { // +1 to 'ceil' odd window_sizes (has no effect on even ones)
+        window.pop_front();
+        variances.push_back( variance(window) );
+    }
+
+    assert(data.size() == variances.size());
+
+    return variances;
+}
+
+float TerrainClassifier::variance(const boost::circular_buffer<float> &window)
+{
+    boost::circular_buffer<float>::const_iterator w_it;
+
+    // mean
+    float mean = 0;
+    for (w_it = window.begin(); w_it != window.end(); ++w_it) {
+        mean += *w_it;
+    }
+    mean /= window.size();
+
+    // variance
+    float var = 0;
+    for (w_it = window.begin(); w_it != window.end(); ++w_it) {
+        var += (*w_it - mean) * (*w_it - mean);
+    }
+    var /= window.size();
+
+    return var;
 }
 
 

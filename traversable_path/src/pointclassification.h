@@ -5,7 +5,7 @@
 #include <bitset>
 
 //! Type of the point classification flags.
-typedef std::bitset<6> classification_t;
+typedef std::bitset<7> classification_t;
 
 /**
  * @brief Classification of a point.
@@ -31,6 +31,7 @@ class PointClassification {
 private:
     static const short WEIGHT_DIFF_RANGE_OVER_LIMIT = 80;
     static const short WEIGHT_DIFF_INTENSITY_OVER_LIMIT = 60;
+    static const short WEIGHT_VARIANCE_OVER_LIMIT = 100;
     static const short WEIGHT_DIFF_INTENSITY_NEIGHBOUR = 20;
     static const short WEIGHT_DIFF_RANGE_NEIGHBOUR = 20;
     static const short WEIGHT_UNTRAVERSABLE_IN_PAST_SCANS = 100;
@@ -54,6 +55,7 @@ public:
     static const uint8_t FLAG_DIFF_INTENSITY_NEIGHBOUR = 3;
     static const uint8_t FLAG_UNTRAVERSABLE_IN_PAST_SCANS = 4;
     static const uint8_t FLAG_HEIGHT_OVER_LIMIT = 5;
+    static const uint8_t FLAG_VARIANCE_OVER_LIMIT = 6;
 
     PointClassification():
             obstacle_value_(0)

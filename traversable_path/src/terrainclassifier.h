@@ -118,6 +118,11 @@ private:
     //! Classifies the points of the given scan.
     std::vector<PointClassification> detectObstacles(const sensor_msgs::LaserScan &data, uint layer, std::vector<float> &out);
 
+    //! Calculate for each element in data the variance of the window around the element.
+    static std::vector<float> calcVariances(const std::vector<float> &data, unsigned int window_size);
+
+    static float variance(const boost::circular_buffer<float> &window);
+
     /**
      * @brief Check neighbourhood of each point for some features.
      *
