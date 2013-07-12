@@ -8,7 +8,7 @@ FollowTestNode::FollowTestNode(ros::NodeHandle& nh)
   : action_client_("/motion_control", true),n_(nh), state_(STATE_S_START),
     has_path_(false)
 {
-  std::string topic = "/path_planner/path";
+  std::string topic = "/path";
   nh.param("topic", topic, topic);
   path_subscriber_ = nh.subscribe<nav_msgs::Path>
       (topic, 1, boost::bind(&FollowTestNode::pathReceived, this, _1));
