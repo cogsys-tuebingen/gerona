@@ -53,7 +53,7 @@ set(CMAKE_BUILD_TYPE Debug)
 catkin_package(
    INCLUDE_DIRS include
 #  LIBRARIES path_planner
-  CATKIN_DEPENDS nav_msgs utils roscpp std_msgs
+  CATKIN_DEPENDS nav_msgs roscpp std_msgs
 #  DEPENDS system_lib
 )
 
