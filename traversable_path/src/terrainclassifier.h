@@ -5,7 +5,6 @@
 #include <vector>
 #include <boost/circular_buffer.hpp>
 #include <ros/ros.h>
-#include <ros/package.h>
 #include <sensor_msgs/LaserScan.h>
 #include <std_srvs/Empty.h>
 #include <laser_geometry/laser_geometry.h>
@@ -86,6 +85,7 @@ private:
     MapProcessor map_processor_;
     ros::Timer map_publish_timer_;
 
+    //! Calculates scan features
     ScanFeatureCalculator feature_calculator_;
 
     bool save_next_scan_;

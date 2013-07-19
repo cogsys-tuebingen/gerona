@@ -10,6 +10,7 @@
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url></url>
+
   <rosdep name="yaml-cpp" />
 
   <depend package="std_msgs"/>
@@ -29,5 +30,6 @@
   <depend package="dynamic_reconfigure"/>
   <depend package="pcl"/>
   <depend package="pcl_ros"/>
+  <depend package="rosbag"/>
 
 </package>

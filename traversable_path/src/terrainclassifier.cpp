@@ -6,6 +6,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <ros/package.h>
+
 #include <ramaxx_msgs/PTZ.h>
 #include "calibrationdatastorage.h"
 
