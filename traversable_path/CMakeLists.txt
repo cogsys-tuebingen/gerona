@@ -48,6 +48,7 @@ rosbuild_add_executable(classify_terrain
     src/point_types.h
     src/mapprocessor.cpp
     src/scancleaner.cpp
+    src/scanfeaturecalculator.cpp
 )
 target_link_libraries(classify_terrain yaml-cpp)
 
@@ -65,6 +66,9 @@ rosbuild_add_executable(display_path src/node_display_path.cpp src/visualization
 rosbuild_add_executable(get_steer_angles src/node_get_steer_angles.cpp)
 
 rosbuild_add_executable(driven_distance src/node_driven_distance.cpp)
+
+# create training data from logfiles
+rosbuild_add_executable(training_data_extractor src/node_training_data_extractor.cpp src/training_data_extractor.cpp)
 
 # for testing some simple things TODO: remove if not required any more
 #rosbuild_add_executable(testblub src/test.cpp src/mapprocessor.cpp) # it seams, that an excutable with name 'test' makes problems...

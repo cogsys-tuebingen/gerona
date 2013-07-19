@@ -20,6 +20,7 @@
 #include "pointclassification.h"
 #include "mapprocessor.h"
 #include "traversable_path/classify_terrainConfig.h"
+#include "scanfeaturecalculator.h"
 
 /**
  * @brief Subscribes for the laser scans and classifies them.
@@ -48,7 +49,7 @@ private:
      * @todo This is only for debugging and should be removed in later versions.
      */
     ros::Publisher publish_normalized_;
-    ros::Publisher publish_normalized_diff;
+    ros::Publisher publish_normalized_diff_;
 
     //! Publisher for the classification point cloud
     ros::Publisher publish_classification_cloud_[4];
@@ -85,6 +86,8 @@ private:
     MapProcessor map_processor_;
     ros::Timer map_publish_timer_;
 
+    ScanFeatureCalculator feature_calculator_;
+
     bool save_next_scan_;
     ros::Subscriber subscribe_save_scan_;
     void saveScanCallback(const std_msgs::EmptyConstPtr &msg);
@@ -103,25 +106,8 @@ private:
     //! Calibrates the laser, assuming the current scan shows a flat plane without obstacles.
     bool calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 
-    /**
-     * @brief Smoothes the curve describted by data.
-     */
-    static std::vector<float> smooth(std::vector<float> data, const unsigned int num_values);
-
-    /**
-     * @brief Calculates average of the elements of a float list.
-     * @param A list of float-values.
-     * @return Average of the list-values.
-     */
-    static float avg(const boost::circular_buffer<float> &xs);
-
     //! Classifies the points of the given scan.
-    std::vector<PointClassification> detectObstacles(const sensor_msgs::LaserScan &data, uint layer, std::vector<float> &out);
-
-    //! Calculate for each element in data the variance of the window around the element.
-    static std::vector<float> calcVariances(const std::vector<float> &data, unsigned int window_size);
-
-    static float variance(const boost::circular_buffer<float> &window);
+    std::vector<PointClassification> detectObstacles(uint layer, std::vector<float> &out);
 
     /**
      * @brief Check neighbourhood of each point for some features.

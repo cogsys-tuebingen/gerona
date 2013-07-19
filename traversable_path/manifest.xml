@@ -17,6 +17,7 @@
   <depend package="nav_msgs"/>
   <depend package="std_srvs"/>
   <depend package="roscpp"/>
+  <depend package="roslib"/> <!-- required for ros::package::getPath() -->
   <depend package="ramaxx_msgs"/>
   <depend package="laser_geometry"/>
   <depend package="tf"/>

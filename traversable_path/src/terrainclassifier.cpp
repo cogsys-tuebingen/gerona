@@ -8,7 +8,6 @@
 
 #include <ramaxx_msgs/PTZ.h>
 #include "calibrationdatastorage.h"
-#include "scancleaner.h"
 
 using namespace std;
 using namespace traversable_path;
@@ -27,7 +26,7 @@ TerrainClassifier::TerrainClassifier() :
 
     // advertise
     publish_normalized_           = node_handle_.advertise<sensor_msgs::LaserScan>("scan/flattend", 100);
-    publish_normalized_diff       = node_handle_.advertise<sensor_msgs::LaserScan>("scan/normalized_diff", 100);
+    publish_normalized_diff_       = node_handle_.advertise<sensor_msgs::LaserScan>("scan/normalized_diff", 100);
     publish_classification_cloud_[0] = node_handle_.advertise<PointCloudXYZRGBT >("path_classification_cloud0", 10);
     publish_classification_cloud_[1] = node_handle_.advertise<PointCloudXYZRGBT >("path_classification_cloud1", 10);
     publish_classification_cloud_[2] = node_handle_.advertise<PointCloudXYZRGBT >("path_classification_cloud2", 10);
@@ -74,15 +73,7 @@ TerrainClassifier::TerrainClassifier() :
     // look for existing range calibration file
     CalibrationDataStorage cds(range_calibration_file_);
     is_calibrated_ = cds.load(&plane_ranges_);
-
-//    /** Set laser tilt @todo load the angle from calibration file */
-//    ros::Publisher pub_laser_rtz = node_handle_.advertise<ramaxx_msgs::PTZ>("/cmd_rtz", 1, true);
-//    ramaxx_msgs::PTZ laser_rtz;
-//    laser_rtz.tilt = -0.22; // other values default to 0
-//    pub_laser_rtz.publish(laser_rtz);
-//    ROS_INFO("Published laser tilt angle. Waiting 2 seconds for rtz...");
-//    sleep(2); // the rtz unit needs some time to move the laser scanner. 2 sec should be enought.
-//    ROS_INFO("done.");
+    feature_calculator_.setCalibrationScan(plane_ranges_);
 
 
     // initialize map
@@ -116,8 +107,6 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanConstPtr &
 {
 //    ros::Time start_time = ros::Time::now();
 
-    sensor_msgs::LaserScan original_scan = *msg;
-
     // with uncalibrated laser, classification will not work
     if (!this->is_calibrated_) {
         return;
@@ -139,28 +128,13 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanConstPtr &
     }
 
 
-    sensor_msgs::LaserScan smoothed = *msg;
     vector<PointClassification> traversable;
 
-
-    // first of all, remove invalid or obviosly wrong (too high) values
-    ScanCleaner::clean(smoothed);
-
-    // subtract plane calibration values to normalize the scan data
-    for (size_t i=0; i < msg->ranges.size(); ++i) {
-        smoothed.ranges[i] -= plane_ranges_[layer][i];
-
-        // mirror on x-axis (to make it more intuitive)
-        smoothed.ranges[i] *= -1;
-    }
-
-    // smooth
-    smoothed.ranges = smooth(smoothed.ranges, 6);
-    smoothed.intensities = smooth(msg->intensities, 4);
+    feature_calculator_.setScan(*msg, layer);
 
     // find obstacles
     vector<float> debug_classification_as_intensity(msg->intensities.size());
-    traversable = detectObstacles(smoothed, layer, debug_classification_as_intensity);
+    traversable = detectObstacles(layer, debug_classification_as_intensity);
 
     // get projection to carthesian frame
     PointCloudXYZRGBT pcl_cloud;
@@ -172,24 +146,28 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanConstPtr &
 
     if (save_next_scan_) {
         save_next_scan_ = false;
-        scanToFile("/localhome/widmaier/scan_raw.dat", original_scan);
-        scanToFile("/localhome/widmaier/scan_normalized.dat", smoothed);
-        smoothed.intensities = debug_classification_as_intensity;
-        scanToFile("/localhome/widmaier/scan_classification.dat", smoothed);
+        sensor_msgs::LaserScan normalized_scan = feature_calculator_.getPreprocessedScan();
+        scanToFile("/localhome/widmaier/scan_raw.dat", *msg);
+        scanToFile("/localhome/widmaier/scan_normalized.dat", normalized_scan);
+        normalized_scan.intensities = debug_classification_as_intensity;
+        scanToFile("/localhome/widmaier/scan_classification.dat", normalized_scan);
     }
 
     // publish modified message
     publish_classification_cloud_[layer].publish(pcl_cloud);
     //ROS_DEBUG("Published %zu traversability points", pcl_cloud.points.size());
     /** @todo This topic is only for debugging. Remove in later versions */
-    smoothed.intensities = debug_classification_as_intensity;
-    if (layer == 1) publish_normalized_.publish(smoothed);
+    if ( (publish_normalized_.getNumSubscribers() > 0) && (layer == 1) ) {
+        sensor_msgs::LaserScan normalized_scan = feature_calculator_.getPreprocessedScan();
+        normalized_scan.intensities = debug_classification_as_intensity;
+        publish_normalized_.publish(normalized_scan);
+    }
 
 
 
 //    ros::Time end_time = ros::Time::now();
 //    ros::Duration running_duration = end_time - start_time;
-    //    ROS_DEBUG("classify scan duration: %fs", running_duration.toSec());
+//    ROS_DEBUG("classify scan duration: %fs", running_duration.toSec());
 }
 
 void TerrainClassifier::frontScanCallback(const sensor_msgs::LaserScanConstPtr &msg)
@@ -325,74 +303,30 @@ bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::E
 
     this->plane_ranges_  = scans;
     this->is_calibrated_ = true;
+    feature_calculator_.setCalibrationScan(plane_ranges_);
 
     // store range-vector
     CalibrationDataStorage cds(range_calibration_file_);
     return cds.store(scans);
 }
 
-vector<float> TerrainClassifier::smooth(std::vector<float> data, const unsigned int num_values)
+vector<PointClassification> TerrainClassifier::detectObstacles(uint layer, std::vector<float> &out)
 {
-    //FIXME range check
-    boost::circular_buffer<float> neighbourhood(2*num_values + 1);
-    unsigned int length = data.size();
+    vector<float> diff_ranges = feature_calculator_.rangeDerivative();
+    vector<float> diff_intensities = feature_calculator_.intensityDerivative();
+    vector<float> range_variance = feature_calculator_.rangeVariance();
 
-    // push first values to neighbourhood
-    for (unsigned int i = 0; i < num_values && i < length; ++i) {
-        neighbourhood.push_back(data[i]);
-    }
-
-    // push next
-    for (unsigned int i = 0; i < length-num_values; ++i) {
-        neighbourhood.push_back(data[i+num_values]);
-        data[i] = avg(neighbourhood);
-    }
-
-    // nothing more to push
-    for (unsigned int i = length-num_values; i < data.size(); ++i) {
-        neighbourhood.pop_front();
-        data[i] = avg(neighbourhood);
-    }
-
-    return data;
-}
-
-float TerrainClassifier::avg(const boost::circular_buffer<float> &xs)
-{
-    if (xs.empty())
-        return 0.0;
-    else
-        return accumulate(xs.begin(), xs.end(), 0.0) / xs.size();
-}
-
-vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs::LaserScan &data, uint layer,
-                                                               std::vector<float> &out)
-{
-    // constant values
-    const size_t LENGTH = data.ranges.size(); //!< Length of the scan vector.
-
-    vector<float> diff_ranges(LENGTH);          //!< range differential
-    vector<float> diff_intensities(LENGTH);     //!< intensity differential
-    
-    // differentials
-    for (unsigned int i=0; i < LENGTH - 1; ++i) {
-        diff_ranges[i] = data.ranges[i] - data.ranges[i+1];
-        diff_intensities[i] = abs(data.intensities[i] - data.intensities[i+1]); //< BEWARE of the abs()!
-    }
-    diff_ranges[LENGTH-1] = diff_ranges[LENGTH-2];
-    diff_intensities[LENGTH-1] = diff_intensities[LENGTH-2];
-
-    vector<float> range_variance = calcVariances(data.ranges, config_.variance_window_size);
+    const size_t LENGTH = diff_ranges.size(); //!< Length of the scan vector.
 
     //////
-    if (layer == 1) {
+    if ( (publish_normalized_diff_.getNumSubscribers() > 0) && (layer == 1) ) {
         sensor_msgs::LaserScan scan_diff;
-        scan_diff = data;
+        scan_diff = feature_calculator_.getPreprocessedScan();
         //scan_diff.ranges = diff_ranges;
         //scan_diff.intensities = diff_intensities;
         scan_diff.ranges = range_variance;
         scan_diff.intensities = vector<float>(0);
-        publish_normalized_diff.publish(scan_diff);
+        publish_normalized_diff_.publish(scan_diff);
     }
     //////
 
@@ -455,53 +389,6 @@ vector<PointClassification> TerrainClassifier::detectObstacles(const sensor_msgs
     }
 
     return scan_classification;
-}
-
-std::vector<float> TerrainClassifier::calcVariances(const std::vector<float> &data, unsigned int window_size)
-{
-    boost::circular_buffer<float> window;
-    vector<float> variances;
-
-    vector<float>::const_iterator data_it = data.begin() + (window_size/2);
-
-    // init window
-    window.assign(window_size, data.begin(), data_it);
-
-    variances.reserve(data.size());
-    for (; data_it != data.end(); ++data_it) {
-        window.push_back(*data_it);
-        variances.push_back( variance(window) );
-    }
-
-    while (window.size() > (window_size+1)/2) { // +1 to 'ceil' odd window_sizes (has no effect on even ones)
-        window.pop_front();
-        variances.push_back( variance(window) );
-    }
-
-    assert(data.size() == variances.size());
-
-    return variances;
-}
-
-float TerrainClassifier::variance(const boost::circular_buffer<float> &window)
-{
-    boost::circular_buffer<float>::const_iterator w_it;
-
-    // mean
-    float mean = 0;
-    for (w_it = window.begin(); w_it != window.end(); ++w_it) {
-        mean += *w_it;
-    }
-    mean /= window.size();
-
-    // variance
-    float var = 0;
-    for (w_it = window.begin(); w_it != window.end(); ++w_it) {
-        var += (*w_it - mean) * (*w_it - mean);
-    }
-    var /= window.size();
-
-    return var;
 }
 
 
