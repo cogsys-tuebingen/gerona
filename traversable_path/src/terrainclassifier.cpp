@@ -100,6 +100,9 @@ TerrainClassifier::~TerrainClassifier()
 void TerrainClassifier::dynamicReconfigureCallback(Config &config, uint32_t level)
 {
     config_ = config;
+
+    feature_calculator_.setVarianceWindowSize(config.variance_window_size);
+
     ROS_DEBUG("Reconfigure TerrainClassifier.");
 }
 
