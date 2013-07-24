@@ -436,6 +436,7 @@ void Evaluator<Search>::draw(bool use_wait)
     if(selection.width > 0) {
         cv::rectangle(img, selection, cv::Scalar::all(0), 1, 8, 0);
     }
+    renderStartAndGoal();
 
     cv::imshow(window.c_str(), img);
 
@@ -447,10 +448,10 @@ void Evaluator<Search>::draw(bool use_wait)
 
         if(first_or_last_frame) {
             renderStartAndGoal();
-//            int fps = video_.fps();
-//            for(int i = 0; i < 0.25 * fps; ++i) {
+            int fps = video_.fps();
+            for(int i = 0; i < 4 * fps; ++i) {
                 video_ << img;
-//            }
+            }
             first_or_last_frame = false;
         } else {
 
@@ -581,9 +582,9 @@ void Evaluator<Search>::render(const std::string& file)
 {
     save_video_frames = true;
     show_info_ = false;
-    //    force_no_wait = true;
+    force_no_wait = true;
 
-    video_.open(file + ".avi", 24, cv::Size(w, h), 25000);
+    video_.open(file + ".avi", 24, cv::Size(w, h), 64000);
 
     if (!video_.isOpened()) {
         std::cout  << "Could not open the output video for write: " << file << std::endl;
@@ -679,14 +680,14 @@ int main(int argc, char* argv[])
         std::cout << "w=" << w << ", h=" << h << ", res=" << res << std::endl;
     }
 
-        typedef search_algorithms::BFS Search;
+//        typedef search_algorithms::BFS Search;
     //    typedef search_algorithms::Dijkstra Search;
     //    typedef search_algorithms::AStar Search;
 //        typedef search_algorithms::AStarTaxi Search;
     //    typedef search_algorithms::Dijkstra4d Search;
     //    typedef search_algorithms::AStarMax Search;
-//    typedef search_algorithms::DTA Search;
-    //    typedef search_algorithms::AStarNHHH Search;
+    typedef search_algorithms::DTA Search;
+//        typedef search_algorithms::AStarNHHH Search;
     //    typedef search_algorithms::AStarNH Search;
     //    typedef search_algorithms::AStarNHOverEstimate Search;
     //    typedef search_algorithms::AStarNHNoEndOrientation Search;
@@ -695,7 +696,7 @@ int main(int argc, char* argv[])
     Evaluator<search_algorithms::T> eval##T(w / Evaluator<search_algorithms::T>::SCALE, h / Evaluator<search_algorithms::T>::SCALE, res, speed-1); \
     eval##T.render(#T); }
 
-    RENDER(DTA, 10);
+    RENDER(DTA, 2);
 //    RENDER(BFS, 1);
 //    RENDER(Dijkstra, 1);
 //    RENDER(Dijkstra4d, 5);

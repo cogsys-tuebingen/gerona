@@ -65,7 +65,7 @@ struct NonHolonomicNeighborhoodNoEndOrientation :
 
 namespace search_algorithms {
 
-static const int N = 20;
+static const int N = 1;
 static const int M = 20 * N;
 static const int INIT_STEPS = 150;
 
@@ -93,7 +93,7 @@ DEFINE_CONCRETE_ALGORITHM(AStarSearchNoOrientation,
                           Pose2d, GridMap2d, NHNeighborNoEndOrientation, NoExpansion, HeuristicL2, DirectionalStateSpaceManager, PriorityQueueManager)
 typedef AStarSearchNoOrientationSearch_Debug<M,INIT_STEPS> AStarNHNoEndOrientation;
 
-typedef DistanceTransformationSearch<GenericParameter<Pose2d,NoHeuristic,GridMap2d,DirectNeighborhood<8,1>,NoExpansion, QueueManager,GridMapManager,5> > DTA;
+typedef DistanceTransformationSearch<GenericParameter<Pose2d,NoHeuristic,GridMap2d,DirectNeighborhood<8,1>,NoExpansion, QueueManager,GridMapManager,4> > DTA;
 }
 
 

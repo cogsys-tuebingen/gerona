@@ -386,7 +386,7 @@ struct MapRenderer : public SearchAlgorithm {
 
     template <class Pose>
     void fillCell(const Pose& pose, cv::Scalar color = uni_tuebingen::cd::secondary::dark_blue, cv::Scalar border_color = cv::Scalar::all(-1)) {
-        cv::Point tl = p2cv(pose, map_h, Scale);
+        cv::Point tl = p2cv(pose + Pose(0,1,0), map_h, Scale);
         cv::Point size(Scale, Scale);
         cv::rectangle(out_, tl, tl + size, color, CV_FILLED);
 
