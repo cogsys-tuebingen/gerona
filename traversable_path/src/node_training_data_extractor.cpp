@@ -13,6 +13,7 @@
  *  ~bagfile                Path to the bagfile.
  *  ~classification_file    Path to the classification file.
  *  ~output_file            Output file. This will overwrite existing files! Default: "tp_training_data.arff".
+ *  ~print_header           If set to false, the ARFF files will have no header (for concatenating files). Default: true
  */
 #include <ros/ros.h>
 #include "training_data_extractor.h"

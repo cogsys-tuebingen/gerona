@@ -185,6 +185,9 @@ void TrainingDataExtractor::balanceSamples(const std::vector<Sample> &pos_sample
 
 void TrainingDataExtractor::writeArffFile()
 {
+    bool print_header;
+    ros::param::param<bool>("~print_header", print_header, true);
+
     string filename;
     ros::param::param<string>("~output_file", filename, "tp_training_data.arff");
     ofstream file(filename.data(), ios::trunc);
@@ -192,6 +195,7 @@ void TrainingDataExtractor::writeArffFile()
     if (!file.good()) {
         throw runtime_error("Can't open output fiel for writing :(");
     }
+
 
     // commentary header
     std::string bagfile; ros::param::get("~bagfile", bagfile);
@@ -207,18 +211,22 @@ void TrainingDataExtractor::writeArffFile()
     file << endl;
 
 
-    // declarations
-    file << "@relation tp_path_borders_" << bagfile << endl << endl;
+    if (print_header) {
+        // declarations
+        file << "@relation tp_path_borders_" << bagfile << endl << endl;
 
-    for (int i = 0; i < sample_size_; ++i) {
-        file << "@attribute range_var" << i << " numeric" << endl;
-        file << "@attribute range_deriv" << i << " numeric" << endl;
-        file << "@attribute intensity_deriv" << i << " numeric" << endl;
+        for (int i = 0; i < sample_size_; ++i) {
+            file << "@attribute range_var" << i << " numeric" << endl;
+            file << "@attribute range_deriv" << i << " numeric" << endl;
+            file << "@attribute intensity_deriv" << i << " numeric" << endl;
+        }
+        file << "@attribute class {path_border, no_path_border}" << endl;
+
+        // data
+        file << "\n@data" << endl;
     }
-    file << "@attribute class {path_border, no_path_border}" << endl;
 
     // data
-    file << "\n@data" << endl;
     vector<Sample>::const_iterator sample_it;
     for (sample_it = samples_.begin(); sample_it != samples_.end(); ++sample_it) {
         for (int i = 0; i < sample_size_; ++i) {
