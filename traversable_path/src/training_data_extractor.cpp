@@ -26,7 +26,7 @@ TrainingDataExtractor::TrainingDataExtractor()
 
     // load range calibration filename from parameter
     string calib_file;
-    ros::param::param<string>("calibration_file", calib_file, DEFAULT_RANGE_CALIBRATION_FILE);
+    ros::param::param<string>("~calibration_file", calib_file, DEFAULT_RANGE_CALIBRATION_FILE);
     if (calib_file.compare("default") == 0) {
         calib_file = DEFAULT_RANGE_CALIBRATION_FILE;
     }
@@ -186,7 +186,7 @@ void TrainingDataExtractor::balanceSamples(const std::vector<Sample> &pos_sample
 void TrainingDataExtractor::writeArffFile()
 {
     string filename;
-    ros::param::param<string>("output_file", filename, "tp_training_data.arff");
+    ros::param::param<string>("~output_file", filename, "tp_training_data.arff");
     ofstream file(filename.data(), ios::trunc);
 
     if (!file.good()) {
