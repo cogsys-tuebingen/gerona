@@ -153,10 +153,9 @@ void TrainingDataExtractor::processScan(const sensor_msgs::LaserScanConstPtr &sc
         for (size_t j = 0; j < (size_t)sample_size_; ++j) {
             size_t ind = i - sample_size_/2 + j;
 
-            // multiply everything with 1000, because weka can't discretize numbers that are equal to the 6th past-comma-digit
-            s.range_variance.push_back(range_variance[ind] * 1000);
-            s.range_derivative.push_back(range_deriv[ind] * 1000);
-            s.intensity_derivative.push_back(intensity_deriv[ind] * 1000);
+            s.range_variance.push_back(range_variance[ind]);
+            s.range_derivative.push_back(range_deriv[ind]);
+            s.intensity_derivative.push_back(intensity_deriv[ind]);
         }
 
         // standardize features
@@ -193,7 +192,10 @@ void TrainingDataExtractor::standardizeData(std::vector<float> &data) const
 
     // standardize data by subtracting mean and dividing by standard deviation
     BOOST_FOREACH(float &x, data) {
-        x = (x-mean)/sd;
+        if (sd != 0)
+            x = (x-mean)/sd;
+        else
+            x -= mean;
     }
 }
 
