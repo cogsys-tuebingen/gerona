@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <ctime>
+#include <numeric>
 #include <boost/foreach.hpp>
 #include <boost/circular_buffer.hpp>
 #include <rosbag/bag.h>
@@ -158,8 +159,13 @@ void TrainingDataExtractor::processScan(const sensor_msgs::LaserScanConstPtr &sc
             s.intensity_derivative.push_back(intensity_deriv[ind] * 1000);
         }
 
-        float angle = scan->angle_min + scan->angle_increment * i;
-        s.classification = getClassification(angle, layer);
+        // standardize features
+        standardizeData(s.range_variance);
+        standardizeData(s.range_derivative);
+        standardizeData(s.intensity_derivative);
+
+        s.angle = scan->angle_min + scan->angle_increment * i;
+        s.classification = getClassification(s.angle, layer);
 
         if (s.classification)
             pos_samples.push_back(s);
@@ -173,6 +179,22 @@ void TrainingDataExtractor::processScan(const sensor_msgs::LaserScanConstPtr &sc
     // add to global sample list
     samples_.insert(samples_.end(), pos_samples.begin(), pos_samples.end());
     samples_.insert(samples_.end(), neg_samples.begin(), neg_samples.end());
+}
+
+void TrainingDataExtractor::standardizeData(std::vector<float> &data) const
+{
+    // calculate mean and standard deviation (sd)
+    float mean = std::accumulate(data.begin(), data.end(), 0) / data.size();
+    float sd = 0;
+    BOOST_FOREACH(float x, data) {
+        sd += (x-mean)*(x-mean);
+    }
+    sd = sqrt( sd/data.size() );
+
+    // standardize data by subtracting mean and dividing by standard deviation
+    BOOST_FOREACH(float &x, data) {
+        x = (x-mean)/sd;
+    }
 }
 
 void TrainingDataExtractor::balanceSamples(const std::vector<Sample> &pos_samples, std::vector<Sample> &neg_samples)
@@ -200,6 +222,7 @@ void TrainingDataExtractor::writeArffFile()
     // commentary header
     std::string bagfile; ros::param::get("~bagfile", bagfile);
     file << "% traversable_path - Training data for border detection\n"
+            "% training_data_extractor version 2\n"
             "% Generated automaticly from " << bagfile << endl;
 
     //TODO: anpassen fuer border_[layer]
@@ -215,6 +238,7 @@ void TrainingDataExtractor::writeArffFile()
         // declarations
         file << "@relation tp_path_borders_" << bagfile << endl << endl;
 
+        file << "@attribute angle numeric" << endl;
         for (int i = 0; i < sample_size_; ++i) {
             file << "@attribute range_var" << i << " numeric" << endl;
             file << "@attribute range_deriv" << i << " numeric" << endl;
@@ -229,6 +253,7 @@ void TrainingDataExtractor::writeArffFile()
     // data
     vector<Sample>::const_iterator sample_it;
     for (sample_it = samples_.begin(); sample_it != samples_.end(); ++sample_it) {
+        file << sample_it->angle << ",";
         for (int i = 0; i < sample_size_; ++i) {
             file << sample_it->range_variance[i] << ","
                  << sample_it->range_derivative[i] << ","

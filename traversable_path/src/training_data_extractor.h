@@ -22,6 +22,7 @@ private:
 
     struct Sample
     {
+        float angle; //!< The measurement angle of the center point of the sample
         std::vector<float> range_variance;
         std::vector<float> range_derivative;
         std::vector<float> intensity_derivative;
@@ -70,6 +71,9 @@ private:
 
     //! Creates the samples from the scan.
     void processScan(const sensor_msgs::LaserScanConstPtr &scan, int layer);
+
+    //! Standardize the data in the given vector. Takes a reference and changes the data directly!
+    void standardizeData(std::vector<float> &data) const;
 
     /**
      * @brief Drop samples until the number positive and negative samples are the same.
