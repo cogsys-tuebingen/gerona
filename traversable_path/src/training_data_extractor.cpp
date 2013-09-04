@@ -8,6 +8,7 @@
 #include <numeric>
 #include <boost/foreach.hpp>
 #include <boost/circular_buffer.hpp>
+//#include <boost/algorithm/string.hpp>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <ros/package.h>
@@ -102,8 +103,24 @@ void TrainingDataExtractor::loadClassifications()
         getline(file, istart, ',');
         getline(file, iend);
         int layer = boost::lexical_cast<int>(slayer);
-        float fistart = boost::lexical_cast<float>(istart);
-        float fiend   = boost::lexical_cast<float>(iend);
+
+        float fistart, fiend;
+
+        if (istart.compare("inf") == 0) {
+            fistart = INFINITY;
+        } else if (istart.compare("-inf") == 0) {
+            fistart = -INFINITY;
+        } else {
+            fistart = boost::lexical_cast<float>(istart);
+        }
+
+        if (iend.compare("inf") == 0) {
+            fiend = INFINITY;
+        } else if (iend.compare("-inf") == 0) {
+            fiend = -INFINITY;
+        } else {
+            fiend = boost::lexical_cast<float>(iend);
+        }
 
         // do not rely on correct order of istart and iend -> take min and max
         pair<float, float> interval;
