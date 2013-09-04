@@ -77,5 +77,13 @@ rosbuild_add_executable(training_data_extractor
 )
 target_link_libraries(training_data_extractor yaml-cpp)
 
+rosbuild_add_executable(publish_preprocessed_scan
+    src/node_publish_preprocessed_scan.cpp
+    src/calibrationdatastorage.cpp
+    src/scancleaner.cpp
+    src/scanfeaturecalculator.cpp
+)
+target_link_libraries(publish_preprocessed_scan yaml-cpp)
+
 # for testing some simple things TODO: remove if not required any more
 #rosbuild_add_executable(testblub src/test.cpp src/mapprocessor.cpp) # it seams, that an excutable with name 'test' makes problems...
