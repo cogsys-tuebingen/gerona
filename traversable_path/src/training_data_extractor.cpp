@@ -8,7 +8,6 @@
 #include <numeric>
 #include <boost/foreach.hpp>
 #include <boost/circular_buffer.hpp>
-//#include <boost/algorithm/string.hpp>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <ros/package.h>

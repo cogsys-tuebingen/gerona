@@ -12,6 +12,7 @@
   <url></url>
 
   <rosdep name="yaml-cpp" />
+  <rosdep name="opencv2" />
 
   <depend package="std_msgs"/>
   <depend package="sensor_msgs"/>

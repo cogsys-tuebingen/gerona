@@ -20,7 +20,12 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(Eigen REQUIRED)
-include_directories(${Eigen_INCLUDE_DIRS})
+find_package(OpenCV REQUIRED)
+
+include_directories(
+    ${Eigen_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
+)
 
 #uncomment if you have defined messages
 #rosbuild_genmsg()
@@ -84,6 +89,11 @@ rosbuild_add_executable(publish_preprocessed_scan
     src/scanfeaturecalculator.cpp
 )
 target_link_libraries(publish_preprocessed_scan yaml-cpp)
+
+rosbuild_add_executable(trainer
+    src/node_trainer.cpp
+)
+target_link_libraries(trainer ${OpenCV_LIBS})
 
 # for testing some simple things TODO: remove if not required any more
 #rosbuild_add_executable(testblub src/test.cpp src/mapprocessor.cpp) # it seams, that an excutable with name 'test' makes problems...
