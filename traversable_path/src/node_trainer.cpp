@@ -71,18 +71,18 @@ int main(int argc, char** argv)
     }
 
 
-    CvStatModel *classifier = new CvRTree();
+    CvRTrees classifier;
 
     ROS_DEBUG("Start training...");
-    classifier->train(&training_data);
+    classifier.train(&training_data);
     ROS_DEBUG("...finished.");
 
     ROS_DEBUG("Store parameters to file %s", CLASSIFIER_FILE.c_str());
-    classifier->save(CLASSIFIER_FILE.c_str());
+    classifier.save(CLASSIFIER_FILE.c_str());
 
 
-    ROS_INFO("Train error: %g", classifier->calc_error(&training_data, CV_TRAIN_ERROR));
-    ROS_INFO("Test error:  %g", classifier->calc_error(&training_data, CV_TEST_ERROR));
+    ROS_INFO("Train error: %g", classifier.calc_error(&training_data, CV_TRAIN_ERROR));
+    ROS_INFO("Test error:  %g", classifier.calc_error(&training_data, CV_TEST_ERROR));
 
     return 0;
 }

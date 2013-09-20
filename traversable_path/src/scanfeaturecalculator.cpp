@@ -1,6 +1,7 @@
 #include "scanfeaturecalculator.h"
 #include <numeric>
 #include "scancleaner.h"
+#include <boost/foreach.hpp>
 
 using namespace std;
 
@@ -59,6 +60,46 @@ const ScanFeatureCalculator::ScanData &ScanFeatureCalculator::rangeVariance()
     }
 
     return range_variance_;
+}
+
+const std::vector<PointFeatures> ScanFeatureCalculator::getPointFeatures()
+{
+    // calculate all features
+    rangeDerivative();
+    rangeVariance();
+    intensityDerivative();
+
+    // iterate not over full scan but start with a half-window-size offset
+    size_t n = range_derivative_.size();
+    size_t range_start = feature_size_ / 2 + 1;
+    size_t range_end   = n - range_start;
+
+    std::vector<PointFeatures> samples;
+
+    for (size_t i = range_start; i < range_end; ++i) {
+        // generate the sample for point i (it contains all points in the window around i and the classification of i)
+
+        PointFeatures s;
+        //TODO: use assign() to avoid this loop
+        for (size_t j = 0; j < (size_t)feature_size_; ++j) {
+            size_t ind = i - feature_size_/2 + j;
+
+            s.range_variance.push_back(range_variance_[ind]);
+            s.range_derivative.push_back(range_derivative_[ind]);
+            s.intensity_derivative.push_back(intensity_derivative_[ind]);
+        }
+
+        // standardize features
+        standardizeData(s.range_variance);
+        standardizeData(s.range_derivative);
+        standardizeData(s.intensity_derivative);
+
+        s.angle = scan_.angle_min + scan_.angle_increment * i;
+
+        samples.push_back(s);
+    }
+
+    return samples;
 }
 
 void ScanFeatureCalculator::preprocess(int layer)
@@ -151,4 +192,23 @@ float ScanFeatureCalculator::variance(const boost::circular_buffer<float> &windo
     var /= window.size();
 
     return var;
+}
+
+void ScanFeatureCalculator::standardizeData(std::vector<float> &data) const
+{
+    // calculate mean and standard deviation (sd)
+    float mean = std::accumulate(data.begin(), data.end(), 0) / data.size();
+    float sd = 0;
+    BOOST_FOREACH(float x, data) {
+        sd += (x-mean)*(x-mean);
+    }
+    sd = sqrt( sd/data.size() );
+
+    // standardize data by subtracting mean and dividing by standard deviation
+    BOOST_FOREACH(float &x, data) {
+        if (sd != 0)
+            x = (x-mean)/sd;
+        else
+            x -= mean;
+    }
 }

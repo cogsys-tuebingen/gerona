@@ -55,7 +55,7 @@ rosbuild_add_executable(classify_terrain
     src/scancleaner.cpp
     src/scanfeaturecalculator.cpp
 )
-target_link_libraries(classify_terrain yaml-cpp)
+target_link_libraries(classify_terrain yaml-cpp ${OpenCV_LIBS})
 
 rosbuild_add_executable(follow_path
     src/pathfollower.cpp

@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include <ros/package.h>
+#include <boost/foreach.hpp>
 
 #include <ramaxx_msgs/PTZ.h>
 #include "calibrationdatastorage.h"
@@ -88,6 +89,10 @@ TerrainClassifier::TerrainClassifier() :
     map_.info.origin.orientation.w = 1.0;
     map_.data.resize(map_.info.width * map_.info.height, MAP_DEFAULT_VALUE );
 
+
+    const std::string CLASSIFIER_FILE = ros::package::getPath(ROS_PACKAGE_NAME) + std::string("/classifier_params.yaml");
+    ROS_DEBUG("Load classifier parameters from file %s", CLASSIFIER_FILE.c_str());
+    classifier_.load(CLASSIFIER_FILE.c_str());
 
     // register reconfigure callback (which will also initialize config_ with the default values)
     reconfig_server_.setCallback(boost::bind(&TerrainClassifier::dynamicReconfigureCallback, this, _1, _2));
@@ -338,18 +343,41 @@ vector<PointClassification> TerrainClassifier::detectObstacles(uint layer, std::
     vector<PointClassification> scan_classification(LENGTH);
 
     // classification
-    for (size_t i = 0; i < LENGTH; ++i) {
-        if (abs(diff_ranges[i]) > config_.diff_range_limit) {
-            scan_classification[i].setFlag(PointClassification::FLAG_DIFF_RANGE_OVER_LIMIT);
-        }
+//    for (size_t i = 0; i < LENGTH; ++i) {
+//        if (abs(diff_ranges[i]) > config_.diff_range_limit) {
+//            scan_classification[i].setFlag(PointClassification::FLAG_DIFF_RANGE_OVER_LIMIT);
+//        }
 
-        if (range_variance[i] > config_.variance_threshold) {
+//        if (range_variance[i] > config_.variance_threshold) {
+//            scan_classification[i].setFlag(PointClassification::FLAG_VARIANCE_OVER_LIMIT);
+//        }
+
+//        if (abs(diff_intensities[i]) > config_.diff_intensity_limit) {
+//            scan_classification[i].setFlag(PointClassification::FLAG_DIFF_INTENSITY_OVER_LIMIT);
+//        }
+
+//        /**
+//         * missuse out as obstacle indicator... just for testing, I promise! :P
+//         * @todo remove that in later versions!
+//         */
+//        out[i] = scan_classification[i].obstacle_value() * 20;
+//    }
+
+    vector<PointFeatures> pfs = feature_calculator_.getPointFeatures();
+    for (size_t i = 0; i < pfs.size(); ++i) {
+        vector<float> vec = pfs[i].asVector();
+        vec.push_back(0);
+        cv::Mat sample(vec);
+
+        float pointClass = classifier_.predict(sample);
+        if (pointClass == 1) {
             scan_classification[i].setFlag(PointClassification::FLAG_VARIANCE_OVER_LIMIT);
+            scan_classification[i].setFlag(PointClassification::FLAG_HEIGHT_OVER_LIMIT); //TODO: this is a hack, this flag sets directly to untraversable
         }
 
-        if (abs(diff_intensities[i]) > config_.diff_intensity_limit) {
-            scan_classification[i].setFlag(PointClassification::FLAG_DIFF_INTENSITY_OVER_LIMIT);
-        }
+        //TODO: this is only a quick hack for testing the ml classifier. if this works, there is some work to do:
+        // - completly discard those flags
+        // - somehow handle the border-points
 
         /**
          * missuse out as obstacle indicator... just for testing, I promise! :P
@@ -357,6 +385,7 @@ vector<PointClassification> TerrainClassifier::detectObstacles(uint layer, std::
          */
         out[i] = scan_classification[i].obstacle_value() * 20;
     }
+
 
 
     checkPointNeighbourhood(&scan_classification);

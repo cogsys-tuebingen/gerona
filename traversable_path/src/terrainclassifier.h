@@ -14,6 +14,7 @@
 #include <std_msgs/Empty.h>
 #include <tf/message_filter.h>
 #include <message_filters/subscriber.h>
+#include <opencv2/ml/ml.hpp>
 
 #include "point_types.h"
 #include "pointclassification.h"
@@ -88,7 +89,12 @@ private:
     //! Calculates scan features
     ScanFeatureCalculator feature_calculator_;
 
+
     bool save_next_scan_;
+
+    //! Scan classifier
+    CvRTrees classifier_;
+
     ros::Subscriber subscribe_save_scan_;
     void saveScanCallback(const std_msgs::EmptyConstPtr &msg);
 
