@@ -6,6 +6,7 @@
 
 #include <pcl/point_types.h>
 #include <pcl_ros/point_cloud.h>
+#include "pointclassification.h"
 
 //struct EIGEN_ALIGN16 PointWithIndex
 //{
@@ -40,12 +41,12 @@ struct EIGEN_ALIGN16 PointXYZRGBT
     uint32_t rgba;
   };
   //! True iff the point is traversable.
-  uint8_t traversable;
+  uint8_t classification;
 
   //! Set traversability and automaticly change color.
   void setTraversability(bool trav)
   {
-      traversable = trav;
+      classification = trav ? PointClassification::TRAVERSABLE : PointClassification::UNTRAVERSABLE;
       if (trav) {
           r = 0; g = 255; b = 0;
       } else {
@@ -58,7 +59,7 @@ struct EIGEN_ALIGN16 PointXYZRGBT
 //! overload << for easy debug output
 inline std::ostream& operator << (std::ostream& os, const PointXYZRGBT& p)
 {
-    os << "(" << p.x << "," << p.y << "," << p.z << " - " << (p.traversable ? "traversable" : "untraversable")
+    os << "(" << p.x << "," << p.y << "," << p.z << " - " << p.classification
             << " - RGB = " << (int)p.r << "," << (int)p.g << "," << (int)p.b << ")";
   return (os);
 }
@@ -74,7 +75,7 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (PointXYZRGBT,
     (float, y, y)
     (float, z, z)
     (float, rgb, rgb)
-    (uint8_t, traversable, traversable)
+    (uint8_t, classification, classification)
 )
 
 #endif // POINT_TYPES_H

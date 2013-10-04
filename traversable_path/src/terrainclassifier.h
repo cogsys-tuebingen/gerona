@@ -38,6 +38,8 @@ private:
     typedef traversable_path::classify_terrainConfig Config;
     typedef pcl::PointCloud<PointXYZRGBT> PointCloudXYZRGBT;
 
+    static const int RTREES_CLASS_UNTRAVERSABLE = 1;
+
     //! Default path/name of the range calibration file
     const static std::string DEFAULT_RANGE_CALIBRATION_FILE;
 
@@ -120,7 +122,10 @@ private:
      *
      * @param Classification of the points. This method will set flags to some points, depending on their neighbours.
      */
-    void checkPointNeighbourhood(std::vector<PointClassification> *scan_classification) const;
+//    void checkPointNeighbourhood(std::vector<PointClassification> *scan_classification) const;
+
+    //! Set points to untraversable that where untraversable in most of the last scans.
+    void temporalFilter(std::vector<PointClassification> *scan_classification) const;
 
     /**
      * @brief Does some feature checks that requires a point cloud.

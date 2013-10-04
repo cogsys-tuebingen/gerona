@@ -5,7 +5,7 @@
 #include <bitset>
 
 //! Type of the point classification flags.
-typedef std::bitset<7> classification_t;
+typedef std::bitset<2> classification_flags_t;
 
 /**
  * @brief Classification of a point.
@@ -28,37 +28,30 @@ typedef std::bitset<7> classification_t;
  * @version $Id$
  */
 class PointClassification {
-private:
-    static const short WEIGHT_DIFF_RANGE_OVER_LIMIT = 80;
-    static const short WEIGHT_DIFF_INTENSITY_OVER_LIMIT = 60;
-    static const short WEIGHT_VARIANCE_OVER_LIMIT = 100;
-    static const short WEIGHT_DIFF_INTENSITY_NEIGHBOUR = 20;
-    static const short WEIGHT_DIFF_RANGE_NEIGHBOUR = 20;
-    static const short WEIGHT_UNTRAVERSABLE_IN_PAST_SCANS = 100;
-    static const short WEIGHT_HEIGHT_OVER_LIMIT = 100;
-
-    //! Classification flags. One flag per bit.
-    classification_t classification_;
-    //! Obstacle value (= sum of flag-weights)
-    short obstacle_value_;
-
-    //! Get the weight of the specified flag.
-    static short weightByFlag(uint8_t flag);
-
 public:
+    enum Class
+    {
+        UNKNOWN,
+        UNTRAVERSABLE,
+        TRAVERSABLE
+    };
+
+
     //! The point is classified as untraversable if the obstacle value exceeds this limit.
     static const short OBSTACLE_VALUE_LIMIT = 100;
     // flags
-    static const uint8_t FLAG_DIFF_RANGE_OVER_LIMIT = 0;
-    static const uint8_t FLAG_DIFF_INTENSITY_OVER_LIMIT = 1;
-    static const uint8_t FLAG_DIFF_RANGE_NEIGHBOUR = 2;
-    static const uint8_t FLAG_DIFF_INTENSITY_NEIGHBOUR = 3;
-    static const uint8_t FLAG_UNTRAVERSABLE_IN_PAST_SCANS = 4;
-    static const uint8_t FLAG_HEIGHT_OVER_LIMIT = 5;
-    static const uint8_t FLAG_VARIANCE_OVER_LIMIT = 6;
+//    static const uint8_t FLAG_DIFF_RANGE_OVER_LIMIT = 0;
+//    static const uint8_t FLAG_DIFF_INTENSITY_OVER_LIMIT = 1;
+//    static const uint8_t FLAG_DIFF_RANGE_NEIGHBOUR = 2;
+//    static const uint8_t FLAG_DIFF_INTENSITY_NEIGHBOUR = 3;
+//    static const uint8_t FLAG_VARIANCE_OVER_LIMIT = 4;
+//    static const uint8_t FLAG_HEIGHT_OVER_LIMIT = 5;
+    static const uint8_t FLAG_UNTRAVERSABLE_IN_PAST_SCANS = 0;
+    static const uint8_t FLAG_CLASSIFIED_AS_UNTRAVERSABLE = 1;
 
     PointClassification():
-            obstacle_value_(0)
+            obstacle_value_(0),
+            class_(UNKNOWN)
     {}
 
     bool operator==(PointClassification p);
@@ -74,7 +67,7 @@ public:
      *
      * @return Classification flags.
      */
-    classification_t classification() const;
+    classification_flags_t getFlags() const;
 
     /**
      * @brief Get obstacle value of the point.
@@ -93,7 +86,40 @@ public:
     void setFlag(uint8_t flag);
 
     //! True, if the point is traversable, false if not.
-    bool isTraversable() const;
+//    bool isTraversable() const;
+
+    //! Set
+    void setClass(Class c)
+    {
+        class_ = c;
+    }
+
+    Class getClass() const
+    {
+        return class_;
+    }
+
+
+private:
+//    static const short WEIGHT_DIFF_RANGE_OVER_LIMIT = 80;
+//    static const short WEIGHT_DIFF_INTENSITY_OVER_LIMIT = 60;
+//    static const short WEIGHT_VARIANCE_OVER_LIMIT = 100;
+//    static const short WEIGHT_DIFF_INTENSITY_NEIGHBOUR = 20;
+//    static const short WEIGHT_DIFF_RANGE_NEIGHBOUR = 20;
+//    static const short WEIGHT_HEIGHT_OVER_LIMIT = 100;
+    static const short WEIGHT_UNTRAVERSABLE_IN_PAST_SCANS = OBSTACLE_VALUE_LIMIT;
+    static const short WEIGHT_CLASSIFIED_AS_UNTRAVERSABLE = OBSTACLE_VALUE_LIMIT;
+
+    //! Classification flags. One flag per bit.
+    classification_flags_t classification_;
+    //! Obstacle value (= sum of flag-weights)
+    short obstacle_value_;
+
+    Class class_;
+
+    //! Get the weight of the specified flag.
+    static short weightByFlag(uint8_t flag);
+
 };
 
 #endif // POINTCLASSIFICATION_H

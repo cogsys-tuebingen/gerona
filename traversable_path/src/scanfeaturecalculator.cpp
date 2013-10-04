@@ -80,6 +80,8 @@ const std::vector<PointFeatures> ScanFeatureCalculator::getPointFeatures()
         // generate the sample for point i (it contains all points in the window around i and the classification of i)
 
         PointFeatures s;
+        s.point_index = i;
+
         //TODO: use assign() to avoid this loop
         for (size_t j = 0; j < (size_t)feature_size_; ++j) {
             size_t ind = i - feature_size_/2 + j;

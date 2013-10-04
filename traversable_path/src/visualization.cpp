@@ -1,5 +1,6 @@
 #include "visualization.h"
 #include <opencv2/highgui/highgui.hpp>
+#include "pointclassification.h"
 
 using namespace std;
 
@@ -29,15 +30,25 @@ void Visualization::paintPath(const pcl::PointCloud<PointXYZRGBT>::ConstPtr &clo
     cv::line(path_, cv::Point(black_line_pos, 0), cv::Point(black_line_pos, path_.rows-1), cv::Scalar(0,0,0));
 
 
-    bool current_state = cloud->points[0].traversable;
+    int current_state = cloud->points[0].classification;
     int last_toggle = 0;
     cv::Scalar color;
     for (int i = 1; i < path_.rows; ++i) {
-        if (cloud->points[i].traversable != current_state) {
-            color = current_state ? cv::Scalar(0, 255, 0) : cv::Scalar(0, 0, 255);
+        if (cloud->points[i].classification != current_state) {
+            switch (current_state) {
+            case PointClassification::TRAVERSABLE:
+                color = cv::Scalar(0, 255, 0);
+                break;
+            case PointClassification::UNTRAVERSABLE:
+                color = cv::Scalar(0, 0, 255);
+                break;
+            default:
+                color = cv::Scalar(127, 127, 127);
+            }
+
             cv::line(path_, cv::Point(path_pos_, last_toggle), cv::Point(path_pos_, i-1), color);
 
-            current_state = cloud->points[i].traversable;
+            current_state = cloud->points[i].classification;
             last_toggle = i;
         }
     }

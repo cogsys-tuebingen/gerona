@@ -19,6 +19,8 @@ struct PointFeatures
     std::vector<float> range_derivative;
     std::vector<float> intensity_derivative;
 
+    size_t point_index;
+
     std::vector<float> asVector() {
         std::vector<float> res;
         res.reserve(1 + range_variance.size() * 3);
@@ -64,9 +66,14 @@ public:
 
     void setScan(LaserScan scan, int layer);
 
-    LaserScan getPreprocessedScan()
+    LaserScan getPreprocessedScan() const
     {
         return scan_;
+    }
+
+    size_t getScanSize() const
+    {
+        return scan_.ranges.size();
     }
 
 

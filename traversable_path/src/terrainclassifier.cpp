@@ -206,7 +206,7 @@ void TerrainClassifier::frontScanCallback(const sensor_msgs::LaserScanConstPtr &
         point.y = it->y;
         point.z = it->z;
         // all points of the horizontal scanner are not traversable
-        point.traversable = false;
+        point.classification = false;
 
         cloud.push_back(point);
     }
@@ -220,7 +220,6 @@ void TerrainClassifier::laserScanToCloud(const sensor_msgs::LaserScanConstPtr &s
 {
     // get projection to carthesian frame
     sensor_msgs::PointCloud cloud_msg;
-    //sensor_msgs::ChannelFloat32 channel_index;
 
     try {
         tf_listener_.waitForTransform("/odom", scan->header.frame_id, ros::Time(0), ros::Duration(0.01));
@@ -254,22 +253,20 @@ void TerrainClassifier::laserScanToCloud(const sensor_msgs::LaserScanConstPtr &s
         point.y = cloud_msg.points[index].y;
         point.z = cloud_msg.points[index].z;
 
-        point.traversable = traversable[index].isTraversable();
+        point.classification = traversable[index].getClass();
 
         // color (for visualization)
-        if (point.traversable) {
+        if (point.classification == PointClassification::TRAVERSABLE) {
             // traversable. green to yellow depending on obstacle_value.
             point.r = (float) traversable[i].obstacle_value() / PointClassification::OBSTACLE_VALUE_LIMIT * 255;
             point.g = 255;
             point.b = 0;
-        } else {
-            if (traversable[index].classification().test(PointClassification::FLAG_VARIANCE_OVER_LIMIT)) {
-                // untraversable -> red
-                point.r = 255; point.g = 0; point.b = 0;
-            } else {
-                // for evaluation: untraversable points with *no* variance over limit are blue
-                point.r = 0; point.g = 0; point.b = 255;
-            }
+        } else if (point.classification == PointClassification::UNTRAVERSABLE) {
+            // untraversable -> red
+            point.r = 255; point.g = 0; point.b = 0;
+        } else /* class = UNKNOWN */ {
+            // unknown -> light gray
+            point.r = 200; point.g = 200; point.b = 200;
         }
 
         cloud->push_back(point);
@@ -322,101 +319,62 @@ bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::E
 
 vector<PointClassification> TerrainClassifier::detectObstacles(uint layer, std::vector<float> &out)
 {
-    vector<float> diff_ranges = feature_calculator_.rangeDerivative();
-    vector<float> diff_intensities = feature_calculator_.intensityDerivative();
-    vector<float> range_variance = feature_calculator_.rangeVariance();
-
-    const size_t LENGTH = diff_ranges.size(); //!< Length of the scan vector.
-
-    //////
-    if ( (publish_normalized_diff_.getNumSubscribers() > 0) && (layer == 1) ) {
-        sensor_msgs::LaserScan scan_diff;
-        scan_diff = feature_calculator_.getPreprocessedScan();
-        //scan_diff.ranges = diff_ranges;
-        //scan_diff.intensities = diff_intensities;
-        scan_diff.ranges = range_variance;
-        scan_diff.intensities = vector<float>(0);
-        publish_normalized_diff_.publish(scan_diff);
-    }
-    //////
-
-    vector<PointClassification> scan_classification(LENGTH);
-
-    // classification
-//    for (size_t i = 0; i < LENGTH; ++i) {
-//        if (abs(diff_ranges[i]) > config_.diff_range_limit) {
-//            scan_classification[i].setFlag(PointClassification::FLAG_DIFF_RANGE_OVER_LIMIT);
-//        }
-
-//        if (range_variance[i] > config_.variance_threshold) {
-//            scan_classification[i].setFlag(PointClassification::FLAG_VARIANCE_OVER_LIMIT);
-//        }
-
-//        if (abs(diff_intensities[i]) > config_.diff_intensity_limit) {
-//            scan_classification[i].setFlag(PointClassification::FLAG_DIFF_INTENSITY_OVER_LIMIT);
-//        }
-
-//        /**
-//         * missuse out as obstacle indicator... just for testing, I promise! :P
-//         * @todo remove that in later versions!
-//         */
-//        out[i] = scan_classification[i].obstacle_value() * 20;
+//    //////
+//    if ( (publish_normalized_diff_.getNumSubscribers() > 0) && (layer == 1) ) {
+//        sensor_msgs::LaserScan scan_diff;
+//        scan_diff = feature_calculator_.getPreprocessedScan();
+//        //scan_diff.ranges = diff_ranges;
+//        //scan_diff.intensities = diff_intensities;
+//        scan_diff.ranges = feature_calculator_.rangeVariance();
+//        scan_diff.intensities = vector<float>(0);
+//        publish_normalized_diff_.publish(scan_diff);
 //    }
+//    //////
 
+    const size_t SCAN_SIZE = feature_calculator_.getScanSize();
+
+    /// Classification
+
+    vector<PointClassification> scan_classification(SCAN_SIZE);
     vector<PointFeatures> pfs = feature_calculator_.getPointFeatures();
+
     for (size_t i = 0; i < pfs.size(); ++i) {
+        size_t index = pfs[i].point_index;
         vector<float> vec = pfs[i].asVector();
-        vec.push_back(0);
+        vec.push_back(0); // fill class-field with meaningless value
         cv::Mat sample(vec);
 
         float pointClass = classifier_.predict(sample);
-        if (pointClass == 1) {
-            scan_classification[i].setFlag(PointClassification::FLAG_VARIANCE_OVER_LIMIT);
-            scan_classification[i].setFlag(PointClassification::FLAG_HEIGHT_OVER_LIMIT); //TODO: this is a hack, this flag sets directly to untraversable
+        if (pointClass == RTREES_CLASS_UNTRAVERSABLE) {
+            scan_classification[index].setFlag(PointClassification::FLAG_CLASSIFIED_AS_UNTRAVERSABLE);
+            scan_classification[index].setClass(PointClassification::UNTRAVERSABLE);
+        } else {
+            scan_classification[index].setClass(PointClassification::TRAVERSABLE);
         }
 
-        //TODO: this is only a quick hack for testing the ml classifier. if this works, there is some work to do:
-        // - completly discard those flags
-        // - somehow handle the border-points
+        //TODO: completly discard those flags?
 
+        //FIXME: realy remove this now. It doesn't really work anymore since obstacle_value is no longer used.
         /**
          * missuse out as obstacle indicator... just for testing, I promise! :P
          * @todo remove that in later versions!
          */
-        out[i] = scan_classification[i].obstacle_value() * 20;
+        out[i] = scan_classification[index].obstacle_value() * 20;
     }
 
 
+    /// Filtering
 
-    checkPointNeighbourhood(&scan_classification);
-
-    // push current scan to buffer (push_front so the current scan has index 0)
-    scan_buffer_.push_front(scan_classification);
-
-    // points will only be marked as traversable if they are traversable in more than the half of the scans in the
-    // scan buffer.
-    const unsigned int scan_buffer_size = scan_buffer_.size();
-
-    for (unsigned int i = 0; i < LENGTH; ++i) {
-        unsigned int sum_traversable = 0;
-
-        for (unsigned int j = 0; j < scan_buffer_size; ++j) {
-            if (scan_buffer_[j][i].isTraversable())
-                ++sum_traversable;
-        }
-
-        if (sum_traversable < scan_buffer_size/2) {
-            scan_classification[i].setFlag(PointClassification::FLAG_UNTRAVERSABLE_IN_PAST_SCANS);
-        }
-    }
+//    checkPointNeighbourhood(&scan_classification);
+    temporalFilter(&scan_classification);
 
 
     /**
      * missuse out as obstacle indicator... just for testing, I promise! :P
      * @todo remove that in later versions!
      */
-    for (unsigned int i = 0; i < LENGTH; ++i) {
-        if (!scan_classification[i].isTraversable())
+    for (unsigned int i = 0; i < SCAN_SIZE; ++i) {
+        if (scan_classification[i].getClass() != PointClassification::TRAVERSABLE) // TODO: handle UNKNOWN
             out[i] = 100.0;
         else
             out[i] = 0.0;
@@ -426,63 +384,95 @@ vector<PointClassification> TerrainClassifier::detectObstacles(uint layer, std::
 }
 
 
-void TerrainClassifier::checkPointNeighbourhood(vector<PointClassification> *scan_classification) const
+//void TerrainClassifier::checkPointNeighbourhood(vector<PointClassification> *scan_classification) const
+//{
+//    /*
+//     * Check neighbourhood of the points. This is done by buffering NEIGHBOURHOOD_RANGE points before and after the
+//     * current point and iterate over this buffer.
+//     * If a feature-flag is set in more than the half of this points, an according neighbourhood-flag is set.
+//     */
+//    //! Range of the neighbourhood (Number of points before and after the current point, NOT total number of points).
+//    const short NEIGHBOURHOOD_RANGE = 30;
+//    //! Length of the scan vector.
+//    const size_t LENGTH = scan_classification->size();
+//    boost::circular_buffer<PointClassification> neighbourhood(NEIGHBOURHOOD_RANGE*2+1);
+
+//    // insert first NEIGHBOURHOOD_RANGE elements of the scan classification to the neighbouthood.
+//    neighbourhood.insert(neighbourhood.begin(), scan_classification->begin(),
+//                         scan_classification->begin() + NEIGHBOURHOOD_RANGE);
+
+//    for (size_t i = 0; i < LENGTH; ++i) {
+//        // maintain neighbourhood
+//        if (i < LENGTH - NEIGHBOURHOOD_RANGE) {
+//            neighbourhood.push_back((*scan_classification)[i+NEIGHBOURHOOD_RANGE]);
+//        } else {
+//            neighbourhood.pop_front();
+//        }
+
+//        // Counters for the features. Will be incremented for each point with this feature and decremented for each
+//        // point without (so counter > 0 means, the feature is detected in more than the half of the points).
+//        short diff_intensity_neighbours = 0;
+//        short diff_range_neighbours = 0;
+//        // iterate over neighbourhood
+//        boost::circular_buffer<PointClassification>::iterator neighbour_it;
+//        for (neighbour_it = neighbourhood.begin(); neighbour_it != neighbourhood.end(); ++neighbour_it) {
+//            // count points with DIFF_INTENSITY_OVER_LIMIT
+//            if (neighbour_it->getFlags().test(PointClassification::FLAG_DIFF_INTENSITY_OVER_LIMIT)) {
+//                ++diff_intensity_neighbours;
+//            } else {
+//                --diff_intensity_neighbours;
+//            }
+
+//            // count points with DIFF_RANGE_OVER_LIMIT
+//            if (neighbour_it->getFlags().test(PointClassification::FLAG_DIFF_RANGE_OVER_LIMIT)) {
+//                ++diff_range_neighbours;
+//            } else {
+//                --diff_range_neighbours;
+//            }
+//        }
+
+//        // Check counters and set according flags.
+//        if (diff_intensity_neighbours > 0) {
+//            (*scan_classification)[i].setFlag(PointClassification::FLAG_DIFF_INTENSITY_NEIGHBOUR);
+//        }
+//        if (diff_range_neighbours > 0) {
+//            (*scan_classification)[i].setFlag(PointClassification::FLAG_DIFF_RANGE_NEIGHBOUR);
+//        }
+//    }
+//}
+
+
+void TerrainClassifier::temporalFilter(std::vector<PointClassification> *scan_classification) const
 {
-    /*
-     * Check neighbourhood of the points. This is done by buffering NEIGHBOURHOOD_RANGE points before and after the
-     * current point and iterate over this buffer.
-     * If a feature-flag is set in more than the half of this points, an according neighbourhood-flag is set.
-     */
-    //! Range of the neighbourhood (Number of points before and after the current point, NOT total number of points).
-    const short NEIGHBOURHOOD_RANGE = 30;
-    //! Length of the scan vector.
-    const size_t LENGTH = scan_classification->size();
-    boost::circular_buffer<PointClassification> neighbourhood(NEIGHBOURHOOD_RANGE*2+1);
+    /// Temporal Filter - set to untraversable, if the point was untraversable in more than the half of the last scans.
 
-    // insert first NEIGHBOURHOOD_RANGE elements of the scan classification to the neighbouthood.
-    neighbourhood.insert(neighbourhood.begin(), scan_classification->begin(),
-                         scan_classification->begin() + NEIGHBOURHOOD_RANGE);
+    // push current scan to buffer (push_front so the current scan has index 0)
+    scan_buffer_.push_front(scan_classification);
 
-    for (size_t i = 0; i < LENGTH; ++i) {
-        // maintain neighbourhood
-        if (i < LENGTH - NEIGHBOURHOOD_RANGE) {
-            neighbourhood.push_back((*scan_classification)[i+NEIGHBOURHOOD_RANGE]);
-        } else {
-            neighbourhood.pop_front();
-        }
+    const unsigned int scan_buffer_size = scan_buffer_.size();
 
-        // Counters for the features. Will be incremented for each point with this feature and decremented for each
-        // point without (so counter > 0 means, the feature is detected in more than the half of the points).
-        short diff_intensity_neighbours = 0;
-        short diff_range_neighbours = 0;
-        // iterate over neighbourhood
-        boost::circular_buffer<PointClassification>::iterator neighbour_it;
-        for (neighbour_it = neighbourhood.begin(); neighbour_it != neighbourhood.end(); ++neighbour_it) {
-            // count points with DIFF_INTENSITY_OVER_LIMIT
-            if (neighbour_it->classification().test(PointClassification::FLAG_DIFF_INTENSITY_OVER_LIMIT)) {
-                ++diff_intensity_neighbours;
-            } else {
-                --diff_intensity_neighbours;
-            }
+    for (unsigned int i = 0; i < scan_classification->size(); ++i) {
+        unsigned int sum_traversable = 0, sum_untraversable = 0, sum_unknown = 0;
 
-            // count points with DIFF_RANGE_OVER_LIMIT
-            if (neighbour_it->classification().test(PointClassification::FLAG_DIFF_RANGE_OVER_LIMIT)) {
-                ++diff_range_neighbours;
-            } else {
-                --diff_range_neighbours;
+        for (unsigned int j = 0; j < scan_buffer_size; ++j) {
+            switch (scan_buffer_[j][i].getClass()) {
+            case PointClassification::TRAVERSABLE:
+                ++sum_traversable;
+                break;
+            case PointClassification::UNTRAVERSABLE:
+                ++sum_untraversable;
+                break;
+            default:
+                ++sum_unknown;
             }
         }
 
-        // Check counters and set according flags.
-        if (diff_intensity_neighbours > 0) {
-            (*scan_classification)[i].setFlag(PointClassification::FLAG_DIFF_INTENSITY_NEIGHBOUR);
-        }
-        if (diff_range_neighbours > 0) {
-            (*scan_classification)[i].setFlag(PointClassification::FLAG_DIFF_RANGE_NEIGHBOUR);
+        if (sum_untraversable < sum_traversable && sum_untraversable < sum_unknown) {
+            scan_classification[i].setFlag(PointClassification::FLAG_UNTRAVERSABLE_IN_PAST_SCANS);
+            scan_classification[i].setClass(PointClassification::UNTRAVERSABLE);
         }
     }
 }
-
 
 void TerrainClassifier::classifyPointCloud(PointCloudXYZRGBT *cloud) const
 {
@@ -491,14 +481,14 @@ void TerrainClassifier::classifyPointCloud(PointCloudXYZRGBT *cloud) const
     bool on_trav_segment = false; //!< True if currently iterating in a traversable segment, otherwise false.
 
     for (size_t i = 0; i < cloud->points.size(); ++i) {
-        if (on_trav_segment && !cloud->points[i].traversable) {
+        if (on_trav_segment && cloud->points[i].classification != PointClassification::TRAVERSABLE) {
             // end traversable segment
             on_trav_segment = false;
 
             //ROS_DEBUG("Check traversable segment (index %zu to %zu)", index_start, i-1);
             checkTraversableSegment(cloud->points.begin()+index_start, cloud->points.begin()+i);
         }
-        else if (!on_trav_segment && cloud->points[i].traversable) {
+        else if (!on_trav_segment && cloud->points[i].classification == PointClassification::TRAVERSABLE) {
             // begin new traversable segment
             on_trav_segment = true;
             index_start = i;
@@ -565,7 +555,17 @@ void TerrainClassifier::updateMap(PointCloudXYZRGBT cloud)
         if (x < (int)map_.info.width && y < (int)map_.info.height && x >= 0 && y >= 0) {
             size_t index = y * map_.info.width + x;
             // 0 = traversable, 100 = untraversable
-            map_.data[index] += point_it->traversable ? -10 : 10;
+            switch (point_it->classification) {
+            case PointClassification::TRAVERSABLE:
+                map_.data[index] -= 10;
+                break;
+            case PointClassification::UNTRAVERSABLE:
+                map_.data[index] += 10;
+                break;
+            default:
+                // nothing
+                ;
+            }
 
             // check range
             if (map_.data[index] < 0) {
