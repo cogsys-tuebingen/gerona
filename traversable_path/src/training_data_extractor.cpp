@@ -21,7 +21,9 @@ const std::string TrainingDataExtractor::DEFAULT_RANGE_CALIBRATION_FILE = ros::p
 
 TrainingDataExtractor::TrainingDataExtractor()
 {
-    ros::param::param<int>("~sample_size", sample_size_, 20);
+    ros::param::param<int>("~sample_size", sample_size_, 15);
+
+    feature_calculator_ = ScanFeatureCalculator(sample_size_);
 
     loadClassifications();
 
@@ -138,49 +140,23 @@ bool TrainingDataExtractor::getClassification(float angle, int layer)
     vector<pair<float,float> >::const_iterator iter;
     for(iter = borders_[layer].begin(); iter != borders_[layer].end(); ++iter) {
         if ( (iter->first <= angle) && (angle <= iter->second) ) {
-            return PATH_BORDER;
+            return UNTRAVERSABLE;
         }
     }
-    return NO_PATH_BORDER;
+    return TRAVERSABLE;
 }
 
 void TrainingDataExtractor::processScan(const sensor_msgs::LaserScanConstPtr &scan, int layer)
 {
     feature_calculator_.setScan(*scan, layer);
 
-    // calculate features
-    vector<float> range_deriv = feature_calculator_.rangeDerivative();
-    vector<float> range_variance = feature_calculator_.rangeVariance();
-    vector<float> intensity_deriv = feature_calculator_.intensityDerivative();
-
-    // iterate not over full scan but start with a half-window-size offset
-    size_t n = range_deriv.size();
-    size_t range_start = sample_size_ / 2 + 1;
-    size_t range_end   = n - range_start;
-
+    vector<PointFeatures> samples = feature_calculator_.getPointFeatures();
     std::vector<Sample> pos_samples;
     std::vector<Sample> neg_samples;
-
-    for (size_t i = range_start; i < range_end; ++i) {
-        // generate the sample for point i (it contains all points in the window around i and the classification of i)
-
+    for (vector<PointFeatures>::iterator sample_it = samples.begin(); sample_it != samples.end(); ++sample_it) {
         Sample s;
-        //TODO: use assign() to avoid this loop
-        for (size_t j = 0; j < (size_t)sample_size_; ++j) {
-            size_t ind = i - sample_size_/2 + j;
-
-            s.range_variance.push_back(range_variance[ind]);
-            s.range_derivative.push_back(range_deriv[ind]);
-            s.intensity_derivative.push_back(intensity_deriv[ind]);
-        }
-
-        // standardize features
-        standardizeData(s.range_variance);
-        standardizeData(s.range_derivative);
-        standardizeData(s.intensity_derivative);
-
-        s.angle = scan->angle_min + scan->angle_increment * i;
-        s.classification = getClassification(s.angle, layer);
+        s.features = *sample_it;
+        s.classification = getClassification(sample_it->angle, layer);
 
         if (s.classification)
             pos_samples.push_back(s);
@@ -196,24 +172,6 @@ void TrainingDataExtractor::processScan(const sensor_msgs::LaserScanConstPtr &sc
     samples_.insert(samples_.end(), neg_samples.begin(), neg_samples.end());
 }
 
-void TrainingDataExtractor::standardizeData(std::vector<float> &data) const
-{
-    // calculate mean and standard deviation (sd)
-    float mean = std::accumulate(data.begin(), data.end(), 0) / data.size();
-    float sd = 0;
-    BOOST_FOREACH(float x, data) {
-        sd += (x-mean)*(x-mean);
-    }
-    sd = sqrt( sd/data.size() );
-
-    // standardize data by subtracting mean and dividing by standard deviation
-    BOOST_FOREACH(float &x, data) {
-        if (sd != 0)
-            x = (x-mean)/sd;
-        else
-            x -= mean;
-    }
-}
 
 void TrainingDataExtractor::balanceSamples(const std::vector<Sample> &pos_samples, std::vector<Sample> &neg_samples)
 {
@@ -271,12 +229,12 @@ void TrainingDataExtractor::writeArffFile()
     // data
     vector<Sample>::const_iterator sample_it;
     for (sample_it = samples_.begin(); sample_it != samples_.end(); ++sample_it) {
-        file << sample_it->angle << ",";
+        file << sample_it->features.angle << ",";
         for (int i = 0; i < sample_size_; ++i) {
-            file << sample_it->range_variance[i] << ","
-                 << sample_it->range_derivative[i] << ","
-                 << sample_it->intensity_derivative[i] << ",";
+            file << sample_it->features.range_variance[i] << ","
+                 << sample_it->features.range_derivative[i] << ","
+                 << sample_it->features.intensity_derivative[i] << ",";
         }
-        file << (sample_it->classification == PATH_BORDER ? "path_border" : "no_path_border") << endl;
+        file << (sample_it->classification == UNTRAVERSABLE ? "path_border" : "no_path_border") << endl;
     }
 }

@@ -49,9 +49,9 @@ public:
     typedef sensor_msgs::LaserScan LaserScan;
     typedef std::vector<float> ScanData;
 
-    ScanFeatureCalculator():
-        variance_window_size_(20),
-        feature_size_(15)
+    ScanFeatureCalculator(int feature_size = 15, int variance_window_size = 20):
+        variance_window_size_(variance_window_size),
+        feature_size_(feature_size)
     {}
 
     void setCalibrationScan(std::vector<ScanData> plane_ranges)
