@@ -10,6 +10,19 @@ typedef std::bitset<2> classification_flags_t;
 /**
  * @brief Classification of a point.
  *
+ * Represents the classification of a scanned point. In the past there was a classification system using flags for
+ * several features. This is obsolete, but the structure of this flag-system mostly remains for the moment as it might
+ * be usefull for debugging (e.g to visualise the reason for which a point became untraversable).
+ * The obstacle value mechanism also remains for now, but is currently of no use.
+ *
+ * The new system works as follows:
+ * There are two classes 'traversable' and 'untraversable' plus an additional 'unknown'-label.
+ * The traversability of a point is no longer defined by the flags but the class is simply set by setClass().
+ * The decision to which class the point belongs is no more done by this class but by an external machine learning
+ * classifier.
+ *
+ *
+ * ----- old (obsolete) description of the flag system
  * Represents the classification of a scanned point. There are different features which influence the final
  * classification with different weights.
  *
@@ -23,12 +36,14 @@ typedef std::bitset<2> classification_flags_t;
  *
  * A point is classified as traversable if the obstacle value does not exceed PointClassification::OBSTACLE_VALUE_LIMIT.
  * To check this, use the method isTraversable().
+ * -----
  *
  * @author Felix Widmaier
  * @version $Id$
  */
 class PointClassification {
 public:
+    //! Enum of the possible classes.
     enum Class
     {
         UNKNOWN,
@@ -40,14 +55,9 @@ public:
     //! The point is classified as untraversable if the obstacle value exceeds this limit.
     static const short OBSTACLE_VALUE_LIMIT = 100;
     // flags
-//    static const uint8_t FLAG_DIFF_RANGE_OVER_LIMIT = 0;
-//    static const uint8_t FLAG_DIFF_INTENSITY_OVER_LIMIT = 1;
-//    static const uint8_t FLAG_DIFF_RANGE_NEIGHBOUR = 2;
-//    static const uint8_t FLAG_DIFF_INTENSITY_NEIGHBOUR = 3;
-//    static const uint8_t FLAG_VARIANCE_OVER_LIMIT = 4;
-//    static const uint8_t FLAG_HEIGHT_OVER_LIMIT = 5;
     static const uint8_t FLAG_UNTRAVERSABLE_IN_PAST_SCANS = 0;
     static const uint8_t FLAG_CLASSIFIED_AS_UNTRAVERSABLE = 1;
+    // note: when you add new flags, you also have to increase the size of the bitset (classification_flags_t) above.
 
     PointClassification():
             obstacle_value_(0),
@@ -75,20 +85,20 @@ public:
      * If value is greater than PointClassification::OBSTACLE_VALUE_LIMIT, the point is classified as obstacle,
      * otherwise as traversable.
      * @return Obstacle value.
+     * @deprecated See class description.
      */
     short obstacle_value() const;
 
     /**
      * @brief Set a classification flag.
      *
-     * The obstacle value of the point will automaticly be increased depending of the weight of this flag.
+     * The Flags have no functional meaning for the moment. They may be used for debugging ("tell me why this point
+     * is marked as untraversable") or otherwise removed in the future.
+     * //The obstacle value of the point will automaticly be increased depending of the weight of this flag.
      */
     void setFlag(uint8_t flag);
 
-    //! True, if the point is traversable, false if not.
-//    bool isTraversable() const;
-
-    //! Set
+    //! Set class of this point.
     void setClass(Class c)
     {
         class_ = c;
@@ -101,12 +111,6 @@ public:
 
 
 private:
-//    static const short WEIGHT_DIFF_RANGE_OVER_LIMIT = 80;
-//    static const short WEIGHT_DIFF_INTENSITY_OVER_LIMIT = 60;
-//    static const short WEIGHT_VARIANCE_OVER_LIMIT = 100;
-//    static const short WEIGHT_DIFF_INTENSITY_NEIGHBOUR = 20;
-//    static const short WEIGHT_DIFF_RANGE_NEIGHBOUR = 20;
-//    static const short WEIGHT_HEIGHT_OVER_LIMIT = 100;
     static const short WEIGHT_UNTRAVERSABLE_IN_PAST_SCANS = OBSTACLE_VALUE_LIMIT;
     static const short WEIGHT_CLASSIFIED_AS_UNTRAVERSABLE = OBSTACLE_VALUE_LIMIT;
 
@@ -115,9 +119,11 @@ private:
     //! Obstacle value (= sum of flag-weights)
     short obstacle_value_;
 
+    //! The class which is assigned to this point. See enum Class for possible values.
     Class class_;
 
     //! Get the weight of the specified flag.
+    /** \deprecated */
     static short weightByFlag(uint8_t flag);
 
 };

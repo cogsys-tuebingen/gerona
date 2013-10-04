@@ -115,7 +115,7 @@ private:
     bool calibrate(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 
     //! Classifies the points of the given scan.
-    std::vector<PointClassification> detectObstacles(uint layer, std::vector<float> &out);
+    std::vector<PointClassification> detectObstacles(uint layer);
 
     /**
      * @brief Check neighbourhood of each point for some features.

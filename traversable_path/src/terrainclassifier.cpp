@@ -138,38 +138,48 @@ void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanConstPtr &
     }
 
 
-    vector<PointClassification> traversable;
+    vector<PointClassification> scan_classification;
 
     feature_calculator_.setScan(*msg, layer);
 
     // find obstacles
-    vector<float> debug_classification_as_intensity(msg->intensities.size());
-    traversable = detectObstacles(layer, debug_classification_as_intensity);
+    scan_classification = detectObstacles(layer);
 
     // get projection to carthesian frame
     PointCloudXYZRGBT pcl_cloud;
-    laserScanToCloud(msg, traversable, &pcl_cloud); /** \todo use smoothed instead of msg? */
+    laserScanToCloud(msg, scan_classification, &pcl_cloud); /** \todo use smoothed instead of msg? */
 
     classifyPointCloud(&pcl_cloud);
 
     updateMap(pcl_cloud);
 
+    // if save_next_scan_ is set to true, this scan is stored to files (eg for plotting in an presentation)
     if (save_next_scan_) {
         save_next_scan_ = false;
         sensor_msgs::LaserScan normalized_scan = feature_calculator_.getPreprocessedScan();
         scanToFile("/localhome/widmaier/scan_raw.dat", *msg);
         scanToFile("/localhome/widmaier/scan_normalized.dat", normalized_scan);
-        normalized_scan.intensities = debug_classification_as_intensity;
-        scanToFile("/localhome/widmaier/scan_classification.dat", normalized_scan);
+        //normalized_scan.intensities = debug_classification_as_intensity;
+        //scanToFile("/localhome/widmaier/scan_classification.dat", normalized_scan);
     }
 
     // publish modified message
     publish_classification_cloud_[layer].publish(pcl_cloud);
-    //ROS_DEBUG("Published %zu traversability points", pcl_cloud.points.size());
-    /** @todo This topic is only for debugging. Remove in later versions */
+
+
+    // This topic is only for debugging. It provides the preprocessed scan (ranges) and missuses the intesity
+    // as an indicator for the classification.
     if ( (publish_normalized_.getNumSubscribers() > 0) && (layer == 1) ) {
         sensor_msgs::LaserScan normalized_scan = feature_calculator_.getPreprocessedScan();
-        normalized_scan.intensities = debug_classification_as_intensity;
+
+        // missuse intensity as classification indicator
+        for (unsigned int i = 0; i < scan_classification.size(); ++i) {
+            if (scan_classification[i].getClass() != PointClassification::TRAVERSABLE) // TODO: handle UNKNOWN
+                normalized_scan.intensities[i] = 100.0;
+            else
+                normalized_scan.intensities[i] = 0.0;
+        }
+
         publish_normalized_.publish(normalized_scan);
     }
 
@@ -222,9 +232,8 @@ void TerrainClassifier::laserScanToCloud(const sensor_msgs::LaserScanConstPtr &s
     sensor_msgs::PointCloud cloud_msg;
 
     try {
-        tf_listener_.waitForTransform("/odom", scan->header.frame_id, ros::Time(0), ros::Duration(0.01));
-        /** \todo use /map instead of /odom? */
-        laser_projector_.transformLaserScanToPointCloud("/odom", *scan, cloud_msg, tf_listener_, -1.0,
+        tf_listener_.waitForTransform("/map", scan->header.frame_id, ros::Time(0), ros::Duration(0.01));
+        laser_projector_.transformLaserScanToPointCloud("/map", *scan, cloud_msg, tf_listener_, -1.0,
                                                         laser_geometry::channel_option::Index);
     }
     catch (tf::TransformException e) {
@@ -317,7 +326,7 @@ bool TerrainClassifier::calibrate(std_srvs::Empty::Request& request, std_srvs::E
     return cds.store(scans);
 }
 
-vector<PointClassification> TerrainClassifier::detectObstacles(uint layer, std::vector<float> &out)
+vector<PointClassification> TerrainClassifier::detectObstacles(uint layer)
 {
 //    //////
 //    if ( (publish_normalized_diff_.getNumSubscribers() > 0) && (layer == 1) ) {
@@ -353,13 +362,6 @@ vector<PointClassification> TerrainClassifier::detectObstacles(uint layer, std::
         }
 
         //TODO: completly discard those flags?
-
-        //FIXME: realy remove this now. It doesn't really work anymore since obstacle_value is no longer used.
-        /**
-         * missuse out as obstacle indicator... just for testing, I promise! :P
-         * @todo remove that in later versions!
-         */
-        out[i] = scan_classification[index].obstacle_value() * 20;
     }
 
 
@@ -367,18 +369,6 @@ vector<PointClassification> TerrainClassifier::detectObstacles(uint layer, std::
 
 //    checkPointNeighbourhood(&scan_classification);
     temporalFilter(&scan_classification);
-
-
-    /**
-     * missuse out as obstacle indicator... just for testing, I promise! :P
-     * @todo remove that in later versions!
-     */
-    for (unsigned int i = 0; i < SCAN_SIZE; ++i) {
-        if (scan_classification[i].getClass() != PointClassification::TRAVERSABLE) // TODO: handle UNKNOWN
-            out[i] = 100.0;
-        else
-            out[i] = 0.0;
-    }
 
     return scan_classification;
 }
