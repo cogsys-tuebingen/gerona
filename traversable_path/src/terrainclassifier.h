@@ -125,7 +125,7 @@ private:
 //    void checkPointNeighbourhood(std::vector<PointClassification> *scan_classification) const;
 
     //! Set points to untraversable that where untraversable in most of the last scans.
-    void temporalFilter(std::vector<PointClassification> *scan_classification) const;
+    void temporalFilter(std::vector<PointClassification> *scan_classification);
 
     /**
      * @brief Does some feature checks that requires a point cloud.

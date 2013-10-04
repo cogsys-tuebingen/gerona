@@ -442,12 +442,12 @@ vector<PointClassification> TerrainClassifier::detectObstacles(uint layer, std::
 //}
 
 
-void TerrainClassifier::temporalFilter(std::vector<PointClassification> *scan_classification) const
+void TerrainClassifier::temporalFilter(std::vector<PointClassification> *scan_classification)
 {
     /// Temporal Filter - set to untraversable, if the point was untraversable in more than the half of the last scans.
 
     // push current scan to buffer (push_front so the current scan has index 0)
-    scan_buffer_.push_front(scan_classification);
+    scan_buffer_.push_front(*scan_classification);
 
     const unsigned int scan_buffer_size = scan_buffer_.size();
 
@@ -468,8 +468,8 @@ void TerrainClassifier::temporalFilter(std::vector<PointClassification> *scan_cl
         }
 
         if (sum_untraversable < sum_traversable && sum_untraversable < sum_unknown) {
-            scan_classification[i].setFlag(PointClassification::FLAG_UNTRAVERSABLE_IN_PAST_SCANS);
-            scan_classification[i].setClass(PointClassification::UNTRAVERSABLE);
+            (*scan_classification)[i].setFlag(PointClassification::FLAG_UNTRAVERSABLE_IN_PAST_SCANS);
+            (*scan_classification)[i].setClass(PointClassification::UNTRAVERSABLE);
         }
     }
 }
