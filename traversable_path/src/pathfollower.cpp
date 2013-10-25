@@ -1,3 +1,6 @@
+/**
+ * \todo Remove dynamic reconfigure for velocity (is no set via launchfile and can not be changed at runtime)
+ */
 #include "pathfollower.h"
 #include <cmath>
 
