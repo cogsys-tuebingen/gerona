@@ -9,7 +9,6 @@
 #include <std_srvs/Empty.h>
 #include <laser_geometry/laser_geometry.h>
 #include <tf/transform_listener.h>
-#include <dynamic_reconfigure/server.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/Empty.h>
 #include <tf/message_filter.h>
@@ -19,7 +18,6 @@
 #include "point_types.h"
 #include "pointclassification.h"
 #include "mapprocessor.h"
-#include "traversable_path/classify_terrainConfig.h"
 #include "scanfeaturecalculator.h"
 
 /**
@@ -35,7 +33,6 @@ public:
     ~TerrainClassifier();
 
 private:
-    typedef traversable_path::classify_terrainConfig Config;
     typedef pcl::PointCloud<PointXYZRGBT> PointCloudXYZRGBT;
 
     static const int RTREES_CLASS_UNTRAVERSABLE = 1;
@@ -67,8 +64,6 @@ private:
     ros::ServiceServer calibration_service_;
     //! projects laser data to carthesian frame.
     laser_geometry::LaserProjection laser_projector_;
-    //! dynamic reconfigure server.
-    dynamic_reconfigure::Server<Config> reconfig_server_;
 
     //! Name of the range calibration file
     std::string range_calibration_file_;
@@ -78,9 +73,6 @@ private:
     std::vector<std::vector<float> > plane_ranges_;
     //! Buffer of the last few scans.
     boost::circular_buffer< std::vector<PointClassification> > scan_buffer_;
-
-    //! dynamic reconfigure values.
-    Config config_;
 
     static const int8_t MAP_DEFAULT_VALUE = 50;
     nav_msgs::OccupancyGrid map_;
@@ -149,9 +141,6 @@ private:
      */
     void checkTraversableSegment(PointCloudXYZRGBT::iterator begin,
                                  PointCloudXYZRGBT::iterator end) const;
-
-    //! Callback for dynamic reconfigure.
-    void dynamicReconfigureCallback(Config &config, uint32_t level);
 
     void laserScanToCloud(const sensor_msgs::LaserScanConstPtr &scan, const std::vector<PointClassification> &traversable,
                           PointCloudXYZRGBT *cloud);

@@ -13,8 +13,6 @@
 #include "calibrationdatastorage.h"
 
 using namespace std;
-using namespace traversable_path;
-
 
 const std::string TerrainClassifier::DEFAULT_RANGE_CALIBRATION_FILE = ros::package::getPath(ROS_PACKAGE_NAME)
                                                              + std::string("/rangecalibration.yaml");
@@ -93,24 +91,12 @@ TerrainClassifier::TerrainClassifier() :
     const std::string CLASSIFIER_FILE = ros::package::getPath(ROS_PACKAGE_NAME) + std::string("/classifier_params.yaml");
     ROS_DEBUG("Load classifier parameters from file %s", CLASSIFIER_FILE.c_str());
     classifier_.load(CLASSIFIER_FILE.c_str());
-
-    // register reconfigure callback (which will also initialize config_ with the default values)
-    reconfig_server_.setCallback(boost::bind(&TerrainClassifier::dynamicReconfigureCallback, this, _1, _2));
 }
 
 TerrainClassifier::~TerrainClassifier()
 {
     delete[] message_filter_tilted_scan_;
     delete message_filter_front_scan_;
-}
-
-void TerrainClassifier::dynamicReconfigureCallback(Config &config, uint32_t level)
-{
-    config_ = config;
-
-    feature_calculator_.setVarianceWindowSize(config.variance_window_size);
-
-    ROS_DEBUG("Reconfigure TerrainClassifier.");
 }
 
 void TerrainClassifier::classifyLaserScan(const sensor_msgs::LaserScanConstPtr &msg, uint layer)

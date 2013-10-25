@@ -32,9 +32,6 @@ PathFollower::PathFollower() :
 
     // publish goal poses to /move_base_simple/goal which is the default topic path_planner listens to.
     goal_publisher_ = node_handle_.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0);
-
-    // register reconfigure callback (which will also initialize config_ with the default values)
-    reconfig_server_.setCallback(boost::bind(&PathFollower::dynamicReconfigureCallback, this, _1, _2));
 }
 
 PathFollower::~PathFollower()
@@ -42,12 +39,6 @@ PathFollower::~PathFollower()
     delete map_processor_;
     delete rviz_marker_;
     delete goal_locker_;
-}
-
-void PathFollower::dynamicReconfigureCallback(const follow_pathConfig &config, uint32_t level)
-{
-    config_ = config;
-    ROS_DEBUG("Reconfigure path follower.");
 }
 
 void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
@@ -106,14 +97,7 @@ void PathFollower::mapCallback(const nav_msgs::OccupancyGridConstPtr &msg)
         }
 
         if (no_obstacle) {
-            // velocity (differentiate between straight and bend)
-            // calculate angle between goal direction and robot direction
-            float angle = acos( path_middle_line_.direction.dot(robot_pose_.direction)
-                                / (path_middle_line_.direction.norm() * robot_pose_.direction.norm()) );
-
-            float velocity = angle < M_PI/6 ? config_.velocity_straight : config_.velocity_bend;
-
-            setGoal(goal_pos, path_angle_, velocity);
+            setGoal(goal_pos, path_angle_);
         } else {
             if (!obstacle_at_last_callback_) {
                 ROS_INFO("Untraversable area ahead.");
@@ -157,7 +141,7 @@ void PathFollower::motionControlFeedbackCallback(const motion_control::MotionFee
     ROS_INFO_NAMED("motion_control", "Distance to goal: %f",feedback->dist_goal);
 }
 
-void PathFollower::setGoal(Vector2f position, float theta, float velocity, bool lock_goal)
+void PathFollower::setGoal(Vector2f position, float theta, bool lock_goal)
 {
     // don't set new goal, if the current goal is locked.
     if (goal_locker_->isLocked()) {
@@ -581,33 +565,13 @@ void PathFollower::handleObstacle()
     Vector2f goal_direction = findBestPathDirection();
     Vector2f goal_pos = robot_pose_.position + goal_direction;
     if (!goal_direction.isZero()) {
-        ROS_INFO("Drive back.");
-
-// Skip this, since motion_control is now using a map and can handle this better
-//        float robot_angle = atan2(robot_pose_.direction[1], robot_pose_.direction[0]);
-
-//        // try to drive back 1m. If not possible try 50cm
-//        Vector2f drive_back_goal = robot_pose_.position - robot_pose_.direction;
-//        if (!map_processor_->checkGoalTraversability(robot_pose_.position, drive_back_goal)) {
-//            drive_back_goal = robot_pose_.position - 0.5*robot_pose_.direction;
-//            if (!map_processor_->checkGoalTraversability(robot_pose_.position, drive_back_goal)) {
-//                ROS_INFO("Can not move back. Stop moving.");
-//                return;
-//            }
-//        }
-//        setGoal(drive_back_goal, robot_angle, 0.3, false);
-//        // give the robot some time to move
-//        ros::Duration(4).sleep(); /** \todo stop waiting if goal is reached */
-
-
         float goal_angle = atan2(goal_direction[1], goal_direction[0]);
         // Note: since findBestPathDirection() returned goal_direction and this method requires at least
         // 1m of free space to return an direction at all, there are no further traversability-checks
         // necessary.
 
-        ROS_INFO("Go on.");
         // lock this goal until the robot reached it. Otherwise the robot will to fast choose an other goal.
-        setGoal(goal_pos, goal_angle, 0.2, true);
+        setGoal(goal_pos, goal_angle, true);
 
         /** \todo since the drving back is not necessary any more, it may be better if this method only returns the goal
          * and setGoal() is called in the main loop

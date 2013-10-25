@@ -8,7 +8,6 @@
 #include <geometry_msgs/Point.h>
 #include <std_msgs/ColorRGBA.h>
 #include <nav_msgs/OccupancyGrid.h>
-#include <dynamic_reconfigure/server.h>
 
 #ifndef EIGEN_USE_NEW_STDVECTOR
     // avoid possible redefining, which would throw a warning.
@@ -17,8 +16,6 @@
 #include <Eigen/Core>
 #include <Eigen/StdVector>
 #include "point_types.h"
-
-#include "traversable_path/follow_pathConfig.h"
 
 // forward declarations
 class MapProcessor;
@@ -100,8 +97,6 @@ private:
     actionlib::SimpleActionClient<motion_control::MotionAction> motion_control_action_client_;
     //! Publishs goal poses to path_planner.
     ros::Publisher goal_publisher_;
-    //! dynamic reconfigure server.
-    dynamic_reconfigure::Server<traversable_path::follow_pathConfig> reconfig_server_;
 
     //! The current goal.
     Goal current_goal_;
@@ -127,16 +122,11 @@ private:
     //! Does image processing on the map.
     MapProcessor *map_processor_;
 
-    //! Dynamic reconfigure values.
-    traversable_path::follow_pathConfig config_;
-
     /**
      * @brief Locks/unlocks the goal.
      * Locked means, that new goals will be ignored until the goal is reached or the timeout expired.
      */
     TimeoutLocker *goal_locker_;
-
-    void dynamicReconfigureCallback(const traversable_path::follow_pathConfig &config, uint32_t level);
 
     /**
      * @brief Calculate path direction and set goal point.
@@ -168,7 +158,7 @@ private:
      *                  this goal is reached or a certain time has elapsed. Furthermore this option forces the new goal
      *                  to be set no matter if the goal is too near to the current goal or not.
      */
-    void setGoal(Eigen::Vector2f pos, float theta, float velocity, bool lock_goal=false);
+    void setGoal(Eigen::Vector2f pos, float theta, bool lock_goal=false);
 
     /**
      * @brief Refreshes all cached values (like robot pose and path line).
