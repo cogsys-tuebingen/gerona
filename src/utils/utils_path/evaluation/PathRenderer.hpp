@@ -12,7 +12,7 @@
 #include "../common/Path.h"
 #include "../common/GridMap2d.h"
 
-#include <utils/LibGeneric/Utils.hpp>
+#include <utils_generic/Utils.hpp>
 #include "Util.hpp"
 #include "../generic/Heuristics.hpp"
 

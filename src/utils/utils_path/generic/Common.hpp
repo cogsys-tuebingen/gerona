@@ -9,7 +9,7 @@
 #define COMMON_H
 
 /// PROJECT
-#include <utils/LibGeneric/Utils.hpp>
+#include <utils_generic/Utils.hpp>
 
 /// SYSTEM
 #include <boost/noncopyable.hpp>

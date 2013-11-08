@@ -1,14 +1,21 @@
-# Utils/LibUtil/CMakeLists.txt
+cmake_minimum_required(VERSION 2.8.3)
+project(utils_general)
 
-# Load OpenCV cmake module, if wasn't looked for or found yet
-find_package(OpenCV REQUIRED)
+find_package(catkin REQUIRED)
 
-include_directories(
-    ${CMAKE_SOURCE_DIR}/ros/eigen/include
-    /opt/ros/electric/stacks/bullet/include/LinearMath
-    # Alternative using player Extlib:
-    #${CMAKE_SOURCE_DIR}/Extlib # for Eigen
+catkin_package(
+    INCLUDE_DIRS ..
+    LIBRARIES LibUtil
 )
+
+
+find_package(Eigen REQUIRED)
+include_directories(
+  ${EIGEN_INCLUDE_DIR}
+  ${catkin_INCLUDE_DIRS}
+)
+
+find_package(OpenCV REQUIRED)
 
 add_library (LibUtil SHARED
     CircleEstimator.cpp

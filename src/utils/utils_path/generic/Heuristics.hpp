@@ -9,7 +9,7 @@
 #define HEURISTICS_HPP
 
 /// PROJECT
-#include <utils/LibUtil/MathHelper.h>
+#include <utils_general/MathHelper.h>
 
 /// SYSTEM
 #include <boost/static_assert.hpp>

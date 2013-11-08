@@ -1,16 +1,19 @@
-#cmake_minimum_required(VERSION 2.4.6)
-#if(COMMAND cmake_policy)
-#  cmake_policy(SET CMP0003 NEW)
-#endif(COMMAND cmake_policy)
+cmake_minimum_required(VERSION 2.8.3)
+project(utils_path)
 
-#include_directories(
-#    $ENV{RABOT}/Utils/LibUtil
-#    $ENV{RABOT}/ros/eigen/include
-#    )
-
-#link_directories($ENV{RABOT}/lib)
+find_package(catkin REQUIRED COMPONENTS utils_general)
 
 find_package(Boost COMPONENTS program_options REQUIRED)
+catkin_package(
+    INCLUDE_DIRS ..
+    LIBRARIES LibPath
+)
+
+find_package(Eigen REQUIRED)
+include_directories(
+  ${EIGEN_INCLUDE_DIR}
+  ${catkin_INCLUDE_DIRS}
+)
 
 add_library(LibPath  ReedsShepp/CurveGenerator.cpp
     ReedsShepp/Curve.cpp

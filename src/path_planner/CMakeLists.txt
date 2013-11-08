@@ -4,57 +4,19 @@ project(path_planner)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS nav_msgs utils roscpp std_msgs tf)
+find_package(catkin REQUIRED COMPONENTS nav_msgs utils_path roscpp std_msgs tf)
 
 
 set(CMAKE_BUILD_TYPE Debug)
 
-## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Eigen REQUIRED)
+include_directories(
+  ${EIGEN_INCLUDE_DIR}
+  ${catkin_INCLUDE_DIRS}
+)
 
-
-## Uncomment this if the package has a setup.py. This macro ensures
-## modules and global scripts declared therein get installed
-## See http://ros.org/doc/groovy/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
-
-#######################################
-## Declare ROS messages and services ##
-#######################################
-
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
-
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
-
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   nav_msgs#   std_msgs
-# )
-
-###################################
-## catkin specific configuration ##
-###################################
-## The catkin_package macro generates cmake config files for your package
-## Declare things to be passed to dependent projects
-## LIBRARIES: libraries you create in this project that dependent projects also need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-   INCLUDE_DIRS include
-#  LIBRARIES path_planner
   CATKIN_DEPENDS nav_msgs roscpp std_msgs
-#  DEPENDS system_lib
 )
 
 ###########

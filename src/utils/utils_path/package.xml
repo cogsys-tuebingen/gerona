@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package>
+  <name>utils_path</name>
+  <version>0.0.1</version>
+  <description>The utils_path package</description>
+
+  <maintainer email="sebastian.buck@uni-tuebingen.de">buck</maintainer>
+
+  <license>BSD</license>
+  <author email="sebastian.buck@uni-tuebingen.de">buck</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>utils_general</build_depend>
+  <run_depend>utils_general</run_depend>
+</package>

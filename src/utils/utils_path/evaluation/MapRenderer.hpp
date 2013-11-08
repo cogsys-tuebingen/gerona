@@ -13,7 +13,7 @@
 #include "../generic/Common.hpp"
 
 /// PROJECT
-#include <utils/LibGeneric/Utils.hpp>
+#include <utils_generic/Utils.hpp>
 
 /// SYSTEM
 #include <boost/static_assert.hpp>

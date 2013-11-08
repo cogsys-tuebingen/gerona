@@ -9,9 +9,9 @@
 #define PATH_PLANNER_NODE_HPP
 
 /// PROJECT
-#include <utils/LibPath/generic/Algorithms.hpp>
-#include <utils/LibPath/generic/ReedsSheppExpansion.hpp>
-#include <utils/LibPath/common/SimpleGridMap2d.h>
+#include <utils_path/generic/Algorithms.hpp>
+#include <utils_path/generic/ReedsSheppExpansion.hpp>
+#include <utils_path/common/SimpleGridMap2d.h>
 
 
 /// SYSTEM
