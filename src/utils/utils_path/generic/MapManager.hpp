@@ -10,6 +10,7 @@
 
 /// COMPONENT
 #include "Common.hpp"
+#include "Heuristics.hpp"
 
 /// PROJECT
 #include "../common/GridMap2d.h"
@@ -21,43 +22,55 @@
 namespace lib_path
 {
 
-template <class Param, class Extension>
-class Manager :
-    public Extension
+template <class NodeT, class MapType>
+class Manager
 {
 public:
-    typedef typename Param::NodeType NodeType;
-    typedef typename Param::HeuristicType HeuristicType;
+    typedef MapType MapT;
+    typedef NodeT NodeType;
 
-    using Extension::data;
-    using Extension::w;
-    using Extension::h;
+    template <class PointT>
+    struct NodeHolder {
+        typedef PointT NodeType;
+    };
 
-    const GridMap2d* getMap() {
+    Manager()
+        : map_(NULL), data(NULL), w(0), h(0), theta_slots(1)
+    {}
+
+    virtual ~Manager() {
+        if(data != NULL) {
+            delete [] data;
+        }
+    }
+
+    const MapT* getMap() {
         assert(map_ != NULL);
         return map_;
     }
 
-    void setMap(const GridMap2d* map) {
+    void setMap(const MapT* map) {
         map_ = map;
-        w = map_->getWidth();
-        h = map_->getHeight();
 
-        setMap(generic::Int2Type<HeuristicMapTraits<HeuristicType>::HeuristicUsesMapResolution>(), map);
+        bool replace = w != map->getWidth() || h != map_->getHeight();
 
-        initMap();
+        w = map->getWidth();
+        h = map->getHeight();
+
+        initMap(replace);
     }
 
-    void setMap(generic::Int2Type<false>, const GridMap2d* map){}
-
-    void setMap(generic::Int2Type<true>, const GridMap2d* map){
-        HeuristicType::setMapResolution(map_->getResolution());
+    double getResolution() {
+        return map_->getResolution();
     }
 
-    virtual void initMap() = 0;
+    virtual void initMap(bool replace) = 0;
 
     bool isFree(const NodeType* reference) {
         return map_->isFree(reference->x, reference->y);
+    }
+    bool isFree(int x, int y) {
+        return map_->isFree(x, y);
     }
 
     bool isFree(const double sx, const double sy, const double ex, const double ey) {
@@ -85,25 +98,49 @@ public:
         return map_->isInMap((int) std::floor(x), (int) std::floor(y));
     }
 
+public:
+    unsigned w;
+    unsigned h;
+    unsigned theta_slots;
+
 protected:
-    const GridMap2d* map_;
+    const MapT* map_;
     Bresenham2d bresenham;
+
+    NodeType* data;
+
 };
 
 
 
-template <class Param, class Extension>
+template <class NodeT>
 struct GridMapManager :
-    public Manager<Param, Extension> {
-    typedef Manager<Param, Extension> ManagerT;
+    public Manager<NodeT, GridMap2d>
+{
+    typedef Manager<NodeT, GridMap2d> ManagerT;
     typedef typename ManagerT::NodeType NodeType;
+
+    template <class PointT>
+    struct NodeHolder {
+        typedef PointT NodeType;
+    };
 
     using ManagerT::data;
     using ManagerT::w;
     using ManagerT::h;
 
-    void initMap() {
-        data = new NodeType[w * h];
+    void initMap(bool replace) {
+        bool alloc = data == NULL || replace;
+        bool delete_first = alloc && data == NULL;
+
+        if(delete_first) {
+            delete[] data;
+        }
+
+        if(alloc) {
+            std::cout << "allocate new map" << std::endl;
+            data = new NodeType[w * h];
+        }
         for(unsigned y = 0; y < h; ++y) {
             for(unsigned x = 0; x < w; ++x) {
                 NodeType::init(data[index(x,y)], x, y);
@@ -111,7 +148,7 @@ struct GridMapManager :
         }
     }
 
-    inline unsigned index(unsigned x, unsigned y, unsigned t = 1) {
+    inline unsigned index(unsigned x, unsigned y, unsigned t = 1, bool f = true) {
         return y * w + x;
     }
 
@@ -119,12 +156,18 @@ struct GridMapManager :
     NodeType* lookup(const PointT& reference) {
         unsigned y = reference.y;
         unsigned x = reference.x;
+        assert(x >= 0);
+        assert(y >= 0);
+        assert(x < w);
+        assert(y < h);
         return &data[index(x,y)];
     }
 
     NodeType* lookup(const int x, const int y) {
         assert(x >= 0);
         assert(y >= 0);
+        assert(x < w);
+        assert(y < h);
         return &data[index(x,y)];
     }
     NodeType* lookup(const double x, const double y, double ignored = 0) {
@@ -136,25 +179,41 @@ struct GridMapManager :
 
 
 
-template <class Param, class Extension>
+template <class NodeT>
 class StateSpaceManager :
-    public Manager<Param, Extension>
+    public Manager<NodeT, GridMap2d>
 {
 public:
-    typedef Manager<Param, Extension> ManagerT;
+    typedef Manager<NodeT, GridMap2d> ManagerT;
     typedef typename ManagerT::NodeType NodeType;
+
+    template <class PointT>
+    struct NodeHolder {
+        typedef PointT NodeType;
+    };
 
     using ManagerT::data;
     using ManagerT::w;
     using ManagerT::h;
     using ManagerT::theta_slots;
 
-    void initMap() {
-        theta_slots = 12;
+    void initMap(bool replace) {
+        theta_slots = 36;
         double stheta = 0 - M_PI;
         double dtheta = 2 * M_PI / theta_slots;
 
-        data = new NodeType[w * h * theta_slots];
+        bool alloc = data == NULL || replace;
+        bool delete_first = alloc && data == NULL;
+
+        if(delete_first) {
+            delete[] data;
+        }
+
+        if(alloc) {
+            std::cout << "allocate new map" << std::endl;
+            data = new NodeType[w * h * theta_slots];
+        }
+
         for(unsigned y = 0; y < h; ++y) {
             for(unsigned x = 0; x < w; ++x) {
                 for(unsigned t = 0; t < theta_slots; ++t) {
@@ -166,10 +225,16 @@ public:
 
 
     inline unsigned index(unsigned x, unsigned y, unsigned t) {
+        assert(x >= 0);
+        assert(y >= 0);
+        assert(x < w);
+        assert(y < h);
+        assert(t >= 0);
+        assert(t < theta_slots);
         return y * w + x + t*w*h;
     }
     inline unsigned angle2index(double theta) {
-        return (MathHelper::AngleClamp(theta) + M_PI) / (2 * M_PI) * theta_slots;
+        return (MathHelper::AngleClamp(theta) + M_PI) / (2 * M_PI) * (theta_slots - 1);
     }
 
     template <class PointT>
@@ -183,13 +248,116 @@ public:
     NodeType* lookup(const int x, const int y, double theta) {
         assert(x >= 0);
         assert(y >= 0);
+        assert(x < w);
+        assert(y < h);
         return &data[index(x,y,angle2index(theta))];
     }
     NodeType* lookup(const double x, const double y, double theta) {
         assert(x >= 0);
         assert(y >= 0);
+        assert(x < w);
+        assert(y < h);
         return lookup((int) std::floor(x), (int) std::floor(y), theta);
     }
+};
+
+
+
+template <class NodeT>
+class DirectionalStateSpaceManager :
+    public Manager<NodeT, GridMap2d>
+{
+public:
+    typedef Manager<NodeT, GridMap2d> ManagerT;
+    typedef typename ManagerT::NodeType NodeType;
+
+    using ManagerT::data;
+    using ManagerT::w;
+    using ManagerT::h;
+    using ManagerT::theta_slots;
+
+    template <class PointT>
+    struct NodeHolder {
+        typedef DirectionalNode<PointT> NodeType;
+    };
+
+    void initMap(bool replace) {
+
+        theta_slots = 32;
+        double stheta = 0 - M_PI;
+        double dtheta = 2 * M_PI / theta_slots;
+
+        dimension = w * h * theta_slots;
+
+        bool alloc = data == NULL || replace;
+        bool delete_first = alloc && data == NULL;
+
+        if(delete_first) {
+            delete[] data;
+        }
+
+        if(alloc) {
+            std::cout << "allocate new map" << std::endl;
+            data = new NodeType[2 * dimension];
+        }
+
+
+        for(unsigned y = 0; y < h; ++y) {
+            for(unsigned x = 0; x < w; ++x) {
+                for(unsigned t = 0; t < theta_slots; ++t) {
+                    for(unsigned f = 0; f <= 1; ++f) {
+                        NodeType::init(data[index(x,y,t, f)], x, y, stheta + dtheta * t);
+                    }
+                }
+            }
+        }
+    }
+
+
+    inline unsigned index(unsigned x, unsigned y, unsigned t=0, bool forward=true) {
+        assert(x >= 0);
+        assert(y >= 0);
+        assert(x < w);
+        assert(y < h);
+        assert(t >= 0);
+        assert(t < theta_slots);
+        return y * w + x + t*w*h + (forward ? 0 : dimension);
+    }
+    inline unsigned angle2index(double theta) {
+        return (MathHelper::AngleClamp(theta) + M_PI) / (2 * M_PI) * (theta_slots - 1);
+    }
+
+    template <class PointT>
+    NodeType* lookup(const PointT& reference) {
+        unsigned y = reference.y;
+        unsigned x = reference.x;
+        unsigned t = angle2index(reference.theta);
+        return &data[index(x,y,t, reference.forward)];
+    }
+    NodeType* lookup(const Pose2d& reference) {
+        unsigned y = reference.y;
+        unsigned x = reference.x;
+        unsigned t = angle2index(reference.theta);
+        return &data[index(x,y,t, true)];
+    }
+
+    NodeType* lookup(const int x, const int y, double theta, bool forward) {
+        assert(x >= 0);
+        assert(y >= 0);
+        assert(x < w);
+        assert(y < h);
+        return &data[index(x,y,angle2index(theta), forward)];
+    }
+    NodeType* lookup(const double x, const double y, double theta, bool forward) {
+        assert(x >= 0);
+        assert(y >= 0);
+        assert(x < w);
+        assert(y < h);
+        return lookup((int) std::floor(x), (int) std::floor(y), theta, forward);
+    }
+
+private:
+    unsigned dimension;
 };
 
 }

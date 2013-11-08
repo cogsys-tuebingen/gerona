@@ -220,7 +220,8 @@ bool CircleSegment::testPixel(int cx, int cy, int x, int y, bool ignore_obstacle
             m_weight += max(m_min_cell_cost, m_map->getValue(x, y));
             bool free = m_map->isFree(x, y);
             if(m_trace != -1) {
-                m_map->setValue(x, y, free ? 240 : 40);
+//                TODO: trace is disabled to be able to make the map const
+//                m_map->setValue(x, y, free ? 240 : 40);
             }
             if(ignore_obstacles) {
                 return true;
@@ -228,6 +229,8 @@ bool CircleSegment::testPixel(int cx, int cy, int x, int y, bool ignore_obstacle
                 return free;
             }
         }
+    } else {
+        return false;
     }
 
     return true;

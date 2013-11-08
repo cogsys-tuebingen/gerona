@@ -172,8 +172,10 @@ bool CurveGenerator::parse(const std::string& sequence, std::ostream& out)
     return error;
 }
 
-Curve* CurveGenerator::find_path(const Pose2d& start, const Pose2d& goal, GridMap2d* map, bool ignore_obstacles)
+Curve* CurveGenerator::find_path(const Pose2d& start, const Pose2d& goal, const GridMap2d* map, bool ignore_obstacles)
 {
+    assert(!m_curves.empty());
+
     Curve* best_curve = NULL;
     double best_weight = INFINITY;
 
@@ -203,6 +205,8 @@ Curve* CurveGenerator::find_path(const Pose2d& start, const Pose2d& goal, GridMa
             best_weight = weight;
         }
     }
+
+    assert(best_curve != NULL);
 
     return new Curve(*best_curve);
 }

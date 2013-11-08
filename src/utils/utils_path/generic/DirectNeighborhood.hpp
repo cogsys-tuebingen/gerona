@@ -21,15 +21,44 @@ namespace lib_path
 /**
  * @brief The DirectNeighborhood struct is used to select a holonomic grid neighborhood
  */
-template <int n = 8, int distance = 1>
-struct DirectNeighborhood {
-    enum { N = n };
-    enum { DISTANCE = distance };
-};
+template <int N, int distance>
+struct DirectNeighborhood {};
 
-template <int, int>
-struct DirectNeighborhoodImp {
-    // base case for undefined neighborhood
+template <int N, int distance, class Imp>
+struct DirectNeighborhoodBase : public NeighborhoodBase
+{
+    enum { SIZE = N };
+    enum { DISTANCE = distance };
+
+    template <class PointT>
+    struct NodeHolder {
+        typedef PointT NodeType;
+    };
+
+    template <class NodeType>
+    static bool isNearEnough(NodeType* goal, NodeType* reference) {
+        return std::abs(goal->x - reference->x) <= distance &&
+               std::abs(goal->y - reference->y) <= distance;
+    }
+
+    template <class T, class Map, class NodeType>
+    static void iterateFreeNeighbors(T& algo, Map& map, NodeType* reference) {
+        int x = reference->x;
+        int y = reference->y;
+        for(unsigned i = 0; i < SIZE; ++i) {
+            int xx = Imp::dx(x,i);
+            int yy = Imp::dy(y,i);
+            if(map.contains(xx, yy)) {
+                NodeType* n = map.lookup(xx, yy);
+
+                if(!map.isFree(n)) {
+                    continue;
+                }
+
+                algo.processNeighbor(reference, n, Imp::delta(i));
+            }
+        }
+    }
 };
 
 
@@ -37,9 +66,12 @@ struct DirectNeighborhoodImp {
  * @brief The DirectNeighborhoodImp<4, distance> struct implements a 4 neighborhood
  */
 template <int distance>
-struct DirectNeighborhoodImp<4, distance> {
-    enum { SIZE = 4 };
-    enum { DISTANCE = distance };
+struct DirectNeighborhood<4, distance>
+        : public DirectNeighborhoodBase<4, distance, DirectNeighborhood<4, distance> >
+{
+    typedef DirectNeighborhood<4, distance> Self;
+    typedef DirectNeighborhoodBase<4, distance, Self> Parent;
+    using Parent::DISTANCE;
 
     static int dx(int x,int i) {
         switch(i) {
@@ -66,12 +98,15 @@ struct DirectNeighborhoodImp<4, distance> {
 
 
 /**
- * @brief The DirectNeighborhoodImp<8, distance> struct implements an 8 neighborhood
+ * @brief The DirectNeighborhood<8, distance> struct implements an 8 neighborhood
  */
 template <int distance>
-struct DirectNeighborhoodImp<8, distance> {
-    enum { SIZE = 8 };
-    enum { DISTANCE = distance };
+struct DirectNeighborhood<8, distance>
+        : public DirectNeighborhoodBase<8, distance, DirectNeighborhood<8, distance> >
+{
+    typedef DirectNeighborhood<8, distance> Self;
+    typedef DirectNeighborhoodBase<8, distance, Self> Parent;
+    using Parent::DISTANCE;
 
     static const double COST_DIAG = M_SQRT2* DISTANCE;
     static const double COST_HORI = DISTANCE;
@@ -114,43 +149,6 @@ struct DirectNeighborhoodImp<8, distance> {
         default:
         case 7: return COST_DIAG;
         }
-    }
-};
-
-/**
- * @brief The NeighborhoodPolicy<NodeT, DirectNeighborhood<N, d> > struct specifies how to
- *        iterate nodes with the direct neighborhood policy
- */
-template <class NodeT, int N, int d>
-struct NeighborhoodPolicy<NodeT, DirectNeighborhood<N,d> > :
-    public DirectNeighborhood<N,d>, public DirectNeighborhoodImp<N, d> {
-    typedef DirectNeighborhoodImp<N ,d> Neighborhood;
-    typedef NodeT NodeType;
-
-    virtual bool processNeighbor(NodeType* current, NodeType* neighbor, double delta) = 0;
-
-    template <class Map>
-    void iterateFreeNeighbors(Map& map, NodeType* reference) {
-        int x = reference->x;
-        int y = reference->y;
-        for(unsigned i = 0; i < Neighborhood::SIZE; ++i) {
-            int xx = Neighborhood::dx(x,i);
-            int yy = Neighborhood::dy(y,i);
-            if(map.contains(xx, yy)) {
-                NodeType* n = map.lookup(xx, yy);
-
-                if(!map.isFree(n)) {
-                    continue;
-                }
-
-                processNeighbor(reference, n, Neighborhood::delta(i));
-            }
-        }
-    }
-
-    bool isNearEnough(NodeType* goal, NodeType* reference) {
-        return std::abs(goal->x - reference->x) <= Neighborhood::DISTANCE &&
-               std::abs(goal->y - reference->y) <= Neighborhood::DISTANCE;
     }
 };
 

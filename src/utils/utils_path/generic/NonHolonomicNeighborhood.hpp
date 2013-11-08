@@ -18,52 +18,54 @@
 namespace lib_path
 {
 
-/**
- * @brief The NonHolonomicNeighborhood struct is used to select a non-holonomic grid neighborhood
- */
-template <int distance = 100, int steerangle = 10>
-struct NonHolonomicNeighborhood {
+template  <int distance, int steerangle, class Imp>
+struct NonHolonomicNeighborhoodBase : public NeighborhoodBase
+{
     enum { DISTANCE = distance };
     enum { STEER_ANGLE = steerangle };
-};
+    enum { SIZE = 6 };
+    //    enum { SIZE = 10 };
 
-
-
-/**
- * @brief The NeighborhoodPolicy<NodeT, NonHolonomicNeighborhood<d, a> > struct specifies how to
- *        iterate nodes with the non-holonomic neighborhood policy
- */
-template <class NodeT, int d, int a>
-struct NeighborhoodPolicy<NodeT, NonHolonomicNeighborhood<d,a> >
-        : public NonHolonomicNeighborhood<d,a> {
-    typedef NonHolonomicNeighborhood<d,a> Neighborhood;
-    typedef HybridNode<NodeT> NodeType;
-
-    enum { SIZE = 3 };
-    enum { DIST = Neighborhood::DISTANCE };
-    enum { STEER_ANGLE = Neighborhood::STEER_ANGLE };
-
-    static const double DISTANCE = DIST / 100.0;
+    template <class PointT>
+    struct NodeHolder {
+        typedef OrientedNode<PointT> NodeType;
+    };
 
     static const double DELTA_THETA = STEER_ANGLE / 10.0 * M_PI / 180.0;
 
+    static double resolution;
+    static const double distance_step = distance / 100.0;
+    static double distance_step_pixel;
+
+    static double setResolution(double res) {
+        resolution = res;
+        distance_step_pixel = distance_step / resolution;
+    }
+
+    template <class NodeType>
     static double advance(NodeType* reference, int i, double& x_, double& y_, double& theta_, bool& forward_) {
         double t;
-        double cost = DISTANCE;
+
+        double cost = distance_step_pixel;
 
         // choose steering direction
         switch(i) {
-        case 0: case 3: // right
-            t = reference->theta - DELTA_THETA;
-            cost *= 1.1;
-            break;
         default:
-        case 1: case 4: // straight
+        case 0: case 3: // straight
             t = reference->theta;
+            break;
+        case 1: case 4: // right
+            t = reference->theta - DELTA_THETA;
             break;
         case 2: case 5: // left
             t = reference->theta + DELTA_THETA;
-            cost *= 1.1;
+            break;
+
+        case 6: case 8: // right
+            t = reference->theta - DELTA_THETA/2;
+            break;
+        case 7: case 9: // left
+            t = reference->theta + DELTA_THETA/2;
             break;
         }
 
@@ -71,49 +73,61 @@ struct NeighborhoodPolicy<NodeT, NonHolonomicNeighborhood<d,a> >
         t = MathHelper::AngleClamp(t);
 
         // check driving direction
-        if(i < 3) {
-            // forward
-            x_ = reference->center_x + std::cos(t) * DISTANCE;
-            y_ = reference->center_y + std::sin(t) * DISTANCE;
-            forward_ = true;
+        forward_ = (i < 3);
+
+        bool direction_switch = reference->forward != forward_;
+
+        if(direction_switch) {
+            // only allow to drive straight, if direction changes!
+            if((i%3) != 0) {
+                return -1;
+            }
+        }
+
+
+        if(forward_) {
+            x_ = reference->x + std::cos(t) * distance_step_pixel;
+            y_ = reference->y + std::sin(t) * distance_step_pixel;
 
         } else {
-            // backward
-            x_ = reference->center_x - std::cos(t) * DISTANCE;
-            y_ = reference->center_y - std::sin(t) * DISTANCE;
-            forward_ = false;
+            x_ = reference->x - std::cos(t) * distance_step_pixel;
+            y_ = reference->y - std::sin(t) * distance_step_pixel;
 
             // penalize driving backwards
-            cost *= 5;
+            cost *= 1.2 ;
         }
 
         // penalize directional changes
-        if(reference->forward != forward_) {
-            cost *= 5;
+        if(direction_switch && !forward_) {
+            cost *= 1.4;
         }
 
         theta_ = t;
 
-        return cost;
+        return cost * 1;
     }
 
-    template <class T>
-    void iterateFreeNeighbors(T& search, NodeType* reference) {
+    template <class T, class Map, class NodeType>
+    static void iterateFreeNeighbors(T& algo, Map& map, NodeType* reference) {
         for(unsigned i = 0; i < SIZE; ++i) {
             double to_x,to_y, to_theta;
             bool forward;
             double cost = advance(reference, i, to_x,to_y,to_theta,forward);
 
-            if(search.contains(to_x, to_y) && search.isFree(reference->center_x,reference->center_y, to_x,to_y)) {
-                NodeType* n = search.lookup(to_x, to_y, to_theta);
+            if(cost < 0) {
+                continue;
+            }
 
-                if(n == NULL || !search.isFree(n)) {
+            if(map.contains(to_x, to_y) && map.isFree(reference->x,reference->y, to_x,to_y)) {
+                NodeType* n = map.lookup(to_x, to_y, to_theta, forward);
+
+                if(n == NULL || !map.isFree(n)) {
                     continue;
                 }
 
-                if(search.processNeighbor(reference, n, cost))  {
-                    n->center_x = to_x;
-                    n->center_y = to_y;
+                if(algo.processNeighbor(reference, n, cost) == PR_ADDED_TO_OPEN_LIST)  {
+                    n->x = to_x;
+                    n->y = to_y;
                     n->theta = to_theta;
                     n->forward = forward;
                 }
@@ -121,12 +135,27 @@ struct NeighborhoodPolicy<NodeT, NonHolonomicNeighborhood<d,a> >
         }
     }
 
-    bool isNearEnough(NodeType* goal, NodeType* reference) {
-        return std::abs(goal->center_x - reference->center_x) <= DISTANCE / 2 &&
-               std::abs(goal->center_y - reference->center_y) <= DISTANCE / 2 &&
-               std::abs(MathHelper::AngleClamp(goal->theta - reference->theta)) < M_PI / 16;
+    template <class NodeType>
+    static bool isNearEnough(NodeType* goal, NodeType* reference) {
+        return std::abs(goal->x - reference->x) <= distance_step_pixel / 2 &&
+                std::abs(goal->y - reference->y) <= distance_step_pixel / 2 &&
+                std::abs(MathHelper::AngleClamp(goal->theta - reference->theta)) < M_PI / 8;
     }
+};
 
+template  <int d, int s, class I>
+double NonHolonomicNeighborhoodBase<d,s,I>::resolution = 0;
+
+template  <int d, int s, class I>
+double NonHolonomicNeighborhoodBase<d,s,I>::distance_step_pixel = 0;
+
+
+
+template <int distance = 100, int steerangle = 10>
+struct NonHolonomicNeighborhood
+        : public NonHolonomicNeighborhoodBase<distance, steerangle,
+        NonHolonomicNeighborhood<distance, steerangle> >
+{
 };
 
 }

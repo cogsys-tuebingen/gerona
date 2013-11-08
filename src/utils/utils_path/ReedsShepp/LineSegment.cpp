@@ -62,7 +62,8 @@ float LineSegment::weight(bool ignore_obstacles)
         if(m_map->isInMap(x0, y0)) {
             bool free = m_map->isFree(x0, y0);
             if(m_trace != -1) {
-                m_map->setValue(x0, y0, m_trace);
+//                TODO: trace is disabled to be able to make the map const
+//                m_map->setValue(x0, y0, m_trace);
             }
             if(!free && !ignore_obstacles) {
                 is_free = false;

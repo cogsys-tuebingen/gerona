@@ -16,27 +16,31 @@
 #include <vector>
 #include <functional>
 #include <math.h>
+#include <assert.h>
 #include <cstdlib>
+#include <limits>
 
 namespace lib_path
 {
 /// INTERFACES
 
-/**
- * @brief The NeighborhoodPolicy struct defines the "interface" for using Neighborhood policies
- * @param NeighborhoodType specifies the behaviour
- */
-template <class NodeT, class NeighborhoodType>
-struct NeighborhoodPolicy {};
+struct NeighborhoodBase {
+    enum ProcessingResult {
+        PR_ADDED_TO_OPEN_LIST, PR_IGNORED, PR_CLOSED
+    };
 
-/**
- * @brief The HeuristicSelection struct defines the "interface" for using Heuristic policies
- * @param Type specifies the behaviour
- */
-template <class Type, class PointT>
-struct HeuristicSelection {};
+    static double setResolution(double res) {}
+};
 
+struct NoExpansion {
+    static bool canExpand(...) {
+        return false;
+    }
 
+    static void getPath(...) {
+        assert(false);
+    }
+};
 
 /**
  * @brief The Node struct augments a class by adding more fields for bookkeeping
@@ -50,9 +54,13 @@ struct Node : public PointT {
     static const char MARK_OPEN = 1;
     static const char MARK_CLOSED = 2;
     static const char MARK_WATCHED = 4;
+    static const char MARK_EXPANDED = 8;
 
     void mark(char mark) {
         marked |= mark;
+    }
+    void unMark(char mark) {
+        marked &= ~mark;
     }
 
     bool isMarked(char mark) const {
@@ -72,7 +80,8 @@ struct Node : public PointT {
         memory.marked = MARK_NONE;
     }
 
-    static void init(Node<PointT> &memory, int x, int y) {
+    template <typename V>
+    static void init(Node<PointT> &memory, V x, V y) {
         memory.x = x;
         memory.y = y;
         memory.distance = INFINITY;
@@ -86,37 +95,54 @@ struct Node : public PointT {
 };
 
 
+
 /**
- * @brief The HybridNode struct augments a class by adding continous values
+ * @brief The OrientedNode struct augments a class
  */
 template <class Node>
-struct HybridNode : public Node {
+struct OrientedNode : public Node {
     typedef typename Node::PointType PointType;
-    typedef HybridNode<Node> NodeType;
+    typedef OrientedNode<Node> NodeType;
 
-    double center_x;
-    double center_y;
+    template <class AnyPoint>
+    static void init(OrientedNode<Node> &memory, const AnyPoint& p) {
+        Node::init(memory, p);
+        memory.theta = p.theta;
+    }
+
+    template <typename V>
+    static void init(OrientedNode<Node> &memory, V x, V y, double theta = 0.0) {
+        Node::init(memory, x, y);
+        memory.theta = theta;
+    }
+};
+
+
+
+/**
+ * @brief The DirectionalNode struct augments a class
+ */
+template <class Node>
+struct DirectionalNode : public Node {
+    typedef typename Node::PointType PointType;
+    typedef DirectionalNode<Node> NodeType;
+
     bool forward;
 
     template <class AnyPoint>
-    static void init(HybridNode<Node> &memory, const AnyPoint& p) {
+    static void init(DirectionalNode<Node> &memory, const AnyPoint& p) {
         Node::init(memory, p);
-
-        memory.center_x = p.x;
-        memory.center_y = p.y;
-        memory.theta = p.theta;
         memory.forward = true;
     }
 
-    static void init(HybridNode<Node> &memory, int x, int y, double theta = 0.0) {
-        Node::init(memory, x, y);
-
-        memory.center_x = x;
-        memory.center_y = y;
-        memory.theta = theta;
-        memory.forward = true;
+    template <typename V>
+    static void init(DirectionalNode<Node> &memory, V x, V y, double theta = 0.0, bool forward = true) {
+        Node::init(memory, x, y, theta);
+        memory.forward = forward;
     }
 };
+
+
 
 /**
  * @brief The CompareNode struct can be used to compare nodes
@@ -128,32 +154,29 @@ struct CompareNode : public std::binary_function<Node*, Node*, bool> {
     }
 };
 
-
-
 /**
- * @brief The MapManagerExtension struct is the default map manager extension, which contains all needed data
+ * @brief The NodeTraits class has type information for Nodes
  */
-template <class Param>
-struct MapManagerExtension {
-    typedef typename Param::NodeType NodeType;
+template <typename Any>
+class NodeTraits
+{
+    typedef char Small;
+    class Big
+    {
+        char dummy[2];
+    };
 
-    MapManagerExtension()
-        : data(NULL), w(0), h(0), theta_slots(1) {
-    }
+    template <typename Class> static Small testH(typeof(&Class::h)) ;
+    template <typename Class> static Big testH(...);
 
-    virtual ~MapManagerExtension() {
-        if(data != NULL) {
-            delete [] data;
-        }
-    }
+    template <typename Class> static Small testF(typeof(&Class::forward)) ;
+    template <typename Class> static Big testF(...);
 
-    NodeType* data;
-    unsigned w;
-    unsigned h;
-    unsigned theta_slots;
+
+public:
+    enum { HasHeuristicField = sizeof(testH<Any>(0)) == sizeof(Small) };
+    enum { HasForwardField = sizeof(testF<Any>(0)) == sizeof(Small) };
 };
-
-
 
 }
 #endif // COMMON_H

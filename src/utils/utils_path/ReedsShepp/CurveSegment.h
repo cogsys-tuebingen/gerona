@@ -51,7 +51,7 @@ public:
      *
      * @param map the new MapInfo
      */
-    virtual void set_map(GridMap2d* map);
+    virtual void set_map(const GridMap2d *map);
 
     /**
      * Setter for the maximum distance between two waypoints
@@ -116,7 +116,7 @@ public:
     virtual float weight(bool ignore_obstacles) = 0;
 
 protected:
-    GridMap2d* m_map;
+    const GridMap2d* m_map;
     DIRECTION m_direction;
     float m_max_distance;
 

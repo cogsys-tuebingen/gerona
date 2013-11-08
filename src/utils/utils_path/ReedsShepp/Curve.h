@@ -118,7 +118,7 @@ private:
     Pose2d m_start;
     Pose2d m_goal;
 
-    GridMap2d* m_map;
+    const GridMap2d* m_map;
 
     bool m_iterating;
     unsigned m_output_number;

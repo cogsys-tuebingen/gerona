@@ -3,7 +3,7 @@ project(utils_path)
 
 find_package(catkin REQUIRED COMPONENTS utils_general)
 
-find_package(Boost COMPONENTS program_options REQUIRED)
+find_package(Boost COMPONENTS program_options system filesystem thread REQUIRED)
 catkin_package(
     INCLUDE_DIRS ..
     LIBRARIES LibPath
@@ -34,14 +34,21 @@ add_library(LibPath  ReedsShepp/CurveGenerator.cpp
     generic/Common.hpp
     generic/SearchAlgorithm.hpp
     generic/Algorithms.hpp
+    generic/DistanceTransformation.hpp
     generic/Heuristics.hpp
     generic/DirectNeighborhood.hpp
     generic/NonHolonomicNeighborhood.hpp
     generic/MapManager.hpp
     generic/NodeManager.hpp
-    evaluation/PathRenderer.hpp
-    evaluation/MapRenderer.hpp
+    generic/ReedsSheppExpansion.hpp
+    evaluation/Renderer.hpp
     evaluation/Util.hpp
+    evaluation/MapGenerators.hpp
+    sampling/GoalRegion.cpp
+    sampling/RingGoalRegion.cpp
+    #sampling/PoseListGoalRegion.cpp
+    sampling/CentroidRadiusGoalRegion.cpp
+    sampling/SamplingPlanner.cpp
 )
 
 target_link_libraries(LibPath LibUtil)
@@ -90,6 +97,8 @@ else(NOT OpenCV_FOUND)
     target_link_libraries (Evaluator
         LibUtil
         LibPath
+        yaml-cpp
+        ${Boost_LIBRARIES}
         ${OpenCV_LIBS})
 
 

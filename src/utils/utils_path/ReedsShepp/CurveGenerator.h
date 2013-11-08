@@ -57,7 +57,7 @@ public:
      *
      * @returns a Reeds-Shepp-Curve that describes the shortest path
      */
-    Curve* find_path(const Pose2d& start, const Pose2d& goal, GridMap2d* map,
+    Curve* find_path(const Pose2d& start, const Pose2d& goal, const GridMap2d *map,
                      bool ignore_obstacles = false);
 
     /**

@@ -11,8 +11,10 @@
 /// COMPONENT
 #include "Common.hpp"
 
+/// PROJECT
+#include <utils_general/DynamicPriorityQueue.hpp>
+
 /// SYSTEM
-#include <queue>
 #include <stack>
 
 namespace lib_path
@@ -29,6 +31,13 @@ struct QueueManager {
 
     bool empty() {
         return queue.empty();
+    }
+
+    void remove(Node* element) {
+    }
+
+    void clear() {
+        queue.clear();
     }
 
     Node* next() {
@@ -55,6 +64,17 @@ struct GenericManager {
         return container.empty();
     }
 
+    void remove(Node* element) {
+        container.remove(element);
+    }
+
+    void clear() {
+        // workaround for queues
+        while(!empty()) {
+            next();
+        }
+    }
+
     Node* next() {
         assert(!container.empty());
         Node* next = container.top();
@@ -71,7 +91,8 @@ private:
  * @brief The PriorityQueueManager struct represents the structure of open nodes as a prio queue
  */
 template <class Node>
-class PriorityQueueManager : public GenericManager<Node, std::priority_queue<Node*, std::vector<Node*>, CompareNode<Node> > >
+class PriorityQueueManager : public GenericManager<Node, DynamicPrioritySet<Node*, CompareNode<Node> > >
+//        class PriorityQueueManager : public GenericManager<Node, DynamicPriorityQueue<Node*, std::vector<Node*>, CompareNode<Node> > >
 {
 };
 
