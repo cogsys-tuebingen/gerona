@@ -127,9 +127,11 @@ struct Planner
         map_info->setUpperThreshold(70);
     }
 
-    nav_msgs::Path path2msg(const PathT& path)
+    nav_msgs::Path path2msg(const PathT& path, const ros::Time &goal_timestamp)
     {
         nav_msgs::Path path_out;
+        // set timestamp of the received goal for the path message, so they can be associated
+        path_out.header.stamp = goal_timestamp;
         path_out.header.frame_id = "/map";
 
         const Pose2d* last = NULL;
@@ -213,8 +215,8 @@ struct Planner
         PathT smooted_path = smoothPath(path, 0.5, 0.1);
 
         /// path
-        raw_path_publisher.publish(path2msg(path));
-        path_publisher.publish(path2msg(smooted_path));
+        raw_path_publisher.publish(path2msg(path, goal->header.stamp));
+        path_publisher.publish(path2msg(smooted_path, goal->header.stamp));
     }
 
     PathT smoothPath(const PathT& path, double weight_data, double weight_smooth, double tolerance = 0.000001) {
