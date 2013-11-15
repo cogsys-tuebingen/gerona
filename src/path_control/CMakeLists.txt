@@ -7,6 +7,8 @@ project(path_control)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   roscpp
+  actionlib
+  path_msgs
 )
 
 ## System dependencies are found with CMake's conventions

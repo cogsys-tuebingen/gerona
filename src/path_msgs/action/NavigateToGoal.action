@@ -2,7 +2,7 @@
 uint8 OBSTACLE_MODE_ABORT = 1
 uint8 OBSTACLE_MODE_REPLAN = 2
 
-geometry_msgs/PoseStamped goal
+geometry_msgs/PoseStamped goal_pose
 uint8 obstacle_mode
 
 ---
