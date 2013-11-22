@@ -2,18 +2,18 @@
 <package>
   <name>path_follower</name>
   <version>0.0.0</version>
-  <description>The path_follower package</description>
+  <description>This package gets a path from path_control and controls the robot to drive on it.</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="fwidmaier@todo.todo">fwidmaier</maintainer>
+  <maintainer email="felix.widmaier@uni-tuebingen.de">Felix Widmaier</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
-  <license>TODO</license>
+  <license>BSD</license>
 
 
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->

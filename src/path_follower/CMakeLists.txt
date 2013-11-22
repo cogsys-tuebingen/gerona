@@ -114,6 +114,15 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
+add_executable(path_follower_node
+  src/follower_node.cpp
+  src/pathfollower.cpp
+)
+
+target_link_libraries(path_follower_node
+  ${catkin_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############
