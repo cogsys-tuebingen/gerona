@@ -123,6 +123,15 @@ target_link_libraries(path_control_node
   ${catkin_LIBRARIES}
 )
 
+
+add_executable(highlevel_dummy
+  src/highlevel_dummy_node.cpp
+)
+target_link_libraries(highlevel_dummy
+  ${catkin_LIBRARIES}
+)
+
+
 #############
 ## Install ##
 #############
