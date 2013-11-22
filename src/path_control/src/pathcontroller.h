@@ -16,6 +16,7 @@ class PathController
 public:
     PathController(ros::NodeHandle &nh);
 
+
 private:
     typedef actionlib::SimpleActionServer<path_msgs::NavigateToGoalAction> NavToGoalServer;
     typedef actionlib::SimpleActionClient<path_msgs::FollowPathAction> FollowPathClient;
@@ -50,10 +51,21 @@ private:
 
     nav_msgs::PathConstPtr requested_path_;
 
-    void navToGoalActionCallback(const path_msgs::NavigateToGoalActionGoalConstPtr &goal);
+    void navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal);
 
-    //! Callback for the paths published e.g. by path_planner
+    //! Callback for the paths published e.g. by path_planner.
     void pathCallback(const nav_msgs::PathConstPtr &path);
+
+    //! Callback for result of finished FollowPathAction.
+    void followPathDoneCB(const actionlib::SimpleClientGoalState &state,
+                          const path_msgs::FollowPathResultConstPtr &result);
+
+    //! Callback for FollowPathAction becoming active.
+    void followPathActiveCB();
+
+    //! Callback for FollowPathAction feedback.
+    void followPathFeedbackCB(const path_msgs::FollowPathFeedbackConstPtr &feedback);
+
 
     //! Send a goal pose to path_follower and wait for the resulting path.
     /** \todo Timeout! */
