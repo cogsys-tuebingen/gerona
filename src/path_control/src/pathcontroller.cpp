@@ -3,11 +3,10 @@
 PathController::PathController(ros::NodeHandle &nh):
     node_handle_(nh),
     navigate_to_goal_server_(nh, "navigate_to_goal", boost::bind(&PathController::navToGoalActionCallback, this, _1), false),
-    follow_path_client_("follow_path", false),
+    follow_path_client_("follow_path"),
     goal_timestamp_(ros::Time(0))
 {
-    //FIXME: uncomment this as soon as path_follower is working!
-    //follow_path_client_.waitForServer();
+    follow_path_client_.waitForServer();
 
     //TODO: GoalCallback vs ExecuteCallback?
     //navigate_to_goal_server_.registerGoalCallback(boost::bind(&PathController::navToGoalActionCallback, this, _1));
@@ -26,30 +25,17 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
 
     // TODO: handle preempt request!
 
-    /*
-    waitForPath(goal->goal_pose);
+    //FIXME: uncomment after testing!
+    //waitForPath(goal->goal_pose);
 
     path_msgs::FollowPathGoal path_action_goal;
-    path_action_goal.path = *requested_path_;
+    //path_action_goal.path = *requested_path_;
     // ... set some more parameters here...
 
     follow_path_client_.sendGoal(path_action_goal,
                                  boost::bind(&PathController::followPathDoneCB, this, _1, _2),
                                  boost::bind(&PathController::followPathActiveCB, this),
                                  boost::bind(&PathController::followPathFeedbackCB, this, _1));
-    */
-
-    // dummy feedback
-    path_msgs::FollowPathFeedbackConstPtr feed_ptr(new path_msgs::FollowPathFeedback);
-    ros::Duration(1).sleep();
-    followPathFeedbackCB(path_msgs::FollowPathFeedbackConstPtr(feed_ptr));
-    ros::Duration(1).sleep();
-    followPathFeedbackCB(path_msgs::FollowPathFeedbackConstPtr(feed_ptr));
-    ros::Duration(3).sleep();
-
-    path_msgs::NavigateToGoalResult nav_result;
-    nav_result.status = path_msgs::NavigateToGoalResult::STATUS_SUCCESS;
-    navigate_to_goal_server_.setSucceeded(nav_result);
 }
 
 void PathController::pathCallback(const nav_msgs::PathConstPtr &path)
