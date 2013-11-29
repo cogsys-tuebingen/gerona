@@ -20,15 +20,16 @@ PathController::PathController(ros::NodeHandle &nh):
 
 void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal)
 {
-    ROS_INFO("Start Action!!");
+    ROS_INFO("Start Action!! [%d]", goal->debug_test);
     // ...
 
     // TODO: handle preempt request!
 
     //FIXME: uncomment after testing!
-    //waitForPath(goal->goal_pose);
+    waitForPath(goal->goal_pose);
 
     path_msgs::FollowPathGoal path_action_goal;
+    path_action_goal.debug_test = goal->debug_test;
     //path_action_goal.path = *requested_path_;
     // ... set some more parameters here...
 
@@ -36,8 +37,18 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
                                  boost::bind(&PathController::followPathDoneCB, this, _1, _2),
                                  boost::bind(&PathController::followPathActiveCB, this),
                                  boost::bind(&PathController::followPathFeedbackCB, this, _1));
+
+    while ( ! follow_path_client_.getState().isDone() ) {
+        if (navigate_to_goal_server_.isPreemptRequested()) {
+            ROS_INFO("Preemt goal [%d].\n---------------------", goal->debug_test);
+            follow_path_client_.cancelGoal();
+            navigate_to_goal_server_.setPreempted();
+            break;
+        }
+    }
+
     // block this function, until the action is running
-    follow_path_client_.waitForResult(); //TODO: Timeout?
+    //follow_path_client_.waitForResult(); //TODO: Timeout?
 }
 
 void PathController::pathCallback(const nav_msgs::PathConstPtr &path)
@@ -61,12 +72,13 @@ void PathController::pathCallback(const nav_msgs::PathConstPtr &path)
 
 void PathController::followPathDoneCB(const actionlib::SimpleClientGoalState &state, const path_msgs::FollowPathResultConstPtr &result)
 {
-    ROS_INFO("Path execution finished.\n---------------------");
+    ROS_INFO("Path execution finished [%d].\n---------------------", result->debug_test);
 
     path_msgs::NavigateToGoalResult nav_result;
 
     //TODO: do something more intelligent here :)
-    nav_result.status = path_msgs::NavigateToGoalResult::STATUS_SUCCESS;
+    nav_result.status = result->status; //path_msgs::NavigateToGoalResult::STATUS_SUCCESS;
+    nav_result.debug_test = result->debug_test;
 
     navigate_to_goal_server_.setSucceeded(nav_result);
 }
@@ -79,10 +91,11 @@ void PathController::followPathActiveCB()
 
 void PathController::followPathFeedbackCB(const path_msgs::FollowPathFeedbackConstPtr &feedback)
 {
-    ROS_INFO("Got path executen feedback.");
+    ROS_INFO("Got path executen feedback [%d].", feedback->debug_test);
 
     path_msgs::NavigateToGoalFeedback nav_feedback;
-    //TODO: fill with something
+    //TODO: fill with something usefull
+    nav_feedback.debug_test = feedback->debug_test;
 
     navigate_to_goal_server_.publishFeedback(nav_feedback);
 }
@@ -94,5 +107,7 @@ void PathController::waitForPath(const geometry_msgs::PoseStamped &goal_pose)
     goal_timestamp_ = goal_pose.header.stamp;
     goal_pub_.publish(goal_pose);
 
-    while (!goal_timestamp_.isZero());
+    ROS_DEBUG("Wait for path...");
+    while (!goal_timestamp_.isZero() && ros::ok() && !navigate_to_goal_server_.isPreemptRequested());
+    ROS_DEBUG("stamp: %d;   ok: %d;   preempt: %d;", !goal_timestamp_.isZero(), ros::ok(), !navigate_to_goal_server_.isPreemptRequested());
 }

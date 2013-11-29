@@ -7,7 +7,7 @@
 void doneCb(const actionlib::SimpleClientGoalState& state,
             const path_msgs::NavigateToGoalResultConstPtr& result)
 {
-    ROS_INFO("DONE");
+    ROS_INFO("DONE [%d] with status %d", result->debug_test, result->status);
 
     ros::shutdown();
 }
@@ -21,7 +21,7 @@ void activeCb()
 // Called every time feedback is received for the goal
 void feedbackCb(const path_msgs::NavigateToGoalFeedbackConstPtr& feedback)
 {
-  ROS_INFO("Got Feedback");
+  ROS_INFO("Got Feedback [%d]", feedback->debug_test);
 }
 
 int main(int argc, char** argv) {
@@ -38,10 +38,17 @@ int main(int argc, char** argv) {
     path_msgs::NavigateToGoalGoal goal;
 
     goal.goal_pose.header.stamp = ros::Time::now();
-    goal.goal_pose.pose.position.x = 42;
+    goal.debug_test = 42;
     goal.obstacle_mode = path_msgs::NavigateToGoalGoal::OBSTACLE_MODE_ABORT;
 
-    ROS_INFO("Now send goal...");
+    ROS_INFO("Now send goal (42)...");
+    client.sendGoal(goal, &doneCb, &activeCb, &feedbackCb);
+
+    ros::Duration(2).sleep();
+
+    ROS_INFO("Now send another goal (13)...");
+    goal.goal_pose.header.stamp = ros::Time::now();
+    goal.debug_test = 13;
     client.sendGoal(goal, &doneCb, &activeCb, &feedbackCb);
 
     ros::spin();
