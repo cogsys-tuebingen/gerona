@@ -36,6 +36,8 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
                                  boost::bind(&PathController::followPathDoneCB, this, _1, _2),
                                  boost::bind(&PathController::followPathActiveCB, this),
                                  boost::bind(&PathController::followPathFeedbackCB, this, _1));
+    // block this function, until the action is running
+    follow_path_client_.waitForResult(); //TODO: Timeout?
 }
 
 void PathController::pathCallback(const nav_msgs::PathConstPtr &path)
@@ -59,7 +61,7 @@ void PathController::pathCallback(const nav_msgs::PathConstPtr &path)
 
 void PathController::followPathDoneCB(const actionlib::SimpleClientGoalState &state, const path_msgs::FollowPathResultConstPtr &result)
 {
-    ROS_INFO("Path execution finished.");
+    ROS_INFO("Path execution finished.\n---------------------");
 
     path_msgs::NavigateToGoalResult nav_result;
 
