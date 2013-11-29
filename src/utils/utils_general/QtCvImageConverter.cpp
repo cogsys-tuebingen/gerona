@@ -1,2 +1,0 @@
-/// HEADER
-#include "QtCvImageConverter.h"
