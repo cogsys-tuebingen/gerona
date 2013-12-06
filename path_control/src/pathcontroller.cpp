@@ -13,7 +13,7 @@ PathController::PathController(ros::NodeHandle &nh):
     //navigate_to_goal_server_.registerGoalCallback(boost::bind(&PathController::navToGoalActionCallback, this, _1));
     navigate_to_goal_server_.start();
 
-    goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/goal", 0);
+    goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0);
     path_sub_ = nh.subscribe<nav_msgs::Path>("/path", 10, &PathController::pathCallback, this);
 
     ROS_INFO("Initialisation done.");
@@ -47,7 +47,6 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
         if (navigate_to_goal_server_.isNewGoalAvailable()) {
             ROS_INFO("New goal available [%d].\n---------------------", goal->debug_test);
             follow_path_client_.cancelGoal();
-            //navigate_to_goal_server_.acceptNewGoal();
             navigate_to_goal_server_.setPreempted();
             break;
         }
