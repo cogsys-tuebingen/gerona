@@ -3,11 +3,11 @@
 PathController::PathController(ros::NodeHandle &nh):
     node_handle_(nh),
     navigate_to_goal_server_(nh, "navigate_to_goal", boost::bind(&PathController::navToGoalActionCallback, this, _1), false),
-    follow_path_client_("follow_path", false),
+    follow_path_client_("follow_path"),
     goal_timestamp_(ros::Time(0))
 {
     ROS_INFO("Wait for follow_path action server...");
-    while(!follow_path_client_.waitForServer(ros::Duration(0.1)));
+    follow_path_client_.waitForServer();
 
     //TODO: GoalCallback vs ExecuteCallback?
     //navigate_to_goal_server_.registerGoalCallback(boost::bind(&PathController::navToGoalActionCallback, this, _1));
