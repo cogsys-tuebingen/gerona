@@ -3,10 +3,11 @@
 PathController::PathController(ros::NodeHandle &nh):
     node_handle_(nh),
     navigate_to_goal_server_(nh, "navigate_to_goal", boost::bind(&PathController::navToGoalActionCallback, this, _1), false),
-    follow_path_client_("follow_path"),
+    follow_path_client_("follow_path", false),
     goal_timestamp_(ros::Time(0))
 {
-    follow_path_client_.waitForServer();
+    ROS_INFO("Wait for follow_path action server...");
+    while(!follow_path_client_.waitForServer(ros::Duration(0.1)));
 
     //TODO: GoalCallback vs ExecuteCallback?
     //navigate_to_goal_server_.registerGoalCallback(boost::bind(&PathController::navToGoalActionCallback, this, _1));
@@ -22,8 +23,6 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
 {
     ROS_INFO("Start Action!! [%d]", goal->debug_test);
     // ...
-
-    // TODO: handle preempt request!
 
     //FIXME: uncomment after testing!
     waitForPath(goal->goal_pose);
@@ -42,6 +41,13 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
         if (navigate_to_goal_server_.isPreemptRequested()) {
             ROS_INFO("Preemt goal [%d].\n---------------------", goal->debug_test);
             follow_path_client_.cancelGoal();
+            navigate_to_goal_server_.setPreempted();
+            break;
+        }
+        if (navigate_to_goal_server_.isNewGoalAvailable()) {
+            ROS_INFO("New goal available [%d].\n---------------------", goal->debug_test);
+            follow_path_client_.cancelGoal();
+            //navigate_to_goal_server_.acceptNewGoal();
             navigate_to_goal_server_.setPreempted();
             break;
         }
@@ -80,7 +86,21 @@ void PathController::followPathDoneCB(const actionlib::SimpleClientGoalState &st
     nav_result.status = result->status; //path_msgs::NavigateToGoalResult::STATUS_SUCCESS;
     nav_result.debug_test = result->debug_test;
 
-    navigate_to_goal_server_.setSucceeded(nav_result);
+
+    switch (state.state_) {
+    case GoalState::ABORTED:
+        navigate_to_goal_server_.setAborted(nav_result);
+        break;
+
+    case GoalState::PREEMPTED:
+        navigate_to_goal_server_.setPreempted(nav_result);
+        break;
+
+    case GoalState::SUCCEEDED:
+    default: //TODO: Are there other states, that should _not_ handled like SUCCEEDED?
+        navigate_to_goal_server_.setSucceeded(nav_result);
+        break;
+    }
 }
 
 void PathController::followPathActiveCB()
@@ -108,6 +128,14 @@ void PathController::waitForPath(const geometry_msgs::PoseStamped &goal_pose)
     goal_pub_.publish(goal_pose);
 
     ROS_DEBUG("Wait for path...");
-    while (!goal_timestamp_.isZero() && ros::ok() && !navigate_to_goal_server_.isPreemptRequested());
-    ROS_DEBUG("stamp: %d;   ok: %d;   preempt: %d;", !goal_timestamp_.isZero(), ros::ok(), !navigate_to_goal_server_.isPreemptRequested());
+    while (!goal_timestamp_.isZero()
+           && ros::ok()
+           && !navigate_to_goal_server_.isPreemptRequested()
+           && !navigate_to_goal_server_.isNewGoalAvailable())
+    {}
+    ROS_DEBUG("Stop waiting (stamp: %d;   ok: %d;   preempt: %d;   new goal: %d)",
+              !goal_timestamp_.isZero(),
+              ros::ok(),
+              !navigate_to_goal_server_.isPreemptRequested(),
+              !navigate_to_goal_server_.isNewGoalAvailable());
 }

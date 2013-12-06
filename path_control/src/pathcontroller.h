@@ -20,6 +20,7 @@ public:
 private:
     typedef actionlib::SimpleActionServer<path_msgs::NavigateToGoalAction> NavToGoalServer;
     typedef actionlib::SimpleActionClient<path_msgs::FollowPathAction> FollowPathClient;
+    typedef actionlib::SimpleClientGoalState GoalState;
 
     ros::NodeHandle node_handle_;
 
