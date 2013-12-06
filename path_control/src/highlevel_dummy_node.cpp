@@ -7,9 +7,9 @@
 void doneCb(const actionlib::SimpleClientGoalState& state,
             const path_msgs::NavigateToGoalResultConstPtr& result)
 {
-    ROS_INFO("DONE [%d] with status %d", result->debug_test, result->status);
+    ROS_INFO("DONE [%d] with state %s", result->debug_test, state.toString().c_str());
 
-    ros::shutdown();
+//    ros::shutdown();
 }
 
 // Called once when the goal becomes active
@@ -30,6 +30,8 @@ int main(int argc, char** argv) {
 
     ROS_INFO("Let's go!");
 
+    srand(ros::Time::now().toNSec());
+
     actionlib::SimpleActionClient<path_msgs::NavigateToGoalAction> client("navigate_to_goal", true);
     client.waitForServer();
 
@@ -38,17 +40,17 @@ int main(int argc, char** argv) {
     path_msgs::NavigateToGoalGoal goal;
 
     goal.goal_pose.header.stamp = ros::Time::now();
-    goal.debug_test = 42;
+    goal.debug_test = rand()%100;
     goal.obstacle_mode = path_msgs::NavigateToGoalGoal::OBSTACLE_MODE_ABORT;
 
-    ROS_INFO("Now send goal (42)...");
+    ROS_INFO("Now send goal (%d)...", goal.debug_test);
     client.sendGoal(goal, &doneCb, &activeCb, &feedbackCb);
 
     ros::Duration(2).sleep();
 
-    ROS_INFO("Now send another goal (13)...");
     goal.goal_pose.header.stamp = ros::Time::now();
-    goal.debug_test = 13;
+    goal.debug_test = rand()%100;
+    ROS_INFO("Now send another goal (%d)...", goal.debug_test);
     client.sendGoal(goal, &doneCb, &activeCb, &feedbackCb);
 
     ros::spin();
