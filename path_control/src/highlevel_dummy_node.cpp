@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
 #include <path_msgs/NavigateToGoalAction.h>
+#include <nav_msgs/OccupancyGrid.h>
 
 
 // Called once when the goal completes
@@ -24,6 +25,7 @@ void feedbackCb(const path_msgs::NavigateToGoalFeedbackConstPtr& feedback)
   ROS_INFO("Got Feedback [%d]", feedback->debug_test);
 }
 
+
 int main(int argc, char** argv) {
     ros::init(argc, argv, "highlevel_dummy");
     ros::NodeHandle nh;
@@ -31,6 +33,25 @@ int main(int argc, char** argv) {
     ROS_INFO("Let's go!");
 
     srand(ros::Time::now().toNSec());
+
+    /////////////////////////77777
+    ROS_INFO("Publish dummy map");
+
+    ros::Publisher pub = nh.advertise<nav_msgs::OccupancyGrid>("/map/inflated", 1, true);
+    nav_msgs::OccupancyGrid map;
+    map.header.stamp = ros::Time::now();
+    // initialize map
+    map.info.resolution = 0.05; // 5cm per cell
+    map.info.width  = 200;
+    map.info.height = 200;
+    map.info.origin.orientation.x = 0.0;
+    map.info.origin.orientation.y = 0.0;
+    map.info.origin.orientation.z = 0.0;
+    map.info.origin.orientation.w = 1.0;
+    map.data.resize(map.info.width * map.info.height, 0);
+    pub.publish(map);
+    ros::Duration(0.5).sleep();
+    //////////////////////////////
 
     actionlib::SimpleActionClient<path_msgs::NavigateToGoalAction> client("navigate_to_goal", true);
     client.waitForServer();
