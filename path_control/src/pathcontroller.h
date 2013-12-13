@@ -52,7 +52,13 @@ private:
 
     nav_msgs::PathConstPtr requested_path_;
 
+    actionlib::SimpleClientGoalState::StateEnum follow_path_final_state_;
+    path_msgs::FollowPathResultConstPtr follow_path_result_;
+    bool follow_path_done_;
+
     void navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal);
+
+    void handleFollowPathResult();
 
     //! Callback for the paths published e.g. by path_planner.
     void pathCallback(const nav_msgs::PathConstPtr &path);
