@@ -4,7 +4,8 @@ PathController::PathController(ros::NodeHandle &nh):
     node_handle_(nh),
     navigate_to_goal_server_(nh, "navigate_to_goal", boost::bind(&PathController::navToGoalActionCallback, this, _1), false),
     follow_path_client_("follow_path"),
-    goal_timestamp_(ros::Time(0))
+    goal_timestamp_(ros::Time(0)),
+    unexpected_path_(false)
 {
     ROS_INFO("Wait for follow_path action server...");
     follow_path_client_.waitForServer();
@@ -21,6 +22,11 @@ PathController::PathController(ros::NodeHandle &nh):
 void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal)
 {
     ROS_INFO("Start Action!! [%d]", goal->debug_test);
+
+    if (unexpected_path_) {
+        ROS_INFO("Cancel execution of unexpected path.");
+        follow_path_client_.cancelGoal();
+    }
 
     follow_path_done_ = false;
 
@@ -135,10 +141,24 @@ void PathController::pathCallback(const nav_msgs::PathConstPtr &path)
     // Maybe extra mode for this?
 
     if (goal_timestamp_.isZero()) { // unexpected path -> case 2
-        //TODO: what to do here?
-        //if (action is running) return;
-        //else executePath(); <- nein, das blockiert den callback...
+
+        // unexpected paths are not allowed to preempt regular action-based goals
+        if (!navigate_to_goal_server_.isActive()) {
+            ROS_INFO("Execute unexpected path.");
+            unexpected_path_ = true;
+            path_msgs::FollowPathGoal path_action_goal;
+            path_action_goal.debug_test = 255;
+            path_action_goal.path = *path;
+
+            // only simple callback that resets unexpected_path_, feedback is ignored.
+            follow_path_client_.sendGoal(path_action_goal,
+                                         boost::bind(&PathController::followUnexpectedPathDoneCB, this, _1, _2));
+        } else {
+            ROS_DEBUG("Unexpected path omitted.");
+        }
+
     } else { // expected path -> case 1
+
         if (path->header.stamp == goal_timestamp_) {
             requested_path_ = path;
             // reset to 0 to signalise, that there is no outstanding path
@@ -148,7 +168,8 @@ void PathController::pathCallback(const nav_msgs::PathConstPtr &path)
     }
 }
 
-void PathController::followPathDoneCB(const actionlib::SimpleClientGoalState &state, const path_msgs::FollowPathResultConstPtr &result)
+void PathController::followPathDoneCB(const actionlib::SimpleClientGoalState &state,
+                                      const path_msgs::FollowPathResultConstPtr &result)
 {
     ROS_INFO("Path execution finished [%d].\n---------------------", result->debug_test);
 
@@ -172,6 +193,14 @@ void PathController::followPathFeedbackCB(const path_msgs::FollowPathFeedbackCon
     nav_feedback.debug_test = feedback->debug_test;
 
     navigate_to_goal_server_.publishFeedback(nav_feedback);
+}
+
+void PathController::followUnexpectedPathDoneCB(const actionlib::SimpleClientGoalState &state,
+                                                const path_msgs::FollowPathResultConstPtr &result)
+{
+    ROS_INFO("Execution of unexpected path finished [%d, %s].\n---------------------",
+             result->debug_test,state.toString().c_str());
+    unexpected_path_ = false;
 }
 
 void PathController::waitForPath(const geometry_msgs::PoseStamped &goal_pose)

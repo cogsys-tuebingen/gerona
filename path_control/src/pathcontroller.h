@@ -16,7 +16,6 @@ class PathController
 public:
     PathController(ros::NodeHandle &nh);
 
-
 private:
     typedef actionlib::SimpleActionServer<path_msgs::NavigateToGoalAction> NavToGoalServer;
     typedef actionlib::SimpleActionClient<path_msgs::FollowPathAction> FollowPathClient;
@@ -59,6 +58,8 @@ private:
     //! False if follow_path action is currently running, otherwise true.
     bool follow_path_done_;
 
+    bool unexpected_path_;
+
     void navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal);
 
     void handleFollowPathResult();
@@ -76,6 +77,9 @@ private:
     //! Callback for FollowPathAction feedback.
     void followPathFeedbackCB(const path_msgs::FollowPathFeedbackConstPtr &feedback);
 
+    //! Callback for result of finished FollowPathAction with an unexpected path.
+    void followUnexpectedPathDoneCB(const actionlib::SimpleClientGoalState &state,
+                                    const path_msgs::FollowPathResultConstPtr &result);
 
     //! Send a goal pose to path_follower and wait for the resulting path.
     /** \todo Timeout! */
