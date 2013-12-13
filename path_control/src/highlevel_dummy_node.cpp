@@ -9,6 +9,7 @@ void doneCb(const actionlib::SimpleClientGoalState& state,
             const path_msgs::NavigateToGoalResultConstPtr& result)
 {
     ROS_INFO("DONE [%d] with state %s", result->debug_test, state.toString().c_str());
+    ROS_INFO("Additional Text: %s", state.getText().c_str());
 
 //    ros::shutdown();
 }

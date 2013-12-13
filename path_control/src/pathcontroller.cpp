@@ -9,11 +9,10 @@ PathController::PathController(ros::NodeHandle &nh):
     ROS_INFO("Wait for follow_path action server...");
     follow_path_client_.waitForServer();
 
-    //TODO: GoalCallback vs ExecuteCallback?
-    //navigate_to_goal_server_.registerGoalCallback(boost::bind(&PathController::navToGoalActionCallback, this, _1));
+    goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0);
+
     navigate_to_goal_server_.start();
 
-    goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0);
     path_sub_ = nh.subscribe<nav_msgs::Path>("/path", 10, &PathController::pathCallback, this);
 
     ROS_INFO("Initialisation done.");
@@ -52,7 +51,9 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
             ROS_INFO("Preempt goal [%d].\n---------------------", goal->debug_test);
             follow_path_client_.cancelGoal();
             // wait until the goal is really canceled (= done callback is called).
-            while (!follow_path_done_); //TODO: timeout!
+            if (!waitForFollowPathDone(ros::Duration(10))) {
+                ROS_WARN("follow_path_client does not react to cancelGoal() for 10 seconds.");
+            }
 
             navigate_to_goal_server_.setPreempted();
 
@@ -80,7 +81,11 @@ void PathController::handleFollowPathResult()
     /*** IMPORTANT: No matter, what the result is, the navigate_to_goal action has to be finished in some way! ***/
 
     // wait until the action is really finished
-    while (!follow_path_done_); //TODO: timeout!
+    if (!waitForFollowPathDone(ros::Duration(10))) {
+        ROS_WARN("Wait for follow_path action to be finished, but timeout expired!");
+        navigate_to_goal_server_.setAborted(path_msgs::NavigateToGoalResult(), "Wait for follow_path action to be finished, but timeout expired.");
+        return;
+    }
 
 
     /// Construct result message
@@ -173,8 +178,8 @@ void PathController::waitForPath(const geometry_msgs::PoseStamped &goal_pose)
 {
     //TODO: Can there be concurrency problems? I think not, but better think a bit more deeply about it.
 
-    //TODO: Timeout
-    //TODO: Necessary to check for new goals?
+    //TODO: Timeout? Not so urgent here, as a new goal will abort waiting.
+    //TODO: Necessary to check for new goals? - I think yes.
 
     goal_timestamp_ = goal_pose.header.stamp;
     goal_pub_.publish(goal_pose);
@@ -190,4 +195,13 @@ void PathController::waitForPath(const geometry_msgs::PoseStamped &goal_pose)
               ros::ok(),
               !navigate_to_goal_server_.isPreemptRequested(),
               !navigate_to_goal_server_.isNewGoalAvailable());
+}
+
+bool PathController::waitForFollowPathDone(ros::Duration timeout)
+{
+    ros::Time expire_time = ros::Time::now() + timeout;
+
+    while (!follow_path_done_ && expire_time > ros::Time::now());
+
+    return follow_path_done_;
 }

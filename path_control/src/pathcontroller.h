@@ -52,8 +52,11 @@ private:
 
     nav_msgs::PathConstPtr requested_path_;
 
+    //! Final state of the last finished follow_path action.
     actionlib::SimpleClientGoalState::StateEnum follow_path_final_state_;
+    //! Result of the last finished follow_path action
     path_msgs::FollowPathResultConstPtr follow_path_result_;
+    //! False if follow_path action is currently running, otherwise true.
     bool follow_path_done_;
 
     void navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal);
@@ -77,6 +80,13 @@ private:
     //! Send a goal pose to path_follower and wait for the resulting path.
     /** \todo Timeout! */
     void waitForPath(const geometry_msgs::PoseStamped &goal_pose);
+
+    /**
+     * @brief Blocks execution until current follow_path goal is finished or timeout expires
+     * @param timeout
+     * @return True if goal is finished, false if timeout expires before.
+     */
+    bool waitForFollowPathDone(ros::Duration timeout);
 };
 
 #endif // PATHCONTROLLER_H
