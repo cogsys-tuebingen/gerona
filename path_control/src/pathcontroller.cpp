@@ -121,6 +121,7 @@ void PathController::handleFollowPathResult()
         // handled separately in the execute-callback).
         ROS_ERROR("This function should never receive a preemted goal. This is likely a bug! [file %s, line %d]",
                   __FILE__, __LINE__);
+        navigate_to_goal_server_.setAborted(nav_result);
         break;
 
     case GoalState::SUCCEEDED:
@@ -137,9 +138,6 @@ void PathController::handleFollowPathResult()
 
 void PathController::pathCallback(const nav_msgs::PathConstPtr &path)
 {
-    //TODO: how to handle unexpected paths? They should be executed but maybe only if the path_follower is idle?
-    // Maybe extra mode for this?
-
     if (goal_timestamp_.isZero()) { // unexpected path -> case 2
 
         // unexpected paths are not allowed to preempt regular action-based goals

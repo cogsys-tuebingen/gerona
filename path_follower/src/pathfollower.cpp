@@ -18,7 +18,7 @@ void PathFollower::executeFollowPathCB(const path_msgs::FollowPathGoalConstPtr &
     path_msgs::FollowPathFeedback feed;
     feed.debug_test = goal->debug_test;
 
-    for (int i = 0; i<4; ++i) {
+    for (int i = 0; i<6; ++i) {
         ros::Duration(1).sleep();
 
         if (follow_path_server_.isPreemptRequested()) {
