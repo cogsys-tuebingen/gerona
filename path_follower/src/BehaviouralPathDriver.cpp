@@ -62,8 +62,8 @@ BehaviouralPathDriver::Options& BehaviouralPathDriver::Behaviour::getOptions()
     return parent_.options_;
 }
 
-/// SATES / BEHAVIOURS
-struct BehaviourEmergencyBreak : public BehaviouralPathDriver::Behaviour {
+/// STATES / BEHAVIOURS
+struct BehaviourEmergencyBreak : public BehaviouralPathDriver::Behaviour { // <- das für problem :)
     BehaviourEmergencyBreak(BehaviouralPathDriver& parent)
         : Behaviour(parent)
     {}

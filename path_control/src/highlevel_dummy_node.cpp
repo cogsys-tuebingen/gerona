@@ -35,24 +35,24 @@ int main(int argc, char** argv) {
 
     srand(ros::Time::now().toNSec());
 
-    /////////////////////////77777
-    ROS_INFO("Publish dummy map");
+//    /////////////////////////77777
+//    ROS_INFO("Publish dummy map");
 
-    ros::Publisher pub = nh.advertise<nav_msgs::OccupancyGrid>("/map/inflated", 1, true);
-    nav_msgs::OccupancyGrid map;
-    map.header.stamp = ros::Time::now();
-    // initialize map
-    map.info.resolution = 0.05; // 5cm per cell
-    map.info.width  = 200;
-    map.info.height = 200;
-    map.info.origin.orientation.x = 0.0;
-    map.info.origin.orientation.y = 0.0;
-    map.info.origin.orientation.z = 0.0;
-    map.info.origin.orientation.w = 1.0;
-    map.data.resize(map.info.width * map.info.height, 0);
-    pub.publish(map);
-    ros::Duration(0.5).sleep();
-    //////////////////////////////
+//    ros::Publisher pub = nh.advertise<nav_msgs::OccupancyGrid>("/map/inflated", 1, true);
+//    nav_msgs::OccupancyGrid map;
+//    map.header.stamp = ros::Time::now();
+//    // initialize map
+//    map.info.resolution = 0.05; // 5cm per cell
+//    map.info.width  = 200;
+//    map.info.height = 200;
+//    map.info.origin.orientation.x = 0.0;
+//    map.info.origin.orientation.y = 0.0;
+//    map.info.origin.orientation.z = 0.0;
+//    map.info.origin.orientation.w = 1.0;
+//    map.data.resize(map.info.width * map.info.height, 0);
+//    pub.publish(map);
+//    ros::Duration(0.5).sleep();
+//    //////////////////////////////
 
     actionlib::SimpleActionClient<path_msgs::NavigateToGoalAction> client("navigate_to_goal", true);
     client.waitForServer();
@@ -60,6 +60,9 @@ int main(int argc, char** argv) {
     ROS_INFO("Client is set up");
 
     path_msgs::NavigateToGoalGoal goal;
+    goal.goal_pose.header.frame_id = "/base_link";
+    goal.goal_pose.pose.position.x = 2;
+    goal.goal_pose.pose.orientation.w = 1;
 
     goal.goal_pose.header.stamp = ros::Time::now();
     goal.debug_test = rand()%100;
