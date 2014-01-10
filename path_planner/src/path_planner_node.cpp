@@ -149,7 +149,7 @@ struct Planner
     }
 
     void updateGoal (const geometry_msgs::PoseStampedConstPtr &goal) {
-        std::cout << "got goal" << std::endl;
+        ROS_INFO("got goal");
         if(use_map_service_) {
             nav_msgs::GetMap map_service;
             if(map_service_client.call(map_service)) {
@@ -162,7 +162,7 @@ struct Planner
             return;
         }
 
-        std::cout << "starting search" << std::endl;
+        ROS_INFO("starting search");
         lib_path::Pose2d from_world;
         lib_path::Pose2d to_world;
 
@@ -205,9 +205,9 @@ struct Planner
         PathT path = algo.findPath(from_map, to_map);
 
         if(path.empty()) {
-            std::cout << "no path found" << std::endl;
+            ROS_WARN("no path found");
         } else {
-            std::cout << "path with " << path.size() << " nodes found" << std::endl;
+            ROS_INFO_STREAM("path with " << path.size() << " nodes found");
         }
 
 
