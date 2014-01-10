@@ -114,7 +114,7 @@ public:
         {}
         Path& getSubPath(unsigned index);
         int getSubPathCount() const;
-        MotionControlNode& getNode();
+        PathFollower& getNode();
 
         PidCtrl& getPid();
         Command& getCommand();
@@ -132,7 +132,7 @@ public:
 
 
 public:
-    BehaviouralPathDriver(ros::Publisher& cmd_pub, MotionControlNode *node);
+    BehaviouralPathDriver(ros::Publisher& cmd_pub, PathFollower *node);
 
     virtual void start();
     virtual void stop();
@@ -154,7 +154,7 @@ protected:
     void clearActive();
 
 private:
-    MotionControlNode* node_;
+    PathFollower* node_;
 
     ros::NodeHandle private_nh_;
 

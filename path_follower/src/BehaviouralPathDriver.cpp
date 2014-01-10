@@ -9,7 +9,6 @@
 #include "BehaviouralPathDriver.h"
 
 /// PROJECT
-//#include "MotionControlNode.h"
 #include "pathfollower.h"
 
 /// SYSTEM
@@ -41,7 +40,7 @@ int BehaviouralPathDriver::Behaviour::getSubPathCount() const
     return parent_.paths_.size();
 }
 
-MotionControlNode& BehaviouralPathDriver::Behaviour::getNode()
+PathFollower& BehaviouralPathDriver::Behaviour::getNode()
 {
     return *parent_.node_;
 }
@@ -119,13 +118,13 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
             alt_carrot = front_pred;
         }
 
-        visulizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
-        visulizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
+        visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
+        visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
 
         return -target_line.GetSignedDistance(main_carrot) - 0.25 * target_line.GetSignedDistance(alt_carrot);
     }
 
-    void visulizeCarrot(const Vector2d& carrot, int id, float r, float g, float b)
+    void visualizeCarrot(const Vector2d& carrot, int id, float r, float g, float b)
     {
         geometry_msgs::PoseStamped carrot_local;
         carrot_local.pose.position.x = carrot[0];
@@ -248,8 +247,8 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase {
             alt_carrot = front_pred;
         }
 
-        visulizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
-        visulizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
+        visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
+        visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
 
         Vector2d delta = next_wp_local_.head<2>() - main_carrot;
 
@@ -389,7 +388,7 @@ void BehaviourOnLine::getNextWaypoint() {
 
 
 
-BehaviouralPathDriver::BehaviouralPathDriver(ros::Publisher &cmd_pub, MotionControlNode *node)
+BehaviouralPathDriver::BehaviouralPathDriver(ros::Publisher &cmd_pub, PathFollower *node)
     : node_(node), private_nh_("~"), cmd_pub_(cmd_pub), active_behaviour_(NULL), pending_error_(-1)
 {
     vis_pub_ = private_nh_.advertise<visualization_msgs::Marker>("/marker", 100);

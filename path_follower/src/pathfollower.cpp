@@ -1,14 +1,14 @@
 #include "pathfollower.h"
 #include <geometry_msgs/Twist.h>
 
-MotionControlNode::MotionControlNode(ros::NodeHandle &nh):
+PathFollower::PathFollower(ros::NodeHandle &nh):
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
     active_ctrl_(NULL)
 {
     // Init. action server
-    follow_path_server_.registerGoalCallback(boost::bind(&MotionControlNode::followPathGoalCB, this));
-    follow_path_server_.registerPreemptCallback(boost::bind(&MotionControlNode::followPathPreemptCB,this));
+    follow_path_server_.registerGoalCallback(boost::bind(&PathFollower::followPathGoalCB, this));
+    follow_path_server_.registerPreemptCallback(boost::bind(&PathFollower::followPathPreemptCB,this));
 
     // TODO: drop this params?
     ros::param::param<string>("~world_frame", world_frame_, "/map");
@@ -25,7 +25,7 @@ MotionControlNode::MotionControlNode(ros::NodeHandle &nh):
     //scan_sub_ = nh_.subscribe<sensor_msgs::LaserScan>( scan_topic_, 1, boost::bind(&MotionControlNode::laserCallback, this, _1 ));
     //sonar_sub_ = nh_.subscribe<sensor_msgs::PointCloud>( "/sonar_raw", 1, boost::bind( &MotionControlNode::sonarCallback, this, _1 ));
 
-    odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, boost::bind(&MotionControlNode::odometryCB, this, _1 ));
+    odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, boost::bind(&PathFollower::odometryCB, this, _1 ));
 
     active_ctrl_ = new motion_control::BehaviouralPathDriver(cmd_pub_, this);
 
@@ -33,14 +33,14 @@ MotionControlNode::MotionControlNode(ros::NodeHandle &nh):
     ROS_INFO("Initialisation done.");
 }
 
-MotionControlNode::~MotionControlNode()
+PathFollower::~PathFollower()
 {
     delete active_ctrl_;
 }
 
 
 
-void MotionControlNode::followPathGoalCB()
+void PathFollower::followPathGoalCB()
 {
 
     // dummy feedback
@@ -82,19 +82,19 @@ void MotionControlNode::followPathGoalCB()
     active_ctrl_->setGoal(*goalptr);
 }
 
-void MotionControlNode::followPathPreemptCB()
+void PathFollower::followPathPreemptCB()
 {
     active_ctrl_->stop(); active_ctrl_->stop(); /// @todo think about this
 }
 
-void MotionControlNode::odometryCB(const nav_msgs::OdometryConstPtr &odom)
+void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
 {
     odometry_ = *odom;
     //float current_speed = sqrt( pow( odom->twist.twist.linear.x, 2 ) + pow( odom->twist.twist.linear.y, 2 ) );
     //speed_filter_.Update(current_speed);
 }
 
-bool MotionControlNode::getWorldPose(Vector3d &pose , geometry_msgs::Pose *pose_out) const
+bool PathFollower::getWorldPose(Vector3d &pose , geometry_msgs::Pose *pose_out) const
 {
     tf::StampedTransform transform;
     geometry_msgs::TransformStamped msg;
@@ -120,7 +120,7 @@ bool MotionControlNode::getWorldPose(Vector3d &pose , geometry_msgs::Pose *pose_
     return true;
 }
 
-bool MotionControlNode::transformToLocal(const geometry_msgs::PoseStamped &global, Vector3d &local)
+bool PathFollower::transformToLocal(const geometry_msgs::PoseStamped &global, Vector3d &local)
 {
     geometry_msgs::PoseStamped local_pose;
     bool status=transformToLocal(global,local_pose);
@@ -135,7 +135,7 @@ bool MotionControlNode::transformToLocal(const geometry_msgs::PoseStamped &globa
 }
 
 
-bool MotionControlNode::transformToLocal(const geometry_msgs::PoseStamped &global_org, geometry_msgs::PoseStamped &local)
+bool PathFollower::transformToLocal(const geometry_msgs::PoseStamped &global_org, geometry_msgs::PoseStamped &local)
 {
     geometry_msgs::PoseStamped global(global_org);
     try {
@@ -149,7 +149,7 @@ bool MotionControlNode::transformToLocal(const geometry_msgs::PoseStamped &globa
     }
 }
 
-bool MotionControlNode::transformToGlobal(const geometry_msgs::PoseStamped &local_org, geometry_msgs::PoseStamped &global)
+bool PathFollower::transformToGlobal(const geometry_msgs::PoseStamped &local_org, geometry_msgs::PoseStamped &global)
 {
     geometry_msgs::PoseStamped local(local_org);
     try {
@@ -163,7 +163,7 @@ bool MotionControlNode::transformToGlobal(const geometry_msgs::PoseStamped &loca
     }
 }
 
-void MotionControlNode::update()
+void PathFollower::update()
 {
     //TODO: is isActive() good here?
     if (follow_path_server_.isActive() && active_ctrl_!=NULL) {

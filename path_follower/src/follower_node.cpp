@@ -5,7 +5,7 @@ int main(int argc, char** argv) {
     ros::init(argc, argv, "path_follower_node");
     ros::NodeHandle nh;
 
-    MotionControlNode pf(nh);
+    PathFollower pf(nh);
 
     ros::Rate rate(50);
 

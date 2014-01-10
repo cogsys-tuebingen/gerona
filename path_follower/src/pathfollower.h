@@ -11,12 +11,11 @@
 
 #include "BehaviouralPathDriver.h"
 
-//class PathFollower
-class MotionControlNode // renamed due to easier inclusion of old motion_control code
+class PathFollower
 {
 public:
-    MotionControlNode(ros::NodeHandle &nh);
-    ~MotionControlNode();
+    PathFollower(ros::NodeHandle &nh);
+    ~PathFollower();
 
     bool getWorldPose(Vector3d& pose, geometry_msgs::Pose* pose_out = NULL) const;
     bool transformToLocal(const geometry_msgs::PoseStamped& global, geometry_msgs::PoseStamped& local );

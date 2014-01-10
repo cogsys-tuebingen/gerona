@@ -14,7 +14,7 @@
 //using namespace Eigen;
 //using namespace motion_control;
 
-class MotionControlNode;
+class PathFollower;
 
 class MotionController
 {
