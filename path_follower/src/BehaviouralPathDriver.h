@@ -61,18 +61,20 @@ public:
         /* ramaxx_msg commented for the moment, as it would limit the use of this node to the rabots.
          * Reimplement this, if you want to use a robot with front and back steerting.
          */
-//        operator ramaxx_msgs::RamaxxMsg()
-//        {
-//            ramaxx_msgs::RamaxxMsg msg;
-//            msg.data.resize(3);
-//            msg.data[0].key = ramaxx_msgs::RamaxxMsg::CMD_STEER_FRONT_DEG;
-//            msg.data[1].key = ramaxx_msgs::RamaxxMsg::CMD_STEER_REAR_DEG;
-//            msg.data[2].key = ramaxx_msgs::RamaxxMsg::CMD_SPEED;
-//            msg.data[0].value = steer_front * 180.0/M_PI;
-//            msg.data[1].value = steer_back * 180.0/M_PI;
-//            msg.data[2].value = v;
-//            return msg;
-//        }
+        /*
+        operator ramaxx_msgs::RamaxxMsg()
+        {
+            ramaxx_msgs::RamaxxMsg msg;
+            msg.data.resize(3);
+            msg.data[0].key = ramaxx_msgs::RamaxxMsg::CMD_STEER_FRONT_DEG;
+            msg.data[1].key = ramaxx_msgs::RamaxxMsg::CMD_STEER_REAR_DEG;
+            msg.data[2].key = ramaxx_msgs::RamaxxMsg::CMD_SPEED;
+            msg.data[0].value = steer_front * 180.0/M_PI;
+            msg.data[1].value = steer_back * 180.0/M_PI;
+            msg.data[2].value = v;
+            return msg;
+        }
+        */
 
         operator geometry_msgs::Twist()
         {
@@ -149,6 +151,11 @@ public:
     void drawMark(int id, const geometry_msgs::Point &pos, const std::string& ns, float r, float g, float b);
     void predictPose(Vector2d &front_pred,
                       Vector2d &rear_pred );
+
+    Vector3d getSlamPose()
+    {
+        return slam_pose_;
+    }
 
 protected:
     void clearActive();

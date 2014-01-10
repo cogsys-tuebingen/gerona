@@ -60,6 +60,7 @@ BehaviouralPathDriver::Options& BehaviouralPathDriver::Behaviour::getOptions()
 {
     return parent_.options_;
 }
+//END Behaviour
 
 /// STATES / BEHAVIOURS
 struct BehaviourEmergencyBreak : public BehaviouralPathDriver::Behaviour { // <- das für problem :)
@@ -73,6 +74,7 @@ struct BehaviourEmergencyBreak : public BehaviouralPathDriver::Behaviour { // <-
         throw new BehaviouralPathDriver::NullBehaviour;
     }
 };
+//END BehaviourEmergencyBreak
 
 struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
     BehaviourDriveBase(BehaviouralPathDriver& parent)
@@ -124,6 +126,30 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
         return -target_line.GetSignedDistance(main_carrot) - 0.25 * target_line.GetSignedDistance(alt_carrot);
     }
 
+    //! Calculate the distance of the robot to the current path segment.
+    double calculateDistanceToCurrentPathSegment()
+    {
+        /* Calc. line from last way point to current way point (which should be the line the robot is driving on) and
+         * calc. the distance of the robot to this line.
+         */
+
+        BehaviouralPathDriver::Options& opt = getOptions();
+        BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+
+        //TODO: copied from below. Is this the right way here?
+        assert(opt.wp_idx < (int) current_path.size());
+        int last_wp_idx = current_path.size() - 1;
+
+        geometry_msgs::Pose wp1 = current_path[last_wp_idx];
+        geometry_msgs::Pose wp2 = current_path[opt.wp_idx];
+
+        // line from last waypoint to current one.
+        Line2d segment_line(Vector2d(wp1.position.x, wp1.position.y), Vector2d(wp2.position.x, wp2.position.y));
+
+        // get distance of robot (slam_pose_) to segment_line.
+        return segment_line.GetDistance(parent_.getSlamPose().head<2>());
+    }
+
     void visualizeCarrot(const Vector2d& carrot, int id, float r, float g, float b)
     {
         geometry_msgs::PoseStamped carrot_local;
@@ -149,6 +175,16 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
     }
 
     void setCommand(double error, double speed) {
+
+        // abort, if robot moves too far from the path
+        //FIXME: is this the best place to check for this?
+        if (calculateDistanceToCurrentPathSegment() > 0.3) {
+            ROS_WARN("Moved too far away from the path. Abort.");
+            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST;
+            throw new BehaviourEmergencyBreak(parent_);
+        }
+
+
         double delta_f = 0;
         double delta_r = 0;
 
@@ -191,7 +227,7 @@ protected:
     Vector3d next_wp_local_;
     double dir_sign;
 };
-
+//END BehaviourDriveBase
 
 
 struct BehaviourOnLine : public BehaviourDriveBase {
@@ -202,6 +238,7 @@ struct BehaviourOnLine : public BehaviourDriveBase {
     void execute(int *status);
     void getNextWaypoint();
 };
+
 
 struct BehaviourApproachTurningPoint : public BehaviourDriveBase {
     BehaviourApproachTurningPoint(BehaviouralPathDriver& parent)
@@ -313,6 +350,9 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase {
         }
     }
 };
+//END BehaviourApproachTurningPoint
+
+
 
 void BehaviourOnLine::execute(int *status)
 {
@@ -383,10 +423,10 @@ void BehaviourOnLine::getNextWaypoint() {
         throw new BehaviourEmergencyBreak(parent_);
     }
 }
+//END BehaviourOnLine
 
 
-
-
+/// Controller class: BehaviouralPathDriver
 
 BehaviouralPathDriver::BehaviouralPathDriver(ros::Publisher &cmd_pub, PathFollower *node)
     : node_(node), private_nh_("~"), cmd_pub_(cmd_pub), active_behaviour_(NULL), pending_error_(-1)
