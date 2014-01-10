@@ -45,6 +45,7 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
     path_msgs::FollowPathGoal path_action_goal;
     path_action_goal.debug_test = goal->debug_test;
     path_action_goal.path = *requested_path_;
+    path_action_goal.velocity = 0.5; //FIXME: make this configurable (send speed from highlevel)
     //TODO: ... set some more parameters here?...
 
     follow_path_client_.sendGoal(path_action_goal,
@@ -144,9 +145,11 @@ void PathController::pathCallback(const nav_msgs::PathConstPtr &path)
         if (!navigate_to_goal_server_.isActive()) {
             ROS_INFO("Execute unexpected path.");
             unexpected_path_ = true;
+
             path_msgs::FollowPathGoal path_action_goal;
             path_action_goal.debug_test = 255;
             path_action_goal.path = *path;
+            path_action_goal.velocity = 0.5; //FIXME: make this configurable
 
             // only simple callback that resets unexpected_path_, feedback is ignored.
             follow_path_client_.sendGoal(path_action_goal,

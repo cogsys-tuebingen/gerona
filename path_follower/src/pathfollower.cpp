@@ -1,9 +1,10 @@
 #include "pathfollower.h"
-#include <geometry_msgs/TwistStamped.h>
+#include <geometry_msgs/Twist.h>
 
 MotionControlNode::MotionControlNode(ros::NodeHandle &nh):
     node_handle_(nh),
-    follow_path_server_(nh, "follow_path", false)
+    follow_path_server_(nh, "follow_path", false),
+    active_ctrl_(NULL)
 {
     // Init. action server
     follow_path_server_.registerGoalCallback(boost::bind(&MotionControlNode::followPathGoalCB, this));
@@ -18,7 +19,7 @@ MotionControlNode::MotionControlNode(ros::NodeHandle &nh):
     //ros::param::param<string>("~cmd_topic",   cmd_topic_,   "/ramaxx_cmd");
 
     //cmd_pub_ = nh_.advertise<ramaxx_msgs::RamaxxMsg> (cmd_topic_, 10);
-    cmd_pub_ = node_handle_.advertise<geometry_msgs::TwistStamped> ("/cmd_vel", 10);
+    cmd_pub_ = node_handle_.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
 
     //FIXME: are laser and sonar required here?
     //scan_sub_ = nh_.subscribe<sensor_msgs::LaserScan>( scan_topic_, 1, boost::bind(&MotionControlNode::laserCallback, this, _1 ));
@@ -30,6 +31,11 @@ MotionControlNode::MotionControlNode(ros::NodeHandle &nh):
 
     follow_path_server_.start();
     ROS_INFO("Initialisation done.");
+}
+
+MotionControlNode::~MotionControlNode()
+{
+    delete active_ctrl_;
 }
 
 
@@ -154,5 +160,43 @@ bool MotionControlNode::transformToGlobal(const geometry_msgs::PoseStamped &loca
     } catch (tf::TransformException& ex) {
         ROS_ERROR("error with transform goal pose: %s", ex.what());
         return false;
+    }
+}
+
+void MotionControlNode::update()
+{
+    //TODO: is isActive() good here?
+    if (follow_path_server_.isActive() && active_ctrl_!=NULL) {
+        path_msgs::FollowPathFeedback feedback;
+        path_msgs::FollowPathResult result;
+
+        int status = active_ctrl_->execute(feedback, result);
+
+        switch (status) {
+        case path_msgs::FollowPathResult::MOTION_STATUS_STOP:
+            // nothing to do
+            break;
+
+        case path_msgs::FollowPathResult::MOTION_STATUS_MOVING:
+            follow_path_server_.publishFeedback(feedback);
+            break;
+
+        case path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS:
+            result.status = path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
+            follow_path_server_.setSucceeded( result );
+            //active_ctrl_ = NULL;
+            break;
+
+        case path_msgs::FollowPathResult::MOTION_STATUS_COLLISION:
+        case path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR:
+        case path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL:
+        case path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST:
+        default:
+            result.status = status;
+            follow_path_server_.setAborted(result);
+            //active_ctrl_ = NULL;
+            //status=path_msgs::FollowPathResult::MOTION_STATUS_STOP;
+            break;
+        }
     }
 }

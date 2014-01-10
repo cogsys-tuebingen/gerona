@@ -32,6 +32,7 @@ bool PidCtrl::execute(double ef, double &deltaf)
 {
     double d_t = timer_.msElapsed();
     if (d_t >= Ta_*1000.0) {
+        //std::cout << "Stopwatch Elapsed." << std::endl;
 
         i_f_ += d_t*ef/1000.0;
         i_f_ = min( i_f_, i_max_ );

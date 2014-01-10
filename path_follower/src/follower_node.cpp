@@ -7,7 +7,14 @@ int main(int argc, char** argv) {
 
     MotionControlNode pf(nh);
 
-    ros::spin();
+    ros::Rate rate(50);
+
+    while(ros::ok()) {
+        ros::spinOnce();
+        pf.update();
+        rate.sleep();
+    }
+
     return 0;
 }
 

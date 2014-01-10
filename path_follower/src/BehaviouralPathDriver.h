@@ -17,7 +17,7 @@
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
 //#include <ramaxx_msgs/RamaxxMsg.h>
-#include <geometry_msgs/TwistStamped.h>
+#include <geometry_msgs/Twist.h>
 #include <tf/tf.h>
 
 namespace motion_control {
@@ -74,12 +74,11 @@ public:
 //            return msg;
 //        }
 
-        operator geometry_msgs::TwistStamped()
+        operator geometry_msgs::Twist()
         {
-            geometry_msgs::TwistStamped msg;
-            //FIXME: set header (at least frame_id)
-            msg.twist.linear.x  = velocity;
-            msg.twist.angular.z = steer_front;
+            geometry_msgs::Twist msg;
+            msg.linear.x  = velocity;
+            msg.angular.z = steer_front;
             return msg;
         }
     };

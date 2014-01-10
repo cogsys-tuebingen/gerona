@@ -164,8 +164,6 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
 
         BehaviouralPathDriver::Command& cmd = getCommand();
 
-
-
         double steer = std::max(std::abs(delta_f), std::abs(delta_r));
         ROS_DEBUG_STREAM("dir=" << dir_sign << ", steer=" << steer);
         if(steer > getOptions().steer_slow_threshold_) {
@@ -176,6 +174,8 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
         cmd.steer_front = dir_sign * delta_f;
         cmd.steer_back = dir_sign * delta_r;
         cmd.velocity = dir_sign * speed;
+
+        ROS_DEBUG("Set velocity to %g", speed);
     }
 
     void drawSteeringArrow(int id, geometry_msgs::Pose steer_arrow, double angle, double r, double g, double b){
@@ -450,7 +450,7 @@ int BehaviouralPathDriver::execute(path_msgs::FollowPathFeedback& fb, path_msgs:
 
     int status = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
     try {
-        //        ROS_INFO_STREAM("executing " << typeid(*active_behaviour_).name());
+        ROS_DEBUG_STREAM("executing " << typeid(*active_behaviour_).name());
         active_behaviour_->execute(&status);
 
     } catch(NullBehaviour* null) {
@@ -660,7 +660,7 @@ void BehaviouralPathDriver::clearActive()
 void BehaviouralPathDriver::publishCommand()
 {
     //ramaxx_msgs::RamaxxMsg msg = current_command_;
-    geometry_msgs::TwistStamped msg = current_command_;
+    geometry_msgs::Twist msg = current_command_;
     cmd_pub_.publish(msg);
 
     setFilteredSpeed(current_command_.velocity);
