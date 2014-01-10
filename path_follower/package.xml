@@ -2,7 +2,10 @@
 <package>
   <name>path_follower</name>
   <version>0.0.0</version>
-  <description>This package gets a path from path_control and controls the robot to drive on it.</description>
+  <description>
+    This package gets a path from path_control and controls the robot to drive on it.
+    It is based on the behavioural path driver of the old motion_control package.
+  </description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
@@ -43,9 +46,15 @@
   <build_depend>actionlib</build_depend>
   <build_depend>path_msgs</build_depend>
   <build_depend>roscpp</build_depend>
+  <build_depend>utils_general</build_depend>
+  <build_depend>utils_robot</build_depend>
+  <build_depend>tf</build_depend>
   <run_depend>actionlib</run_depend>
   <run_depend>path_msgs</run_depend>
   <run_depend>roscpp</run_depend>
+  <run_depend>utils_general</run_depend>
+  <run_depend>utils_robot</run_depend>
+  <run_depend>tf</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

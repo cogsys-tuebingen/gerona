@@ -1,21 +1,21 @@
 #ifndef MOTIONCONTROLLER_H
 #define MOTIONCONTROLLER_H
 
-#include <Eigen/Core>
+
 #include <sensor_msgs/LaserScan.h>
-#include "Global.h"
-#include "motion_control/MotionGoal.h"
-#include "motion_control/MotionFeedback.h"
-#include "motion_control/MotionResult.h"
-#include <utils/LibRobot/LaserEnvironment.h>
+#include <utils_general/Global.h>
+#include <utils_robot/LaserEnvironment.h>
 #include <string>
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/PointCloud.h>
+#include <path_msgs/FollowPathAction.h>
 
-using namespace Eigen;
-using namespace motion_control;
+//using namespace Eigen;
+//using namespace motion_control;
+
 class MotionControlNode;
+
 class MotionController
 {
 public:
@@ -28,9 +28,9 @@ public:
   /**
     @return state
     */
-  virtual int execute (MotionFeedback& fb, MotionResult& result)=0;
+  virtual int execute (path_msgs::FollowPathFeedback& fb, path_msgs::FollowPathResult& result)=0;
   virtual void configure ()=0;
-  virtual void setGoal (const motion_control::MotionGoal& goal)=0;
+  virtual void setGoal (const path_msgs::FollowPathGoal& goal)=0;
   virtual void laserCallback(const sensor_msgs::LaserScanConstPtr& scan);
   virtual void sonarCallback(const sensor_msgs::PointCloudConstPtr& data);
   void setFilteredSpeed( const float speed ) {

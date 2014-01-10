@@ -9,16 +9,27 @@
 #include "BehaviouralPathDriver.h"
 
 /// PROJECT
-#include "MotionControlNode.h"
+//#include "MotionControlNode.h"
+#include "pathfollower.h"
 
 /// SYSTEM
 #include <boost/foreach.hpp>
+#include <Eigen/Core>
 #include <visualization_msgs/Marker.h>
-#include <utils/LibUtil/MathHelper.h>
-#include <utils/LibUtil/Line2d.h>
+#include <utils_general/MathHelper.h>
+#include <utils_general/Line2d.h>
 #include <cmath>
 
 using namespace motion_control;
+using namespace Eigen;
+
+namespace {
+    double sign(double value) {
+        if (value < 0) return -1;
+        if (value > 0) return 1;
+        return 0;
+    }
+}
 
 /// BEHAVIOUR BASE
 BehaviouralPathDriver::Path& BehaviouralPathDriver::Behaviour::getSubPath(unsigned index)
@@ -59,7 +70,7 @@ struct BehaviourEmergencyBreak : public BehaviouralPathDriver::Behaviour {
 
     void execute(int *status)
     {
-        *status = MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+        *status = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
         throw new BehaviouralPathDriver::NullBehaviour;
     }
 };
@@ -72,7 +83,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
     void getSlamPose() {
         Vector3d slam_pose;
         if ( !getNode().getWorldPose( slam_pose, &slam_pose_msg_ )) {
-            *status_ptr_ = MotionResult::MOTION_STATUS_SLAM_FAIL;
+            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
             throw new BehaviourEmergencyBreak(parent_);
         }
     }
@@ -92,7 +103,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
         Line2d target_line;
         Vector3d followup_next_wp_local;
         if (!getNode().transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
-            *status_ptr_ = MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
             throw new BehaviourEmergencyBreak(parent_);
         }
         target_line = Line2d( next_wp_local_.head<2>(), followup_next_wp_local.head<2>());
@@ -142,7 +153,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
         double delta_f = 0;
         double delta_r = 0;
 
-        *status_ptr_ = MotionResult::MOTION_STATUS_MOVING;
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
 
         if ( !getPid().execute( error, delta_f)) {
             // Nothing to do
@@ -164,7 +175,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
 
         cmd.steer_front = dir_sign * delta_f;
         cmd.steer_back = dir_sign * delta_r;
-        cmd.v = dir_sign * speed;
+        cmd.velocity = dir_sign * speed;
     }
 
     void drawSteeringArrow(int id, geometry_msgs::Pose steer_arrow, double angle, double r, double g, double b){
@@ -205,7 +216,7 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase {
         getNextWaypoint();
         getSlamPose();
 
-        dir_sign = MathHelper::sgn(next_wp_local_.x());
+        dir_sign = sign(next_wp_local_.x());
 
         // check if point is reached
         checkIfDone();
@@ -223,7 +234,7 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase {
 
         setCommand(e_combined, 0.1);
 
-        *status_ptr_ = MotionResult::MOTION_STATUS_MOVING;
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
     }
 
     double calculateDistanceError() {
@@ -272,11 +283,11 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase {
             opt.wp_idx = 0;
 
             if(opt.path_idx < getSubPathCount()) {
-                *status_ptr_ = MotionResult::MOTION_STATUS_MOVING;
+                *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
                 throw new BehaviourOnLine(parent_);
 
             } else {
-                *status_ptr_ = MotionResult::MOTION_STATUS_SUCCESS;
+                *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
                 throw new BehaviouralPathDriver::NullBehaviour;
             }
         }
@@ -298,7 +309,7 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase {
         next_wp_map_.header.stamp = ros::Time::now();
 
         if ( !getNode().transformToLocal( next_wp_map_, next_wp_local_ )) {
-            *status_ptr_ = MotionResult::MOTION_STATUS_SLAM_FAIL;
+            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
             throw new BehaviourEmergencyBreak(parent_);
         }
     }
@@ -311,7 +322,7 @@ void BehaviourOnLine::execute(int *status)
     getNextWaypoint();
     getSlamPose();
 
-    dir_sign = MathHelper::sgn(next_wp_local_.x());
+    dir_sign = sign(next_wp_local_.x());
 
     // Calculate target line from current to next waypoint (if there is any)
     double e_distance = calculateLineError();
@@ -332,7 +343,7 @@ void BehaviourOnLine::execute(int *status)
 
     setCommand(e_combined, speed);
 
-    *status_ptr_ = MotionResult::MOTION_STATUS_MOVING;
+    *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
 }
 
 void BehaviourOnLine::getNextWaypoint() {
@@ -353,7 +364,7 @@ void BehaviourOnLine::getNextWaypoint() {
     while(distanceTo(current_path[opt.wp_idx]) < tolerance) {
         if(opt.wp_idx >= last_wp_idx) {
             // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
-            *status_ptr_ = MotionResult::MOTION_STATUS_MOVING;
+            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
             throw new BehaviourApproachTurningPoint(parent_);
 
         } else {
@@ -369,7 +380,7 @@ void BehaviourOnLine::getNextWaypoint() {
     next_wp_map_.header.stamp = ros::Time::now();
 
     if ( !getNode().transformToLocal( next_wp_map_, next_wp_local_ )) {
-        *status_ptr_ = MotionResult::MOTION_STATUS_SLAM_FAIL;
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         throw new BehaviourEmergencyBreak(parent_);
     }
 }
@@ -399,16 +410,17 @@ void BehaviouralPathDriver::stop()
 {
     clearActive();
 
-    current_command_.v = 0;
+    current_command_.velocity = 0;
 }
 
 int BehaviouralPathDriver::getType()
 {
-    return motion_control::MotionGoal::MOTION_FOLLOW_PATH;
+    //return path_msgs::FollowPathGoal::MOTION_FOLLOW_PATH;
+    return 0; //TODO: change this, if different types are reimplemented.
 }
 
 
-int BehaviouralPathDriver::execute(MotionFeedback& fb, MotionResult& result)
+int BehaviouralPathDriver::execute(path_msgs::FollowPathFeedback& fb, path_msgs::FollowPathResult& result)
 {
     // Pending error?
     if ( pending_error_ >= 0 ) {
@@ -420,7 +432,7 @@ int BehaviouralPathDriver::execute(MotionFeedback& fb, MotionResult& result)
 
     if(paths_.empty()) {
         clearActive();
-        return MotionResult::MOTION_STATUS_SUCCESS;
+        return path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
     }
 
     if(active_behaviour_ == NULL) {
@@ -430,13 +442,13 @@ int BehaviouralPathDriver::execute(MotionFeedback& fb, MotionResult& result)
     geometry_msgs::Pose slampose_p;
     if ( !node_->getWorldPose( slam_pose_, &slampose_p )) {
         stop();
-        return MotionResult::MOTION_STATUS_SLAM_FAIL;
+        return path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
     }
 
     drawArrow(0, slampose_p, "slam pose", 2.0, 0.7, 1.0);
 
 
-    int status = MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+    int status = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
     try {
         //        ROS_INFO_STREAM("executing " << typeid(*active_behaviour_).name());
         active_behaviour_->execute(&status);
@@ -445,9 +457,9 @@ int BehaviouralPathDriver::execute(MotionFeedback& fb, MotionResult& result)
         ROS_WARN_STREAM("stopping after " << typeid(*active_behaviour_).name());
         clearActive();
 
-        assert(status == MotionResult::MOTION_STATUS_SUCCESS);
+        assert(status == path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS);
 
-        current_command_.v = 0;
+        current_command_.velocity = 0;
 
     } catch(Behaviour* next_behaviour) {
         ROS_WARN_STREAM("switching behaviour from " << typeid(*active_behaviour_).name() << " to " << typeid(*next_behaviour).name() );
@@ -457,7 +469,7 @@ int BehaviouralPathDriver::execute(MotionFeedback& fb, MotionResult& result)
 
     publishCommand();
 
-    if(status != MotionResult::MOTION_STATUS_MOVING && active_behaviour_ != NULL) {
+    if(status != path_msgs::FollowPathResult::MOTION_STATUS_MOVING && active_behaviour_ != NULL) {
         ROS_INFO_STREAM("aborting, clearing active, status=" << status);
         clearActive();
     }
@@ -620,15 +632,15 @@ void BehaviouralPathDriver::drawMark(int id, const geometry_msgs::Point &pos, co
 }
 
 
-void BehaviouralPathDriver::setGoal(const motion_control::MotionGoal& goal)
+void BehaviouralPathDriver::setGoal(const path_msgs::FollowPathGoal &goal)
 {
     pending_error_ = -1;
-    options_.max_speed_ = goal.v;
+    options_.max_speed_ = goal.velocity;
 
     if ( goal.path.poses.size() < 2 ) {
         ROS_ERROR( "Got an invalid path with less than two poses." );
         stop();
-        pending_error_ = MotionResult::MOTION_STATUS_INTERNAL_ERROR;
+        pending_error_ = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
         return;
     }
 
@@ -647,8 +659,9 @@ void BehaviouralPathDriver::clearActive()
 
 void BehaviouralPathDriver::publishCommand()
 {
-    ramaxx_msgs::RamaxxMsg msg = current_command_;
+    //ramaxx_msgs::RamaxxMsg msg = current_command_;
+    geometry_msgs::TwistStamped msg = current_command_;
     cmd_pub_.publish(msg);
 
-    setFilteredSpeed(current_command_.v);
+    setFilteredSpeed(current_command_.velocity);
 }

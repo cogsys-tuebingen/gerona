@@ -8,6 +8,9 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   path_msgs
   roscpp
+  utils_general
+  utils_robot
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -90,10 +93,13 @@ catkin_package(
 ## Build ##
 ###########
 
+find_package(Eigen REQUIRED)
+
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
+  ${EIGEN_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -117,6 +123,9 @@ include_directories(
 add_executable(path_follower_node
   src/follower_node.cpp
   src/pathfollower.cpp
+  src/MotionController.cpp
+  src/BehaviouralPathDriver.cpp
+  src/PidCtrl.cpp
 )
 
 target_link_libraries(path_follower_node

@@ -1,16 +1,65 @@
-# Define the goal
+#goal definition
+
+int8 mode
 nav_msgs/Path path
+
+# topic to listen to receive path updates -- NOT USED
+##string path_topic
+
+# accepted tolerance of position -- NOT USED
+##float32 pos_tolerance
+
+# accepted tolerance of orientation in rad
+# not implemented yet float32 theta_tolerance
+
+# driving speed of robot (interpreted as recommended value)
+float32 velocity
+
+# sideslip angle of robot -- NOT USED
+##float32 beta
+
+# fixed front steering angle -- NOT USED
+##float32 deltaf
+
+# fixed rear steering angle -- NOT USED
+##float32 deltar
+
 uint8 debug_test
 
 ---
-# Define the result
+#result definition
+
+uint8 MOTION_STATUS_STOP=  0
+uint8 MOTION_STATUS_MOVING= 1
+uint8 MOTION_STATUS_COLLISION=2
+uint8 MOTION_STATUS_SUCCESS=3
+uint8 MOTION_STATUS_MOVE_FAIL=4
+uint8 MOTION_STATUS_INTERNAL_ERROR=5
+uint8 MOTION_STATUS_SLAM_FAIL=6
+uint8 MOTION_STATUS_GOAL_FAIL=7
+uint8 MOTION_STATUS_PATH_LOST=8
+
 uint8 STATUS_SUCCESS = 1
 uint8 STATUS_ABORTED = 2
 uint8 STATUS_INVALID_PATH = 3
 
-uint8 status
+uint8 mode
+int8 status
+float32 dist_driven
+float32 dist_goal
+
 uint8 debug_test
 
 ---
-# Define a feedback message
+#feedback
+
+uint8 MOTION_STOP   = 0
+uint8 MOTION_MOVING = 1
+uint8 MOTION_CALIB  = 2
+
+uint8 mode
+uint8 status
+float32 dist_driven
+float32 dist_goal
+
 uint8 debug_test

@@ -44,8 +44,8 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
 
     path_msgs::FollowPathGoal path_action_goal;
     path_action_goal.debug_test = goal->debug_test;
-    //path_action_goal.path = *requested_path_;
-    // ... set some more parameters here...
+    path_action_goal.path = *requested_path_;
+    //TODO: ... set some more parameters here?...
 
     follow_path_client_.sendGoal(path_action_goal,
                                  boost::bind(&PathController::followPathDoneCB, this, _1, _2),
