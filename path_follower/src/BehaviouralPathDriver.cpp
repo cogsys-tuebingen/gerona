@@ -63,7 +63,8 @@ BehaviouralPathDriver::Options& BehaviouralPathDriver::Behaviour::getOptions()
 //END Behaviour
 
 /// STATES / BEHAVIOURS
-struct BehaviourEmergencyBreak : public BehaviouralPathDriver::Behaviour { // <- das für problem :)
+struct BehaviourEmergencyBreak : public BehaviouralPathDriver::Behaviour
+{
     BehaviourEmergencyBreak(BehaviouralPathDriver& parent)
         : Behaviour(parent)
     {}
@@ -76,12 +77,14 @@ struct BehaviourEmergencyBreak : public BehaviouralPathDriver::Behaviour { // <-
 };
 //END BehaviourEmergencyBreak
 
-struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
+struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
+{
     BehaviourDriveBase(BehaviouralPathDriver& parent)
         : Behaviour(parent)
     {}
 
-    void getSlamPose() {
+    void getSlamPose()
+    {
         Vector3d slam_pose;
         if ( !getNode().getWorldPose( slam_pose, &slam_pose_msg_ )) {
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
@@ -89,11 +92,13 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
         }
     }
 
-    double calculateAngleError() {
+    double calculateAngleError()
+    {
         return MathHelper::NormalizeAngle(tf::getYaw(next_wp_map_.pose.orientation) - tf::getYaw(slam_pose_msg_.orientation));
     }
 
-    double calculateLineError() {
+    double calculateLineError()
+    {
         BehaviouralPathDriver::Options& opt = getOptions();
         BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
 
@@ -163,7 +168,8 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
         }
     }
 
-    void visualizeLine(geometry_msgs::PoseStamped wp_map, geometry_msgs::PoseStamped next_wp) {
+    void visualizeLine(geometry_msgs::PoseStamped wp_map, geometry_msgs::PoseStamped next_wp)
+    {
         geometry_msgs::Pose target_line_arrow;
         target_line_arrow.position = next_wp.pose.position;
         double dx = next_wp.pose.position.x - wp_map.pose.position.x;
@@ -174,7 +180,8 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
         parent_.drawArrow(2, target_line_arrow, "line", 0.7, 0.2, 1.0);
     }
 
-    void setCommand(double error, double speed) {
+    void setCommand(double error, double speed)
+    {
         BehaviouralPathDriver::Options& opt = getOptions();
 
         // abort, if robot moves too far from the path
@@ -214,7 +221,8 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour {
         ROS_DEBUG("Set velocity to %g", speed);
     }
 
-    void drawSteeringArrow(int id, geometry_msgs::Pose steer_arrow, double angle, double r, double g, double b){
+    void drawSteeringArrow(int id, geometry_msgs::Pose steer_arrow, double angle, double r, double g, double b)
+    {
         steer_arrow.orientation = tf::createQuaternionMsgFromYaw(tf::getYaw(steer_arrow.orientation) + angle);
         parent_.drawArrow(id, steer_arrow, "steer", r, g, b);
     }
@@ -231,7 +239,8 @@ protected:
 //END BehaviourDriveBase
 
 
-struct BehaviourOnLine : public BehaviourDriveBase {
+struct BehaviourOnLine : public BehaviourDriveBase
+{
     BehaviourOnLine(BehaviouralPathDriver& parent)
         : BehaviourDriveBase(parent)
     {}
@@ -241,7 +250,8 @@ struct BehaviourOnLine : public BehaviourDriveBase {
 };
 
 
-struct BehaviourApproachTurningPoint : public BehaviourDriveBase {
+struct BehaviourApproachTurningPoint : public BehaviourDriveBase
+{
     BehaviourApproachTurningPoint(BehaviouralPathDriver& parent)
         : BehaviourDriveBase(parent)
     {}
@@ -274,7 +284,8 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase {
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
     }
 
-    double calculateDistanceError() {
+    double calculateDistanceError()
+    {
         Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
         parent_.predictPose(front_pred, rear_pred);
         if(dir_sign >= 0) {
@@ -330,7 +341,8 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase {
         }
     }
 
-    void getNextWaypoint() {
+    void getNextWaypoint()
+    {
         BehaviouralPathDriver::Options& opt = getOptions();
         BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
 
@@ -386,7 +398,8 @@ void BehaviourOnLine::execute(int *status)
     *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
 }
 
-void BehaviourOnLine::getNextWaypoint() {
+void BehaviourOnLine::getNextWaypoint()
+{
     BehaviouralPathDriver::Options& opt = getOptions();
     BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
 
@@ -610,6 +623,7 @@ void BehaviouralPathDriver::setPath(const nav_msgs::Path& path)
         last_point = current_point;
     }
 }
+
 void BehaviouralPathDriver::predictPose(Vector2d &front_pred, Vector2d &rear_pred)
 {
     double dt = options_.dead_time_;

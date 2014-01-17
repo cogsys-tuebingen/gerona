@@ -11,7 +11,6 @@
 /// PROJECT
 #include "MotionController.h"
 #include "PidCtrl.h"
-//#include "pathfollower.h"
 
 /// SYSTEM
 #include <ros/ros.h>
@@ -113,7 +112,8 @@ public:
     struct NullBehaviour {
     };
 
-    class Behaviour {
+    class Behaviour
+    {
     protected:
         Behaviour(BehaviouralPathDriver& parent)
             : parent_(parent)
