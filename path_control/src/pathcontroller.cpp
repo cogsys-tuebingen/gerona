@@ -187,7 +187,7 @@ void PathController::followPathActiveCB()
 
 void PathController::followPathFeedbackCB(const path_msgs::FollowPathFeedbackConstPtr &feedback)
 {
-    ROS_INFO("Got path execution feedback [%d].", feedback->debug_test);
+    ROS_INFO_THROTTLE(1,"Driven distance: %g;  Distance to goal: %g", feedback->dist_driven, feedback->dist_goal);
 
     path_msgs::NavigateToGoalFeedback nav_feedback;
     //TODO: fill with something usefull
