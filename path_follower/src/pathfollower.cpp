@@ -10,22 +10,13 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     follow_path_server_.registerGoalCallback(boost::bind(&PathFollower::followPathGoalCB, this));
     follow_path_server_.registerPreemptCallback(boost::bind(&PathFollower::followPathPreemptCB,this));
 
-    // TODO: drop this params?
     ros::param::param<string>("~world_frame", world_frame_, "/map");
     ros::param::param<string>("~robot_frame", robot_frame_, "/base_link");
     ros::param::param<float>("~stuck_timeout", opt_.stuck_timeout, 10); //TODO: find reasonable default value
     ros::param::param<float>("~stuck_pos_tolerance", opt_.stuck_pos_tolerance, 0.1); //TODO: find reasonable default value
-    // Don't use params, there are remappings for that
-    //ros::param::param<string>("~odom_topic",  odom_topic_,  "/odom");
-    //ros::param::param<string>("~scan_topic",  scan_topic_,  "/scan");
-    //ros::param::param<string>("~cmd_topic",   cmd_topic_,   "/ramaxx_cmd");
 
     //cmd_pub_ = nh_.advertise<ramaxx_msgs::RamaxxMsg> (cmd_topic_, 10);
     cmd_pub_ = node_handle_.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
-
-    //FIXME: are laser and sonar required here?
-    //scan_sub_ = nh_.subscribe<sensor_msgs::LaserScan>( scan_topic_, 1, boost::bind(&MotionControlNode::laserCallback, this, _1 ));
-    //sonar_sub_ = nh_.subscribe<sensor_msgs::PointCloud>( "/sonar_raw", 1, boost::bind( &MotionControlNode::sonarCallback, this, _1 ));
 
     odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
@@ -47,37 +38,6 @@ PathFollower::~PathFollower()
 
 void PathFollower::followPathGoalCB()
 {
-
-    // dummy feedback
-    /*
-    path_msgs::FollowPathFeedback feed;
-    feed.debug_test = goal->debug_test;
-
-    for (int i = 0; i<6; ++i) {
-        ros::Duration(1).sleep();
-
-        if (follow_path_server_.isPreemptRequested()) {
-            ROS_INFO("Preemt goal [%d].\n---------------------", goal->debug_test);
-            path_msgs::FollowPathResult res;
-            res.status = res.STATUS_ABORTED;
-            res.debug_test = goal->debug_test;
-            follow_path_server_.setPreempted(res);
-            return;
-        }
-
-        ROS_INFO("Feedback [%d]", goal->debug_test);
-        follow_path_server_.publishFeedback(feed);
-    }
-
-    ros::Duration(3).sleep();
-
-    path_msgs::FollowPathResult res;
-    res.status = res.STATUS_SUCCESS;
-    res.debug_test = goal->debug_test;
-    ROS_INFO("Finished [%d].\n---------------------", goal->debug_test);
-    follow_path_server_.setSucceeded(res);
-    */
-
     path_msgs::FollowPathGoalConstPtr goalptr = follow_path_server_.acceptNewGoal();
     ROS_INFO("Start Action!! [%d]", goalptr->debug_test);
 
@@ -97,8 +57,6 @@ void PathFollower::followPathPreemptCB()
 void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
 {
     odometry_ = *odom;
-    //float current_speed = sqrt( pow( odom->twist.twist.linear.x, 2 ) + pow( odom->twist.twist.linear.y, 2 ) );
-    //speed_filter_.Update(current_speed);
 }
 
 bool PathFollower::getWorldPose(Vector3d &pose , geometry_msgs::Pose *pose_out) const

@@ -7,8 +7,6 @@
 #include <path_msgs/FollowPathAction.h>
 #include <tf/transform_listener.h>
 
-//#include <utils/LibUtil/LowPassFilter.h> //FIXME: wurde der noch bebraucht?
-
 #include "BehaviouralPathDriver.h"
 #include "stucktimeout.h"
 
@@ -45,9 +43,6 @@ private:
 
     //! Action server that communicates with path_control (or who ever sends actions)
     FollowPathServer follow_path_server_;
-
-    //! TODO: was macht der?
-    //LowPassFilter<float> speed_filter_;
 
     //! Publisher for driving commands.
     ros::Publisher cmd_pub_;
