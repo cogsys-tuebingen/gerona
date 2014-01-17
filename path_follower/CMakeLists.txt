@@ -126,6 +126,7 @@ add_executable(path_follower_node
   src/MotionController.cpp
   src/BehaviouralPathDriver.cpp
   src/PidCtrl.cpp
+  src/stucktimeout.h
 )
 
 target_link_libraries(path_follower_node

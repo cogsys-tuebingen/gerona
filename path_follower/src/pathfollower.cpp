@@ -13,6 +13,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // TODO: drop this params?
     ros::param::param<string>("~world_frame", world_frame_, "/map");
     ros::param::param<string>("~robot_frame", robot_frame_, "/base_link");
+    ros::param::param<float>("~stuck_timeout", opt_.stuck_timeout, 10); //TODO: find reasonable default value
+    ros::param::param<float>("~stuck_pos_tolerance", opt_.stuck_pos_tolerance, 0.1); //TODO: find reasonable default value
     // Don't use params, there are remappings for that
     //ros::param::param<string>("~odom_topic",  odom_topic_,  "/odom");
     //ros::param::param<string>("~scan_topic",  scan_topic_,  "/scan");
@@ -25,7 +27,9 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     //scan_sub_ = nh_.subscribe<sensor_msgs::LaserScan>( scan_topic_, 1, boost::bind(&MotionControlNode::laserCallback, this, _1 ));
     //sonar_sub_ = nh_.subscribe<sensor_msgs::PointCloud>( "/sonar_raw", 1, boost::bind( &MotionControlNode::sonarCallback, this, _1 ));
 
-    odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, boost::bind(&PathFollower::odometryCB, this, _1 ));
+    odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
+
+    stuck_timeout_ = new StuckTimeout(node_handle_, opt_.stuck_timeout, opt_.stuck_pos_tolerance);
 
     active_ctrl_ = new motion_control::BehaviouralPathDriver(cmd_pub_, this);
 
@@ -36,6 +40,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 PathFollower::~PathFollower()
 {
     delete active_ctrl_;
+    delete stuck_timeout_;
 }
 
 
@@ -80,11 +85,13 @@ void PathFollower::followPathGoalCB()
     active_ctrl_->stop();
 
     active_ctrl_->setGoal(*goalptr);
+    stuck_timeout_->start();
 }
 
 void PathFollower::followPathPreemptCB()
 {
     active_ctrl_->stop(); active_ctrl_->stop(); /// @todo think about this
+    stuck_timeout_->stop();
 }
 
 void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
@@ -169,8 +176,15 @@ void PathFollower::update()
     if (follow_path_server_.isActive() && active_ctrl_!=NULL) {
         path_msgs::FollowPathFeedback feedback;
         path_msgs::FollowPathResult result;
+        bool done = false;
 
         int status = active_ctrl_->execute(feedback, result);
+
+        // If the robot is stuck (timeout expired), change status to MOVE_FAIL, no matter what active_ctrl is saying.
+        if (stuck_timeout_->isStuck()) { //TODO: use special status for this
+            status = path_msgs::FollowPathResult::MOTION_STATUS_MOVE_FAIL;
+            ROS_WARN("Robot is stuck");
+        }
 
         switch (status) {
         case path_msgs::FollowPathResult::MOTION_STATUS_STOP:
@@ -183,7 +197,8 @@ void PathFollower::update()
 
         case path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS:
             result.status = path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
-            follow_path_server_.setSucceeded( result );
+            follow_path_server_.setSucceeded(result);
+            done = true;
             //active_ctrl_ = NULL;
             break;
 
@@ -194,9 +209,14 @@ void PathFollower::update()
         default:
             result.status = status;
             follow_path_server_.setAborted(result);
+            done = true;
             //active_ctrl_ = NULL;
-            //status=path_msgs::FollowPathResult::MOTION_STATUS_STOP;
             break;
+        }
+
+        if (done) {
+            // stop timer while not needed to avoid unnecessary CPU load.
+            stuck_timeout_->stop();
         }
     }
 }

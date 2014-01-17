@@ -10,6 +10,7 @@
 //#include <utils/LibUtil/LowPassFilter.h> //FIXME: wurde der noch bebraucht?
 
 #include "BehaviouralPathDriver.h"
+#include "stucktimeout.h"
 
 class PathFollower
 {
@@ -27,7 +28,20 @@ public:
 private:
     typedef actionlib::SimpleActionServer<path_msgs::FollowPathAction> FollowPathServer;
 
+    struct Options
+    {
+        //! If the robot is not moving for at least the defined number of seconds, the path execution is aborted.
+        float stuck_timeout;
+
+        //! Tolerance in the robot movement. If the robot moves less than this value in one stuck-timer period, it is
+        //! assumed to be stuck.
+        float stuck_pos_tolerance;
+    };
+
+
     ros::NodeHandle node_handle_;
+
+    Options opt_;
 
     //! Action server that communicates with path_control (or who ever sends actions)
     FollowPathServer follow_path_server_;
@@ -51,12 +65,14 @@ private:
 
     tf::TransformListener pose_listener_;
 
+    //! Timeout to detect if the robot is stuck (= does not move while following the path).
+    StuckTimeout *stuck_timeout_;
+
 
     void followPathGoalCB();
     void followPathPreemptCB();
 
     void odometryCB(const nav_msgs::OdometryConstPtr &odom);
-
 };
 
 #endif // PATHFOLLOWER_H
