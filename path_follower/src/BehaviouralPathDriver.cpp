@@ -144,16 +144,17 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
         assert(opt.wp_idx < (int) current_path.size());
 
         // opt.wp_idx should be the index of the next waypoint. The last waypoint ist then simply wp_idx - 1.
-        // It seems as wp_idx is never zero here, but I am not sure if this is really always the case. If it is zero,
-        // there is no really reasonable way to handle this (segment is not clearly defined then) so just print a
-        // warning and return 0 as this will not disturb program execution.
+        // Usually wp_idx is greater than zero, so this is possible.
+        // There are, however, situations where wp_idx = 0. In this case the segment starting in wp_idx is used rather
+        // than the one ending there (I am not absolutly sure if this a good behaviour, so observe this via debug-output).
         int wp1_idx = 0;
         if (opt.wp_idx > 0) {
             wp1_idx = opt.wp_idx - 1;
         } else {
-            // can this happen?
-            ROS_ERROR("WARNING: invalid segment in calculateDistanceToCurrentPathSegment() (%s, line %d)", __FILE__, __LINE__);
-            return 0; // return 0 so the path_follower will not abort.
+            // if wp_idx == 0, use the segment from wp_idx to the following waypoint.
+            wp1_idx = opt.wp_idx + 1;
+
+            ROS_DEBUG("Toggle waypoints as wp_idx == 0 in calculateDistanceToCurrentPathSegment() (%s, line %d)", __FILE__, __LINE__);
         }
 
         geometry_msgs::Pose wp1 = current_path[wp1_idx];
