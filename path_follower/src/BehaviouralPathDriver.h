@@ -102,6 +102,10 @@ public:
         double max_speed_;
         double steer_slow_threshold_;
 
+        //! Maximum distance the robot is allowed to depart from the path. If this threshold is exceeded,
+        //! the path follower will abort.
+        double max_distance_to_path_;
+
         int path_idx;
         int wp_idx;
     };
