@@ -134,22 +134,38 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
     //! Calculate the distance of the robot to the current path segment.
     double calculateDistanceToCurrentPathSegment()
     {
-        /* Calc. line from last way point to current way point (which should be the line the robot is driving on) and
-         * calc. the distance of the robot to this line.
+        /* Calculate line from last way point to current way point (which should be the line the robot is driving on)
+         * and calculate the distance of the robot to this line.
          */
 
         BehaviouralPathDriver::Options& opt = getOptions();
         BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
 
-        //TODO: copied from below. Is this the right way here?
         assert(opt.wp_idx < (int) current_path.size());
-        int last_wp_idx = current_path.size() - 1;
 
-        geometry_msgs::Pose wp1 = current_path[last_wp_idx];
+        // opt.wp_idx should be the index of the next waypoint. The last waypoint ist then simply wp_idx - 1.
+        // It seems as wp_idx is never zero here, but I am not sure if this is really always the case. If it is zero,
+        // there is no really reasonable way to handle this (segment is not clearly defined then) so just print a
+        // warning and return 0 as this will not disturb program execution.
+        int wp1_idx = 0;
+        if (opt.wp_idx > 0) {
+            wp1_idx = opt.wp_idx - 1;
+        } else {
+            // can this happen?
+            ROS_ERROR("WARNING: invalid segment in calculateDistanceToCurrentPathSegment() (%s, line %d)", __FILE__, __LINE__);
+            return 0; // return 0 so the path_follower will not abort.
+        }
+
+        geometry_msgs::Pose wp1 = current_path[wp1_idx];
         geometry_msgs::Pose wp2 = current_path[opt.wp_idx];
 
         // line from last waypoint to current one.
         Line2d segment_line(Vector2d(wp1.position.x, wp1.position.y), Vector2d(wp2.position.x, wp2.position.y));
+
+        ///// visualize start and end point of the current segment (for debugging)
+        //parent_.drawMark(24, wp1.position, "foo", 0, 1, 1);
+        //parent_.drawMark(25, wp2.position, "foo", 1, 0, 1);
+        /////
 
         // get distance of robot (slam_pose_) to segment_line.
         return segment_line.GetDistance(parent_.getSlamPose().head<2>());
