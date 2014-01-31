@@ -117,7 +117,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
 
         Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
         parent_.predictPose(front_pred, rear_pred);
-        if(dir_sign >= 0) {
+        if(dir_sign_ >= 0) {
             main_carrot = front_pred;
             alt_carrot = rear_pred;
         } else {
@@ -211,7 +211,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
 
 
         double delta_f = 0;
-        double delta_r = 0;
+        double delta_r = 0; //!< currently not used.
 
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
 
@@ -225,15 +225,15 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
         BehaviouralPathDriver::Command& cmd = getCommand();
 
         double steer = std::max(std::abs(delta_f), std::abs(delta_r));
-        ROS_DEBUG_STREAM("dir=" << dir_sign << ", steer=" << steer);
+        ROS_DEBUG_STREAM("dir=" << dir_sign_ << ", steer=" << steer);
         if(steer > getOptions().steer_slow_threshold_) {
             ROS_WARN_STREAM_THROTTLE(2, "slowing down");
             speed *= 0.5;
         }
 
-        cmd.steer_front = dir_sign * delta_f;
-        cmd.steer_back = dir_sign * delta_r;
-        cmd.velocity = dir_sign * speed;
+        cmd.steer_front = dir_sign_ * delta_f;
+        cmd.steer_back = dir_sign_ * delta_r;
+        cmd.velocity = dir_sign_ * speed;
 
         ROS_DEBUG("Set velocity to %g", speed);
     }
@@ -251,7 +251,7 @@ protected:
     geometry_msgs::PoseStamped next_wp_map_;
 
     Vector3d next_wp_local_;
-    double dir_sign;
+    double dir_sign_;
 };
 //END BehaviourDriveBase
 
@@ -280,7 +280,7 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase
         getNextWaypoint();
         getSlamPose();
 
-        dir_sign = sign(next_wp_local_.x());
+        dir_sign_ = sign(next_wp_local_.x());
 
         // check if point is reached
         checkIfDone();
@@ -305,7 +305,7 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase
     {
         Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
         parent_.predictPose(front_pred, rear_pred);
-        if(dir_sign >= 0) {
+        if(dir_sign_ >= 0) {
             main_carrot = front_pred;
             alt_carrot = rear_pred;
         } else {
@@ -391,7 +391,7 @@ void BehaviourOnLine::execute(int *status)
     getNextWaypoint();
     getSlamPose();
 
-    dir_sign = sign(next_wp_local_.x());
+    dir_sign_ = sign(next_wp_local_.x());
 
     // Calculate target line from current to next waypoint (if there is any)
     double e_distance = calculateLineError();
@@ -406,7 +406,7 @@ void BehaviourOnLine::execute(int *status)
 
     double speed = getOptions().max_speed_;
 
-    if(dir_sign < 0) {
+    if(dir_sign_ < 0) {
         speed *= 0.5;
     }
 
@@ -426,7 +426,7 @@ void BehaviourOnLine::getNextWaypoint()
 
     double tolerance = opt.wp_tolerance_;
 
-    if(dir_sign < 0) {
+    if(dir_sign_ < 0) {
         tolerance *= 2;
     }
 
