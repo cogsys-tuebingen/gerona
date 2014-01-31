@@ -84,7 +84,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES path_msgs
-#  CATKIN_DEPENDS actionlib_msgs
+  CATKIN_DEPENDS actionlib_msgs
 #  DEPENDS system_lib
 )
 
