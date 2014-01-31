@@ -9,6 +9,11 @@
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseStamped.h>
 
+
+/**
+ * @brief The PathController class
+ * @todo define min. velocity for the rabots.
+ */
 class PathController
 {
 

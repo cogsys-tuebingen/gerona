@@ -202,7 +202,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
         BehaviouralPathDriver::Options& opt = getOptions();
 
         // abort, if robot moves too far from the path
-        //FIXME: is this the best place to check for this?
+        //TODO: is this the best place to check for this?
         if (calculateDistanceToCurrentPathSegment() > opt.max_distance_to_path_) {
             ROS_WARN("Moved too far away from the path. Abort.");
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST;
@@ -555,7 +555,7 @@ void BehaviouralPathDriver::configure()
     nh.param( "goal_tolerance", options_.goal_tolerance_, 0.15 );
     nh.param( "l", options_.l_, 0.38 );
     nh.param( "steer_slow_threshold", options_.steer_slow_threshold_, 0.25 );
-    nh.param( "max_distance_to_path", options_.max_distance_to_path_, 0.3 ); //FIXME: find reasonable default value.
+    nh.param( "max_distance_to_path", options_.max_distance_to_path_, 0.3 ); //TODO: find reasonable default value.
 
     double ta, kp, ki, i_max, delta_max, e_max;
     nh.param( "pid/ta", ta, 0.03 );
