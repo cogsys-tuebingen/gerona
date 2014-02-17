@@ -92,6 +92,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
         }
     }
 
+    //! Calculate the angle between the orientations of the waypoint and the robot.
     double calculateAngleError()
     {
         return MathHelper::NormalizeAngle(tf::getYaw(next_wp_map_.pose.orientation) - tf::getYaw(slam_pose_msg_.orientation));
@@ -117,7 +118,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
 
         Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
         parent_.predictPose(front_pred, rear_pred);
-        if(dir_sign >= 0) {
+        if(dir_sign_ >= 0) {
             main_carrot = front_pred;
             alt_carrot = rear_pred;
         } else {
@@ -164,8 +165,8 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
         Line2d segment_line(Vector2d(wp1.position.x, wp1.position.y), Vector2d(wp2.position.x, wp2.position.y));
 
         ///// visualize start and end point of the current segment (for debugging)
-        //parent_.drawMark(24, wp1.position, "foo", 0, 1, 1);
-        //parent_.drawMark(25, wp2.position, "foo", 1, 0, 1);
+        parent_.drawMark(24, wp1.position, "segment_marker", 0, 1, 1);
+        parent_.drawMark(25, wp2.position, "segment_marker", 1, 0, 1);
         /////
 
         // get distance of robot (slam_pose_) to segment_line.
@@ -202,7 +203,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
         BehaviouralPathDriver::Options& opt = getOptions();
 
         // abort, if robot moves too far from the path
-        //FIXME: is this the best place to check for this?
+        //TODO: is this the best place to check for this?
         if (calculateDistanceToCurrentPathSegment() > opt.max_distance_to_path_) {
             ROS_WARN("Moved too far away from the path. Abort.");
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST;
@@ -211,7 +212,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
 
 
         double delta_f = 0;
-        double delta_r = 0;
+        double delta_r = 0; //!< currently not used.
 
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
 
@@ -225,15 +226,15 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
         BehaviouralPathDriver::Command& cmd = getCommand();
 
         double steer = std::max(std::abs(delta_f), std::abs(delta_r));
-        ROS_DEBUG_STREAM("dir=" << dir_sign << ", steer=" << steer);
+        ROS_DEBUG_STREAM("dir=" << dir_sign_ << ", steer=" << steer);
         if(steer > getOptions().steer_slow_threshold_) {
             ROS_WARN_STREAM_THROTTLE(2, "slowing down");
             speed *= 0.5;
         }
 
-        cmd.steer_front = dir_sign * delta_f;
-        cmd.steer_back = dir_sign * delta_r;
-        cmd.velocity = dir_sign * speed;
+        cmd.steer_front = dir_sign_ * delta_f;
+        cmd.steer_back = dir_sign_ * delta_r;
+        cmd.velocity = dir_sign_ * speed;
 
         ROS_DEBUG("Set velocity to %g", speed);
     }
@@ -251,7 +252,7 @@ protected:
     geometry_msgs::PoseStamped next_wp_map_;
 
     Vector3d next_wp_local_;
-    double dir_sign;
+    double dir_sign_;
 };
 //END BehaviourDriveBase
 
@@ -280,7 +281,7 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase
         getNextWaypoint();
         getSlamPose();
 
-        dir_sign = sign(next_wp_local_.x());
+        dir_sign_ = sign(next_wp_local_.x());
 
         // check if point is reached
         checkIfDone();
@@ -305,7 +306,7 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase
     {
         Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
         parent_.predictPose(front_pred, rear_pred);
-        if(dir_sign >= 0) {
+        if(dir_sign_ >= 0) {
             main_carrot = front_pred;
             alt_carrot = rear_pred;
         } else {
@@ -327,23 +328,35 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase
 
     void checkIfDone()
     {
+        //! Difference of current robot pose to the next waypoint.
         Vector2d delta;
         delta << next_wp_map_.pose.position.x - slam_pose_msg_.position.x,
                 next_wp_map_.pose.position.y - slam_pose_msg_.position.y;
 
+        if (dir_sign_ < 0) {
+            delta *= -1;
+        }
+
         BehaviouralPathDriver::Options& opt = getOptions();
         BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+
+        //! Unit vector pointing in the direction of the next waypoints orientation.
         Vector2d target_dir;
+        //NOTE: current_path[opt.wp_idx] == next_wp_map_ ??
         target_dir << std::cos(current_path[opt.wp_idx].theta), std::sin(current_path[opt.wp_idx].theta);
 
+        // atan2(y,x) = angle of the vector.
+        //! Angle between the line from robot to waypoint and the waypoints orientation
         double angle = MathHelper::AngleClamp(std::atan2(delta(1), delta(0)) - std::atan2(target_dir(1), target_dir(0)));
 
-        ROS_WARN_STREAM("angle=" << angle);
+        ROS_WARN_STREAM("angle = " << angle);
 
 //        bool done = std::abs(angle) >= M_PI / 2;
-        bool done = delta.dot(target_dir) < 0;
+        bool done = delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
 
         if(done) {
+            ROS_WARN("DONE with angle = %g degree.", angle*180/M_PI);
+
             opt.path_idx++;
             opt.wp_idx = 0;
 
@@ -365,7 +378,7 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase
 
         assert(opt.wp_idx < (int) current_path.size());
 
-        int last_wp_idx = current_path.size() - 2;
+        int last_wp_idx = current_path.size() - 1;
         opt.wp_idx = last_wp_idx;
 
         parent_.drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
@@ -383,6 +396,7 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase
 //END BehaviourApproachTurningPoint
 
 
+//BEGIN BehaviourOnLine
 
 void BehaviourOnLine::execute(int *status)
 {
@@ -391,7 +405,7 @@ void BehaviourOnLine::execute(int *status)
     getNextWaypoint();
     getSlamPose();
 
-    dir_sign = sign(next_wp_local_.x());
+    dir_sign_ = sign(next_wp_local_.x());
 
     // Calculate target line from current to next waypoint (if there is any)
     double e_distance = calculateLineError();
@@ -406,7 +420,7 @@ void BehaviourOnLine::execute(int *status)
 
     double speed = getOptions().max_speed_;
 
-    if(dir_sign < 0) {
+    if(dir_sign_ < 0) {
         speed *= 0.5;
     }
 
@@ -426,7 +440,7 @@ void BehaviourOnLine::getNextWaypoint()
 
     double tolerance = opt.wp_tolerance_;
 
-    if(dir_sign < 0) {
+    if(dir_sign_ < 0) {
         tolerance *= 2;
     }
 
@@ -437,7 +451,8 @@ void BehaviourOnLine::getNextWaypoint()
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
             throw new BehaviourApproachTurningPoint(parent_);
 
-        } else {
+        }
+        else {
             // else choose next wp
             opt.wp_idx++;
         }
@@ -555,7 +570,7 @@ void BehaviouralPathDriver::configure()
     nh.param( "goal_tolerance", options_.goal_tolerance_, 0.15 );
     nh.param( "l", options_.l_, 0.38 );
     nh.param( "steer_slow_threshold", options_.steer_slow_threshold_, 0.25 );
-    nh.param( "max_distance_to_path", options_.max_distance_to_path_, 0.3 ); //FIXME: find reasonable default value.
+    nh.param( "max_distance_to_path", options_.max_distance_to_path_, 0.3 ); //TODO: find reasonable default value.
 
     double ta, kp, ki, i_max, delta_max, e_max;
     nh.param( "pid/ta", ta, 0.03 );
@@ -624,7 +639,8 @@ void BehaviouralPathDriver::setPath(const nav_msgs::Path& path)
         ROS_INFO_STREAM("drawing #" << id);
         drawArrow(id++, current_point, "paths", 0, 0, 0);
         if(segment_ends_with_this_node) {
-            //            drawArrow(id++, current_point, "paths", 0, 0, 0);
+            // Marker for subpaths
+            drawMark(id++, ((geometry_msgs::Pose)current_point).position, "paths", 0.2,0.2,0.2);
 
 
             paths_.push_back(current_segment);
@@ -651,7 +667,7 @@ void BehaviouralPathDriver::predictPose(Vector2d &front_pred, Vector2d &rear_pre
     double beta = std::atan(0.5*(std::tan(deltaf)+std::tan(deltar)));
     double ds = v*dt;
     double dtheta = ds*std::cos(beta)*(std::tan(deltaf)-std::tan(deltar))/options_.l_;
-    double thetan = dtheta;
+    double thetan = dtheta; //TODO <- why this ???
     double yn = ds*std::sin(dtheta*0.5+beta*0.5);
     double xn = ds*std::cos(dtheta*0.5+beta*0.5);
 

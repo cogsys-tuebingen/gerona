@@ -86,6 +86,7 @@ catkin_package(
 #  LIBRARIES path_msgs
 #  CATKIN_DEPENDS actionlib_msgs
 #  DEPENDS system_lib
+#  EXPORTED_TARGETS actionlib_msgs_generate_messages_cpp
 )
 
 ###########

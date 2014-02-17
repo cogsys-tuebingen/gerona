@@ -99,7 +99,7 @@ void PathController::handleFollowPathResult()
     path_msgs::NavigateToGoalResult nav_result;
 
     //TODO: do something more intelligent here :)
-    nav_result.status = follow_path_result_->status; //path_msgs::NavigateToGoalResult::STATUS_SUCCESS;
+    nav_result.status = follow_path_result_->status;
     nav_result.debug_test = follow_path_result_->debug_test;
 
 
