@@ -43,21 +43,38 @@ struct NonHolonomicNeighborhoodNoEndOrientation :
 };
 
 
+template <int n, int distance>
+struct NonHolonomicNeighborhoodPrecise :
+        public NonHolonomicNeighborhood<n, distance> {
+    typedef NonHolonomicNeighborhood<n, distance> Parent;
+
+    using Parent::distance_step_pixel;
+
+    template <class NodeType>
+    static bool isNearEnough(NodeType* goal, NodeType* reference) {
+        return std::abs(goal->x - reference->x) <= 2 &&
+                std::abs(goal->y - reference->y) <= 2 &&
+                std::abs(MathHelper::AngleClamp(goal->theta - reference->theta)) < M_PI / 10;
+    }
+};
+
+
 struct Planner
 {
     enum { SCALE = 1 };
 
-    typedef NonHolonomicNeighborhood<50, 120> NHNeighbor;
+    typedef NonHolonomicNeighborhoodPrecise<50, 240> NHNeighbor;
     typedef NonHolonomicNeighborhoodNoEndOrientation<120, 200> NHNeighborNoEndOrientation;
 
 
     DEFINE_CONCRETE_ALGORITHM(AStarNoOrientation,
-                              Pose2d, GridMap2d, NHNeighborNoEndOrientation, NoExpansion,
+                              Pose2d, GridMap2d, NHNeighbor, NoExpansion,
                               HeuristicL2, DirectionalStateSpaceManager, PriorityQueueManager)
 
 //  TODO: make these two (or more?) selectable:
-    typedef AStarNoOrientationSearch<> AStar;
+    //typedef AStarNoOrientationSearch<> AStar;
 //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100> > AStar;
+        typedef AStarSearch<NHNeighbor> AStar;
 
     typedef AStar::PathT PathT;
 

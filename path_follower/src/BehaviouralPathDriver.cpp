@@ -220,7 +220,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
             return;
         }
 
-        drawSteeringArrow(0, slam_pose_msg_, delta_f, 1.0, 1.0, 1.0);
+        drawSteeringArrow(0, slam_pose_msg_, delta_f, 0.0, 1.0, 1.0);
 
         BehaviouralPathDriver::Command& cmd = getCommand();
 

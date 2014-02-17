@@ -14,7 +14,7 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/GetMap.h>
 
-#include <utils/LibRobot/Costmap.h>
+#include <utils_robot/Costmap.h>
 
 /**
  * example usage:

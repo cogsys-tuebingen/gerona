@@ -7,7 +7,7 @@
  *      Author: buck <sebastian.buck@student.uni-tuebingen.de>
  */
 
-#include "Stopwatch.h"
+#include <utils_general/Stopwatch.h>
 #include "CostmapNode.h"
 
 CostmapNode::CostmapNode(ros::NodeHandle &nh)
