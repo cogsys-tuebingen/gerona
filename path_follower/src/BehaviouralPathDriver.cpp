@@ -104,8 +104,13 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
         BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
 
         geometry_msgs::PoseStamped followup_next_wp_map;
-        followup_next_wp_map.pose = current_path[opt.wp_idx + 1];
         followup_next_wp_map.header.stamp = ros::Time::now();
+
+        if(opt.wp_idx + 1 == current_path.size()) {
+            followup_next_wp_map.pose = current_path[opt.wp_idx - 1];
+        } else {
+            followup_next_wp_map.pose = current_path[opt.wp_idx + 1];
+        }
 
         Line2d target_line;
         Vector3d followup_next_wp_local;
@@ -114,7 +119,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
             throw new BehaviourEmergencyBreak(parent_);
         }
         target_line = Line2d( next_wp_local_.head<2>(), followup_next_wp_local.head<2>());
-        visualizeLine(next_wp_map_, followup_next_wp_map);
+        visualizeLine(target_line);
 
         Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
         parent_.predictPose(front_pred, rear_pred);
@@ -186,16 +191,18 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
         }
     }
 
-    void visualizeLine(geometry_msgs::PoseStamped wp_map, geometry_msgs::PoseStamped next_wp)
+    void visualizeLine(const Line2d& line)
     {
-        geometry_msgs::Pose target_line_arrow;
-        target_line_arrow.position = next_wp.pose.position;
-        double dx = next_wp.pose.position.x - wp_map.pose.position.x;
-        double dy = next_wp.pose.position.y - wp_map.pose.position.y;
+        Eigen::Vector2d from = line.GetOrigin() - 5 * line.GetDirection();
+        Eigen::Vector2d to = line.GetOrigin() + 5 * line.GetDirection();
 
-        target_line_arrow.orientation = tf::createQuaternionMsgFromYaw(std::atan2(dy, dx));
+        geometry_msgs::Point f,t;
+        f.x = from(0);
+        f.y = from(1);
+        t.x = to(0);
+        t.y = to(1);
 
-        parent_.drawArrow(2, target_line_arrow, "line", 0.7, 0.2, 1.0);
+        parent_.drawLine(2, f, t, "/base_link", "line", 0.7, 0.2, 1.0);
     }
 
     void setCommand(double error, double speed)
@@ -291,6 +298,8 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase
         double e_angle = calculateAngleError();
 
         double e_combined = e_distance + e_angle;
+
+        parent_.drawCircle(2, next_wp_map_.pose.position, 0.5, "/map", "turning point", 1, 1, 1);
 
         // draw steer front
         drawSteeringArrow(1, slam_pose_msg_, e_angle, 0.2, 1.0, 0.2);
@@ -675,6 +684,50 @@ void BehaviouralPathDriver::predictPose(Vector2d &front_pred, Vector2d &rear_pre
     front_pred[1] = yn+sin(thetan)*options_.l_/2.0;
     rear_pred[0] = xn-cos(thetan)*options_.l_/2.0;
     rear_pred[1] = yn-sin(thetan)*options_.l_/2.0;
+}
+
+void BehaviouralPathDriver::drawLine(int id, const geometry_msgs::Point &from, const geometry_msgs::Point &to, const std::string& frame,
+                                     const std::string& ns, float r, float g, float b, double live)
+{
+    visualization_msgs::Marker marker;
+    marker.ns = ns;
+    marker.header.frame_id = frame;
+    marker.header.stamp = ros::Time();
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.id = id;
+    marker.lifetime = ros::Duration(live);
+    marker.color.r = r;
+    marker.color.g = g;
+    marker.color.b = b;
+    marker.color.a = 1.0;
+    marker.pose.orientation.w = 1.0;
+    marker.points.push_back(from);
+    marker.points.push_back(to);
+    marker.scale.x = 0.3;
+    marker.type = visualization_msgs::Marker::LINE_LIST;
+    vis_pub_.publish(marker);
+}
+
+void BehaviouralPathDriver::drawCircle(int id, const geometry_msgs::Point &center, double radius, const string &frame, const std::string& ns, float r, float g, float b, double live)
+{
+    visualization_msgs::Marker marker;
+    marker.ns = ns;
+    marker.header.frame_id = frame;
+    marker.header.stamp = ros::Time();
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.id = id;
+    marker.lifetime = ros::Duration(live);
+    marker.color.r = r;
+    marker.color.g = g;
+    marker.color.b = b;
+    marker.color.a = 1.0;
+    marker.pose.position = center;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = radius;
+    marker.scale.y = radius;
+    marker.scale.z = 0.1;
+    marker.type = visualization_msgs::Marker::CYLINDER;
+    vis_pub_.publish(marker);
 }
 
 void BehaviouralPathDriver::drawArrow(int id, const geometry_msgs::Pose& pose, const std::string& ns, float r, float g, float b, double live)
