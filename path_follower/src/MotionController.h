@@ -36,9 +36,30 @@ public:
   void setFilteredSpeed( const float speed ) {
       filtered_speed_ = speed;
   }
+  bool checkCollision( double course, double threshold, double width = 0.3, double length = 0.5 );
+
+  /**
+   * @brief Check if there is an obstacle within a rectangular box in front of the robot.
+   *
+   * The box is placed in front of the laser and is defined by its width and length as displayed in the "figure" below:
+   *
+   *          +------------------+
+   *  ##   ## |                  | |
+   *  ####### |                  | width
+   *  ####### |                  | |
+   *  ##   ## |                  |
+   *          +------------------+
+   *   ^robot     <- length ->
+   *
+   *
+   *
+   * @param box_width Width of the box, which is checked for obstacles.
+   * @param box_length Length of the box, which is checked for obstacles.
+   * @return true, if there is an obstacle in the box.
+   */
+  bool simpleCheckCollision(float box_width, float box_length);
 
 protected:
-  bool checkCollision( double course, double threshold, double width = 0.3, double length = 0.5 );
   float getFilteredSpeed() const {
       return filtered_speed_;
   }

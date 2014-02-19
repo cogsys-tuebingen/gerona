@@ -170,6 +170,8 @@ public:
         return slam_pose_;
     }
 
+    bool simpleCheckCollision(float box_width, float box_length, int dir_sign);
+
 protected:
     void clearActive();
 
@@ -180,6 +182,8 @@ private:
 
     ros::Publisher& cmd_pub_;
     ros::Publisher vis_pub_;
+
+    ros::Subscriber laser_sub_;
 
     Behaviour* active_behaviour_;
 

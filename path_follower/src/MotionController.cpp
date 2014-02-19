@@ -40,3 +40,30 @@ bool MotionController::checkCollision( double course, double threshold, double w
 
     return laser_env_.CheckCollision(laser_scan_.ranges,laser_scan_.angle_min,laser_scan_.angle_max, course, width, length, threshold );
 }
+
+bool MotionController::simpleCheckCollision(float box_width, float box_length)
+{
+    for (size_t i=0; i < laser_scan_.ranges.size(); ++i) {
+        // project point to carthesian coordinates
+        float angle = laser_scan_.angle_min + i * laser_scan_.angle_increment;
+        float px = laser_scan_.ranges[i] * cos(angle);
+        float py = laser_scan_.ranges[i] * sin(angle);
+
+
+        /* Point p is inside the rectangle, if
+         *    p.x in [-width/2, +width/2]
+         * and
+         *    p.y in [0, length]
+         */
+
+        if ( py >= -box_width/2 &&
+             py <=  box_width/2 &&
+             px >= 0 &&
+             px <= box_length )
+        {
+            return true;
+        }
+    }
+
+    return false;
+}

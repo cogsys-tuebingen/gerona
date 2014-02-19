@@ -209,6 +209,12 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
     {
         BehaviouralPathDriver::Options& opt = getOptions();
 
+        if (parent_.simpleCheckCollision(0.3, 0.5, dir_sign_)) {
+            ROS_WARN("Collision!");
+            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_COLLISION;
+            throw new BehaviourEmergencyBreak(parent_);
+        }
+
         // abort, if robot moves too far from the path
         //TODO: is this the best place to check for this?
         if (calculateDistanceToCurrentPathSegment() > opt.max_distance_to_path_) {
@@ -495,6 +501,8 @@ void BehaviourOnLine::getNextWaypoint()
 BehaviouralPathDriver::BehaviouralPathDriver(ros::Publisher &cmd_pub, PathFollower *node)
     : node_(node), private_nh_("~"), cmd_pub_(cmd_pub), active_behaviour_(NULL), pending_error_(-1)
 {
+    laser_sub_ = private_nh_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&BehaviouralPathDriver::laserCallback, this, _1));
+
     vis_pub_ = private_nh_.advertise<visualization_msgs::Marker>("/marker", 100);
     configure();
 }
@@ -809,6 +817,49 @@ void BehaviouralPathDriver::clearActive()
         delete active_behaviour_;
     }
     active_behaviour_ = NULL;
+}
+
+bool BehaviouralPathDriver::simpleCheckCollision(float box_width, float box_length, int dir_sign)
+{
+//    //visualize box
+//    geometry_msgs::Point p1, p2, p3, p4;
+//    p1.y = -box_width/2;  p1.x = 0;
+//    p2.y = -box_width/2;  p2.x = box_length;
+//    p3.y = +box_width/2;  p3.x = 0;
+//    p4.y = +box_width/2;  p4.x = box_length;
+//    drawLine(1, p1, p2, "laser", "collision_box", 1,1,0);
+//    drawLine(2, p2, p4, "laser", "collision_box", 1,1,0);
+//    drawLine(3, p1, p3, "laser", "collision_box", 1,1,0);
+//    drawLine(4, p3, p4, "laser", "collision_box", 1,1,0);
+
+    if (dir_sign < 0) {
+        // no collision check when driving backwards.
+        return false;
+    }
+
+    for (size_t i=0; i < laser_scan_.ranges.size(); ++i) {
+        // project point to carthesian coordinates
+        float angle = laser_scan_.angle_min + i * laser_scan_.angle_increment;
+        float px = laser_scan_.ranges[i] * cos(angle);
+        float py = laser_scan_.ranges[i] * sin(angle);
+
+
+        /* Point p is inside the rectangle, if
+             *    p.x in [-width/2, +width/2]
+             * and
+             *    p.y in [0, length]
+             */
+
+        if ( py >= -box_width/2 &&
+             py <=  box_width/2 &&
+             px >= 0 &&
+             px <= box_length )
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void BehaviouralPathDriver::publishCommand()
