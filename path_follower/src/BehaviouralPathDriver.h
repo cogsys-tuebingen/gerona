@@ -98,7 +98,14 @@ public:
         double goal_tolerance_;
         double l_;
         double dead_time_;
-        double max_speed_;
+
+        //! Minimum speed of the robot (needed, as the outdoor buggys can't handle velocities below about 0.3).
+        float min_velocity_;
+        //! Maximum velocity (to prevent the high level control from running amok).
+        float max_velocity_;
+        //! Desired velocity (defined by the action goal).
+        float velocity_;
+
         double steer_slow_threshold_;
 
         //! Maximum distance the robot is allowed to depart from the path. If this threshold is exceeded,

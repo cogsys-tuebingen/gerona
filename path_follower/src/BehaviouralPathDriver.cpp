@@ -205,7 +205,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
         parent_.drawLine(2, f, t, "/base_link", "line", 0.7, 0.2, 1.0);
     }
 
-    void setCommand(double error, double speed)
+    void setCommand(double error, double speed) //TODO: float would be sufficient for 'speed'
     {
         BehaviouralPathDriver::Options& opt = getOptions();
 
@@ -237,6 +237,15 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
         if(steer > getOptions().steer_slow_threshold_) {
             ROS_WARN_STREAM_THROTTLE(2, "slowing down");
             speed *= 0.5;
+        }
+
+        // make sure, the speed is in the allowed range
+        if (speed < getOptions().min_velocity_) {
+            speed = getOptions().min_velocity_;
+            ROS_WARN_THROTTLE(5, "Velocity is below minimum. It is set to minimum velocity.");
+        } else if (speed > getOptions().max_velocity_) {
+            speed = getOptions().max_velocity_;
+            ROS_WARN_THROTTLE(5, "Velocity is above maximum. Reduce to maximum velocity.");
         }
 
         cmd.steer_front = dir_sign_ * delta_f;
@@ -427,7 +436,7 @@ void BehaviourOnLine::execute(int *status)
     drawSteeringArrow(2, slam_pose_msg_, e_distance, 0.2, 0.2, 1.0);
     drawSteeringArrow(3, slam_pose_msg_, e_combined, 1.0, 0.2, 0.2);
 
-    double speed = getOptions().max_speed_;
+    float speed = getOptions().velocity_;
 
     if(dir_sign_ < 0) {
         speed *= 0.5;
@@ -580,6 +589,10 @@ void BehaviouralPathDriver::configure()
     nh.param( "l", options_.l_, 0.38 );
     nh.param( "steer_slow_threshold", options_.steer_slow_threshold_, 0.25 );
     nh.param( "max_distance_to_path", options_.max_distance_to_path_, 0.3 ); //TODO: find reasonable default value.
+
+    //NOTE: I think, it might be usefull to use global parameters here.
+    ros::param::param<float>("/navigation/min_velocity", options_.min_velocity_, 0.0);
+    ros::param::param<float>("/navigation/max_velocity", options_.max_velocity_, 2);
 
     double ta, kp, ki, i_max, delta_max, e_max;
     nh.param( "pid/ta", ta, 0.03 );
@@ -776,7 +789,7 @@ void BehaviouralPathDriver::drawMark(int id, const geometry_msgs::Point &pos, co
 void BehaviouralPathDriver::setGoal(const path_msgs::FollowPathGoal &goal)
 {
     pending_error_ = -1;
-    options_.max_speed_ = goal.velocity;
+    options_.velocity_ = goal.velocity;
 
     if ( goal.path.poses.size() < 2 ) {
         ROS_ERROR( "Got an invalid path with less than two poses." );
