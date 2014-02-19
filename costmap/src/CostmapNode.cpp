@@ -26,7 +26,7 @@ CostmapNode::CostmapNode(ros::NodeHandle &nh)
   nh.param("service_map", map_service, map_service);
 
   map_subscriber_ = nh.subscribe<nav_msgs::OccupancyGrid> (map_topic, 10, boost::bind(&CostmapNode::updateMapCallback, this, _1));
-  map_publisher_ = nh.advertise<nav_msgs::OccupancyGrid> (map_topic_result, 10);
+  map_publisher_ = nh.advertise<nav_msgs::OccupancyGrid> (map_topic_result, 10, true);
 
 
   map_service_client = nh.serviceClient<nav_msgs::GetMap> ("/dynamic_map");
@@ -51,17 +51,18 @@ void CostmapNode::updateMapCallback(const nav_msgs::OccupancyGridConstPtr &ptr)
 void CostmapNode::updateMap(const nav_msgs::OccupancyGrid &map)
   {
   map_data_.resize( map.info.width *map.info.height);
+  ROS_INFO_STREAM("map size is " << map.info.width << " * " << map.info.height);
 
   Stopwatch timer;
-  costmap_.grow(map.data, map.info.width, map.info.height,
+  costmap_.grow(map.data, map.info.height, map.info.width,
                 map_data_,
                 dilate_, erode_, threshold_, sampling_);
 
   double diff =  timer.elapsed() * 1000;
   running_avg_ticks_++;
   running_avg_ = (running_avg_ * (running_avg_ticks_-1) / running_avg_ticks_) + diff / running_avg_ticks_;
-//  ROS_INFO_STREAM("map inflation took " << diff << "ms [dilate: " << dilate_ << ", erode: " << erode_ <<
- //                 ", sampling: " << sampling_ << "] [avg. " << running_avg_ << "ms]");
+  ROS_INFO_STREAM("map inflation took " << diff << "ms [dilate: " << dilate_ << ", erode: " << erode_ <<
+                  ", sampling: " << sampling_ << "] [avg. " << running_avg_ << "ms]");
 
 
   current_map_.data = map_data_;

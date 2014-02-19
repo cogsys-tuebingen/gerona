@@ -63,7 +63,7 @@ struct Planner
 {
     enum { SCALE = 1 };
 
-    typedef NonHolonomicNeighborhoodPrecise<50, 240> NHNeighbor;
+    typedef NonHolonomicNeighborhoodPrecise<70, 240> NHNeighbor;
     typedef NonHolonomicNeighborhoodNoEndOrientation<120, 200> NHNeighborNoEndOrientation;
 
 
