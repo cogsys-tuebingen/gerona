@@ -95,7 +95,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
     //! Calculate the angle between the orientations of the waypoint and the robot.
     double calculateAngleError()
     {
-        return MathHelper::NormalizeAngle(tf::getYaw(next_wp_map_.pose.orientation) - tf::getYaw(slam_pose_msg_.orientation));
+        return MathHelper::AngleClamp(tf::getYaw(next_wp_map_.pose.orientation) - tf::getYaw(slam_pose_msg_.orientation));
     }
 
     double calculateLineError()
