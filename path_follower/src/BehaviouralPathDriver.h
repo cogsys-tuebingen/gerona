@@ -112,6 +112,9 @@ public:
         //! the path follower will abort.
         double max_distance_to_path_;
 
+        float collision_box_width_;
+        float collision_box_length_;
+
         int path_idx;
         int wp_idx;
     };
@@ -171,6 +174,8 @@ public:
     }
 
     bool simpleCheckCollision(float box_width, float box_length, int dir_sign);
+
+    bool checkCollision();
 
 protected:
     void clearActive();

@@ -52,6 +52,10 @@ protected:
     //! Very simple timeout class.
     class Timeout {
     public:
+        Timeout() {
+            reset();
+        }
+
         ros::Duration duration;
 
         void reset() {

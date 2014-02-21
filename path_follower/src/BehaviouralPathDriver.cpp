@@ -169,6 +169,8 @@ void BehaviouralPathDriver::configure()
     // use ros::param here, because nh.param can't handle floats...
     ros::param::param<float>( "~min_velocity", options_.min_velocity_, 0.4 );
     ros::param::param<float>( "~max_velocity", options_.max_velocity_, 2.0 );
+    ros::param::param<float>( "collision_box_width", options_.collision_box_width_, 0.5);
+    ros::param::param<float>( "collision_box_length", options_.collision_box_length_, 0.6);
 
     double ta, kp, ki, i_max, delta_max, e_max;
     nh.param( "pid/ta", ta, 0.03 );
@@ -429,10 +431,62 @@ bool BehaviouralPathDriver::simpleCheckCollision(float box_width, float box_leng
 
     float r = collision ? 1 : 0;
     float g = 1 - r;
-    drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.1);
-    drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.1);
-    drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.1);
-    drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.1);
+    drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
+    drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+    drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
+    drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+
+    return collision;
+}
+
+bool BehaviouralPathDriver::checkCollision()
+{
+    const float enlarge_factor = 0.5;
+
+    //TODO: box_length should be depending on velocity.
+    bool collision = MotionController::checkCollision(current_command_.steer_front, options_.collision_box_length_,
+                                                      enlarge_factor, options_.collision_box_width_);
+
+    // visualization
+    if (vis_pub_.getNumSubscribers() > 0) {
+        // code copied from LaserEnvironment::CheckCollision()
+        // (need to recalculate this here, since LaserEnvironment can not visualize)
+        float beta = current_command_.steer_front;
+        float width = options_.collision_box_width_;
+        float length = enlarge_factor;
+        float threshold = options_.collision_box_length_;
+        // corner points of the parallelogram
+        float ax,ay,bx,by,cx,cy;
+
+        float sbeta=std::sin(beta);
+        float cbeta=std::cos(beta);
+        ay=width/2.0f;
+        ax=0.0f;
+        by=-width/2.0f;
+        bx=0.0f;
+        if (beta > 0) {
+            ay += length*sbeta;
+        } else if (beta < 0) {
+            by += length*sbeta;
+        }
+        cy=ay+threshold*sbeta;
+        cx=ax+threshold*cbeta;
+
+
+        geometry_msgs::Point p1, p2, p3, p4;
+        p1.y = ay;  p1.x = ax;
+        p2.y = by;  p2.x = bx;
+        p3.y = cy;  p3.x = cx;
+        p4.y = p3.y + p2.y - p1.y;
+        p4.x = p3.x + p2.x - p1.x;
+
+        float r = collision ? 1 : 0;
+        float g = 1 - r;
+        drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
+        drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+        drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
+        drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+    }
 
     return collision;
 }

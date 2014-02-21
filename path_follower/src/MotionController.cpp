@@ -28,17 +28,18 @@ void MotionController::sonarCallback(const sensor_msgs::PointCloudConstPtr &data
     }
 }
 
-bool MotionController::checkCollision( double course, double threshold, double width, double length )
+bool MotionController::checkCollision(double course, double threshold, double width, double curve_enlarge_factor)
 {
-    if ((ros::Time::now() - sonar_stamp_).toSec() > 2 )
-        sonar_collision_ = false;
+//    if ((ros::Time::now() - sonar_stamp_).toSec() > 2 )
+//        sonar_collision_ = false;
 
     // Backwards?
     /*if ( fabs( MathHelper::AngleDelta( course, 0  )) > 0.5*M_PI ) {
         return sonar_collision_;
     }*/
 
-    return laser_env_.CheckCollision(laser_scan_.ranges,laser_scan_.angle_min,laser_scan_.angle_max, course, width, length, threshold );
+    return laser_env_.CheckCollision(laser_scan_.ranges,laser_scan_.angle_min,laser_scan_.angle_max, course, width,
+                                     curve_enlarge_factor, threshold);
 }
 
 bool MotionController::simpleCheckCollision(float box_width, float box_length)

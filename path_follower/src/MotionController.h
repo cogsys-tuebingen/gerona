@@ -33,7 +33,17 @@ public:
   void setFilteredSpeed( const float speed ) {
       filtered_speed_ = speed;
   }
-  bool checkCollision( double course, double threshold, double width = 0.3, double length = 0.5 );
+
+  /**
+   * @brief Check if there is an obstacle in front of the robot.
+   * @param course Angle of the current course (e.g. use steering angle).
+   * @param threshold Length of the collision box. If an object is within this distance, an collision is thrown.
+   * @param width Width of the collision box.
+   * @param curve_enlarge_factor The width of the box is enlarged a bit in curves. This argument controls how much (it is misleadingly called 'length' in LaserEnvironment).
+   * @return True, if there is an object within the collision box.
+   * @see LaserEnvironment::CheckCollision() for more details.
+   */
+  bool checkCollision(double course, double threshold, double width = 0.3, double curve_enlarge_factor = 0.5);
 
   /**
    * @brief Check if there is an obstacle within a rectangular box in front of the robot.
