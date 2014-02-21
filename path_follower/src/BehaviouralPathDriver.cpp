@@ -441,9 +441,11 @@ bool BehaviouralPathDriver::simpleCheckCollision(float box_width, float box_leng
 
 bool BehaviouralPathDriver::checkCollision()
 {
+    const float enlarge_factor = 0.5;
+
     //TODO: box_length should be depending on velocity.
     bool collision = MotionController::checkCollision(current_command_.steer_front, options_.collision_box_length_,
-                                                      options_.collision_box_width_);
+                                                      enlarge_factor, options_.collision_box_width_);
 
     // visualization
     if (vis_pub_.getNumSubscribers() > 0) {
@@ -451,6 +453,7 @@ bool BehaviouralPathDriver::checkCollision()
         // (need to recalculate this here, since LaserEnvironment can not visualize)
         float beta = current_command_.steer_front;
         float width = options_.collision_box_width_;
+        float length = enlarge_factor;
         float threshold = options_.collision_box_length_;
         // corner points of the parallelogram
         float ax,ay,bx,by,cx,cy;
@@ -461,6 +464,11 @@ bool BehaviouralPathDriver::checkCollision()
         ax=0.0f;
         by=-width/2.0f;
         bx=0.0f;
+        if (beta > 0) {
+            ay += length*sbeta;
+        } else if (beta < 0) {
+            by += length*sbeta;
+        }
         cy=ay+threshold*sbeta;
         cx=ax+threshold*cbeta;
 
