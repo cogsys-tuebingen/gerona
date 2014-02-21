@@ -135,7 +135,7 @@ struct Planner
         std::vector<uint8_t> data(w*h);
         int i = 0;
         for(std::vector<int8_t>::const_iterator it = map.data.begin(); it != map.data.end(); ++it) {
-            data[i++] = *it + 1;
+            data[i++] = *it;
         }
 
         map_info->set(data, w, h);
