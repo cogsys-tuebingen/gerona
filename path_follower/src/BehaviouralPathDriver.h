@@ -159,7 +159,7 @@ public:
 
     void setPath(const nav_msgs::Path& path);
     void drawArrow(int id, const geometry_msgs::Pose &pose, const std::string& ns, float r, float g, float b, double live = 3);
-    void drawLine(int id, const geometry_msgs::Point &from, const geometry_msgs::Point &to, const string &frame, const std::string& ns, float r, float g, float b, double live = 3);
+    void drawLine(int id, const geometry_msgs::Point &from, const geometry_msgs::Point &to, const string &frame, const std::string& ns, float r, float g, float b, double live = 3, float scale = 0.3);
     void drawCircle(int id, const geometry_msgs::Point &center, double radius, const string &frame, const std::string& ns, float r, float g, float b, double live = 3);
     void drawMark(int id, const geometry_msgs::Point &pos, const std::string& ns, float r, float g, float b);
     void predictPose(Vector2d &front_pred,

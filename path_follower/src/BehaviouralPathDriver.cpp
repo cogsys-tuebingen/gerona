@@ -67,7 +67,11 @@ struct BehaviourEmergencyBreak : public BehaviouralPathDriver::Behaviour
 {
     BehaviourEmergencyBreak(BehaviouralPathDriver& parent)
         : Behaviour(parent)
-    {}
+    {
+        // stop immediately
+        getCommand().velocity = 0;
+        parent_.publishCommand();
+    }
 
     void execute(int *status)
     {
@@ -209,7 +213,8 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
     {
         BehaviouralPathDriver::Options& opt = getOptions();
 
-        if (parent_.simpleCheckCollision(0.3, 0.5, dir_sign_)) {
+        //TODO: length of the collision box should rather be depending on the current velocity.
+        if (parent_.simpleCheckCollision(0.5, 0.5, dir_sign_)) {
             ROS_WARN("Collision!");
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_COLLISION;
             throw new BehaviourEmergencyBreak(parent_);
@@ -708,7 +713,7 @@ void BehaviouralPathDriver::predictPose(Vector2d &front_pred, Vector2d &rear_pre
 }
 
 void BehaviouralPathDriver::drawLine(int id, const geometry_msgs::Point &from, const geometry_msgs::Point &to, const std::string& frame,
-                                     const std::string& ns, float r, float g, float b, double live)
+                                     const std::string& ns, float r, float g, float b, double live, float scale)
 {
     visualization_msgs::Marker marker;
     marker.ns = ns;
@@ -724,7 +729,7 @@ void BehaviouralPathDriver::drawLine(int id, const geometry_msgs::Point &from, c
     marker.pose.orientation.w = 1.0;
     marker.points.push_back(from);
     marker.points.push_back(to);
-    marker.scale.x = 0.3;
+    marker.scale.x = scale;
     marker.type = visualization_msgs::Marker::LINE_LIST;
     vis_pub_.publish(marker);
 }
@@ -821,21 +826,13 @@ void BehaviouralPathDriver::clearActive()
 
 bool BehaviouralPathDriver::simpleCheckCollision(float box_width, float box_length, int dir_sign)
 {
-//    //visualize box
-//    geometry_msgs::Point p1, p2, p3, p4;
-//    p1.y = -box_width/2;  p1.x = 0;
-//    p2.y = -box_width/2;  p2.x = box_length;
-//    p3.y = +box_width/2;  p3.x = 0;
-//    p4.y = +box_width/2;  p4.x = box_length;
-//    drawLine(1, p1, p2, "laser", "collision_box", 1,1,0);
-//    drawLine(2, p2, p4, "laser", "collision_box", 1,1,0);
-//    drawLine(3, p1, p3, "laser", "collision_box", 1,1,0);
-//    drawLine(4, p3, p4, "laser", "collision_box", 1,1,0);
-
     if (dir_sign < 0) {
         // no collision check when driving backwards.
         return false;
     }
+
+
+    bool collision = false;
 
     for (size_t i=0; i < laser_scan_.ranges.size(); ++i) {
         // project point to carthesian coordinates
@@ -855,11 +852,26 @@ bool BehaviouralPathDriver::simpleCheckCollision(float box_width, float box_leng
              px >= 0 &&
              px <= box_length )
         {
-            return true;
+            collision = true;
+            break;
         }
     }
 
-    return false;
+    //visualize box
+    geometry_msgs::Point p1, p2, p3, p4;
+    p1.y = -box_width/2;  p1.x = 0;
+    p2.y = -box_width/2;  p2.x = box_length;
+    p3.y = +box_width/2;  p3.x = 0;
+    p4.y = +box_width/2;  p4.x = box_length;
+
+    float r = collision ? 1 : 0;
+    float g = 1 - r;
+    drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.1);
+    drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.1);
+    drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.1);
+    drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.1);
+
+    return collision;
 }
 
 void BehaviouralPathDriver::publishCommand()
