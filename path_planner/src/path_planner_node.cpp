@@ -43,6 +43,7 @@ struct NonHolonomicNeighborhoodNoEndOrientation :
 };
 
 
+// MORE PRECISE END POSITION
 template <int n, int distance>
 struct NonHolonomicNeighborhoodPrecise :
         public NonHolonomicNeighborhood<n, distance> {
@@ -52,8 +53,8 @@ struct NonHolonomicNeighborhoodPrecise :
 
     template <class NodeType>
     static bool isNearEnough(NodeType* goal, NodeType* reference) {
-        return std::abs(goal->x - reference->x) <= 2 &&
-                std::abs(goal->y - reference->y) <= 2 &&
+        return std::abs(goal->x - reference->x) <= 1 &&
+                std::abs(goal->y - reference->y) <= 1 &&
                 std::abs(MathHelper::AngleClamp(goal->theta - reference->theta)) < M_PI / 10;
     }
 };
@@ -63,7 +64,8 @@ struct Planner
 {
     enum { SCALE = 1 };
 
-    typedef NonHolonomicNeighborhoodPrecise<70, 240> NHNeighbor;
+    //typedef NonHolonomicNeighborhoodPrecise<70, 240> NHNeighbor;
+    typedef NonHolonomicNeighborhoodPrecise<35, 120> NHNeighbor;
     typedef NonHolonomicNeighborhoodNoEndOrientation<120, 200> NHNeighborNoEndOrientation;
 
 
@@ -74,7 +76,7 @@ struct Planner
 //  TODO: make these two (or more?) selectable:
     //typedef AStarNoOrientationSearch<> AStar;
 //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100> > AStar;
-        typedef AStarSearch<NHNeighbor> AStar;
+        typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStar;
 
     typedef AStar::PathT PathT;
 
@@ -227,13 +229,51 @@ struct Planner
             ROS_INFO_STREAM("path with " << path.size() << " nodes found");
         }
 
-
-
-        PathT smooted_path = smoothPath(path, 0.5, 0.1);
+        PathT interpolated_path = interpolatePath(path, 1);
+        PathT smooted_path = smoothPath(interpolated_path, 0.5, 0.3);
 
         /// path
         raw_path_publisher.publish(path2msg(path, goal->header.stamp));
         path_publisher.publish(path2msg(smooted_path, goal->header.stamp));
+    }
+
+    void split(PathT& result, PathT::NodeT low, PathT::NodeT up, double max_distance) {
+        double distance = low.distance_to(up);
+        if(distance > max_distance) {
+            // split half way between the lower and the upper node
+            PathT::NodeT halfway(low);
+            halfway.x += (up.x - low.x) / 2.0;
+            halfway.y += (up.y - low.y) / 2.0;
+            halfway.theta += (up.theta - low.theta) / 2.0;
+
+            // first recursive descent in lower part
+            split(result, low, halfway, max_distance);
+            // then add the half way point
+            result.push_back(halfway);
+            // then descent in upper part
+            split(result, halfway, up, max_distance);
+        }
+    }
+
+    PathT interpolatePath(const PathT& path, double max_distance) {
+        unsigned n = path.size();
+        if(n < 2) {
+            return PathT();
+        }
+
+        PathT result;
+        result.push_back(path[0]);
+
+        for(int i = 1; i < n; ++i){
+            const PathT::NodeT* current = &path[i];
+
+            // split the segment, iff it is to large
+            split(result, path[i-1], path[i], max_distance);
+
+            // add the end of the segment (is not done, when splitting)
+            result.push_back(*current);
+        }
+        return result;
     }
 
     PathT smoothPath(const PathT& path, double weight_data, double weight_smooth, double tolerance = 0.000001) {
