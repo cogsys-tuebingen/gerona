@@ -33,7 +33,7 @@ public:
   void setFilteredSpeed( const float speed ) {
       filtered_speed_ = speed;
   }
-  bool checkCollision( double course, double threshold, double width = 0.3, double length = 0.5 );
+  bool checkCollision(double course, double threshold, double width = 0.3);
 
   /**
    * @brief Check if there is an obstacle within a rectangular box in front of the robot.

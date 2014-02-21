@@ -147,8 +147,8 @@ void BehaviourDriveBase::setCommand(double error, double speed) //TODO: float wo
 {
     BehaviouralPathDriver::Options& opt = getOptions();
 
-    //TODO: length of the collision box should rather be depending on the current velocity.
-    if (parent_.simpleCheckCollision(0.5, 0.5, dir_sign_)) {
+    // only check for collisions, while driving forward (there's no laser at the backside)
+    if (dir_sign_ > 0 && parent_.checkCollision()) {
         ROS_WARN("Collision!");
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_COLLISION;
         throw new BehaviourEmergencyBreak(parent_);
