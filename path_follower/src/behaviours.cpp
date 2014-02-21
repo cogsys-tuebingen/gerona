@@ -15,6 +15,14 @@ namespace {
 
 
 //##### BEGIN BehaviourDriveBase
+BehaviourDriveBase::BehaviourDriveBase(BehaviouralPathDriver &parent)
+    : Behaviour(parent)
+{
+    double wpto;
+    ros::param::param<double>("~waypoint_timeout", wpto, 10.0);
+    waypoint_timeout.duration = ros::Duration(wpto);
+}
+
 void BehaviourDriveBase::getSlamPose()
 {
     Vector3d slam_pose;
@@ -198,16 +206,115 @@ void BehaviourDriveBase::drawSteeringArrow(int id, geometry_msgs::Pose steer_arr
     parent_.drawArrow(id, steer_arrow, "steer", r, g, b);
 }
 
+void BehaviourDriveBase::checkWaypointTimeout()
+{
+    if (waypoint_timeout.isExpired()) {
+        ROS_WARN("Waypoint Timeout! The robot did not reach the next waypoint within %g sec. Abort path execution.",
+                 waypoint_timeout.duration.toSec());
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVE_FAIL;
+        throw new BehaviourEmergencyBreak(parent_);
+    }
+}
+
+
+
+
+//##### BEGIN BehaviourOnLine
+
+void BehaviourOnLine::execute(int *status)
+{
+    status_ptr_ = status;
+
+    getNextWaypoint();
+    checkWaypointTimeout();
+    getSlamPose();
+
+    dir_sign_ = sign(next_wp_local_.x());
+
+    // Calculate target line from current to next waypoint (if there is any)
+    double e_distance = calculateLineError();
+    double e_angle = calculateAngleError();
+
+    double e_combined = e_distance + e_angle;
+
+    // draw steer front
+    drawSteeringArrow(1, slam_pose_msg_, e_angle, 0.2, 1.0, 0.2);
+    drawSteeringArrow(2, slam_pose_msg_, e_distance, 0.2, 0.2, 1.0);
+    drawSteeringArrow(3, slam_pose_msg_, e_combined, 1.0, 0.2, 0.2);
+
+    float speed = getOptions().velocity_;
+
+    if(dir_sign_ < 0) {
+        speed *= 0.5;
+    }
+
+    setCommand(e_combined, speed);
+
+    *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+}
+
+
+void BehaviourOnLine::getNextWaypoint()
+{
+    BehaviouralPathDriver::Options& opt = getOptions();
+    BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+
+    assert(opt.wp_idx < (int) current_path.size());
+
+    int last_wp_idx = current_path.size() - 1;
+
+    double tolerance = opt.wp_tolerance_;
+
+    if(dir_sign_ < 0) {
+        tolerance *= 2;
+    }
+
+    // if distance to wp < threshold
+    while(distanceTo(current_path[opt.wp_idx]) < tolerance) {
+        if(opt.wp_idx >= last_wp_idx) {
+            // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
+            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+            throw new BehaviourApproachTurningPoint(parent_);
+        }
+        else {
+            // else choose next wp
+            opt.wp_idx++;
+
+            waypoint_timeout.reset();
+        }
+    }
+
+    parent_.drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
+    parent_.drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);
+
+    next_wp_map_.pose = current_path[opt.wp_idx];
+    next_wp_map_.header.stamp = ros::Time::now();
+
+    if ( !getNode().transformToLocal( next_wp_map_, next_wp_local_ )) {
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
+        throw new BehaviourEmergencyBreak(parent_);
+    }
+}
+
 
 
 
 //##### BEGIN BehaviourApproachTurningPoint
+
+BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(BehaviouralPathDriver &parent)
+    : BehaviourDriveBase(parent)
+{
+    // Start timeout in the c'tor, as ApproachTurningPoint handles only one waypoint (thus no restart within this
+    // behaviour is necessary).
+    waypoint_timeout.reset();
+}
 
 void BehaviourApproachTurningPoint::execute(int *status)
 {
     status_ptr_ = status;
 
     getNextWaypoint();
+    checkWaypointTimeout();
     getSlamPose();
 
     dir_sign_ = sign(next_wp_local_.x());
@@ -280,7 +387,7 @@ void BehaviourApproachTurningPoint::checkIfDone()
     //! Angle between the line from robot to waypoint and the waypoints orientation
     double angle = MathHelper::AngleClamp(std::atan2(delta(1), delta(0)) - std::atan2(target_dir(1), target_dir(0)));
 
-    ROS_WARN_STREAM("angle = " << angle);
+    ROS_WARN_STREAM_THROTTLE(1, "angle = " << angle);
 
     //        bool done = std::abs(angle) >= M_PI / 2;
     bool done = delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
@@ -311,83 +418,6 @@ void BehaviourApproachTurningPoint::getNextWaypoint()
 
     int last_wp_idx = current_path.size() - 1;
     opt.wp_idx = last_wp_idx;
-
-    parent_.drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
-    parent_.drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);
-
-    next_wp_map_.pose = current_path[opt.wp_idx];
-    next_wp_map_.header.stamp = ros::Time::now();
-
-    if ( !getNode().transformToLocal( next_wp_map_, next_wp_local_ )) {
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
-        throw new BehaviourEmergencyBreak(parent_);
-    }
-}
-
-
-
-//##### BEGIN BehaviourOnLine
-
-void BehaviourOnLine::execute(int *status)
-{
-    status_ptr_ = status;
-
-    getNextWaypoint();
-    getSlamPose();
-
-    dir_sign_ = sign(next_wp_local_.x());
-
-    // Calculate target line from current to next waypoint (if there is any)
-    double e_distance = calculateLineError();
-    double e_angle = calculateAngleError();
-
-    double e_combined = e_distance + e_angle;
-
-    // draw steer front
-    drawSteeringArrow(1, slam_pose_msg_, e_angle, 0.2, 1.0, 0.2);
-    drawSteeringArrow(2, slam_pose_msg_, e_distance, 0.2, 0.2, 1.0);
-    drawSteeringArrow(3, slam_pose_msg_, e_combined, 1.0, 0.2, 0.2);
-
-    float speed = getOptions().velocity_;
-
-    if(dir_sign_ < 0) {
-        speed *= 0.5;
-    }
-
-    setCommand(e_combined, speed);
-
-    *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
-}
-
-
-void BehaviourOnLine::getNextWaypoint()
-{
-    BehaviouralPathDriver::Options& opt = getOptions();
-    BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
-
-    assert(opt.wp_idx < (int) current_path.size());
-
-    int last_wp_idx = current_path.size() - 1;
-
-    double tolerance = opt.wp_tolerance_;
-
-    if(dir_sign_ < 0) {
-        tolerance *= 2;
-    }
-
-    // if distance to wp < threshold
-    while(distanceTo(current_path[opt.wp_idx]) < tolerance) {
-        if(opt.wp_idx >= last_wp_idx) {
-            // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
-            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
-            throw new BehaviourApproachTurningPoint(parent_);
-
-        }
-        else {
-            // else choose next wp
-            opt.wp_idx++;
-        }
-    }
 
     parent_.drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
     parent_.drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);

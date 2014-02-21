@@ -1,6 +1,8 @@
 #ifndef BEHAVIOURS_H
 #define BEHAVIOURS_H
 
+#include <ros/ros.h>
+
 #include "BehaviouralPathDriver.h"
 #include <utils_general/Line2d.h>
 
@@ -26,9 +28,7 @@ struct BehaviourEmergencyBreak : public motion_control::BehaviouralPathDriver::B
 
 struct BehaviourDriveBase : public motion_control::BehaviouralPathDriver::Behaviour
 {
-    BehaviourDriveBase(motion_control::BehaviouralPathDriver& parent)
-        : Behaviour(parent)
-    {}
+    BehaviourDriveBase(motion_control::BehaviouralPathDriver& parent);
 
     void getSlamPose();
 
@@ -49,13 +49,44 @@ struct BehaviourDriveBase : public motion_control::BehaviouralPathDriver::Behavi
     void drawSteeringArrow(int id, geometry_msgs::Pose steer_arrow, double angle, double r, double g, double b);
 
 protected:
+    //! Very simple timeout class.
+    class Timeout {
+    public:
+        ros::Duration duration;
+
+        void reset() {
+            started = ros::Time::now();
+        }
+
+        bool isExpired() {
+            return (started + duration) < ros::Time::now();
+        }
+
+    private:
+        ros::Time started;
+    };
+
+
+
     int* status_ptr_;
 
+    //! Pose of the robot.
     geometry_msgs::Pose slam_pose_msg_;
+
+    //! Pose of the next waypoint in map frame.
     geometry_msgs::PoseStamped next_wp_map_;
 
+    //! Pose of the next waypoint in robot frame.
     Vector3d next_wp_local_;
+
+    //! Indicates the direction of movement (>0 -> forward, <0 -> backward)
     double dir_sign_;
+
+    //! Timeout to abort, if the robot takes to long to reach the next waypoint.
+    Timeout waypoint_timeout;
+
+    //! Check if waypoint timeout has expired. If yes, switch to BehaviourEmergencyBreak.
+    void checkWaypointTimeout();
 };
 
 
@@ -74,9 +105,7 @@ struct BehaviourOnLine : public BehaviourDriveBase
 
 struct BehaviourApproachTurningPoint : public BehaviourDriveBase
 {
-    BehaviourApproachTurningPoint(motion_control::BehaviouralPathDriver& parent)
-        : BehaviourDriveBase(parent)
-    {}
+    BehaviourApproachTurningPoint(motion_control::BehaviouralPathDriver& parent);
 
     void execute(int *status);
 
