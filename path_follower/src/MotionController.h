@@ -11,9 +11,6 @@
 #include <sensor_msgs/PointCloud.h>
 #include <path_msgs/FollowPathAction.h>
 
-//using namespace Eigen;
-//using namespace motion_control;
-
 class PathFollower;
 
 class MotionController
