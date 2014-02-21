@@ -111,9 +111,11 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase
 
     double calculateDistanceError();
 
-    void checkIfDone();
+    void checkIfDone(bool done = false);
 
     void getNextWaypoint();
+
+    int step;
 };
 
 

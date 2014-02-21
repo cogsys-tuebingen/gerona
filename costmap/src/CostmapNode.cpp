@@ -54,6 +54,10 @@ void CostmapNode::updateMap(const nav_msgs::OccupancyGrid &map)
   ROS_INFO_STREAM("map size is " << map.info.width << " * " << map.info.height);
 
   Stopwatch timer;
+//  costmap_.growSimple(map.data, map.info.width, map.info.height,
+//                map_data_,
+//                dilate_, erode_, threshold_, sampling_);
+
   costmap_.grow(map.data, map.info.height, map.info.width,
                 map_data_,
                 dilate_, erode_, threshold_, sampling_);

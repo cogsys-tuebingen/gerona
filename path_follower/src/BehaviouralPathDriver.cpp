@@ -167,7 +167,7 @@ void BehaviouralPathDriver::configure()
     nh.param( "max_distance_to_path", options_.max_distance_to_path_, 0.3 ); //TODO: find reasonable default value.
 
     // use ros::param here, because nh.param can't handle floats...
-    ros::param::param<float>( "~min_velocity", options_.min_velocity_, 0.0 );
+    ros::param::param<float>( "~min_velocity", options_.min_velocity_, 0.4 );
     ros::param::param<float>( "~max_velocity", options_.max_velocity_, 2.0 );
 
     double ta, kp, ki, i_max, delta_max, e_max;

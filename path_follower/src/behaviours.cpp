@@ -21,6 +21,7 @@ BehaviourDriveBase::BehaviourDriveBase(BehaviouralPathDriver &parent)
     double wpto;
     ros::param::param<double>("~waypoint_timeout", wpto, 10.0);
     waypoint_timeout.duration = ros::Duration(wpto);
+    waypoint_timeout.reset();
 }
 
 void BehaviourDriveBase::getSlamPose()
@@ -302,7 +303,7 @@ void BehaviourOnLine::getNextWaypoint()
 //##### BEGIN BehaviourApproachTurningPoint
 
 BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(BehaviouralPathDriver &parent)
-    : BehaviourDriveBase(parent)
+    : BehaviourDriveBase(parent), step(0)
 {
     // Start timeout in the c'tor, as ApproachTurningPoint handles only one waypoint (thus no restart within this
     // behaviour is necessary).
@@ -317,7 +318,15 @@ void BehaviourApproachTurningPoint::execute(int *status)
     checkWaypointTimeout();
     getSlamPose();
 
-    dir_sign_ = sign(next_wp_local_.x());
+    // check if the sign changes
+    int dir_sign = sign(next_wp_local_.x());
+    if(step > 0 && dir_sign != dir_sign_) {
+        checkIfDone(true);
+    }
+
+    dir_sign_ = dir_sign;
+
+    ++step;
 
     // check if point is reached
     checkIfDone();
@@ -364,7 +373,7 @@ double BehaviourApproachTurningPoint::calculateDistanceError()
     return delta(1);
 }
 
-void BehaviourApproachTurningPoint::checkIfDone()
+void BehaviourApproachTurningPoint::checkIfDone(bool done)
 {
     //! Difference of current robot pose to the next waypoint.
     Vector2d delta;
@@ -390,7 +399,7 @@ void BehaviourApproachTurningPoint::checkIfDone()
     ROS_WARN_STREAM_THROTTLE(1, "angle = " << angle);
 
     //        bool done = std::abs(angle) >= M_PI / 2;
-    bool done = delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
+    done |= delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
 
     if(done) {
         ROS_WARN("DONE with angle = %g degree.", angle*180/M_PI);
