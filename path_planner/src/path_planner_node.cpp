@@ -8,21 +8,15 @@
 #ifndef PATH_PLANNER_NODE_HPP
 #define PATH_PLANNER_NODE_HPP
 
+/// COMPONENT
+#include "planner_node.h"
+
 /// PROJECT
 #include <utils_path/generic/Algorithms.hpp>
 #include <utils_path/generic/ReedsSheppExpansion.hpp>
-#include <utils_path/common/SimpleGridMap2d.h>
-
 
 /// SYSTEM
-#include <ros/ros.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <nav_msgs/OccupancyGrid.h>
-#include <tf/tf.h>
-#include <tf/transform_listener.h>
-#include <nav_msgs/GetMap.h>
 #include <nav_msgs/Path.h>
-#include <visualization_msgs/Marker.h>
 
 using namespace lib_path;
 
@@ -59,8 +53,10 @@ struct NonHolonomicNeighborhoodPrecise :
     }
 };
 
-
-struct Planner
+/**
+ * @brief The PathPlanner struct uses our custom planning algorithms to plan paths
+ */
+struct PathPlanner : public Planner
 {
     enum { SCALE = 1 };
 
@@ -73,77 +69,15 @@ struct Planner
                               Pose2d, GridMap2d, NHNeighbor, NoExpansion,
                               HeuristicL2, DirectionalStateSpaceManager, PriorityQueueManager)
 
-//  TODO: make these two (or more?) selectable:
+    //  TODO: make these two (or more?) selectable:
     //typedef AStarNoOrientationSearch<> AStar;
-//    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100> > AStar;
-        typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStar;
+    //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100> > AStar;
+    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStar;
 
     typedef AStar::PathT PathT;
 
-    Planner()
-        : nh("~"), map_info(NULL)
+    PathPlanner()
     {
-        std::string target_topic = "/move_base_simple/goal";
-        nh.param("target_topic", target_topic, target_topic);
-
-        goal_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>
-                (target_topic, 2, boost::bind(&Planner::updateGoal, this, _1));
-
-        nh.param("use_map_topic", use_map_topic_, false);
-        use_map_service_ = !use_map_topic_;
-
-        if(use_map_topic_) {
-          std::string map_topic = "/map/inflated";
-          nh.param("map_topic",map_topic, map_topic);
-          map_sub = nh.subscribe<nav_msgs::OccupancyGrid>
-                   (map_topic, 1, boost::bind(&Planner::updateMapCallback, this, _1));
-
-        } else {
-            map_service_client = nh.serviceClient<nav_msgs::GetMap>
-                    ("/dynamic_map/inflated");
-        }
-
-        base_frame_ = "/base_link";
-        nh.param("base_frame", base_frame_, base_frame_);
-
-
-        path_publisher = nh.advertise<nav_msgs::Path> ("/path", 10);
-        raw_path_publisher = nh.advertise<nav_msgs::Path> ("/path_raw", 10);
-    }
-
-    void updateMapCallback (const nav_msgs::OccupancyGridConstPtr &map) {
-        updateMap(*map);
-    }
-
-
-    void updateMap (const nav_msgs::OccupancyGrid &map) {
-        unsigned w = map.info.width;
-        unsigned h = map.info.height;
-
-        bool replace = map_info == NULL ||
-                map_info->getWidth() != w ||
-                map_info->getHeight() != h;
-
-        if(replace){
-            if(map_info != NULL) {
-                delete map_info;
-            }
-            map_info = new lib_path::SimpleGridMap2d(map.info.width, map.info.height, map.info.resolution);
-        }
-
-        /// Map data
-        /// -1: unknown -> 0
-        /// 0:100 probabilities -> 1 - 101
-        std::vector<uint8_t> data(w*h);
-        int i = 0;
-        for(std::vector<int8_t>::const_iterator it = map.data.begin(); it != map.data.end(); ++it) {
-            data[i++] = *it;
-        }
-
-        map_info->set(data, w, h);
-        map_info->setOrigin(Point2d(map.info.origin.position.x, map.info.origin.position.y));
-        map_info->setLowerThreshold(10);
-        map_info->setUpperThreshold(70);
     }
 
     nav_msgs::Path path2msg(const PathT& path, const ros::Time &goal_timestamp)
@@ -167,58 +101,9 @@ struct Planner
         return path_out;
     }
 
-    void updateGoal (const geometry_msgs::PoseStampedConstPtr &goal) {
-        ROS_INFO("got goal");
-        if(use_map_service_) {
-            nav_msgs::GetMap map_service;
-            if(map_service_client.call(map_service)) {
-                updateMap(map_service.response.map);
-            }
-        }
-
-        if(map_info == NULL) {
-            ROS_WARN("request for path planning, but no map there yet...");
-            return;
-        }
-
-        ROS_INFO("starting search");
-        lib_path::Pose2d from_world;
-        lib_path::Pose2d to_world;
-
-        tf::StampedTransform trafo;
-        tfl.lookupTransform("/map", base_frame_, ros::Time(0), trafo);
-
-        from_world.x = trafo.getOrigin().x();
-        from_world.y = trafo.getOrigin().y();
-        from_world.theta = tf::getYaw(trafo.getRotation());
-
-        ROS_WARN_STREAM("theta=" << from_world.theta);
-
-        to_world.x = goal->pose.position.x;
-        to_world.y = goal->pose.position.y;
-        to_world.theta = tf::getYaw(goal->pose.orientation);
-
-        lib_path::Pose2d from_map;
-        lib_path::Pose2d to_map;
-
-        {
-            unsigned fx, fy;
-            map_info->point2cell(from_world.x, from_world.y, fx, fy);
-            from_map.x = fx;
-            from_map.y = fy;
-            from_map.theta = from_world.theta;
-        }
-
-        ROS_WARN_STREAM("res=" << map_info->getResolution());
-        {
-            unsigned tx, ty;
-            map_info->point2cell(to_world.x, to_world.y, tx, ty);
-            to_map.x = tx;
-            to_map.y = ty;
-            to_map.theta = to_world.theta;
-        }
-
-
+    void plan (const geometry_msgs::PoseStamped &goal,
+               const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
+               const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
         algo.setMap(map_info);
 
         PathT path = algo.findPath(from_map, to_map);
@@ -233,8 +118,8 @@ struct Planner
         PathT smooted_path = smoothPath(interpolated_path, 0.5, 0.3);
 
         /// path
-        raw_path_publisher.publish(path2msg(path, goal->header.stamp));
-        path_publisher.publish(path2msg(smooted_path, goal->header.stamp));
+        raw_path_publisher.publish(path2msg(path, goal.header.stamp));
+        path_publisher.publish(path2msg(smooted_path, goal.header.stamp));
     }
 
     void split(PathT& result, PathT::NodeT low, PathT::NodeT up, double max_distance) {
@@ -384,31 +269,14 @@ struct Planner
     }
 
 private:
-    ros::NodeHandle nh;
-
-    ros::Subscriber goal_pose_sub;
-
-    ros::Subscriber map_sub;
-    ros::ServiceClient map_service_client;
-
-    ros::Publisher path_publisher;
-    ros::Publisher raw_path_publisher;
-
-    bool use_map_topic_;
-    bool use_map_service_;
-
-    lib_path::SimpleGridMap2d * map_info;
     AStar algo;
-
-    tf::TransformListener tfl;
-    std::string base_frame_;
 };
 
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "path_planner");
 
-    Planner planner;
+    PathPlanner planner;
 
     ros::WallRate r(30);
     while(ros::ok()){
