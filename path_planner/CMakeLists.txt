@@ -47,6 +47,7 @@ if(${OMPL_FOUND})
     )
 else()
     message("not building OMPL planner")
+    messge("if you want OMPL, see http://ompl.kavrakilab.org/download.html)")
 endif()
 
 if(${SBPL_FOUND})
@@ -58,6 +59,7 @@ if(${SBPL_FOUND})
         ${catkin_LIBRARIES} ${SBPL_LIBRARIES}
     )
 else()
-    message("not building SBPL planner")
+    message("not building SBPL planner (git clone https://github.com/sbpl/sbpl)")
+    message("if you want SBPL, git clone https://github.com/sbpl/sbpl")
 endif()
 
