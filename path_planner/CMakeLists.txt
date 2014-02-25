@@ -59,7 +59,7 @@ if(${SBPL_FOUND})
         ${catkin_LIBRARIES} ${SBPL_LIBRARIES}
     )
 else()
-    message("not building SBPL planner (git clone https://github.com/sbpl/sbpl)")
+    message("not building SBPL planner")
     message("if you want SBPL, git clone https://github.com/sbpl/sbpl")
 endif()
 
