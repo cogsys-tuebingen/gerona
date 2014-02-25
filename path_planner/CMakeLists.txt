@@ -47,7 +47,7 @@ if(${OMPL_FOUND})
     )
 else()
     message("not building OMPL planner")
-    messge("if you want OMPL, see http://ompl.kavrakilab.org/download.html)")
+    message("if you want OMPL, see http://ompl.kavrakilab.org/download.html)")
 endif()
 
 if(${SBPL_FOUND})
