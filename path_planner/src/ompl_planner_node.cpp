@@ -133,8 +133,7 @@ private:
                 path.poses.push_back(pose);
             }
 
-            raw_path_publisher.publish(path);
-            path_publisher.publish(path);
+            publish(path);
         }
         else {
             ROS_WARN("no path found");

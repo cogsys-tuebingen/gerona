@@ -7,6 +7,7 @@ project(path_planner)
 find_package(catkin REQUIRED COMPONENTS nav_msgs utils_path roscpp std_msgs tf roslib)
 
 set(CMAKE_BUILD_TYPE Debug)
+add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 find_package(OMPL)

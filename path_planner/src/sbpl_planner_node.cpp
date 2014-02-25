@@ -118,7 +118,7 @@ struct SBPLPathPlanner : public Planner
 
     void plan(const geometry_msgs::PoseStamped &goal,
               const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-              const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map)
+              const lib_path::Pose2d&, const lib_path::Pose2d&)
     {
         params.startx = from_world.x - map_info->getOrigin().x;
         params.starty = from_world.y - map_info->getOrigin().y;
@@ -154,8 +154,7 @@ struct SBPLPathPlanner : public Planner
         path.header.stamp = goal.header.stamp;
         convertSolution(env, solution_stateIDs, path);
 
-        raw_path_publisher.publish(path);
-        path_publisher.publish(path);
+        publish(path);
     }
 
 private:
