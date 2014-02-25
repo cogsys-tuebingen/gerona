@@ -122,6 +122,7 @@ add_executable(path_control_node
 target_link_libraries(path_control_node
   ${catkin_LIBRARIES}
 )
+add_dependencies(path_control_node path_msgs_generate_messages_cpp)
 
 
 add_executable(highlevel_dummy
@@ -130,6 +131,7 @@ add_executable(highlevel_dummy
 target_link_libraries(highlevel_dummy
   ${catkin_LIBRARIES}
 )
+add_dependencies(highlevel_dummy path_msgs_generate_messages_cpp)
 
 
 #############
