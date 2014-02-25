@@ -26,8 +26,10 @@ Planner::Planner()
                 (map_topic, 1, boost::bind(&Planner::updateMapCallback, this, _1));
 
     } else {
+        std::string map_service = "/dynamic_map";
+        nh.param("map_service",map_service, map_service);
         map_service_client = nh.serviceClient<nav_msgs::GetMap>
-                ("/dynamic_map/inflated");
+                (map_service);
     }
 
     base_frame_ = "/base_link";

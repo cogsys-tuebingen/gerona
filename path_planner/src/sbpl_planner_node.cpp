@@ -35,13 +35,22 @@ struct SBPLPathPlanner : public Planner
         motPrimFilename = path + "/cfg/motion.mprim";
         nh.param("mot_prim_filename", motPrimFilename, motPrimFilename);
 
-        nh.param("half_width", half_width_, 0.1);
-        nh.param("half_length", half_length_, 0.15);
+        nh.param("half_width", half_width_, 0.15);
+        nh.param("half_length", half_length_, 0.2);
+
+        createFootprint();
     }
 
-    void updateMap(const nav_msgs::OccupancyGrid &map)
-    {
-        Planner::updateMap(map);
+    void initEnvironment(EnvironmentNAVXYTHETALAT& env) {
+
+        int width = map_info->getWidth();
+        int height = map_info->getHeight();
+        double cellsize_m = map_info->getResolution();
+
+        // initialize an environment
+        double nominalvel_mpersecs = 1.0;
+        double timetoturn45degsinplace_secs = 0;
+        unsigned char obsthresh = 10;
 
         params.mapdata = map_info->getData();
 
@@ -50,10 +59,12 @@ struct SBPLPathPlanner : public Planner
         params.goaltol_theta = 0.05;
 
         params.numThetas = 16;
+
+        env.InitializeEnv(width, height, perimeter, cellsize_m, nominalvel_mpersecs, timetoturn45degsinplace_secs, obsthresh, motPrimFilename.c_str(), params);
     }
 
     // creating the footprint
-    void createFootprint(vector<sbpl_2Dpt_t>& perimeter){
+    void createFootprint(){
         sbpl_2Dpt_t pt_m;
         pt_m.x = -half_length_;
         pt_m.y = -half_width_;
@@ -67,6 +78,8 @@ struct SBPLPathPlanner : public Planner
         pt_m.x = -half_length_;
         pt_m.y = half_width_;
         perimeter.push_back(pt_m);
+
+        std::cout << "footprint is (w x h) " << half_width_*2 << " x " << half_length_ *2 << std::endl;
     }
 
     boost::shared_ptr<SBPLPlanner> initializePlanner(EnvironmentNAVXYTHETALAT& env,
@@ -107,19 +120,6 @@ struct SBPLPathPlanner : public Planner
               const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
               const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map)
     {
-        // set the perimeter of the robot
-        std::vector<sbpl_2Dpt_t> perimeter;
-        createFootprint(perimeter);
-
-        // initialize an environment
-
-        int width = map_info->getWidth();
-        int height = map_info->getHeight();
-        double cellsize_m = map_info->getResolution();
-        double nominalvel_mpersecs = 1.0;
-        double timetoturn45degsinplace_secs = 0;
-        unsigned char obsthresh = 10;
-
         params.startx = from_world.x - map_info->getOrigin().x;
         params.starty = from_world.y - map_info->getOrigin().y;
         params.starttheta = from_world.theta;
@@ -128,12 +128,11 @@ struct SBPLPathPlanner : public Planner
         params.goaly = to_world.y - map_info->getOrigin().y;
         params.goaltheta = to_world.theta;
 
-        int start_id, goal_id;
+        EnvironmentNAVXYTHETALAT env;
+        initEnvironment(env);
 
-        env.InitializeEnv(width, height, perimeter, cellsize_m, nominalvel_mpersecs, timetoturn45degsinplace_secs, obsthresh, motPrimFilename.c_str(), params);
-
-        start_id = env.SetStart(params.startx, params.starty, params.starttheta);
-        goal_id = env.SetGoal(params.goalx, params.goaly, params.goaltheta);
+        int start_id = env.SetStart(params.startx, params.starty, params.starttheta);
+        int goal_id = env.SetGoal(params.goalx, params.goaly, params.goaltheta);
 
         // initialize a planner with start and goal state
         double initialEpsilon = 3.0;
@@ -160,12 +159,12 @@ struct SBPLPathPlanner : public Planner
     }
 
 private:
+    std::vector<sbpl_2Dpt_t> perimeter;
     std::string motPrimFilename;
 
     double half_width_;
     double half_length_;
 
-    EnvironmentNAVXYTHETALAT env;
     EnvNAVXYTHETALAT_InitParms params;
 };
 
