@@ -45,7 +45,7 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
     path_msgs::FollowPathGoal path_action_goal;
     path_action_goal.debug_test = goal->debug_test;
     path_action_goal.path = *requested_path_;
-    path_action_goal.velocity = 0.5; //FIXME: make this configurable (send speed from highlevel)
+    path_action_goal.velocity = goal->velocity;
     //TODO: ... set some more parameters here?...
 
     follow_path_client_.sendGoal(path_action_goal,

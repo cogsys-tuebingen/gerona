@@ -58,6 +58,7 @@ private:
         path_msgs::NavigateToGoalGoal goal;
         goal.goal_pose = *pose;
         goal.obstacle_mode = path_msgs::NavigateToGoalGoal::OBSTACLE_MODE_ABORT;
+        goal.velocity = 1.0;
         goal.debug_test = rand()%100;
 
         client_.sendGoal(goal,

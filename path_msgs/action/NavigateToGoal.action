@@ -4,6 +4,7 @@ uint8 OBSTACLE_MODE_REPLAN = 2
 
 geometry_msgs/PoseStamped goal_pose
 uint8 obstacle_mode
+float32 velocity
 
 uint8 debug_test
 
