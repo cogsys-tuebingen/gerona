@@ -169,8 +169,8 @@ void BehaviouralPathDriver::configure()
     // use ros::param here, because nh.param can't handle floats...
     ros::param::param<float>( "~min_velocity", options_.min_velocity_, 0.4 );
     ros::param::param<float>( "~max_velocity", options_.max_velocity_, 2.0 );
-    ros::param::param<float>( "collision_box_width", options_.collision_box_width_, 0.5);
-    ros::param::param<float>( "collision_box_length", options_.collision_box_length_, 0.6);
+    ros::param::param<float>( "~collision_box_width", options_.collision_box_width_, 0.5);
+    ros::param::param<float>( "~collision_box_length", options_.collision_box_length_, 0.6);
 
     double ta, kp, ki, i_max, delta_max, e_max;
     nh.param( "pid/ta", ta, 0.03 );
