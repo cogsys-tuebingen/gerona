@@ -12,7 +12,6 @@
 
 /**
  * @brief The PathController class
- * @todo define min. velocity for the rabots.
  */
 class PathController
 {
@@ -26,7 +25,14 @@ private:
     typedef actionlib::SimpleActionClient<path_msgs::FollowPathAction> FollowPathClient;
     typedef actionlib::SimpleClientGoalState GoalState;
 
+    struct Options {
+        //! Velocity which is used for unexpected paths (which come without action and thus have no specified velocity).
+        float unexpected_path_velocity;
+    };
+
     ros::NodeHandle node_handle_;
+
+    Options opt_;
 
     //! Action server that communicates with the high level control (the node that sends the goal points).
     NavToGoalServer navigate_to_goal_server_;

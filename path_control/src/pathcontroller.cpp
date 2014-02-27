@@ -10,6 +10,8 @@ PathController::PathController(ros::NodeHandle &nh):
     ROS_INFO("Wait for follow_path action server...");
     follow_path_client_.waitForServer();
 
+    ros::param::param<float>("~nonaction_velocity", opt_.unexpected_path_velocity, 0.5);
+
     goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0);
 
     navigate_to_goal_server_.start();
@@ -46,7 +48,6 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
     path_action_goal.debug_test = goal->debug_test;
     path_action_goal.path = *requested_path_;
     path_action_goal.velocity = goal->velocity;
-    //TODO: ... set some more parameters here?...
 
     follow_path_client_.sendGoal(path_action_goal,
                                  boost::bind(&PathController::followPathDoneCB, this, _1, _2),
@@ -149,7 +150,7 @@ void PathController::pathCallback(const nav_msgs::PathConstPtr &path)
             path_msgs::FollowPathGoal path_action_goal;
             path_action_goal.debug_test = 255;
             path_action_goal.path = *path;
-            path_action_goal.velocity = 0.5; //FIXME: make this configurable
+            path_action_goal.velocity = opt_.unexpected_path_velocity;
 
             // only simple callback that resets unexpected_path_, feedback is ignored.
             follow_path_client_.sendGoal(path_action_goal,
