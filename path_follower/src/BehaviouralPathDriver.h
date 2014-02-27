@@ -112,8 +112,12 @@ public:
         //! the path follower will abort.
         double max_distance_to_path_;
 
+        //! Width of the collisin box for obstacle avoidance.
         float collision_box_width_;
-        float collision_box_length_;
+        //! Minimum width of the collision box for obstacle avoidance (grows with increasing velocity).
+        float collision_box_min_length_;
+        //! This factor determines, how much the length of the box is increased, depending on the velocity.
+        float collision_box_velocity_factor_;
 
         int path_idx;
         int wp_idx;

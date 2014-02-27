@@ -170,7 +170,8 @@ void BehaviouralPathDriver::configure()
     ros::param::param<float>( "~min_velocity", options_.min_velocity_, 0.4 );
     ros::param::param<float>( "~max_velocity", options_.max_velocity_, 2.0 );
     ros::param::param<float>( "~collision_box_width", options_.collision_box_width_, 0.5);
-    ros::param::param<float>( "~collision_box_length", options_.collision_box_length_, 0.6);
+    ros::param::param<float>( "~collision_box_min_length", options_.collision_box_min_length_, 0.3);
+    ros::param::param<float>( "~collision_box_velocity_factor", options_.collision_box_velocity_factor_, 1); //TODO: find reasonable default value.
 
     double ta, kp, ki, i_max, delta_max, e_max;
     nh.param( "pid/ta", ta, 0.03 );
@@ -441,10 +442,20 @@ bool BehaviouralPathDriver::simpleCheckCollision(float box_width, float box_leng
 
 bool BehaviouralPathDriver::checkCollision()
 {
-    const float enlarge_factor = 0.5;
+    //! Factor which defines, how much the box is enlarged in curves.
+    const float enlarge_factor = 0.5; //TODO: should this be a parameter?
 
-    //TODO: box_length should be depending on velocity.
-    bool collision = MotionController::checkCollision(current_command_.steer_front, options_.collision_box_length_,
+    /* Calculate length of the collision box, depending on current velocity.
+     * v <= v_min:
+     *   length = min_length
+     * v > v_min:
+     *   length = min_length + factor * (v - v_min)
+     */
+    const float diff_to_min_velocity = current_command_.velocity - options_.min_velocity_;
+    const float box_length = options_.collision_box_min_length_
+            + options_.collision_box_velocity_factor_ * max(0.0f, diff_to_min_velocity);
+
+    bool collision = MotionController::checkCollision(current_command_.steer_front, box_length,
                                                       enlarge_factor, options_.collision_box_width_);
 
     // visualization
@@ -454,7 +465,7 @@ bool BehaviouralPathDriver::checkCollision()
         float beta = current_command_.steer_front;
         float width = options_.collision_box_width_;
         float length = enlarge_factor;
-        float threshold = options_.collision_box_length_;
+        float threshold = box_length;
         // corner points of the parallelogram
         float ax,ay,bx,by,cx,cy;
 
