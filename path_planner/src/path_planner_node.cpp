@@ -72,7 +72,7 @@ struct PathPlanner : public Planner
     //  TODO: make these two (or more?) selectable:
     //typedef AStarNoOrientationSearch<> AStar;
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100> > AStar;
-    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStar;
+    typedef AStarSearch<NHNeighbor/*, ReedsSheppExpansion<100, true, false>*/ > AStar;
 
     typedef AStar::PathT PathT;
 

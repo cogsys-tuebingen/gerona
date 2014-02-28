@@ -1,6 +1,9 @@
 /// HEADER
 #include "planner_node.h"
 
+/// PROJECT
+#include <utils_path/common/CollisionGridMap2d.h>
+
 /// SYSTEM
 #include <nav_msgs/GetMap.h>
 #include <nav_msgs/Path.h>
@@ -62,16 +65,30 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map) {
         if(map_info != NULL) {
             delete map_info;
         }
-        map_info = new lib_path::SimpleGridMap2d(map.info.width, map.info.height, map.info.resolution);
+        map_info = new lib_path::CollisionGridMap2d(map.info.width, map.info.height, map.info.resolution, 0.5/2, 0.3/2);
     }
 
-    /// Map data
-    /// -1: unknown -> 0
-    /// 0:100 probabilities -> 1 - 101
+    bool use_unknown;
+    nh.param("use_unknown_cells", use_unknown, false);
+
     std::vector<uint8_t> data(w*h);
+
     int i = 0;
-    for(std::vector<int8_t>::const_iterator it = map.data.begin(); it != map.data.end(); ++it) {
-        data[i++] = *it;
+    if(use_unknown) {
+        /// Map data
+        /// -1: unknown -> 0
+        /// 0:100 probabilities -> 1 - 101
+        for(std::vector<int8_t>::const_iterator it = map.data.begin(); it != map.data.end(); ++it) {
+            data[i++] = *it + 1;
+        }
+
+    } else {
+        /// Map data
+        /// -1: unknown -> -1
+        /// 0:100 probabilities -> 0 - 100
+        for(std::vector<int8_t>::const_iterator it = map.data.begin(); it != map.data.end(); ++it) {
+            data[i++] = *it;
+        }
     }
 
     map_info->set(data, w, h);
