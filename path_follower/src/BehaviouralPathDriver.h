@@ -163,6 +163,7 @@ public:
     virtual void setGoal(const path_msgs::FollowPathGoal& goal);
 
     void publishCommand();
+    PathFollower* getNode() const;
 
     void setPath(const nav_msgs::Path& path);
     void drawArrow(int id, const geometry_msgs::Pose &pose, const std::string& ns, float r, float g, float b, double live = 3);

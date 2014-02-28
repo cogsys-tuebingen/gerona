@@ -18,6 +18,7 @@
 #include <visualization_msgs/Marker.h>
 #include <utils_general/MathHelper.h>
 #include <cmath>
+#include <cxxabi.h>
 
 using namespace motion_control;
 using namespace Eigen;
@@ -62,6 +63,12 @@ BehaviouralPathDriver::Options& BehaviouralPathDriver::Behaviour::getOptions()
 
 
 
+namespace {
+std::string name(BehaviouralPathDriver::Behaviour* b) {
+    int status;
+    return abi::__cxa_demangle(typeid(*b).name(),  0, 0, &status);
+}
+}
 
 
 /// Controller class: BehaviouralPathDriver
@@ -82,7 +89,7 @@ void BehaviouralPathDriver::start()
     clearActive();
 
     active_behaviour_ = new BehaviourOnLine(*this);
-    ROS_INFO_STREAM("init with " << typeid(*active_behaviour_).name());
+    ROS_INFO_STREAM("init with " << name(active_behaviour_));
 }
 
 void BehaviouralPathDriver::stop()
@@ -129,11 +136,11 @@ int BehaviouralPathDriver::execute(path_msgs::FollowPathFeedback& fb, path_msgs:
 
     int status = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
     try {
-        ROS_DEBUG_STREAM("executing " << typeid(*active_behaviour_).name());
+        ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
         active_behaviour_->execute(&status);
 
     } catch(NullBehaviour* null) {
-        ROS_WARN_STREAM("stopping after " << typeid(*active_behaviour_).name());
+        ROS_WARN_STREAM("stopping after " << name(active_behaviour_));
         clearActive();
 
         assert(status == path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS);
@@ -141,7 +148,7 @@ int BehaviouralPathDriver::execute(path_msgs::FollowPathFeedback& fb, path_msgs:
         current_command_.velocity = 0;
 
     } catch(Behaviour* next_behaviour) {
-        ROS_WARN_STREAM("switching behaviour from " << typeid(*active_behaviour_).name() << " to " << typeid(*next_behaviour).name() );
+        ROS_WARN_STREAM("switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) );
         clearActive();
         active_behaviour_ = next_behaviour;
     }
@@ -451,7 +458,9 @@ bool BehaviouralPathDriver::checkCollision()
      * v > v_min:
      *   length = min_length + factor * (v - v_min)
      */
-    const float diff_to_min_velocity = current_command_.velocity - options_.min_velocity_;
+    float v = node_->getVelocity().linear.x;//current_command_.velocity;
+
+    const float diff_to_min_velocity = v - options_.min_velocity_;
     const float box_length = options_.collision_box_min_length_
             + options_.collision_box_velocity_factor_ * max(0.0f, diff_to_min_velocity);
 
@@ -500,6 +509,11 @@ bool BehaviouralPathDriver::checkCollision()
     }
 
     return collision;
+}
+
+PathFollower* BehaviouralPathDriver::getNode() const
+{
+    return node_;
 }
 
 void BehaviouralPathDriver::publishCommand()

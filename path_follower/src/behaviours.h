@@ -25,7 +25,6 @@ struct BehaviourEmergencyBreak : public motion_control::BehaviouralPathDriver::B
 };
 
 
-
 struct BehaviourDriveBase : public motion_control::BehaviouralPathDriver::Behaviour
 {
     BehaviourDriveBase(motion_control::BehaviouralPathDriver& parent);
@@ -115,11 +114,12 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase
 
     double calculateDistanceError();
 
-    void checkIfDone(bool done = false);
+    bool checkIfDone(bool done = false);
 
     void getNextWaypoint();
 
     int step;
+    bool waiting_;
 };
 
 

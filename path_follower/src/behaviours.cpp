@@ -6,11 +6,11 @@ using namespace motion_control;
 using namespace Eigen;
 
 namespace {
-    double sign(double value) {
-        if (value < 0) return -1;
-        if (value > 0) return 1;
-        return 0;
-    }
+double sign(double value) {
+    if (value < 0) return -1;
+    if (value > 0) return 1;
+    return 0;
+}
 }
 
 
@@ -152,7 +152,10 @@ void BehaviourDriveBase::setCommand(double error, double speed) //TODO: float wo
     if (dir_sign_ > 0 && parent_.checkCollision()) {
         ROS_WARN("Collision!");
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_COLLISION;
-        throw new BehaviourEmergencyBreak(parent_);
+
+        getCommand().velocity = 0;
+        parent_.publishCommand();
+        return;
     }
 
     // abort, if robot moves too far from the path
@@ -303,7 +306,7 @@ void BehaviourOnLine::getNextWaypoint()
 //##### BEGIN BehaviourApproachTurningPoint
 
 BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(BehaviouralPathDriver &parent)
-    : BehaviourDriveBase(parent), step(0)
+    : BehaviourDriveBase(parent), step(0), waiting_(false)
 {
     // Start timeout in the c'tor, as ApproachTurningPoint handles only one waypoint (thus no restart within this
     // behaviour is necessary).
@@ -329,22 +332,25 @@ void BehaviourApproachTurningPoint::execute(int *status)
     ++step;
 
     // check if point is reached
-    checkIfDone();
+    if(!checkIfDone()) {
+        // Calculate target line from current to next waypoint (if there is any)
+        double e_distance = calculateDistanceError();
+        double e_angle = calculateAngleError();
 
-    // Calculate target line from current to next waypoint (if there is any)
-    double e_distance = calculateDistanceError();
-    double e_angle = calculateAngleError();
+        double e_combined = e_distance + e_angle;
 
-    double e_combined = e_distance + e_angle;
+        parent_.drawCircle(2, next_wp_map_.pose.position, 0.5, "/map", "turning point", 1, 1, 1);
 
-    parent_.drawCircle(2, next_wp_map_.pose.position, 0.5, "/map", "turning point", 1, 1, 1);
+        // draw steer front
+        drawSteeringArrow(1, slam_pose_msg_, e_angle, 0.2, 1.0, 0.2);
+        drawSteeringArrow(2, slam_pose_msg_, e_distance, 0.2, 0.2, 1.0);
+        drawSteeringArrow(3, slam_pose_msg_, e_combined, 1.0, 0.2, 0.2);
 
-    // draw steer front
-    drawSteeringArrow(1, slam_pose_msg_, e_angle, 0.2, 1.0, 0.2);
-    drawSteeringArrow(2, slam_pose_msg_, e_distance, 0.2, 0.2, 1.0);
-    drawSteeringArrow(3, slam_pose_msg_, e_combined, 1.0, 0.2, 0.2);
+        double distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
+        double velocity = std::min(0.1 + distance / 2.0, (double) getOptions().min_velocity_);
 
-    setCommand(e_combined, 0.1);
+        setCommand(e_combined, velocity);
+    }
 
     *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
 }
@@ -373,36 +379,51 @@ double BehaviourApproachTurningPoint::calculateDistanceError()
     return delta(1);
 }
 
-void BehaviourApproachTurningPoint::checkIfDone(bool done)
+bool BehaviourApproachTurningPoint::checkIfDone(bool done)
 {
-    //! Difference of current robot pose to the next waypoint.
-    Vector2d delta;
-    delta << next_wp_map_.pose.position.x - slam_pose_msg_.position.x,
-            next_wp_map_.pose.position.y - slam_pose_msg_.position.y;
+    BehaviouralPathDriver::Options& opt = getOptions();
 
-    if (dir_sign_ < 0) {
-        delta *= -1;
+    if(!waiting_) {
+        //! Difference of current robot pose to the next waypoint.
+        Vector2d delta;
+        delta << next_wp_map_.pose.position.x - slam_pose_msg_.position.x,
+                next_wp_map_.pose.position.y - slam_pose_msg_.position.y;
+
+        if (dir_sign_ < 0) {
+            delta *= -1;
+        }
+
+        BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+
+        //! Unit vector pointing in the direction of the next waypoints orientation.
+        Vector2d target_dir;
+        //NOTE: current_path[opt.wp_idx] == next_wp_map_ ??
+        target_dir << std::cos(current_path[opt.wp_idx].theta), std::sin(current_path[opt.wp_idx].theta);
+
+        // atan2(y,x) = angle of the vector.
+        //! Angle between the line from robot to waypoint and the waypoints orientation
+        double angle = MathHelper::AngleClamp(std::atan2(delta(1), delta(0)) - std::atan2(target_dir(1), target_dir(0)));
+
+        ROS_WARN_STREAM_THROTTLE(1, "angle = " << angle);
+
+        //        bool done = std::abs(angle) >= M_PI / 2;
+        done |= delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
     }
 
-    BehaviouralPathDriver::Options& opt = getOptions();
-    BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+    if(done || waiting_) {
+        getCommand().velocity = 0;
+        getCommand().steer_front = 0;
+        getCommand().steer_back= 0;
 
-    //! Unit vector pointing in the direction of the next waypoints orientation.
-    Vector2d target_dir;
-    //NOTE: current_path[opt.wp_idx] == next_wp_map_ ??
-    target_dir << std::cos(current_path[opt.wp_idx].theta), std::sin(current_path[opt.wp_idx].theta);
+        parent_.publishCommand();
 
-    // atan2(y,x) = angle of the vector.
-    //! Angle between the line from robot to waypoint and the waypoints orientation
-    double angle = MathHelper::AngleClamp(std::atan2(delta(1), delta(0)) - std::atan2(target_dir(1), target_dir(0)));
-
-    ROS_WARN_STREAM_THROTTLE(1, "angle = " << angle);
-
-    //        bool done = std::abs(angle) >= M_PI / 2;
-    done |= delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
-
-    if(done) {
-        ROS_WARN("DONE with angle = %g degree.", angle*180/M_PI);
+        if(std::abs(parent_.getNode()->getVelocity().linear.x) > 0.01) {
+            ROS_WARN_THROTTLE(1, "WAITING until no more motion");
+            waiting_ = true;
+            return true;
+        } else {
+            done = true;
+        }
 
         opt.path_idx++;
         opt.wp_idx = 0;
@@ -416,6 +437,8 @@ void BehaviourApproachTurningPoint::checkIfDone(bool done)
             throw new BehaviouralPathDriver::NullBehaviour;
         }
     }
+
+    return done;
 }
 
 void BehaviourApproachTurningPoint::getNextWaypoint()

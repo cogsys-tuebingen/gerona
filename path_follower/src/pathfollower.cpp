@@ -59,6 +59,7 @@ bool PathFollower::getWorldPose(Vector3d &pose , geometry_msgs::Pose *pose_out) 
 
     try {
         pose_listener_.lookupTransform(world_frame_, robot_frame_, ros::Time(0), transform);
+
     } catch (tf::TransformException& ex) {
         ROS_ERROR("error with transform robot pose: %s", ex.what());
         return false;
@@ -76,6 +77,20 @@ bool PathFollower::getWorldPose(Vector3d &pose , geometry_msgs::Pose *pose_out) 
         pose_out->orientation = msg.transform.rotation;
     }
     return true;
+}
+
+geometry_msgs::Twist PathFollower::getVelocity() const
+{
+//    geometry_msgs::Twist twist;
+//    try {
+//        pose_listener_.lookupTwist("/odom", robot_frame_, ros::Time(0), ros::Duration(0.01), twist);
+
+//    } catch (tf::TransformException& ex) {
+//        ROS_ERROR("error with transform robot pose: %s", ex.what());
+//        return geometry_msgs::Twist();
+//    }
+//    return twist;
+    return odometry_.twist.twist;
 }
 
 bool PathFollower::transformToLocal(const geometry_msgs::PoseStamped &global, Vector3d &local)

@@ -16,6 +16,7 @@ public:
     ~PathFollower();
 
     bool getWorldPose(Vector3d& pose, geometry_msgs::Pose* pose_out = NULL) const;
+    geometry_msgs::Twist getVelocity() const;
     bool transformToLocal(const geometry_msgs::PoseStamped& global, geometry_msgs::PoseStamped& local );
     bool transformToLocal(const geometry_msgs::PoseStamped& global, Vector3d& local );
     bool transformToGlobal(const geometry_msgs::PoseStamped& local, geometry_msgs::PoseStamped& global );
