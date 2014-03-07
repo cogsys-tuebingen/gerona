@@ -69,9 +69,18 @@ private:
     //! False if follow_path action is currently running, otherwise true.
     bool follow_path_done_;
 
+    //! True, if the currently executed path was unexpected.
     bool unexpected_path_;
 
+    //! The goal, that is currently executed.
+    path_msgs::NavigateToGoalGoalConstPtr current_goal_;
+
+
+
+
     void navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal);
+
+    bool processGoal();
 
     void handleFollowPathResult();
 

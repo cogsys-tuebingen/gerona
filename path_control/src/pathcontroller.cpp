@@ -32,13 +32,55 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
         follow_path_client_.cancelGoal();
     }
 
+    current_goal_ = goal;
+
+    switch (goal->failure_mode) {
+    case NavigateToGoalGoal::FAILURE_MODE_ABORT:
+        /// Abort mode. Simply process ones and abort, if some problem occurs.
+        processGoal();
+        handleFollowPathResult();
+        break;
+
+    case NavigateToGoalGoal::FAILURE_MODE_REPLAN:
+        /// Replan mode. If some problem occurs during path following, make new plan with same goal.
+        while(true) {
+            if (!processGoal()) {
+                // Follower aborted or goal got preempted. We are finished here, result is already send.
+                return;
+            }
+
+            // if follower reports success, we are done. If not, replan
+            if (follow_path_result_->status == FollowPathResult::MOTION_STATUS_SUCCESS) {
+                break;
+            } else {
+                ROS_WARN("Path execution failed. Replan.");
+                // send feedback
+                NavigateToGoalFeedback feedback;
+                feedback.status = NavigateToGoalFeedback::STATUS_REPLAN;
+                navigate_to_goal_server_.publishFeedback(feedback);
+            }
+        }
+
+        handleFollowPathResult();
+        break;
+
+    default:
+        ROS_ERROR("Invalid failure mode %d.", goal->failure_mode);
+        NavigateToGoalResult result;
+        result.status = NavigateToGoalResult::STATUS_OTHER_ERROR;
+        navigate_to_goal_server_.setAborted(result, "Invalid failure mode.");
+        break;
+    }
+}
+
+bool PathController::processGoal()
+{
     follow_path_done_ = false;
 
-    // ...
+    // send goal pose to planner and wait for the result
+    waitForPath(current_goal_->goal_pose);
 
-    waitForPath(goal->goal_pose);
-
-    // check path
+    // check, if path has been found
     if ( requested_path_->poses.size() < 2 ) {
         ROS_WARN("Got an invalid path with less than two poses. Abort goal.");
 
@@ -48,15 +90,15 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
 
         navigate_to_goal_server_.setAborted(result);
 
-        return;
+        return false;
     }
 
     // before we're continuing, check if the goal already has been preemted to avoid unnecessary start of follow_path
     // action
     if (navigate_to_goal_server_.isPreemptRequested()) {
-        ROS_INFO("Preempt goal [%d].\n---------------------", goal->debug_test);
+        ROS_INFO("Preempt goal [%d].\n---------------------", current_goal_->debug_test);
         navigate_to_goal_server_.setPreempted();
-        return;
+        return false;
     }
 
     // feedback about path
@@ -67,9 +109,9 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
     }
 
     path_msgs::FollowPathGoal path_action_goal;
-    path_action_goal.debug_test = goal->debug_test;
+    path_action_goal.debug_test = current_goal_->debug_test;
     path_action_goal.path = *requested_path_;
-    path_action_goal.velocity = goal->velocity;
+    path_action_goal.velocity = current_goal_->velocity;
 
     follow_path_client_.sendGoal(path_action_goal,
                                  boost::bind(&PathController::followPathDoneCB, this, _1, _2),
@@ -78,7 +120,7 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
 
     while ( ! follow_path_client_.getState().isDone() ) {
         if (navigate_to_goal_server_.isPreemptRequested()) {
-            ROS_INFO("Preempt goal [%d].\n---------------------", goal->debug_test);
+            ROS_INFO("Preempt goal [%d].\n---------------------", current_goal_->debug_test);
             follow_path_client_.cancelGoal();
             // wait until the goal is really canceled (= done callback is called).
             if (!waitForFollowPathDone(ros::Duration(10))) {
@@ -89,7 +131,7 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
 
             // don't check for new goal here. If there is one, it will cause a new execution of this callback, after
             // this instance has stopped.
-            return;
+            return false;
         }
 
         // As long as only one action client is active, a new goal should automatically preempt the former goal.
@@ -103,12 +145,6 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
 //        }
     }
 
-    handleFollowPathResult();
-}
-
-void PathController::handleFollowPathResult()
-{
-    /*** IMPORTANT: No matter, what the result is, the navigate_to_goal action has to be finished in some way! ***/
 
     // wait until the action is really finished
     if (!waitForFollowPathDone(ros::Duration(10))) {
@@ -116,8 +152,14 @@ void PathController::handleFollowPathResult()
         NavigateToGoalResult result;
         result.status = NavigateToGoalResult::STATUS_TIMEOUT;
         navigate_to_goal_server_.setAborted(result, "Wait for follow_path action to be finished, but timeout expired.");
-        return;
+        return false;
     }
+    return true;
+}
+
+void PathController::handleFollowPathResult()
+{
+    /*** IMPORTANT: No matter, what the result is, the navigate_to_goal action has to be finished in some way! ***/
 
     /// Construct result message
     path_msgs::NavigateToGoalResult nav_result;

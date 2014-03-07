@@ -1,9 +1,9 @@
 # Define the goal
-uint8 OBSTACLE_MODE_ABORT = 1
-uint8 OBSTACLE_MODE_REPLAN = 2
+uint8 FAILURE_MODE_ABORT = 0
+uint8 FAILURE_MODE_REPLAN = 1
 
 geometry_msgs/PoseStamped goal_pose
-uint8 obstacle_mode
+uint8 failure_mode
 float32 velocity
 
 uint8 debug_test
@@ -29,6 +29,7 @@ uint8 debug_test
 uint8 STATUS_MOVING = 1
 uint8 STATUS_COLLISION = 2
 uint8 STATUS_PATH_READY = 3
+uint8 STATUS_REPLAN = 4
 
 uint8 status
 uint8 debug_test

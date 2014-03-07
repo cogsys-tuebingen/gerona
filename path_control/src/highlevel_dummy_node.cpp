@@ -71,6 +71,10 @@ private:
             ROS_WARN_THROTTLE(1, "Feedback: Collision.");
             break;
 
+        case NavigateToGoalFeedback::STATUS_REPLAN:
+            ROS_WARN("Path is replaned.");
+            break;
+
         default:
             ROS_ERROR("Feedback: Unknown status code %d", feedback->status);
             break;
@@ -83,7 +87,7 @@ private:
 
         path_msgs::NavigateToGoalGoal goal;
         goal.goal_pose = *pose;
-        goal.obstacle_mode = path_msgs::NavigateToGoalGoal::OBSTACLE_MODE_ABORT;
+        goal.failure_mode = path_msgs::NavigateToGoalGoal::FAILURE_MODE_REPLAN;
         goal.velocity = 1.5;
         goal.debug_test = rand()%100;
 
