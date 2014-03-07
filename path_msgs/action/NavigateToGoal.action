@@ -16,6 +16,7 @@ uint8 STATUS_ABORTED = 2
 uint8 STATUS_COLLISION = 3
 uint8 STATUS_TIMEOUT = 4
 uint8 STATUS_LOST_PATH = 5
+uint8 STATUS_NO_PATH_FOUND = 6
 
 bool reached_goal
 uint8 status

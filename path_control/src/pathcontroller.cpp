@@ -38,6 +38,19 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
 
     waitForPath(goal->goal_pose);
 
+    // check path
+    if ( requested_path_->poses.size() < 2 ) {
+        ROS_WARN("Got an invalid path with less than two poses. Abort goal.");
+
+        NavigateToGoalResult result;
+        result.reached_goal = false;
+        result.status = NavigateToGoalResult::STATUS_NO_PATH_FOUND;
+
+        navigate_to_goal_server_.setAborted(result);
+
+        return;
+    }
+
     // before we're continuing, check if the goal already has been preemted to avoid unnecessary start of follow_path
     // action
     if (navigate_to_goal_server_.isPreemptRequested()) {
