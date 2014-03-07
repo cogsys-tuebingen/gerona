@@ -1,5 +1,7 @@
 #include "pathcontroller.h"
 
+using namespace path_msgs;
+
 PathController::PathController(ros::NodeHandle &nh):
     node_handle_(nh),
     navigate_to_goal_server_(nh, "navigate_to_goal", boost::bind(&PathController::navToGoalActionCallback, this, _1), false),
@@ -42,6 +44,13 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
         ROS_INFO("Preempt goal [%d].\n---------------------", goal->debug_test);
         navigate_to_goal_server_.setPreempted();
         return;
+    }
+
+    // feedback about path
+    {
+        NavigateToGoalFeedback feedback;
+        feedback.status = NavigateToGoalFeedback::STATUS_PATH_READY;
+        navigate_to_goal_server_.publishFeedback(feedback);
     }
 
     path_msgs::FollowPathGoal path_action_goal;
@@ -91,17 +100,42 @@ void PathController::handleFollowPathResult()
     // wait until the action is really finished
     if (!waitForFollowPathDone(ros::Duration(10))) {
         ROS_WARN("Wait for follow_path action to be finished, but timeout expired!");
-        navigate_to_goal_server_.setAborted(path_msgs::NavigateToGoalResult(), "Wait for follow_path action to be finished, but timeout expired.");
+        NavigateToGoalResult result;
+        result.status = NavigateToGoalResult::STATUS_TIMEOUT;
+        navigate_to_goal_server_.setAborted(result, "Wait for follow_path action to be finished, but timeout expired.");
         return;
     }
-
 
     /// Construct result message
     path_msgs::NavigateToGoalResult nav_result;
 
-    //TODO: do something more intelligent here :)
-    nav_result.status = follow_path_result_->status;
+    nav_result.reached_goal = (follow_path_result_->status == FollowPathResult::MOTION_STATUS_SUCCESS);
     nav_result.debug_test = follow_path_result_->debug_test;
+
+    ROS_DEBUG("FollowPathResult status = %d", follow_path_result_->status);
+
+    if (nav_result.reached_goal) {
+        nav_result.status = NavigateToGoalResult::STATUS_SUCCESS;
+    }
+    else {
+        switch (follow_path_result_->status) {
+        case FollowPathResult::MOTION_STATUS_COLLISION:
+            nav_result.status = NavigateToGoalResult::STATUS_COLLISION;
+            break;
+
+        case FollowPathResult::MOTION_STATUS_PATH_LOST:
+            nav_result.status = NavigateToGoalResult::STATUS_LOST_PATH;
+            break;
+
+        case FollowPathResult::MOTION_STATUS_TIMEOUT:
+            nav_result.status = NavigateToGoalResult::STATUS_TIMEOUT;
+            break;
+
+        default:
+            nav_result.status = NavigateToGoalResult::STATUS_OTHER_ERROR;
+            break;
+        }
+    }
 
 
     /* Terminate navigate_to_goal action according to the final state of the the follow_path action.
@@ -130,7 +164,7 @@ void PathController::handleFollowPathResult()
         navigate_to_goal_server_.setSucceeded(nav_result);
         break;
 
-    default: //TODO: Are there other states, that should be handled somehow?
+    default: // Are there other states, that should be handled somehow?
         ROS_ERROR("Unexpected final state of follow_path goal. navigate_to_goal is aborted. Maybe this is a bug. [file %s, line %d]",
                   __FILE__, __LINE__);
         navigate_to_goal_server_.setAborted(nav_result);
@@ -188,11 +222,24 @@ void PathController::followPathActiveCB()
 
 void PathController::followPathFeedbackCB(const path_msgs::FollowPathFeedbackConstPtr &feedback)
 {
-    ROS_INFO_THROTTLE(1,"Driven distance: %g;  Distance to goal: %g", feedback->dist_driven, feedback->dist_goal);
+    //ROS_INFO_THROTTLE(1,"Driven distance: %g;  Distance to goal: %g", feedback->dist_driven, feedback->dist_goal);
 
     path_msgs::NavigateToGoalFeedback nav_feedback;
-    //TODO: fill with something usefull
     nav_feedback.debug_test = feedback->debug_test;
+
+    switch(feedback->status) {
+    case FollowPathFeedback::MOTION_STATUS_MOVING:
+        nav_feedback.status = NavigateToGoalFeedback::STATUS_MOVING;
+        break;
+
+    case FollowPathFeedback::MOTION_STATUS_COLLISION:
+        nav_feedback.status = NavigateToGoalFeedback::STATUS_COLLISION;
+        break;
+
+    default:
+        ROS_ERROR("Feedback: Unknown status code %d", feedback->status);
+        break;
+    }
 
     navigate_to_goal_server_.publishFeedback(nav_feedback);
 }

@@ -215,7 +215,7 @@ void BehaviourDriveBase::checkWaypointTimeout()
     if (waypoint_timeout.isExpired()) {
         ROS_WARN("Waypoint Timeout! The robot did not reach the next waypoint within %g sec. Abort path execution.",
                  waypoint_timeout.duration.toSec());
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVE_FAIL;
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_TIMEOUT;
         throw new BehaviourEmergencyBreak(parent_);
     }
 }
@@ -254,7 +254,8 @@ void BehaviourOnLine::execute(int *status)
 
     setCommand(e_combined, speed);
 
-    *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+    //FIXME: status is set in setCommand and should not be overwritten here
+    //*status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
 }
 
 
@@ -308,9 +309,6 @@ void BehaviourOnLine::getNextWaypoint()
 BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(BehaviouralPathDriver &parent)
     : BehaviourDriveBase(parent), step(0), waiting_(false)
 {
-    // Start timeout in the c'tor, as ApproachTurningPoint handles only one waypoint (thus no restart within this
-    // behaviour is necessary).
-    waypoint_timeout.reset();
 }
 
 void BehaviourApproachTurningPoint::execute(int *status)
@@ -352,6 +350,7 @@ void BehaviourApproachTurningPoint::execute(int *status)
         setCommand(e_combined, velocity);
     }
 
+    //FIXME: status is set in setCommand and should not be overwritten here!?
     *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
 }
 

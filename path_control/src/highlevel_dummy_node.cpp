@@ -3,6 +3,8 @@
 #include <path_msgs/NavigateToGoalAction.h>
 #include <nav_msgs/OccupancyGrid.h>
 
+using namespace path_msgs;
+
 /**
  * @brief Simple high level control dummy for testing.
  *
@@ -35,8 +37,15 @@ private:
     void doneCb(const actionlib::SimpleClientGoalState& state,
                 const path_msgs::NavigateToGoalResultConstPtr& result)
     {
-        ROS_INFO("DONE [%d] with state %s", result->debug_test, state.toString().c_str());
-        ROS_INFO("Additional Text: %s", state.getText().c_str());
+        ROS_INFO("DONE [%d] with action state %s", result->debug_test, state.toString().c_str());
+        if (result->reached_goal) {
+            ROS_INFO("Successfully reached goal :)");
+        } else {
+            ROS_WARN("Did not reach goal :(");
+            char* status_names[6] = {"OTHER_ERROR", "SUCCESS", "ABORTED", "COLLISION", "TIMEOUT", "LOST_PATH"};
+            ROS_INFO("Result code: %d %s", result->status, status_names[result->status]);
+            ROS_INFO("Additional Text: %s", state.getText().c_str());
+        }
     }
 
     // Called once when the goal becomes active
@@ -49,6 +58,23 @@ private:
     void feedbackCb(const path_msgs::NavigateToGoalFeedbackConstPtr& feedback)
     {
         //ROS_INFO("Got Feedback [%d]", feedback->debug_test);
+        switch (feedback->status) {
+        case NavigateToGoalFeedback::STATUS_MOVING:
+            // nothing here
+            break;
+
+        case NavigateToGoalFeedback::STATUS_PATH_READY:
+            ROS_INFO("Feedback: Path is ready.");
+            break;
+
+        case NavigateToGoalFeedback::STATUS_COLLISION:
+            ROS_WARN_THROTTLE(1, "Feedback: Collision.");
+            break;
+
+        default:
+            ROS_ERROR("Feedback: Unknown status code %d", feedback->status);
+            break;
+        }
     }
 
     void goalCb(const geometry_msgs::PoseStampedConstPtr &pose)
@@ -58,7 +84,7 @@ private:
         path_msgs::NavigateToGoalGoal goal;
         goal.goal_pose = *pose;
         goal.obstacle_mode = path_msgs::NavigateToGoalGoal::OBSTACLE_MODE_ABORT;
-        goal.velocity = 1.0;
+        goal.velocity = 1.5;
         goal.debug_test = rand()%100;
 
         client_.sendGoal(goal,

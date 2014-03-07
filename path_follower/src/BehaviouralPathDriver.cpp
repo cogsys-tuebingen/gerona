@@ -22,6 +22,7 @@
 
 using namespace motion_control;
 using namespace Eigen;
+using namespace path_msgs;
 
 
 /// BEHAVIOUR BASE
@@ -101,12 +102,12 @@ void BehaviouralPathDriver::stop()
 
 int BehaviouralPathDriver::getType()
 {
-    //return path_msgs::FollowPathGoal::MOTION_FOLLOW_PATH;
+    //return FollowPathGoal::MOTION_FOLLOW_PATH;
     return 0; //TODO: change this, if different types are reimplemented.
 }
 
 
-int BehaviouralPathDriver::execute(path_msgs::FollowPathFeedback& fb, path_msgs::FollowPathResult& result)
+int BehaviouralPathDriver::execute(FollowPathFeedback& fb, FollowPathResult& result)
 {
     // Pending error?
     if ( pending_error_ >= 0 ) {
@@ -118,7 +119,7 @@ int BehaviouralPathDriver::execute(path_msgs::FollowPathFeedback& fb, path_msgs:
 
     if(paths_.empty()) {
         clearActive();
-        return path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
+        return FollowPathResult::MOTION_STATUS_SUCCESS;
     }
 
     if(active_behaviour_ == NULL) {
@@ -128,13 +129,13 @@ int BehaviouralPathDriver::execute(path_msgs::FollowPathFeedback& fb, path_msgs:
     geometry_msgs::Pose slampose_p;
     if ( !node_->getWorldPose( slam_pose_, &slampose_p )) {
         stop();
-        return path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
+        return FollowPathResult::MOTION_STATUS_SLAM_FAIL;
     }
 
     drawArrow(0, slampose_p, "slam pose", 2.0, 0.7, 1.0);
 
 
-    int status = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
+    int status = FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
     try {
         ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
         active_behaviour_->execute(&status);
@@ -143,7 +144,7 @@ int BehaviouralPathDriver::execute(path_msgs::FollowPathFeedback& fb, path_msgs:
         ROS_WARN_STREAM("stopping after " << name(active_behaviour_));
         clearActive();
 
-        assert(status == path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS);
+        assert(status == FollowPathResult::MOTION_STATUS_SUCCESS);
 
         current_command_.velocity = 0;
 
@@ -155,7 +156,8 @@ int BehaviouralPathDriver::execute(path_msgs::FollowPathFeedback& fb, path_msgs:
 
     publishCommand();
 
-    if(status != path_msgs::FollowPathResult::MOTION_STATUS_MOVING && active_behaviour_ != NULL) {
+    if(status != FollowPathResult::MOTION_STATUS_COLLISION) //FIXME: ugly hack for collision state. Make this better!!!
+    if(status != FollowPathResult::MOTION_STATUS_MOVING && active_behaviour_ != NULL) {
         ROS_INFO_STREAM("aborting, clearing active, status=" << status);
         clearActive();
     }
@@ -372,7 +374,7 @@ void BehaviouralPathDriver::drawMark(int id, const geometry_msgs::Point &pos, co
 }
 
 
-void BehaviouralPathDriver::setGoal(const path_msgs::FollowPathGoal &goal)
+void BehaviouralPathDriver::setGoal(const FollowPathGoal &goal)
 {
     pending_error_ = -1;
     options_.velocity_ = goal.velocity;
@@ -380,7 +382,7 @@ void BehaviouralPathDriver::setGoal(const path_msgs::FollowPathGoal &goal)
     if ( goal.path.poses.size() < 2 ) {
         ROS_ERROR( "Got an invalid path with less than two poses." );
         stop();
-        pending_error_ = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
+        pending_error_ = FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
         return;
     }
 

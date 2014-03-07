@@ -1,6 +1,8 @@
 #include "pathfollower.h"
 #include <geometry_msgs/Twist.h>
 
+using namespace path_msgs;
+
 PathFollower::PathFollower(ros::NodeHandle &nh):
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
@@ -33,7 +35,7 @@ PathFollower::~PathFollower()
 
 void PathFollower::followPathGoalCB()
 {
-    path_msgs::FollowPathGoalConstPtr goalptr = follow_path_server_.acceptNewGoal();
+    FollowPathGoalConstPtr goalptr = follow_path_server_.acceptNewGoal();
     ROS_INFO("Start Action!! [%d]", goalptr->debug_test);
 
     // stop current goal
@@ -140,30 +142,34 @@ void PathFollower::update()
 {
     //TODO: is isActive() good here?
     if (follow_path_server_.isActive() && active_ctrl_!=NULL) {
-        path_msgs::FollowPathFeedback feedback;
-        path_msgs::FollowPathResult result;
+        FollowPathFeedback feedback;
+        FollowPathResult result;
 
+        //FIXME: arguments are not used inside execute
         int status = active_ctrl_->execute(feedback, result);
 
-        switch (status) {
-        case path_msgs::FollowPathResult::MOTION_STATUS_STOP:
-            // nothing to do
-            break;
+        //TODO: differenciate between finished (result) and not finished goal (feedback).
 
-        case path_msgs::FollowPathResult::MOTION_STATUS_MOVING:
+        switch (status) {
+        case FollowPathResult::MOTION_STATUS_MOVING:
+            feedback.status = FollowPathFeedback::MOTION_STATUS_MOVING;
             follow_path_server_.publishFeedback(feedback);
             break;
 
-        case path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS:
-            result.status = path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
+        case FollowPathResult::MOTION_STATUS_SUCCESS:
+            result.status = FollowPathResult::MOTION_STATUS_SUCCESS;
             follow_path_server_.setSucceeded(result);
             //active_ctrl_ = NULL;
             break;
 
-        case path_msgs::FollowPathResult::MOTION_STATUS_COLLISION:
-        case path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR:
-        case path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL:
-        case path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST:
+        case FollowPathResult::MOTION_STATUS_COLLISION:
+            feedback.status = FollowPathFeedback::MOTION_STATUS_COLLISION;
+            follow_path_server_.publishFeedback(feedback);
+            break;
+
+        case FollowPathResult::MOTION_STATUS_INTERNAL_ERROR:
+        case FollowPathResult::MOTION_STATUS_SLAM_FAIL:
+        case FollowPathResult::MOTION_STATUS_PATH_LOST:
         default:
             result.status = status;
             follow_path_server_.setAborted(result);
