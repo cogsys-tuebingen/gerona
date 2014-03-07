@@ -253,9 +253,6 @@ void BehaviourOnLine::execute(int *status)
     }
 
     setCommand(e_combined, speed);
-
-    //FIXME: status is set in setCommand and should not be overwritten here
-    //*status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
 }
 
 
@@ -348,10 +345,10 @@ void BehaviourApproachTurningPoint::execute(int *status)
         double velocity = std::min(0.1 + distance / 2.0, (double) getOptions().min_velocity_);
 
         setCommand(e_combined, velocity);
+    } else {
+        // only set this in the else-case as setCommand() in the if case sets the status
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
     }
-
-    //FIXME: status is set in setCommand and should not be overwritten here!?
-    *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
 }
 
 double BehaviourApproachTurningPoint::calculateDistanceError()
