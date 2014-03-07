@@ -158,7 +158,13 @@ public:
     virtual void stop();
     virtual int getType();
 
-    virtual int execute(path_msgs::FollowPathFeedback& fb, path_msgs::FollowPathResult& result);
+    /**
+     * @brief execute
+     * @param feedback Feedback of the running path execution. Only meaningful, if return value is 1.
+     * @param result Result of the finished path execution. Only meaningful, if return value is 0.
+     * @return Returns 0 if the path execution is finished (no matter if successful or not) and 1 if it is still running.
+     */
+    virtual int execute(path_msgs::FollowPathFeedback& feedback, path_msgs::FollowPathResult& result);
     virtual void configure();
     virtual void setGoal(const path_msgs::FollowPathGoal& goal);
 

@@ -145,36 +145,16 @@ void PathFollower::update()
         FollowPathFeedback feedback;
         FollowPathResult result;
 
-        //FIXME: arguments are not used inside execute
-        int status = active_ctrl_->execute(feedback, result);
+        int is_running = active_ctrl_->execute(feedback, result);
 
-        //TODO: differenciate between finished (result) and not finished goal (feedback).
-
-        switch (status) {
-        case FollowPathResult::MOTION_STATUS_MOVING:
-            feedback.status = FollowPathFeedback::MOTION_STATUS_MOVING;
+        if (is_running) {
             follow_path_server_.publishFeedback(feedback);
-            break;
-
-        case FollowPathResult::MOTION_STATUS_SUCCESS:
-            result.status = FollowPathResult::MOTION_STATUS_SUCCESS;
-            follow_path_server_.setSucceeded(result);
-            //active_ctrl_ = NULL;
-            break;
-
-        case FollowPathResult::MOTION_STATUS_COLLISION:
-            feedback.status = FollowPathFeedback::MOTION_STATUS_COLLISION;
-            follow_path_server_.publishFeedback(feedback);
-            break;
-
-        case FollowPathResult::MOTION_STATUS_INTERNAL_ERROR:
-        case FollowPathResult::MOTION_STATUS_SLAM_FAIL:
-        case FollowPathResult::MOTION_STATUS_PATH_LOST:
-        default:
-            result.status = status;
-            follow_path_server_.setAborted(result);
-            //active_ctrl_ = NULL;
-            break;
+        } else {
+            if (result.status == FollowPathResult::MOTION_STATUS_SUCCESS) {
+                follow_path_server_.setSucceeded(result);
+            } else {
+                follow_path_server_.setAborted(result);
+            }
         }
     }
 }

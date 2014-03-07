@@ -107,19 +107,31 @@ int BehaviouralPathDriver::getType()
 }
 
 
-int BehaviouralPathDriver::execute(FollowPathFeedback& fb, FollowPathResult& result)
+int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResult& result)
 {
+    /* TODO:
+     * The global use of the result-constants as status codes is a bit problematic, as there are feedback
+     * states, which do not imply that the path execution is finished (and thus there is no result to send).
+     * This is currently the case for collisions.
+     */
+
+    // constants for return codes
+    const int DONE = 0;
+    const int MOVING = 1;
+
     // Pending error?
     if ( pending_error_ >= 0 ) {
-        int error = pending_error_;
+        result.status = pending_error_;
         pending_error_ = -1;
         stop();
-        return error;
+
+        return DONE;
     }
 
     if(paths_.empty()) {
         clearActive();
-        return FollowPathResult::MOTION_STATUS_SUCCESS;
+        result.status = FollowPathResult::MOTION_STATUS_SUCCESS;
+        return DONE;
     }
 
     if(active_behaviour_ == NULL) {
@@ -129,7 +141,8 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& fb, FollowPathResult& res
     geometry_msgs::Pose slampose_p;
     if ( !node_->getWorldPose( slam_pose_, &slampose_p )) {
         stop();
-        return FollowPathResult::MOTION_STATUS_SLAM_FAIL;
+        result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
+        return DONE;
     }
 
     drawArrow(0, slampose_p, "slam pose", 2.0, 0.7, 1.0);
@@ -156,13 +169,26 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& fb, FollowPathResult& res
 
     publishCommand();
 
-    if(status != FollowPathResult::MOTION_STATUS_COLLISION) //FIXME: ugly hack for collision state. Make this better!!!
-    if(status != FollowPathResult::MOTION_STATUS_MOVING && active_behaviour_ != NULL) {
+    if(status == FollowPathResult::MOTION_STATUS_COLLISION) {
+        // collision is not aborting (the obstacle might be moving away)
+        feedback.status = FollowPathFeedback::MOTION_STATUS_COLLISION;
+        return MOVING;
+    } else if (status == FollowPathResult::MOTION_STATUS_MOVING) {
+        feedback.status = FollowPathFeedback::MOTION_STATUS_MOVING;
+        return MOVING;
+    } else if (active_behaviour_ != NULL) {
         ROS_INFO_STREAM("aborting, clearing active, status=" << status);
         clearActive();
-    }
 
-    return status;
+        result.status = status;
+        return DONE;
+    }
+    //else
+    // I think status == FollowPathResult::MOTION_STATUS_SUCCESS should be the only possible case here.
+    if (status != FollowPathResult::MOTION_STATUS_SUCCESS) ROS_ERROR("I thought wrong... File: %s, Line: %d", __FILE__, __LINE__);
+
+    result.status = status;
+    return DONE;
 }
 
 void BehaviouralPathDriver::configure()
