@@ -42,7 +42,7 @@ private:
             ROS_INFO("Successfully reached goal :)");
         } else {
             ROS_WARN("Did not reach goal :(");
-            char* status_names[] = {"OTHER_ERROR", "SUCCESS", "ABORTED", "COLLISION", "TIMEOUT", "LOST_PATH", "NO_PATH_FOUND"};
+            const char* status_names[] = {"OTHER_ERROR", "SUCCESS", "ABORTED", "COLLISION", "TIMEOUT", "LOST_PATH", "NO_PATH_FOUND"};
             ROS_INFO("Result code: %d %s", result->status, status_names[result->status]);
             ROS_INFO("Additional Text: %s", state.getText().c_str());
         }

@@ -96,22 +96,35 @@ private:
 
     void subdividePath(nav_msgs::Path& result, geometry_msgs::PoseStamped low, geometry_msgs::PoseStamped up, double max_distance);
 
+    void visualizeOutline(const geometry_msgs::Pose &at, int id, const std::string &frame);
+    void visualizePath(const nav_msgs::Path& path);
+
 protected:
     ros::NodeHandle nh;
 
     bool use_map_topic_;
+    bool use_cost_map_;
     bool use_map_service_;
 
-    ros::Subscriber goal_pose_sub;
 
+    double size_forward;
+    double size_backward;
+    double size_width;
+
+    ros::Subscriber goal_pose_sub;
     ros::Subscriber map_sub;
+
     ros::ServiceClient map_service_client;
+    ros::ServiceClient cost_map_service_client;
+
+    ros::Publisher viz_pub;
 
     tf::TransformListener tfl;
 
     std::string base_frame_;
 
     lib_path::SimpleGridMap2d * map_info;
+    nav_msgs::OccupancyGrid cost_map;
 
 private:
     ros::Publisher path_publisher;

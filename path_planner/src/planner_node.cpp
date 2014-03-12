@@ -7,6 +7,7 @@
 /// SYSTEM
 #include <nav_msgs/GetMap.h>
 #include <nav_msgs/Path.h>
+#include <visualization_msgs/Marker.h>
 
 using namespace lib_path;
 
@@ -38,8 +39,25 @@ Planner::Planner()
         std::cout << "using map service " << map_service << std::endl;
     }
 
+
+    nh.param("use_cost_map", use_cost_map_, false);
+    if(use_cost_map_) {
+        std::string costmap_service = "/dynamic_map/cost";
+        nh.param("cost_map_service",costmap_service, costmap_service);
+        cost_map_service_client = nh.serviceClient<nav_msgs::GetMap> (costmap_service);
+
+        std::cout << "using cost map service " << costmap_service << std::endl;
+    }
+
+    viz_pub = nh.advertise<visualization_msgs::Marker>("/marker", 0);
+
     base_frame_ = "/base_link";
     nh.param("base_frame", base_frame_, base_frame_);
+
+
+    nh.param("size/forward", size_forward, 0.4);
+    nh.param("size/backward", size_backward, -0.6);
+    nh.param("size/width", size_width, 0.5);
 
     path_publisher = nh.advertise<nav_msgs::Path> ("/path", 10);
     raw_path_publisher = nh.advertise<nav_msgs::Path> ("/path_raw", 10);
@@ -65,7 +83,8 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map) {
         if(map_info != NULL) {
             delete map_info;
         }
-        map_info = new lib_path::CollisionGridMap2d(map.info.width, map.info.height, map.info.resolution, 0.5/2, 0.3/2);
+
+        map_info = new lib_path::CollisionGridMap2d(map.info.width, map.info.height, map.info.resolution, size_forward, size_backward, size_width);
     }
 
     bool use_unknown;
@@ -97,13 +116,135 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map) {
     map_info->setUpperThreshold(70);
 }
 
+void Planner::visualizeOutline(const geometry_msgs::Pose& at, int id, const std::string &frame)
+{
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = frame;
+    marker.header.stamp = ros::Time();
+    marker.ns = "planning/outline";
+    marker.id = id;
+    marker.type = visualization_msgs::Marker::LINE_LIST;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = 0.02;
+    marker.scale.y = 0.02;
+    marker.scale.z = 0.02;
+    marker.color.a = 0.75;
+    marker.color.r = 1.0;
+    marker.color.g = 1.0;
+    marker.color.b = 1.0;
+
+
+    tf::Pose fl_base(tf::createIdentityQuaternion(), tf::Vector3(size_forward, size_width / 2.0, 0.0));
+    tf::Pose fr_base(tf::createIdentityQuaternion(), tf::Vector3(size_forward, -size_width / 2.0, 0.0));
+    tf::Pose bl_base(tf::createIdentityQuaternion(), tf::Vector3(size_backward, size_width / 2.0, 0.0));
+    tf::Pose br_base(tf::createIdentityQuaternion(), tf::Vector3(size_backward, -size_width / 2.0, 0.0));
+
+    tf::Transform transform;
+    tf::poseMsgToTF(at, transform);
+
+    tf::Pose fl_ = transform * fl_base;
+    tf::Pose fr_ = transform * fr_base;
+    tf::Pose bl_ = transform * bl_base;
+    tf::Pose br_ = transform * br_base;
+
+    geometry_msgs::Point fl, fr, bl, br;
+    fl.x = fl_.getOrigin().x();
+    fl.y = fl_.getOrigin().y();
+    fr.x = fr_.getOrigin().x();
+    fr.y = fr_.getOrigin().y();
+    bl.x = bl_.getOrigin().x();
+    bl.y = bl_.getOrigin().y();
+    br.x = br_.getOrigin().x();
+    br.y = br_.getOrigin().y();
+
+
+    marker.points.push_back(fl);
+    marker.points.push_back(fr);
+    marker.points.push_back(fr);
+    marker.points.push_back(br);
+    marker.points.push_back(br);
+    marker.points.push_back(bl);
+    marker.points.push_back(bl);
+    marker.points.push_back(fl);
+
+    viz_pub.publish(marker);
+}
+
+void Planner::visualizePath(const nav_msgs::Path &path)
+{
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "/map";
+    marker.header.stamp = ros::Time();
+    marker.ns = "planning/steps";
+    marker.id = 0;
+    marker.type = visualization_msgs::Marker::LINE_LIST;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = 0.01;
+    marker.scale.y = 0.01;
+    marker.scale.z = 0.01;
+    marker.color.a = 0.5;
+    marker.color.r = 0.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.0;
+
+    tf::Pose fl_base(tf::createIdentityQuaternion(), tf::Vector3(size_forward, size_width / 2.0, 0.0));
+    tf::Pose fr_base(tf::createIdentityQuaternion(), tf::Vector3(size_forward, -size_width / 2.0, 0.0));
+    tf::Pose bl_base(tf::createIdentityQuaternion(), tf::Vector3(size_backward, size_width / 2.0, 0.0));
+    tf::Pose br_base(tf::createIdentityQuaternion(), tf::Vector3(size_backward, -size_width / 2.0, 0.0));
+
+    for(unsigned i = 0; i < path.poses.size(); ++i) {
+        const geometry_msgs::Pose& pose = path.poses[i].pose;
+        tf::Transform transform;
+        tf::poseMsgToTF(pose, transform);
+
+        tf::Pose fl_ = transform * fl_base;
+        tf::Pose fr_ = transform * fr_base;
+        tf::Pose bl_ = transform * bl_base;
+        tf::Pose br_ = transform * br_base;
+
+        geometry_msgs::Point fl, fr, bl, br;
+        fl.x = fl_.getOrigin().x();
+        fl.y = fl_.getOrigin().y();
+        fr.x = fr_.getOrigin().x();
+        fr.y = fr_.getOrigin().y();
+        bl.x = bl_.getOrigin().x();
+        bl.y = bl_.getOrigin().y();
+        br.x = br_.getOrigin().x();
+        br.y = br_.getOrigin().y();
+
+
+        marker.points.push_back(fl);
+        marker.points.push_back(fr);
+        marker.points.push_back(fr);
+        marker.points.push_back(br);
+        marker.points.push_back(br);
+        marker.points.push_back(bl);
+        marker.points.push_back(bl);
+        marker.points.push_back(fl);
+    }
+
+    viz_pub.publish(marker);
+}
+
 void Planner::updateGoalCallback(const geometry_msgs::PoseStampedConstPtr &goal)
 {
     ROS_INFO("got goal");
+
+    //  visualizeOutline();
+
     if(use_map_service_) {
         nav_msgs::GetMap map_service;
         if(map_service_client.call(map_service)) {
             updateMap(map_service.response.map);
+        }
+    }
+
+    if(use_cost_map_) {
+        nav_msgs::GetMap map_service;
+        if(cost_map_service_client.call(map_service)) {
+            cost_map = map_service.response.map;
         }
     }
 
@@ -128,6 +269,11 @@ void Planner::updateGoalCallback(const geometry_msgs::PoseStampedConstPtr &goal)
     to_world.x = goal->pose.position.x;
     to_world.y = goal->pose.position.y;
     to_world.theta = tf::getYaw(goal->pose.orientation);
+
+    geometry_msgs::Pose pose;
+    tf::poseTFToMsg(trafo, pose);
+    visualizeOutline(pose, 0, "/map");
+    visualizeOutline(goal->pose, 1, "/map");
 
     lib_path::Pose2d from_map;
     lib_path::Pose2d to_map;
@@ -276,12 +422,15 @@ Pose2d Planner::convert(const geometry_msgs::PoseStamped& rhs)
 
 void Planner::publish(const nav_msgs::Path &path)
 {
-    nav_msgs::Path interpolated_path = interpolatePath(path, 0.1);
-    nav_msgs::Path smooted_path = smoothPath(interpolated_path, 0.5, 0.3);
+    nav_msgs::Path pre_smooted_path = smoothPath(path, 0.9, 0.3);
+    nav_msgs::Path interpolated_path = interpolatePath(pre_smooted_path, 0.1);
+    nav_msgs::Path smooted_path = smoothPath(interpolated_path, 2.0, 0.3);
 
     /// path
     raw_path_publisher.publish(path);
     path_publisher.publish(smooted_path);
+
+    visualizePath(smooted_path);
 }
 
 nav_msgs::Path Planner::smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance) {

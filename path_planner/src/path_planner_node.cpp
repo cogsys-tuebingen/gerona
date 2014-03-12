@@ -100,10 +100,24 @@ struct PathPlanner : public Planner
         return path_out;
     }
 
+    double getCost(int x, int y)
+    {
+        if(x < 0 || y < 0 || x >= (int) cost_map.info.width || y >= (int) cost_map.info.height) {
+            return std::numeric_limits<double>::max();
+        }
+
+        static const double penalty_distance = 2.5;
+        return cost_map.data[cost_map.info.width * y + x] / 100.0 * map_info->getResolution() * penalty_distance;
+    }
+
     void plan (const geometry_msgs::PoseStamped &goal,
                const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
         algo.setMap(map_info);
+
+        if(use_cost_map_) {
+            algo.setCostFunction(boost::bind(&PathPlanner::getCost, this, _1, _2));
+        }
 
         PathT path = algo.findPath(from_map, to_map);
 
