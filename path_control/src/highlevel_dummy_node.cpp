@@ -59,7 +59,7 @@ private:
     {
         switch (feedback->status) {
         case NavigateToGoalFeedback::STATUS_MOVING:
-            // nothing here
+            ROS_INFO_THROTTLE(1, "Feedback: Moving");
             break;
 
         case NavigateToGoalFeedback::STATUS_PATH_READY:
@@ -72,6 +72,10 @@ private:
 
         case NavigateToGoalFeedback::STATUS_REPLAN:
             ROS_WARN("Path is replaned.");
+            break;
+
+        case NavigateToGoalFeedback::STATUS_REPLAN_FAILED:
+            ROS_ERROR("Replan failed.");
             break;
 
         default:

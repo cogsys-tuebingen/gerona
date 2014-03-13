@@ -28,6 +28,10 @@ private:
     struct Options {
         //! Velocity which is used for unexpected paths (which come without action and thus have no specified velocity).
         float unexpected_path_velocity;
+
+        //! Maximum number of replanning attempts on some failure. If the path execution still failes after this number
+        //! of replannings, the goal will be aborted.
+        int num_replan_attempts;
     };
 
     ros::NodeHandle node_handle_;

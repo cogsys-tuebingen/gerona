@@ -13,6 +13,7 @@ PathController::PathController(ros::NodeHandle &nh):
     follow_path_client_.waitForServer();
 
     ros::param::param<float>("~nonaction_velocity", opt_.unexpected_path_velocity, 0.5);
+    ros::param::param<int>("~num_replan_attempts", opt_.num_replan_attempts, 5);
 
     goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0);
 
@@ -43,7 +44,13 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
 
     case NavigateToGoalGoal::FAILURE_MODE_REPLAN:
         /// Replan mode. If some problem occurs during path following, make new plan with same goal.
-        while(true) {
+    { // need braces here, due to declaration of variables in case-block
+
+        // stop after n replanings to avoid getting stuck
+        int replan_counter = 0;
+        bool failed = true;
+
+        while(replan_counter <= opt_.num_replan_attempts) {
             if (!processGoal()) {
                 // Follower aborted or goal got preempted. We are finished here, result is already send.
                 return;
@@ -51,9 +58,12 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
 
             // if follower reports success, we are done. If not, replan
             if (follow_path_result_->status == FollowPathResult::MOTION_STATUS_SUCCESS) {
+                failed = false;
                 break;
             } else {
-                ROS_WARN("Path execution failed. Replan.");
+                ++replan_counter;
+
+                ROS_WARN("Path execution failed. Replan [%d].", replan_counter);
                 // send feedback
                 NavigateToGoalFeedback feedback;
                 feedback.status = NavigateToGoalFeedback::STATUS_REPLAN;
@@ -61,7 +71,16 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
             }
         }
 
+        if (failed) {
+            ROS_WARN("Path execution failed. Max number of replan attempts reached.", replan_counter);
+            // send feedback
+            NavigateToGoalFeedback feedback;
+            feedback.status = NavigateToGoalFeedback::STATUS_REPLAN_FAILED;
+            navigate_to_goal_server_.publishFeedback(feedback);
+        }
+
         handleFollowPathResult();
+    }
         break;
 
     default:
