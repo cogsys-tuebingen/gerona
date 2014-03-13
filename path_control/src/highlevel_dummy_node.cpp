@@ -37,7 +37,7 @@ private:
     void doneCb(const actionlib::SimpleClientGoalState& state,
                 const path_msgs::NavigateToGoalResultConstPtr& result)
     {
-        ROS_INFO("DONE [%d] with action state %s", result->debug_test, state.toString().c_str());
+        ROS_INFO("DONE with action state %s", state.toString().c_str());
         if (result->reached_goal) {
             ROS_INFO("Successfully reached goal :)");
         } else {
@@ -57,7 +57,6 @@ private:
     // Called every time feedback is received for the goal
     void feedbackCb(const path_msgs::NavigateToGoalFeedbackConstPtr& feedback)
     {
-        //ROS_INFO("Got Feedback [%d]", feedback->debug_test);
         switch (feedback->status) {
         case NavigateToGoalFeedback::STATUS_MOVING:
             // nothing here
@@ -89,7 +88,6 @@ private:
         goal.goal_pose = *pose;
         goal.failure_mode = path_msgs::NavigateToGoalGoal::FAILURE_MODE_REPLAN;
         goal.velocity = 1.5;
-        goal.debug_test = rand()%100;
 
         client_.sendGoal(goal,
                          boost::bind(&HighDummy::doneCb, this, _1, _2),

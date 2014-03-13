@@ -25,7 +25,7 @@ PathController::PathController(ros::NodeHandle &nh):
 
 void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal)
 {
-    ROS_INFO("Start Action!! [%d]", goal->debug_test);
+    ROS_INFO("Start Action!");
 
     if (unexpected_path_) {
         ROS_INFO("Cancel execution of unexpected path.");
@@ -96,7 +96,7 @@ bool PathController::processGoal()
     // before we're continuing, check if the goal already has been preemted to avoid unnecessary start of follow_path
     // action
     if (navigate_to_goal_server_.isPreemptRequested()) {
-        ROS_INFO("Preempt goal [%d].\n---------------------", current_goal_->debug_test);
+        ROS_INFO("Preempt goal.\n---------------------");
         navigate_to_goal_server_.setPreempted();
         return false;
     }
@@ -109,7 +109,6 @@ bool PathController::processGoal()
     }
 
     path_msgs::FollowPathGoal path_action_goal;
-    path_action_goal.debug_test = current_goal_->debug_test;
     path_action_goal.path = *requested_path_;
     path_action_goal.velocity = current_goal_->velocity;
 
@@ -120,7 +119,7 @@ bool PathController::processGoal()
 
     while ( ! follow_path_client_.getState().isDone() ) {
         if (navigate_to_goal_server_.isPreemptRequested()) {
-            ROS_INFO("Preempt goal [%d].\n---------------------", current_goal_->debug_test);
+            ROS_INFO("Preempt goal.\n---------------------");
             follow_path_client_.cancelGoal();
             // wait until the goal is really canceled (= done callback is called).
             if (!waitForFollowPathDone(ros::Duration(10))) {
@@ -138,7 +137,7 @@ bool PathController::processGoal()
         // Separately checking for new goals should only be necessary, if there are more than one clients (or a client
         // that gets restarted), which is currently not intended.
 //        if (navigate_to_goal_server_.isNewGoalAvailable()) {
-//            ROS_INFO("New goal available [%d].\n---------------------", goal->debug_test);
+//            ROS_INFO("New goal available.\n---------------------");
 //            follow_path_client_.cancelGoal();
 //            navigate_to_goal_server_.setPreempted();
 //            break;
@@ -165,7 +164,6 @@ void PathController::handleFollowPathResult()
     path_msgs::NavigateToGoalResult nav_result;
 
     nav_result.reached_goal = (follow_path_result_->status == FollowPathResult::MOTION_STATUS_SUCCESS);
-    nav_result.debug_test = follow_path_result_->debug_test;
 
     ROS_DEBUG("FollowPathResult status = %d", follow_path_result_->status);
 
@@ -237,7 +235,6 @@ void PathController::pathCallback(const nav_msgs::PathConstPtr &path)
             unexpected_path_ = true;
 
             path_msgs::FollowPathGoal path_action_goal;
-            path_action_goal.debug_test = 255;
             path_action_goal.path = *path;
             path_action_goal.velocity = opt_.unexpected_path_velocity;
 
@@ -262,7 +259,7 @@ void PathController::pathCallback(const nav_msgs::PathConstPtr &path)
 void PathController::followPathDoneCB(const actionlib::SimpleClientGoalState &state,
                                       const path_msgs::FollowPathResultConstPtr &result)
 {
-    ROS_INFO("Path execution finished [%d].\n---------------------", result->debug_test);
+    ROS_INFO("Path execution finished.\n---------------------");
 
     follow_path_final_state_ = state.state_;
     follow_path_result_ = result;
@@ -280,7 +277,6 @@ void PathController::followPathFeedbackCB(const path_msgs::FollowPathFeedbackCon
     //ROS_INFO_THROTTLE(1,"Driven distance: %g;  Distance to goal: %g", feedback->dist_driven, feedback->dist_goal);
 
     path_msgs::NavigateToGoalFeedback nav_feedback;
-    nav_feedback.debug_test = feedback->debug_test;
 
     switch(feedback->status) {
     case FollowPathFeedback::MOTION_STATUS_MOVING:
@@ -302,8 +298,7 @@ void PathController::followPathFeedbackCB(const path_msgs::FollowPathFeedbackCon
 void PathController::followUnexpectedPathDoneCB(const actionlib::SimpleClientGoalState &state,
                                                 const path_msgs::FollowPathResultConstPtr &result)
 {
-    ROS_INFO("Execution of unexpected path finished [%d, %s].\n---------------------",
-             result->debug_test,state.toString().c_str());
+    ROS_INFO("Execution of unexpected path finished [%s].\n---------------------", state.toString().c_str());
     unexpected_path_ = false;
 }
 

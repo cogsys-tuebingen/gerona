@@ -36,7 +36,7 @@ PathFollower::~PathFollower()
 void PathFollower::followPathGoalCB()
 {
     FollowPathGoalConstPtr goalptr = follow_path_server_.acceptNewGoal();
-    ROS_INFO("Start Action!! [%d]", goalptr->debug_test);
+    ROS_INFO("Start Action!");
 
     // stop current goal
     active_ctrl_->stop();

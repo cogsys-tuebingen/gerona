@@ -24,8 +24,6 @@ float32 velocity
 # fixed rear steering angle -- NOT USED
 ##float32 deltar
 
-uint8 debug_test
-
 ---
 #result definition
 
@@ -45,8 +43,6 @@ int8 status
 float32 dist_driven
 float32 dist_goal
 
-uint8 debug_test
-
 ---
 #feedback
 
@@ -57,5 +53,3 @@ uint8 mode
 uint8 status
 float32 dist_driven
 float32 dist_goal
-
-uint8 debug_test

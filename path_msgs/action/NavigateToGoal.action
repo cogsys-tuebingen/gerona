@@ -6,8 +6,6 @@ geometry_msgs/PoseStamped goal_pose
 uint8 failure_mode
 float32 velocity
 
-uint8 debug_test
-
 ---
 # Define the result
 uint8 STATUS_OTHER_ERROR = 0
@@ -20,7 +18,6 @@ uint8 STATUS_NO_PATH_FOUND = 6
 
 bool reached_goal
 uint8 status
-uint8 debug_test
 
 ---
 # Define a feedback message
@@ -32,4 +29,3 @@ uint8 STATUS_PATH_READY = 3
 uint8 STATUS_REPLAN = 4
 
 uint8 status
-uint8 debug_test
