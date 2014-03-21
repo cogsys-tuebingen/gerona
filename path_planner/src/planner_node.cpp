@@ -363,7 +363,7 @@ nav_msgs::Path Planner::smoothPath(const nav_msgs::Path& path, double weight_dat
     const geometry_msgs::PoseStamped * last_point = &path.poses[0];
     current_segment.poses.push_back(*last_point);
 
-    for(int i = 1; i < n; ++i){
+    for(int i = 0; i < n; ++i){
         const geometry_msgs::PoseStamped* current_point = &path.poses[i];
 
         // append to current segment

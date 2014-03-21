@@ -77,7 +77,15 @@ std::string name(BehaviouralPathDriver::Behaviour* b) {
 BehaviouralPathDriver::BehaviouralPathDriver(ros::Publisher &cmd_pub, PathFollower *node)
     : node_(node), private_nh_("~"), cmd_pub_(cmd_pub), active_behaviour_(NULL), pending_error_(-1)
 {
-    laser_sub_ = private_nh_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&BehaviouralPathDriver::laserCallback, this, _1));
+
+    private_nh_.param("use_obstacle_map", use_obstacle_map_, false);
+
+    if(use_obstacle_map_) {
+        obstacle_map_sub_ = private_nh_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&BehaviouralPathDriver::obstacleMapCallback, this, _1));
+
+    } else {
+        laser_sub_ = private_nh_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&BehaviouralPathDriver::laserCallback, this, _1));
+    }
 
     vis_pub_ = private_nh_.advertise<visualization_msgs::Marker>("/marker", 100);
     configure();
@@ -272,7 +280,6 @@ void BehaviouralPathDriver::setPath(const nav_msgs::Path& path)
             }
         }
 
-        ROS_INFO_STREAM("drawing #" << id);
         drawArrow(id++, current_point, "paths", 0, 0, 0);
         if(segment_ends_with_this_node) {
             // Marker for subpaths
@@ -494,6 +501,12 @@ bool BehaviouralPathDriver::checkCollision()
 
     bool collision = MotionController::checkCollision(current_command_.steer_front, box_length,
                                                       enlarge_factor, options_.collision_box_width_);
+
+//    bool collision = obstacle_detector_.isObstacleAhead(options_.collision_box_width_, box_length,
+//                                                        current_command_.steer_front, enlarge_factor);
+
+    //FIXME: hier gehts weiter!!
+
 
     // visualization
     if (vis_pub_.getNumSubscribers() > 0) {

@@ -49,7 +49,7 @@ struct NonHolonomicNeighborhoodPrecise :
     static bool isNearEnough(NodeType* goal, NodeType* reference) {
         return std::abs(goal->x - reference->x) <= 1 &&
                 std::abs(goal->y - reference->y) <= 1 &&
-                std::abs(MathHelper::AngleClamp(goal->theta - reference->theta)) < M_PI / 10;
+                std::abs(MathHelper::AngleClamp(goal->theta - reference->theta)) < M_PI / 16;
     }
 };
 

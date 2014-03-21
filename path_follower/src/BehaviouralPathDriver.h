@@ -200,6 +200,7 @@ private:
     ros::Publisher vis_pub_;
 
     ros::Subscriber laser_sub_;
+    ros::Subscriber obstacle_map_sub_;
 
     Behaviour* active_behaviour_;
 
