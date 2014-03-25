@@ -214,7 +214,18 @@ void BehaviouralPathDriver::configure()
     ros::param::param<float>( "~max_velocity", options_.max_velocity_, 2.0 );
     ros::param::param<float>( "~collision_box_width", options_.collision_box_width_, 0.5);
     ros::param::param<float>( "~collision_box_min_length", options_.collision_box_min_length_, 0.3);
-    ros::param::param<float>( "~collision_box_velocity_factor", options_.collision_box_velocity_factor_, 1); //TODO: find reasonable default value.
+    ros::param::param<float>( "~collision_box_max_length", options_.collision_box_max_length_, 1.0);
+    ros::param::param<float>( "~collision_box_velocity_factor", options_.collision_box_velocity_factor_, 1.0);
+    ros::param::param<float>( "~collision_box_velocity_saturation", options_.collision_box_velocity_saturation_, options_.max_velocity_);
+
+    if(options_.max_velocity_ < options_.min_velocity_) {
+        ROS_ERROR("min velocity larger than max velocity!");
+        options_.max_velocity_ = options_.min_velocity_;
+    }
+    if(options_.collision_box_min_length_ < options_.collision_box_max_length_) {
+        ROS_ERROR("min length larger than max length!");
+        options_.collision_box_min_length_ = options_.collision_box_max_length_;
+    }
 
     double ta, kp, ki, i_max, delta_max, e_max;
     nh.param( "pid/ta", ta, 0.03 );
@@ -490,14 +501,20 @@ bool BehaviouralPathDriver::checkCollision()
     /* Calculate length of the collision box, depending on current velocity.
      * v <= v_min:
      *   length = min_length
-     * v > v_min:
-     *   length = min_length + factor * (v - v_min)
+     * v > v_min && v < v_sat:
+     *   length  interpolated between min_length and max_length:
+     *   length = min_length + FACTOR * (max_length - min_length) * (v - v_min) / (v_sat - v_min)
+     * v >= v_sat:
+     *   length = max_length
      */
     float v = node_->getVelocity().linear.x;//current_command_.velocity;
 
     const float diff_to_min_velocity = v - options_.min_velocity_;
-    const float box_length = options_.collision_box_min_length_
-            + options_.collision_box_velocity_factor_ * max(0.0f, diff_to_min_velocity);
+    const float norm = options_.collision_box_velocity_saturation_ - options_.min_velocity_;
+    const float span = options_.collision_box_max_length_ - options_.collision_box_min_length_;
+    const float interp = std::max(0.0f, diff_to_min_velocity) / std::max(norm, 0.001f);
+    const float f = std::min(1.0f, options_.collision_box_velocity_factor_ * interp);
+    const float box_length = options_.collision_box_min_length_ + span * f;
 
     bool collision = MotionController::checkCollision(current_command_.steer_front, box_length,
                                                       enlarge_factor, options_.collision_box_width_);

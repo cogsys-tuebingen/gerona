@@ -3,6 +3,8 @@
 #include <utils_general/MathHelper.h>
 #include <opencv2/opencv.hpp>
 
+#define DEBUG 0
+
 MotionController::MotionController()
     : use_obstacle_map_(false),
       sonar_collision_( false ),
@@ -86,9 +88,10 @@ bool MotionController::checkCollision(double course, double threshold, double wi
 
         cv::Mat map_cv(obstacle_map_.info.height, obstacle_map_.info.width, CV_8SC1, obstacle_map_.data.data());
         cv::Mat mask(obstacle_map_.info.height, obstacle_map_.info.width, CV_8UC1, cv::Scalar::all(0));
-
-//        cv::Mat debug;
-//        map_cv.copyTo(debug);
+#if DEBUG
+        cv::Mat debug;
+        map_cv.copyTo(debug);
+#endif
 
         cv::Point2f o(-obstacle_map_.info.origin.position.x / res,
                     -obstacle_map_.info.origin.position.y / res);
@@ -124,18 +127,26 @@ bool MotionController::checkCollision(double course, double threshold, double wi
                 int y = rect.y + dy;
                 bool check = mask.at<uchar>(y,x) == 255;
                 if(check) {
-                    char& val = map_cv.at<char>(y,x);
+                    const char& val = map_cv.at<char>(y,x);
                     if(val > 70 && val <= 100) {
                         collision = true;
+#if DEBUG
+                        debug.at<char>(y,x) = 127;
+#endif
                     }
+#if DEBUG
+                    else {
+                        debug.at<char>(y,x) = -127;
+                    }
+#endif
                 }
             }
         }
-
-//        cv::imshow("obstacles", map_cv);
-//        cv::imshow("check", mask);
-//        cv::waitKey(30);
-
+#if DEBUG
+        cv::flip(debug, debug, 0);
+        cv::imshow("obstacles", debug);
+        cv::waitKey(30);
+#endif
         return collision;
 
     } else {

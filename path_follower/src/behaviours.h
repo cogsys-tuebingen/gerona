@@ -43,6 +43,7 @@ struct BehaviourDriveBase : public motion_control::BehaviouralPathDriver::Behavi
 
     void visualizeLine(const Line2d& line);
 
+    bool isCollision();
     void setCommand(double error, double speed);
 
     void drawSteeringArrow(int id, geometry_msgs::Pose steer_arrow, double angle, double r, double g, double b);
@@ -105,6 +106,14 @@ struct BehaviourOnLine : public BehaviourDriveBase
 };
 
 
+struct BehaviourAvoidObstacle : public BehaviourDriveBase
+{
+    BehaviourAvoidObstacle(motion_control::BehaviouralPathDriver& parent)
+        : BehaviourDriveBase(parent)
+    {}
+
+    void execute(int *status);
+};
 
 struct BehaviourApproachTurningPoint : public BehaviourDriveBase
 {

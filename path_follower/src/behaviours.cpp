@@ -144,12 +144,17 @@ void BehaviourDriveBase::visualizeLine(const Line2d &line)
     parent_.drawLine(2, f, t, "/base_link", "line", 0.7, 0.2, 1.0);
 }
 
+bool BehaviourDriveBase::isCollision()
+{
+    // only check for collisions, while driving forward (there's no laser at the backside)
+    return (dir_sign_ > 0 && parent_.checkCollision());
+}
+
 void BehaviourDriveBase::setCommand(double error, double speed) //TODO: float would be sufficient for 'speed'
 {
     BehaviouralPathDriver::Options& opt = getOptions();
 
-    // only check for collisions, while driving forward (there's no laser at the backside)
-    if (dir_sign_ > 0 && parent_.checkCollision()) {
+    if(isCollision()) {
         ROS_WARN_THROTTLE(1, "Collision!");
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_COLLISION; //FIXME: not so good to use result-constant if it is not finishing the action...
 
@@ -157,15 +162,6 @@ void BehaviourDriveBase::setCommand(double error, double speed) //TODO: float wo
         parent_.publishCommand();
         return;
     }
-
-    // abort, if robot moves too far from the path
-    //TODO: is this the best place to check for this?
-    if (calculateDistanceToCurrentPathSegment() > opt.max_distance_to_path_) {
-        ROS_WARN("Moved too far away from the path. Abort.");
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST;
-        throw new BehaviourEmergencyBreak(parent_);
-    }
-
 
     double delta_f = 0;
     double delta_r = 0; //!< currently not used.
@@ -252,6 +248,19 @@ void BehaviourOnLine::execute(int *status)
         speed *= 0.5;
     }
 
+    // if the robot is in this state, we assume that it is not avoiding any obstacles
+    // so we abort, if robot moves too far from the path
+    if (calculateDistanceToCurrentPathSegment() > getOptions().max_distance_to_path_) {
+        ROS_WARN("Moved too far away from the path. Abort.");
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST;
+        throw new BehaviourEmergencyBreak(parent_);
+    }
+
+    if (isCollision()) {
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+        throw new BehaviourAvoidObstacle(parent_);
+    }
+
     setCommand(e_combined, speed);
 }
 
@@ -298,6 +307,17 @@ void BehaviourOnLine::getNextWaypoint()
     }
 }
 
+
+
+//##### BEGIN BehaviourAvoidObstacle
+void BehaviourAvoidObstacle::execute(int *status)
+{
+    status_ptr_ = status;
+
+    ROS_WARN("Obstacle avoidance is not yet implemented");
+    *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
+    throw new BehaviourEmergencyBreak(parent_);
+}
 
 
 

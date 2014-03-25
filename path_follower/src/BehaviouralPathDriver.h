@@ -114,10 +114,14 @@ public:
 
         //! Width of the collisin box for obstacle avoidance.
         float collision_box_width_;
-        //! Minimum width of the collision box for obstacle avoidance (grows with increasing velocity).
+        //! Minimum length of the collision box for obstacle avoidance (grows with increasing velocity).
         float collision_box_min_length_;
+        //! Maximum length of the collision box for obstacle avoidance.
+        float collision_box_max_length_;
         //! This factor determines, how much the length of the box is increased, depending on the velocity.
         float collision_box_velocity_factor_;
+        //! The velocity for which the maximum length should be used
+        float collision_box_velocity_saturation_;
 
         int path_idx;
         int wp_idx;

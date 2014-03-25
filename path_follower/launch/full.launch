@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find path_follower)/launch/filter.launch" />
+  
+  <node pkg="path_planner" type="path_planner_node" name="path_planner_node" output="screen" respawn="true">
+    <param name="use_unknown_cells" value="true" />
+    <param name="use_cost_map" value="true" />
+  </node>
+  
+  <node pkg="costmap" type="costmap_gradient_node" name="costmap" output="screen" respawn="true" />
+
+  <node pkg="karto" type="slam_karto" name="slam_karto" output="screen" respawn="true">
+    <param name="map_update_interval" value="25"/>
+    <param name="resolution" value="0.05"/>
+    <remap from="/scan" to="/scan_filtered" />
+  </node>
+  
+  <node pkg="path_control" type="path_control_node" name="path_control_node" output="screen" respawn="true">
+    <param name="nonaction_velocity" value="1.0" />
+  </node>
+
+  <!--<include file="$(find path_follower)/launch/follower.launch" />-->
+</launch>
