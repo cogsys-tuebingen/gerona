@@ -1,6 +1,7 @@
 #include "obstacledetector.h"
 
 #include <Eigen/Core>
+//#include <opencv2/opencv.hpp> //TODO: only for debugging
 
 using namespace Eigen;
 
@@ -60,8 +61,20 @@ bool ObstacleDetector::isObstacleAhead(float width, float length, float steering
      */
 
 
-    Vector2f p(0.0f, width/2.0f);
-    Vector2f q = -p;
+    bool collision = false;
+
+
+//    cv::Mat debug(map_->info.height, map_->info.width, CV_8UC1, cv::Scalar::all(255));
+
+    // scale to map
+    width  /= map_->info.resolution;
+    length /= map_->info.resolution;
+    curve_enlarge_factor /= map_->info.resolution;
+
+    Vector2f o(-map_->info.origin.position.x / map_->info.resolution,
+               -map_->info.origin.position.y / map_->info.resolution);
+    Vector2f p = o + Vector2f(0.0f, width/2.0f);
+    Vector2f q = o - Vector2f(0.0f, width/2.0f);
 
     float sin_angle = std::sin(steering_angle);
     float cos_angle = std::cos(steering_angle);
@@ -81,11 +94,32 @@ bool ObstacleDetector::isObstacleAhead(float width, float length, float steering
 
     const unsigned data_size = map_->info.height * map_->info.width;
     for (unsigned i = 0; i < data_size; ++i) {
-        ROS_INFO("OM cell %d = %d", i, map_->data[i]);
+        /* for debugging
+        if (map_->data[i] == OCCUPIED)
+            debug.data[i] = 127;
+
+        // check if this map point is inside the parallelogram
+
+        Vector2f pa = Vector2f( i % map_->info.width, i / map_->info.width ) - p;
+
+        float det_pa_pq = pa(0)*pq(1) - pa(1)*pq(0);
+        float det_pa_pr = pa(0)*pr(1) - pa(1)*pr(0);
+
+        float check_1 = -det_pa_pq / det_pq_pr;
+        float check_2 =  det_pa_pr / det_pq_pr;
+
+        if (0 <= check_1 && check_1 <= 1  &&  0 <= check_2 && check_2 <= 1) {
+            debug.data[i] = 0;
+            if (map_->data[i] == OCCUPIED)
+                collision = true;
+        }
+        */
+
+
         if (map_->data[i] == OCCUPIED) {
             // check if this map point is inside the parallelogram
 
-            Vector2f pa( i % map_->info.width, i / map_->info.width );
+            Vector2f pa = Vector2f( i % map_->info.width, i / map_->info.width ) - p;
 
             float det_pa_pq = pa(0)*pq(1) - pa(1)*pq(0);
             float det_pa_pr = pa(0)*pr(1) - pa(1)*pr(0);
@@ -99,5 +133,12 @@ bool ObstacleDetector::isObstacleAhead(float width, float length, float steering
         }
     }
 
-    return false;
+
+//    cv::line(debug, cv::Point((int)p(0),(int)p(1)), cv::Point((int)q(0), (int)q(1)), cv::Scalar(0));
+//    cv::line(debug, cv::Point((int)p(0),(int)p(1)), cv::Point((int)r(0), (int)r(1)), cv::Scalar(0));
+
+//    cv::imshow("ObstacleBox", debug);
+
+    return collision;
+
 }

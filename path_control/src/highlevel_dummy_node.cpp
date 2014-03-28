@@ -91,7 +91,7 @@ private:
         path_msgs::NavigateToGoalGoal goal;
         goal.goal_pose = *pose;
         goal.failure_mode = path_msgs::NavigateToGoalGoal::FAILURE_MODE_ABORT;
-        goal.velocity = 1.5;
+        goal.velocity = 0.5;
 
         client_.sendGoal(goal,
                          boost::bind(&HighDummy::doneCb, this, _1, _2),
