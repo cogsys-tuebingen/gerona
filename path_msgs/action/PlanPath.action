@@ -1,0 +1,21 @@
+#goal definition
+
+geometry_msgs/PoseStamped start
+bool use_start
+
+geometry_msgs/PoseStamped goal
+
+---
+#result definition
+
+nav_msgs/Path path
+
+---
+#feedback
+
+uint8 STATUS_DONE = 0
+uint8 STATUS_PLANNING = 1
+uint8 STATUS_POST_PROCESSING = 2
+uint8 STATUS_PLANNING_FAILED = 10
+
+uint8 status

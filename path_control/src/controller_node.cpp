@@ -7,7 +7,11 @@ int main(int argc, char** argv) {
 
     PathController pc(nh);
 
-    ros::spin();
+    ros::Rate r(60);
+    while(ros::ok()) {
+        ros::spinOnce();
+        r.sleep();
+    }
     return 0;
 }
 

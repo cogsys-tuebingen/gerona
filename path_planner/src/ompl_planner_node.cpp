@@ -64,7 +64,7 @@ private:
         return map_info->isInMap((int) x,(int) y) && map_info->isFree(x,y);
     }
 
-    void plan (const geometry_msgs::PoseStamped &goal,
+    nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,
                const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
         setup.clear();
@@ -100,6 +100,10 @@ private:
 
         setup.solve(5);
 
+        nav_msgs::Path path;
+        path.header.frame_id = "/map";
+        path.header.stamp = goal.header.stamp;
+
         const std::size_t ns = setup.getProblemDefinition()->getSolutionCount();
         OMPL_INFORM("Found %d solutions", (int)ns);
         if (setup.haveSolutionPath()) {
@@ -116,9 +120,6 @@ private:
             p.interpolate();
 
 
-            nav_msgs::Path path;
-            path.header.frame_id = "/map";
-            path.header.stamp = goal.header.stamp;
             const std::vector<ob::State*>& states = p.getStates();
             for(std::vector<ob::State*>::const_iterator it = states.begin(); it != states.end(); ++it) {
                 ob::SE2StateSpace::StateType& state = *(*it)->as<ob::SE2StateSpace::StateType>();
@@ -132,12 +133,8 @@ private:
 
                 path.poses.push_back(pose);
             }
-
-            publish(path);
         }
-        else {
-            ROS_WARN("no path found");
-        }
+        return path;
     }
 
     ob::OptimizationObjectivePtr getPathLengthObjective(const ob::SpaceInformationPtr& si)

@@ -6,21 +6,18 @@ PathController::PathController(ros::NodeHandle &nh):
     node_handle_(nh),
     navigate_to_goal_server_(nh, "navigate_to_goal", boost::bind(&PathController::navToGoalActionCallback, this, _1), false),
     follow_path_client_("follow_path"),
+    path_planner_client_("plan_path"),
     goal_timestamp_(ros::Time(0)),
     unexpected_path_(false)
 {
-    ROS_INFO("Wait for follow_path action server...");
-    follow_path_client_.waitForServer();
-
     ros::param::param<float>("~nonaction_velocity", opt_.unexpected_path_velocity, 0.5);
     ros::param::param<int>("~num_replan_attempts", opt_.num_replan_attempts, 5);
 
-    goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0);
+    // LEGACY path planning
+//    goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0);
+//    path_sub_ = nh.subscribe<nav_msgs::Path>("/path", 10, &PathController::pathCallback, this);
 
     navigate_to_goal_server_.start();
-
-    path_sub_ = nh.subscribe<nav_msgs::Path>("/path", 10, &PathController::pathCallback, this);
-
     ROS_INFO("Initialisation done.");
 }
 
@@ -96,8 +93,12 @@ bool PathController::processGoal()
 {
     follow_path_done_ = false;
 
+    ROS_INFO("Wait for follow_path action server...");
+    follow_path_client_.waitForServer();
+
     // send goal pose to planner and wait for the result
-    waitForPath(current_goal_->goal_pose);
+    //waitForPath(current_goal_->goal_pose);
+    findPath(current_goal_->goal_pose);
 
     // check, if path has been found
     if ( requested_path_->poses.size() < 2 ) {
@@ -342,6 +343,43 @@ void PathController::waitForPath(const geometry_msgs::PoseStamped &goal_pose)
               ros::ok(),
               !navigate_to_goal_server_.isPreemptRequested(),
               !navigate_to_goal_server_.isNewGoalAvailable());
+}
+
+void PathController::findPath(const geometry_msgs::PoseStamped& goal)
+{
+    path_planner_client_.cancelAllGoals();
+
+    PlanPathGoal goal_msg;
+    goal_msg.use_start = false;
+    goal_msg.goal = goal;
+
+    ros::Duration timeout(20.0);
+    ros::Time start = ros::Time::now();
+
+    ROS_INFO("waiting for planner");
+    path_planner_client_.waitForServer();
+    path_planner_client_.sendGoal(goal_msg);
+
+    ROS_INFO("waiting for path");
+    while(ros::Time::now() < start + timeout) {
+        if(path_planner_client_.waitForResult(ros::Duration(0.5))) {
+            break;
+        }
+        ROS_INFO_THROTTLE(2, "still waiting for path");
+        ros::spinOnce();
+    }
+
+    actionlib::SimpleClientGoalState state = path_planner_client_.getState();
+    if(state == actionlib::SimpleClientGoalState::SUCCEEDED) {
+        ROS_INFO("Got a path, continue");
+        nav_msgs::PathPtr path(new nav_msgs::Path(path_planner_client_.getResult()->path));
+
+        requested_path_ = path;
+
+    } else {
+        ROS_ERROR_STREAM("Path planner failed. Final state: " << state.toString());
+        requested_path_ = nav_msgs::PathPtr(new nav_msgs::Path);
+    }
 }
 
 bool PathController::waitForFollowPathDone(ros::Duration timeout)

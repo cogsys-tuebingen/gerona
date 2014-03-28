@@ -17,6 +17,10 @@ public:
     void visualize(double course, double threshold);
 
     bool adjust(double course, double threshold, double &result_course);
+
+private:
+    void smooth();
+
 private:
     int ang_res_;
     int s_max_;

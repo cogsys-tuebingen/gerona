@@ -85,7 +85,7 @@ struct NonHolonomicNeighborhoodPrecise :
             }
 
             double threshold = 1.41;
-            std::cerr << "distance: " << line_distance << ", okay?" << (line_distance < threshold) << std::endl;
+//            std::cerr << "distance: " << line_distance << ", okay?" << (line_distance < threshold) << std::endl;
 
             return line_distance < threshold;
         }
@@ -151,7 +151,7 @@ struct PathPlanner : public Planner
         return cost_map.data[cost_map.info.width * y + x] / 100.0 * map_info->getResolution() * penalty_distance;
     }
 
-    void plan (const geometry_msgs::PoseStamped &goal,
+    nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,
                const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
         algo.setMap(map_info);
@@ -168,7 +168,7 @@ struct PathPlanner : public Planner
             ROS_INFO_STREAM("path with " << path.size() << " nodes found");
         }
 
-        publish(path2msg(path, goal.header.stamp));
+        return path2msg(path, goal.header.stamp);
     }
 
 

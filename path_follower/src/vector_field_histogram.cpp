@@ -73,6 +73,8 @@ void VectorFieldHistogram::create(double influence_distance, double threshold)
         }
     }
 
+    smooth();
+
     // find valleys
     bool in_valley = false;
     int valley_id = -1;
@@ -111,6 +113,36 @@ void VectorFieldHistogram::create(double influence_distance, double threshold)
         int valley = valley_[i];
         is_valley_wide_[valley] = valley_width_[valley] > s_max_;
     }
+}
+
+void VectorFieldHistogram::smooth()
+{
+    std::vector<double> smoothed_histogram;
+
+    int n = histogram_.size();
+    static const int l = 5; // see VFH paper
+
+    for(int k = 0; k < n; ++k) {
+        double v = 0;
+        for(int i = - l; i <= l; ++i) {
+            // circular normalization
+            int j = (k + i + n) % n;
+            assert(j >= 0);
+            assert(j < n);
+
+            int f = (l - std::abs(i)) + 1;
+
+            assert(i != -l || f == 1);
+            assert(i != 0 || f == (l + 1));
+            assert(i != l || f == 1);
+
+            v += f * histogram_[j];
+        }
+
+        smoothed_histogram.push_back(v / (2 * l + 1));
+    }
+
+    histogram_ = smoothed_histogram;
 }
 
 namespace {

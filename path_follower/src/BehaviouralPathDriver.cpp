@@ -520,7 +520,17 @@ bool BehaviouralPathDriver::checkCollision(double course)
     const float span = options_.collision_box_max_length_ - options_.collision_box_min_length_;
     const float interp = std::max(0.0f, diff_to_min_velocity) / std::max(norm, 0.001f);
     const float f = std::min(1.0f, options_.collision_box_velocity_factor_ * interp);
-    const float box_length = options_.collision_box_min_length_ + span * f;
+
+    float box_length = options_.collision_box_min_length_ + span * f;
+
+
+    BehaviouralPathDriver::Path& current_path = paths_[options_.path_idx];
+    double distance_to_goal = current_path.back().distanceTo(current_path[options_.wp_idx]);
+
+    if(box_length > distance_to_goal) {
+        box_length = distance_to_goal + 0.2;
+    }
+
 
 //    float course = current_command_.steer_front;
     bool collision = MotionController::checkCollision(course, box_length,

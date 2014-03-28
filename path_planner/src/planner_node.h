@@ -4,12 +4,14 @@
 /// PROJECT
 #include <utils_path/common/SimpleGridMap2d.h>
 #include <utils_path/common/Pose2d.h>
+#include <path_msgs/PlanPathAction.h>
 
 /// SYSTEM
 #include <ros/ros.h>
 #include <tf/transform_listener.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/Path.h>
+#include <actionlib/server/simple_action_server.h>
 
 /**
  * @brief The Planner class is a base class for other planning algorithms
@@ -47,6 +49,13 @@ protected:
      */
     virtual void updateMap(const nav_msgs::OccupancyGrid &map);
 
+
+    /**
+     * @brief execute ActionLib interface
+     * @param goal
+     */
+    void execute(const path_msgs::PlanPathGoalConstPtr &goal);
+
     /**
      * @brief plan is the interface for implementation classes
      * @param goal the requested goal message
@@ -55,7 +64,7 @@ protected:
      * @param from_map start pose in map coordinates
      * @param to_map goal pose in map coordinates
      */
-    virtual void plan (const geometry_msgs::PoseStamped &goal,
+    virtual nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,
                        const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                        const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) = 0;
 
@@ -89,9 +98,19 @@ protected:
      * @brief publish publishes the given path and a smoothed version of it
      * @param path path to publish
      */
-    void publish(const nav_msgs::Path& path);
+    void publish(const nav_msgs::Path& path, const nav_msgs::Path &path_raw);
 
 private:
+    void preempt();
+    void feedback(int status);
+
+    geometry_msgs::PoseStamped lookupPose();
+
+    void planThreaded(const geometry_msgs::PoseStamped &goal,
+                      const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
+                      const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map);
+    nav_msgs::Path doPlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal, nav_msgs::Path *path_raw = 0);
+
     nav_msgs::Path smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance);
 
     void subdividePath(nav_msgs::Path& result, geometry_msgs::PoseStamped low, geometry_msgs::PoseStamped up, double max_distance);
@@ -117,6 +136,8 @@ protected:
     ros::ServiceClient map_service_client;
     ros::ServiceClient cost_map_service_client;
 
+    actionlib::SimpleActionServer<path_msgs::PlanPathAction> server_;
+
     ros::Publisher viz_pub;
 
     tf::TransformListener tfl;
@@ -125,6 +146,11 @@ protected:
 
     lib_path::SimpleGridMap2d * map_info;
     nav_msgs::OccupancyGrid cost_map;
+
+    // threaded
+    nav_msgs::Path thread_result;
+    bool thread_running;
+    boost::mutex thread_mutex;
 
 private:
     ros::Publisher path_publisher;

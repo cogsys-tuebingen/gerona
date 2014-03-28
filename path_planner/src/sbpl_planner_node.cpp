@@ -116,7 +116,7 @@ struct SBPLPathPlanner : public Planner
         }
     }
 
-    void plan(const geometry_msgs::PoseStamped &goal,
+    nav_msgs::Path plan(const geometry_msgs::PoseStamped &goal,
               const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
               const lib_path::Pose2d&, const lib_path::Pose2d&)
     {
@@ -154,7 +154,7 @@ struct SBPLPathPlanner : public Planner
         path.header.stamp = goal.header.stamp;
         convertSolution(env, solution_stateIDs, path);
 
-        publish(path);
+        return path;
     }
 
 private:

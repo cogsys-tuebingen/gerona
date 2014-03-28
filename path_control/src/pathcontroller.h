@@ -6,6 +6,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <path_msgs/NavigateToGoalAction.h>
 #include <path_msgs/FollowPathAction.h>
+#include <path_msgs/PlanPathAction.h>
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseStamped.h>
 
@@ -23,6 +24,7 @@ public:
 private:
     typedef actionlib::SimpleActionServer<path_msgs::NavigateToGoalAction> NavToGoalServer;
     typedef actionlib::SimpleActionClient<path_msgs::FollowPathAction> FollowPathClient;
+    typedef actionlib::SimpleActionClient<path_msgs::PlanPathAction> PlanPathClient;
     typedef actionlib::SimpleClientGoalState GoalState;
 
     struct Options {
@@ -43,6 +45,12 @@ private:
 
     //! Action client to communicate with the path_follower package.
     FollowPathClient follow_path_client_;
+
+    //! Subscribes to a goal position
+    ros::Subscriber goal_sub_;
+
+    //! Action client to communicate with the path_planner package
+    PlanPathClient path_planner_client_;
 
     //! Publishes goal as PoseStamped for path_planner and rviz.
     ros::Publisher goal_pub_;
@@ -108,6 +116,8 @@ private:
     //! Send a goal pose to path_follower and wait for the resulting path.
     /** \todo Timeout! */
     void waitForPath(const geometry_msgs::PoseStamped &goal_pose);
+
+    void findPath(const geometry_msgs::PoseStamped &goal);
 
     /**
      * @brief Blocks execution until current follow_path goal is finished or timeout expires
