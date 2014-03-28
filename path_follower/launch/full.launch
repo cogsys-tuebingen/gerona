@@ -14,9 +14,14 @@
     <param name="resolution" value="0.05"/>
     <remap from="/scan" to="/scan_filtered" />
   </node>
-  
+
   <node pkg="path_control" type="path_control_node" name="path_control_node" output="screen" respawn="true">
     <param name="nonaction_velocity" value="1.0" />
+  </node>
+  <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy" output="screen" respawn="true">
+    <param name="target_speed" value="1.5" />
+    <param name="failure_mode" value="replan" />
+    <param name="goal_topic" value="/goal"/>
   </node>
 
   <!--<include file="$(find path_follower)/launch/follower.launch" />-->

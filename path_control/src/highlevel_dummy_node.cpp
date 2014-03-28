@@ -20,8 +20,37 @@ public:
         client_("navigate_to_goal", true)
     {
         srand(ros::Time::now().toNSec());
-        goal_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("/rviz_goal", 0, &HighDummy::goalCb, this);
+
+        std::string goal_topic = "/rviz_goal";
+
+
+        ros::NodeHandle pnh("~");
+        // topic for goal position
+        pnh.param("goal_topic", goal_topic, goal_topic);
+        goal_sub_ = pnh.subscribe<geometry_msgs::PoseStamped>(goal_topic, 0, &HighDummy::goalCb, this);
         client_.waitForServer();
+
+        // target speed
+        pnh.param("target_speed", target_speed_, 1.0);
+
+        // failure mode; possible: ABORT, REPLAN
+        std::string failure_mode = "ABORT";
+        pnh.param("failure_mode", failure_mode, failure_mode);
+
+        std::transform(failure_mode.begin(), failure_mode.end(), failure_mode.begin(), ::toupper);
+
+        if(failure_mode == "ABORT") {
+            failure_mode_ = path_msgs::NavigateToGoalGoal::FAILURE_MODE_ABORT;
+        } else if(failure_mode == "REPLAN") {
+            failure_mode_ = path_msgs::NavigateToGoalGoal::FAILURE_MODE_REPLAN;
+        } else {
+            ROS_WARN_STREAM("failure mode " << failure_mode << " is unknown. Defaulting to ABORT");
+            failure_mode_ = path_msgs::NavigateToGoalGoal::FAILURE_MODE_ABORT;
+        }
+
+
+        ROS_INFO_STREAM("listening for goal @ " << goal_topic);
+        ROS_INFO_STREAM("failure mode is " << failure_mode);
 
         ROS_INFO("Client is set up");
     }
@@ -32,6 +61,8 @@ private:
     actionlib::SimpleActionClient<path_msgs::NavigateToGoalAction> client_;
     ros::Subscriber goal_sub_;
 
+    double target_speed_;
+    int failure_mode_;
 
     // Called once when the goal completes
     void doneCb(const actionlib::SimpleClientGoalState& state,
@@ -90,8 +121,8 @@ private:
 
         path_msgs::NavigateToGoalGoal goal;
         goal.goal_pose = *pose;
-        goal.failure_mode = path_msgs::NavigateToGoalGoal::FAILURE_MODE_ABORT;
-        goal.velocity = 1.5;
+        goal.failure_mode = failure_mode_;
+        goal.velocity = target_speed_;
 
         client_.sendGoal(goal,
                          boost::bind(&HighDummy::doneCb, this, _1, _2),
