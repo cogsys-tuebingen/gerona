@@ -130,6 +130,7 @@ add_executable(path_follower_node
   src/BehaviouralPathDriver.cpp
   src/behaviours.cpp
   src/PidCtrl.cpp
+  src/vector_field_histogram.cpp
 )
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)

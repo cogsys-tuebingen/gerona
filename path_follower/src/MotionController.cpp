@@ -21,6 +21,7 @@ void MotionController::laserCallback(const sensor_msgs::LaserScanConstPtr& scan)
 void MotionController::obstacleMapCallback(const nav_msgs::OccupancyGridConstPtr &map)
 {
     obstacle_map_=*map;
+    vfh_.setMap(*map);
 }
 
 void MotionController::sonarCallback(const sensor_msgs::PointCloudConstPtr &data)

@@ -11,6 +11,8 @@
 #include <sensor_msgs/PointCloud.h>
 #include <path_msgs/FollowPathAction.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include "vector_field_histogram.h"
+
 
 class PathFollower;
 
@@ -75,6 +77,8 @@ protected:
 
   sensor_msgs::LaserScan laser_scan_;
   nav_msgs::OccupancyGrid obstacle_map_;
+  VectorFieldHistogram vfh_;
+
   LaserEnvironment laser_env_;
   float filtered_speed_;
 

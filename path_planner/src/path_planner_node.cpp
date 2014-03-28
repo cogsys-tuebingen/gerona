@@ -47,9 +47,50 @@ struct NonHolonomicNeighborhoodPrecise :
 
     template <class NodeType>
     static bool isNearEnough(NodeType* goal, NodeType* reference) {
-        return std::abs(goal->x - reference->x) <= 1 &&
-                std::abs(goal->y - reference->y) <= 1 &&
-                std::abs(MathHelper::AngleClamp(goal->theta - reference->theta)) < M_PI / 16;
+        double angle_dist_ref = MathHelper::AngleClamp(goal->theta - reference->theta);
+        static const double angle_threshold = M_PI / 32;
+        if(std::abs(angle_dist_ref) > angle_threshold) {
+            return false;
+        }
+
+
+        // euclidean distance
+        if(std::abs(goal->x - reference->x) == 0 &&
+                std::abs(goal->y - reference->y) == 0) {
+            return true;
+        }
+
+        // check, if goal is between reference an its predecessor
+        if(reference->prev) {
+            Pose2d v (*reference->prev);
+            Pose2d w (*reference);
+            Pose2d p (*goal);
+
+            double line_distance;
+            double l2 = (v-w).distance_to_origin();
+            if(l2 <= 0.0001) { // v ~= w
+                line_distance = p.distance_to(v);
+            } else {
+                double t = dot(p - v, w - v) / l2;
+
+                if(t < 0.0) {
+                    return false;
+                } else if(t > 1.0) {
+                    return false;
+                } else {
+                    Pose2d project = v + t * (w-v);
+
+                    line_distance = p.distance_to(project);
+                }
+            }
+
+            double threshold = 1.41;
+            std::cerr << "distance: " << line_distance << ", okay?" << (line_distance < threshold) << std::endl;
+
+            return line_distance < threshold;
+        }
+
+        return false;
     }
 };
 

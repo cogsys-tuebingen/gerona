@@ -44,6 +44,13 @@ public:
             return result;
         }
 
+        double distanceTo(const Waypoint& other) const
+        {
+            double dx = other.x - x;
+            double dy = other.y - y;
+            return std::sqrt(dx*dx + dy*dy);
+        }
+
         double x;
         double y;
         double theta;
@@ -142,6 +149,7 @@ public:
 
         PidCtrl& getPid();
         Command& getCommand();
+        VectorFieldHistogram& getVFH();
         Options& getOptions();
         double distanceTo(const Waypoint& wp);
 
@@ -190,7 +198,7 @@ public:
 
     bool simpleCheckCollision(float box_width, float box_length, int dir_sign);
 
-    bool checkCollision();
+    bool checkCollision(double course);
 
 protected:
     void clearActive();

@@ -430,7 +430,7 @@ void Planner::publish(const nav_msgs::Path &path)
     raw_path_publisher.publish(path);
     path_publisher.publish(smooted_path);
 
-    visualizePath(smooted_path);
+    visualizePath(path);
 }
 
 nav_msgs::Path Planner::smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance) {

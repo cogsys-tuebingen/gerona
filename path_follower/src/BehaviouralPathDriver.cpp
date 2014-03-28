@@ -51,6 +51,10 @@ BehaviouralPathDriver::Command& BehaviouralPathDriver::Behaviour::getCommand()
 {
     return parent_.current_command_;
 }
+VectorFieldHistogram& BehaviouralPathDriver::Behaviour::getVFH()
+{
+    return parent_.vfh_;
+}
 BehaviouralPathDriver::Options& BehaviouralPathDriver::Behaviour::getOptions()
 {
     return parent_.options_;
@@ -170,7 +174,7 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResul
         current_command_.velocity = 0;
 
     } catch(Behaviour* next_behaviour) {
-        ROS_WARN_STREAM("switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) );
+        std::cout << "switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) << std::endl;
         clearActive();
         active_behaviour_ = next_behaviour;
     }
@@ -222,7 +226,7 @@ void BehaviouralPathDriver::configure()
         ROS_ERROR("min velocity larger than max velocity!");
         options_.max_velocity_ = options_.min_velocity_;
     }
-    if(options_.collision_box_min_length_ < options_.collision_box_max_length_) {
+    if(options_.collision_box_max_length_ < options_.collision_box_min_length_) {
         ROS_ERROR("min length larger than max length!");
         options_.collision_box_min_length_ = options_.collision_box_max_length_;
     }
@@ -493,7 +497,7 @@ bool BehaviouralPathDriver::simpleCheckCollision(float box_width, float box_leng
     return collision;
 }
 
-bool BehaviouralPathDriver::checkCollision()
+bool BehaviouralPathDriver::checkCollision(double course)
 {
     //! Factor which defines, how much the box is enlarged in curves.
     const float enlarge_factor = 0.5; //TODO: should this be a parameter?
@@ -516,7 +520,8 @@ bool BehaviouralPathDriver::checkCollision()
     const float f = std::min(1.0f, options_.collision_box_velocity_factor_ * interp);
     const float box_length = options_.collision_box_min_length_ + span * f;
 
-    bool collision = MotionController::checkCollision(current_command_.steer_front, box_length,
+//    float course = current_command_.steer_front;
+    bool collision = MotionController::checkCollision(course, box_length,
                                                       enlarge_factor, options_.collision_box_width_);
 
 //    bool collision = obstacle_detector_.isObstacleAhead(options_.collision_box_width_, box_length,
