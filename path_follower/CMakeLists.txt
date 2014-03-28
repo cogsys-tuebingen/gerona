@@ -7,6 +7,7 @@ project(path_follower)
 find_package(catkin REQUIRED COMPONENTS
   actionlib
   path_msgs
+  nav_msgs
   roscpp
   utils_general
   utils_robot
@@ -127,6 +128,7 @@ add_executable(path_follower_node
   src/BehaviouralPathDriver.cpp
   src/behaviours.cpp
   src/PidCtrl.cpp
+  src/obstacledetector.cpp
 )
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)

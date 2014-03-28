@@ -11,6 +11,7 @@
 /// PROJECT
 #include "MotionController.h"
 #include "PidCtrl.h"
+#include "obstacledetector.h"
 
 /// SYSTEM
 #include <ros/ros.h>
@@ -200,6 +201,7 @@ private:
     ros::Publisher vis_pub_;
 
     ros::Subscriber laser_sub_;
+    ros::Subscriber obstacle_map_sub_;
 
     Behaviour* active_behaviour_;
 
@@ -211,6 +213,8 @@ private:
     std::vector<std::vector<Waypoint> > paths_;
 
     PidCtrl pid_;
+
+    ObstacleDetector obstacle_detector_;
 
     int pending_error_;
 };
