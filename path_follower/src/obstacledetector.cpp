@@ -1,7 +1,7 @@
 #include "obstacledetector.h"
 
 #include <Eigen/Core>
-//#include <opencv2/opencv.hpp> //TODO: only for debugging
+//#include <opencv2/opencv.hpp> // only for debugging
 
 using namespace Eigen;
 
@@ -14,7 +14,7 @@ void ObstacleDetector::gridMapCallback(const nav_msgs::OccupancyGridConstPtr &ma
     map_ = map;
 }
 
-bool ObstacleDetector::isObstacleAhead(float width, float length, float steering_angle, float curve_enlarge_factor) const
+bool ObstacleDetector::isObstacleAhead(float width, float length, float course_angle, float curve_enlarge_factor) const
 {
     if (!map_) {
         ROS_ERROR_THROTTLE(1, "ObstacleDetector: No map received.");
@@ -29,10 +29,10 @@ bool ObstacleDetector::isObstacleAhead(float width, float length, float steering
      * The parallelogram is defined by three points p,q,rc:
      * p and q are the corners near the robot, r is on the opposite site. The fourth corner is implicitly defined by p,q,r.
      *
-     * For steering_angle = 0, the parallelogram is a rectangle. If steering_angle != 0, a and b stay constant, but c is moved to the side,
-     * depending on steering_angle:
+     * For course_angle = 0, the parallelogram is a rectangle. If course_angle != 0, a and b stay constant, but c is moved to the side,
+     * depending on course_angle:
      *
-     * steering_angle = 0:
+     * course_angle = 0:
      *          p------------------r
      *  ##   ## |                  | |
      *  ####### |                  | width
@@ -42,7 +42,7 @@ bool ObstacleDetector::isObstacleAhead(float width, float length, float steering
      *   ^robot    <-  length  ->
      *
      *
-     * steering_angle < 0:
+     * course_angle < 0:
      *          p---+
      *  ##   ## |    +--+
      *  ####### |        +--+
@@ -56,7 +56,7 @@ bool ObstacleDetector::isObstacleAhead(float width, float length, float steering
      *                       +--
      *
      * The Box is enlarged toward the inside curve. In the above example, b is moved away from the robot, while a is
-     * fixed. For steering_angle > 0 it is vice verca.
+     * fixed. For course_angle > 0 it is vice verca.
      * The amount of this enlarging is controlled by the argument 'curve_enlarge_factor'.
      */
 
@@ -76,12 +76,12 @@ bool ObstacleDetector::isObstacleAhead(float width, float length, float steering
     Vector2f p = o + Vector2f(0.0f, width/2.0f);
     Vector2f q = o - Vector2f(0.0f, width/2.0f);
 
-    float sin_angle = std::sin(steering_angle);
-    float cos_angle = std::cos(steering_angle);
+    float sin_angle = std::sin(course_angle);
+    float cos_angle = std::cos(course_angle);
 
-    if (steering_angle > 0) {
+    if (course_angle > 0) {
         p(1) += curve_enlarge_factor * sin_angle;
-    } else if (steering_angle < 0) {
+    } else if (course_angle < 0) {
         q(1) += curve_enlarge_factor * sin_angle;
     }
 
