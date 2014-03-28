@@ -51,6 +51,10 @@ BehaviouralPathDriver::Command& BehaviouralPathDriver::Behaviour::getCommand()
 {
     return parent_.current_command_;
 }
+VectorFieldHistogram& BehaviouralPathDriver::Behaviour::getVFH()
+{
+    return parent_.vfh_;
+}
 BehaviouralPathDriver::Options& BehaviouralPathDriver::Behaviour::getOptions()
 {
     return parent_.options_;
@@ -77,8 +81,16 @@ std::string name(BehaviouralPathDriver::Behaviour* b) {
 BehaviouralPathDriver::BehaviouralPathDriver(ros::Publisher &cmd_pub, PathFollower *node)
     : node_(node), private_nh_("~"), cmd_pub_(cmd_pub), active_behaviour_(NULL), pending_error_(-1)
 {
-    laser_sub_ = private_nh_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&BehaviouralPathDriver::laserCallback, this, _1));
-    obstacle_map_sub_ = private_nh_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&ObstacleDetector::gridMapCallback, &obstacle_detector_, _1));
+    private_nh_.param("use_obstacle_map", use_obstacle_map_, false);
+
+    if(use_obstacle_map_) {
+        obstacle_map_sub_ = private_nh_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&BehaviouralPathDriver::obstacleMapCallback, this, _1));
+        //obstacle_map_sub_ = private_nh_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&ObstacleDetector::gridMapCallback, &obstacle_detector_, _1));
+
+    } else {
+        laser_sub_ = private_nh_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&BehaviouralPathDriver::laserCallback, this, _1));
+    }
+
 
     vis_pub_ = private_nh_.advertise<visualization_msgs::Marker>("/marker", 100);
     configure();
@@ -163,7 +175,7 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResul
         current_command_.velocity = 0;
 
     } catch(Behaviour* next_behaviour) {
-        ROS_WARN_STREAM("switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) );
+        std::cout << "switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) << std::endl;
         clearActive();
         active_behaviour_ = next_behaviour;
     }
@@ -207,7 +219,18 @@ void BehaviouralPathDriver::configure()
     ros::param::param<float>( "~max_velocity", options_.max_velocity_, 2.0 );
     ros::param::param<float>( "~collision_box_width", options_.collision_box_width_, 0.5);
     ros::param::param<float>( "~collision_box_min_length", options_.collision_box_min_length_, 0.3);
-    ros::param::param<float>( "~collision_box_velocity_factor", options_.collision_box_velocity_factor_, 1); //TODO: find reasonable default value.
+    ros::param::param<float>( "~collision_box_max_length", options_.collision_box_max_length_, 1.0);
+    ros::param::param<float>( "~collision_box_velocity_factor", options_.collision_box_velocity_factor_, 1.0);
+    ros::param::param<float>( "~collision_box_velocity_saturation", options_.collision_box_velocity_saturation_, options_.max_velocity_);
+
+    if(options_.max_velocity_ < options_.min_velocity_) {
+        ROS_ERROR("min velocity larger than max velocity!");
+        options_.max_velocity_ = options_.min_velocity_;
+    }
+    if(options_.collision_box_max_length_ < options_.collision_box_min_length_) {
+        ROS_ERROR("min length larger than max length!");
+        options_.collision_box_min_length_ = options_.collision_box_max_length_;
+    }
 
     double ta, kp, ki, i_max, delta_max, e_max;
     nh.param( "pid/ta", ta, 0.03 );
@@ -273,7 +296,6 @@ void BehaviouralPathDriver::setPath(const nav_msgs::Path& path)
             }
         }
 
-        ROS_DEBUG_STREAM("drawing #" << id);
         drawArrow(id++, current_point, "paths", 0, 0, 0);
         if(segment_ends_with_this_node) {
             // Marker for subpaths
@@ -476,7 +498,7 @@ bool BehaviouralPathDriver::simpleCheckCollision(float box_width, float box_leng
     return collision;
 }
 
-bool BehaviouralPathDriver::checkCollision()
+bool BehaviouralPathDriver::checkCollision(double course)
 {
     //! Factor which defines, how much the box is enlarged in curves.
     const float enlarge_factor = 0.5; //TODO: should this be a parameter?
@@ -484,20 +506,28 @@ bool BehaviouralPathDriver::checkCollision()
     /* Calculate length of the collision box, depending on current velocity.
      * v <= v_min:
      *   length = min_length
-     * v > v_min:
-     *   length = min_length + factor * (v - v_min)
+     * v > v_min && v < v_sat:
+     *   length  interpolated between min_length and max_length:
+     *   length = min_length + FACTOR * (max_length - min_length) * (v - v_min) / (v_sat - v_min)
+     * v >= v_sat:
+     *   length = max_length
      */
     float v = node_->getVelocity().linear.x;//current_command_.velocity;
 
     const float diff_to_min_velocity = v - options_.min_velocity_;
-    const float box_length = options_.collision_box_min_length_
-            + options_.collision_box_velocity_factor_ * max(0.0f, diff_to_min_velocity);
 
-//    bool collision = MotionController::checkCollision(current_command_.steer_front, box_length,
-//                                                      enlarge_factor, options_.collision_box_width_);
+    const float norm = options_.collision_box_velocity_saturation_ - options_.min_velocity_;
+    const float span = options_.collision_box_max_length_ - options_.collision_box_min_length_;
+    const float interp = std::max(0.0f, diff_to_min_velocity) / std::max(norm, 0.001f);
+    const float f = std::min(1.0f, options_.collision_box_velocity_factor_ * interp);
+    const float box_length = options_.collision_box_min_length_ + span * f;
 
-    bool collision = obstacle_detector_.isObstacleAhead(options_.collision_box_width_, box_length,
-                                                        current_command_.steer_front, enlarge_factor);
+//    float course = current_command_.steer_front;
+    bool collision = MotionController::checkCollision(course, box_length,
+                                                      enlarge_factor, options_.collision_box_width_);
+
+//    bool collision = obstacle_detector_.isObstacleAhead(options_.collision_box_width_, box_length,
+//                                                        current_command_.steer_front, enlarge_factor);
 
     //FIXME: hier gehts weiter!!
 

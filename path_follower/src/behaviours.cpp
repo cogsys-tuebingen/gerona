@@ -144,44 +144,60 @@ void BehaviourDriveBase::visualizeLine(const Line2d &line)
     parent_.drawLine(2, f, t, "/base_link", "line", 0.7, 0.2, 1.0);
 }
 
+double BehaviourDriveBase::calculateCourse()
+{
+    return getCommand().steer_front;
+}
+
+bool BehaviourDriveBase::isCollision(double course)
+{
+    // only check for collisions, while driving forward (there's no laser at the backside)
+    return (dir_sign_ > 0 && parent_.checkCollision(course));
+}
+
 void BehaviourDriveBase::setCommand(double error, double speed) //TODO: float would be sufficient for 'speed'
 {
     BehaviouralPathDriver::Options& opt = getOptions();
 
-    // only check for collisions, while driving forward (there's no laser at the backside)
-    if (dir_sign_ > 0 && parent_.checkCollision()) {
-        ROS_WARN_THROTTLE(1, "Collision!");
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_COLLISION; //FIXME: not so good to use result-constant if it is not finishing the action...
-
-        getCommand().velocity = 0;
-        parent_.publishCommand();
-        return;
-    }
-
-    // abort, if robot moves too far from the path
-    //TODO: is this the best place to check for this?
-    if (calculateDistanceToCurrentPathSegment() > opt.max_distance_to_path_) {
-        ROS_WARN("Moved too far away from the path. Abort.");
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST;
-        throw new BehaviourEmergencyBreak(parent_);
-    }
-
-
-    double delta_f = 0;
-    double delta_r = 0; //!< currently not used.
+    double delta_f_raw = 0;
 
     *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
 
-    if ( !getPid().execute( error, delta_f)) {
+    if ( !getPid().execute( error, delta_f_raw)) {
         // Nothing to do
         return;
     }
 
-    drawSteeringArrow(0, slam_pose_msg_, delta_f, 0.0, 1.0, 1.0);
+    drawSteeringArrow(14, slam_pose_msg_, delta_f_raw, 0.0, 1.0, 1.0);
+
+    double threshold = 2.0;
+    double threshold_max_distance = 1.5 /*m*/;
+
+    BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+    double distance_to_goal = current_path.back().distanceTo(current_path[opt.wp_idx]);
+    double threshold_distance = std::min(threshold_max_distance,
+                                         std::max((double) opt.collision_box_min_length_, distance_to_goal));
+
+    double delta_f;
+    VectorFieldHistogram& vfh = getVFH();
+    bool collision = false;
+
+    if(!vfh.isReady()) {
+        ROS_WARN_THROTTLE(1, "Not using VFH, not ready yet! (Maybe obstacle map not published?)");
+        delta_f = delta_f_raw;
+    } else {
+        vfh.create(threshold_distance, threshold);
+        collision = !vfh.adjust(delta_f_raw, threshold, delta_f);
+        vfh.visualize(delta_f_raw, threshold);
+    }
+
+    drawSteeringArrow(14, slam_pose_msg_, delta_f, 0.0, 1.0, 1.0);
+
 
     BehaviouralPathDriver::Command& cmd = getCommand();
 
-    double steer = std::max(std::abs(delta_f), std::abs(delta_r));
+
+    double steer = std::abs(delta_f);
     ROS_DEBUG_STREAM("dir=" << dir_sign_ << ", steer=" << steer);
     if(steer > getOptions().steer_slow_threshold_) {
         ROS_WARN_STREAM_THROTTLE(2, "slowing down");
@@ -198,8 +214,20 @@ void BehaviourDriveBase::setCommand(double error, double speed) //TODO: float wo
     }
 
     cmd.steer_front = dir_sign_ * delta_f;
-    cmd.steer_back = dir_sign_ * delta_r;
-    cmd.velocity = dir_sign_ * speed;
+    cmd.steer_back = 0;
+
+    collision |= isCollision(calculateCourse());
+
+    if(collision) {
+        ROS_WARN_THROTTLE(1, "Collision!");
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_COLLISION; //FIXME: not so good to use result-constant if it is not finishing the action...
+
+        getCommand().velocity = 0;
+        parent_.publishCommand();
+
+    } else {
+        cmd.velocity = dir_sign_ * speed;
+    }
 
     ROS_DEBUG("Set velocity to %g", speed);
 }
@@ -224,6 +252,13 @@ void BehaviourDriveBase::checkWaypointTimeout()
 
 
 //##### BEGIN BehaviourOnLine
+
+BehaviourOnLine::BehaviourOnLine(motion_control::BehaviouralPathDriver& parent)
+    : BehaviourDriveBase(parent)
+{
+    getPid().reset();
+}
+
 
 void BehaviourOnLine::execute(int *status)
 {
@@ -250,6 +285,20 @@ void BehaviourOnLine::execute(int *status)
 
     if(dir_sign_ < 0) {
         speed *= 0.5;
+    }
+
+    // if the robot is in this state, we assume that it is not avoiding any obstacles
+    // so we abort, if robot moves too far from the path
+    if (calculateDistanceToCurrentPathSegment() > getOptions().max_distance_to_path_) {
+        ROS_WARN("Moved too far away from the path. Abort.");
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST;
+        throw new BehaviourEmergencyBreak(parent_);
+    }
+
+
+    if (isCollision(calculateCourse())) {
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+        throw new BehaviourAvoidObstacle(parent_);
     }
 
     setCommand(e_combined, speed);
@@ -299,6 +348,82 @@ void BehaviourOnLine::getNextWaypoint()
 }
 
 
+
+//##### BEGIN BehaviourAvoidObstacle
+void BehaviourAvoidObstacle::execute(int *status)
+{
+    status_ptr_ = status;
+
+    getNextWaypoint();
+    checkWaypointTimeout();
+    getSlamPose();
+
+    dir_sign_ = sign(next_wp_local_.x());
+
+    // Calculate target line from current to next waypoint (if there is any)
+    double e_distance = calculateLineError();
+    double e_angle = calculateAngleError();
+
+    double e_combined = e_distance + e_angle;
+
+    // draw steer front
+    drawSteeringArrow(1, slam_pose_msg_, e_angle, 0.2, 1.0, 0.2);
+    drawSteeringArrow(2, slam_pose_msg_, e_distance, 0.2, 0.2, 1.0);
+    drawSteeringArrow(3, slam_pose_msg_, e_combined, 1.0, 0.2, 0.2);
+
+    float speed = getOptions().velocity_;
+
+    if(dir_sign_ < 0) {
+        speed *= 0.5;
+    }
+
+    setCommand(e_combined, speed);
+}
+
+
+
+void BehaviourAvoidObstacle::getNextWaypoint()
+{
+    // TODO: improve!
+    BehaviouralPathDriver::Options& opt = getOptions();
+    BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+
+    assert(opt.wp_idx < (int) current_path.size());
+
+    int last_wp_idx = current_path.size() - 1;
+
+    double tolerance = opt.wp_tolerance_;
+
+    if(dir_sign_ < 0) {
+        tolerance *= 2;
+    }
+
+    // if distance to wp < threshold
+    while(distanceTo(current_path[opt.wp_idx]) < tolerance) {
+        if(opt.wp_idx >= last_wp_idx) {
+            // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
+            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+            throw new BehaviourApproachTurningPoint(parent_);
+        }
+        else {
+            // else choose next wp
+            opt.wp_idx++;
+
+            waypoint_timeout.reset();
+        }
+    }
+
+    parent_.drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
+    parent_.drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);
+
+    next_wp_map_.pose = current_path[opt.wp_idx];
+    next_wp_map_.header.stamp = ros::Time::now();
+
+    if ( !getNode().transformToLocal( next_wp_map_, next_wp_local_ )) {
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
+        throw new BehaviourEmergencyBreak(parent_);
+    }
+}
 
 
 //##### BEGIN BehaviourApproachTurningPoint

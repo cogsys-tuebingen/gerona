@@ -10,6 +10,10 @@
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/PointCloud.h>
 #include <path_msgs/FollowPathAction.h>
+#include <nav_msgs/OccupancyGrid.h>
+#include "vector_field_histogram.h"
+#include "obstacledetector.h"
+
 
 class PathFollower;
 
@@ -29,6 +33,7 @@ public:
   virtual void configure ()=0;
   virtual void setGoal (const path_msgs::FollowPathGoal& goal)=0;
   virtual void laserCallback(const sensor_msgs::LaserScanConstPtr& scan);
+  virtual void obstacleMapCallback(const nav_msgs::OccupancyGridConstPtr& map);
   virtual void sonarCallback(const sensor_msgs::PointCloudConstPtr& data);
   void setFilteredSpeed( const float speed ) {
       filtered_speed_ = speed;
@@ -72,10 +77,17 @@ protected:
   }
 
   sensor_msgs::LaserScan laser_scan_;
+  nav_msgs::OccupancyGrid obstacle_map_;
+  VectorFieldHistogram vfh_;
+
   LaserEnvironment laser_env_;
   float filtered_speed_;
+
+  bool use_obstacle_map_;
   bool sonar_collision_;
   ros::Time sonar_stamp_;
+
+  ObstacleDetector obstacle_detector_;
 };
 
 

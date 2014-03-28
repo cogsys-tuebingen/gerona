@@ -11,7 +11,6 @@
 /// PROJECT
 #include "MotionController.h"
 #include "PidCtrl.h"
-#include "obstacledetector.h"
 
 /// SYSTEM
 #include <ros/ros.h>
@@ -43,6 +42,13 @@ public:
             result.position.y = y;
             result.orientation = tf::createQuaternionMsgFromYaw(theta);
             return result;
+        }
+
+        double distanceTo(const Waypoint& other) const
+        {
+            double dx = other.x - x;
+            double dy = other.y - y;
+            return std::sqrt(dx*dx + dy*dy);
         }
 
         double x;
@@ -115,10 +121,14 @@ public:
 
         //! Width of the collisin box for obstacle avoidance.
         float collision_box_width_;
-        //! Minimum width of the collision box for obstacle avoidance (grows with increasing velocity).
+        //! Minimum length of the collision box for obstacle avoidance (grows with increasing velocity).
         float collision_box_min_length_;
+        //! Maximum length of the collision box for obstacle avoidance.
+        float collision_box_max_length_;
         //! This factor determines, how much the length of the box is increased, depending on the velocity.
         float collision_box_velocity_factor_;
+        //! The velocity for which the maximum length should be used
+        float collision_box_velocity_saturation_;
 
         int path_idx;
         int wp_idx;
@@ -139,6 +149,7 @@ public:
 
         PidCtrl& getPid();
         Command& getCommand();
+        VectorFieldHistogram& getVFH();
         Options& getOptions();
         double distanceTo(const Waypoint& wp);
 
@@ -187,7 +198,7 @@ public:
 
     bool simpleCheckCollision(float box_width, float box_length, int dir_sign);
 
-    bool checkCollision();
+    bool checkCollision(double course);
 
 protected:
     void clearActive();
@@ -213,8 +224,6 @@ private:
     std::vector<std::vector<Waypoint> > paths_;
 
     PidCtrl pid_;
-
-    ObstacleDetector obstacle_detector_;
 
     int pending_error_;
 };
