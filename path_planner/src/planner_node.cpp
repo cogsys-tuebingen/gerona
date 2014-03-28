@@ -383,7 +383,7 @@ nav_msgs::Path Planner::doPlan(const geometry_msgs::PoseStamped &start, const ge
             ROS_ERROR("search timed out");
         }
         if(server_.isPreemptRequested() || timeout) {
-            ROS_WARN_STREAM("preemting path planner");
+            ROS_WARN_STREAM("preemting path planner because of " << (timeout ? "a timeout" : "an interrupt"));
             worker.interrupt();
             worker.join();
             ROS_INFO_STREAM("preemted path planner");

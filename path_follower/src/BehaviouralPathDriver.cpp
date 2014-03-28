@@ -532,20 +532,14 @@ bool BehaviouralPathDriver::checkCollision(double course)
     }
 
 
-//    float course = current_command_.steer_front;
-    bool collision = MotionController::checkCollision(course, box_length,
-                                                      enlarge_factor, options_.collision_box_width_);
-
-//    bool collision = obstacle_detector_.isObstacleAhead(options_.collision_box_width_, box_length,
-//                                                        current_command_.steer_front, enlarge_factor);
-
-    //FIXME: hier gehts weiter!!
+    bool collision = MotionController::checkCollision(course, box_length, options_.collision_box_width_, enlarge_factor);
 
 
     // visualization
     if (vis_pub_.getNumSubscribers() > 0) {
         // code copied from LaserEnvironment::CheckCollision()
         // (need to recalculate this here, since LaserEnvironment can not visualize)
+        //TODO: Externalize visualisation methods, to make them accessable from obstacle detector?
         float beta = current_command_.steer_front;
         float width = options_.collision_box_width_;
         float length = enlarge_factor;

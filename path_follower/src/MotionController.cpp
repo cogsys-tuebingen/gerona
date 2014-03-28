@@ -10,7 +10,8 @@ MotionController::MotionController()
       sonar_collision_( false ),
       sonar_stamp_( ros::Time::now())
 {
-
+    ros::NodeHandle pnh("~");
+    pnh.param("use_vfh", use_vfh_, true);
 }
 
 void MotionController::laserCallback(const sensor_msgs::LaserScanConstPtr& scan)
@@ -22,7 +23,10 @@ void MotionController::obstacleMapCallback(const nav_msgs::OccupancyGridConstPtr
 {
     obstacle_map_=*map;
     obstacle_detector_.gridMapCallback(map);
-    vfh_.setMap(*map);
+
+    if(use_vfh_) {
+        vfh_.setMap(*map);
+    }
 }
 
 void MotionController::sonarCallback(const sensor_msgs::PointCloudConstPtr &data)
@@ -39,7 +43,7 @@ void MotionController::sonarCallback(const sensor_msgs::PointCloudConstPtr &data
     }
 }
 
-bool MotionController::checkCollision(double course, double threshold, double width, double curve_enlarge_factor)
+bool MotionController::checkCollision(double course_angle, double box_length, double box_width, double curve_enlarge_factor)
 {
     //    if ((ros::Time::now() - sonar_stamp_).toSec() > 2 )
     //        sonar_collision_ = false;
@@ -50,6 +54,9 @@ bool MotionController::checkCollision(double course, double threshold, double wi
     }*/
 
     if(use_obstacle_map_) {
+        return obstacle_detector_.isObstacleAhead(box_width, box_length, course_angle, curve_enlarge_factor);
+
+        /*
         if(obstacle_map_.data.empty()) {
             ROS_WARN("no obstacle map received!!!!");
             return true;
@@ -60,10 +67,10 @@ bool MotionController::checkCollision(double course, double threshold, double wi
         double res = obstacle_map_.info.resolution;
 
         // TODO: replace with something better :)
-        float beta = course;
-        float w = width / res;
+        float beta = course_angle;
+        float w = box_width / res;
         float length = curve_enlarge_factor / res;
-        float thresh = threshold / res;
+        float thresh = box_length / res;
         // corner points of the parallelogram
         float ax,ay,bx,by,cx,cy;
 
@@ -150,10 +157,10 @@ bool MotionController::checkCollision(double course, double threshold, double wi
         cv::waitKey(30);
 #endif
         return collision;
-
+        */
     } else {
-        return laser_env_.CheckCollision(laser_scan_.ranges,laser_scan_.angle_min,laser_scan_.angle_max, course, width,
-                                         curve_enlarge_factor, threshold);
+        return laser_env_.CheckCollision(laser_scan_.ranges,laser_scan_.angle_min,laser_scan_.angle_max, course_angle, box_width,
+                                         curve_enlarge_factor, box_length);
     }
 }
 

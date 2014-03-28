@@ -45,7 +45,7 @@ struct BehaviourDriveBase : public motion_control::BehaviouralPathDriver::Behavi
 
     double calculateCourse();
     bool isCollision(double course);
-    void setCommand(double error, double speed);
+    bool setCommand(double error, double speed);
 
     void drawSteeringArrow(int id, geometry_msgs::Pose steer_arrow, double angle, double r, double g, double b);
 

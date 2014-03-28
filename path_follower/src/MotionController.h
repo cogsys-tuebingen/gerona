@@ -41,14 +41,19 @@ public:
 
   /**
    * @brief Check if there is an obstacle in front of the robot.
-   * @param course Angle of the current course (e.g. use steering angle).
-   * @param threshold Length of the collision box. If an object is within this distance, an collision is thrown.
-   * @param width Width of the collision box.
+   *
+   * By default, only the laser scan is used, by calling LaserEnvironment::CheckCollision().
+   * If parameter ~use_obstacle_map is set to true, the ObstacleDetector class is used instead.
+   * See those classes for more details
+   *
+   * @param course_angle Angle of the current course (e.g. use steering angle).
+   * @param box_length Length of the collision box. If an object is within this distance, an collision is thrown.
+   * @param box_width Width of the collision box.
    * @param curve_enlarge_factor The width of the box is enlarged a bit in curves. This argument controls how much (it is misleadingly called 'length' in LaserEnvironment).
    * @return True, if there is an object within the collision box.
-   * @see LaserEnvironment::CheckCollision() for more details.
+   * @see LaserEnvironment::CheckCollision() / ObstacleDetector for more details.
    */
-  bool checkCollision(double course, double threshold, double width = 0.3, double curve_enlarge_factor = 0.5);
+  bool checkCollision(double course_angle, double box_length, double box_width = 0.3, double curve_enlarge_factor = 0.5);
 
   /**
    * @brief Check if there is an obstacle within a rectangular box in front of the robot.
@@ -76,8 +81,10 @@ protected:
       return filtered_speed_;
   }
 
+  bool use_vfh_;
+
   sensor_msgs::LaserScan laser_scan_;
-  nav_msgs::OccupancyGrid obstacle_map_;
+  nav_msgs::OccupancyGrid obstacle_map_; //FIXME: not used any longer. can be removed.
   VectorFieldHistogram vfh_;
 
   LaserEnvironment laser_env_;

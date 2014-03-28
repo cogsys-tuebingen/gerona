@@ -24,6 +24,7 @@ private:
 private:
     int ang_res_;
     int s_max_;
+    bool no_obstacle_;
 
     nav_msgs::OccupancyGrid map_;
     bool has_map_;
@@ -39,6 +40,7 @@ private:
 
     int selected_valley_;
     int near_, far_;
+    int kf_;
 
     cv::Mat debug_map_;
 };

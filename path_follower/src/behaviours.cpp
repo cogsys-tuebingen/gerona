@@ -155,7 +155,7 @@ bool BehaviourDriveBase::isCollision(double course)
     return (dir_sign_ > 0 && parent_.checkCollision(course));
 }
 
-void BehaviourDriveBase::setCommand(double error, double speed) //TODO: float would be sufficient for 'speed'
+bool BehaviourDriveBase::setCommand(double error, double speed) //TODO: float would be sufficient for 'speed'
 {
     BehaviouralPathDriver::Options& opt = getOptions();
 
@@ -165,13 +165,13 @@ void BehaviourDriveBase::setCommand(double error, double speed) //TODO: float wo
 
     if ( !getPid().execute( error, delta_f_raw)) {
         // Nothing to do
-        return;
+        return false;
     }
 
     drawSteeringArrow(14, slam_pose_msg_, delta_f_raw, 0.0, 1.0, 1.0);
 
-    double threshold = 2.0;
-    double threshold_max_distance = 1.5 /*m*/;
+    double threshold = 5.0;
+    double threshold_max_distance = 3.5 /*m*/;
 
     BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
     double distance_to_goal = current_path.back().distanceTo(current_path[opt.wp_idx]);
@@ -230,6 +230,7 @@ void BehaviourDriveBase::setCommand(double error, double speed) //TODO: float wo
     }
 
     ROS_DEBUG("Set velocity to %g", speed);
+    return (std::abs(delta_f - delta_f_raw) > 0.05);
 }
 
 void BehaviourDriveBase::drawSteeringArrow(int id, geometry_msgs::Pose steer_arrow, double angle, double r, double g, double b)
@@ -295,13 +296,10 @@ void BehaviourOnLine::execute(int *status)
         throw new BehaviourEmergencyBreak(parent_);
     }
 
-
-    if (isCollision(calculateCourse())) {
+    if(setCommand(e_combined, speed)) {
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
         throw new BehaviourAvoidObstacle(parent_);
     }
-
-    setCommand(e_combined, speed);
 }
 
 
@@ -377,7 +375,10 @@ void BehaviourAvoidObstacle::execute(int *status)
         speed *= 0.5;
     }
 
-    setCommand(e_combined, speed);
+    if(!setCommand(e_combined, speed)) {
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+        throw new BehaviourOnLine(parent_);
+    }
 }
 
 
