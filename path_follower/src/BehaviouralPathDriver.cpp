@@ -523,12 +523,8 @@ bool BehaviouralPathDriver::checkCollision(double course)
     const float box_length = options_.collision_box_min_length_ + span * f;
 
 //    float course = current_command_.steer_front;
-//    bool collision = MotionController::checkCollision(course, box_length,
-//                                                      enlarge_factor, options_.collision_box_width_);
-
-    //FIXME: TESTING
-    bool collision = obstacle_detector_.isObstacleAhead(options_.collision_box_width_, box_length,
-                                                        course, enlarge_factor);
+    bool collision = MotionController::checkCollision(course, box_length,
+                                                      options_.collision_box_width_, enlarge_factor);
 
 
     // visualization
