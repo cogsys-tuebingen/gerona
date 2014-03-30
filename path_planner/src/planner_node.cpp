@@ -80,9 +80,11 @@ void Planner::preempt()
 
 void Planner::feedback(int status)
 {
-    path_msgs::PlanPathFeedback f;
-    f.status = status;
-    server_.publishFeedback(f);
+    if(server_.isActive()) {
+        path_msgs::PlanPathFeedback f;
+        f.status = status;
+        server_.publishFeedback(f);
+    }
 }
 
 void Planner::updateMapCallback (const nav_msgs::OccupancyGridConstPtr &map) {
@@ -265,11 +267,10 @@ void Planner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
         s = lookupPose();
     }
 
-    //    nav_msgs::Path path_raw;
-    nav_msgs::Path path = doPlan(s, goal->goal/*, &path_raw*/);
+    nav_msgs::Path path_raw;
+    nav_msgs::Path path = doPlan(s, goal->goal, &path_raw);
 
-    //    publish(path, path_raw);
-    visualizePath(path);
+    publish(path, path_raw);
 
     if(path.poses.empty()) {
         feedback(path_msgs::PlanPathFeedback::STATUS_PLANNING_FAILED);

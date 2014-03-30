@@ -4,7 +4,7 @@ project(path_planner)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS nav_msgs utils_path roscpp std_msgs tf roslib)
+find_package(catkin REQUIRED COMPONENTS nav_msgs path_msgs utils_path roscpp std_msgs tf roslib)
 
 set(CMAKE_BUILD_TYPE Debug)
 add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function)
@@ -32,6 +32,7 @@ include_directories(include
 )
 
 add_executable(path_planner_node src/planner_node.cpp src/path_planner_node.cpp)
+add_dependencies(path_planner_node path_msgs_generate_messages_cpp)
 
 target_link_libraries(path_planner_node
   ${catkin_LIBRARIES}
@@ -41,6 +42,7 @@ if(${OMPL_FOUND})
     include_directories(${OMPL_INCLUDE_DIRS})
 
     add_executable(ompl_planner_node src/planner_node.cpp src/ompl_planner_node.cpp)
+    add_dependencies(ompl_planner_node path_msgs_generate_messages_cpp)
 
     target_link_libraries(ompl_planner_node
         ${catkin_LIBRARIES} ${OMPL_LIBRARIES} ${OMPLAPP_LIBRARIES}
@@ -54,6 +56,7 @@ if(${SBPL_FOUND})
     include_directories(${SBPL_INCLUDE_DIRS})
 
     add_executable(sbpl_planner_node src/planner_node.cpp src/sbpl_planner_node.cpp)
+    add_dependencies(sbpl_planner_node path_msgs_generate_messages_cpp)
 
     target_link_libraries(sbpl_planner_node
         ${catkin_LIBRARIES} ${SBPL_LIBRARIES}
