@@ -1,0 +1,11 @@
+<launch>
+
+    <node pkg="roimap" type="roimap_node" name="roimap" output="screen">
+	<param name="padding" value="1.0" />        
+	<param name="topic_map" 	 value="/map/hector" />
+	<param name="map_service" 	 value="/dynamic_map/hector" />
+	<param name="topic_map_result" 	 value="/map" />
+	<param name="map_service_result" value="/dynamic_map" />
+    </node>
+
+</launch>
