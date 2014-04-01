@@ -291,12 +291,20 @@ void BehaviourOnLine::execute(int *status)
     // if the robot is in this state, we assume that it is not avoiding any obstacles
     // so we abort, if robot moves too far from the path
     if (calculateDistanceToCurrentPathSegment() > getOptions().max_distance_to_path_) {
+        std::stringstream ss;
+        ss << "espeak 'too far away from path!'& 2>/dev/null";
+        system(ss.str().c_str());
+
         ROS_WARN("Moved too far away from the path. Abort.");
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST;
         throw new BehaviourEmergencyBreak(parent_);
     }
 
     if(setCommand(e_combined, speed)) {
+        std::stringstream ss;
+        ss << "espeak 'obstacle!'& 2>/dev/null";
+        system(ss.str().c_str());
+
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
         throw new BehaviourAvoidObstacle(parent_);
     }
@@ -376,6 +384,9 @@ void BehaviourAvoidObstacle::execute(int *status)
     }
 
     if(!setCommand(e_combined, speed)) {
+        std::stringstream ss;
+        ss << "espeak 'get out of my way!'& 2>/dev/null";
+        system(ss.str().c_str());
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
         throw new BehaviourOnLine(parent_);
     }
@@ -555,6 +566,10 @@ bool BehaviourApproachTurningPoint::checkIfDone(bool done)
             throw new BehaviourOnLine(parent_);
 
         } else {
+        std::stringstream ss;
+        ss << "espeak 'mission accomplished!'& 2>/dev/null";
+        system(ss.str().c_str());
+
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
             throw new BehaviouralPathDriver::NullBehaviour;
         }

@@ -1,4 +1,6 @@
 <launch>
+	<include file="$(find path_follower)/launch/filter.launch" />
+
 	<node name="costmap" type="costmap_gradient_node" pkg="costmap" output="screen" respawn="true">
 	</node>
 
@@ -13,13 +15,7 @@
 		<param name="size/width" value="0.5" />
 	</node>
 
-  <include file="$(find path_follower)/launch/filter.launch" />
-  
-  <node pkg="karto" type="slam_karto" name="slam_karto" output="screen" respawn="true">
-    <param name="map_update_interval" value="5"/>
-    <param name="resolution" value="0.05"/>
-    <remap from="/scan" to="/scan_filtered" />
-  </node>
+  <include file=$(find navigation_launch)/launch/mapping.launch" />
 
   <node pkg="path_control" type="path_control_node" name="path_control_node" output="screen" respawn="true">
     <param name="nonaction_velocity" value="1.0" />
@@ -31,5 +27,9 @@
   </node>
 
   <include file="$(find path_follower)/launch/follower.launch" />
-
+  
+<!--  <node name="obstacle_map" pkg="csapex" type="csapex_node"
+        args="/home/robot/.csapex/local_map_fused.apex - -headless" />-->
+  <node name="obstacle_map" pkg="csapex" type="csapex_node"
+        args="/home/robot/.csapex/local_map_2d.apex --headless" />
 </launch>
