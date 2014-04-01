@@ -1,32 +1,35 @@
-<?xml version="1.0"?>
 <launch>
+	<node name="costmap" type="costmap_gradient_node" pkg="costmap" output="screen" respawn="true">
+	</node>
+
+	<node name="path_planner" type="path_planner_node" pkg="path_planner" output="screen" respawn="true">
+		<param name="use_map_topic" value="false" />
+		<param name="map_service" value="/dynamic_map" />
+		<param name="use_unknown_cells" value="true" />
+                <param name="use_cost_map" value="true" />
+
+		<param name="size/forward" value="0.4" />
+		<param name="size/backward" value="-0.6" />
+		<param name="size/width" value="0.5" />
+	</node>
+
   <include file="$(find path_follower)/launch/filter.launch" />
   
-  <node pkg="path_planner" type="path_planner_node" name="path_planner_node" output="screen" respawn="true">
-    <param name="use_unknown_cells" value="true" />
-    <param name="use_cost_map" value="true" />
-    <param name="use_map_topic" value="false" />
-  </node>
-  
-  <node pkg="costmap" type="costmap_gradient_node" name="costmap" output="screen" respawn="true" />
-<!--
   <node pkg="karto" type="slam_karto" name="slam_karto" output="screen" respawn="true">
     <param name="map_update_interval" value="5"/>
     <param name="resolution" value="0.05"/>
     <remap from="/scan" to="/scan_filtered" />
-  </node>-->
+  </node>
 
   <node pkg="path_control" type="path_control_node" name="path_control_node" output="screen" respawn="true">
     <param name="nonaction_velocity" value="1.0" />
   </node>
   <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy" output="screen" respawn="true">
-    <param name="target_speed" value="1.5" />
+    <param name="target_speed" value="1.0" />
     <param name="failure_mode" value="replan" />
     <param name="goal_topic" value="/goal"/>
   </node>
 
   <include file="$(find path_follower)/launch/follower.launch" />
 
-  <node pkg="csapex" type="csapex_node" name="obstacle_map"
-        args="/home/buck/.csapex/local_map_2d.apex --headless" />
 </launch>

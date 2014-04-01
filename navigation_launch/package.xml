@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package>
+  <name>navigation_launch</name>
+  <version>0.0.0</version>
+  <description>The navigation_launch package contains different launch files</description>
+
+  <maintainer email="sebastian.buck@uni-tuebingen.de">Sebastian Buck</maintainer>
+
+  <license>BSD</license>
+
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <export>
+  </export>
+</package>
