@@ -124,6 +124,7 @@ private:
         goal.failure_mode = failure_mode_;
         goal.velocity = target_speed_;
 
+        client_.cancelAllGoals();
         client_.sendGoal(goal,
                          boost::bind(&HighDummy::doneCb, this, _1, _2),
                          boost::bind(&HighDummy::activeCb, this),

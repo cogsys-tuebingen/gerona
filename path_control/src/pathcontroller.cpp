@@ -98,6 +98,7 @@ bool PathController::processGoal()
 
     ROS_INFO("Wait for follow_path action server...");
     follow_path_client_.waitForServer();
+    follow_path_client_.cancelAllGoals();
 
     // send goal pose to planner and wait for the result
     //waitForPath(current_goal_->goal_pose);
@@ -356,7 +357,6 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
         pause.data = "pause";
         sys_pub_.publish(pause);
     }
-    path_planner_client_.cancelAllGoals();
 
     PlanPathGoal goal_msg;
     goal_msg.use_start = false;
@@ -367,6 +367,7 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
 
     ROS_INFO("waiting for planner");
     path_planner_client_.waitForServer();
+    path_planner_client_.cancelAllGoals();
     path_planner_client_.sendGoal(goal_msg);
 
     ROS_INFO("waiting for path");
@@ -387,6 +388,7 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
 
     } else {
         ROS_ERROR_STREAM("Path planner failed. Final state: " << state.toString());
+        path_planner_client_.cancelAllGoals();
         requested_path_ = nav_msgs::PathPtr(new nav_msgs::Path);
     }
 
