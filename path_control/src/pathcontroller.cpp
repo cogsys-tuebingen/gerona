@@ -1,4 +1,5 @@
 #include "pathcontroller.h"
+#include <std_msgs/String.h>
 
 using namespace path_msgs;
 
@@ -13,9 +14,11 @@ PathController::PathController(ros::NodeHandle &nh):
     ros::param::param<float>("~nonaction_velocity", opt_.unexpected_path_velocity, 0.5);
     ros::param::param<int>("~num_replan_attempts", opt_.num_replan_attempts, 5);
 
+    sys_pub_ = nh.advertise<std_msgs::String>("/syscommand", 10);
+
     // LEGACY path planning
-//    goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0);
-//    path_sub_ = nh.subscribe<nav_msgs::Path>("/path", 10, &PathController::pathCallback, this);
+    //    goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0);
+    //    path_sub_ = nh.subscribe<nav_msgs::Path>("/path", 10, &PathController::pathCallback, this);
 
     navigate_to_goal_server_.start();
     ROS_INFO("Initialisation done.");
@@ -156,12 +159,12 @@ bool PathController::processGoal()
         // As long as only one action client is active, a new goal should automatically preempt the former goal.
         // Separately checking for new goals should only be necessary, if there are more than one clients (or a client
         // that gets restarted), which is currently not intended.
-//        if (navigate_to_goal_server_.isNewGoalAvailable()) {
-//            ROS_INFO("New goal available.\n---------------------");
-//            follow_path_client_.cancelGoal();
-//            navigate_to_goal_server_.setPreempted();
-//            break;
-//        }
+        //        if (navigate_to_goal_server_.isNewGoalAvailable()) {
+        //            ROS_INFO("New goal available.\n---------------------");
+        //            follow_path_client_.cancelGoal();
+        //            navigate_to_goal_server_.setPreempted();
+        //            break;
+        //        }
     }
 
 
@@ -347,6 +350,12 @@ void PathController::waitForPath(const geometry_msgs::PoseStamped &goal_pose)
 
 void PathController::findPath(const geometry_msgs::PoseStamped& goal)
 {
+    {
+        // pause all activity that can be paused:
+        std_msgs::String pause;
+        pause.data = "pause";
+        sys_pub_.publish(pause);
+    }
     path_planner_client_.cancelAllGoals();
 
     PlanPathGoal goal_msg;
@@ -379,6 +388,14 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
     } else {
         ROS_ERROR_STREAM("Path planner failed. Final state: " << state.toString());
         requested_path_ = nav_msgs::PathPtr(new nav_msgs::Path);
+    }
+
+
+    {
+        // unpause all activity that can be paused:
+        std_msgs::String unpause;
+        unpause.data = "unpause";
+        sys_pub_.publish(unpause);
     }
 }
 

@@ -55,6 +55,9 @@ private:
     //! Publishes goal as PoseStamped for path_planner and rviz.
     ros::Publisher goal_pub_;
 
+    //! Publishes system commands
+    ros::Publisher sys_pub_;
+
     //! Subscibes for the paths published by path_planner
     ros::Subscriber path_sub_;
 

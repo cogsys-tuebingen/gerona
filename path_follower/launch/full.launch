@@ -9,12 +9,12 @@
   </node>
   
   <node pkg="costmap" type="costmap_gradient_node" name="costmap" output="screen" respawn="true" />
-
+<!--
   <node pkg="karto" type="slam_karto" name="slam_karto" output="screen" respawn="true">
     <param name="map_update_interval" value="5"/>
     <param name="resolution" value="0.05"/>
     <remap from="/scan" to="/scan_filtered" />
-  </node>
+  </node>-->
 
   <node pkg="path_control" type="path_control_node" name="path_control_node" output="screen" respawn="true">
     <param name="nonaction_velocity" value="1.0" />
