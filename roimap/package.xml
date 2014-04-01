@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package>
+  <name>roimap</name>
+  <version>0.0.0</version>
+  <description>
+	Get a region of interest defined by the boundaries of a known area.
+  </description>
+
+  <maintainer email="richard.hanten@uni-tuebingen.de">Richard Hanten</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>utils_general</build_depend>
+  <build_depend>utils_robot</build_depend>
+
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>utils_general</run_depend>
+  <run_depend>utils_robot</run_depend>
+
+  <export>
+  </export>
+</package>
