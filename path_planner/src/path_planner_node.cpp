@@ -55,11 +55,13 @@ struct NonHolonomicNeighborhoodPrecise :
 
 
         // euclidean distance
-        if(std::abs(goal->x - reference->x) == 0 &&
-                std::abs(goal->y - reference->y) == 0) {
+        int delta = 8;
+        if(std::abs(goal->x - reference->x) < delta &&
+                std::abs(goal->y - reference->y) < delta) {
             return true;
         }
 
+	return false;
         // check, if goal is between reference an its predecessor
         if(reference->prev) {
             Pose2d v (*reference->prev);

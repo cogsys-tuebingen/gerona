@@ -6,6 +6,15 @@
     <remap from="/scan" to="/scan_filtered" />
   </node>
 -->
+ 
+  <node pkg="roimap" type="roimap_node" name="roimap" output="screen" respawn="true">
+    <param name="padding" value="1.0" />        
+    <param name="topic_map"          value="/map/hector" />
+    <param name="map_service"        value="/dynamic_map/hector" />
+    <param name="topic_map_result"   value="/map" />
+    <param name="map_service_result" value="/dynamic_map" />
+  </node>
+
 
   <arg name="tf_map_scanmatch_transform_frame_name" default="scanmatcher_frame"/>
   <arg name="base_frame" default="base_link"/>
@@ -15,7 +24,7 @@
   <arg name="scan_topic" default="scan"/>
   <arg name="map_size" default="2048"/>
   
-  <node pkg="hector_mapping" type="hector_mapping" name="hector_mapping" output="screen">
+  <node pkg="hector_mapping" type="hector_mapping" name="hector_mapping" output="screen" respawn="true">
     
     <!-- Frame names -->
     <param name="map_frame" value="map" />
@@ -44,7 +53,7 @@
     
     <!-- Advertising config --> 
     <param name="advertise_map_service" value="true"/>
-    
+    <param name="map_pub_period" value="10.0" />
     <param name="scan_subscriber_queue_size" value="$(arg scan_subscriber_queue_size)"/>
     <param name="scan_topic" value="$(arg scan_topic)"/>
     
