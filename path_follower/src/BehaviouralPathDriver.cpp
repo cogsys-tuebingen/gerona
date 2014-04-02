@@ -218,7 +218,8 @@ void BehaviouralPathDriver::configure()
     ros::param::param<float>( "~min_velocity", options_.min_velocity_, 0.4 );
     ros::param::param<float>( "~max_velocity", options_.max_velocity_, 2.0 );
     ros::param::param<float>( "~collision_box_width", options_.collision_box_width_, 0.5);
-    ros::param::param<float>( "~collision_box_min_length", options_.collision_box_min_length_, 0.3);
+    ros::param::param<float>( "~collision_box_min_length", options_.collision_box_min_length_, 0.8);
+    ros::param::param<float>( "~collision_box_crit_length", options_.collision_box_crit_length_, 0.3);
     ros::param::param<float>( "~collision_box_max_length", options_.collision_box_max_length_, 1.0);
     ros::param::param<float>( "~collision_box_velocity_factor", options_.collision_box_velocity_factor_, 1.0);
     ros::param::param<float>( "~collision_box_velocity_saturation", options_.collision_box_velocity_saturation_, options_.max_velocity_);
@@ -230,6 +231,10 @@ void BehaviouralPathDriver::configure()
     if(options_.collision_box_max_length_ < options_.collision_box_min_length_) {
         ROS_ERROR("min length larger than max length!");
         options_.collision_box_min_length_ = options_.collision_box_max_length_;
+    }
+    if(options_.collision_box_min_length_ < options_.collision_box_crit_length_) {
+        ROS_ERROR("min length smaller than crit length!");
+        options_.collision_box_crit_length_ = options_.collision_box_min_length_;
     }
 
     double ta, kp, ki, i_max, delta_max, e_max;
@@ -523,12 +528,15 @@ bool BehaviouralPathDriver::checkCollision(double course)
 
     float box_length = options_.collision_box_min_length_ + span * f;
 
-
     BehaviouralPathDriver::Path& current_path = paths_[options_.path_idx];
     double distance_to_goal = current_path.back().distanceTo(current_path[options_.wp_idx]);
 
     if(box_length > distance_to_goal) {
         box_length = distance_to_goal + 0.2;
+    }
+
+    if(box_length < options_.collision_box_crit_length_) {
+        box_length = options_.collision_box_crit_length_;
     }
 
 

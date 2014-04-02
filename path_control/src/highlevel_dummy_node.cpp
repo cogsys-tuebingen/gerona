@@ -71,7 +71,17 @@ private:
         ROS_INFO("DONE with action state %s", state.toString().c_str());
         if (result->reached_goal) {
             ROS_INFO("Successfully reached goal :)");
+
+    std::stringstream cmd;
+    cmd << "espeak \"" << "mission accomplished" << "\" 2> /dev/null 1> /dev/null &";
+    system(cmd.str().c_str());
+
         } else {
+
+    std::stringstream cmd;
+    cmd << "espeak \"" << "mission failed" << "\" 2> /dev/null 1> /dev/null &";
+    system(cmd.str().c_str());
+
             ROS_WARN("Did not reach goal :(");
             const char* status_names[] = {"OTHER_ERROR", "SUCCESS", "ABORTED", "COLLISION", "TIMEOUT", "LOST_PATH", "NO_PATH_FOUND"};
             ROS_INFO("Result code: %d %s", result->status, status_names[result->status]);
@@ -125,6 +135,8 @@ private:
         goal.velocity = target_speed_;
 
         client_.cancelAllGoals();
+	ros::spinOnce(); ros::Duration(0.1).sleep();
+
         client_.sendGoal(goal,
                          boost::bind(&HighDummy::doneCb, this, _1, _2),
                          boost::bind(&HighDummy::activeCb, this),

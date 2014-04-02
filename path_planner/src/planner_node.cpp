@@ -387,6 +387,7 @@ nav_msgs::Path Planner::doPlan(const geometry_msgs::PoseStamped &start, const ge
             ROS_WARN_STREAM("preemting path planner because of " << (timeout ? "a timeout" : "an interrupt"));
             worker.interrupt();
             worker.join();
+            server_.setPreempted();
             ROS_INFO_STREAM("preemted path planner");
             return nav_msgs::Path();
 

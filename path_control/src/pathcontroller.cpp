@@ -22,6 +22,9 @@ PathController::PathController(ros::NodeHandle &nh):
 
     navigate_to_goal_server_.start();
     ROS_INFO("Initialisation done.");
+std::stringstream cmd;
+    cmd << "espeak \"" << "ready, steady, go!" << "\" 2> /dev/null 1> /dev/null &";
+    system(cmd.str().c_str());
 }
 
 void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal)
@@ -30,8 +33,9 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
 
     if (unexpected_path_) {
         ROS_INFO("Cancel execution of unexpected path.");
-        follow_path_client_.cancelGoal();
     }
+        follow_path_client_.cancelAllGoals();
+	ros::spinOnce(); ros::Duration(0.1).sleep();
 
     current_goal_ = goal;
 
@@ -51,6 +55,7 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
         bool failed = true;
 
         while(replan_counter <= opt_.num_replan_attempts) {
+            ros::spinOnce();
             if (!processGoal()) {
                 // Follower aborted or goal got preempted. We are finished here, result is already send.
                 return;
@@ -68,6 +73,12 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
                 NavigateToGoalFeedback feedback;
                 feedback.status = NavigateToGoalFeedback::STATUS_REPLAN;
                 navigate_to_goal_server_.publishFeedback(feedback);
+
+                if(replan_counter <= opt_.num_replan_attempts) {
+    std::stringstream cmd;
+    cmd << "espeak \"" << "try again!" << "\" 2> /dev/null 1> /dev/null &";
+    system(cmd.str().c_str());
+                }
             }
         }
 
@@ -98,11 +109,13 @@ bool PathController::processGoal()
 
     ROS_INFO("Wait for follow_path action server...");
     follow_path_client_.waitForServer();
-    follow_path_client_.cancelAllGoals();
+//    follow_path_client_.cancelAllGoals();
 
     // send goal pose to planner and wait for the result
     //waitForPath(current_goal_->goal_pose);
     findPath(current_goal_->goal_pose);
+
+    ros::spinOnce();
 
     // check, if path has been found
     if ( requested_path_->poses.size() < 2 ) {
@@ -142,13 +155,14 @@ bool PathController::processGoal()
                                  boost::bind(&PathController::followPathFeedbackCB, this, _1));
 
     while ( ! follow_path_client_.getState().isDone() ) {
+        ros::spinOnce();
         if (navigate_to_goal_server_.isPreemptRequested()) {
             ROS_INFO("Preempt goal.\n---------------------");
-            follow_path_client_.cancelGoal();
+            follow_path_client_.cancelAllGoals();
             // wait until the goal is really canceled (= done callback is called).
-            if (!waitForFollowPathDone(ros::Duration(10))) {
-                ROS_WARN("follow_path_client does not react to cancelGoal() for 10 seconds.");
-            }
+            //if (!waitForFollowPathDone(ros::Duration(10))) {
+            //    ROS_WARN("follow_path_client does not react to cancelGoal() for 10 seconds.");
+            //}
 
             navigate_to_goal_server_.setPreempted();
 
@@ -368,6 +382,8 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
     ROS_INFO("waiting for planner");
     path_planner_client_.waitForServer();
     path_planner_client_.cancelAllGoals();
+    ros::spinOnce(); ros::Duration(0.1).sleep();
+
     path_planner_client_.sendGoal(goal_msg);
 
     ROS_INFO("waiting for path");
@@ -381,14 +397,25 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
 
     actionlib::SimpleClientGoalState state = path_planner_client_.getState();
     if(state == actionlib::SimpleClientGoalState::SUCCEEDED) {
+
+    std::stringstream cmd;
+    cmd << "espeak \"" << "path with " << path_planner_client_.getResult()->path.poses.size() << " nodes found" << "\" 2> /dev/null 1> /dev/null &";
+    system(cmd.str().c_str());
+
         ROS_INFO("Got a path, continue");
         nav_msgs::PathPtr path(new nav_msgs::Path(path_planner_client_.getResult()->path));
 
         requested_path_ = path;
 
     } else {
+
+    std::stringstream cmd;
+    cmd << "espeak \"" << "no path found!" << "\" 2> /dev/null 1> /dev/null &";
+    system(cmd.str().c_str());
+
         ROS_ERROR_STREAM("Path planner failed. Final state: " << state.toString());
         path_planner_client_.cancelAllGoals();
+        ros::spinOnce(); ros::Duration(0.1).sleep();
         requested_path_ = nav_msgs::PathPtr(new nav_msgs::Path);
     }
 

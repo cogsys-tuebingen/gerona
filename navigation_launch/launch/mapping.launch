@@ -53,7 +53,7 @@
     
     <!-- Advertising config --> 
     <param name="advertise_map_service" value="true"/>
-    <param name="map_pub_period" value="10.0" />
+    <param name="map_pub_period" value="5.0" />
     <param name="scan_subscriber_queue_size" value="$(arg scan_subscriber_queue_size)"/>
     <param name="scan_topic" value="$(arg scan_topic)"/>
     

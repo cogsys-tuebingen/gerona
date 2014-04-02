@@ -123,6 +123,7 @@ public:
         float collision_box_width_;
         //! Minimum length of the collision box for obstacle avoidance (grows with increasing velocity).
         float collision_box_min_length_;
+        float collision_box_crit_length_;
         //! Maximum length of the collision box for obstacle avoidance.
         float collision_box_max_length_;
         //! This factor determines, how much the length of the box is increased, depending on the velocity.

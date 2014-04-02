@@ -55,7 +55,7 @@ struct NonHolonomicNeighborhoodPrecise :
 
 
         // euclidean distance
-        int delta = 8;
+        int delta = 2;
         if(std::abs(goal->x - reference->x) < delta &&
                 std::abs(goal->y - reference->y) < delta) {
             return true;

@@ -56,7 +56,7 @@ bool MotionController::checkCollision(double course_angle, double box_length, do
     if(use_obstacle_map_) {
         return obstacle_detector_.isObstacleAhead(box_width, box_length, course_angle, curve_enlarge_factor);
 
-        /*
+/*        
         if(obstacle_map_.data.empty()) {
             ROS_WARN("no obstacle map received!!!!");
             return true;
