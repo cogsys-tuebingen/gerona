@@ -15,7 +15,6 @@
 /// SYSTEM
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
-//#include <ramaxx_msgs/RamaxxMsg.h>
 #include <geometry_msgs/Twist.h>
 #include <tf/tf.h>
 
@@ -203,6 +202,7 @@ public:
 
 protected:
     void clearActive();
+    void beep(const std::vector<int>& beeps);
 
 private:
     PathFollower* node_;
@@ -211,6 +211,7 @@ private:
 
     ros::Publisher& cmd_pub_;
     ros::Publisher vis_pub_;
+    ros::Publisher beeper_;
 
     ros::Subscriber laser_sub_;
     ros::Subscriber obstacle_map_sub_;
@@ -227,6 +228,8 @@ private:
     PidCtrl pid_;
 
     int pending_error_;
+    ros::Time last_beep_;
+    ros::Duration beep_pause_;
 };
 
 }
