@@ -7,12 +7,20 @@
   </node>
 -->
  
-  <node pkg="roimap" type="roimap_node" name="roimap" output="screen" respawn="true">
+  <node pkg="roimap" type="roimap_node" name="roimap" output="log" respawn="true">
     <param name="padding" value="1.0" />        
     <param name="topic_map"          value="/map/hector" />
     <param name="map_service"        value="/dynamic_map/hector" />
     <param name="topic_map_result"   value="/map" />
     <param name="map_service_result" value="/dynamic_map" />
+  </node>
+  <node pkg="roimap" type="roimap_node" name="roimap_cost" output="log" respawn="true">
+    <param name="padding" value="1.0" />        
+    <param name="topic_map"          value="/global_obstacle_map" />
+    <param name="topic_map_result"   value="/global_obstacle_map/crop" />
+    <param name="map_service"        value="/dynamic_map/obstacles/full" />
+    <param name="map_service_result" value="/dynamic_map/obstacles" />
+    <param name="null"               value="50" />
   </node>
 
 

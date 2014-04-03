@@ -104,7 +104,8 @@ struct PathPlanner : public Planner
     enum { SCALE = 1 };
 
     //typedef NonHolonomicNeighborhoodPrecise<70, 240> NHNeighbor;
-    typedef NonHolonomicNeighborhoodPrecise<35, 120> NHNeighbor;
+    //typedef NonHolonomicNeighborhoodPrecise<35, 120> NHNeighbor;
+    typedef NonHolonomicNeighborhoodPrecise<40, 120> NHNeighbor;
     typedef NonHolonomicNeighborhoodNoEndOrientation<120, 200> NHNeighborNoEndOrientation;
 
 
@@ -115,7 +116,8 @@ struct PathPlanner : public Planner
     //  TODO: make these two (or more?) selectable:
     //typedef AStarNoOrientationSearch<> AStar;
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100> > AStar;
-    typedef AStarSearch<NHNeighbor/*, ReedsSheppExpansion<100, true, false>*/ > AStar;
+    //typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStar;
+    typedef AStarSearch<NHNeighbor> AStar;
 
     typedef AStar::PathT PathT;
 

@@ -90,7 +90,7 @@ public:
         double diff =  timer.elapsed() * 1000;
         running_avg_ticks_++;
         running_avg_ = (running_avg_ * (running_avg_ticks_-1) / running_avg_ticks_) + diff / running_avg_ticks_;
-        std::cout << "map inflation took " << diff << "ms , sampling: " << sampling_ << "] [avg. " << running_avg_ << "ms]" << std::endl;
+        ROS_INFO_STREAM("map inflation took " << diff << "ms , sampling: " << sampling_ << "] [avg. " << running_avg_ << "ms]");
     }
 
 

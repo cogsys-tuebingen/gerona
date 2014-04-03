@@ -150,6 +150,7 @@ protected:
     // threaded
     nav_msgs::Path thread_result;
     bool thread_running;
+    boost::thread* thread_;
     boost::mutex thread_mutex;
 
 private:

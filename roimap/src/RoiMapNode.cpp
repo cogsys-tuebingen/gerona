@@ -29,6 +29,7 @@ public:
         nh.param("map_service_result", map_service_result, map_service_result);
 
         nh.param("padding", padding_, 0.0);
+        nh.param("null", null_, -1);
 
         map_subscriber_ = nh.subscribe<nav_msgs::OccupancyGrid> (map_topic, 10, boost::bind(&ROIMapNode::updateMapCallback, this, _1));
         map_publisher_  = nh.advertise<nav_msgs::OccupancyGrid> (map_topic_result, 10, true);
@@ -55,16 +56,10 @@ public:
 
     void updateMapCallback(const nav_msgs::OccupancyGridConstPtr &ptr)
     {
-        ROS_WARN("received large map");
-        ROS_WARN_STREAM("large map size is " << ptr->info.width << " x " << ptr->info.height);
-
         try {
             if(!updateMap(*ptr)) {
                 return;
             }
-
-            ROS_WARN("publish shrinked map");
-            ROS_WARN_STREAM("shrinked map size is " << current_map_.info.width << " x " << current_map_.info.height);
 
             map_publisher_.publish(current_map_);
         } catch(const std::exception& e) {
@@ -86,7 +81,7 @@ public:
         int8_t* ptr = working.ptr<int8_t>();
         for(int y = 0 ; y < working.rows ; ++y) {
             for(int x = 0 ; x < working.cols ; ++x) {
-                if(ptr[y * working.cols + x] != -1) {
+                if(ptr[y * working.cols + x] != null_) {
                    min.x = std::min(min.x, x);
                    min.y = std::min(min.y, y);
                    max.x = std::max(max.x, x);
@@ -128,7 +123,7 @@ public:
         double diff =  timer.elapsed() * 1000;
         running_avg_ticks_++;
         running_avg_ = (running_avg_ * (running_avg_ticks_-1) / running_avg_ticks_) + diff / running_avg_ticks_;
-        std::cout << "map shrink took " << diff << "ms , sampling: " << sampling_ << "] [avg. " << running_avg_ << "ms]" << std::endl;
+        ROS_INFO_STREAM("map shrink took " << diff << "ms , sampling: " << sampling_ << "] [avg. " << running_avg_ << "ms]");
 
         return true;
     }
@@ -143,6 +138,8 @@ private:
 
     nav_msgs::OccupancyGrid current_map_;
     std::vector<int8_t>     map_data_;
+
+    int     null_;
 
     double  running_avg_;
     int     running_avg_ticks_;

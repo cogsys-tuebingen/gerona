@@ -28,7 +28,7 @@ using namespace path_msgs;
 
 
 namespace beep {
-static std::vector<int> OBSTACLE_IN_PATH = boost::assign::list_of(100)(50)(25);
+static std::vector<int> OBSTACLE_IN_PATH = boost::assign::list_of(25)(25)(25);
 }
 
 
@@ -99,7 +99,7 @@ BehaviouralPathDriver::BehaviouralPathDriver(ros::Publisher &cmd_pub, PathFollow
     }
 
     last_beep_ = ros::Time::now();
-    beep_pause_ = ros::Duration(1.0);
+    beep_pause_ = ros::Duration(2.0);
 
     vis_pub_ = private_nh_.advertise<visualization_msgs::Marker>("/marker", 100);
     beeper_ = private_nh_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);

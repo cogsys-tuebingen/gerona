@@ -76,6 +76,17 @@ Planner::~Planner()
 void Planner::preempt()
 {
     ROS_WARN("preempting!!");
+
+    thread_mutex.lock();
+    bool running = thread_running;
+    thread_mutex.unlock(); 
+    if(running) {   
+        ROS_WARN_STREAM("preempting path planner");
+        thread_->interrupt();
+        thread_->join();
+    }
+
+    server_.setPreempted();
 }
 
 void Planner::feedback(int status)
@@ -384,17 +395,14 @@ nav_msgs::Path Planner::doPlan(const geometry_msgs::PoseStamped &start, const ge
             ROS_ERROR("search timed out");
         }
         if(server_.isPreemptRequested() || timeout) {
-            ROS_WARN_STREAM("preemting path planner because of " << (timeout ? "a timeout" : "an interrupt"));
-            worker.interrupt();
-            worker.join();
-            server_.setPreempted();
-            ROS_INFO_STREAM("preemted path planner");
+            ROS_INFO_STREAM("preempted path planner");
             return nav_msgs::Path();
 
         } else {
             bool running;
             thread_mutex.lock();
             running = thread_running;
+            thread_ = &worker;
             thread_mutex.unlock();
 
             if(!running) {
