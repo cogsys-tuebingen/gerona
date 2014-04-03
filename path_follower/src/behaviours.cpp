@@ -13,7 +13,6 @@ double sign(double value) {
 }
 }
 
-
 //##### BEGIN BehaviourDriveBase
 BehaviourDriveBase::BehaviourDriveBase(BehaviouralPathDriver &parent)
     : Behaviour(parent)
@@ -305,11 +304,6 @@ void BehaviourOnLine::execute(int *status)
     }
 
     if(setCommand(e_combined, speed)) {
-
-    std::stringstream cmd;
-    cmd << "espeak \"" << "beep" << "\" 2> /dev/null 1> /dev/null &";
-    system(cmd.str().c_str());
-
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
         throw new BehaviourAvoidObstacle(parent_);
     }

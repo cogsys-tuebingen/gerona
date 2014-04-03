@@ -11,6 +11,7 @@
 /// PROJECT
 #include "pathfollower.h"
 #include "behaviours.h"
+#include <std_msgs/Int32MultiArray.h>
 
 /// SYSTEM
 #include <boost/foreach.hpp>
@@ -19,10 +20,16 @@
 #include <utils_general/MathHelper.h>
 #include <cmath>
 #include <cxxabi.h>
+#include <boost/assign.hpp>
 
 using namespace motion_control;
 using namespace Eigen;
 using namespace path_msgs;
+
+
+namespace beep {
+static std::vector<int> OBSTACLE_IN_PATH = boost::assign::list_of(100)(50)(25);
+}
 
 
 /// BEHAVIOUR BASE
@@ -91,8 +98,11 @@ BehaviouralPathDriver::BehaviouralPathDriver(ros::Publisher &cmd_pub, PathFollow
         laser_sub_ = private_nh_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&BehaviouralPathDriver::laserCallback, this, _1));
     }
 
+    last_beep_ = ros::Time::now();
+    beep_pause_ = ros::Duration(1.0);
 
     vis_pub_ = private_nh_.advertise<visualization_msgs::Marker>("/marker", 100);
+    beeper_ = private_nh_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
     configure();
 }
 
@@ -503,6 +513,22 @@ bool BehaviouralPathDriver::simpleCheckCollision(float box_width, float box_leng
     return collision;
 }
 
+void BehaviouralPathDriver::beep(const std::vector<int> &beeps)
+{
+    ros::Time now = ros::Time::now();
+    if(last_beep_ + beep_pause_ > now) {
+        return;
+    }
+
+    last_beep_ = now;
+
+    std_msgs::Int32MultiArray msg;
+
+    msg.data.insert(msg.data.begin(), beeps.begin(), beeps.end());
+
+    beeper_.publish(msg);
+}
+
 bool BehaviouralPathDriver::checkCollision(double course)
 {
     //! Factor which defines, how much the box is enlarged in curves.
@@ -541,6 +567,10 @@ bool BehaviouralPathDriver::checkCollision(double course)
 
 
     bool collision = MotionController::checkCollision(course, box_length, options_.collision_box_width_, enlarge_factor);
+
+    if(collision) {
+        beep(beep::OBSTACLE_IN_PATH);
+    }
 
 
     // visualization
