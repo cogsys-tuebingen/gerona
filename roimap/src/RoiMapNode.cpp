@@ -41,30 +41,48 @@ public:
     bool getMap(nav_msgs::GetMap::Request &req, nav_msgs::GetMap::Response &res)
     {
         nav_msgs::GetMap map_service;
-        map_service_client.call(map_service);
-        updateMap(map_service.response.map);
+        if(map_service_client.call(map_service)) {
+            if(!updateMap(map_service.response.map)) {
+                return false;
+            }
 
-        res.map = current_map_;
-        return true;
+            res.map = current_map_;
+            return true;
+        } else {
+            return false;
+        }
     }
 
     void updateMapCallback(const nav_msgs::OccupancyGridConstPtr &ptr)
     {
-        updateMap(*ptr);
+        ROS_WARN("received large map");
+        ROS_WARN_STREAM("large map size is " << ptr->info.width << " x " << ptr->info.height);
 
-        map_publisher_.publish(current_map_);
+        try {
+            if(!updateMap(*ptr)) {
+                return;
+            }
+
+            ROS_WARN("publish shrinked map");
+            ROS_WARN_STREAM("shrinked map size is " << current_map_.info.width << " x " << current_map_.info.height);
+
+            map_publisher_.publish(current_map_);
+        } catch(const std::exception& e) {
+            ROS_ERROR_STREAM("shrinking map failed with " << e.what());
+        }
     }
 
-    void updateMap(const nav_msgs::OccupancyGrid &map)
+    bool updateMap(const nav_msgs::OccupancyGrid &map)
     {
         map_data_ = map.data;
 
         Stopwatch timer;
 
         cv::Mat working(map.info.height, map.info.width, CV_8SC1, map_data_.data());
-        cv::Point min(std::numeric_limits<int>::max(), std::numeric_limits<int>::max());
+        cv::Point min(map.info.width, map.info.height);
         cv::Point max(-1,-1);
 
+        bool empty = true;
         int8_t* ptr = working.ptr<int8_t>();
         for(int y = 0 ; y < working.rows ; ++y) {
             for(int x = 0 ; x < working.cols ; ++x) {
@@ -73,8 +91,13 @@ public:
                    min.y = std::min(min.y, y);
                    max.x = std::max(max.x, x);
                    max.y = std::max(max.y, y);
+                   empty = false;
                 }
             }
+        }
+
+        if(empty) {
+            return false;
         }
 
 
@@ -106,6 +129,8 @@ public:
         running_avg_ticks_++;
         running_avg_ = (running_avg_ * (running_avg_ticks_-1) / running_avg_ticks_) + diff / running_avg_ticks_;
         std::cout << "map shrink took " << diff << "ms , sampling: " << sampling_ << "] [avg. " << running_avg_ << "ms]" << std::endl;
+
+        return true;
     }
 
 

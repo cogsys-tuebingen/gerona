@@ -284,6 +284,9 @@ void BehaviourOnLine::execute(int *status)
 
     float speed = getOptions().velocity_;
 
+    // TODO: better speed control
+    //       - backwards not slower, but lower max speed
+    //       - slower when close to goal, similar to ApproachGoal
     if(dir_sign_ < 0) {
         speed *= 0.5;
     }

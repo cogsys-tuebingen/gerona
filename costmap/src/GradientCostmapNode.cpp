@@ -41,15 +41,19 @@ public:
     bool getMap(nav_msgs::GetMap::Request &req, nav_msgs::GetMap::Response &res)
     {
         nav_msgs::GetMap map_service;
-        map_service_client.call(map_service);
-        updateMap(map_service.response.map);
-
-        res.map = current_map_;
-        return true;
+        if(map_service_client.call(map_service)) {
+            updateMap(map_service.response.map);
+            res.map = current_map_;
+            return true;
+        } else {
+            return false;
+        }
     }
 
     void updateMapCallback(const nav_msgs::OccupancyGridConstPtr &ptr)
     {
+	ROS_WARN("received map");
+	ROS_WARN_STREAM("SIZE is " << ptr->info.width << " x " << ptr->info.height);
         updateMap(*ptr);
 
         map_publisher_.publish(current_map_);
