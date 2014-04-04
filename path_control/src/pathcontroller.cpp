@@ -42,8 +42,9 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
     switch (goal->failure_mode) {
     case NavigateToGoalGoal::FAILURE_MODE_ABORT:
         /// Abort mode. Simply process ones and abort, if some problem occurs.
-        processGoal();
-        handleFollowPathResult();
+        if (processGoal()) { // if processGoal returns false, this means, there is no result, which can be handled.
+            handleFollowPathResult();
+        }
         break;
 
     case NavigateToGoalGoal::FAILURE_MODE_REPLAN:
@@ -75,9 +76,9 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
                 navigate_to_goal_server_.publishFeedback(feedback);
 
                 if(replan_counter <= opt_.num_replan_attempts) {
-    std::stringstream cmd;
-    cmd << "espeak \"" << "try again!" << "\" 2> /dev/null 1> /dev/null &";
-    system(cmd.str().c_str());
+                    std::stringstream cmd;
+                    cmd << "espeak \"" << "try again!" << "\" 2> /dev/null 1> /dev/null &";
+                    system(cmd.str().c_str());
                 }
             }
         }
@@ -163,6 +164,7 @@ bool PathController::processGoal()
             //if (!waitForFollowPathDone(ros::Duration(10))) {
             //    ROS_WARN("follow_path_client does not react to cancelGoal() for 10 seconds.");
             //}
+            //FIXME ^ why is this commented?
 
             navigate_to_goal_server_.setPreempted();
 
@@ -398,9 +400,9 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
     actionlib::SimpleClientGoalState state = path_planner_client_.getState();
     if(state == actionlib::SimpleClientGoalState::SUCCEEDED) {
 
-    std::stringstream cmd;
-    cmd << "espeak \"" << "path with " << path_planner_client_.getResult()->path.poses.size() << " nodes found" << "\" 2> /dev/null 1> /dev/null &";
-    system(cmd.str().c_str());
+        std::stringstream cmd;
+        cmd << "espeak \"" << "path with " << path_planner_client_.getResult()->path.poses.size() << " nodes found" << "\" 2> /dev/null 1> /dev/null &";
+        system(cmd.str().c_str());
 
         ROS_INFO("Got a path, continue");
         nav_msgs::PathPtr path(new nav_msgs::Path(path_planner_client_.getResult()->path));
@@ -409,9 +411,9 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
 
     } else {
 
-    std::stringstream cmd;
-    cmd << "espeak \"" << "no path found!" << "\" 2> /dev/null 1> /dev/null &";
-    system(cmd.str().c_str());
+        std::stringstream cmd;
+        cmd << "espeak \"" << "no path found!" << "\" 2> /dev/null 1> /dev/null &";
+        system(cmd.str().c_str());
 
         ROS_ERROR_STREAM("Path planner failed. Final state: " << state.toString());
         path_planner_client_.cancelAllGoals();
