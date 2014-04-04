@@ -181,6 +181,7 @@ bool BehaviourDriveBase::setCommand(double error, double speed) //TODO: float wo
     VectorFieldHistogram& vfh = getVFH();
     bool collision = false;
 
+    // FIXME: check if ~use_vfh == true
     if(!vfh.isReady()) {
         ROS_WARN_THROTTLE(1, "Not using VFH, not ready yet! (Maybe obstacle map not published?)");
         delta_f = delta_f_raw;

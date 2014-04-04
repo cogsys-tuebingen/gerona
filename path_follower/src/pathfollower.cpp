@@ -6,7 +6,8 @@ using namespace path_msgs;
 PathFollower::PathFollower(ros::NodeHandle &nh):
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
-    active_ctrl_(NULL)
+    active_ctrl_(NULL),
+    use_obstacle_map_(false)
 {
     // Init. action server
     follow_path_server_.registerGoalCallback(boost::bind(&PathFollower::followPathGoalCB, this));
@@ -14,11 +15,19 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
     ros::param::param<string>("~world_frame", world_frame_, "/map");
     ros::param::param<string>("~robot_frame", robot_frame_, "/base_link");
+    ros::param::param<bool>("~use_obstacle_map", use_obstacle_map_, false);
+    ros::param::param<bool>("~use_vfh", use_vfh_, false);
 
     //cmd_pub_ = nh_.advertise<ramaxx_msgs::RamaxxMsg> (cmd_topic_, 10);
     cmd_pub_ = node_handle_.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
 
     odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
+
+    if(use_obstacle_map_) {
+        obstacle_map_sub_ = node_handle_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&PathFollower::obstacleMapCB, this, _1));
+    } else {
+        laser_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&PathFollower::laserCB, this, _1));
+    }
 
     active_ctrl_ = new motion_control::BehaviouralPathDriver(cmd_pub_, this);
 
@@ -30,7 +39,6 @@ PathFollower::~PathFollower()
 {
     delete active_ctrl_;
 }
-
 
 
 void PathFollower::followPathGoalCB()
@@ -53,6 +61,21 @@ void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
 {
     odometry_ = *odom;
 }
+
+void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan)
+{
+    laser_scan_ = *scan;
+}
+
+void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
+{
+    obstacle_detector_.gridMapCallback(map);
+
+    if(use_vfh_) {
+        vfh_.setMap(*map);
+    }
+}
+
 
 bool PathFollower::getWorldPose(Vector3d &pose , geometry_msgs::Pose *pose_out) const
 {
@@ -157,4 +180,46 @@ void PathFollower::update()
             }
         }
     }
+}
+
+bool PathFollower::checkCollision(double course_angle, double box_length, double box_width, double curve_enlarge_factor)
+{
+    if(use_obstacle_map_) {
+        return obstacle_detector_.isObstacleAhead(box_width, box_length, course_angle, curve_enlarge_factor);
+    } else {
+        return laser_env_.CheckCollision(laser_scan_.ranges,laser_scan_.angle_min,laser_scan_.angle_max, course_angle,
+                                         box_width, curve_enlarge_factor, box_length);
+    }
+}
+
+bool PathFollower::simpleCheckCollision(float box_width, float box_length)
+{
+    for (size_t i=0; i < laser_scan_.ranges.size(); ++i) {
+        // project point to carthesian coordinates
+        float angle = laser_scan_.angle_min + i * laser_scan_.angle_increment;
+        float px = laser_scan_.ranges[i] * cos(angle);
+        float py = laser_scan_.ranges[i] * sin(angle);
+
+
+        /* Point p is inside the rectangle, if
+         *    p.x in [-width/2, +width/2]
+         * and
+         *    p.y in [0, length]
+         */
+
+        if ( py >= -box_width/2 &&
+             py <=  box_width/2 &&
+             px >= 0 &&
+             px <= box_length )
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+VectorFieldHistogram& PathFollower::getVFH()
+{
+    return vfh_;
 }

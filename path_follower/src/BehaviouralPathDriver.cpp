@@ -60,7 +60,7 @@ BehaviouralPathDriver::Command& BehaviouralPathDriver::Behaviour::getCommand()
 }
 VectorFieldHistogram& BehaviouralPathDriver::Behaviour::getVFH()
 {
-    return parent_.vfh_;
+    return getNode().getVFH();
 }
 BehaviouralPathDriver::Options& BehaviouralPathDriver::Behaviour::getOptions()
 {
@@ -88,16 +88,6 @@ std::string name(BehaviouralPathDriver::Behaviour* b) {
 BehaviouralPathDriver::BehaviouralPathDriver(ros::Publisher &cmd_pub, PathFollower *node)
     : node_(node), private_nh_("~"), cmd_pub_(cmd_pub), active_behaviour_(NULL), pending_error_(-1)
 {
-    private_nh_.param("use_obstacle_map", use_obstacle_map_, false);
-
-    if(use_obstacle_map_) {
-        obstacle_map_sub_ = private_nh_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&BehaviouralPathDriver::obstacleMapCallback, this, _1));
-        //obstacle_map_sub_ = private_nh_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&ObstacleDetector::gridMapCallback, &obstacle_detector_, _1));
-
-    } else {
-        laser_sub_ = private_nh_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&BehaviouralPathDriver::laserCallback, this, _1));
-    }
-
     last_beep_ = ros::Time::now();
     beep_pause_ = ros::Duration(2.0);
 
@@ -463,55 +453,55 @@ void BehaviouralPathDriver::clearActive()
     active_behaviour_ = NULL;
 }
 
-bool BehaviouralPathDriver::simpleCheckCollision(float box_width, float box_length, int dir_sign)
-{
-    if (dir_sign < 0) {
-        // no collision check when driving backwards.
-        return false;
-    }
+//bool BehaviouralPathDriver::simpleCheckCollision(float box_width, float box_length, int dir_sign)
+//{
+//    if (dir_sign < 0) {
+//        // no collision check when driving backwards.
+//        return false;
+//    }
 
 
-    bool collision = false;
+//    bool collision = false;
 
-    for (size_t i=0; i < laser_scan_.ranges.size(); ++i) {
-        // project point to carthesian coordinates
-        float angle = laser_scan_.angle_min + i * laser_scan_.angle_increment;
-        float px = laser_scan_.ranges[i] * cos(angle);
-        float py = laser_scan_.ranges[i] * sin(angle);
+//    for (size_t i=0; i < laser_scan_.ranges.size(); ++i) {
+//        // project point to carthesian coordinates
+//        float angle = laser_scan_.angle_min + i * laser_scan_.angle_increment;
+//        float px = laser_scan_.ranges[i] * cos(angle);
+//        float py = laser_scan_.ranges[i] * sin(angle);
 
 
-        /* Point p is inside the rectangle, if
-             *    p.x in [-width/2, +width/2]
-             * and
-             *    p.y in [0, length]
-             */
+//        /* Point p is inside the rectangle, if
+//             *    p.x in [-width/2, +width/2]
+//             * and
+//             *    p.y in [0, length]
+//             */
 
-        if ( py >= -box_width/2 &&
-             py <=  box_width/2 &&
-             px >= 0 &&
-             px <= box_length )
-        {
-            collision = true;
-            break;
-        }
-    }
+//        if ( py >= -box_width/2 &&
+//             py <=  box_width/2 &&
+//             px >= 0 &&
+//             px <= box_length )
+//        {
+//            collision = true;
+//            break;
+//        }
+//    }
 
-    //visualize box
-    geometry_msgs::Point p1, p2, p3, p4;
-    p1.y = -box_width/2;  p1.x = 0;
-    p2.y = -box_width/2;  p2.x = box_length;
-    p3.y = +box_width/2;  p3.x = 0;
-    p4.y = +box_width/2;  p4.x = box_length;
+//    //visualize box
+//    geometry_msgs::Point p1, p2, p3, p4;
+//    p1.y = -box_width/2;  p1.x = 0;
+//    p2.y = -box_width/2;  p2.x = box_length;
+//    p3.y = +box_width/2;  p3.x = 0;
+//    p4.y = +box_width/2;  p4.x = box_length;
 
-    float r = collision ? 1 : 0;
-    float g = 1 - r;
-    drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
-    drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
-    drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
-    drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+//    float r = collision ? 1 : 0;
+//    float g = 1 - r;
+//    drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
+//    drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+//    drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
+//    drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
 
-    return collision;
-}
+//    return collision;
+//}
 
 void BehaviouralPathDriver::beep(const std::vector<int> &beeps)
 {
@@ -566,7 +556,7 @@ bool BehaviouralPathDriver::checkCollision(double course)
     }
 
 
-    bool collision = MotionController::checkCollision(course, box_length, options_.collision_box_width_, enlarge_factor);
+    bool collision = getNode()->checkCollision(course, box_length, options_.collision_box_width_, enlarge_factor);
 
     if(collision) {
         beep(beep::OBSTACLE_IN_PATH);

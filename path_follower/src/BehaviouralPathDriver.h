@@ -11,6 +11,7 @@
 /// PROJECT
 #include "MotionController.h"
 #include "PidCtrl.h"
+#include "vector_field_histogram.h"
 
 /// SYSTEM
 #include <ros/ros.h>
@@ -196,7 +197,7 @@ public:
         return slam_pose_;
     }
 
-    bool simpleCheckCollision(float box_width, float box_length, int dir_sign);
+//    bool simpleCheckCollision(float box_width, float box_length, int dir_sign);
 
     bool checkCollision(double course);
 
@@ -212,9 +213,6 @@ private:
     ros::Publisher& cmd_pub_;
     ros::Publisher vis_pub_;
     ros::Publisher beeper_;
-
-    ros::Subscriber laser_sub_;
-    ros::Subscriber obstacle_map_sub_;
 
     Behaviour* active_behaviour_;
 
