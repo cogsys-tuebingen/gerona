@@ -17,6 +17,8 @@ double sign(double value) {
 BehaviourDriveBase::BehaviourDriveBase(BehaviouralPathDriver &parent)
     : Behaviour(parent)
 {
+    visualizer_ = Visualizer::getInstance();
+
     double wpto;
     ros::param::param<double>("~waypoint_timeout", wpto, 10.0);
     waypoint_timeout.duration = ros::Duration(wpto);
@@ -108,8 +110,8 @@ double BehaviourDriveBase::calculateDistanceToCurrentPathSegment()
     Line2d segment_line(Vector2d(wp1.position.x, wp1.position.y), Vector2d(wp2.position.x, wp2.position.y));
 
     ///// visualize start and end point of the current segment (for debugging)
-    parent_.drawMark(24, wp1.position, "segment_marker", 0, 1, 1);
-    parent_.drawMark(25, wp2.position, "segment_marker", 1, 0, 1);
+    visualizer_->drawMark(24, wp1.position, "segment_marker", 0, 1, 1);
+    visualizer_->drawMark(25, wp2.position, "segment_marker", 1, 0, 1);
     /////
 
     // get distance of robot (slam_pose_) to segment_line.
@@ -125,7 +127,7 @@ void BehaviourDriveBase::visualizeCarrot(const Vector2d &carrot, int id, float r
     carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
     geometry_msgs::PoseStamped carrot_map;
     if (getNode().transformToGlobal(carrot_local, carrot_map)) {
-        parent_.drawMark(id, carrot_map.pose.position, "prediction", r,g,b);
+        visualizer_->drawMark(id, carrot_map.pose.position, "prediction", r,g,b);
     }
 }
 
@@ -140,7 +142,7 @@ void BehaviourDriveBase::visualizeLine(const Line2d &line)
     t.x = to(0);
     t.y = to(1);
 
-    parent_.drawLine(2, f, t, "/base_link", "line", 0.7, 0.2, 1.0);
+    visualizer_->drawLine(2, f, t, "/base_link", "line", 0.7, 0.2, 1.0);
 }
 
 double BehaviourDriveBase::calculateCourse()
@@ -236,7 +238,7 @@ bool BehaviourDriveBase::setCommand(double error, double speed) //TODO: float wo
 void BehaviourDriveBase::drawSteeringArrow(int id, geometry_msgs::Pose steer_arrow, double angle, double r, double g, double b)
 {
     steer_arrow.orientation = tf::createQuaternionMsgFromYaw(tf::getYaw(steer_arrow.orientation) + angle);
-    parent_.drawArrow(id, steer_arrow, "steer", r, g, b);
+    visualizer_->drawArrow(id, steer_arrow, "steer", r, g, b);
 }
 
 void BehaviourDriveBase::checkWaypointTimeout()
@@ -341,8 +343,8 @@ void BehaviourOnLine::getNextWaypoint()
         }
     }
 
-    parent_.drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
-    parent_.drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);
+    visualizer_->drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
+    visualizer_->drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);
 
     next_wp_map_.pose = current_path[opt.wp_idx];
     next_wp_map_.header.stamp = ros::Time::now();
@@ -422,8 +424,8 @@ void BehaviourAvoidObstacle::getNextWaypoint()
         }
     }
 
-    parent_.drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
-    parent_.drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);
+    visualizer_->drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
+    visualizer_->drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);
 
     next_wp_map_.pose = current_path[opt.wp_idx];
     next_wp_map_.header.stamp = ros::Time::now();
@@ -468,7 +470,7 @@ void BehaviourApproachTurningPoint::execute(int *status)
 
         double e_combined = e_distance + e_angle;
 
-        parent_.drawCircle(2, next_wp_map_.pose.position, 0.5, "/map", "turning point", 1, 1, 1);
+        visualizer_->drawCircle(2, next_wp_map_.pose.position, 0.5, "/map", "turning point", 1, 1, 1);
 
         // draw steer front
         drawSteeringArrow(1, slam_pose_msg_, e_angle, 0.2, 1.0, 0.2);
@@ -581,8 +583,8 @@ void BehaviourApproachTurningPoint::getNextWaypoint()
     int last_wp_idx = current_path.size() - 1;
     opt.wp_idx = last_wp_idx;
 
-    parent_.drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
-    parent_.drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);
+    visualizer_->drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
+    visualizer_->drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);
 
     next_wp_map_.pose = current_path[opt.wp_idx];
     next_wp_map_.header.stamp = ros::Time::now();

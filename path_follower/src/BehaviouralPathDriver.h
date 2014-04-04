@@ -12,6 +12,7 @@
 #include "MotionController.h"
 #include "PidCtrl.h"
 #include "vector_field_histogram.h"
+#include "visualizer.h"
 
 /// SYSTEM
 #include <ros/ros.h>
@@ -185,10 +186,6 @@ public:
     PathFollower* getNode() const;
 
     void setPath(const nav_msgs::Path& path);
-    void drawArrow(int id, const geometry_msgs::Pose &pose, const std::string& ns, float r, float g, float b, double live = 3);
-    void drawLine(int id, const geometry_msgs::Point &from, const geometry_msgs::Point &to, const string &frame, const std::string& ns, float r, float g, float b, double live = 3, float scale = 0.3);
-    void drawCircle(int id, const geometry_msgs::Point &center, double radius, const string &frame, const std::string& ns, float r, float g, float b, double live = 3);
-    void drawMark(int id, const geometry_msgs::Point &pos, const std::string& ns, float r, float g, float b);
     void predictPose(Vector2d &front_pred,
                       Vector2d &rear_pred );
 
@@ -211,7 +208,6 @@ private:
     ros::NodeHandle private_nh_;
 
     ros::Publisher& cmd_pub_;
-    ros::Publisher vis_pub_;
     ros::Publisher beeper_;
 
     Behaviour* active_behaviour_;
@@ -224,6 +220,8 @@ private:
     std::vector<std::vector<Waypoint> > paths_;
 
     PidCtrl pid_;
+
+    Visualizer* visualizer_;
 
     int pending_error_;
     ros::Time last_beep_;

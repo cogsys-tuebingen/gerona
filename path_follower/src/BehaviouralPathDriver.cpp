@@ -16,7 +16,6 @@
 /// SYSTEM
 #include <boost/foreach.hpp>
 #include <Eigen/Core>
-#include <visualization_msgs/Marker.h>
 #include <utils_general/MathHelper.h>
 #include <cmath>
 #include <cxxabi.h>
@@ -91,7 +90,8 @@ BehaviouralPathDriver::BehaviouralPathDriver(ros::Publisher &cmd_pub, PathFollow
     last_beep_ = ros::Time::now();
     beep_pause_ = ros::Duration(2.0);
 
-    vis_pub_ = private_nh_.advertise<visualization_msgs::Marker>("/marker", 100);
+    visualizer_ = Visualizer::getInstance();
+
     beeper_ = private_nh_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
     configure();
 }
@@ -158,7 +158,7 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResul
         return DONE;
     }
 
-    drawArrow(0, slampose_p, "slam pose", 2.0, 0.7, 1.0);
+    visualizer_->drawArrow(0, slampose_p, "slam pose", 2.0, 0.7, 1.0);
 
 
     int status = FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
@@ -301,10 +301,10 @@ void BehaviouralPathDriver::setPath(const nav_msgs::Path& path)
             }
         }
 
-        drawArrow(id++, current_point, "paths", 0, 0, 0);
+        visualizer_->drawArrow(id++, current_point, "paths", 0, 0, 0);
         if(segment_ends_with_this_node) {
             // Marker for subpaths
-            drawMark(id++, ((geometry_msgs::Pose)current_point).position, "paths", 0.2,0.2,0.2);
+            visualizer_->drawMark(id++, ((geometry_msgs::Pose)current_point).position, "paths", 0.2,0.2,0.2);
 
 
             paths_.push_back(current_segment);
@@ -340,93 +340,6 @@ void BehaviouralPathDriver::predictPose(Vector2d &front_pred, Vector2d &rear_pre
     rear_pred[0] = xn-cos(thetan)*options_.l_/2.0;
     rear_pred[1] = yn-sin(thetan)*options_.l_/2.0;
 }
-
-void BehaviouralPathDriver::drawLine(int id, const geometry_msgs::Point &from, const geometry_msgs::Point &to, const std::string& frame,
-                                     const std::string& ns, float r, float g, float b, double live, float scale)
-{
-    visualization_msgs::Marker marker;
-    marker.ns = ns;
-    marker.header.frame_id = frame;
-    marker.header.stamp = ros::Time();
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.id = id;
-    marker.lifetime = ros::Duration(live);
-    marker.color.r = r;
-    marker.color.g = g;
-    marker.color.b = b;
-    marker.color.a = 1.0;
-    marker.pose.orientation.w = 1.0;
-    marker.points.push_back(from);
-    marker.points.push_back(to);
-    marker.scale.x = scale;
-    marker.type = visualization_msgs::Marker::LINE_LIST;
-    vis_pub_.publish(marker);
-}
-
-void BehaviouralPathDriver::drawCircle(int id, const geometry_msgs::Point &center, double radius, const string &frame, const std::string& ns, float r, float g, float b, double live)
-{
-    visualization_msgs::Marker marker;
-    marker.ns = ns;
-    marker.header.frame_id = frame;
-    marker.header.stamp = ros::Time();
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.id = id;
-    marker.lifetime = ros::Duration(live);
-    marker.color.r = r;
-    marker.color.g = g;
-    marker.color.b = b;
-    marker.color.a = 1.0;
-    marker.pose.position = center;
-    marker.pose.orientation.w = 1.0;
-    marker.scale.x = radius;
-    marker.scale.y = radius;
-    marker.scale.z = 0.1;
-    marker.type = visualization_msgs::Marker::CYLINDER;
-    vis_pub_.publish(marker);
-}
-
-void BehaviouralPathDriver::drawArrow(int id, const geometry_msgs::Pose& pose, const std::string& ns, float r, float g, float b, double live)
-{
-    visualization_msgs::Marker marker;
-    marker.pose = pose;
-    marker.ns = ns;
-    marker.header.frame_id = "/map";
-    marker.header.stamp = ros::Time();
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.id = id;
-    marker.lifetime = ros::Duration(live);
-    marker.color.r = r;
-    marker.color.g = g;
-    marker.color.b = b;
-    marker.color.a = 1.0;
-    marker.scale.x = 0.75;
-    marker.scale.y = 0.05;
-    marker.scale.z = 0.05;
-    marker.type = visualization_msgs::Marker::ARROW;
-    vis_pub_.publish(marker);
-}
-
-void BehaviouralPathDriver::drawMark(int id, const geometry_msgs::Point &pos, const string &ns, float r, float g, float b)
-{
-    visualization_msgs::Marker marker;
-    marker.pose.position = pos;
-    marker.ns = ns;
-    marker.header.frame_id = "/map";
-    marker.header.stamp = ros::Time();
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.id = id;
-    marker.lifetime = ros::Duration(3);
-    marker.color.r = r;
-    marker.color.g = g;
-    marker.color.b = b;
-    marker.color.a = 1.0;
-    marker.scale.x = 0.1;
-    marker.scale.y = 0.1;
-    marker.scale.z = 0.5;
-    marker.type = visualization_msgs::Marker::CUBE;
-    vis_pub_.publish(marker);
-}
-
 
 void BehaviouralPathDriver::setGoal(const FollowPathGoal &goal)
 {
@@ -495,10 +408,10 @@ void BehaviouralPathDriver::clearActive()
 
 //    float r = collision ? 1 : 0;
 //    float g = 1 - r;
-//    drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
-//    drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
-//    drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
-//    drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+//    visualizer_->drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
+//    visualizer_->drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+//    visualizer_->drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
+//    visualizer_->drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
 
 //    return collision;
 //}
@@ -564,7 +477,7 @@ bool BehaviouralPathDriver::checkCollision(double course)
 
 
     // visualization
-    if (vis_pub_.getNumSubscribers() > 0) {
+    if (visualizer_->hasSubscriber()) {
         // code copied from LaserEnvironment::CheckCollision()
         // (need to recalculate this here, since LaserEnvironment can not visualize)
         //TODO: Externalize visualisation methods, to make them accessable from obstacle detector?
@@ -599,10 +512,10 @@ bool BehaviouralPathDriver::checkCollision(double course)
 
         float r = collision ? 1 : 0;
         float g = 1 - r;
-        drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
-        drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
-        drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
-        drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+        visualizer_->drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
+        visualizer_->drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+        visualizer_->drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
+        visualizer_->drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
     }
 
     return collision;

@@ -132,6 +132,7 @@ add_executable(path_follower_node
   src/PidCtrl.cpp
   src/obstacledetector.cpp
   src/vector_field_histogram.cpp
+  src/visualizer.cpp
 )
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)

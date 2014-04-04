@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 
 #include "BehaviouralPathDriver.h"
+#include "visualizer.h"
 #include <utils_general/Line2d.h>
 
 
@@ -89,6 +90,8 @@ protected:
 
     //! Timeout to abort, if the robot takes to long to reach the next waypoint.
     Timeout waypoint_timeout;
+
+    Visualizer* visualizer_;
 
     //! Check if waypoint timeout has expired. If yes, switch to BehaviourEmergencyBreak.
     void checkWaypointTimeout();
