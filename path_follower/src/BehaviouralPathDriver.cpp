@@ -366,55 +366,6 @@ void BehaviouralPathDriver::clearActive()
     active_behaviour_ = NULL;
 }
 
-//bool BehaviouralPathDriver::simpleCheckCollision(float box_width, float box_length, int dir_sign)
-//{
-//    if (dir_sign < 0) {
-//        // no collision check when driving backwards.
-//        return false;
-//    }
-
-
-//    bool collision = false;
-
-//    for (size_t i=0; i < laser_scan_.ranges.size(); ++i) {
-//        // project point to carthesian coordinates
-//        float angle = laser_scan_.angle_min + i * laser_scan_.angle_increment;
-//        float px = laser_scan_.ranges[i] * cos(angle);
-//        float py = laser_scan_.ranges[i] * sin(angle);
-
-
-//        /* Point p is inside the rectangle, if
-//             *    p.x in [-width/2, +width/2]
-//             * and
-//             *    p.y in [0, length]
-//             */
-
-//        if ( py >= -box_width/2 &&
-//             py <=  box_width/2 &&
-//             px >= 0 &&
-//             px <= box_length )
-//        {
-//            collision = true;
-//            break;
-//        }
-//    }
-
-//    //visualize box
-//    geometry_msgs::Point p1, p2, p3, p4;
-//    p1.y = -box_width/2;  p1.x = 0;
-//    p2.y = -box_width/2;  p2.x = box_length;
-//    p3.y = +box_width/2;  p3.x = 0;
-//    p4.y = +box_width/2;  p4.x = box_length;
-
-//    float r = collision ? 1 : 0;
-//    float g = 1 - r;
-//    visualizer_->drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
-//    visualizer_->drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
-//    visualizer_->drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
-//    visualizer_->drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
-
-//    return collision;
-//}
 
 void BehaviouralPathDriver::beep(const std::vector<int> &beeps)
 {
@@ -473,49 +424,6 @@ bool BehaviouralPathDriver::checkCollision(double course)
 
     if(collision) {
         beep(beep::OBSTACLE_IN_PATH);
-    }
-
-
-    // visualization
-    if (visualizer_->hasSubscriber()) {
-        // code copied from LaserEnvironment::CheckCollision()
-        // (need to recalculate this here, since LaserEnvironment can not visualize)
-        //TODO: Externalize visualisation methods, to make them accessable from obstacle detector?
-        float beta = current_command_.steer_front;
-        float width = options_.collision_box_width_;
-        float length = enlarge_factor;
-        float threshold = box_length;
-        // corner points of the parallelogram
-        float ax,ay,bx,by,cx,cy;
-
-        float sbeta=std::sin(beta);
-        float cbeta=std::cos(beta);
-        ay=width/2.0f;
-        ax=0.0f;
-        by=-width/2.0f;
-        bx=0.0f;
-        if (beta > 0) {
-            ay += length*sbeta;
-        } else if (beta < 0) {
-            by += length*sbeta;
-        }
-        cy=ay+threshold*sbeta;
-        cx=ax+threshold*cbeta;
-
-
-        geometry_msgs::Point p1, p2, p3, p4;
-        p1.y = ay;  p1.x = ax;
-        p2.y = by;  p2.x = bx;
-        p3.y = cy;  p3.x = cx;
-        p4.y = p3.y + p2.y - p1.y;
-        p4.x = p3.x + p2.x - p1.x;
-
-        float r = collision ? 1 : 0;
-        float g = 1 - r;
-        visualizer_->drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
-        visualizer_->drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
-        visualizer_->drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
-        visualizer_->drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
     }
 
     return collision;

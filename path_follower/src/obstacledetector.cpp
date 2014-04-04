@@ -2,6 +2,7 @@
 
 #include <Eigen/Core>
 //#include <opencv2/opencv.hpp> // only for debugging
+#include "visualizer.h"
 
 using namespace Eigen;
 
@@ -128,11 +129,35 @@ bool ObstacleDetector::isObstacleAhead(float width, float length, float course_a
             float check_2 =  det_pa_pr / det_pq_pr;
 
             if (0 <= check_1 && check_1 <= 1  &&  0 <= check_2 && check_2 <= 1) {
-                return true;
+                collision = true;
+                break; // no need to check the remaining cells
             }
         }
     }
 
+    // visualization
+    Visualizer* vis = Visualizer::getInstance();
+    if (vis->hasSubscriber()) {
+        // transform
+        Vector2f e_p1 = (p - o)*map_->info.resolution;
+        Vector2f e_p2 = (q - o)*map_->info.resolution;
+        Vector2f e_p3 = (r - o)*map_->info.resolution;
+        Vector2f e_p4 = (p + pr + pq - o)*map_->info.resolution;
+        // convert Eigen vectors to ros points...
+        geometry_msgs::Point p1, p2, p3, p4;
+        p1.x = e_p1(0);  p1.y = e_p1(1);
+        p2.x = e_p2(0);  p2.y = e_p2(1);
+        p3.x = e_p3(0);  p3.y = e_p3(1);
+        p4.x = e_p4(0);  p4.y = e_p4(1);
+
+        // colour is green when the bos is empty and red, if there is an obstacle
+        float r = collision ? 1 : 0;
+        float g = 1 - r;
+        vis->drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
+        vis->drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+        vis->drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
+        vis->drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+    }
 
 //    cv::line(debug, cv::Point((int)p(0),(int)p(1)), cv::Point((int)q(0), (int)q(1)), cv::Scalar(0));
 //    cv::line(debug, cv::Point((int)p(0),(int)p(1)), cv::Point((int)r(0), (int)r(1)), cv::Scalar(0));

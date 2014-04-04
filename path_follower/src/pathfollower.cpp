@@ -216,6 +216,20 @@ bool PathFollower::simpleCheckCollision(float box_width, float box_length)
         }
     }
 
+//    //visualize box
+//    geometry_msgs::Point p1, p2, p3, p4;
+//    p1.y = -box_width/2;  p1.x = 0;
+//    p2.y = -box_width/2;  p2.x = box_length;
+//    p3.y = +box_width/2;  p3.x = 0;
+//    p4.y = +box_width/2;  p4.x = box_length;
+
+//    float r = collision ? 1 : 0;
+//    float g = 1 - r;
+//    visualizer_->drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
+//    visualizer_->drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+//    visualizer_->drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
+//    visualizer_->drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
+
     return false;
 }
 

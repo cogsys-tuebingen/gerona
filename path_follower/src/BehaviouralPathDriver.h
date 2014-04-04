@@ -194,8 +194,6 @@ public:
         return slam_pose_;
     }
 
-//    bool simpleCheckCollision(float box_width, float box_length, int dir_sign);
-
     bool checkCollision(double course);
 
 protected:
