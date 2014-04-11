@@ -1,5 +1,6 @@
 #include "pathfollower.h"
 #include <geometry_msgs/Twist.h>
+#include "robotcontroller_ackermann_pid.h"
 
 using namespace path_msgs;
 
@@ -31,12 +32,15 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
     active_ctrl_ = new BehaviouralPathDriver(cmd_pub_, this);
 
+    controller_ = new RobotController_Ackermann_Pid((BehaviouralPathDriver*) active_ctrl_);
+
     follow_path_server_.start();
     ROS_INFO("Initialisation done.");
 }
 
 PathFollower::~PathFollower()
 {
+    delete controller_;
     delete active_ctrl_;
 }
 
@@ -236,4 +240,9 @@ bool PathFollower::simpleCheckCollision(float box_width, float box_length)
 VectorFieldHistogram& PathFollower::getVFH()
 {
     return vfh_;
+}
+
+RobotController *PathFollower::getController()
+{
+    return controller_;
 }

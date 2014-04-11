@@ -13,6 +13,7 @@
 #include "BehaviouralPathDriver.h"
 #include "obstacledetector.h"
 #include "vector_field_histogram.h"
+#include "robotcontroller.h"
 
 
 class PathFollower
@@ -68,6 +69,8 @@ public:
 
     VectorFieldHistogram& getVFH();
 
+    RobotController* getController();
+
 private:
     typedef actionlib::SimpleActionServer<path_msgs::FollowPathAction> FollowPathServer;
 
@@ -114,6 +117,8 @@ private:
 
     //! Used for collision avoidance. Only used if ~use_obstacle_map:=true and ~use_vfh:=true.
     VectorFieldHistogram vfh_;
+
+    RobotController *controller_;
 
 
     void followPathGoalCB();
