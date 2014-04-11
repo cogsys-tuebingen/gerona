@@ -30,8 +30,6 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
 {
     BehaviourDriveBase(BehaviouralPathDriver& parent);
 
-    void getSlamPose();
-
     //! Calculate the angle between the orientations of the waypoint and the robot.
     double calculateAngleError();
 
@@ -75,9 +73,6 @@ protected:
 
 
     int* status_ptr_;
-
-    //! Pose of the robot.
-    geometry_msgs::Pose slam_pose_msg_;
 
     //! Pose of the next waypoint in map frame.
     geometry_msgs::PoseStamped next_wp_map_;

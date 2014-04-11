@@ -187,12 +187,12 @@ public:
     void predictPose(Vector2d &front_pred,
                       Vector2d &rear_pred );
 
-    Vector3d getSlamPose()
+    Vector3d getSlamPose() const
     {
         return slam_pose_;
     }
 
-    geometry_msgs::Pose getSlamPoseMsg()
+    const geometry_msgs::Pose &getSlamPoseMsg() const
     {
         return slam_pose_msg_;
     }

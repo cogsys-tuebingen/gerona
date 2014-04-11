@@ -24,18 +24,9 @@ BehaviourDriveBase::BehaviourDriveBase(BehaviouralPathDriver &parent)
     waypoint_timeout.reset();
 }
 
-void BehaviourDriveBase::getSlamPose()
-{
-    Vector3d slam_pose;
-    if ( !getNode().getWorldPose( slam_pose, &slam_pose_msg_ )) {
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
-        throw new BehaviourEmergencyBreak(parent_);
-    }
-}
-
 double BehaviourDriveBase::calculateAngleError()
 {
-    return MathHelper::AngleClamp(tf::getYaw(next_wp_map_.pose.orientation) - tf::getYaw(slam_pose_msg_.orientation));
+    return MathHelper::AngleClamp(tf::getYaw(next_wp_map_.pose.orientation) - tf::getYaw(parent_.getSlamPoseMsg().orientation));
 }
 
 double BehaviourDriveBase::calculateLineError()
@@ -168,7 +159,7 @@ bool BehaviourDriveBase::setCommand(double error, double speed) //TODO: float wo
         return false;
     }
 
-    drawSteeringArrow(14, slam_pose_msg_, delta_f_raw, 0.0, 1.0, 1.0);
+    drawSteeringArrow(14, parent_.getSlamPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
 
     double threshold = 5.0;
     double threshold_max_distance = 3.5 /*m*/;
@@ -192,7 +183,7 @@ bool BehaviourDriveBase::setCommand(double error, double speed) //TODO: float wo
         vfh.visualize(delta_f_raw, threshold);
     }
 
-    drawSteeringArrow(14, slam_pose_msg_, delta_f, 0.0, 1.0, 1.0);
+    drawSteeringArrow(14, parent_.getSlamPoseMsg(), delta_f, 0.0, 1.0, 1.0);
 
 
     BehaviouralPathDriver::Command& cmd = getCommand();
@@ -268,7 +259,6 @@ void BehaviourOnLine::execute(int *status)
 
     getNextWaypoint();
     checkWaypointTimeout();
-    getSlamPose();
 
     dir_sign_ = sign(next_wp_local_.x());
 
@@ -279,9 +269,9 @@ void BehaviourOnLine::execute(int *status)
     double e_combined = e_distance + e_angle;
 
     // draw steer front
-    drawSteeringArrow(1, slam_pose_msg_, e_angle, 0.2, 1.0, 0.2);
-    drawSteeringArrow(2, slam_pose_msg_, e_distance, 0.2, 0.2, 1.0);
-    drawSteeringArrow(3, slam_pose_msg_, e_combined, 1.0, 0.2, 0.2);
+    drawSteeringArrow(1, parent_.getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+    drawSteeringArrow(2, parent_.getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+    drawSteeringArrow(3, parent_.getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
 
     float speed = getOptions().velocity_;
 
@@ -363,7 +353,6 @@ void BehaviourAvoidObstacle::execute(int *status)
 
     getNextWaypoint();
     checkWaypointTimeout();
-    getSlamPose();
 
     dir_sign_ = sign(next_wp_local_.x());
 
@@ -374,9 +363,9 @@ void BehaviourAvoidObstacle::execute(int *status)
     double e_combined = e_distance + e_angle;
 
     // draw steer front
-    drawSteeringArrow(1, slam_pose_msg_, e_angle, 0.2, 1.0, 0.2);
-    drawSteeringArrow(2, slam_pose_msg_, e_distance, 0.2, 0.2, 1.0);
-    drawSteeringArrow(3, slam_pose_msg_, e_combined, 1.0, 0.2, 0.2);
+    drawSteeringArrow(1, parent_.getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+    drawSteeringArrow(2, parent_.getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+    drawSteeringArrow(3, parent_.getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
 
     float speed = getOptions().velocity_;
 
@@ -449,7 +438,6 @@ void BehaviourApproachTurningPoint::execute(int *status)
 
     getNextWaypoint();
     checkWaypointTimeout();
-    getSlamPose();
 
     // check if the sign changes
     int dir_sign = sign(next_wp_local_.x());
@@ -472,9 +460,9 @@ void BehaviourApproachTurningPoint::execute(int *status)
         visualizer_->drawCircle(2, next_wp_map_.pose.position, 0.5, "/map", "turning point", 1, 1, 1);
 
         // draw steer front
-        drawSteeringArrow(1, slam_pose_msg_, e_angle, 0.2, 1.0, 0.2);
-        drawSteeringArrow(2, slam_pose_msg_, e_distance, 0.2, 0.2, 1.0);
-        drawSteeringArrow(3, slam_pose_msg_, e_combined, 1.0, 0.2, 0.2);
+        drawSteeringArrow(1, parent_.getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        drawSteeringArrow(2, parent_.getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        drawSteeringArrow(3, parent_.getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
 
         double distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
         double velocity = std::min(0.1 + distance / 2.0, (double) getOptions().min_velocity_);
@@ -517,8 +505,8 @@ bool BehaviourApproachTurningPoint::checkIfDone(bool done)
     if(!waiting_) {
         //! Difference of current robot pose to the next waypoint.
         Vector2d delta;
-        delta << next_wp_map_.pose.position.x - slam_pose_msg_.position.x,
-                next_wp_map_.pose.position.y - slam_pose_msg_.position.y;
+        delta << next_wp_map_.pose.position.x - parent_.getSlamPoseMsg().position.x,
+                next_wp_map_.pose.position.y - parent_.getSlamPoseMsg().position.y;
 
         if (dir_sign_ < 0) {
             delta *= -1;
