@@ -20,8 +20,6 @@
 #include <geometry_msgs/Twist.h>
 #include <tf/tf.h>
 
-namespace motion_control {
-
 class BehaviouralPathDriver : public MotionController
 {
 public:
@@ -194,6 +192,11 @@ public:
         return slam_pose_;
     }
 
+    geometry_msgs::Pose getSlamPoseMsg()
+    {
+        return slam_pose_msg_;
+    }
+
     bool checkCollision(double course);
 
 protected:
@@ -214,6 +217,7 @@ private:
     Options options_;
 
     Vector3d slam_pose_;
+    geometry_msgs::Pose slam_pose_msg_;
     nav_msgs::Path path_;
     std::vector<std::vector<Waypoint> > paths_;
 
@@ -225,7 +229,5 @@ private:
     ros::Time last_beep_;
     ros::Duration beep_pause_;
 };
-
-}
 
 #endif // BEHAVIOURALPATHDRIVER_H

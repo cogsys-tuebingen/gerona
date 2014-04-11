@@ -21,7 +21,6 @@
 #include <cxxabi.h>
 #include <boost/assign.hpp>
 
-using namespace motion_control;
 using namespace Eigen;
 using namespace path_msgs;
 
@@ -151,14 +150,13 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResul
         start();
     }
 
-    geometry_msgs::Pose slampose_p;
-    if ( !node_->getWorldPose( slam_pose_, &slampose_p )) {
-        stop();
+    if ( !node_->getWorldPose( slam_pose_, &slam_pose_msg_ )) {
+        stop(); // FIXME: stop() sets velocity to 0, but due to the return, this is never published.
         result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         return DONE;
     }
 
-    visualizer_->drawArrow(0, slampose_p, "slam pose", 2.0, 0.7, 1.0);
+    visualizer_->drawArrow(0, slam_pose_msg_, "slam pose", 2.0, 0.7, 1.0);
 
 
     int status = FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;

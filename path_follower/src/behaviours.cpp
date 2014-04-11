@@ -2,7 +2,6 @@
 #include "pathfollower.h"
 #include <utils_general/MathHelper.h>
 
-using namespace motion_control;
 using namespace Eigen;
 
 namespace {
@@ -256,7 +255,7 @@ void BehaviourDriveBase::checkWaypointTimeout()
 
 //##### BEGIN BehaviourOnLine
 
-BehaviourOnLine::BehaviourOnLine(motion_control::BehaviouralPathDriver& parent)
+BehaviourOnLine::BehaviourOnLine(BehaviouralPathDriver& parent)
     : BehaviourDriveBase(parent)
 {
     getPid().reset();

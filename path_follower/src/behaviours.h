@@ -8,9 +8,9 @@
 #include <utils_general/Line2d.h>
 
 
-struct BehaviourEmergencyBreak : public motion_control::BehaviouralPathDriver::Behaviour
+struct BehaviourEmergencyBreak : public BehaviouralPathDriver::Behaviour
 {
-    BehaviourEmergencyBreak(motion_control::BehaviouralPathDriver& parent)
+    BehaviourEmergencyBreak(BehaviouralPathDriver& parent)
         : Behaviour(parent)
     {
         // stop immediately
@@ -21,14 +21,14 @@ struct BehaviourEmergencyBreak : public motion_control::BehaviouralPathDriver::B
     void execute(int *status)
     {
         *status = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
-        throw new motion_control::BehaviouralPathDriver::NullBehaviour;
+        throw new BehaviouralPathDriver::NullBehaviour;
     }
 };
 
 
-struct BehaviourDriveBase : public motion_control::BehaviouralPathDriver::Behaviour
+struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
 {
-    BehaviourDriveBase(motion_control::BehaviouralPathDriver& parent);
+    BehaviourDriveBase(BehaviouralPathDriver& parent);
 
     void getSlamPose();
 
@@ -101,7 +101,7 @@ protected:
 
 struct BehaviourOnLine : public BehaviourDriveBase
 {
-    BehaviourOnLine(motion_control::BehaviouralPathDriver& parent);
+    BehaviourOnLine(BehaviouralPathDriver& parent);
     void execute(int *status);
     void getNextWaypoint();
 };
@@ -109,7 +109,7 @@ struct BehaviourOnLine : public BehaviourDriveBase
 
 struct BehaviourAvoidObstacle : public BehaviourDriveBase
 {
-    BehaviourAvoidObstacle(motion_control::BehaviouralPathDriver& parent)
+    BehaviourAvoidObstacle(BehaviouralPathDriver& parent)
         : BehaviourDriveBase(parent)
     {}
 
@@ -119,7 +119,7 @@ struct BehaviourAvoidObstacle : public BehaviourDriveBase
 
 struct BehaviourApproachTurningPoint : public BehaviourDriveBase
 {
-    BehaviourApproachTurningPoint(motion_control::BehaviouralPathDriver& parent);
+    BehaviourApproachTurningPoint(BehaviouralPathDriver& parent);
 
     void execute(int *status);
 

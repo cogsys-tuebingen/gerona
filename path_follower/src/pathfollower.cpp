@@ -29,7 +29,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         laser_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&PathFollower::laserCB, this, _1));
     }
 
-    active_ctrl_ = new motion_control::BehaviouralPathDriver(cmd_pub_, this);
+    active_ctrl_ = new BehaviouralPathDriver(cmd_pub_, this);
 
     follow_path_server_.start();
     ROS_INFO("Initialisation done.");
