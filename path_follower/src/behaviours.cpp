@@ -432,7 +432,7 @@ void BehaviourAvoidObstacle::getNextWaypoint()
 //##### BEGIN BehaviourApproachTurningPoint
 
 BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(BehaviouralPathDriver &parent)
-    : BehaviourDriveBase(parent), step(0), waiting_(false)
+    : BehaviourDriveBase(parent), step_(0), waiting_(false)
 {
 }
 
@@ -445,13 +445,13 @@ void BehaviourApproachTurningPoint::execute(int *status)
 
     // check if the sign changes
     int dir_sign = sign(next_wp_local_.x());
-    if(step > 0 && dir_sign != dir_sign_) {
+    if(step_ > 0 && dir_sign != dir_sign_) {
         checkIfDone(true);
     }
 
     dir_sign_ = dir_sign;
 
-    ++step;
+    ++step_;
 
     // check if point is reached
     if(!checkIfDone()) {
