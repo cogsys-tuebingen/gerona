@@ -32,7 +32,7 @@ double BehaviourDriveBase::calculateAngleError()
 double BehaviourDriveBase::calculateLineError()
 {
     BehaviouralPathDriver::Options& opt = getOptions();
-    BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+    Path& current_path = getSubPath(opt.path_idx);
 
     geometry_msgs::PoseStamped followup_next_wp_map;
     followup_next_wp_map.header.stamp = ros::Time::now();
@@ -75,7 +75,7 @@ double BehaviourDriveBase::calculateDistanceToCurrentPathSegment()
      */
 
     BehaviouralPathDriver::Options& opt = getOptions();
-    BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+    Path& current_path = getSubPath(opt.path_idx);
 
     assert(opt.wp_idx < (int) current_path.size());
 
@@ -164,7 +164,7 @@ bool BehaviourDriveBase::setCommand(double error, double speed) //TODO: float wo
     double threshold = 5.0;
     double threshold_max_distance = 3.5 /*m*/;
 
-    BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+    Path& current_path = getSubPath(opt.path_idx);
     double distance_to_goal = current_path.back().distanceTo(current_path[opt.wp_idx]);
     double threshold_distance = std::min(threshold_max_distance,
                                          std::max((double) opt.collision_box_min_length_, distance_to_goal));
@@ -231,6 +231,11 @@ void BehaviourDriveBase::drawSteeringArrow(int id, geometry_msgs::Pose steer_arr
     visualizer_->drawArrow(id, steer_arrow, "steer", r, g, b);
 }
 
+void BehaviourDriveBase::setStatus(int status)
+{
+    *status_ptr_ = status;
+}
+
 void BehaviourDriveBase::checkWaypointTimeout()
 {
     if (waypoint_timeout.isExpired()) {
@@ -285,10 +290,9 @@ void BehaviourOnLine::execute(int *status)
     // if the robot is in this state, we assume that it is not avoiding any obstacles
     // so we abort, if robot moves too far from the path
     if (calculateDistanceToCurrentPathSegment() > getOptions().max_distance_to_path_) {
-
-    std::stringstream cmd;
-    cmd << "espeak \"" << "abort: too far away!" << "\" 2> /dev/null 1> /dev/null &";
-    system(cmd.str().c_str());
+        std::stringstream cmd;
+        cmd << "espeak \"" << "abort: too far away!" << "\" 2> /dev/null 1> /dev/null &";
+        system(cmd.str().c_str());
 
         ROS_WARN("Moved too far away from the path. Abort.");
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST;
@@ -305,7 +309,7 @@ void BehaviourOnLine::execute(int *status)
 void BehaviourOnLine::getNextWaypoint()
 {
     BehaviouralPathDriver::Options& opt = getOptions();
-    BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+    Path& current_path = getSubPath(opt.path_idx);
 
     assert(opt.wp_idx < (int) current_path.size());
 
@@ -385,7 +389,7 @@ void BehaviourAvoidObstacle::getNextWaypoint()
 {
     // TODO: improve!
     BehaviouralPathDriver::Options& opt = getOptions();
-    BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+    Path& current_path = getSubPath(opt.path_idx);
 
     assert(opt.wp_idx < (int) current_path.size());
 
@@ -512,7 +516,7 @@ bool BehaviourApproachTurningPoint::checkIfDone(bool done)
             delta *= -1;
         }
 
-        BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+        Path& current_path = getSubPath(opt.path_idx);
 
         //! Unit vector pointing in the direction of the next waypoints orientation.
         Vector2d target_dir;
@@ -563,7 +567,7 @@ bool BehaviourApproachTurningPoint::checkIfDone(bool done)
 void BehaviourApproachTurningPoint::getNextWaypoint()
 {
     BehaviouralPathDriver::Options& opt = getOptions();
-    BehaviouralPathDriver::Path& current_path = getSubPath(opt.path_idx);
+    Path& current_path = getSubPath(opt.path_idx);
 
     assert(opt.wp_idx < (int) current_path.size());
 

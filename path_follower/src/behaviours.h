@@ -48,6 +48,8 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
 
     void drawSteeringArrow(int id, geometry_msgs::Pose steer_arrow, double angle, double r, double g, double b);
 
+    void setStatus(int status);//FIXME: is there a better solution than making this public? It should only be accessable for RobotController
+
 protected:
     //! Very simple timeout class.
     class Timeout {
@@ -69,7 +71,6 @@ protected:
     private:
         ros::Time started;
     };
-
 
 
     int* status_ptr_;

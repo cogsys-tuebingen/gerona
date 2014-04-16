@@ -53,6 +53,7 @@ void PathFollower::followPathGoalCB()
     // stop current goal
     active_ctrl_->stop();
 
+    controller_->setVelocity(goalptr->velocity);
     active_ctrl_->setGoal(*goalptr);
 }
 

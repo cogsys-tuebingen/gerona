@@ -1,14 +1,20 @@
 #ifndef ROBOTCONTROLLER_H
 #define ROBOTCONTROLLER_H
 
+#include "path.h"
+#include "behaviours.h"
+
 class BehaviouralPathDriver;
 
 class RobotController
 {
 public:
     RobotController(BehaviouralPathDriver *path_driver) :
-        path_driver_(path_driver)
-    {}
+        path_driver_(path_driver),
+        velocity_(0.0f)
+    {
+        configure();
+    }
 
 
     virtual void configure()
@@ -28,13 +34,21 @@ public:
 
 
     /* BEHAVIOURS */
-    virtual void behaveOnLine() = 0;
-    virtual void behaveAvoidObstacle() = 0;
-    virtual void behaveApproachTurningPoint() = 0;
+    virtual void behaveOnLine(PathWithPosition) = 0;
+    virtual void behaveAvoidObstacle(PathWithPosition path) = 0;
+    virtual void behaveApproachTurningPoint(PathWithPosition path) = 0;
     virtual void behaveEmergencyBreak() = 0;
+
+    virtual void setVelocity(float v)
+    {
+        velocity_ = v;
+    }
 
 protected:
     BehaviouralPathDriver *path_driver_;
+
+    //! Desired velocity (defined by the action goal).
+    float velocity_;
 
 };
 

@@ -4,6 +4,9 @@
 /// ROS
 #include <geometry_msgs/Twist.h>
 
+/// THIRD PARTY
+#include <Eigen/Core>
+
 /// PROJECT
 #include "robotcontroller.h"
 #include "PidCtrl.h"
@@ -21,9 +24,9 @@ public:
 
     virtual void stopMotion();
 
-    virtual void behaveOnLine();
-    virtual void behaveAvoidObstacle();
-    virtual void behaveApproachTurningPoint();
+    virtual void behaveOnLine(PathWithPosition path); //TODO: no need for abstraction here: use BehaviourOnLine
+    virtual void behaveAvoidObstacle(PathWithPosition path);
+    virtual void behaveApproachTurningPoint(PathWithPosition path);
     virtual void behaveEmergencyBreak();
 
 private:
@@ -60,13 +63,27 @@ private:
         }
     };
 
+    struct ControllerOptions
+    {
+        //! Maximum distance the robot is allowed to depart from the path. If this threshold is exceeded,
+        //! the path follower will abort.
+        double max_distance_to_path_;
+    };
+
 
     PidCtrl pid_;
     Command cmd_;
+    ControllerOptions opt_;
 
+    Eigen::Vector3d next_wp_local_;
+    float dir_sign_;
+    PathWithPosition path_;
+
+    inline void setStatus(int status);
 
     double calculateAngleError();
     double calculateLineError();
+    double calculateDistanceToCurrentPathSegment();
 };
 
 #endif // ROBOTCONTROLLERACKERMANNPID_H

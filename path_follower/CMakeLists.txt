@@ -135,6 +135,7 @@ add_executable(path_follower_node
   src/visualizer.cpp
   src/robotcontroller.h
   src/robotcontroller_ackermann_pid.cpp
+  src/path.h
 )
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)

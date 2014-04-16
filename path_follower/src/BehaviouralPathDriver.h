@@ -13,6 +13,7 @@
 #include "PidCtrl.h"
 #include "vector_field_histogram.h"
 #include "visualizer.h"
+#include "path.h"
 
 /// SYSTEM
 #include <ros/ros.h>
@@ -24,38 +25,6 @@ class BehaviouralPathDriver : public MotionController
 {
 public:
     friend class Behaviour;
-
-    struct Waypoint
-    {
-        Waypoint() {}
-        Waypoint(const geometry_msgs::PoseStamped& ref)
-        {
-            x = ref.pose.position.x;
-            y = ref.pose.position.y;
-            theta = tf::getYaw(ref.pose.orientation);
-        }
-        operator geometry_msgs::Pose() const
-        {
-            geometry_msgs::Pose result;
-            result.position.x = x;
-            result.position.y = y;
-            result.orientation = tf::createQuaternionMsgFromYaw(theta);
-            return result;
-        }
-
-        double distanceTo(const Waypoint& other) const
-        {
-            double dx = other.x - x;
-            double dy = other.y - y;
-            return std::sqrt(dx*dx + dy*dy);
-        }
-
-        double x;
-        double y;
-        double theta;
-    };
-
-    typedef std::vector<Waypoint> Path;
 
     struct Command
     {
@@ -109,8 +78,8 @@ public:
         float min_velocity_;
         //! Maximum velocity (to prevent the high level control from running amok).
         float max_velocity_;
-        //! Desired velocity (defined by the action goal).
-        float velocity_;
+
+        float velocity_; //FIXME: obsolete when RobotController is working
 
         double steer_slow_threshold_;
 
@@ -186,6 +155,7 @@ public:
     void setPath(const nav_msgs::Path& path);
     void predictPose(Vector2d &front_pred,
                       Vector2d &rear_pred );
+    bool checkCollision(double course);
 
     Vector3d getSlamPose() const
     {
@@ -197,7 +167,10 @@ public:
         return slam_pose_msg_;
     }
 
-    bool checkCollision(double course);
+    Behaviour* getActiveBehaviour() const
+    {
+        return active_behaviour_;
+    }
 
 protected:
     void clearActive();
@@ -219,7 +192,7 @@ private:
     Vector3d slam_pose_;
     geometry_msgs::Pose slam_pose_msg_;
     nav_msgs::Path path_;
-    std::vector<std::vector<Waypoint> > paths_;
+    std::vector<Path> paths_;
 
     PidCtrl pid_;
 

@@ -31,7 +31,7 @@ static std::vector<int> OBSTACLE_IN_PATH = boost::assign::list_of(25)(25)(25);
 
 
 /// BEHAVIOUR BASE
-BehaviouralPathDriver::Path& BehaviouralPathDriver::Behaviour::getSubPath(unsigned index)
+Path& BehaviouralPathDriver::Behaviour::getSubPath(unsigned index)
 {
     return parent_.paths_[index];
 }
@@ -406,7 +406,7 @@ bool BehaviouralPathDriver::checkCollision(double course)
 
     float box_length = options_.collision_box_min_length_ + span * f;
 
-    BehaviouralPathDriver::Path& current_path = paths_[options_.path_idx];
+    Path& current_path = paths_[options_.path_idx];
     double distance_to_goal = current_path.back().distanceTo(current_path[options_.wp_idx]);
 
     if(box_length > distance_to_goal) {
