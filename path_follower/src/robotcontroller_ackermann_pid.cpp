@@ -105,8 +105,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, double speed)
         ROS_WARN_THROTTLE(1, "Collision!");
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION); //FIXME: not so good to use result-constant if it is not finishing the action...
 
-        cmd_.velocity = 0;
-        publishCommand();
+        stopMotion();
     } else {
         cmd_.velocity = dir_sign_ * speed;
     }
@@ -193,7 +192,31 @@ void RobotController_Ackermann_Pid::behaveOnLine(PathWithPosition path)
 
 void RobotController_Ackermann_Pid::behaveAvoidObstacle(PathWithPosition path)
 {
+    BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
 
+    dir_sign_ = sign(next_wp_local_.x());
+
+    // Calculate target line from current to next waypoint (if there is any)
+    double e_distance = calculateLineError();
+    double e_angle = calculateAngleError();
+
+    double e_combined = e_distance + e_angle;
+
+    // draw steer front
+    behaviour->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+    behaviour->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+    behaviour->drawSteeringArrow(3, path_driver_->getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
+
+    float speed = velocity_;
+
+    if(dir_sign_ < 0) {
+        speed *= 0.5;
+    }
+
+    if(!setCommand(e_combined, speed)) {
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
+        throw new BehaviourOnLine(*path_driver_);
+    }
 }
 
 void RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition path)
