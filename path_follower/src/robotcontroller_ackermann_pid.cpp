@@ -18,8 +18,9 @@ double sign(double value) {
 }
 
 
-RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(BehaviouralPathDriver *path_driver):
-    RobotController(path_driver)
+RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(BehaviouralPathDriver *path_driver, VectorFieldHistogram *vfh):
+    RobotController(path_driver),
+    vfh_(vfh)
 {
 }
 
@@ -42,81 +43,76 @@ void RobotController_Ackermann_Pid::configure()
 
 bool RobotController_Ackermann_Pid::setCommand(double error, double speed)
 {
-//    BehaviouralPathDriver::Options& opt = getOptions();
+    BehaviouralPathDriver::Options path_driver_opt = path_driver_->getOptions();
+    BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
 
-//    double delta_f_raw = 0;
+    double delta_f_raw = 0;
 
-//    *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+    setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
 
-//    if ( !getPid().execute( error, delta_f_raw)) {
-//        // Nothing to do
-//        return false;
-//    }
+    if (!pid_.execute( error, delta_f_raw)) {
+        // Nothing to do
+        return false;
+    }
 
-//    drawSteeringArrow(14, parent_.getSlamPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
+    behaviour->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
 
-//    double threshold = 5.0;
-//    double threshold_max_distance = 3.5 /*m*/;
+    double threshold = 5.0;
+    double threshold_max_distance = 3.5 /*m*/;
 
-//    Path& current_path = getSubPath(opt.path_idx);
-//    double distance_to_goal = current_path.back().distanceTo(current_path[opt.wp_idx]);
-//    double threshold_distance = std::min(threshold_max_distance,
-//                                         std::max((double) opt.collision_box_min_length_, distance_to_goal));
+    double distance_to_goal = path_.current_path->back().distanceTo(path_.nextWaypoint());
+    double threshold_distance = std::min(threshold_max_distance,
+                                         std::max((double) path_driver_opt.collision_box_min_length_, distance_to_goal));
 
-//    double delta_f;
-//    VectorFieldHistogram& vfh = getVFH();
-//    bool collision = false;
+    double delta_f;
+    bool collision = false;
 
-//    // FIXME: check if ~use_vfh == true
-//    if(!vfh.isReady()) {
-//        ROS_WARN_THROTTLE(1, "Not using VFH, not ready yet! (Maybe obstacle map not published?)");
-//        delta_f = delta_f_raw;
-//    } else {
-//        vfh.create(threshold_distance, threshold);
-//        collision = !vfh.adjust(delta_f_raw, threshold, delta_f);
-//        vfh.visualize(delta_f_raw, threshold);
-//    }
+    // FIXME: check if ~use_vfh == true
+    if(!vfh_->isReady()) {
+        ROS_WARN_THROTTLE(1, "Not using VFH, not ready yet! (Maybe obstacle map not published?)");
+        delta_f = delta_f_raw;
+    } else {
+        vfh_->create(threshold_distance, threshold);
+        collision = !vfh_->adjust(delta_f_raw, threshold, delta_f);
+        vfh_->visualize(delta_f_raw, threshold);
+    }
 
-//    drawSteeringArrow(14, parent_.getSlamPoseMsg(), delta_f, 0.0, 1.0, 1.0);
-
-
-//    BehaviouralPathDriver::Command& cmd = getCommand();
+    behaviour->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_f, 0.0, 1.0, 1.0);
 
 
-//    double steer = std::abs(delta_f);
-//    ROS_DEBUG_STREAM("dir=" << dir_sign_ << ", steer=" << steer);
-//    if(steer > getOptions().steer_slow_threshold_) {
-//        ROS_WARN_STREAM_THROTTLE(2, "slowing down");
-//        speed *= 0.5;
-//    }
+    double steer = std::abs(delta_f);
+    ROS_DEBUG_STREAM("dir=" << dir_sign_ << ", steer=" << steer);
+    if(steer > path_driver_opt.steer_slow_threshold_) {
+        ROS_WARN_STREAM_THROTTLE(2, "slowing down");
+        speed *= 0.5;
+    }
 
-//    // make sure, the speed is in the allowed range
-//    if (speed < getOptions().min_velocity_) {
-//        speed = getOptions().min_velocity_;
-//        ROS_WARN_THROTTLE(5, "Velocity is below minimum. It is set to minimum velocity.");
-//    } else if (speed > getOptions().max_velocity_) {
-//        speed = getOptions().max_velocity_;
-//        ROS_WARN_THROTTLE(5, "Velocity is above maximum. Reduce to maximum velocity.");
-//    }
+    // make sure, the speed is in the allowed range
+    if (speed < path_driver_opt.min_velocity_) {
+        speed = path_driver_opt.min_velocity_;
+        ROS_WARN_THROTTLE(5, "Velocity is below minimum. It is set to minimum velocity.");
+    } else if (speed > path_driver_opt.max_velocity_) {
+        speed = path_driver_opt.max_velocity_;
+        ROS_WARN_THROTTLE(5, "Velocity is above maximum. Reduce to maximum velocity.");
+    }
 
-//    cmd.steer_front = dir_sign_ * delta_f;
-//    cmd.steer_back = 0;
+    cmd_.steer_front = dir_sign_ * delta_f;
+    cmd_.steer_back = 0;
 
-//    collision |= isCollision(calculateCourse());
+    collision |= behaviour->isCollision(behaviour->calculateCourse());
 
-//    if(collision) {
-//        ROS_WARN_THROTTLE(1, "Collision!");
-//        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_COLLISION; //FIXME: not so good to use result-constant if it is not finishing the action...
+    if(collision) {
+        ROS_WARN_THROTTLE(1, "Collision!");
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION); //FIXME: not so good to use result-constant if it is not finishing the action...
 
-//        getCommand().velocity = 0;
-//        parent_.publishCommand();
+        cmd_.velocity = 0;
+        publishCommand();
+    } else {
+        cmd_.velocity = dir_sign_ * speed;
+    }
 
-//    } else {
-//        cmd.velocity = dir_sign_ * speed;
-//    }
-
-//    ROS_DEBUG("Set velocity to %g", speed);
-//    return (std::abs(delta_f - delta_f_raw) > 0.05);
+    ROS_DEBUG("Set velocity to %g", speed);
+    return (std::abs(delta_f - delta_f_raw) > 0.05);
 }
 
 void RobotController_Ackermann_Pid::publishCommand()

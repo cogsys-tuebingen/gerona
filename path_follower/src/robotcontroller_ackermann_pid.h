@@ -10,11 +10,12 @@
 /// PROJECT
 #include "robotcontroller.h"
 #include "PidCtrl.h"
+#include "vector_field_histogram.h"
 
 class RobotController_Ackermann_Pid : public RobotController
 {
 public:
-    RobotController_Ackermann_Pid(BehaviouralPathDriver *path_driver);
+    RobotController_Ackermann_Pid(BehaviouralPathDriver *path_driver, VectorFieldHistogram *vfh);
 
     virtual void configure();
 
@@ -74,6 +75,7 @@ private:
     PidCtrl pid_;
     Command cmd_;
     ControllerOptions opt_;
+    VectorFieldHistogram *vfh_;
 
     Eigen::Vector3d next_wp_local_;
     float dir_sign_;

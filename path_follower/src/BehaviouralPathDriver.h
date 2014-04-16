@@ -172,6 +172,11 @@ public:
         return active_behaviour_;
     }
 
+    const BehaviouralPathDriver::Options &getOptions() const
+    {
+        return options_;
+    }
+
 protected:
     void clearActive();
     void beep(const std::vector<int>& beeps);

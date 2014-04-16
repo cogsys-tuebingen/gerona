@@ -32,7 +32,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
     active_ctrl_ = new BehaviouralPathDriver(cmd_pub_, this);
 
-    controller_ = new RobotController_Ackermann_Pid((BehaviouralPathDriver*) active_ctrl_);
+    controller_ = new RobotController_Ackermann_Pid((BehaviouralPathDriver*) active_ctrl_, &vfh_);
 
     follow_path_server_.start();
     ROS_INFO("Initialisation done.");
