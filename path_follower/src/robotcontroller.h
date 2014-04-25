@@ -9,7 +9,8 @@ class BehaviouralPathDriver;
 class RobotController
 {
 public:
-    RobotController(BehaviouralPathDriver *path_driver) :
+    RobotController(ros::Publisher &cmd_publisher, BehaviouralPathDriver *path_driver) :
+        cmd_pub_(cmd_publisher),
         path_driver_(path_driver),
         velocity_(0.0f)
     {
@@ -44,12 +45,25 @@ public:
         velocity_ = v;
     }
 
+
 protected:
+    ros::Publisher& cmd_pub_;
+
     BehaviouralPathDriver *path_driver_;
+
 
     //! Desired velocity (defined by the action goal).
     float velocity_;
 
+    float filtered_speed_;
+
+    virtual void setFilteredSpeed( const float speed ) {
+        filtered_speed_ = speed;
+    }
+
+    virtual float getFilteredSpeed() const {
+        return filtered_speed_;
+    }
 };
 
 #endif // ROBOTCONTROLLER_H

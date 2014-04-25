@@ -15,7 +15,9 @@
 class RobotController_Ackermann_Pid : public RobotController
 {
 public:
-    RobotController_Ackermann_Pid(BehaviouralPathDriver *path_driver, VectorFieldHistogram *vfh);
+    RobotController_Ackermann_Pid(ros::Publisher &cmd_publisher,
+                                  BehaviouralPathDriver *path_driver,
+                                  VectorFieldHistogram *vfh);
 
     virtual void configure();
 
@@ -69,12 +71,15 @@ private:
         //! Maximum distance the robot is allowed to depart from the path. If this threshold is exceeded,
         //! the path follower will abort.
         double max_distance_to_path_;
+
+        double dead_time_;
+        double l_;
     };
 
 
     PidCtrl pid_;
     Command cmd_;
-    ControllerOptions opt_;
+    ControllerOptions options_;
     VectorFieldHistogram *vfh_;
 
     Eigen::Vector3d next_wp_local_;
@@ -83,10 +88,11 @@ private:
 
     inline void setStatus(int status);
 
+    void predictPose(Vector2d &front_pred, Vector2d &rear_pred);
     double calculateAngleError();
     double calculateLineError();
-    double calculateDistanceToCurrentPathSegment();
     double calculateDistanceError();
+    double calculateDistanceToCurrentPathSegment();
 };
 
 #endif // ROBOTCONTROLLERACKERMANNPID_H

@@ -18,8 +18,10 @@ double sign(double value) {
 }
 
 
-RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(BehaviouralPathDriver *path_driver, VectorFieldHistogram *vfh):
-    RobotController(path_driver),
+RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(ros::Publisher &cmd_publisher,
+                                                             BehaviouralPathDriver *path_driver,
+                                                             VectorFieldHistogram *vfh):
+    RobotController(cmd_publisher, path_driver),
     vfh_(vfh)
 {
 }
@@ -28,7 +30,9 @@ void RobotController_Ackermann_Pid::configure()
 {
     ros::NodeHandle nh("~");
 
-    nh.param( "max_distance_to_path", opt_.max_distance_to_path_, 0.3 ); //TODO: find reasonable default value.
+    nh.param( "max_distance_to_path", options_.max_distance_to_path_, 0.3 ); //TODO: find reasonable default value.
+    nh.param( "dead_time", options_.dead_time_, 0.10 );
+    nh.param( "l", options_.l_, 0.38 );
 
     double ta, kp, ki, i_max, delta_max, e_max;
     nh.param( "pid/ta", ta, 0.03 );
@@ -116,11 +120,11 @@ bool RobotController_Ackermann_Pid::setCommand(double error, double speed)
 
 void RobotController_Ackermann_Pid::publishCommand()
 {
-//    //ramaxx_msgs::RamaxxMsg msg = current_command_;
-//    geometry_msgs::Twist msg = current_command_;
-//    cmd_pub_.publish(msg);
+    //ramaxx_msgs::RamaxxMsg msg = current_command_;
+    geometry_msgs::Twist msg = cmd_;
+    cmd_pub_.publish(msg);
 
-//    setFilteredSpeed(current_command_.velocity);
+    //setFilteredSpeed(current_command_.velocity);
 }
 
 void RobotController_Ackermann_Pid::stopMotion()
@@ -174,7 +178,7 @@ void RobotController_Ackermann_Pid::behaveOnLine(PathWithPosition path)
 
     // if the robot is in this state, we assume that it is not avoiding any obstacles
     // so we abort, if robot moves too far from the path
-    if (calculateDistanceToCurrentPathSegment() > opt_.max_distance_to_path_) {
+    if (calculateDistanceToCurrentPathSegment() > options_.max_distance_to_path_) {
         std::stringstream cmd;
         cmd << "espeak \"" << "abort: too far away!" << "\" 2> /dev/null 1> /dev/null &";
         system(cmd.str().c_str());
@@ -255,6 +259,26 @@ void RobotController_Ackermann_Pid::setStatus(int status)
     ((BehaviourDriveBase*) path_driver_->getActiveBehaviour())->setStatus(status);
 }
 
+void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &rear_pred)
+{
+    double dt = options_.dead_time_;
+    double deltaf = cmd_.steer_front;
+    double deltar = cmd_.steer_back;
+    double v = 2*getFilteredSpeed();
+
+    double beta = std::atan(0.5*(std::tan(deltaf)+std::tan(deltar)));
+    double ds = v*dt;
+    double dtheta = ds*std::cos(beta)*(std::tan(deltaf)-std::tan(deltar))/options_.l_;
+    double thetan = dtheta; //TODO <- why this ???
+    double yn = ds*std::sin(dtheta*0.5+beta*0.5);
+    double xn = ds*std::cos(dtheta*0.5+beta*0.5);
+
+    front_pred[0] = xn+cos(thetan)*options_.l_/2.0;
+    front_pred[1] = yn+sin(thetan)*options_.l_/2.0;
+    rear_pred[0] = xn-cos(thetan)*options_.l_/2.0;
+    rear_pred[1] = yn-sin(thetan)*options_.l_/2.0;
+}
+
 double RobotController_Ackermann_Pid::calculateAngleError()
 {
     geometry_msgs::Pose waypoint = path_.nextWaypoint();
@@ -285,7 +309,7 @@ double RobotController_Ackermann_Pid::calculateLineError()
     behaviour->visualizeLine(target_line);
 
     Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
-    path_driver_->predictPose(front_pred, rear_pred); //FIXME: this is model depending and should be moved to this class.
+    predictPose(front_pred, rear_pred);
     if(dir_sign_ >= 0) {
         main_carrot = front_pred;
         alt_carrot = rear_pred;
@@ -304,7 +328,7 @@ double RobotController_Ackermann_Pid::calculateDistanceError()
 {
     Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
 
-    path_driver_->predictPose(front_pred, rear_pred);
+    predictPose(front_pred, rear_pred);
     if(dir_sign_ >= 0) {
         main_carrot = front_pred;
         alt_carrot = rear_pred;

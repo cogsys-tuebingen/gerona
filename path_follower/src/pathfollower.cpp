@@ -32,7 +32,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
     active_ctrl_ = new BehaviouralPathDriver(cmd_pub_, this);
 
-    controller_ = new RobotController_Ackermann_Pid((BehaviouralPathDriver*) active_ctrl_, &vfh_);
+    //TODO: this cast can cause problems......................!!
+    controller_ = new RobotController_Ackermann_Pid(cmd_pub_, (BehaviouralPathDriver*) active_ctrl_, &vfh_);
 
     follow_path_server_.start();
     ROS_INFO("Initialisation done.");
