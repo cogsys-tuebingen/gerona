@@ -524,7 +524,7 @@ bool BehaviourApproachTurningPoint::checkIfDone(bool done)
         target_dir << std::cos(current_path[opt.wp_idx].theta), std::sin(current_path[opt.wp_idx].theta);
 
         // atan2(y,x) = angle of the vector.
-        //! Angle between the line from robot to waypoint and the waypoints orientation
+        //! Angle between the line from robot to waypoint and the waypoints orientation (only used for output?)
         double angle = MathHelper::AngleClamp(std::atan2(delta(1), delta(0)) - std::atan2(target_dir(1), target_dir(0)));
 
         ROS_WARN_STREAM_THROTTLE(1, "angle = " << angle);

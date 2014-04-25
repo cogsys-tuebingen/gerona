@@ -222,40 +222,27 @@ void RobotController_Ackermann_Pid::behaveAvoidObstacle(PathWithPosition path)
 void RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition path)
 {
     BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
+    Visualizer* vis = Visualizer::getInstance();
 
-    // check if the sign changes
-    int dir_sign = sign(next_wp_local_.x());
-    if(step > 0 && dir_sign != dir_sign_) {
-        checkIfDone(true);
-    }
+    // Calculate target line from current to next waypoint (if there is any)
+    double e_distance = calculateDistanceError();
+    double e_angle = calculateAngleError();
 
-    dir_sign_ = dir_sign;
+    double e_combined = e_distance + e_angle;
 
-    ++step;
-
-    // check if point is reached
-    if(!checkIfDone()) {
-        // Calculate target line from current to next waypoint (if there is any)
-        double e_distance = calculateDistanceError();
-        double e_angle = calculateAngleError();
-
-        double e_combined = e_distance + e_angle;
-
-        visualizer_->drawCircle(2, next_wp_map_.pose.position, 0.5, "/map", "turning point", 1, 1, 1);
+    if (vis->hasSubscriber()) {
+        vis->drawCircle(2, ((geometry_msgs::Pose) path.nextWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
 
         // draw steer front
-        behaviour->drawSteeringArrow(1, parent_.getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        behaviour->drawSteeringArrow(2, parent_.getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        behaviour->drawSteeringArrow(3, parent_.getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
-
-        double distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
-        double velocity = std::min(0.1 + distance / 2.0, (double) path_driver_->getOptions().min_velocity_); //FIXME !!!! This should be max(), shouldn't it?
-
-        setCommand(e_combined, velocity);
-    } else {
-        // only set this in the else-case as setCommand() in the if case sets the status
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
+        behaviour->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        behaviour->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        behaviour->drawSteeringArrow(3, path_driver_->getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
     }
+
+    double distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
+    double velocity = std::min(0.1 + distance / 2.0, (double) path_driver_->getOptions().min_velocity_); //FIXME !!!! This should be max(), shouldn't it?
+
+    setCommand(e_combined, velocity);
 }
 
 void RobotController_Ackermann_Pid::behaveEmergencyBreak()
@@ -298,7 +285,7 @@ double RobotController_Ackermann_Pid::calculateLineError()
     behaviour->visualizeLine(target_line);
 
     Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
-    path_driver_->predictPose(front_pred, rear_pred);
+    path_driver_->predictPose(front_pred, rear_pred); //FIXME: this is model depending and should be moved to this class.
     if(dir_sign_ >= 0) {
         main_carrot = front_pred;
         alt_carrot = rear_pred;
@@ -312,6 +299,35 @@ double RobotController_Ackermann_Pid::calculateLineError()
 
     return -target_line.GetSignedDistance(main_carrot) - 0.25 * target_line.GetSignedDistance(alt_carrot);
 }
+
+double RobotController_Ackermann_Pid::calculateDistanceError()
+{
+    Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
+
+    path_driver_->predictPose(front_pred, rear_pred);
+    if(dir_sign_ >= 0) {
+        main_carrot = front_pred;
+        alt_carrot = rear_pred;
+    } else {
+        main_carrot = rear_pred;
+        alt_carrot = front_pred;
+    }
+
+    if (Visualizer::getInstance()->hasSubscriber()) {
+        BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
+        behaviour->visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
+        behaviour->visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
+    }
+
+    Vector2d delta = next_wp_local_.head<2>() - main_carrot;
+
+    if(std::abs(delta(1)) < 0.1) {
+        return 0;
+    }
+
+    return delta(1);
+}
+
 
 double RobotController_Ackermann_Pid::calculateDistanceToCurrentPathSegment()
 {

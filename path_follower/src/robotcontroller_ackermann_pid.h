@@ -86,6 +86,7 @@ private:
     double calculateAngleError();
     double calculateLineError();
     double calculateDistanceToCurrentPathSegment();
+    double calculateDistanceError();
 };
 
 #endif // ROBOTCONTROLLERACKERMANNPID_H
