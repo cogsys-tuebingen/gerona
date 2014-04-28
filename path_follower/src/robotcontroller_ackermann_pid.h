@@ -19,7 +19,7 @@ public:
                                   BehaviouralPathDriver *path_driver,
                                   VectorFieldHistogram *vfh);
 
-    virtual void configure();
+    void configure();
 
     virtual bool setCommand(double error, double speed);
 
@@ -27,7 +27,8 @@ public:
 
     virtual void stopMotion();
 
-    virtual void behaveOnLine(PathWithPosition path); //TODO: no need for abstraction here: use BehaviourOnLine
+    virtual void initOnLine();
+    virtual void behaveOnLine(PathWithPosition path);
     virtual void behaveAvoidObstacle(PathWithPosition path);
     virtual void behaveApproachTurningPoint(PathWithPosition path);
     virtual void behaveEmergencyBreak();
@@ -87,12 +88,15 @@ private:
     PathWithPosition path_;
 
     inline void setStatus(int status);
+    void setPath(PathWithPosition path);
 
-    void predictPose(Vector2d &front_pred, Vector2d &rear_pred);
+    void predictPose(Eigen::Vector2d &front_pred, Eigen::Vector2d &rear_pred);
+    double calculateCourse();
+    //! Calculate the angle between the orientations of the waypoint and the robot.
     double calculateAngleError();
     double calculateLineError();
     double calculateDistanceError();
-    double calculateDistanceToCurrentPathSegment();
+    double calculateDistanceToCurrentPathSegment(); //FIXME: this is model independed!
 };
 
 #endif // ROBOTCONTROLLERACKERMANNPID_H

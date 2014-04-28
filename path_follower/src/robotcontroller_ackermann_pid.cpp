@@ -1,11 +1,16 @@
 #include "robotcontroller_ackermann_pid.h"
+
+/// STL
+#include <sstream>
+
+/// ROS
+#include <ros/ros.h>
+
+/// PROJECT
 #include "BehaviouralPathDriver.h"
 #include "pathfollower.h"
-
-#include <ros/ros.h>
+#include "behaviours.h"
 #include <utils_general/MathHelper.h>
-
-#include <sstream>
 
 using namespace Eigen;
 using namespace std;
@@ -24,6 +29,7 @@ RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(ros::Publisher &cmd
     RobotController(cmd_publisher, path_driver),
     vfh_(vfh)
 {
+    configure();
 }
 
 void RobotController_Ackermann_Pid::configure()
@@ -58,6 +64,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, double speed)
         // Nothing to do
         return false;
     }
+    ROS_INFO("PID: error = %g, df = %g", error, delta_f_raw);
 
     behaviour->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
 
@@ -68,17 +75,19 @@ bool RobotController_Ackermann_Pid::setCommand(double error, double speed)
     double threshold_distance = std::min(threshold_max_distance,
                                          std::max((double) path_driver_opt.collision_box_min_length_, distance_to_goal));
 
-    double delta_f;
+    double delta_f = delta_f_raw;
     bool collision = false;
 
     // FIXME: check if ~use_vfh == true
-    if(!vfh_->isReady()) {
-        ROS_WARN_THROTTLE(1, "Not using VFH, not ready yet! (Maybe obstacle map not published?)");
-        delta_f = delta_f_raw;
-    } else {
-        vfh_->create(threshold_distance, threshold);
-        collision = !vfh_->adjust(delta_f_raw, threshold, delta_f);
-        vfh_->visualize(delta_f_raw, threshold);
+    if (vfh_ != 0) {
+        if(!vfh_->isReady()) {
+            ROS_WARN_THROTTLE(1, "Not using VFH, not ready yet! (Maybe obstacle map not published?)");
+            //delta_f = delta_f_raw;
+        } else {
+            vfh_->create(threshold_distance, threshold);
+            collision = !vfh_->adjust(delta_f_raw, threshold, delta_f);
+            vfh_->visualize(delta_f_raw, threshold);
+        }
     }
 
     behaviour->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_f, 0.0, 1.0, 1.0);
@@ -103,7 +112,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, double speed)
     cmd_.steer_front = dir_sign_ * delta_f;
     cmd_.steer_back = 0;
 
-    collision |= behaviour->isCollision(behaviour->calculateCourse());
+    collision |= behaviour->isCollision(calculateCourse());
 
     if(collision) {
         ROS_WARN_THROTTLE(1, "Collision!");
@@ -124,7 +133,7 @@ void RobotController_Ackermann_Pid::publishCommand()
     geometry_msgs::Twist msg = cmd_;
     cmd_pub_.publish(msg);
 
-    //setFilteredSpeed(current_command_.velocity);
+    setFilteredSpeed(cmd_.velocity);
 }
 
 void RobotController_Ackermann_Pid::stopMotion()
@@ -136,20 +145,16 @@ void RobotController_Ackermann_Pid::stopMotion()
     publishCommand();
 }
 
+void RobotController_Ackermann_Pid::initOnLine()
+{
+    pid_.reset();
+}
+
 void RobotController_Ackermann_Pid::behaveOnLine(PathWithPosition path)
 {
     //TODO: this whole initialization stuff should be packed in a method and the user should somehow be forced to call it.
     BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
-    path_ = path;
-
-    //TODO: not nice. can this transform also be done in path?
-    geometry_msgs::PoseStamped wp_pose;
-    wp_pose.header.stamp = ros::Time::now();
-    wp_pose.pose = path.nextWaypoint();
-    if ( !path_driver_->getNode()->transformToLocal( wp_pose, next_wp_local_)) {
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
-        throw new BehaviourEmergencyBreak(*path_driver_);
-    }
+    setPath(path);
 
     //---------------------
 
@@ -161,6 +166,7 @@ void RobotController_Ackermann_Pid::behaveOnLine(PathWithPosition path)
     double e_angle = calculateAngleError();
 
     double e_combined = e_distance + e_angle;
+    ROS_WARN("OnLine: e_comb = %g", e_combined);
 
     // draw steer front
     behaviour->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
@@ -183,7 +189,7 @@ void RobotController_Ackermann_Pid::behaveOnLine(PathWithPosition path)
         cmd << "espeak \"" << "abort: too far away!" << "\" 2> /dev/null 1> /dev/null &";
         system(cmd.str().c_str());
 
-        ROS_WARN("Moved too far away from the path. Abort.");
+        ROS_WARN("Moved too far away from the path (%g m, limit: %g m). Abort.", calculateDistanceToCurrentPathSegment(), options_.max_distance_to_path_);
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST);
         throw new BehaviourEmergencyBreak(*path_driver_);
     }
@@ -197,6 +203,9 @@ void RobotController_Ackermann_Pid::behaveOnLine(PathWithPosition path)
 void RobotController_Ackermann_Pid::behaveAvoidObstacle(PathWithPosition path)
 {
     BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
+    setPath(path);
+
+    //---------------------
 
     dir_sign_ = sign(next_wp_local_.x());
 
@@ -226,6 +235,10 @@ void RobotController_Ackermann_Pid::behaveAvoidObstacle(PathWithPosition path)
 void RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition path)
 {
     BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
+    setPath(path);
+
+    //---------------------
+
     Visualizer* vis = Visualizer::getInstance();
 
     // Calculate target line from current to next waypoint (if there is any)
@@ -233,6 +246,7 @@ void RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition 
     double e_angle = calculateAngleError();
 
     double e_combined = e_distance + e_angle;
+    ROS_WARN("Approach: e_comb = %g", e_combined);
 
     if (vis->hasSubscriber()) {
         vis->drawCircle(2, ((geometry_msgs::Pose) path.nextWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
@@ -259,6 +273,20 @@ void RobotController_Ackermann_Pid::setStatus(int status)
     ((BehaviourDriveBase*) path_driver_->getActiveBehaviour())->setStatus(status);
 }
 
+void RobotController_Ackermann_Pid::setPath(PathWithPosition path)
+{
+    path_ = path;
+
+    //TODO: not nice. can this transform also be done in path?
+    geometry_msgs::PoseStamped wp_pose;
+    wp_pose.header.stamp = ros::Time::now();
+    wp_pose.pose = path.nextWaypoint();
+    if ( !path_driver_->getNode()->transformToLocal( wp_pose, next_wp_local_)) {
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
+        throw new BehaviourEmergencyBreak(*path_driver_);
+    }
+}
+
 void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &rear_pred)
 {
     double dt = options_.dead_time_;
@@ -277,6 +305,11 @@ void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &
     front_pred[1] = yn+sin(thetan)*options_.l_/2.0;
     rear_pred[0] = xn-cos(thetan)*options_.l_/2.0;
     rear_pred[1] = yn-sin(thetan)*options_.l_/2.0;
+}
+
+double RobotController_Ackermann_Pid::calculateCourse()
+{
+    return cmd_.steer_front;
 }
 
 double RobotController_Ackermann_Pid::calculateAngleError()

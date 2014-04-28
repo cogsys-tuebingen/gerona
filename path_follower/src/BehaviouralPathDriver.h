@@ -14,6 +14,7 @@
 #include "vector_field_histogram.h"
 #include "visualizer.h"
 #include "path.h"
+#include "robotcontroller.h"
 
 /// SYSTEM
 #include <ros/ros.h>
@@ -71,8 +72,6 @@ public:
 
         double wp_tolerance_;
         double goal_tolerance_;
-        double l_;
-        double dead_time_;
 
         //! Minimum speed of the robot (needed, as the outdoor buggys can't handle velocities below about 0.3).
         float min_velocity_;
@@ -82,10 +81,6 @@ public:
         float velocity_; //FIXME: obsolete when RobotController is working
 
         double steer_slow_threshold_;
-
-        //! Maximum distance the robot is allowed to depart from the path. If this threshold is exceeded,
-        //! the path follower will abort.
-        double max_distance_to_path_;
 
         //! Width of the collisin box for obstacle avoidance.
         float collision_box_width_;
@@ -110,13 +105,12 @@ public:
     {
     protected:
         Behaviour(BehaviouralPathDriver& parent)
-            : parent_(parent)
+            : parent_(parent), controller_(parent.getController())
         {}
         Path& getSubPath(unsigned index);
         int getSubPathCount() const;
         PathFollower& getNode();
 
-        PidCtrl& getPid();
         Command& getCommand();
         VectorFieldHistogram& getVFH();
         Options& getOptions();
@@ -129,6 +123,7 @@ public:
 
     protected:
         BehaviouralPathDriver& parent_;
+        RobotController* controller_;
     };
 
 
@@ -149,12 +144,9 @@ public:
     virtual void configure();
     virtual void setGoal(const path_msgs::FollowPathGoal& goal);
 
-    void publishCommand();
     PathFollower* getNode() const;
 
     void setPath(const nav_msgs::Path& path);
-    void predictPose(Vector2d &front_pred,
-                      Vector2d &rear_pred );
     bool checkCollision(double course);
 
     Vector3d getSlamPose() const
@@ -177,6 +169,8 @@ public:
         return options_;
     }
 
+    RobotController* getController();
+
 protected:
     void clearActive();
     void beep(const std::vector<int>& beeps);
@@ -198,8 +192,6 @@ private:
     geometry_msgs::Pose slam_pose_msg_;
     nav_msgs::Path path_;
     std::vector<Path> paths_;
-
-    PidCtrl pid_;
 
     Visualizer* visualizer_;
 

@@ -48,10 +48,6 @@ double BehaviouralPathDriver::Behaviour::distanceTo(const Waypoint& wp)
 {
     return hypot(parent_.slam_pose_(0) - wp.x, parent_.slam_pose_(1) - wp.y);
 }
-PidCtrl& BehaviouralPathDriver::Behaviour::getPid()
-{
-    return parent_.pid_;
-}
 BehaviouralPathDriver::Command& BehaviouralPathDriver::Behaviour::getCommand()
 {
     return parent_.current_command_;
@@ -178,7 +174,7 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResul
         active_behaviour_ = next_behaviour;
     }
 
-    publishCommand();
+    getController()->publishCommand();
 
     if(status == FollowPathResult::MOTION_STATUS_COLLISION) {
         // collision is not aborting (the obstacle might be moving away)
@@ -205,12 +201,9 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResul
 void BehaviouralPathDriver::configure()
 {
     ros::NodeHandle nh("~");
-    nh.param( "dead_time", options_.dead_time_, 0.10 );
     nh.param( "waypoint_tolerance", options_.wp_tolerance_, 0.20 );
     nh.param( "goal_tolerance", options_.goal_tolerance_, 0.15 );
-    nh.param( "l", options_.l_, 0.38 );
     nh.param( "steer_slow_threshold", options_.steer_slow_threshold_, 0.25 );
-    nh.param( "max_distance_to_path", options_.max_distance_to_path_, 0.3 ); //TODO: find reasonable default value.
 
     // use ros::param here, because nh.param can't handle floats...
     ros::param::param<float>( "~min_velocity", options_.min_velocity_, 0.4 );
@@ -234,16 +227,6 @@ void BehaviouralPathDriver::configure()
         ROS_ERROR("min length smaller than crit length!");
         options_.collision_box_crit_length_ = options_.collision_box_min_length_;
     }
-
-    double ta, kp, ki, i_max, delta_max, e_max;
-    nh.param( "pid/ta", ta, 0.03 );
-    nh.param( "pid/kp", kp, 1.5 );
-    nh.param( "pid/ki", ki, 0.001 );
-    nh.param( "pid/i_max", i_max, 0.0 );
-    nh.param( "pid/delta_max", delta_max, 30.0 );
-    nh.param( "pid/e_max", e_max, 0.10 );
-
-    pid_.configure( kp, ki, i_max, M_PI*delta_max/180.0, e_max, 0.5, ta );
 }
 
 void BehaviouralPathDriver::setPath(const nav_msgs::Path& path)
@@ -317,26 +300,6 @@ void BehaviouralPathDriver::setPath(const nav_msgs::Path& path)
 
         last_point = current_point;
     }
-}
-
-void BehaviouralPathDriver::predictPose(Vector2d &front_pred, Vector2d &rear_pred)
-{
-    double dt = options_.dead_time_;
-    double deltaf = current_command_.steer_front;
-    double deltar = current_command_.steer_back;
-    double v = 2*getFilteredSpeed();
-
-    double beta = std::atan(0.5*(std::tan(deltaf)+std::tan(deltar)));
-    double ds = v*dt;
-    double dtheta = ds*std::cos(beta)*(std::tan(deltaf)-std::tan(deltar))/options_.l_;
-    double thetan = dtheta; //TODO <- why this ???
-    double yn = ds*std::sin(dtheta*0.5+beta*0.5);
-    double xn = ds*std::cos(dtheta*0.5+beta*0.5);
-
-    front_pred[0] = xn+cos(thetan)*options_.l_/2.0;
-    front_pred[1] = yn+sin(thetan)*options_.l_/2.0;
-    rear_pred[0] = xn-cos(thetan)*options_.l_/2.0;
-    rear_pred[1] = yn-sin(thetan)*options_.l_/2.0;
 }
 
 void BehaviouralPathDriver::setGoal(const FollowPathGoal &goal)
@@ -427,16 +390,12 @@ bool BehaviouralPathDriver::checkCollision(double course)
     return collision;
 }
 
+RobotController *BehaviouralPathDriver::getController()
+{
+    return node_->getController();
+}
+
 PathFollower* BehaviouralPathDriver::getNode() const
 {
     return node_;
-}
-
-void BehaviouralPathDriver::publishCommand()
-{
-    //ramaxx_msgs::RamaxxMsg msg = current_command_;
-    geometry_msgs::Twist msg = current_command_;
-    cmd_pub_.publish(msg);
-
-    setFilteredSpeed(current_command_.velocity);
 }

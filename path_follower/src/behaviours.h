@@ -14,8 +14,7 @@ struct BehaviourEmergencyBreak : public BehaviouralPathDriver::Behaviour
         : Behaviour(parent)
     {
         // stop immediately
-        getCommand().velocity = 0;
-        parent_.publishCommand();
+        controller_->stopMotion();
     }
 
     void execute(int *status)
@@ -30,11 +29,6 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
 {
     BehaviourDriveBase(BehaviouralPathDriver& parent);
 
-    //! Calculate the angle between the orientations of the waypoint and the robot.
-    double calculateAngleError();
-
-    double calculateLineError();
-
     //! Calculate the distance of the robot to the current path segment.
     double calculateDistanceToCurrentPathSegment();
 
@@ -42,9 +36,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
 
     void visualizeLine(const Line2d& line);
 
-    double calculateCourse();
     bool isCollision(double course);
-    bool setCommand(double error, double speed);
 
     void drawSteeringArrow(int id, geometry_msgs::Pose steer_arrow, double angle, double r, double g, double b);
 
@@ -81,9 +73,6 @@ protected:
     //! Pose of the next waypoint in robot frame.
     Vector3d next_wp_local_;
 
-    //! Indicates the direction of movement (>0 -> forward, <0 -> backward)
-    double dir_sign_;
-
     //! Timeout to abort, if the robot takes to long to reach the next waypoint.
     Timeout waypoint_timeout;
 
@@ -91,6 +80,8 @@ protected:
 
     //! Check if waypoint timeout has expired. If yes, switch to BehaviourEmergencyBreak.
     void checkWaypointTimeout();
+
+    PathWithPosition getPathWithPosition();
 };
 
 
@@ -118,8 +109,6 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase
     BehaviourApproachTurningPoint(BehaviouralPathDriver& parent);
 
     void execute(int *status);
-
-    double calculateDistanceError();
 
     bool checkIfDone(bool done = false);
 

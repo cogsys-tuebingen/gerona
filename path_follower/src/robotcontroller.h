@@ -2,7 +2,7 @@
 #define ROBOTCONTROLLER_H
 
 #include "path.h"
-#include "behaviours.h"
+//#include "behaviours.h"
 
 class BehaviouralPathDriver;
 
@@ -14,18 +14,12 @@ public:
         path_driver_(path_driver),
         velocity_(0.0f)
     {
-        configure();
     }
 
-
-    virtual void configure()
-    {
-
-    }
 
     //virtual bool setCommand(double error, double speed) = 0;
 
-    //virtual void publishCommand() = 0;
+    virtual void publishCommand() = 0;
 
     virtual void stopMotion() = 0;
 
@@ -35,8 +29,11 @@ public:
 
 
     /* BEHAVIOURS */
+    virtual void initOnLine() {}
     virtual void behaveOnLine(PathWithPosition) = 0;
+    virtual void initAvoidObstacle() {}
     virtual void behaveAvoidObstacle(PathWithPosition path) = 0;
+    virtual void initApproachTurningPoint() {}
     virtual void behaveApproachTurningPoint(PathWithPosition path) = 0;
     virtual void behaveEmergencyBreak() = 0;
 
@@ -45,6 +42,15 @@ public:
         velocity_ = v;
     }
 
+    virtual void setDirSign(float s)
+    {
+        dir_sign_ = s;
+    }
+
+    virtual float getDirSign() const
+    {
+        return dir_sign_;
+    }
 
 protected:
     ros::Publisher& cmd_pub_;
@@ -56,6 +62,9 @@ protected:
     float velocity_;
 
     float filtered_speed_;
+
+    //! Indicates the direction of movement (>0 -> forward, <0 -> backward)
+    float dir_sign_;
 
     virtual void setFilteredSpeed( const float speed ) {
         filtered_speed_ = speed;
