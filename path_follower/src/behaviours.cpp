@@ -264,7 +264,7 @@ void BehaviourApproachTurningPoint::execute(int *status)
 
     //TODO: is this really model independent? I think with omnidrive, dir_sign_ has no meaning?!
     // check if the sign changes
-    int dir_sign = sign(next_wp_local_.x());
+    float dir_sign = sign(next_wp_local_.x());
     if(step_ > 0 && dir_sign != controller_->getDirSign()) {
         checkIfDone(true);
     }

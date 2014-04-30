@@ -84,7 +84,6 @@ private:
     VectorFieldHistogram *vfh_;
 
     Eigen::Vector3d next_wp_local_;
-    float dir_sign_;
     PathWithPosition path_;
 
     inline void setStatus(int status);

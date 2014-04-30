@@ -18,7 +18,9 @@ using namespace std;
 
 namespace {
 double sign(double value) {
-    return (value > 0) - (value < 0);
+    if (value < 0) return -1.0;
+    if (value > 0) return 1.0;
+    return 0.0;
 }
 }
 
@@ -123,7 +125,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, double speed)
         cmd_.velocity = dir_sign_ * speed;
     }
 
-    ROS_DEBUG("Set velocity to %g", speed);
+    ROS_DEBUG("Set velocity to %g", cmd_.velocity);
     return (std::abs(delta_f - delta_f_raw) > 0.05);
 }
 
@@ -166,7 +168,7 @@ void RobotController_Ackermann_Pid::behaveOnLine(PathWithPosition path)
     double e_angle = calculateAngleError();
 
     double e_combined = e_distance + e_angle;
-    ROS_WARN("OnLine: e_comb = %g", e_combined);
+    ROS_DEBUG("OnLine: e_dist = %g, e_angle = %g  ==>  e_comb = %g", e_distance, e_angle, e_combined);
 
     // draw steer front
     behaviour->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
@@ -246,7 +248,7 @@ void RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition 
     double e_angle = calculateAngleError();
 
     double e_combined = e_distance + e_angle;
-    ROS_WARN("Approach: e_comb = %g", e_combined);
+    ROS_DEBUG("Approach: e_dist = %g, e_angle = %g  ==>  e_comb = %g", e_distance, e_angle, e_combined);
 
     if (vis->hasSubscriber()) {
         vis->drawCircle(2, ((geometry_msgs::Pose) path.nextWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
