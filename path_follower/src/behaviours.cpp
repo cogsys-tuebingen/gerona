@@ -118,6 +118,24 @@ void BehaviourDriveBase::checkWaypointTimeout()
     }
 }
 
+void BehaviourDriveBase::checkDistanceToPath()
+{
+    if (!isLeavingPathAllowed()) {
+        if (calculateDistanceToCurrentPathSegment() > getOptions().max_distance_to_path_) {
+            std::stringstream cmd;
+            cmd << "espeak \"" << "abort: too far away!" << "\" 2> /dev/null 1> /dev/null &";
+            system(cmd.str().c_str());
+
+            ROS_WARN("Moved too far away from the path (%g m, limit: %g m). Abort.",
+                     calculateDistanceToCurrentPathSegment(),
+                     getOptions().max_distance_to_path_);
+
+            setStatus(path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST);
+            throw new BehaviourEmergencyBreak(parent_);
+        }
+    }
+}
+
 PathWithPosition BehaviourDriveBase::getPathWithPosition()
 {
     BehaviouralPathDriver::Options& opt = getOptions();
@@ -142,6 +160,7 @@ void BehaviourOnLine::execute(int *status)
 
     getNextWaypoint();
     checkWaypointTimeout();
+    checkDistanceToPath();
 
     controller_->behaveOnLine(getPathWithPosition());
 }
@@ -261,6 +280,7 @@ void BehaviourApproachTurningPoint::execute(int *status)
 
     getNextWaypoint();
     checkWaypointTimeout();
+    checkDistanceToPath();
 
     //TODO: is this really model independent? I think with omnidrive, dir_sign_ has no meaning?!
     // check if the sign changes

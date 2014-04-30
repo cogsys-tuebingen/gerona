@@ -38,7 +38,6 @@ void RobotController_Ackermann_Pid::configure()
 {
     ros::NodeHandle nh("~");
 
-    nh.param( "max_distance_to_path", options_.max_distance_to_path_, 0.3 ); //TODO: find reasonable default value.
     nh.param( "dead_time", options_.dead_time_, 0.10 );
     nh.param( "l", options_.l_, 0.38 );
 
@@ -182,18 +181,6 @@ void RobotController_Ackermann_Pid::behaveOnLine(PathWithPosition path)
     //       - slower when close to goal, similar to ApproachGoal
     if(dir_sign_ < 0) {
         speed *= 0.5;
-    }
-
-    // if the robot is in this state, we assume that it is not avoiding any obstacles
-    // so we abort, if robot moves too far from the path
-    if (calculateDistanceToCurrentPathSegment() > options_.max_distance_to_path_) {
-        std::stringstream cmd;
-        cmd << "espeak \"" << "abort: too far away!" << "\" 2> /dev/null 1> /dev/null &";
-        system(cmd.str().c_str());
-
-        ROS_WARN("Moved too far away from the path (%g m, limit: %g m). Abort.", calculateDistanceToCurrentPathSegment(), options_.max_distance_to_path_);
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST);
-        throw new BehaviourEmergencyBreak(*path_driver_);
     }
 
     if(setCommand(e_combined, speed)) {
@@ -385,44 +372,4 @@ double RobotController_Ackermann_Pid::calculateDistanceError()
     }
 
     return delta(1);
-}
-
-
-double RobotController_Ackermann_Pid::calculateDistanceToCurrentPathSegment()
-{
-    /* Calculate line from last way point to current way point (which should be the line the robot is driving on)
-     * and calculate the distance of the robot to this line.
-     */
-
-
-    assert(path_.wp_idx < (int) path_.current_path->size());
-
-    // opt.wp_idx should be the index of the next waypoint. The last waypoint ist then simply wp_idx - 1.
-    // Usually wp_idx is greater than zero, so this is possible.
-    // There are, however, situations where wp_idx = 0. In this case the segment starting in wp_idx is used rather
-    // than the one ending there (I am not absolutly sure if this a good behaviour, so observe this via debug-output).
-    int wp1_idx = 0;
-    if (path_.wp_idx > 0) {
-        wp1_idx = path_.wp_idx - 1;
-    } else {
-        // if wp_idx == 0, use the segment from wp_idx to the following waypoint.
-        wp1_idx = path_.wp_idx + 1;
-
-        ROS_DEBUG("Toggle waypoints as wp_idx == 0 in calculateDistanceToCurrentPathSegment() (%s, line %d)", __FILE__, __LINE__);
-    }
-
-    geometry_msgs::Pose wp1 = path_.getWaypoint(wp1_idx);
-    geometry_msgs::Pose wp2 = path_.getWaypoint(path_.wp_idx);
-
-    // line from last waypoint to current one.
-    Line2d segment_line(Vector2d(wp1.position.x, wp1.position.y), Vector2d(wp2.position.x, wp2.position.y));
-
-    ///// visualize start and end point of the current segment (for debugging)
-    Visualizer *vis = Visualizer::getInstance();
-    vis->drawMark(24, wp1.position, "segment_marker", 0, 1, 1);
-    vis->drawMark(25, wp2.position, "segment_marker", 1, 0, 1);
-    /////
-
-    // get distance of robot (slam_pose_) to segment_line.
-    return segment_line.GetDistance(path_driver_->getSlamPose().head<2>());
 }

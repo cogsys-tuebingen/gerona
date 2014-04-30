@@ -204,6 +204,7 @@ void BehaviouralPathDriver::configure()
     nh.param( "waypoint_tolerance", options_.wp_tolerance_, 0.20 );
     nh.param( "goal_tolerance", options_.goal_tolerance_, 0.15 );
     nh.param( "steer_slow_threshold", options_.steer_slow_threshold_, 0.25 );
+    nh.param( "max_distance_to_path", options_.max_distance_to_path_, 0.3 ); //TODO: find reasonable default value.
 
     // use ros::param here, because nh.param can't handle floats...
     ros::param::param<float>( "~min_velocity", options_.min_velocity_, 0.4 );

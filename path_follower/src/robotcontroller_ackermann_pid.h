@@ -69,10 +69,6 @@ private:
 
     struct ControllerOptions
     {
-        //! Maximum distance the robot is allowed to depart from the path. If this threshold is exceeded,
-        //! the path follower will abort.
-        double max_distance_to_path_;
-
         double dead_time_;
         double l_;
     };
@@ -95,7 +91,6 @@ private:
     double calculateAngleError();
     double calculateLineError();
     double calculateDistanceError();
-    double calculateDistanceToCurrentPathSegment(); //FIXME: this is model independed!
 };
 
 #endif // ROBOTCONTROLLERACKERMANNPID_H

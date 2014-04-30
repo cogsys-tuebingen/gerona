@@ -78,6 +78,10 @@ public:
         //! Maximum velocity (to prevent the high level control from running amok).
         float max_velocity_;
 
+        //! Maximum distance the robot is allowed to depart from the path. If this threshold is exceeded,
+        //! the path follower will abort.
+        double max_distance_to_path_;
+
         float velocity_; //FIXME: obsolete when RobotController is working
 
         double steer_slow_threshold_;

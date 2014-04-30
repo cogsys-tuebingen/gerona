@@ -81,7 +81,15 @@ protected:
     //! Check if waypoint timeout has expired. If yes, switch to BehaviourEmergencyBreak.
     void checkWaypointTimeout();
 
+    //! Check if the robot moves too far away from the path. If yes, switch to BehaviourEmergencyBreak.
+    void checkDistanceToPath();
+
     PathWithPosition getPathWithPosition();
+
+    virtual bool isLeavingPathAllowed() const
+    {
+        return false;
+    }
 };
 
 
@@ -102,6 +110,11 @@ struct BehaviourAvoidObstacle : public BehaviourDriveBase
 
     void execute(int *status);
     void getNextWaypoint();
+
+    virtual bool isLeavingPathAllowed() const
+    {
+        return true;
+    }
 };
 
 struct BehaviourApproachTurningPoint : public BehaviourDriveBase
