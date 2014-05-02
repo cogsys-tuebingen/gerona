@@ -78,6 +78,8 @@ protected:
 
     Visualizer* visualizer_;
 
+    void initExecute(int *status);
+
     //! Check if waypoint timeout has expired. If yes, switch to BehaviourEmergencyBreak.
     void checkWaypointTimeout();
 
@@ -90,6 +92,9 @@ protected:
     {
         return false;
     }
+
+    virtual void getNextWaypoint()
+    {}
 };
 
 
@@ -123,7 +128,9 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase
 
     void execute(int *status);
 
-    bool checkIfDone(bool done = false);
+    bool checkIfDone();
+
+    void handleDone();
 
     void getNextWaypoint();
 

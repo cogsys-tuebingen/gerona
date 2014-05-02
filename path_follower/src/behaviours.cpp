@@ -108,6 +108,15 @@ void BehaviourDriveBase::setStatus(int status)
     *status_ptr_ = status;
 }
 
+void BehaviourDriveBase::initExecute(int *status)
+{
+    status_ptr_ = status;
+
+    getNextWaypoint();
+    checkWaypointTimeout();
+    checkDistanceToPath();
+}
+
 void BehaviourDriveBase::checkWaypointTimeout()
 {
     if (waypoint_timeout.isExpired()) {
@@ -156,11 +165,7 @@ BehaviourOnLine::BehaviourOnLine(BehaviouralPathDriver& parent)
 
 void BehaviourOnLine::execute(int *status)
 {
-    status_ptr_ = status;
-
-    getNextWaypoint();
-    checkWaypointTimeout();
-    checkDistanceToPath();
+    initExecute(status);
 
     controller_->behaveOnLine(getPathWithPosition());
 }
@@ -213,10 +218,7 @@ void BehaviourOnLine::getNextWaypoint()
 //##### BEGIN BehaviourAvoidObstacle
 void BehaviourAvoidObstacle::execute(int *status)
 {
-    status_ptr_ = status;
-
-    getNextWaypoint();
-    checkWaypointTimeout();
+    initExecute(status);
 
     controller_->behaveAvoidObstacle(getPathWithPosition());
 }
@@ -276,13 +278,8 @@ BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(BehaviouralPathDriv
 
 void BehaviourApproachTurningPoint::execute(int *status)
 {
-    status_ptr_ = status;
+    initExecute(status);
 
-    getNextWaypoint();
-    checkWaypointTimeout();
-    checkDistanceToPath();
-
-    //TODO: is this really model independent? I think with omnidrive, dir_sign_ has no meaning?!
     // check if the sign changes
     float dir_sign = sign(next_wp_local_.x());
     if(step_ > 0 && dir_sign != controller_->getDirSign()) {
@@ -302,7 +299,8 @@ void BehaviourApproachTurningPoint::execute(int *status)
     }
 }
 
-bool BehaviourApproachTurningPoint::checkIfDone(bool done)
+/*
+bool BehaviourApproachTurningPoint::checkIfDone()
 {
     BehaviouralPathDriver::Options& opt = getOptions();
 
@@ -358,6 +356,68 @@ bool BehaviourApproachTurningPoint::checkIfDone(bool done)
     }
 
     return done;
+}
+*/
+
+bool BehaviourApproachTurningPoint::checkIfDone()
+{
+    BehaviouralPathDriver::Options& opt = getOptions();
+
+    // we're done, when the dir_sign changes.
+    float dir_sign = sign(next_wp_local_.x());
+    if(step_ > 0 && dir_sign != controller_->getDirSign()) {
+        return true;
+    }
+    //else: more complicated check
+
+    //! Difference of current robot pose to the next waypoint.
+    Vector2d delta;
+    delta << next_wp_map_.pose.position.x - parent_.getSlamPoseMsg().position.x,
+            next_wp_map_.pose.position.y - parent_.getSlamPoseMsg().position.y;
+
+    if (controller_->getDirSign() < 0) {
+        delta *= -1;
+    }
+
+    Path& current_path = getSubPath(opt.path_idx);
+
+    //! Unit vector pointing in the direction of the next waypoints orientation.
+    Vector2d target_dir;
+    //NOTE: current_path[opt.wp_idx] == next_wp_map_ ??
+    target_dir << std::cos(current_path[opt.wp_idx].theta), std::sin(current_path[opt.wp_idx].theta);
+
+    // atan2(y,x) = angle of the vector.
+    //! Angle between the line from robot to waypoint and the waypoints orientation (only used for output?)
+    double angle = MathHelper::AngleClamp(std::atan2(delta(1), delta(0)) - std::atan2(target_dir(1), target_dir(0)));
+
+    ROS_WARN_STREAM_THROTTLE(1, "angle = " << angle);
+
+    //        bool done = std::abs(angle) >= M_PI / 2;
+    return delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
+}
+
+void BehaviourApproachTurningPoint::handleDone()
+{
+    BehaviouralPathDriver::Options& opt = getOptions();
+
+    controller_->stopMotion();
+
+    if(std::abs(parent_.getNode()->getVelocity().linear.x) > 0.01) {
+        ROS_WARN_THROTTLE(1, "WAITING until no more motion");
+        waiting_ = true;
+    } else {
+        opt.path_idx++;
+        opt.wp_idx = 0;
+
+        if(opt.path_idx < getSubPathCount()) {
+            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+            throw new BehaviourOnLine(parent_);
+
+        } else {
+            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
+            throw new BehaviouralPathDriver::NullBehaviour;
+        }
+    }
 }
 
 void BehaviourApproachTurningPoint::getNextWaypoint()
