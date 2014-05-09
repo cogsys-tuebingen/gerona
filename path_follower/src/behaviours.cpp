@@ -278,6 +278,7 @@ BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(BehaviouralPathDriv
 
 void BehaviourApproachTurningPoint::execute(int *status)
 {
+    /*
     initExecute(status);
 
     // check if the sign changes
@@ -296,6 +297,16 @@ void BehaviourApproachTurningPoint::execute(int *status)
     } else {
         // only set this in the else-case as in the if case, it is set by the controller
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+    }
+    */
+
+    initExecute(status);
+
+    // check if point is reached
+    if(!checkIfDone()) {
+        controller_->behaveApproachTurningPoint(getPathWithPosition());
+    } else {
+        handleDone();
     }
 }
 
@@ -365,9 +376,11 @@ bool BehaviourApproachTurningPoint::checkIfDone()
 
     // we're done, when the dir_sign changes.
     float dir_sign = sign(next_wp_local_.x());
-    if(step_ > 0 && dir_sign != controller_->getDirSign()) {
+    if(step_++ > 0 && dir_sign != controller_->getDirSign()) {
         return true;
     }
+    controller_->setDirSign(dir_sign);
+
     //else: more complicated check
 
     //! Difference of current robot pose to the next waypoint.
@@ -403,8 +416,9 @@ void BehaviourApproachTurningPoint::handleDone()
     controller_->stopMotion();
 
     if(std::abs(parent_.getNode()->getVelocity().linear.x) > 0.01) {
+        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
         ROS_WARN_THROTTLE(1, "WAITING until no more motion");
-        waiting_ = true;
+        //waiting_ = true;
     } else {
         opt.path_idx++;
         opt.wp_idx = 0;
