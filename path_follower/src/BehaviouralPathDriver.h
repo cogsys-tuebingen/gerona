@@ -132,7 +132,7 @@ public:
 
 
 public:
-    BehaviouralPathDriver(ros::Publisher& cmd_pub, PathFollower *node);
+    BehaviouralPathDriver(PathFollower *node);
 
     virtual void start();
     virtual void stop();
@@ -184,7 +184,6 @@ private:
 
     ros::NodeHandle private_nh_;
 
-    ros::Publisher& cmd_pub_;
     ros::Publisher beeper_;
 
     Behaviour* active_behaviour_;

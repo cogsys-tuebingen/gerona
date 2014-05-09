@@ -247,28 +247,6 @@ BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(BehaviouralPathDriv
 
 void BehaviourApproachTurningPoint::execute(int *status)
 {
-    /*
-    initExecute(status);
-
-    // check if the sign changes
-    float dir_sign = sign(next_wp_local_.x());
-    if(step_ > 0 && dir_sign != controller_->getDirSign()) {
-        checkIfDone(true);
-    }
-
-    controller_->setDirSign(dir_sign);
-
-    ++step_;
-
-    // check if point is reached
-    if(!checkIfDone()) {
-        controller_->behaveApproachTurningPoint(getPathWithPosition());
-    } else {
-        // only set this in the else-case as in the if case, it is set by the controller
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
-    }
-    */
-
     initExecute(status);
 
     // check if point is reached

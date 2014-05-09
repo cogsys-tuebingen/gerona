@@ -131,6 +131,6 @@ void Visualizer::visualizeLine(const Line2d &line)
     t.x = to(0);
     t.y = to(1);
 
-    drawLine(2, f, t, "/base_link", "line", 0.7, 0.2, 1.0);
+    drawLine(2, f, t, "/base_link", "line", 0.7, 0.2, 1.0, 1, 0.1);
 }
 

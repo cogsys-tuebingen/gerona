@@ -79,8 +79,8 @@ std::string name(BehaviouralPathDriver::Behaviour* b) {
 
 /// Controller class: BehaviouralPathDriver
 
-BehaviouralPathDriver::BehaviouralPathDriver(ros::Publisher &cmd_pub, PathFollower *node)
-    : node_(node), private_nh_("~"), cmd_pub_(cmd_pub), active_behaviour_(NULL), pending_error_(-1)
+BehaviouralPathDriver::BehaviouralPathDriver(PathFollower *node)
+    : node_(node), private_nh_("~"), active_behaviour_(NULL), pending_error_(-1)
 {
     last_beep_ = ros::Time::now();
     beep_pause_ = ros::Duration(2.0);

@@ -34,7 +34,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         laser_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&PathFollower::laserCB, this, _1));
     }
 
-    active_ctrl_ = new BehaviouralPathDriver(cmd_pub_, this);
+    active_ctrl_ = new BehaviouralPathDriver(this);
 
     VectorFieldHistogram* vfh_ptr = use_vfh_ ? &vfh_ : 0;
 
