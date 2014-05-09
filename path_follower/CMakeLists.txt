@@ -133,8 +133,9 @@ add_executable(path_follower_node
   src/obstacledetector.cpp
   src/vector_field_histogram.cpp
   src/visualizer.cpp
-  src/robotcontroller.h
+  src/robotcontroller.cpp
   src/robotcontroller_ackermann_pid.cpp
+  src/robotcontroller_omnidrive_pid.cpp
   src/path.h
 )
 

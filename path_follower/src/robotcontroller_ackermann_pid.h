@@ -20,8 +20,6 @@ public:
                                   BehaviouralPathDriver *path_driver,
                                   VectorFieldHistogram *vfh);
 
-    void configure();
-
     virtual bool setCommand(double error, double speed);
 
     virtual void publishCommand();
@@ -106,18 +104,13 @@ private:
     VectorFieldHistogram *vfh_;
     Visualizer *visualizer_;
 
-    Eigen::Vector3d next_wp_local_;
-    PathWithPosition path_;
     //! Step counter for behaviour ApproachTurningPoint.
     int atp_step_;
 
-    inline void setStatus(int status);
-    void setPath(PathWithPosition path);
+    void configure();
 
     void predictPose(Eigen::Vector2d &front_pred, Eigen::Vector2d &rear_pred);
     double calculateCourse();
-    //! Calculate the angle between the orientations of the waypoint and the robot.
-    double calculateAngleError();
     double calculateLineError();
     double calculateDistanceError();
 

@@ -1,8 +1,11 @@
 #ifndef ROBOTCONTROLLER_H
 #define ROBOTCONTROLLER_H
 
+/// THIRD PARTY
+#include <Eigen/Core>
+
+/// PROJECT
 #include "path.h"
-//#include "behaviours.h"
 
 class BehaviouralPathDriver;
 
@@ -17,15 +20,10 @@ public:
     }
 
 
-    //virtual bool setCommand(double error, double speed) = 0;
-
     virtual void publishCommand() = 0;
 
+    //! Immediatley stop any motion.
     virtual void stopMotion() = 0;
-
-    //virtual double calculateCourse() = 0;
-
-    //virtual void predictPose() = 0; //TODO: arguments?
 
 
     /* BEHAVIOURS */
@@ -58,7 +56,6 @@ protected:
 
     BehaviouralPathDriver *path_driver_;
 
-
     //! Desired velocity (defined by the action goal).
     float velocity_;
 
@@ -67,6 +64,11 @@ protected:
     //! Indicates the direction of movement (>0 -> forward, <0 -> backward)
     float dir_sign_;
 
+    //! Current subpath.
+    PathWithPosition path_;
+    //! The next waypoint in the robot frame (set by setPath).
+    Eigen::Vector3d next_wp_local_;
+
     virtual void setFilteredSpeed( const float speed ) {
         filtered_speed_ = speed;
     }
@@ -74,6 +76,12 @@ protected:
     virtual float getFilteredSpeed() const {
         return filtered_speed_;
     }
+
+    void setStatus(int status);
+    void setPath(PathWithPosition path);
+
+    //! Calculate the angle between the orientations of the waypoint and the robot.
+    virtual double calculateAngleError();
 };
 
 #endif // ROBOTCONTROLLER_H

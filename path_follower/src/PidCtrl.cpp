@@ -11,7 +11,7 @@
 PidCtrl::PidCtrl()
 {
     configure(0.3,20.0*M_PI/180.0,0.1,0.4,0.1);
-    //reset();
+    reset();
 }
 
 

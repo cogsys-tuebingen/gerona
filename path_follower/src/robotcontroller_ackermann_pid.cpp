@@ -63,6 +63,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, double speed)
 
     setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
 
+    //TODO: nan kommt wahrscheinlich vom error
     if (!pid_.execute( error, delta_f_raw)) {
         // Nothing to do
         return false;
@@ -278,25 +279,6 @@ void RobotController_Ackermann_Pid::behaveEmergencyBreak()
     stopMotion();
 }
 
-void RobotController_Ackermann_Pid::setStatus(int status)
-{
-    ((BehaviourDriveBase*) path_driver_->getActiveBehaviour())->setStatus(status);
-}
-
-void RobotController_Ackermann_Pid::setPath(PathWithPosition path)
-{
-    path_ = path;
-
-    //TODO: not nice. can this transform also be done in path?
-    geometry_msgs::PoseStamped wp_pose;
-    wp_pose.header.stamp = ros::Time::now();
-    wp_pose.pose = path.nextWaypoint();
-    if ( !path_driver_->getNode()->transformToLocal( wp_pose, next_wp_local_)) {
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
-        throw new BehaviourEmergencyBreak(*path_driver_);
-    }
-}
-
 void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &rear_pred)
 {
     double dt = options_.dead_time_;
@@ -320,13 +302,6 @@ void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &
 double RobotController_Ackermann_Pid::calculateCourse()
 {
     return cmd_.steer_front;
-}
-
-double RobotController_Ackermann_Pid::calculateAngleError()
-{
-    geometry_msgs::Pose waypoint = path_.nextWaypoint();
-    geometry_msgs::Pose robot_pose = path_driver_->getSlamPoseMsg();
-    return MathHelper::AngleClamp(tf::getYaw(waypoint.orientation) - tf::getYaw(robot_pose.orientation));
 }
 
 double RobotController_Ackermann_Pid::calculateLineError()
