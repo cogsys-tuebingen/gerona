@@ -3,6 +3,7 @@
 #include "robotcontroller_ackermann_pid.h"
 
 using namespace path_msgs;
+using namespace std;
 
 PathFollower::PathFollower(ros::NodeHandle &nh):
     node_handle_(nh),
@@ -14,10 +15,13 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     follow_path_server_.registerGoalCallback(boost::bind(&PathFollower::followPathGoalCB, this));
     follow_path_server_.registerPreemptCallback(boost::bind(&PathFollower::followPathPreemptCB,this));
 
+    string param_controller;
+
     ros::param::param<string>("~world_frame", world_frame_, "/map");
     ros::param::param<string>("~robot_frame", robot_frame_, "/base_link");
     ros::param::param<bool>("~use_obstacle_map", use_obstacle_map_, false);
     ros::param::param<bool>("~use_vfh", use_vfh_, false);
+    ros::param::param<string>("~controller", param_controller, "ackermann_pid");
 
     //cmd_pub_ = nh_.advertise<ramaxx_msgs::RamaxxMsg> (cmd_topic_, 10);
     cmd_pub_ = node_handle_.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
@@ -33,8 +37,15 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     active_ctrl_ = new BehaviouralPathDriver(cmd_pub_, this);
 
     VectorFieldHistogram* vfh_ptr = use_vfh_ ? &vfh_ : 0;
-    //TODO: this cast can cause problems......................!!
-    controller_ = new RobotController_Ackermann_Pid(cmd_pub_, (BehaviouralPathDriver*) active_ctrl_, vfh_ptr);
+
+    ROS_INFO("Use robot controller '%s'", param_controller.c_str());
+    if (param_controller == "ackermann_pid") {
+        //TODO: this cast can cause problems......................!!
+        controller_ = new RobotController_Ackermann_Pid(cmd_pub_, (BehaviouralPathDriver*) active_ctrl_, vfh_ptr);
+    } else {
+        ROS_FATAL("Unknown robot controller. Shutdown.");
+        exit(1);
+    }
 
     follow_path_server_.start();
     ROS_INFO("Initialisation done.");
