@@ -160,6 +160,7 @@ PathWithPosition BehaviourDriveBase::getPathWithPosition()
 BehaviourOnLine::BehaviourOnLine(BehaviouralPathDriver& parent)
     : BehaviourDriveBase(parent)
 {
+    controller_->initOnLine();
 }
 
 
@@ -272,8 +273,9 @@ void BehaviourAvoidObstacle::getNextWaypoint()
 //##### BEGIN BehaviourApproachTurningPoint
 
 BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(BehaviouralPathDriver &parent)
-    : BehaviourDriveBase(parent), step_(0), waiting_(false)
+    : BehaviourDriveBase(parent), done_(false)
 {
+    controller_->initApproachTurningPoint();
 }
 
 void BehaviourApproachTurningPoint::execute(int *status)
@@ -303,13 +305,14 @@ void BehaviourApproachTurningPoint::execute(int *status)
     initExecute(status);
 
     // check if point is reached
-    if(!checkIfDone()) {
-        controller_->behaveApproachTurningPoint(getPathWithPosition());
-    } else {
+    if(!done_) {
+        done_ = controller_->behaveApproachTurningPoint(getPathWithPosition());
+    }
+    if (done_) {
         handleDone();
     }
 }
-
+//FIXME are there cases, where this more complicated check is necessary?
 /*
 bool BehaviourApproachTurningPoint::checkIfDone()
 {
@@ -370,56 +373,17 @@ bool BehaviourApproachTurningPoint::checkIfDone()
 }
 */
 
-bool BehaviourApproachTurningPoint::checkIfDone()
-{
-    BehaviouralPathDriver::Options& opt = getOptions();
-
-    // we're done, when the dir_sign changes.
-    float dir_sign = sign(next_wp_local_.x());
-    if(step_++ > 0 && dir_sign != controller_->getDirSign()) {
-        return true;
-    }
-    controller_->setDirSign(dir_sign);
-
-    //else: more complicated check
-
-    //! Difference of current robot pose to the next waypoint.
-    Vector2d delta;
-    delta << next_wp_map_.pose.position.x - parent_.getSlamPoseMsg().position.x,
-            next_wp_map_.pose.position.y - parent_.getSlamPoseMsg().position.y;
-
-    if (controller_->getDirSign() < 0) {
-        delta *= -1;
-    }
-
-    Path& current_path = getSubPath(opt.path_idx);
-
-    //! Unit vector pointing in the direction of the next waypoints orientation.
-    Vector2d target_dir;
-    //NOTE: current_path[opt.wp_idx] == next_wp_map_ ??
-    target_dir << std::cos(current_path[opt.wp_idx].theta), std::sin(current_path[opt.wp_idx].theta);
-
-    // atan2(y,x) = angle of the vector.
-    //! Angle between the line from robot to waypoint and the waypoints orientation (only used for output?)
-    double angle = MathHelper::AngleClamp(std::atan2(delta(1), delta(0)) - std::atan2(target_dir(1), target_dir(0)));
-
-    ROS_WARN_STREAM_THROTTLE(1, "angle = " << angle);
-
-    //        bool done = std::abs(angle) >= M_PI / 2;
-    return delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
-}
 
 void BehaviourApproachTurningPoint::handleDone()
 {
-    BehaviouralPathDriver::Options& opt = getOptions();
-
     controller_->stopMotion();
 
     if(std::abs(parent_.getNode()->getVelocity().linear.x) > 0.01) {
+        ROS_INFO_THROTTLE(1, "WAITING until no more motion");
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
-        ROS_WARN_THROTTLE(1, "WAITING until no more motion");
-        //waiting_ = true;
     } else {
+        BehaviouralPathDriver::Options& opt = getOptions();
+
         opt.path_idx++;
         opt.wp_idx = 0;
 

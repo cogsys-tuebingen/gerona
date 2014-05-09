@@ -134,8 +134,7 @@ struct BehaviourApproachTurningPoint : public BehaviourDriveBase
 
     void getNextWaypoint();
 
-    int step_;
-    bool waiting_;
+    bool done_;
 };
 
 

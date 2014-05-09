@@ -29,8 +29,12 @@ public:
 
     virtual void initOnLine();
     virtual void behaveOnLine(PathWithPosition path);
+
     virtual void behaveAvoidObstacle(PathWithPosition path);
-    virtual void behaveApproachTurningPoint(PathWithPosition path);
+
+    virtual void initApproachTurningPoint();
+    virtual bool behaveApproachTurningPoint(PathWithPosition path);
+
     virtual void behaveEmergencyBreak();
 
 private:
@@ -65,6 +69,27 @@ private:
             msg.angular.z = steer_front;
             return msg;
         }
+
+        bool isValid()
+        {
+            if ( isnan(velocity) || isinf(velocity)
+                 || isnan(steer_front) || isinf(steer_front)
+                 || isnan(steer_back) || isinf(steer_back) )
+            {
+                // fix this instantly, to avoid further problems.
+                ROS_FATAL("Non-numerical values in command: %d,%d,%d,%d,%d,%d",
+                          isnan(velocity), isinf(velocity),
+                          isnan(steer_front), isinf(steer_front),
+                          isnan(steer_back), isinf(steer_back));
+                velocity = 0.0;
+                steer_front = 0.0;
+                steer_back = 0.0;
+
+                return false;
+            } else {
+                return true;
+            }
+        }
     };
 
     struct ControllerOptions
@@ -81,6 +106,8 @@ private:
 
     Eigen::Vector3d next_wp_local_;
     PathWithPosition path_;
+    //! Step counter for behaviour ApproachTurningPoint.
+    int atp_step_;
 
     inline void setStatus(int status);
     void setPath(PathWithPosition path);

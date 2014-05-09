@@ -34,7 +34,8 @@ public:
     virtual void initAvoidObstacle() {}
     virtual void behaveAvoidObstacle(PathWithPosition path) = 0;
     virtual void initApproachTurningPoint() {}
-    virtual void behaveApproachTurningPoint(PathWithPosition path) = 0;
+    //! Return true, when turning point is reached.
+    virtual bool behaveApproachTurningPoint(PathWithPosition path) = 0;
     virtual void behaveEmergencyBreak() = 0;
 
     virtual void setVelocity(float v)

@@ -65,7 +65,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, double speed)
         // Nothing to do
         return false;
     }
-    ROS_INFO("PID: error = %g, df = %g", error, delta_f_raw);
+    ROS_DEBUG("PID: error = %g, df = %g", error, delta_f_raw);
 
     behaviour->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
 
@@ -130,6 +130,11 @@ bool RobotController_Ackermann_Pid::setCommand(double error, double speed)
 
 void RobotController_Ackermann_Pid::publishCommand()
 {
+    if (!cmd_.isValid()) {
+        ROS_FATAL("Invalid Command in RobotController_Ackermann_Pid.");
+        return;
+    }
+
     //ramaxx_msgs::RamaxxMsg msg = current_command_;
     geometry_msgs::Twist msg = cmd_;
     cmd_pub_.publish(msg);
@@ -221,14 +226,27 @@ void RobotController_Ackermann_Pid::behaveAvoidObstacle(PathWithPosition path)
     }
 }
 
-void RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition path)
+void RobotController_Ackermann_Pid::initApproachTurningPoint()
+{
+    atp_step_ = 0;
+}
+
+bool RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition path)
 {
     BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
     setPath(path);
 
     //---------------------
 
+    // CHECK IF DONE
+    float dir_sign = sign(next_wp_local_.x());
+    if(atp_step_++ > 0 && dir_sign != getDirSign()) {
+        return true;
+    }
+    setDirSign(dir_sign);
+
     Visualizer* vis = Visualizer::getInstance();
+
 
     // Calculate target line from current to next waypoint (if there is any)
     double e_distance = calculateDistanceError();
@@ -250,6 +268,8 @@ void RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition 
     double velocity = std::min(0.1 + distance / 2.0, (double) path_driver_->getOptions().min_velocity_); //FIXME !!!! This should be max(), shouldn't it?
 
     setCommand(e_combined, velocity);
+
+    return false;
 }
 
 void RobotController_Ackermann_Pid::behaveEmergencyBreak()
