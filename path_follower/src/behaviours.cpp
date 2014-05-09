@@ -64,43 +64,10 @@ double BehaviourDriveBase::calculateDistanceToCurrentPathSegment()
     return segment_line.GetDistance(parent_.getSlamPose().head<2>());
 }
 
-void BehaviourDriveBase::visualizeCarrot(const Vector2d &carrot, int id, float r, float g, float b)
-{
-    geometry_msgs::PoseStamped carrot_local;
-    carrot_local.pose.position.x = carrot[0];
-    carrot_local.pose.position.y = carrot[1];
-
-    carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
-    geometry_msgs::PoseStamped carrot_map;
-    if (getNode().transformToGlobal(carrot_local, carrot_map)) {
-        visualizer_->drawMark(id, carrot_map.pose.position, "prediction", r,g,b);
-    }
-}
-
-void BehaviourDriveBase::visualizeLine(const Line2d &line)
-{
-    Eigen::Vector2d from = line.GetOrigin() - 5 * line.GetDirection();
-    Eigen::Vector2d to = line.GetOrigin() + 5 * line.GetDirection();
-
-    geometry_msgs::Point f,t;
-    f.x = from(0);
-    f.y = from(1);
-    t.x = to(0);
-    t.y = to(1);
-
-    visualizer_->drawLine(2, f, t, "/base_link", "line", 0.7, 0.2, 1.0);
-}
-
 bool BehaviourDriveBase::isCollision(double course)
 {
     // only check for collisions, while driving forward (there's no laser at the backside)
     return (controller_->getDirSign() > 0 && parent_.checkCollision(course));
-}
-
-void BehaviourDriveBase::drawSteeringArrow(int id, geometry_msgs::Pose steer_arrow, double angle, double r, double g, double b)
-{
-    steer_arrow.orientation = tf::createQuaternionMsgFromYaw(tf::getYaw(steer_arrow.orientation) + angle);
-    visualizer_->drawArrow(id, steer_arrow, "steer", r, g, b);
 }
 
 void BehaviourDriveBase::setStatus(int status)

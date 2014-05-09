@@ -1,5 +1,8 @@
 #include "visualizer.h"
 #include <visualization_msgs/Marker.h>
+#include <tf/tf.h>
+
+using namespace Eigen;
 
 Visualizer::Visualizer() :
     private_nh_("~")
@@ -109,3 +112,25 @@ void Visualizer::drawMark(int id, const geometry_msgs::Point &pos, const std::st
 
     vis_pub_.publish(marker);
 }
+
+
+void Visualizer::drawSteeringArrow(int id, geometry_msgs::Pose robot_pose, double angle, double r, double g, double b)
+{
+    robot_pose.orientation = tf::createQuaternionMsgFromYaw(tf::getYaw(robot_pose.orientation) + angle);
+    drawArrow(id, robot_pose, "steer", r, g, b);
+}
+
+void Visualizer::visualizeLine(const Line2d &line)
+{
+    Vector2d from = line.GetOrigin() - 5 * line.GetDirection();
+    Vector2d to   = line.GetOrigin() + 5 * line.GetDirection();
+
+    geometry_msgs::Point f,t;
+    f.x = from(0);
+    f.y = from(1);
+    t.x = to(0);
+    t.y = to(1);
+
+    drawLine(2, f, t, "/base_link", "line", 0.7, 0.2, 1.0);
+}
+

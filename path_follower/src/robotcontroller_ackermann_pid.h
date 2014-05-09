@@ -11,6 +11,7 @@
 #include "robotcontroller.h"
 #include "PidCtrl.h"
 #include "vector_field_histogram.h"
+#include "visualizer.h"
 
 class RobotController_Ackermann_Pid : public RobotController
 {
@@ -103,6 +104,7 @@ private:
     Command cmd_;
     ControllerOptions options_;
     VectorFieldHistogram *vfh_;
+    Visualizer *visualizer_;
 
     Eigen::Vector3d next_wp_local_;
     PathWithPosition path_;
@@ -118,6 +120,20 @@ private:
     double calculateAngleError();
     double calculateLineError();
     double calculateDistanceError();
+
+    /**
+     * @brief Visualize a carrot.
+     *
+     * This method is located here and not in the Visualizer class, as it needs access to the node class for
+     * a tf transform (Visualizer should be independent of such things).
+     *
+     * @param carrot
+     * @param id    ID of the marker.
+     * @param r     Marker color, red.
+     * @param g     Marker color, green.
+     * @param b     Marker color, blue.
+     */
+    void visualizeCarrot(const Eigen::Vector2d &carrot, int id, float r, float g, float b);
 };
 
 #endif // ROBOTCONTROLLERACKERMANNPID_H

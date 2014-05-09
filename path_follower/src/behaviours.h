@@ -32,13 +32,7 @@ struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
     //! Calculate the distance of the robot to the current path segment.
     double calculateDistanceToCurrentPathSegment();
 
-    void visualizeCarrot(const Vector2d& carrot, int id, float r, float g, float b);
-
-    void visualizeLine(const Line2d& line);
-
     bool isCollision(double course);
-
-    void drawSteeringArrow(int id, geometry_msgs::Pose steer_arrow, double angle, double r, double g, double b);
 
     void setStatus(int status);//FIXME: is there a better solution than making this public? It should only be accessable for RobotController
 

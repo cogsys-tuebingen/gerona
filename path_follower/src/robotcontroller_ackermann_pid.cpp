@@ -32,6 +32,8 @@ RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(ros::Publisher &cmd
     vfh_(vfh)
 {
     configure();
+
+    visualizer_ = Visualizer::getInstance();
 }
 
 void RobotController_Ackermann_Pid::configure()
@@ -67,7 +69,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, double speed)
     }
     ROS_DEBUG("PID: error = %g, df = %g", error, delta_f_raw);
 
-    behaviour->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
+    visualizer_->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
 
     double threshold = 5.0;
     double threshold_max_distance = 3.5 /*m*/;
@@ -91,7 +93,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, double speed)
         }
     }
 
-    behaviour->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_f, 0.0, 1.0, 1.0);
+    visualizer_->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_f, 0.0, 1.0, 1.0);
 
 
     double steer = std::abs(delta_f);
@@ -159,7 +161,6 @@ void RobotController_Ackermann_Pid::initOnLine()
 void RobotController_Ackermann_Pid::behaveOnLine(PathWithPosition path)
 {
     //TODO: this whole initialization stuff should be packed in a method and the user should somehow be forced to call it.
-    BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
     setPath(path);
 
     //---------------------
@@ -175,9 +176,11 @@ void RobotController_Ackermann_Pid::behaveOnLine(PathWithPosition path)
     ROS_DEBUG("OnLine: e_dist = %g, e_angle = %g  ==>  e_comb = %g", e_distance, e_angle, e_combined);
 
     // draw steer front
-    behaviour->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-    behaviour->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-    behaviour->drawSteeringArrow(3, path_driver_->getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
+    if (visualizer_->hasSubscriber()) {
+        visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(3, path_driver_->getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
+    }
 
     float speed = velocity_;
 
@@ -196,7 +199,6 @@ void RobotController_Ackermann_Pid::behaveOnLine(PathWithPosition path)
 
 void RobotController_Ackermann_Pid::behaveAvoidObstacle(PathWithPosition path)
 {
-    BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
     setPath(path);
 
     //---------------------
@@ -210,9 +212,11 @@ void RobotController_Ackermann_Pid::behaveAvoidObstacle(PathWithPosition path)
     double e_combined = e_distance + e_angle;
 
     // draw steer front
-    behaviour->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-    behaviour->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-    behaviour->drawSteeringArrow(3, path_driver_->getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
+    if (visualizer_->hasSubscriber()) {
+        visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(3, path_driver_->getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
+    }
 
     float speed = velocity_;
 
@@ -233,7 +237,6 @@ void RobotController_Ackermann_Pid::initApproachTurningPoint()
 
 bool RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition path)
 {
-    BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
     setPath(path);
 
     //---------------------
@@ -245,8 +248,6 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition 
     }
     setDirSign(dir_sign);
 
-    Visualizer* vis = Visualizer::getInstance();
-
 
     // Calculate target line from current to next waypoint (if there is any)
     double e_distance = calculateDistanceError();
@@ -255,13 +256,13 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition 
     double e_combined = e_distance + e_angle;
     ROS_DEBUG("Approach: e_dist = %g, e_angle = %g  ==>  e_comb = %g", e_distance, e_angle, e_combined);
 
-    if (vis->hasSubscriber()) {
-        vis->drawCircle(2, ((geometry_msgs::Pose) path.nextWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
+    if (visualizer_->hasSubscriber()) {
+        visualizer_->drawCircle(2, ((geometry_msgs::Pose) path.nextWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
 
         // draw steer front
-        behaviour->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        behaviour->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        behaviour->drawSteeringArrow(3, path_driver_->getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
+        visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(3, path_driver_->getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
     }
 
     double distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
@@ -330,8 +331,6 @@ double RobotController_Ackermann_Pid::calculateAngleError()
 
 double RobotController_Ackermann_Pid::calculateLineError()
 {
-    BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
-
     geometry_msgs::PoseStamped followup_next_wp_map;
     followup_next_wp_map.header.stamp = ros::Time::now();
 
@@ -348,7 +347,7 @@ double RobotController_Ackermann_Pid::calculateLineError()
         throw new BehaviourEmergencyBreak(*path_driver_);
     }
     target_line = Line2d( next_wp_local_.head<2>(), followup_next_wp_local.head<2>());
-    behaviour->visualizeLine(target_line);
+    visualizer_->visualizeLine(target_line);
 
     Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
     predictPose(front_pred, rear_pred);
@@ -360,8 +359,10 @@ double RobotController_Ackermann_Pid::calculateLineError()
         alt_carrot = front_pred;
     }
 
-    behaviour->visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
-    behaviour->visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
+    if (visualizer_->hasSubscriber()) {
+        visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
+        visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
+    }
 
     return -target_line.GetSignedDistance(main_carrot) - 0.25 * target_line.GetSignedDistance(alt_carrot);
 }
@@ -379,10 +380,9 @@ double RobotController_Ackermann_Pid::calculateDistanceError()
         alt_carrot = front_pred;
     }
 
-    if (Visualizer::getInstance()->hasSubscriber()) {
-        BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
-        behaviour->visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
-        behaviour->visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
+    if (visualizer_->hasSubscriber()) {
+        visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
+        visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
     }
 
     Vector2d delta = next_wp_local_.head<2>() - main_carrot;
@@ -392,4 +392,17 @@ double RobotController_Ackermann_Pid::calculateDistanceError()
     }
 
     return delta(1);
+}
+
+void RobotController_Ackermann_Pid::visualizeCarrot(const Vector2d &carrot, int id, float r, float g, float b)
+{
+    geometry_msgs::PoseStamped carrot_local;
+    carrot_local.pose.position.x = carrot[0];
+    carrot_local.pose.position.y = carrot[1];
+
+    carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
+    geometry_msgs::PoseStamped carrot_map;
+    if (path_driver_->getNode()->transformToGlobal(carrot_local, carrot_map)) {
+        visualizer_->drawMark(id, carrot_map.pose.position, "prediction", r,g,b);
+    }
 }
