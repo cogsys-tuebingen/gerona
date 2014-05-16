@@ -20,7 +20,7 @@ public:
                                   BehaviouralPathDriver *path_driver,
                                   VectorFieldHistogram *vfh);
 
-    virtual bool setCommand(double error, double speed);
+    virtual bool setCommand(double error, float speed);
 
     virtual void publishCommand();
 
@@ -39,9 +39,15 @@ public:
 private:
     struct Command
     {
-        double velocity;
-        double steer_front;
-        double steer_back;
+        float velocity;
+        float steer_front;
+        float steer_back;
+
+        Command()
+        {
+            // initialize to zero
+            velocity = steer_front = steer_back = 0.0;
+        }
 
         /* ramaxx_msg commented for the moment, as it would limit the use of this node to the rabots.
          * Reimplement this, if you want to use a robot with front and back steerting.

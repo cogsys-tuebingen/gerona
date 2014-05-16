@@ -54,7 +54,7 @@ void RobotController_Ackermann_Pid::configure()
     pid_.configure( kp, ki, i_max, M_PI*delta_max/180.0, e_max, 0.5, ta );
 }
 
-bool RobotController_Ackermann_Pid::setCommand(double error, double speed)
+bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 {
     BehaviouralPathDriver::Options path_driver_opt = path_driver_->getOptions();
     BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
@@ -147,9 +147,9 @@ void RobotController_Ackermann_Pid::publishCommand()
 
 void RobotController_Ackermann_Pid::stopMotion()
 {
-    cmd_.velocity = 0;
-    cmd_.steer_front = 0;
-    cmd_.steer_back= 0;
+    cmd_.velocity = 0.0;
+    cmd_.steer_front = 0.0;
+    cmd_.steer_back= 0.0;
 
     publishCommand();
 }
@@ -266,8 +266,8 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition 
         visualizer_->drawSteeringArrow(3, path_driver_->getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
     }
 
-    double distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
-    double velocity = std::min(0.1 + distance / 2.0, (double) path_driver_->getOptions().min_velocity_); //FIXME !!!! This should be max(), shouldn't it?
+    float distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
+    float velocity = std::max(0.1f + distance / 2.0f, path_driver_->getOptions().min_velocity_);
 
     setCommand(e_combined, velocity);
 
@@ -293,10 +293,18 @@ void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &
     double yn = ds*std::sin(dtheta*0.5+beta*0.5);
     double xn = ds*std::cos(dtheta*0.5+beta*0.5);
 
+    ROS_DEBUG("predict pose: dt = %g, deltaf = %g, deltar = %g, v = %g, beta = %g, ds = %g, dtheta = %g, yn = %g, xn = %g",
+              dt, deltaf, deltar, v, beta, ds, dtheta, yn, xn);
+    // output when nan-values occured
+    // step 1: dt = 0.1, deltaf = 9.75024e+199, deltar = 4.26137e+257, v = 0,   beta = 0.308293, ds = 0,   dtheta = 0,   yn = 0,    xn = 0
+    // step 2: dt = 0.1, deltaf = 9.75024e+199, deltar = 4.26137e+257, v = inf, beta = 0.308293, ds = inf, dtheta = inf, yn = -nan, xn = -nan
+
     front_pred[0] = xn+cos(thetan)*options_.l_/2.0;
     front_pred[1] = yn+sin(thetan)*options_.l_/2.0;
     rear_pred[0] = xn-cos(thetan)*options_.l_/2.0;
     rear_pred[1] = yn-sin(thetan)*options_.l_/2.0;
+
+    ROS_DEBUG_STREAM("predict pose. front: " << front_pred << ", rear: " << rear_pred);
 }
 
 double RobotController_Ackermann_Pid::calculateCourse()
