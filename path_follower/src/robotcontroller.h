@@ -29,13 +29,23 @@ public:
 
     /* BEHAVIOURS */
     virtual void initOnLine() {}
-    virtual void behaveOnLine(PathWithPosition) = 0;
     virtual void initAvoidObstacle() {}
-    virtual void behaveAvoidObstacle(PathWithPosition path) = 0;
     virtual void initApproachTurningPoint() {}
+
+    virtual void execBehaviourOnLine(PathWithPosition path) {
+        setPath(path);
+        behaveOnLine();
+    }
+    virtual void execBehaviourAvoidObstacle(PathWithPosition path) {
+        setPath(path);
+        behaveAvoidObstacle();
+    }
+
     //! Return true, when turning point is reached.
-    virtual bool behaveApproachTurningPoint(PathWithPosition path) = 0;
-    virtual void behaveEmergencyBreak() = 0;
+    virtual bool execBehaviourApproachTurningPoint(PathWithPosition path) {
+        setPath(path);
+        return behaveApproachTurningPoint();
+    }
 
     virtual void setVelocity(float v)
     {
@@ -69,6 +79,14 @@ protected:
     PathWithPosition path_;
     //! The next waypoint in the robot frame (set by setPath).
     Eigen::Vector3d next_wp_local_;
+
+
+     /* BEHAVIOURS */
+    virtual void behaveOnLine() = 0;
+    virtual void behaveAvoidObstacle() = 0;
+    //! Return true, when turning point is reached.
+    virtual bool behaveApproachTurningPoint() = 0;
+
 
     virtual void setFilteredSpeed( const float speed ) {
         filtered_speed_ = speed;

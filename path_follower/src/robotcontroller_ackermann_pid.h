@@ -27,14 +27,13 @@ public:
     virtual void stopMotion();
 
     virtual void initOnLine();
-    virtual void behaveOnLine(PathWithPosition path);
-
-    virtual void behaveAvoidObstacle(PathWithPosition path);
-
     virtual void initApproachTurningPoint();
-    virtual bool behaveApproachTurningPoint(PathWithPosition path);
 
-    virtual void behaveEmergencyBreak();
+protected:
+    virtual void behaveOnLine();
+    virtual void behaveAvoidObstacle();
+    virtual bool behaveApproachTurningPoint();
+
 
 private:
     struct Command

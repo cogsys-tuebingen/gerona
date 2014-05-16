@@ -135,7 +135,7 @@ void BehaviourOnLine::execute(int *status)
 {
     initExecute(status);
 
-    controller_->behaveOnLine(getPathWithPosition());
+    controller_->execBehaviourOnLine(getPathWithPosition());
 }
 
 
@@ -188,7 +188,7 @@ void BehaviourAvoidObstacle::execute(int *status)
 {
     initExecute(status);
 
-    controller_->behaveAvoidObstacle(getPathWithPosition());
+    controller_->execBehaviourAvoidObstacle(getPathWithPosition());
 }
 
 
@@ -251,7 +251,7 @@ void BehaviourApproachTurningPoint::execute(int *status)
 
     // check if point is reached
     if(!done_) {
-        done_ = controller_->behaveApproachTurningPoint(getPathWithPosition());
+        done_ = controller_->execBehaviourApproachTurningPoint(getPathWithPosition());
     }
     if (done_) {
         handleDone();

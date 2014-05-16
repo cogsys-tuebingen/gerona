@@ -19,21 +19,27 @@ public:
     /* BEHAVIOURS */
 
     virtual void initOnLine();
-    virtual void behaveOnLine(PathWithPosition path);
 
-    virtual void behaveAvoidObstacle(PathWithPosition path) = 0;
+
+protected:
+    virtual void behaveOnLine();
+
+    virtual void behaveAvoidObstacle() = 0;
 
     //! Return true, when turning point is reached.
-    virtual bool behaveApproachTurningPoint(PathWithPosition path) = 0;
-    virtual void behaveEmergencyBreak() = 0;
+    virtual bool behaveApproachTurningPoint() = 0;
 
 
 private:
     struct Command
     {
-        double velocity;
+        float velocity;
         //double steer_front;
 
+        // initialize all values to zero
+        Command():
+            velocity(0.0f)
+        {}
 
 //        operator geometry_msgs::Twist()
 //        {

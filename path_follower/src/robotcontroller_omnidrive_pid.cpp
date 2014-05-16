@@ -12,12 +12,8 @@ void RobotController_Omnidrive_Pid::initOnLine()
     pid_.reset();
 }
 
-void RobotController_Omnidrive_Pid::behaveOnLine(PathWithPosition path)
+void RobotController_Omnidrive_Pid::behaveOnLine()
 {
-    setPath(path);
-    //---------------------
-
-
 //    // Calculate target line from current to next waypoint (if there is any)
 //    double e_distance = calculateLineError();
 //    double e_angle = calculateAngleError();

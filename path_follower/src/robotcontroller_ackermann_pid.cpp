@@ -159,14 +159,8 @@ void RobotController_Ackermann_Pid::initOnLine()
     pid_.reset();
 }
 
-void RobotController_Ackermann_Pid::behaveOnLine(PathWithPosition path)
+void RobotController_Ackermann_Pid::behaveOnLine()
 {
-    //TODO: this whole initialization stuff should be packed in a method and the user should somehow be forced to call it.
-    setPath(path);
-
-    //---------------------
-
-
     dir_sign_ = sign(next_wp_local_.x());
 
     // Calculate target line from current to next waypoint (if there is any)
@@ -198,12 +192,8 @@ void RobotController_Ackermann_Pid::behaveOnLine(PathWithPosition path)
     }
 }
 
-void RobotController_Ackermann_Pid::behaveAvoidObstacle(PathWithPosition path)
+void RobotController_Ackermann_Pid::behaveAvoidObstacle()
 {
-    setPath(path);
-
-    //---------------------
-
     dir_sign_ = sign(next_wp_local_.x());
 
     // Calculate target line from current to next waypoint (if there is any)
@@ -236,12 +226,8 @@ void RobotController_Ackermann_Pid::initApproachTurningPoint()
     atp_step_ = 0;
 }
 
-bool RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition path)
+bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
 {
-    setPath(path);
-
-    //---------------------
-
     // CHECK IF DONE
     float dir_sign = sign(next_wp_local_.x());
     if(atp_step_++ > 0 && dir_sign != getDirSign()) {
@@ -258,7 +244,7 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition 
     ROS_DEBUG("Approach: e_dist = %g, e_angle = %g  ==>  e_comb = %g", e_distance, e_angle, e_combined);
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawCircle(2, ((geometry_msgs::Pose) path.nextWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
+        visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_.nextWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
 
         // draw steer front
         visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
@@ -272,11 +258,6 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint(PathWithPosition 
     setCommand(e_combined, velocity);
 
     return false;
-}
-
-void RobotController_Ackermann_Pid::behaveEmergencyBreak()
-{
-    stopMotion();
 }
 
 void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &rear_pred)
@@ -295,7 +276,7 @@ void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &
 
     ROS_DEBUG("predict pose: dt = %g, deltaf = %g, deltar = %g, v = %g, beta = %g, ds = %g, dtheta = %g, yn = %g, xn = %g",
               dt, deltaf, deltar, v, beta, ds, dtheta, yn, xn);
-    // output when nan-values occured
+    // output when nan-values occured (hopefully fixed with commit 8bad8fd)
     // step 1: dt = 0.1, deltaf = 9.75024e+199, deltar = 4.26137e+257, v = 0,   beta = 0.308293, ds = 0,   dtheta = 0,   yn = 0,    xn = 0
     // step 2: dt = 0.1, deltaf = 9.75024e+199, deltar = 4.26137e+257, v = inf, beta = 0.308293, ds = inf, dtheta = inf, yn = -nan, xn = -nan
 
