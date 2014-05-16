@@ -11,6 +11,23 @@ class BehaviouralPathDriver;
 
 class RobotController
 {
+/* ABSTRACT METHODS */
+public:
+    virtual void publishCommand() = 0;
+
+    //! Immediatley stop any motion.
+    virtual void stopMotion() = 0;
+
+protected:
+
+   virtual void behaveOnLine() = 0;
+   virtual void behaveAvoidObstacle() = 0;
+
+   //! Return true, when turning point is reached.
+   virtual bool behaveApproachTurningPoint() = 0;
+
+
+/* REGULAR METHODS */
 public:
     RobotController(ros::Publisher &cmd_publisher, BehaviouralPathDriver *path_driver) :
         cmd_pub_(cmd_publisher),
@@ -19,12 +36,6 @@ public:
         filtered_speed_(0.0f)
     {
     }
-
-
-    virtual void publishCommand() = 0;
-
-    //! Immediatley stop any motion.
-    virtual void stopMotion() = 0;
 
 
     /* BEHAVIOURS */
@@ -79,13 +90,6 @@ protected:
     PathWithPosition path_;
     //! The next waypoint in the robot frame (set by setPath).
     Eigen::Vector3d next_wp_local_;
-
-
-     /* BEHAVIOURS */
-    virtual void behaveOnLine() = 0;
-    virtual void behaveAvoidObstacle() = 0;
-    //! Return true, when turning point is reached.
-    virtual bool behaveApproachTurningPoint() = 0;
 
 
     virtual void setFilteredSpeed( const float speed ) {
