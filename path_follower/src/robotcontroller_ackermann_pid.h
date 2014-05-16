@@ -20,8 +20,6 @@ public:
                                   BehaviouralPathDriver *path_driver,
                                   VectorFieldHistogram *vfh);
 
-    virtual bool setCommand(double error, float speed);
-
     virtual void publishCommand();
 
     virtual void stopMotion();
@@ -113,6 +111,8 @@ private:
     int atp_step_;
 
     void configure();
+
+    bool setCommand(double error, float speed);
 
     void predictPose(Eigen::Vector2d &front_pred, Eigen::Vector2d &rear_pred);
     double calculateCourse();

@@ -63,7 +63,6 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 
     setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
 
-    //TODO: nan kommt wahrscheinlich vom error
     if (!pid_.execute( error, delta_f_raw)) {
         // Nothing to do
         return false;
