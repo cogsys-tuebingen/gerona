@@ -19,12 +19,13 @@ public:
     virtual void stopMotion() = 0;
 
 protected:
+    virtual void behaveOnLine() = 0;
+    virtual void behaveAvoidObstacle() = 0;
 
-   virtual void behaveOnLine() = 0;
-   virtual void behaveAvoidObstacle() = 0;
-
-   //! Return true, when turning point is reached.
-   virtual bool behaveApproachTurningPoint() = 0;
+    /**
+     * @return True, when turning point is reached, otherwise false.
+     */
+    virtual bool behaveApproachTurningPoint() = 0;
 
 
 /* REGULAR METHODS */
@@ -39,8 +40,11 @@ public:
 
 
     /* BEHAVIOURS */
+    //! Initialize the OnLine-Behaviour
     virtual void initOnLine() {}
+    //! Initialize the AvoidObstacle-Behaviour
     virtual void initAvoidObstacle() {}
+    //! Initialize the ApproachTurningPoint-Behaviour
     virtual void initApproachTurningPoint() {}
 
     virtual void execBehaviourOnLine(PathWithPosition path) {

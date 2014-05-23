@@ -27,7 +27,9 @@ protected:
 
     virtual void behaveAvoidObstacle();
 
-    //! Return true, when turning point is reached.
+    /**
+     * @return True, when turning point is reached, otherwise false.
+     */
     virtual bool behaveApproachTurningPoint();
 
 
@@ -94,10 +96,23 @@ private:
 
     void configure();
 
-    bool setCommand(double e_distance, double e_rotation);
+    bool setCommand(double e_distance, double e_rotation, float speed);
 
+    //! Predict the position of the robot.
     Eigen::Vector2d predictPosition();
+
+    //! Check if approaching turning point is done.
+    bool checkIfTurningPointApproached();
+
+    /**
+     * @brief Calculate distance of the robot to the next path segment.
+     *
+     * Note: This method calculates the distance to the *next* path segment, not the current one!
+     */
     double calculateLineError();
+
+    //! Calculate the distance of the robot to the next waypoint.
+    double calculateDistanceToWaypoint();
 };
 
 #endif // ROBOTCONTROLLER_OMNIDRIVE_PID_H

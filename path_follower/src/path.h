@@ -15,14 +15,14 @@ struct Waypoint
     {
         x = ref.pose.position.x;
         y = ref.pose.position.y;
-        theta = tf::getYaw(ref.pose.orientation);
+        orientation = tf::getYaw(ref.pose.orientation);
     }
     operator geometry_msgs::Pose() const
     {
         geometry_msgs::Pose result;
         result.position.x = x;
         result.position.y = y;
-        result.orientation = tf::createQuaternionMsgFromYaw(theta);
+        result.orientation = tf::createQuaternionMsgFromYaw(orientation);
         return result;
     }
 
@@ -33,9 +33,12 @@ struct Waypoint
         return std::sqrt(dx*dx + dy*dy);
     }
 
+    //! x-coordinate of the waypoint's position
     double x;
+    //! y-coordinate of the waypoint's position
     double y;
-    double theta;
+    //! Orientation of the waypoint, represented as an angle ("theta")
+    double orientation;
 };
 
 

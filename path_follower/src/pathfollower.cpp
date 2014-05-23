@@ -1,6 +1,8 @@
 #include "pathfollower.h"
 #include <geometry_msgs/Twist.h>
+// Controller/Models
 #include "robotcontroller_ackermann_pid.h"
+#include "robotcontroller_omnidrive_pid.h"
 
 using namespace path_msgs;
 using namespace std;
@@ -42,6 +44,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     if (param_controller == "ackermann_pid") {
         //TODO: this cast can cause problems......................!!
         controller_ = new RobotController_Ackermann_Pid(cmd_pub_, (BehaviouralPathDriver*) active_ctrl_, vfh_ptr);
+    } else if (param_controller == "omnidrive_pid") {
+        controller_ = new RobotController_Omnidrive_Pid(cmd_pub_, (BehaviouralPathDriver*) active_ctrl_);
     } else {
         ROS_FATAL("Unknown robot controller. Shutdown.");
         exit(1);
