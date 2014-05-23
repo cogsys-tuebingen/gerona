@@ -96,7 +96,10 @@ catkin_package(
 ## Build ##
 ###########
 
-find_package(Eigen REQUIRED)
+find_package(Eigen QUIET)
+if(NOT ${Eigen_FOUND})
+  find_package(Eigen3 REQUIRED)
+endif()
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
