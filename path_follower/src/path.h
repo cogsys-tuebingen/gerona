@@ -6,6 +6,7 @@
 
 #include <geometry_msgs/Pose.h>
 #include <tf/tf.h>
+#include <Eigen/Core>
 
 //! Waypoints define the path
 struct Waypoint
@@ -24,6 +25,11 @@ struct Waypoint
         result.position.y = y;
         result.orientation = tf::createQuaternionMsgFromYaw(orientation);
         return result;
+    }
+
+    operator Eigen::Vector2d() const
+    {
+        return Eigen::Vector2d(x,y);
     }
 
     double distanceTo(const Waypoint& other) const

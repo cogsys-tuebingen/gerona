@@ -60,9 +60,9 @@ void PidCtrl::configure(double Kp, double Ki, double i_max, double delta_max, do
     Kp_        = Kp;
     Ki_        = Ki;
     i_max_     = i_max;
-    delta_max_ = delta_max;
-    e_max_     = e_max;
-    v_         = v;
+    delta_max_ = delta_max; //TODO: unused
+    e_max_     = e_max;     //TODO: unused
+    v_         = v;         //TODO: unused
     Ta_        = ta;
 
     reset();

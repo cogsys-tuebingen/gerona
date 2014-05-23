@@ -67,6 +67,17 @@ void Visualizer::drawLine(int id, const geometry_msgs::Point &from, const geomet
     vis_pub_.publish(marker);
 }
 
+void Visualizer::drawLine(int id, const Eigen::Vector2d &from, const Eigen::Vector2d &to, const std::string &frame, const std::string &ns, float r, float g, float b, double live, float scale) const
+{
+    geometry_msgs::Point p1, p2;
+    p1.x = from[0];
+    p1.y = from[1];
+    p2.x = to[0];
+    p2.y = to[1];
+
+    drawLine(id, p1, p2, frame, ns, r, g, b, live, scale);
+}
+
 void Visualizer::drawCircle(int id, const geometry_msgs::Point &center, double radius, const std::string &frame,
                             const std::string &ns, float r, float g, float b, double live) const
 {
@@ -91,12 +102,13 @@ void Visualizer::drawCircle(int id, const geometry_msgs::Point &center, double r
     vis_pub_.publish(marker);
 }
 
-void Visualizer::drawMark(int id, const geometry_msgs::Point &pos, const std::string &ns, float r, float g, float b) const
+void Visualizer::drawMark(int id, const geometry_msgs::Point &pos, const std::string &ns, float r, float g, float b,
+                          const std::string &frame) const
 {
     visualization_msgs::Marker marker;
     marker.pose.position = pos;
     marker.ns = ns;
-    marker.header.frame_id = "/map";
+    marker.header.frame_id = frame;
     marker.header.stamp = ros::Time();
     marker.action = visualization_msgs::Marker::ADD;
     marker.id = id;

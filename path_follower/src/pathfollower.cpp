@@ -99,7 +99,7 @@ void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
 }
 
 
-bool PathFollower::getWorldPose(Vector3d &pose , geometry_msgs::Pose *pose_out) const
+bool PathFollower::getWorldPose(Vector3d *pose_vec , geometry_msgs::Pose *pose_msg) const
 {
     tf::StampedTransform transform;
     geometry_msgs::TransformStamped msg;
@@ -113,15 +113,15 @@ bool PathFollower::getWorldPose(Vector3d &pose , geometry_msgs::Pose *pose_out) 
     }
     tf::transformStampedTFToMsg(transform, msg);
 
-    pose.x() = msg.transform.translation.x;
-    pose.y() = msg.transform.translation.y;
-    pose(2) = tf::getYaw(msg.transform.rotation);
+    pose_vec->x()  = msg.transform.translation.x;
+    pose_vec->y()  = msg.transform.translation.y;
+    (*pose_vec)(2) = tf::getYaw(msg.transform.rotation);
 
-    if(pose_out != NULL) {
-        pose_out->position.x = msg.transform.translation.x;
-        pose_out->position.y = msg.transform.translation.y;
-        pose_out->position.z = msg.transform.translation.z;
-        pose_out->orientation = msg.transform.rotation;
+    if(pose_msg != NULL) {
+        pose_msg->position.x = msg.transform.translation.x;
+        pose_msg->position.y = msg.transform.translation.y;
+        pose_msg->position.z = msg.transform.translation.z;
+        pose_msg->orientation = msg.transform.rotation;
     }
     return true;
 }

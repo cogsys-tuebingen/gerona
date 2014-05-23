@@ -146,7 +146,7 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResul
         start();
     }
 
-    if ( !node_->getWorldPose( slam_pose_, &slam_pose_msg_ )) {
+    if ( !node_->getWorldPose( &slam_pose_, &slam_pose_msg_ )) {
         stop(); // FIXME: stop() sets velocity to 0, but due to the return, this is never published.
         result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         return DONE;

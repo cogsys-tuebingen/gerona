@@ -49,19 +49,19 @@ void RobotController_Omnidrive_Pid::initOnLine()
 void RobotController_Omnidrive_Pid::behaveOnLine()
 {
     // Calculate target line from current to next waypoint (if there is any)
-    double e_distance = calculateLineError();
-    double e_angle    = calculateAngleError();
+    double e_direction = calculateDirectionError();
+    double e_angle     = calculateAngleError();
 
-    ROS_DEBUG("OnLine: e_dist = %g, e_angle = %g", e_distance, e_angle);
+    ROS_DEBUG("OnLine: e_dir = %g, e_angle = %g", e_direction, e_angle);
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_direction, 0.2, 0.2, 1.0);
     }
 
     //TODO: speed control!
 
-    if(setCommand(e_distance, e_angle, velocity_)) {
+    if(setCommand(e_direction, e_angle, velocity_)) {
         // do not use this behaviour here, for the moment.
         //setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
         //throw new BehaviourAvoidObstacle(*path_driver_);
@@ -81,21 +81,22 @@ bool RobotController_Omnidrive_Pid::behaveApproachTurningPoint()
     }
 
     // Calculate target line from current to next waypoint (if there is any)
-    double e_distance = calculateDistanceToWaypoint();
-    double e_angle    = calculateAngleError();
+    //double e_distance = calculateDistanceToWaypoint();
+    double e_direction = calculateDirectionError();
+    double e_angle     = calculateAngleError();
 
-    ROS_DEBUG("Approach: e_dist = %g, e_angle = %g", e_distance, e_angle);
+    ROS_DEBUG("Approach: e_dir = %g, e_angle = %g", e_direction, e_angle);
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_.nextWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
         visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_direction, 0.2, 0.2, 1.0);
     }
 
     float distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
     float velocity = std::max(0.1f + distance / 2.0f, path_driver_->getOptions().min_velocity_);
 
-    setCommand(e_distance, e_angle, velocity);
+    setCommand(e_direction, e_angle, velocity);
 
     return false;
 }
@@ -109,12 +110,13 @@ void RobotController_Omnidrive_Pid::configure()
     double ta, kp, ki, i_max, delta_max, e_max;
     nh.param( "pid/ta", ta, 0.03 );
     nh.param( "pid/kp", kp, 1.5 );
-    nh.param( "pid/ki", ki, 0.001 );
+    nh.param( "pid/ki", ki, 0.0 );
     nh.param( "pid/i_max", i_max, 0.0 );
     nh.param( "pid/delta_max", delta_max, 30.0 );
     nh.param( "pid/e_max", e_max, 0.10 );
 
     //FIXME: separate parameters for the controlers...
+    pids_.setTa(ta);
     pids_.configure(DIRECTION, kp, M_PI*delta_max/180.0, e_max, 0.5, ki, i_max);
     pids_.configure(ORIENTATION, kp, M_PI*delta_max/180.0, e_max, 0.5, ki, i_max);
 }
@@ -146,7 +148,7 @@ bool RobotController_Omnidrive_Pid::checkIfTurningPointApproached()
     return delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
 }
 
-bool RobotController_Omnidrive_Pid::setCommand(double e_distance, double e_rotation, float speed)
+bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rotation, float speed)
 {
     BehaviouralPathDriver::Options path_driver_opt = path_driver_->getOptions();
     BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
@@ -154,7 +156,7 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_distance, double e_rotat
     setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
 
     // FIXME: Synchronize timers of the controllers
-    double errors[] = {e_distance, e_rotation};
+    double errors[] = {e_direction, e_rotation};
     vector<double> deltas;
     if (!pids_.execute(errors, deltas)) {
         // Nothing to do
@@ -162,7 +164,7 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_distance, double e_rotat
     }
     double delta_dir = deltas[DIRECTION];
     double delta_rot = deltas[ORIENTATION];
-    ROS_DEBUG("PID-Direction: error = %g,\t delta = %g", e_distance, delta_dir);
+    ROS_DEBUG("PID-Direction: error = %g,\t delta = %g", e_direction, delta_dir);
     ROS_DEBUG("PID-Rotation:  error = %g,\t delta = %g", e_rotation, delta_rot);
 
     visualizer_->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_dir, 0.0, 1.0, 1.0);
@@ -173,7 +175,7 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_distance, double e_rotat
 
 
     double steer = std::abs(delta_dir);
-    ROS_DEBUG_STREAM("dir=" << dir_sign_ << ", steer=" << steer);
+    //ROS_DEBUG_STREAM("dir=" << dir_sign_ << ", steer=" << steer);
     if(steer > path_driver_opt.steer_slow_threshold_) {
         ROS_WARN_STREAM_THROTTLE(2, "slowing down");
         speed *= 0.5;
@@ -250,11 +252,20 @@ double RobotController_Omnidrive_Pid::calculateLineError()
     return -target_line.GetSignedDistance(pred_position);
 }
 
+double RobotController_Omnidrive_Pid::calculateDirectionError()
+{
+    Vector2d vec_to_wp = next_wp_local_.head<2>();
+    double angle = atan2(vec_to_wp(1), vec_to_wp(0));
+
+    return angle;
+}
+
 double RobotController_Omnidrive_Pid::calculateDistanceToWaypoint()
 {
     Vector2d pred_pos = predictPosition();
     Vector2d distance = next_wp_local_.head<2>() - pred_pos;
 
+    //FIXME: this is wrong?!
     if(std::abs(distance(1)) < 0.1) {
         return 0;
     }

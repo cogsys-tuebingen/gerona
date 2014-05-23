@@ -55,8 +55,8 @@ private:
         operator geometry_msgs::Twist()
         {
             geometry_msgs::Twist msg;
-            msg.linear.x  = cos(direction_angle);
-            msg.linear.y  = sin(direction_angle);
+            msg.linear.x  = speed * cos(direction_angle);
+            msg.linear.y  = speed * sin(direction_angle);
             msg.angular.z = rotation;
             return msg;
         }
@@ -103,7 +103,7 @@ private:
 
     void configure();
 
-    bool setCommand(double e_distance, double e_rotation, float speed);
+    bool setCommand(double e_direction, double e_rotation, float speed);
 
     //! Predict the position of the robot.
     Eigen::Vector2d predictPosition();
@@ -117,6 +117,8 @@ private:
      * Note: This method calculates the distance to the *next* path segment, not the current one!
      */
     double calculateLineError();
+
+    double calculateDirectionError();
 
     //! Calculate the distance of the robot to the next waypoint.
     double calculateDistanceToWaypoint();

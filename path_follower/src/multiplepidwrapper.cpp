@@ -3,6 +3,7 @@
 using namespace std;
 
 MultiplePidWrapper::MultiplePidWrapper(size_t n):
+    Ta_(0.03),
     controllers_(n)
 {
 }
