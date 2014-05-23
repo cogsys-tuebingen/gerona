@@ -130,6 +130,7 @@ add_executable(path_follower_node
   src/BehaviouralPathDriver.cpp
   src/behaviours.cpp
   src/PidCtrl.cpp
+  src/multiplepidwrapper.cpp
   src/obstacledetector.cpp
   src/vector_field_histogram.cpp
   src/visualizer.cpp

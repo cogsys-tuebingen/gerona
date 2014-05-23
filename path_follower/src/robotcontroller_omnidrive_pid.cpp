@@ -11,7 +11,8 @@ using namespace Eigen;
 
 RobotController_Omnidrive_Pid::RobotController_Omnidrive_Pid(ros::Publisher &cmd_publisher,
                                                              BehaviouralPathDriver *path_driver):
-    RobotController(cmd_publisher, path_driver)
+    RobotController(cmd_publisher, path_driver),
+    pids_(2)
 {
     visualizer_ = Visualizer::getInstance();
 
@@ -42,8 +43,7 @@ void RobotController_Omnidrive_Pid::stopMotion()
 
 void RobotController_Omnidrive_Pid::initOnLine()
 {
-    pid_direction_.reset();
-    pid_rotation_.reset();
+    pids_.resetAll();
 }
 
 void RobotController_Omnidrive_Pid::behaveOnLine()
@@ -115,8 +115,8 @@ void RobotController_Omnidrive_Pid::configure()
     nh.param( "pid/e_max", e_max, 0.10 );
 
     //FIXME: separate parameters for the controlers...
-    pid_direction_.configure( kp, ki, i_max, M_PI*delta_max/180.0, e_max, 0.5, ta );
-    pid_rotation_.configure( kp, ki, i_max, M_PI*delta_max/180.0, e_max, 0.5, ta );
+    pids_.configure(DIRECTION, kp, M_PI*delta_max/180.0, e_max, 0.5, ki, i_max);
+    pids_.configure(ORIENTATION, kp, M_PI*delta_max/180.0, e_max, 0.5, ki, i_max);
 }
 
 bool RobotController_Omnidrive_Pid::checkIfTurningPointApproached()
@@ -151,15 +151,17 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_distance, double e_rotat
     BehaviouralPathDriver::Options path_driver_opt = path_driver_->getOptions();
     BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
 
-    double delta_dir = 0, delta_rot = 0;
-
     setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
 
-    if (!pid_direction_.execute(e_distance, delta_dir)
-            && !pid_rotation_.execute(e_rotation, delta_rot)) {
+    // FIXME: Synchronize timers of the controllers
+    double errors[] = {e_distance, e_rotation};
+    vector<double> deltas;
+    if (!pids_.execute(errors, deltas)) {
         // Nothing to do
         return false;
     }
+    double delta_dir = deltas[DIRECTION];
+    double delta_rot = deltas[ORIENTATION];
     ROS_DEBUG("PID-Direction: error = %g,\t delta = %g", e_distance, delta_dir);
     ROS_DEBUG("PID-Rotation:  error = %g,\t delta = %g", e_rotation, delta_rot);
 

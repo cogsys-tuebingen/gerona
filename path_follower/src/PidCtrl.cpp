@@ -52,19 +52,18 @@ bool PidCtrl::execute(double ef, double &deltaf)
 
 void PidCtrl::configure(double Kp, double delta_max, double e_max, double v, double ta)
 {
-    Kp_=Kp;
-    Ki_ = i_max_ = 0.0;
-    delta_max_=delta_max;
-    e_max_ = e_max;
-    v_=v;
-    Ta_=ta;
-    reset ();
+    configure(Kp, 0.0, 0.0, delta_max, e_max, v, ta);
 }
 
 void PidCtrl::configure(double Kp, double Ki, double i_max, double delta_max, double e_max, double v, double ta)
 {
-    configure( Kp, delta_max, e_max, v, ta );
-    Ki_ = Ki;
-    i_max_ = i_max;
+    Kp_        = Kp;
+    Ki_        = Ki;
+    i_max_     = i_max;
+    delta_max_ = delta_max;
+    e_max_     = e_max;
+    v_         = v;
+    Ta_        = ta;
+
     reset();
 }

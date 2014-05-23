@@ -6,7 +6,7 @@
 
 /// PROJECT
 #include "robotcontroller.h"
-#include "PidCtrl.h"
+#include "multiplepidwrapper.h"
 #include "visualizer.h"
 
 class RobotController_Omnidrive_Pid : public RobotController
@@ -88,9 +88,16 @@ private:
         double dead_time_;
     };
 
+    enum PID
+    {
+        DIRECTION = 0, ORIENTATION = 1
+    };
+
     Visualizer *visualizer_;
-    PidCtrl pid_direction_;
-    PidCtrl pid_rotation_;
+
+    MultiplePidWrapper pids_;
+
+
     Command cmd_;
     ControllerOptions options_;
 
