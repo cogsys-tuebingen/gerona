@@ -13,6 +13,8 @@
 #include "PidCtrl.h"
 #include "vector_field_histogram.h"
 #include "visualizer.h"
+#include "path.h"
+#include "robotcontroller.h"
 
 /// SYSTEM
 #include <ros/ros.h>
@@ -20,44 +22,10 @@
 #include <geometry_msgs/Twist.h>
 #include <tf/tf.h>
 
-namespace motion_control {
-
 class BehaviouralPathDriver : public MotionController
 {
 public:
     friend class Behaviour;
-
-    struct Waypoint
-    {
-        Waypoint() {}
-        Waypoint(const geometry_msgs::PoseStamped& ref)
-        {
-            x = ref.pose.position.x;
-            y = ref.pose.position.y;
-            theta = tf::getYaw(ref.pose.orientation);
-        }
-        operator geometry_msgs::Pose() const
-        {
-            geometry_msgs::Pose result;
-            result.position.x = x;
-            result.position.y = y;
-            result.orientation = tf::createQuaternionMsgFromYaw(theta);
-            return result;
-        }
-
-        double distanceTo(const Waypoint& other) const
-        {
-            double dx = other.x - x;
-            double dy = other.y - y;
-            return std::sqrt(dx*dx + dy*dy);
-        }
-
-        double x;
-        double y;
-        double theta;
-    };
-
-    typedef std::vector<Waypoint> Path;
 
     struct Command
     {
@@ -104,21 +72,19 @@ public:
 
         double wp_tolerance_;
         double goal_tolerance_;
-        double l_;
-        double dead_time_;
 
         //! Minimum speed of the robot (needed, as the outdoor buggys can't handle velocities below about 0.3).
         float min_velocity_;
         //! Maximum velocity (to prevent the high level control from running amok).
         float max_velocity_;
-        //! Desired velocity (defined by the action goal).
-        float velocity_;
-
-        double steer_slow_threshold_;
 
         //! Maximum distance the robot is allowed to depart from the path. If this threshold is exceeded,
         //! the path follower will abort.
         double max_distance_to_path_;
+
+        float velocity_; //FIXME: obsolete when RobotController is working
+
+        double steer_slow_threshold_;
 
         //! Width of the collisin box for obstacle avoidance.
         float collision_box_width_;
@@ -143,13 +109,12 @@ public:
     {
     protected:
         Behaviour(BehaviouralPathDriver& parent)
-            : parent_(parent)
+            : parent_(parent), controller_(parent.getController())
         {}
         Path& getSubPath(unsigned index);
         int getSubPathCount() const;
         PathFollower& getNode();
 
-        PidCtrl& getPid();
         Command& getCommand();
         VectorFieldHistogram& getVFH();
         Options& getOptions();
@@ -162,11 +127,12 @@ public:
 
     protected:
         BehaviouralPathDriver& parent_;
+        RobotController* controller_;
     };
 
 
 public:
-    BehaviouralPathDriver(ros::Publisher& cmd_pub, PathFollower *node);
+    BehaviouralPathDriver(PathFollower *node);
 
     virtual void start();
     virtual void stop();
@@ -182,19 +148,32 @@ public:
     virtual void configure();
     virtual void setGoal(const path_msgs::FollowPathGoal& goal);
 
-    void publishCommand();
     PathFollower* getNode() const;
 
     void setPath(const nav_msgs::Path& path);
-    void predictPose(Vector2d &front_pred,
-                      Vector2d &rear_pred );
+    bool checkCollision(double course);
 
-    Vector3d getSlamPose()
+    Vector3d getSlamPose() const
     {
         return slam_pose_;
     }
 
-    bool checkCollision(double course);
+    const geometry_msgs::Pose &getSlamPoseMsg() const
+    {
+        return slam_pose_msg_;
+    }
+
+    Behaviour* getActiveBehaviour() const
+    {
+        return active_behaviour_;
+    }
+
+    const BehaviouralPathDriver::Options &getOptions() const
+    {
+        return options_;
+    }
+
+    RobotController* getController();
 
 protected:
     void clearActive();
@@ -205,7 +184,6 @@ private:
 
     ros::NodeHandle private_nh_;
 
-    ros::Publisher& cmd_pub_;
     ros::Publisher beeper_;
 
     Behaviour* active_behaviour_;
@@ -214,10 +192,9 @@ private:
     Options options_;
 
     Vector3d slam_pose_;
+    geometry_msgs::Pose slam_pose_msg_;
     nav_msgs::Path path_;
-    std::vector<std::vector<Waypoint> > paths_;
-
-    PidCtrl pid_;
+    std::vector<Path> paths_;
 
     Visualizer* visualizer_;
 
@@ -225,7 +202,5 @@ private:
     ros::Time last_beep_;
     ros::Duration beep_pause_;
 };
-
-}
 
 #endif // BEHAVIOURALPATHDRIVER_H

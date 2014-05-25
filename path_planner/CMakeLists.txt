@@ -13,7 +13,10 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(OMPL)
 find_package(SBPL)
 
-find_package(Eigen REQUIRED)
+find_package(Eigen QUIET)
+if(NOT ${Eigen_FOUND})
+  find_package(Eigen3 REQUIRED)
+endif()
 include_directories(
   ${EIGEN_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}

@@ -13,6 +13,7 @@
 #include "BehaviouralPathDriver.h"
 #include "obstacledetector.h"
 #include "vector_field_histogram.h"
+#include "robotcontroller.h"
 
 
 class PathFollower
@@ -21,7 +22,7 @@ public:
     PathFollower(ros::NodeHandle &nh);
     ~PathFollower();
 
-    bool getWorldPose(Vector3d& pose, geometry_msgs::Pose* pose_out = NULL) const;
+    bool getWorldPose(Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = NULL) const;
     geometry_msgs::Twist getVelocity() const;
     bool transformToLocal(const geometry_msgs::PoseStamped& global, geometry_msgs::PoseStamped& local );
     bool transformToLocal(const geometry_msgs::PoseStamped& global, Vector3d& local );
@@ -67,6 +68,8 @@ public:
     bool simpleCheckCollision(float box_width, float box_length);
 
     VectorFieldHistogram& getVFH();
+
+    RobotController* getController();
 
 private:
     typedef actionlib::SimpleActionServer<path_msgs::FollowPathAction> FollowPathServer;
@@ -114,6 +117,8 @@ private:
 
     //! Used for collision avoidance. Only used if ~use_obstacle_map:=true and ~use_vfh:=true.
     VectorFieldHistogram vfh_;
+
+    RobotController *controller_;
 
 
     void followPathGoalCB();

@@ -9,6 +9,12 @@
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
 
+/// OTHER
+#include <Eigen/Core>
+
+/// PROJECT
+#include <utils_general/Line2d.h>
+
 /**
  * @brief Provides functions to visualize things in Rviz (e.g. arrows, lines, ...)
  *
@@ -63,6 +69,10 @@ public:
     void drawLine(int id, const geometry_msgs::Point &from, const geometry_msgs::Point &to, const std::string &frame,
                   const std::string& ns, float r, float g, float b, double live = 3, float scale = 0.3) const;
 
+    // same but with Eigen::Vector instead of geometry_msgs::Point.
+    void drawLine(int id, const Eigen::Vector2d &from, const Eigen::Vector2d &to, const std::string &frame,
+                  const std::string& ns, float r, float g, float b, double live = 3, float scale = 0.3) const;
+
     /**
      * @brief Publish a circle marker.
      * @param id      ID of the marker.
@@ -87,7 +97,25 @@ public:
      * @param g     Marker color, green.
      * @param b     Marker color, blue.
      */
-    void drawMark(int id, const geometry_msgs::Point &pos, const std::string& ns, float r, float g, float b) const;
+    void drawMark(int id, const geometry_msgs::Point &pos, const std::string& ns, float r, float g, float b,
+                  const std::string &frame="/map") const;
+
+    /**
+     * @brief Draw an arrow to visualize the steering angle.
+     * @param id     ID of the marker.
+     * @param robot_pose  Pose of the robot.
+     * @param angle  Steering angle.
+     * @param r      Marker color, red.
+     * @param g      Marker color, green.
+     * @param b      Marker color, blue.
+     */
+    void drawSteeringArrow(int id, geometry_msgs::Pose robot_pose, double angle, double r, double g, double b);
+
+    /**
+     * @brief Wrapper for drawLine, that only takes a line object.
+     * @param line
+     */
+    void visualizeLine(const Line2d &line);
 
 private:
     ros::NodeHandle private_nh_;

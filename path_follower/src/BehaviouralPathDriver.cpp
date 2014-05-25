@@ -21,7 +21,6 @@
 #include <cxxabi.h>
 #include <boost/assign.hpp>
 
-using namespace motion_control;
 using namespace Eigen;
 using namespace path_msgs;
 
@@ -32,7 +31,7 @@ static std::vector<int> OBSTACLE_IN_PATH = boost::assign::list_of(25)(25)(25);
 
 
 /// BEHAVIOUR BASE
-BehaviouralPathDriver::Path& BehaviouralPathDriver::Behaviour::getSubPath(unsigned index)
+Path& BehaviouralPathDriver::Behaviour::getSubPath(unsigned index)
 {
     return parent_.paths_[index];
 }
@@ -48,10 +47,6 @@ PathFollower& BehaviouralPathDriver::Behaviour::getNode()
 double BehaviouralPathDriver::Behaviour::distanceTo(const Waypoint& wp)
 {
     return hypot(parent_.slam_pose_(0) - wp.x, parent_.slam_pose_(1) - wp.y);
-}
-PidCtrl& BehaviouralPathDriver::Behaviour::getPid()
-{
-    return parent_.pid_;
 }
 BehaviouralPathDriver::Command& BehaviouralPathDriver::Behaviour::getCommand()
 {
@@ -84,8 +79,8 @@ std::string name(BehaviouralPathDriver::Behaviour* b) {
 
 /// Controller class: BehaviouralPathDriver
 
-BehaviouralPathDriver::BehaviouralPathDriver(ros::Publisher &cmd_pub, PathFollower *node)
-    : node_(node), private_nh_("~"), cmd_pub_(cmd_pub), active_behaviour_(NULL), pending_error_(-1)
+BehaviouralPathDriver::BehaviouralPathDriver(PathFollower *node)
+    : node_(node), private_nh_("~"), active_behaviour_(NULL), pending_error_(-1)
 {
     last_beep_ = ros::Time::now();
     beep_pause_ = ros::Duration(2.0);
@@ -151,14 +146,13 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResul
         start();
     }
 
-    geometry_msgs::Pose slampose_p;
-    if ( !node_->getWorldPose( slam_pose_, &slampose_p )) {
-        stop();
+    if ( !node_->getWorldPose( &slam_pose_, &slam_pose_msg_ )) {
+        stop(); // FIXME: stop() sets velocity to 0, but due to the return, this is never published.
         result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         return DONE;
     }
 
-    visualizer_->drawArrow(0, slampose_p, "slam pose", 2.0, 0.7, 1.0);
+    visualizer_->drawArrow(0, slam_pose_msg_, "slam pose", 2.0, 0.7, 1.0);
 
 
     int status = FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
@@ -180,7 +174,7 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResul
         active_behaviour_ = next_behaviour;
     }
 
-    publishCommand();
+    getController()->publishCommand();
 
     if(status == FollowPathResult::MOTION_STATUS_COLLISION) {
         // collision is not aborting (the obstacle might be moving away)
@@ -207,10 +201,8 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResul
 void BehaviouralPathDriver::configure()
 {
     ros::NodeHandle nh("~");
-    nh.param( "dead_time", options_.dead_time_, 0.10 );
     nh.param( "waypoint_tolerance", options_.wp_tolerance_, 0.20 );
     nh.param( "goal_tolerance", options_.goal_tolerance_, 0.15 );
-    nh.param( "l", options_.l_, 0.38 );
     nh.param( "steer_slow_threshold", options_.steer_slow_threshold_, 0.25 );
     nh.param( "max_distance_to_path", options_.max_distance_to_path_, 0.3 ); //TODO: find reasonable default value.
 
@@ -236,16 +228,6 @@ void BehaviouralPathDriver::configure()
         ROS_ERROR("min length smaller than crit length!");
         options_.collision_box_crit_length_ = options_.collision_box_min_length_;
     }
-
-    double ta, kp, ki, i_max, delta_max, e_max;
-    nh.param( "pid/ta", ta, 0.03 );
-    nh.param( "pid/kp", kp, 1.5 );
-    nh.param( "pid/ki", ki, 0.001 );
-    nh.param( "pid/i_max", i_max, 0.0 );
-    nh.param( "pid/delta_max", delta_max, 30.0 );
-    nh.param( "pid/e_max", e_max, 0.10 );
-
-    pid_.configure( kp, ki, i_max, M_PI*delta_max/180.0, e_max, 0.5, ta );
 }
 
 void BehaviouralPathDriver::setPath(const nav_msgs::Path& path)
@@ -321,26 +303,6 @@ void BehaviouralPathDriver::setPath(const nav_msgs::Path& path)
     }
 }
 
-void BehaviouralPathDriver::predictPose(Vector2d &front_pred, Vector2d &rear_pred)
-{
-    double dt = options_.dead_time_;
-    double deltaf = current_command_.steer_front;
-    double deltar = current_command_.steer_back;
-    double v = 2*getFilteredSpeed();
-
-    double beta = std::atan(0.5*(std::tan(deltaf)+std::tan(deltar)));
-    double ds = v*dt;
-    double dtheta = ds*std::cos(beta)*(std::tan(deltaf)-std::tan(deltar))/options_.l_;
-    double thetan = dtheta; //TODO <- why this ???
-    double yn = ds*std::sin(dtheta*0.5+beta*0.5);
-    double xn = ds*std::cos(dtheta*0.5+beta*0.5);
-
-    front_pred[0] = xn+cos(thetan)*options_.l_/2.0;
-    front_pred[1] = yn+sin(thetan)*options_.l_/2.0;
-    rear_pred[0] = xn-cos(thetan)*options_.l_/2.0;
-    rear_pred[1] = yn-sin(thetan)*options_.l_/2.0;
-}
-
 void BehaviouralPathDriver::setGoal(const FollowPathGoal &goal)
 {
     pending_error_ = -1;
@@ -408,7 +370,7 @@ bool BehaviouralPathDriver::checkCollision(double course)
 
     float box_length = options_.collision_box_min_length_ + span * f;
 
-    BehaviouralPathDriver::Path& current_path = paths_[options_.path_idx];
+    Path& current_path = paths_[options_.path_idx];
     double distance_to_goal = current_path.back().distanceTo(current_path[options_.wp_idx]);
 
     if(box_length > distance_to_goal) {
@@ -429,16 +391,12 @@ bool BehaviouralPathDriver::checkCollision(double course)
     return collision;
 }
 
+RobotController *BehaviouralPathDriver::getController()
+{
+    return node_->getController();
+}
+
 PathFollower* BehaviouralPathDriver::getNode() const
 {
     return node_;
-}
-
-void BehaviouralPathDriver::publishCommand()
-{
-    //ramaxx_msgs::RamaxxMsg msg = current_command_;
-    geometry_msgs::Twist msg = current_command_;
-    cmd_pub_.publish(msg);
-
-    setFilteredSpeed(current_command_.velocity);
 }

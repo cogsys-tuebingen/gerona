@@ -99,7 +99,10 @@ catkin_package(
 ## Build ##
 ###########
 
-find_package(Eigen REQUIRED)
+find_package(Eigen QUIET)
+if(NOT ${Eigen_FOUND})
+  find_package(Eigen3 REQUIRED)
+endif()
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
@@ -134,9 +137,14 @@ add_executable(path_follower_node
   src/BehaviouralPathDriver.cpp
   src/behaviours.cpp
   src/PidCtrl.cpp
+  src/multiplepidwrapper.cpp
   src/obstacledetector.cpp
   src/vector_field_histogram.cpp
   src/visualizer.cpp
+  src/robotcontroller.cpp
+  src/robotcontroller_ackermann_pid.cpp
+  src/robotcontroller_omnidrive_pid.cpp
+  src/path.h
 )
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)

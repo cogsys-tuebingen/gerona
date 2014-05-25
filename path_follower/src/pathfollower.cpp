@@ -1,7 +1,11 @@
 #include "pathfollower.h"
 #include <geometry_msgs/Twist.h>
+// Controller/Models
+#include "robotcontroller_ackermann_pid.h"
+#include "robotcontroller_omnidrive_pid.h"
 
 using namespace path_msgs;
+using namespace std;
 
 PathFollower::PathFollower(ros::NodeHandle &nh):
     node_handle_(nh),
@@ -13,10 +17,13 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     follow_path_server_.registerGoalCallback(boost::bind(&PathFollower::followPathGoalCB, this));
     follow_path_server_.registerPreemptCallback(boost::bind(&PathFollower::followPathPreemptCB,this));
 
+    string param_controller;
+
     ros::param::param<string>("~world_frame", world_frame_, "/map");
     ros::param::param<string>("~robot_frame", robot_frame_, "/base_link");
     ros::param::param<bool>("~use_obstacle_map", use_obstacle_map_, false);
     ros::param::param<bool>("~use_vfh", use_vfh_, false);
+    ros::param::param<string>("~controller", param_controller, "ackermann_pid");
 
     //cmd_pub_ = nh_.advertise<ramaxx_msgs::RamaxxMsg> (cmd_topic_, 10);
     cmd_pub_ = node_handle_.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
@@ -29,7 +36,20 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         laser_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&PathFollower::laserCB, this, _1));
     }
 
-    active_ctrl_ = new motion_control::BehaviouralPathDriver(cmd_pub_, this);
+    active_ctrl_ = new BehaviouralPathDriver(this);
+
+    VectorFieldHistogram* vfh_ptr = use_vfh_ ? &vfh_ : 0;
+
+    ROS_INFO("Use robot controller '%s'", param_controller.c_str());
+    if (param_controller == "ackermann_pid") {
+        //TODO: this cast can cause problems......................!!
+        controller_ = new RobotController_Ackermann_Pid(cmd_pub_, (BehaviouralPathDriver*) active_ctrl_, vfh_ptr);
+    } else if (param_controller == "omnidrive_pid") {
+        controller_ = new RobotController_Omnidrive_Pid(cmd_pub_, (BehaviouralPathDriver*) active_ctrl_);
+    } else {
+        ROS_FATAL("Unknown robot controller. Shutdown.");
+        exit(1);
+    }
 
     follow_path_server_.start();
     ROS_INFO("Initialisation done.");
@@ -37,6 +57,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
 PathFollower::~PathFollower()
 {
+    delete controller_;
     delete active_ctrl_;
 }
 
@@ -49,6 +70,7 @@ void PathFollower::followPathGoalCB()
     // stop current goal
     active_ctrl_->stop();
 
+    controller_->setVelocity(goalptr->velocity);
     active_ctrl_->setGoal(*goalptr);
 }
 
@@ -77,7 +99,7 @@ void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
 }
 
 
-bool PathFollower::getWorldPose(Vector3d &pose , geometry_msgs::Pose *pose_out) const
+bool PathFollower::getWorldPose(Vector3d *pose_vec , geometry_msgs::Pose *pose_msg) const
 {
     tf::StampedTransform transform;
     geometry_msgs::TransformStamped msg;
@@ -91,15 +113,15 @@ bool PathFollower::getWorldPose(Vector3d &pose , geometry_msgs::Pose *pose_out) 
     }
     tf::transformStampedTFToMsg(transform, msg);
 
-    pose.x() = msg.transform.translation.x;
-    pose.y() = msg.transform.translation.y;
-    pose(2) = tf::getYaw(msg.transform.rotation);
+    pose_vec->x()  = msg.transform.translation.x;
+    pose_vec->y()  = msg.transform.translation.y;
+    (*pose_vec)(2) = tf::getYaw(msg.transform.rotation);
 
-    if(pose_out != NULL) {
-        pose_out->position.x = msg.transform.translation.x;
-        pose_out->position.y = msg.transform.translation.y;
-        pose_out->position.z = msg.transform.translation.z;
-        pose_out->orientation = msg.transform.rotation;
+    if(pose_msg != NULL) {
+        pose_msg->position.x = msg.transform.translation.x;
+        pose_msg->position.y = msg.transform.translation.y;
+        pose_msg->position.z = msg.transform.translation.z;
+        pose_msg->orientation = msg.transform.rotation;
     }
     return true;
 }
@@ -236,4 +258,9 @@ bool PathFollower::simpleCheckCollision(float box_width, float box_length)
 VectorFieldHistogram& PathFollower::getVFH()
 {
     return vfh_;
+}
+
+RobotController *PathFollower::getController()
+{
+    return controller_;
 }
