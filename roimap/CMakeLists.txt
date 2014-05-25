@@ -8,9 +8,11 @@ find_package(catkin REQUIRED COMPONENTS
   utils_robot
 )
 
+find_package(OpenCV REQUIRED)
+
 catkin_package()
 
-include_directories(${catkin_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 
 add_executable(roimap_node src/RoiMapNode.cpp)
-target_link_libraries(roimap_node ${catkin_LIBRARIES})
+target_link_libraries(roimap_node ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})

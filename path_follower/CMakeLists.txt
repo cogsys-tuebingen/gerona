@@ -14,7 +14,10 @@ find_package(catkin REQUIRED COMPONENTS
   utils_general
   utils_robot
   tf
+  cmake_modules
 )
+
+find_package(OpenCV REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -104,6 +107,7 @@ find_package(Eigen REQUIRED)
 include_directories(
   ${EIGEN_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
+ ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
@@ -137,7 +141,7 @@ add_executable(path_follower_node
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)
 target_link_libraries(path_follower_node
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
 )
 
 #############
