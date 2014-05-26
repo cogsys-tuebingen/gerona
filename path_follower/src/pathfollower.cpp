@@ -26,7 +26,9 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     ros::param::param<string>("~controller", param_controller, "ackermann_pid");
 
     //cmd_pub_ = nh_.advertise<ramaxx_msgs::RamaxxMsg> (cmd_topic_, 10);
-    cmd_pub_ = node_handle_.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
+    std::string cmd_vel;
+    ros::param::param<string>("~cmd_vel", cmd_vel, "/cmd_vel");
+    cmd_pub_ = node_handle_.advertise<geometry_msgs::Twist> (cmd_vel, 10);
 
     odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
