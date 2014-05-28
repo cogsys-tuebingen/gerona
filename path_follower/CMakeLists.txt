@@ -138,7 +138,12 @@ add_executable(path_follower_node
   src/behaviours.cpp
   src/PidCtrl.cpp
   src/multiplepidwrapper.cpp
+
   src/obstacledetector.cpp
+  src/obstacledetectorpolygon.cpp
+  src/obstacledetectorackermann.cpp
+  src/obstacledetectoromnidrive.cpp
+
   src/vector_field_histogram.cpp
   src/visualizer.cpp
   src/robotcontroller.cpp
