@@ -12,6 +12,7 @@
 #include <utils_robot/LaserEnvironment.h>
 #include "BehaviouralPathDriver.h"
 #include "obstacledetectorackermann.h"
+#include "obstacledetectoromnidrive.h"
 #include "vector_field_histogram.h"
 #include "robotcontroller.h"
 
@@ -105,9 +106,6 @@ private:
 
     //! If set to true, vector field histogram is used for collision avoidance.
     bool use_vfh_;
-
-    //! Obstacle detector working with obstacle map. Only used, if ~use_obstacle_map:=true
-    ObstacleDetectorAckermann obstacle_detector_;
 
     //! Provides obstacle detection based on the laser scans. Is used instead of ObstacleDetector, if ~use_obstacle_map:=false
     LaserEnvironment laser_env_;

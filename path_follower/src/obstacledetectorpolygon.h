@@ -11,9 +11,7 @@ public:
     ObstacleDetectorPolygon():
         ObstacleDetector()
     {
-        //TODO: this should not be world frame, but obstacle-map-frame!
-        //ros::param::param<std::string>("~world_frame", world_frame_, "/map");
-        world_frame_ = "/laser";
+        ros::param::param<std::string>("~obstacle_map_frame", map_frame_, "/laser");
     }
 
 protected:
@@ -44,18 +42,18 @@ protected:
 
 private:
     tf::TransformListener tf_listener_;
-    std::string world_frame_;
+    std::string map_frame_;
 
 
     /**
-     * @brief Transform a cv::Point2f from one TF-frame to another.
+     * @brief Transform a cv::Point2f from an arbitrary TF-frame to map coordinates of the obstacle map.
      * @param p     The point which is to be transformed.
      * @param from  The TF-frame in which the point is defined.
-     * @param to    The TF-frame to which the point shall be transformed.
-     * @return      The transformed point.
+     * @return      The transformed point in (non-integer!) map coordinates.
      */
-    cv::Point2f transformCvPoint(const cv::Point2f &p, std::string from, std::string to) const;
+    cv::Point2f transformPointToMap(const cv::Point2f &p, std::string from) const;
 
+    //! Transform the given polygon to map coordinates.
     void transformPolygonToMap(PolygonWithTfFrame *polygon) const;
 };
 

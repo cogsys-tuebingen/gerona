@@ -93,7 +93,7 @@ void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan)
 
 void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
 {
-    obstacle_detector_.gridMapCallback(map);
+    controller_->getObstacleDetector()->gridMapCallback(map);
 
     if(use_vfh_) {
         vfh_.setMap(*map);
@@ -209,7 +209,7 @@ void PathFollower::update()
 bool PathFollower::checkCollision(double course_angle, double box_length, double box_width, double curve_enlarge_factor)
 {
     if(use_obstacle_map_) {
-        return obstacle_detector_.isObstacleAhead(box_width, box_length, course_angle, curve_enlarge_factor);
+        return controller_->getObstacleDetector()->isObstacleAhead(box_width, box_length, course_angle, curve_enlarge_factor);
     } else {
         return laser_env_.CheckCollision(laser_scan_.ranges,laser_scan_.angle_min,laser_scan_.angle_max, course_angle,
                                          box_width, curve_enlarge_factor, box_length);

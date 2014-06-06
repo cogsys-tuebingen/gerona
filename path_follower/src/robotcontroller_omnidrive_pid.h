@@ -8,6 +8,7 @@
 #include "robotcontroller.h"
 #include "multiplepidwrapper.h"
 #include "visualizer.h"
+#include "obstacledetectoromnidrive.h"
 
 class RobotController_Omnidrive_Pid : public RobotController
 {
@@ -20,6 +21,11 @@ public:
     virtual void stopMotion();
 
     virtual void initOnLine();
+
+    virtual ObstacleDetector* getObstacleDetector()
+    {
+        return &obstacle_detector_;
+    }
 
 
 protected:
@@ -100,6 +106,7 @@ private:
 
     Command cmd_;
     ControllerOptions options_;
+    ObstacleDetectorOmnidrive obstacle_detector_;
 
     void configure();
 

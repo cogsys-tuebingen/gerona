@@ -6,6 +6,7 @@
 
 /// PROJECT
 #include "path.h"
+#include "obstacledetector.h"
 
 class BehaviouralPathDriver;
 
@@ -13,6 +14,9 @@ class RobotController
 {
 /* ABSTRACT METHODS */
 public:
+    //! Return obstacle detector working with obstacle map. Only used, if ~use_obstacle_map:=true
+    virtual ObstacleDetector* getObstacleDetector() = 0;
+
     virtual void publishCommand() = 0;
 
     //! Immediatley stop any motion.
