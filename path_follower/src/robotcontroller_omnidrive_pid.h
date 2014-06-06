@@ -108,12 +108,17 @@ private:
     ControllerOptions options_;
     ObstacleDetectorOmnidrive obstacle_detector_;
 
+    Eigen::Vector2d last_slam_pos_;
+
     void configure();
 
     bool setCommand(double e_direction, double e_rotation, float speed);
 
     //! Predict the position of the robot.
     Eigen::Vector2d predictPosition();
+
+    Eigen::Vector2d predictDirectionOfMovement();
+
 
     //! Check if approaching turning point is done.
     bool checkIfTurningPointApproached();

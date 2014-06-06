@@ -12,7 +12,8 @@ using namespace Eigen;
 RobotController_Omnidrive_Pid::RobotController_Omnidrive_Pid(ros::Publisher &cmd_publisher,
                                                              BehaviouralPathDriver *path_driver):
     RobotController(cmd_publisher, path_driver),
-    pids_(2)
+    pids_(2),
+    last_slam_pos_(0,0)
 {
     visualizer_ = Visualizer::getInstance();
 
@@ -155,7 +156,6 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rota
 
     setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
 
-    // FIXME: Synchronize timers of the controllers
     double errors[] = {e_direction, e_rotation};
     vector<double> deltas;
     if (!pids_.execute(errors, deltas)) {
@@ -192,8 +192,8 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rota
     //TODO: bounds for rotational speed?
 
 
-    cmd_.direction_angle = delta_dir;
-    cmd_.rotation = delta_rot;
+    cmd_.direction_angle += delta_dir; //FIXME: not working...
+    cmd_.rotation = delta_rot; //FIXME: should also be += ?
 
 
     collision |= behaviour->isCollision(cmd_.direction_angle);
@@ -220,6 +220,14 @@ Eigen::Vector2d RobotController_Omnidrive_Pid::predictPosition()
     //FIXME: do real prediction here
 
     return path_driver_->getSlamPose().head<2>();
+}
+
+Eigen::Vector2d RobotController_Omnidrive_Pid::predictDirectionOfMovement()
+{
+    Vector2d position = path_driver_->getSlamPose().head<2>();
+    Vector2d direction = position - last_slam_pos_;
+    last_slam_pos_ = position;
+    return direction;
 }
 
 double RobotController_Omnidrive_Pid::calculateLineError()
@@ -255,7 +263,10 @@ double RobotController_Omnidrive_Pid::calculateLineError()
 double RobotController_Omnidrive_Pid::calculateDirectionError()
 {
     Vector2d vec_to_wp = next_wp_local_.head<2>();
-    double angle = atan2(vec_to_wp(1), vec_to_wp(0));
+    Vector2d mov_dir = predictDirectionOfMovement();
+
+    // angle between the direction to the waypoint and the actual direction of movement.
+    double angle = atan2(mov_dir(1), mov_dir(0)) - atan2(vec_to_wp(1), vec_to_wp(0));
 
     return angle;
 }
