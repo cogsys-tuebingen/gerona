@@ -13,6 +13,7 @@ RobotController_Omnidrive_Pid::RobotController_Omnidrive_Pid(ros::Publisher &cmd
                                                              BehaviouralPathDriver *path_driver):
     RobotController(cmd_publisher, path_driver),
     pids_(2),
+    cmd_(this),
     last_slam_pos_(0,0)
 {
     visualizer_ = Visualizer::getInstance();
@@ -192,11 +193,13 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rota
     //TODO: bounds for rotational speed?
 
 
-    cmd_.direction_angle += delta_dir; //FIXME: not working...
-    cmd_.rotation = delta_rot; //FIXME: should also be += ?
+    cmd_.direction_angle += delta_dir;
+    cmd_.direction_angle = MathHelper::AngleClamp(cmd_.direction_angle);
+    ROS_DEBUG("CMD-Direction = %g", cmd_.direction_angle);
+    //cmd_.rotation = delta_rot; //FIXME: should also be += ?
 
 
-    collision |= behaviour->isCollision(cmd_.direction_angle);
+    collision |= behaviour->isCollision(predictDirectionOfMovement());    //cmd_.direction_angle
 
     if(collision) {
         ROS_WARN_THROTTLE(1, "Collision!");
@@ -222,12 +225,39 @@ Eigen::Vector2d RobotController_Omnidrive_Pid::predictPosition()
     return path_driver_->getSlamPose().head<2>();
 }
 
-Eigen::Vector2d RobotController_Omnidrive_Pid::predictDirectionOfMovement()
+double RobotController_Omnidrive_Pid::predictDirectionOfMovement()
 {
-    Vector2d position = path_driver_->getSlamPose().head<2>();
-    Vector2d direction = position - last_slam_pos_;
-    last_slam_pos_ = position;
-    return direction;
+    //TODO: more sophisticated prediction
+
+
+    // transform last position to robot frame
+    geometry_msgs::PoseStamped last_pos_msg;
+    last_pos_msg.pose.position.x = last_slam_pos_.x();
+    last_pos_msg.pose.position.y = last_slam_pos_.y();
+    last_pos_msg.pose.orientation.w = 1;
+
+    Vector3d last_position;
+    if ( !path_driver_->getNode()->transformToLocal(last_pos_msg, last_position) ) {
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
+        throw new BehaviourEmergencyBreak(*path_driver_);
+    }
+
+    // calculate direction of movement (current_pos - last_pos, where current_pos = 0)
+    Vector2d direction = -last_position.head<2>();
+
+    // only update every 0.3 seconds
+    if (last_slam_pos_update_time_ < ros::Time::now() - ros::Duration(0.3)) {
+        last_slam_pos_ = path_driver_->getSlamPose().head<2>();
+        last_slam_pos_update_time_ = ros::Time::now();
+    }
+
+    double angle = atan2(direction[1], direction[0]);
+
+    ROS_DEBUG("Movement angle: %g", angle);
+
+    //visualizer_->drawSteeringArrow(15, path_driver_->getSlamPoseMsg(), atan2(direction[1], direction[0]), 0.5, 0.5, 0.5);
+
+    return angle;
 }
 
 double RobotController_Omnidrive_Pid::calculateLineError()
@@ -263,10 +293,12 @@ double RobotController_Omnidrive_Pid::calculateLineError()
 double RobotController_Omnidrive_Pid::calculateDirectionError()
 {
     Vector2d vec_to_wp = next_wp_local_.head<2>();
-    Vector2d mov_dir = predictDirectionOfMovement();
+    double mov_dir = predictDirectionOfMovement();
+
+    //visualizer_->drawSteeringArrow(16, path_driver_->getSlamPoseMsg(), atan2(vec_to_wp(1), vec_to_wp(0)), 1.0, 0.0, 0.0);
 
     // angle between the direction to the waypoint and the actual direction of movement.
-    double angle = atan2(mov_dir(1), mov_dir(0)) - atan2(vec_to_wp(1), vec_to_wp(0));
+    double angle = atan2(vec_to_wp(1), vec_to_wp(0)) - mov_dir;
 
     return angle;
 }

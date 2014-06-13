@@ -42,8 +42,7 @@ protected:
 private:
     struct Command
     {
-        // was wird hier gebraucht? Wahrscheinlich 2d-vektor für velocity und scalar für rotation?!
-        // -> jupp, vektor aber besser in polarkoordinaten
+        RobotController_Omnidrive_Pid *parent_;
 
         //! Speed of the movement.
         float speed;
@@ -54,15 +53,22 @@ private:
 
 
         // initialize all values to zero
-        Command():
+        Command(RobotController_Omnidrive_Pid *parent):
+            parent_(parent),
             speed(0.0f), direction_angle(0.0f), rotation(0.0f)
         {}
 
         operator geometry_msgs::Twist()
         {
+            // direction_angle is relative to direction of movement;
+            // control angle, however, is relative to orientation of the robot.
+            //Eigen::Vector2d mov_dir = parent_->predictDirectionOfMovement(); //FIXME: auch falsch, mov_dir ist relativ zur welt?!s
+            //float angle = atan2(mov_dir(1), mov_dir(0)) + direction_angle;
+            float angle = direction_angle;
+
             geometry_msgs::Twist msg;
-            msg.linear.x  = speed * cos(direction_angle);
-            msg.linear.y  = speed * sin(direction_angle);
+            msg.linear.x  = speed * cos(angle);
+            msg.linear.y  = speed * sin(angle);
             msg.angular.z = rotation;
             return msg;
         }
@@ -109,6 +115,7 @@ private:
     ObstacleDetectorOmnidrive obstacle_detector_;
 
     Eigen::Vector2d last_slam_pos_;
+    ros::Time last_slam_pos_update_time_;
 
     void configure();
 
@@ -117,7 +124,8 @@ private:
     //! Predict the position of the robot.
     Eigen::Vector2d predictPosition();
 
-    Eigen::Vector2d predictDirectionOfMovement();
+    //! Predict direction of movement, represented as angle rlative to robot orientation.
+    double predictDirectionOfMovement();
 
 
     //! Check if approaching turning point is done.
