@@ -124,7 +124,7 @@ private:
     //! Predict the position of the robot.
     Eigen::Vector2d predictPosition();
 
-    //! Predict direction of movement, represented as angle rlative to robot orientation.
+    //! Predict direction of movement, represented as angle relative to robot orientation.
     double predictDirectionOfMovement();
 
 

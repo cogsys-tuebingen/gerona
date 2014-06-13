@@ -9,6 +9,7 @@
 #include <path_msgs/PlanPathAction.h>
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <std_msgs/String.h>
 
 
 /**
@@ -57,6 +58,9 @@ private:
 
     //! Publishes system commands
     ros::Publisher sys_pub_;
+
+    //! Publisher for text to speech messages.
+    ros::Publisher speech_pub_;
 
     //! Subscibes for the paths published by path_planner
     ros::Subscriber path_sub_;
@@ -128,6 +132,9 @@ private:
      * @return True if goal is finished, false if timeout expires before.
      */
     bool waitForFollowPathDone(ros::Duration timeout);
+
+    //! Send 'text' to a text to speech processor.
+    void say(std::string text);
 };
 
 #endif // PATHCONTROLLER_H

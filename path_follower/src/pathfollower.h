@@ -5,6 +5,7 @@
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
 #include <nav_msgs/Odometry.h>
+#include <std_msgs/String.h>
 #include <tf/transform_listener.h>
 
 /// PROJECT
@@ -72,6 +73,9 @@ public:
 
     RobotController* getController();
 
+    //! Send 'text' to a text to speech processor.
+    void say(std::string text);
+
 private:
     typedef actionlib::SimpleActionServer<path_msgs::FollowPathAction> FollowPathServer;
 
@@ -82,6 +86,8 @@ private:
 
     //! Publisher for driving commands.
     ros::Publisher cmd_pub_;
+    //! Publisher for text to speech messages.
+    ros::Publisher speech_pub_;
     //! Subscriber for odometry messages.
     ros::Subscriber odom_sub_;
     //! Subscriber for the obstacle grid map (used by ObstacleDetector).

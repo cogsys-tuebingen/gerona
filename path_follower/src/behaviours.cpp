@@ -100,9 +100,7 @@ void BehaviourDriveBase::checkDistanceToPath()
         double dist = calculateDistanceToCurrentPathSegment();
         ROS_DEBUG("Distance to current path segment: %g m", dist);
         if (dist > getOptions().max_distance_to_path_) {
-            std::stringstream cmd;
-            cmd << "espeak \"" << "abort: too far away!" << "\" 2> /dev/null 1> /dev/null &";
-            system(cmd.str().c_str());
+            parent_.getNode()->say("abort: too far away!");
 
             ROS_WARN("Moved too far away from the path (%g m, limit: %g m). Abort.",
                      calculateDistanceToCurrentPathSegment(),

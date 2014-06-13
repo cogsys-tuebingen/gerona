@@ -30,6 +30,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     ros::param::param<string>("~cmd_vel", cmd_vel, "/cmd_vel");
     cmd_pub_ = node_handle_.advertise<geometry_msgs::Twist> (cmd_vel, 10);
 
+    speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
+
     odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
     if(use_obstacle_map_) {
@@ -265,4 +267,11 @@ VectorFieldHistogram& PathFollower::getVFH()
 RobotController *PathFollower::getController()
 {
     return controller_;
+}
+
+void PathFollower::say(string text)
+{
+    std_msgs::String str;
+    str.data = text;
+    speech_pub_.publish(str);
 }
