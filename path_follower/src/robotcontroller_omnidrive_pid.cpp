@@ -109,17 +109,20 @@ void RobotController_Omnidrive_Pid::configure()
 
     nh.param( "dead_time", options_.dead_time_, 0.10 );
 
-    double ta, kp, ki, i_max, delta_max, e_max;
+    double ta, kp, ki, i_max, delta_max=0, e_max=0;
     nh.param( "pid/ta", ta, 0.03 );
-    nh.param( "pid/kp", kp, 1.5 );
-    nh.param( "pid/ki", ki, 0.0 );
-    nh.param( "pid/i_max", i_max, 0.0 );
-    nh.param( "pid/delta_max", delta_max, 30.0 );
-    nh.param( "pid/e_max", e_max, 0.10 );
-
-    //FIXME: separate parameters for the controlers...
     pids_.setTa(ta);
+
+    nh.param( "pid/direction/kp", kp, 0.1 );
+    nh.param( "pid/direction/ki", ki, 0.0 );
+    nh.param( "pid/direction/i_max", i_max, 0.0 );
+//    nh.param( "pid/delta_max", delta_max, 30.0 ); //not used
+//    nh.param( "pid/e_max", e_max, 0.10 );
     pids_.configure(DIRECTION, kp, M_PI*delta_max/180.0, e_max, 0.5, ki, i_max);
+
+    nh.param( "pid/orientation/kp", kp, 1.0 );
+    nh.param( "pid/orientation/ki", ki, 0.0 );
+    nh.param( "pid/orientation/i_max", i_max, 0.0 );
     pids_.configure(ORIENTATION, kp, M_PI*delta_max/180.0, e_max, 0.5, ki, i_max);
 }
 
@@ -195,8 +198,8 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rota
 
     cmd_.direction_angle += delta_dir;
     cmd_.direction_angle = MathHelper::AngleClamp(cmd_.direction_angle);
-    ROS_DEBUG("CMD-Direction = %g", cmd_.direction_angle);
-    //cmd_.rotation = delta_rot; //FIXME: should also be += ?
+    //ROS_DEBUG("CMD-Direction = %g", cmd_.direction_angle);
+    cmd_.rotation = delta_rot;
 
 
     collision |= behaviour->isCollision(predictDirectionOfMovement());    //cmd_.direction_angle
@@ -220,7 +223,7 @@ Eigen::Vector2d RobotController_Omnidrive_Pid::predictPosition()
 //    double v  = getFilteredSpeed();
 //    double ds = dt*v;
 
-    //FIXME: do real prediction here
+    //TODO: do real prediction here?
 
     return path_driver_->getSlamPose().head<2>();
 }
@@ -253,9 +256,7 @@ double RobotController_Omnidrive_Pid::predictDirectionOfMovement()
 
     double angle = atan2(direction[1], direction[0]);
 
-    ROS_DEBUG("Movement angle: %g", angle);
-
-    //visualizer_->drawSteeringArrow(15, path_driver_->getSlamPoseMsg(), atan2(direction[1], direction[0]), 0.5, 0.5, 0.5);
+    //ROS_DEBUG("Movement angle: %g", angle);
 
     return angle;
 }
@@ -285,7 +286,6 @@ double RobotController_Omnidrive_Pid::calculateLineError()
     visualizer_->visualizeLine(target_line);
 
     Vector2d pred_position = predictPosition();
-    //visualizer_->drawMark(0, );
 
     return -target_line.GetSignedDistance(pred_position);
 }
@@ -295,10 +295,9 @@ double RobotController_Omnidrive_Pid::calculateDirectionError()
     Vector2d vec_to_wp = next_wp_local_.head<2>();
     double mov_dir = predictDirectionOfMovement();
 
-    //visualizer_->drawSteeringArrow(16, path_driver_->getSlamPoseMsg(), atan2(vec_to_wp(1), vec_to_wp(0)), 1.0, 0.0, 0.0);
-
     // angle between the direction to the waypoint and the actual direction of movement.
     double angle = atan2(vec_to_wp(1), vec_to_wp(0)) - mov_dir;
+    angle = MathHelper::AngleClamp(angle);
 
     return angle;
 }
@@ -308,7 +307,7 @@ double RobotController_Omnidrive_Pid::calculateDistanceToWaypoint()
     Vector2d pred_pos = predictPosition();
     Vector2d distance = next_wp_local_.head<2>() - pred_pos;
 
-    //FIXME: this is wrong?!
+    //NOTE: this is wrong?! - only intended for use in Approach Turning Point, where x ~ 0
     if(std::abs(distance(1)) < 0.1) {
         return 0;
     }
