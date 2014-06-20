@@ -114,22 +114,40 @@ private:
     ControllerOptions options_;
     ObstacleDetectorOmnidrive obstacle_detector_;
 
-    Eigen::Vector2d last_slam_pos_;
+    // variables for direction prediction
+    bool has_last_position_;
+    //! Position of the robot (in world frame), when direction was updated the last time.
+    Eigen::Vector2d last_position_direction_update_;
+    //! Time, when the direction prediction was updated the last time
     ros::Time last_slam_pos_update_time_;
+    //! Position of the robot (in world frame), when the smoothed direction was updated the last time.
+    Eigen::Vector2d last_position_smoothed_direction_update_;
+    bool has_last_position_smoothed_;
+    //! smoothed direction of movement.
+    Eigen::Vector2d smoothed_direction_;
 
     void configure();
+
+    //! Check if approaching turning point is done.
+    bool checkIfTurningPointApproached();
 
     bool setCommand(double e_direction, double e_rotation, float speed);
 
     //! Predict the position of the robot.
     Eigen::Vector2d predictPosition();
 
-    //! Predict direction of movement, represented as angle relative to robot orientation.
-    double predictDirectionOfMovement();
+    //! Predict direction of movement
+    Eigen::Vector2d predictDirectionOfMovement();
 
-
-    //! Check if approaching turning point is done.
-    bool checkIfTurningPointApproached();
+    /**
+     * @brief Predict and smooth direction of movement, represented as angle relative to robot orientation.
+     *
+     * This prediction is only updated if the robot moved for at least a certain distance and it is smoothed to reduce
+     * the effect of jitter in the robots movement.
+     *
+     * @return Angle of movement direction, relative to robot orientation.
+     */
+    double predictSmoothedDirectionOfMovementAngle();
 
     /**
      * @brief Calculate distance of the robot to the next path segment.
