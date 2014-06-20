@@ -129,7 +129,7 @@ private:
     void configure();
 
     //! Check if approaching turning point is done.
-    bool checkIfTurningPointApproached();
+    bool checkIfTurningPointApproached() const;
 
     bool setCommand(double e_direction, double e_rotation, float speed);
 

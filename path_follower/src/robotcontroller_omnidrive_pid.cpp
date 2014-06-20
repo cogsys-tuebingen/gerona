@@ -129,18 +129,31 @@ void RobotController_Omnidrive_Pid::configure()
     pids_.configure(ORIENTATION, kp, M_PI*delta_max/180.0, e_max, 0.5, ki, i_max);
 }
 
-bool RobotController_Omnidrive_Pid::checkIfTurningPointApproached()
+bool RobotController_Omnidrive_Pid::checkIfTurningPointApproached() const
 {
     Waypoint next_wp = path_.nextWaypoint();
+
+
+    /*** first check if the orientation is ok ***/
+
+    double orientation_diff = MathHelper::AngleClamp( next_wp.orientation - path_driver_->getSlamPose()[2]);
+    bool reached_orientation = abs(orientation_diff) < 10 * M_PI/180; // 10° tolerance. - parameter for this?
+
+    // if not done here, there is no need to check the position.
+    if (!reached_orientation) {
+        return false;
+    }
+
+    /******************************************************************************************
+     * If this line is reached, the robot's orientation fits the one of the waypoint.
+     * Now the more complicated check of the position is still to be done (this behaviour is
+     * only finished, if the robot matches the in orientation AND position with the waypoint).
+     *****************************************************************************************/
 
     //! Difference of current robot pose to the next waypoint.
     Vector2d delta;
     delta << next_wp.x - path_driver_->getSlamPoseMsg().position.x,
              next_wp.y - path_driver_->getSlamPoseMsg().position.y;
-
-//    if (controller_->getDirSign() < 0) {
-//        delta *= -1;
-//    }
 
     //! Unit vector pointing in the direction of the next waypoints orientation.
     Vector2d target_dir;
@@ -152,8 +165,10 @@ bool RobotController_Omnidrive_Pid::checkIfTurningPointApproached()
 
     ROS_DEBUG_STREAM_THROTTLE(1, "angle = " << angle);
 
-    //        bool done = std::abs(angle) >= M_PI / 2;
-    return delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
+    bool reached_point = delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
+
+
+    return reached_point;
 }
 
 bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rotation, float speed)
