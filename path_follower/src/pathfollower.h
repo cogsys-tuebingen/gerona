@@ -16,6 +16,7 @@
 #include "obstacledetectoromnidrive.h"
 #include "vector_field_histogram.h"
 #include "robotcontroller.h"
+#include "pathlookout.h"
 
 
 class PathFollower
@@ -48,33 +49,15 @@ public:
      */
     bool checkCollision(double course_angle, double box_length, double box_width = 0.3, double curve_enlarge_factor = 0.5);
 
-    /**
-     * @brief Check if there is an obstacle within a rectangular box in front of the robot.
-     *
-     * The box is placed in front of the laser and is defined by its width and length as displayed in the "figure" below:
-     *
-     *          +------------------+
-     *  ##   ## |                  | |
-     *  ####### |                  | width
-     *  ####### |                  | |
-     *  ##   ## |                  |
-     *          +------------------+
-     *   ^robot     <- length ->
-     *
-     *
-     *
-     * @param box_width Width of the box, which is checked for obstacles.
-     * @param box_length Length of the box, which is checked for obstacles.
-     * @return true, if there is an obstacle in the box.
-     */
-    bool simpleCheckCollision(float box_width, float box_length);
-
     VectorFieldHistogram& getVFH();
 
     RobotController* getController();
 
     //! Send 'text' to a text to speech processor.
     void say(std::string text);
+
+    //FIXME: only for testing
+    PathLookout path_lookout_;
 
 private:
     typedef actionlib::SimpleActionServer<path_msgs::FollowPathAction> FollowPathServer;
@@ -123,6 +106,7 @@ private:
     VectorFieldHistogram vfh_;
 
     RobotController *controller_;
+
 
 
     void followPathGoalCB();

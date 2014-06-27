@@ -152,6 +152,7 @@ add_executable(path_follower_node
   src/robotcontroller_ackermann_pid.cpp
   src/robotcontroller_omnidrive_pid.cpp
   src/path.h
+  src/pathlookout.cpp
 )
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)

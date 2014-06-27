@@ -96,6 +96,7 @@ void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan)
 void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
 {
     controller_->getObstacleDetector()->gridMapCallback(map);
+    path_lookout_.setMap(map);
 
     if(use_vfh_) {
         vfh_.setMap(*map);
@@ -205,6 +206,7 @@ void PathFollower::update()
                 follow_path_server_.setAborted(result);
             }
         }
+        path_lookout_.lookForObstacles();
     }
 }
 
@@ -216,47 +218,6 @@ bool PathFollower::checkCollision(double course_angle, double box_length, double
         return laser_env_.CheckCollision(laser_scan_.ranges,laser_scan_.angle_min,laser_scan_.angle_max, course_angle,
                                          box_width, curve_enlarge_factor, box_length);
     }
-}
-
-bool PathFollower::simpleCheckCollision(float box_width, float box_length)
-{
-    for (size_t i=0; i < laser_scan_.ranges.size(); ++i) {
-        // project point to carthesian coordinates
-        float angle = laser_scan_.angle_min + i * laser_scan_.angle_increment;
-        float px = laser_scan_.ranges[i] * cos(angle);
-        float py = laser_scan_.ranges[i] * sin(angle);
-
-
-        /* Point p is inside the rectangle, if
-         *    p.x in [-width/2, +width/2]
-         * and
-         *    p.y in [0, length]
-         */
-
-        if ( py >= -box_width/2 &&
-             py <=  box_width/2 &&
-             px >= 0 &&
-             px <= box_length )
-        {
-            return true;
-        }
-    }
-
-//    //visualize box
-//    geometry_msgs::Point p1, p2, p3, p4;
-//    p1.y = -box_width/2;  p1.x = 0;
-//    p2.y = -box_width/2;  p2.x = box_length;
-//    p3.y = +box_width/2;  p3.x = 0;
-//    p4.y = +box_width/2;  p4.x = box_length;
-
-//    float r = collision ? 1 : 0;
-//    float g = 1 - r;
-//    visualizer_->drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
-//    visualizer_->drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
-//    visualizer_->drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
-//    visualizer_->drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
-
-    return false;
 }
 
 VectorFieldHistogram& PathFollower::getVFH()

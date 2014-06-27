@@ -24,6 +24,8 @@ void RobotController::setPath(PathWithPosition path)
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
         throw new BehaviourEmergencyBreak(*path_driver_);
     }
+
+    path_driver_->getNode()->path_lookout_.setPath(*path.current_path);
 }
 
 double RobotController::calculateAngleError()
