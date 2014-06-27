@@ -5,7 +5,7 @@
 #include <string>
 
 /// THIRD PARTY
-#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 /// ROS
 #include <nav_msgs/OccupancyGrid.h>

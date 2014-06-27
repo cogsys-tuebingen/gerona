@@ -190,12 +190,18 @@ bool PathFollower::transformToGlobal(const geometry_msgs::PoseStamped &local_org
 
 void PathFollower::update()
 {
-    //TODO: is isActive() good here?
     if (follow_path_server_.isActive() && active_ctrl_!=NULL) {
         FollowPathFeedback feedback;
         FollowPathResult result;
+        int is_running;
 
-        int is_running = active_ctrl_->execute(feedback, result);
+        //TODO: is this a good place to run the obstacle lookout?
+        if (path_lookout_.lookForObstacles()) {
+            is_running = 0;
+            result.status = FollowPathResult::MOTION_STATUS_COLLISION;
+        } else {
+            is_running = active_ctrl_->execute(feedback, result);
+        }
 
         if (is_running) {
             follow_path_server_.publishFeedback(feedback);
@@ -206,7 +212,6 @@ void PathFollower::update()
                 follow_path_server_.setAborted(result);
             }
         }
-        path_lookout_.lookForObstacles();
     }
 }
 

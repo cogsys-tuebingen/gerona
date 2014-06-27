@@ -1,6 +1,9 @@
 #include "pathlookout.h"
 
 #include <opencv2/highgui/highgui.hpp>
+#include <vector>
+
+using namespace std;
 
 PathLookout::PathLookout()
 {
@@ -49,7 +52,18 @@ bool PathLookout::lookForObstacles()
     cv::imshow("Intersection", intersect);
     cv::waitKey(5);
 
-    return false;
+    // find obstacle contours on the path
+    vector<vector<cv::Point> > contours;
+    cv::findContours(intersect, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+
+    if (contours.empty()) {
+        // no obstacles on the path.
+        return false;
+    }
+
+    //TODO: Track the obstacles and weight them, depening on how long they are on the path, and how far away they are.
+
+    return true;
 }
 
 
