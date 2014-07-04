@@ -9,10 +9,11 @@
 
 /// ROS
 #include <nav_msgs/OccupancyGrid.h>
-#include <tf/transform_listener.h>
 
 /// PROJECT
 #include "path.h"
+#include "maptransformer.h"
+#include "visualizer.h"
 
 class PathLookout
 {
@@ -31,7 +32,7 @@ public:
     bool lookForObstacles();
 
 private:
-    tf::TransformListener tf_listener_;
+    MapTransformer map_trans_;
 
     nav_msgs::OccupancyGridConstPtr map_;
 
@@ -41,10 +42,11 @@ private:
 
     cv::Mat path_image_;
 
+    Visualizer *visualizer_;
+
     //! draw the path to the path image
     /** @see path_image_ */
     void drawPathToImage(const Path &path);
-    cv::Point2f transformPointToMap(const cv::Point2f &p, std::string from) const;
 };
 
 #endif // PATHLOOKOUT_H

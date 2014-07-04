@@ -4,7 +4,7 @@ ObstacleDetector::ObstacleDetector()
 {
 }
 
-void ObstacleDetector::gridMapCallback(const nav_msgs::OccupancyGridConstPtr &map)
+void ObstacleDetector::setMap(const nav_msgs::OccupancyGridConstPtr &map)
 {
     map_ = map;
 }

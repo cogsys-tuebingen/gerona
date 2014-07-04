@@ -10,11 +10,15 @@ PathLookout::PathLookout()
     cv::namedWindow("Map", CV_WINDOW_KEEPRATIO);
     cv::namedWindow("Path", CV_WINDOW_KEEPRATIO);
     cv::namedWindow("Intersection", CV_WINDOW_KEEPRATIO);
+
+    visualizer_ = Visualizer::getInstance();
 }
 
 void PathLookout::setMap(const nav_msgs::OccupancyGridConstPtr &map)
 {
     map_ = map;
+    map_trans_.setMap(map);
+
 
     // convert to image
     map_image_ = cv::Mat(map->info.height, map->info.width, CV_8UC1);
@@ -56,14 +60,31 @@ bool PathLookout::lookForObstacles()
     vector<vector<cv::Point> > contours;
     cv::findContours(intersect, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 
-    if (contours.empty()) {
-        // no obstacles on the path.
-        return false;
+    // visualize obstacles in rviz
+    if (visualizer_->hasSubscriber()) {
+        for(size_t i = 0; i < contours.size(); ++i) {
+            try {
+                // caclulate center of mass, using moments.
+                cv::Moments mom = cv::moments(contours[i], true);
+                cv::Point2f center(mom.m10/mom.m00, mom.m01/mom.m00);
+
+                center = map_trans_.transformPointFromMap(center, "/map");
+                geometry_msgs::Point gp; gp.x = center.x; gp.y = center.y;
+                visualizer_->drawMark(i, gp, "obstacleonpath", 1,0,0, "/map");
+            } catch (const tf::TransformException& ex) {
+                ROS_ERROR("TF-Error. Could not transform obstacle position for visualization. %s", ex.what());
+            }
+        }
     }
 
     //TODO: Track the obstacles and weight them, depening on how long they are on the path, and how far away they are.
 
-    return true;
+    if (contours.empty()) {
+        // no obstacles on the path.
+        return false;
+    } else {
+        return false;// don't stop, for testing
+    }
 }
 
 
@@ -79,42 +100,23 @@ void PathLookout::drawPathToImage(const Path &path)
 
     Path::const_iterator iter = path.begin();
 
-    // get first point
-    cv::Point2f p1(iter->x, iter->y);
-    p1 = transformPointToMap(p1, "/map");
-    // iterate over second to last point
-    for (++iter; iter != path.end(); ++iter) {
-        cv::Point2f p2(iter->x, iter->y);
-        p2 = transformPointToMap(p2, "/map");
+    try {
+        // get first point
+        cv::Point2f p1(iter->x, iter->y);
+        p1 = map_trans_.transformPointToMap(p1, "/map");
+        // iterate over second to last point
+        for (++iter; iter != path.end(); ++iter) {
+            cv::Point2f p2(iter->x, iter->y);
+            p2 = map_trans_.transformPointToMap(p2, "/map");
 
-        cv::line(path_image_, p1, p2, cv::Scalar(255), 2); //TODO: more reasonable value for thickness
-        p1 = p2;
+            cv::line(path_image_, p1, p2, cv::Scalar(255), 2); //TODO: more reasonable value for thickness
+            p1 = p2;
+        }
+    } catch (const tf::TransformException& ex) {
+        ROS_ERROR("Failed to transform path to map in PathLookout. TF-Exception: %s\n PathLookout will not be able to check for obstacles on the path!", ex.what());
+        // Nothing to do here. Maybe parts of the path have been drawed to the map before the exception occured.
+        // In this case the lookout will work as intended but only check the first part of the path.
+        // In the worst case, nothing was drawn, then the lookout will simply not see obstacles, but it will not crash
+        // in any way.
     }
-}
-
-cv::Point2f PathLookout::transformPointToMap(const cv::Point2f &p, std::string from) const
-{
-    //TODO: this is copy waste... (already in ObstacleDetectorPolygon). Find some way to make it globally accessable.
-
-    // lookup transform from point frame to map frame.
-    tf::StampedTransform trans_to_map_frame;
-    tf_listener_.lookupTransform(map_->header.frame_id, from, ros::Time(0), trans_to_map_frame);
-
-    // construct transform from map frame origin to map origin
-    tf::Transform trans_to_map_origin;
-    tf::poseMsgToTF(map_->info.origin, trans_to_map_origin);
-    // need the other way round
-    trans_to_map_origin = trans_to_map_origin.inverse();
-
-    // we need the point as tf::Vector3 ...
-    tf::Vector3 tf_p(p.x, p.y, 0);
-
-    // finally transform the point
-    tf_p = trans_to_map_origin * trans_to_map_frame * tf_p;
-
-    // to get map coordinates, the point has to be scaled to map resolution
-    tf_p /= map_->info.resolution;
-
-    // and finished. convert back to cv::Point and return :)
-    return cv::Point2f(tf_p.x(), tf_p.y());
 }

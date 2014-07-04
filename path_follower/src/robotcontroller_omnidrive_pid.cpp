@@ -288,7 +288,7 @@ Eigen::Vector2d RobotController_Omnidrive_Pid::predictDirectionOfMovement()
 
 double RobotController_Omnidrive_Pid::predictSmoothedDirectionOfMovementAngle()
 {
-    //TODO: I'm not so happy with this, it is rather a dirty hack to make obstacle detection stable even when the robot
+    //FIXME: I'm not so happy with this, it is rather a dirty hack to make obstacle detection stable even when the robot
     //      makes slight sideways movements. I think, there must be a better, more reliable solution...
 
     // Only update, if the robot has moved at least a certain distance.

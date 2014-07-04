@@ -4,6 +4,7 @@
 #include "obstacledetector.h"
 #include <opencv2/core/core.hpp>
 #include <tf/transform_listener.h>
+#include "maptransformer.h"
 
 class ObstacleDetectorPolygon : public ObstacleDetector
 {
@@ -12,6 +13,8 @@ public:
         ObstacleDetector()
     {
     }
+
+    virtual void setMap(const nav_msgs::OccupancyGridConstPtr &map);
 
 protected:
     struct PolygonWithTfFrame
@@ -40,17 +43,7 @@ protected:
 
 
 private:
-    tf::TransformListener tf_listener_;
-
-
-    /**
-     * @brief Transform a cv::Point2f from an arbitrary TF-frame to map coordinates of the obstacle map.
-     * @param p     The point which is to be transformed.
-     * @param from  The TF-frame in which the point is defined.
-     * @return      The transformed point in (non-integer!) map coordinates.
-     * @throws tf::TransformException
-     */
-    cv::Point2f transformPointToMap(const cv::Point2f &p, std::string from) const;
+    MapTransformer map_trans_;
 
     //! Transform the given polygon to map coordinates.
     /** @throws tf::TransformException */

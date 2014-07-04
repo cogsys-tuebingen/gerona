@@ -95,7 +95,7 @@ void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan)
 
 void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
 {
-    controller_->getObstacleDetector()->gridMapCallback(map);
+    controller_->getObstacleDetector()->setMap(map);
     path_lookout_.setMap(map);
 
     if(use_vfh_) {
