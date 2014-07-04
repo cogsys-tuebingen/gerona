@@ -295,7 +295,9 @@ double RobotController_Omnidrive_Pid::predictSmoothedDirectionOfMovementAngle()
     Vector2d current_pos = predictPosition();
     double driven_dist = (last_position_smoothed_direction_update_ - current_pos).norm();
 
-    if (has_last_position_smoothed_ && driven_dist > 0.1) {
+    ROS_DEBUG("PSDOM: driven_dist = %g", driven_dist);
+
+    if (has_last_position_smoothed_ && driven_dist > 0.05) {
         // update
         Vector2d direction = predictDirectionOfMovement();
 
@@ -304,7 +306,17 @@ double RobotController_Omnidrive_Pid::predictSmoothedDirectionOfMovementAngle()
 
         last_position_smoothed_direction_update_ = current_pos;
         has_last_position_smoothed_ = true;
+
+        ROS_DEBUG_STREAM("PSDOM: smoothed_dir: " << smoothed_direction_);
     }
+
+    // this is true only in the first call -> initialize last_position
+    if (!has_last_position_smoothed_) {
+        last_position_smoothed_direction_update_ = current_pos;
+        has_last_position_smoothed_ = true;
+    }
+
+    ROS_DEBUG("PSDOM: angle = %g", atan2(smoothed_direction_[1], smoothed_direction_[0]));
 
     return atan2(smoothed_direction_[1], smoothed_direction_[0]);
 }
