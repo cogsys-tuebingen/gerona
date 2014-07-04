@@ -91,7 +91,7 @@ cv::Point2f ObstacleDetectorPolygon::transformPointToMap(const cv::Point2f &p, s
 {
     // lookup transform from point frame to map frame.
     tf::StampedTransform trans_to_map_frame;
-    tf_listener_.lookupTransform(map_frame_, from, ros::Time(0), trans_to_map_frame);
+    tf_listener_.lookupTransform(map_->header.frame_id, from, ros::Time(0), trans_to_map_frame);
 
     // construct transform from map frame origin to map origin
     tf::Transform trans_to_map_origin;
@@ -120,5 +120,5 @@ void ObstacleDetectorPolygon::transformPolygonToMap(PolygonWithTfFrame *polygon)
         *iter = transformPointToMap(*iter, polygon->frame);
     }
     // set new frame
-    polygon->frame = map_frame_;
+    polygon->frame = map_->header.frame_id;
 }
