@@ -14,6 +14,7 @@
 #include "path.h"
 #include "maptransformer.h"
 #include "visualizer.h"
+#include "obstacletracker.h"
 
 class PathLookout
 {
@@ -33,6 +34,8 @@ public:
 
 private:
     MapTransformer map_trans_;
+    ObstacleTracker tracker_;
+    Visualizer *visualizer_;
 
     nav_msgs::OccupancyGridConstPtr map_;
 
@@ -42,11 +45,14 @@ private:
 
     cv::Mat path_image_;
 
-    Visualizer *visualizer_;
+    float scale_obstacle_distance_;
+    float scale_obstacle_duration_;
 
     //! draw the path to the path image
     /** @see path_image_ */
     void drawPathToImage(const Path &path);
+
+    float weightObstacle(ObstacleTracker::TrackedObstacle o) const;
 };
 
 #endif // PATHLOOKOUT_H

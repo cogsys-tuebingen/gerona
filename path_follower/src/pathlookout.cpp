@@ -41,6 +41,9 @@ void PathLookout::setPath(const Path &path)
 
 bool PathLookout::lookForObstacles()
 {
+    //FIXME: This does currently not take the postion of the robot into account (thus also obstacles behind the robot
+    // can stop the robot).
+
     if (map_ == NULL) {
         ROS_WARN("PathLookout has not received any map yet. No obstacle lookout is done.");
         return false;
@@ -60,24 +63,39 @@ bool PathLookout::lookForObstacles()
     vector<vector<cv::Point> > contours;
     cv::findContours(intersect, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 
-    // visualize obstacles in rviz
-    if (visualizer_->hasSubscriber()) {
-        for(size_t i = 0; i < contours.size(); ++i) {
-            try {
-                // caclulate center of mass, using moments.
-                cv::Moments mom = cv::moments(contours[i], true);
-                cv::Point2f center(mom.m10/mom.m00, mom.m01/mom.m00);
+    // Get center of each obstacle (for tracking)
+    vector<cv::Point2f> obstacle_centers;
+    obstacle_centers.reserve(contours.size());
+    for(size_t i = 0; i < contours.size(); ++i) {
+        try {
+            // caclulate center of mass, using moments.
+            cv::Moments mom = cv::moments(contours[i], true);
+            cv::Point2f center(mom.m10/mom.m00, mom.m01/mom.m00);
+            center = map_trans_.transformPointFromMap(center, "/base_link");
 
-                center = map_trans_.transformPointFromMap(center, "/map");
+            obstacle_centers.push_back(center);
+
+            // visualize obstacles in rviz
+            if (visualizer_->hasSubscriber()) {
                 geometry_msgs::Point gp; gp.x = center.x; gp.y = center.y;
-                visualizer_->drawMark(i, gp, "obstacleonpath", 1,0,0, "/map");
-            } catch (const tf::TransformException& ex) {
-                ROS_ERROR("TF-Error. Could not transform obstacle position for visualization. %s", ex.what());
+                visualizer_->drawMark(i, gp, "obstacleonpath", 1,0,0, "/base_link");
             }
+        } catch (const tf::TransformException& ex) {
+            ROS_ERROR("TF-Error. Could not transform obstacle position. %s", ex.what());
         }
     }
 
     //TODO: Track the obstacles and weight them, depening on how long they are on the path, and how far away they are.
+
+    tracker_.update(obstacle_centers);
+
+    vector<ObstacleTracker::TrackedObstacle> tracked_obs = tracker_.getTrackedObstacles();
+
+    vector<float> weights;
+    transform(tracked_obs.begin(), tracked_obs.end(), weights.begin(), boost::bind(&PathLookout::weightObstacle, this, _1));
+
+    //TODO: hier gehts weiter
+
 
     if (contours.empty()) {
         // no obstacles on the path.
@@ -119,4 +137,12 @@ void PathLookout::drawPathToImage(const Path &path)
         // In the worst case, nothing was drawn, then the lookout will simply not see obstacles, but it will not crash
         // in any way.
     }
+}
+
+float PathLookout::weightObstacle(ObstacleTracker::TrackedObstacle o) const
+{
+    // This assumes, that the position is given in the robot frame (and thus pos_robot = 0).
+    float dist_to_robot = cv::norm(o.last_position);
+
+    return scale_obstacle_distance_ * dist_to_robot + scale_obstacle_duration_ * o.time_of_first_sight.toSec();
 }

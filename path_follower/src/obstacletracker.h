@@ -16,7 +16,7 @@
 /**
  * @brief Track obstacles on the path.
  *
- * The tracking algorithm (implemented in update()) is quite simply:
+ * The tracking algorithm (implemented in update()) is quite simple:
  * Input: New observation (= list of detected obstacles)
  *   - Try to match observed obstacles with those that are already tracked (see below, how matching is done).
  *   - Kick tracked obstacles without matching partner in the current observation (-> lose track immediately, when
@@ -30,6 +30,7 @@
  *   4) Iterate until distance matrix is empty (= all are matched), or the minimal distance in the remaining matrix is
  *      greater than a defined threshold (-> do not match, if they are to far away from each other).
  *
+ * Currently only the center point of an obstacle is used.
  */
 class ObstacleTracker
 {
