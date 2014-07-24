@@ -5,7 +5,7 @@
 class ScanConverter {
      public:
         ScanConverter();
-        void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
+        void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in);
      private:
         ros::NodeHandle node_;
         laser_geometry::LaserProjection projector_;
