@@ -77,6 +77,9 @@ void ObstacleTracker::update(std::vector<cv::Point2f> observed_obstacles)
         removeColumn(d_idx, mj_idx);
     }
 
+    ROS_DEBUG_NAMED("ObstacleTracker", "Matched %zu obstacles", matched_tracked.size());
+    ROS_DEBUG_NAMED("ObstacleTracker", "Lost %zu obstacles", obstacles_.size() - matched_tracked.size());
+
     // Delete tracked obstacles, which could not be matched (assume that they left the path). This is done by
     // overwriting the old list of tracked obstacles by the list of matched tracked obstacles.
     obstacles_ = matched_tracked;
@@ -91,6 +94,8 @@ void ObstacleTracker::update(std::vector<cv::Point2f> observed_obstacles)
             obstacles_.push_back(to);
         }
     }
+
+    ROS_DEBUG_NAMED("ObstacleTracker", "Added %zu new obstacles", obstacles_.size() - matched_tracked.size());
 }
 
 void ObstacleTracker::removeRow(cv::Mat &m, int row)

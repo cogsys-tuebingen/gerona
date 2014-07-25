@@ -96,9 +96,24 @@ public:
      * @param r     Marker color, red.
      * @param g     Marker color, green.
      * @param b     Marker color, blue.
+     * @param frame TF-Frame, in which the position is given.
      */
     void drawMark(int id, const geometry_msgs::Point &pos, const std::string& ns, float r, float g, float b,
                   const std::string &frame="/map") const;
+
+    /**
+     * @brief Publish a marker to display some text.
+     * @param id    ID of the marker.
+     * @param pos   Position of the marker.
+     * @param text  Text that is displayed.
+     * @param ns    Namespace of the marker.
+     * @param r     Marker color, red.
+     * @param g     Marker color, green.
+     * @param b     Marker color, blue.
+     * @param frame TF-Frame, in which the position is given.
+     */
+    void drawText(int id, const geometry_msgs::Point &pos, const std::string &text, const std::string& ns,
+                  float r, float g, float b, const std::string &frame="/map") const;
 
     /**
      * @brief Draw an arrow to visualize the steering angle.

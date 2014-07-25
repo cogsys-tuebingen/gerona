@@ -48,6 +48,8 @@ private:
     float scale_obstacle_distance_;
     float scale_obstacle_duration_;
 
+    void configure();
+
     //! draw the path to the path image
     /** @see path_image_ */
     void drawPathToImage(const Path &path);

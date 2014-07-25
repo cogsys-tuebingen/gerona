@@ -74,12 +74,6 @@ bool PathLookout::lookForObstacles()
             center = map_trans_.transformPointFromMap(center, "/base_link");
 
             obstacle_centers.push_back(center);
-
-            // visualize obstacles in rviz
-            if (visualizer_->hasSubscriber()) {
-                geometry_msgs::Point gp; gp.x = center.x; gp.y = center.y;
-                visualizer_->drawMark(i, gp, "obstacleonpath", 1,0,0, "/base_link");
-            }
         } catch (const tf::TransformException& ex) {
             ROS_ERROR("TF-Error. Could not transform obstacle position. %s", ex.what());
         }
@@ -91,11 +85,34 @@ bool PathLookout::lookForObstacles()
 
     vector<ObstacleTracker::TrackedObstacle> tracked_obs = tracker_.getTrackedObstacles();
 
+    if (tracked_obs.empty()) {
+        return false;
+    }
+
     vector<float> weights;
+    weights.resize(tracked_obs.size());
     transform(tracked_obs.begin(), tracked_obs.end(), weights.begin(), boost::bind(&PathLookout::weightObstacle, this, _1));
+    float max_weight = *max_element(weights.begin(), weights.end());
+    ROS_DEBUG("Max Obstacle Weight: %g", max_weight);
 
-    //TODO: hier gehts weiter
+    // visualize obstacles in rviz
+    if (visualizer_->hasSubscriber()) {
+        for(size_t i = 0; i < tracked_obs.size(); ++i) {
+            // this should be a unique identifier for a tracked obstacle
+            int id = tracked_obs[i].time_of_first_sight.toNSec();
 
+            geometry_msgs::Point gp;
+            gp.x = tracked_obs[i].last_position.x;
+            gp.y = tracked_obs[i].last_position.y;
+            visualizer_->drawMark(id, gp, "obstacleonpath", 1,0,0, "/base_link");
+
+            // show the weight.
+            stringstream s;
+            s << weights[i];
+            gp.z = 0.5;
+            visualizer_->drawText(id, gp, s.str(), "obstacleonpath_weight", 1,0,0, "/base_link");
+        }
+    }
 
     if (contours.empty()) {
         // no obstacles on the path.
@@ -103,6 +120,13 @@ bool PathLookout::lookForObstacles()
     } else {
         return false;// don't stop, for testing
     }
+}
+
+void PathLookout::configure()
+{
+    //TODO: add params to documentation
+    ros::param::param<float>("~obstacle_scale_distance", scale_obstacle_distance_, 2.0f);
+    ros::param::param<float>("~obstacle_scale_time", scale_obstacle_distance_, 0.1f);
 }
 
 
@@ -143,6 +167,7 @@ float PathLookout::weightObstacle(ObstacleTracker::TrackedObstacle o) const
 {
     // This assumes, that the position is given in the robot frame (and thus pos_robot = 0).
     float dist_to_robot = cv::norm(o.last_position);
+    ros::Duration lifetime = ros::Time::now() - o.time_of_first_sight;
 
-    return scale_obstacle_distance_ * dist_to_robot + scale_obstacle_duration_ * o.time_of_first_sight.toSec();
+    return scale_obstacle_distance_ * 1/dist_to_robot + scale_obstacle_duration_ * lifetime.toSec();
 }
