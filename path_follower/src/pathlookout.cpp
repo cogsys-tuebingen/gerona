@@ -1,16 +1,18 @@
 #include "pathlookout.h"
 
-#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/highgui/highgui.hpp>
 #include <vector>
+#include "pathfollower.h"
 
 using namespace std;
 
-PathLookout::PathLookout():
+PathLookout::PathLookout(PathFollower *node):
+    node_(node),
     obstacle_frame_("/map")
 {
-    cv::namedWindow("Map", CV_WINDOW_KEEPRATIO);
-    cv::namedWindow("Path", CV_WINDOW_KEEPRATIO);
-    cv::namedWindow("Intersection", CV_WINDOW_KEEPRATIO);
+//    cv::namedWindow("Map", CV_WINDOW_KEEPRATIO);
+//    cv::namedWindow("Path", CV_WINDOW_KEEPRATIO);
+//    cv::namedWindow("Intersection", CV_WINDOW_KEEPRATIO);
 
     visualizer_ = Visualizer::getInstance();
     configure();
@@ -49,8 +51,6 @@ void PathLookout::setPath(const Path &path)
 
 bool PathLookout::lookForObstacles()
 {
-    //FIXME: do not store obstacles in robot frame...
-
     //FIXME: This does currently not take the postion of the robot into account (thus also obstacles behind the robot
     // can stop the robot).
 
@@ -68,10 +68,10 @@ bool PathLookout::lookForObstacles()
     cv::bitwise_and(map_image_, path_image_, intersect);
 
     // debug
-    cv::imshow("Map", map_image_);
-    cv::imshow("Path", path_image_);
-    cv::imshow("Intersection", intersect);
-    cv::waitKey(5);
+//    cv::imshow("Map", map_image_);
+//    cv::imshow("Path", path_image_);
+//    cv::imshow("Intersection", intersect);
+//    cv::waitKey(5);
 
     // find obstacle contours on the path
     vector<vector<cv::Point> > contours;
@@ -101,20 +101,11 @@ bool PathLookout::lookForObstacles()
         return false;
     }
 
-    // get current robot position
-//    try {
-//        cv::Point2f robot_pos(0,0);
-//        center = map_trans_.transformPointFromMap(center, obstacle_frame_);
-
-//        obstacle_centers.push_back(center);
-//    } catch (const tf::TransformException& ex) {
-//        ROS_ERROR("TF-Error. Could not transform obstacle position. %s", ex.what());
-//    }
-
     vector<float> weights;
     weights.resize(tracked_obs.size());
-    cv::Point2f robot_pos(0,0);
-    transform(tracked_obs.begin(), tracked_obs.end(), weights.begin(), boost::bind(&PathLookout::weightObstacle, this, robot_pos, _1));
+    Eigen::Vector3d robot_pos = node_->getRobotPose();
+    transform(tracked_obs.begin(), tracked_obs.end(), weights.begin(),
+              boost::bind(&PathLookout::weightObstacle, this, cv::Point2f(robot_pos(0), robot_pos(1)), _1));
     float max_weight = *max_element(weights.begin(), weights.end());
 
     // visualize obstacles in rviz
@@ -145,8 +136,9 @@ bool PathLookout::lookForObstacles()
 void PathLookout::configure()
 {
     //TODO: add params to documentation
-    ros::param::param<float>("~obstacle_scale_distance", scale_obstacle_distance_, 2.0f);
+    ros::param::param<float>("~obstacle_scale_distance", scale_obstacle_distance_, 3.0f);
     ros::param::param<float>("~obstacle_scale_lifetime", scale_obstacle_lifetime_, 10.0f);
+
     // there should be no need to make max. weight configurable, as it can be scaled using the parameters above.
     obstacle_weight_limit_ = 1.0f;
 }

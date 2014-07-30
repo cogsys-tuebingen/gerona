@@ -8,6 +8,7 @@ using namespace path_msgs;
 using namespace std;
 
 PathFollower::PathFollower(ros::NodeHandle &nh):
+    path_lookout_(this),
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
     active_ctrl_(NULL),
@@ -207,6 +208,8 @@ void PathFollower::update()
         //TODO: is this a good place to run the obstacle lookout?
         else if (path_lookout_.lookForObstacles()) {
             result.status = FollowPathResult::MOTION_STATUS_COLLISION;
+            // there's an obstacle ahead, pull the emergency break!
+            controller_->stopMotion();
         }
         else {
             is_running = active_ctrl_->execute(feedback, result);

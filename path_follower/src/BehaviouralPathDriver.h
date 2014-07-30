@@ -185,8 +185,6 @@ private:
     Command current_command_;
     Options options_;
 
-    //Vector3d slam_pose_;
-    //geometry_msgs::Pose slam_pose_msg_;
     nav_msgs::Path path_;
     std::vector<Path> paths_;
 

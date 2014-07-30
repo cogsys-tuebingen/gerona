@@ -16,10 +16,12 @@
 #include "visualizer.h"
 #include "obstacletracker.h"
 
+class PathFollower;
+
 class PathLookout
 {
 public:
-    PathLookout();
+    PathLookout(PathFollower *node);
 
     void setMap(const nav_msgs::OccupancyGridConstPtr &msg);
 
@@ -34,6 +36,8 @@ public:
 
 private:
     std::string obstacle_frame_;
+
+    PathFollower *node_;
 
     MapTransformer map_trans_;
     ObstacleTracker tracker_;
