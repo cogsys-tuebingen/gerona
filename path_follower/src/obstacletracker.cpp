@@ -1,6 +1,7 @@
 #include "obstacletracker.h"
 
 #include <boost/foreach.hpp>
+#include <algorithm>
 
 using namespace std;
 
@@ -16,24 +17,33 @@ void ObstacleTracker::update(std::vector<cv::Point2f> observed_obstacles)
      * distance matrix itself.
      */
 
+    // Delete "dead" obstacles, which could not be matched for more than the time, specified in lost_lifetime_.
+    // Use ugly c++ version of functional "filter"...
+    // TODO: I think it's not the best solution to drop old entries before matching, as this will completely crush
+    // any tracking, if lost_lifetime ist set to 0 ("do not track obstacles that are out of sight"). Doing it after
+    // matching will cause the same problem though, as there is a small amount of time passing between the two steps.
+    // It has somehow to be guaranteed, that no obstacles are dropped, that could be matched in this iteration.
+    size_t dead_count = obstacles_.size();
+    obstacles_.erase(std::remove_if(obstacles_.begin(), obstacles_.end(), boost::bind(&ObstacleTracker::isDead, this, _1)), obstacles_.end());
+    dead_count = dead_count - obstacles_.size();
+
     // construct distanc matrix. D[i,j] = distance between observed obstacle i and tracked obstacle j.
     cv::Mat dist(observed_obstacles.size(), obstacles_.size(), CV_32F);
     cv::Mat d_idx(dist.rows, dist.cols, CV_16U);
     vector<bool> obs_matched(observed_obstacles.size(), false);
 
-    ushort i = 0;
+    ushort i = 0; // ATTENTION: i is the data-index to dist. Therefore the outer loop must iterate over rows, the inner over columns!
     for (size_t o = 0; o < observed_obstacles.size(); ++o)
     for (size_t t = 0; t < obstacles_.size();         ++t) {
-        dist.at<float>(o, t)   = norm(observed_obstacles[o] - obstacles_[t].last_position);
-        d_idx.at<ushort>(o, t) = i++; // ATTENTION: This is the data-index to dist. It will only work, if this nested
-                                      //            loop iterates over rows first!
+        dist.at<float>(o, t)   = norm(observed_obstacles[o] - obstacles_[t].last_position());
+        d_idx.at<ushort>(o, t) = i++;
+
     }
 
     //ROS_DEBUG_STREAM("D =\n" << dist);
 
     // now match the points
-    vector<TrackedObstacle> matched_tracked;
-
+    int match_counter = 0;
     while (!d_idx.empty()) {
         //ROS_DEBUG_STREAM("Didx =\n" << d_idx);
 
@@ -65,8 +75,8 @@ void ObstacleTracker::update(std::vector<cv::Point2f> observed_obstacles)
         //ROS_DEBUG("matched %d, %d (%d,%d)", mi, mj, mi_idx, mj_idx);
 
         // match observed obstacle mi with tracked obstacle mj
-        obstacles_[mj].last_position = observed_obstacles[mi];
-        matched_tracked.push_back(obstacles_[mj]);
+        obstacles_[mj].update(observed_obstacles[mi]);
+        ++match_counter;
         // mark mi as matched.
         obs_matched[mi] = true;
 
@@ -77,25 +87,26 @@ void ObstacleTracker::update(std::vector<cv::Point2f> observed_obstacles)
         removeColumn(d_idx, mj_idx);
     }
 
-    ROS_DEBUG_NAMED("ObstacleTracker", "Matched %zu obstacles", matched_tracked.size());
-    ROS_DEBUG_NAMED("ObstacleTracker", "Lost %zu obstacles", obstacles_.size() - matched_tracked.size());
-
-    // Delete tracked obstacles, which could not be matched (assume that they left the path). This is done by
-    // overwriting the old list of tracked obstacles by the list of matched tracked obstacles.
-    obstacles_ = matched_tracked;
+    ROS_DEBUG_NAMED("ObstacleTracker", "Matched %d obstacles", match_counter);
+    ROS_DEBUG_NAMED("ObstacleTracker", "Lost %zu obstacles", obstacles_.size() - match_counter);
+    ROS_DEBUG_NAMED("ObstacleTracker", "Droped %zu dead obstacles", dead_count);
 
     // If there are unmatched obstacles in the observation, add them as new obstacles
+    int add_counter = 0;
     for (size_t i = 0; i < observed_obstacles.size(); ++i) {
         if (!obs_matched[i]) {
-            TrackedObstacle to;
-            to.last_position = observed_obstacles[i];
-            to.time_of_first_sight = ros::Time::now();
-
+            TrackedObstacle to(observed_obstacles[i]);
             obstacles_.push_back(to);
+            ++add_counter;
         }
     }
 
-    ROS_DEBUG_NAMED("ObstacleTracker", "Added %zu new obstacles", obstacles_.size() - matched_tracked.size());
+    ROS_DEBUG_NAMED("ObstacleTracker", "Added %d new obstacles", add_counter);
+}
+
+bool ObstacleTracker::isDead(ObstacleTracker::TrackedObstacle o)
+{
+    return (ros::Time::now() - o.time_of_last_sight()) > lost_lifetime_;
 }
 
 void ObstacleTracker::removeRow(cv::Mat &m, int row)

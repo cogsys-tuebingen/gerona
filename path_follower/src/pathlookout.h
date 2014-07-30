@@ -46,7 +46,9 @@ private:
     cv::Mat path_image_;
 
     float scale_obstacle_distance_;
-    float scale_obstacle_duration_;
+    float scale_obstacle_lifetime_;
+    //! Stop robot, if the weight of an obstacle becomes higher than this value.
+    float obstacle_weight_limit_;
 
     void configure();
 

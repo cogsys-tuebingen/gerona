@@ -19,8 +19,7 @@
  * The tracking algorithm (implemented in update()) is quite simple:
  * Input: New observation (= list of detected obstacles)
  *   - Try to match observed obstacles with those that are already tracked (see below, how matching is done).
- *   - Kick tracked obstacles without matching partner in the current observation (-> lose track immediately, when
- *     obstacles gets out of sight).
+ *   - Drop tracked obstacles which had no match for a defined duration.
  *   - Add observed obstacles w/o matching partner in the list of currently tracked obstacles as new.
  *
  * Matching:
@@ -35,16 +34,48 @@
 class ObstacleTracker
 {
 public:
-    struct TrackedObstacle {
+    class TrackedObstacle {
+    public:
+        TrackedObstacle(cv::Point2f pos):
+            last_position_(pos),
+            time_of_first_sight_(ros::Time::now()),
+            time_of_last_sight_(ros::Time::now())
+        {}
+
+        void update(cv::Point2f pos)
+        {
+            last_position_ = pos;
+            time_of_last_sight_ = ros::Time::now();
+        }
+
+        cv::Point2f last_position() const
+        {
+            return last_position_;
+        }
+
+        ros::Time time_of_first_sight() const
+        {
+            return time_of_first_sight_;
+        }
+
+        ros::Time time_of_last_sight() const
+        {
+            return time_of_last_sight_;
+        }
+
+    private:
         //std::vector<cv::Point> contour;
         //! Last known position of the obstacle.
-        cv::Point2f last_position;
+        cv::Point2f last_position_;
         //! Time, when the obstacle was detected for the first time (i.e. when it has been added to the list of tracked obstacles).
-        ros::Time time_of_first_sight;
+        ros::Time time_of_first_sight_;
+        //! Time, when the obstacle was detected for the last time (to track lost obstacles).
+        ros::Time time_of_last_sight_;
     };
 
     ObstacleTracker():
-        max_dist_(0.3f)
+        max_dist_(0.3f),
+        lost_lifetime_(1) //FIXME: parameters
     {}
 
     void setMaxDist(float md)
@@ -68,7 +99,12 @@ private:
     //! Only match new observation with tracked obstacle, if the position change is less than this threshold.
     float max_dist_;
 
+    //! Duration for which a lost obstacle is still tracked at its last known position.
+    ros::Duration lost_lifetime_;
+
     std::vector<TrackedObstacle> obstacles_;
+
+    bool isDead(TrackedObstacle o);
 
     /**
      * @brief Remove a row from a matrix.

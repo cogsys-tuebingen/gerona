@@ -9,8 +9,8 @@ using namespace std;
 void prettyPrint(vector<ObstacleTracker::TrackedObstacle> obs)
 {
     for (size_t i = 0; i < obs.size(); ++i) {
-        cout << "(" << obs[i].last_position.x << ", " << obs[i].last_position.y << ")\t"
-             << "t = " << (ros::Time::now() - obs[i].time_of_first_sight).toNSec() << endl;
+        cout << "(" << obs[i].last_position().x << ", " << obs[i].last_position().y << ")\t"
+             << "t = " << (ros::Time::now() - obs[i].time_of_first_sight()).toNSec() << endl;
     }
 }
 

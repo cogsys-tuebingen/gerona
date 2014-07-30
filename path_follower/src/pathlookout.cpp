@@ -12,13 +12,13 @@ PathLookout::PathLookout()
     cv::namedWindow("Intersection", CV_WINDOW_KEEPRATIO);
 
     visualizer_ = Visualizer::getInstance();
+    configure();
 }
 
 void PathLookout::setMap(const nav_msgs::OccupancyGridConstPtr &map)
 {
     map_ = map;
     map_trans_.setMap(map);
-
 
     // convert to image
     map_image_ = cv::Mat(map->info.height, map->info.width, CV_8UC1);
@@ -28,24 +28,37 @@ void PathLookout::setMap(const nav_msgs::OccupancyGridConstPtr &map)
     // bitwise_and can not miss any obstacle pixels.
     std::copy(map->data.begin(), map->data.end(), map_image_.data);
     //map_image_.data = &map->data[0];  <- no copy, only references. Would be nice, but yields problems with const...
-
-    // make sure that the path image is of the same size than the map
-    path_image_ = cv::Mat(map->info.height, map->info.width, CV_8UC1, cv::Scalar(0));
 }
 
 void PathLookout::setPath(const Path &path)
 {
+    // if there is no map yet, we do not know the size of the path image -> do nothing
+    if (map_ == NULL) {
+        return;
+    }
+
+    // initialize path image to fit map size
+    if (path_image_.empty()) {
+        path_image_ = cv::Mat(map_->info.height, map_->info.width, CV_8UC1, cv::Scalar(0));
+    }
+
     //path_ = path;
     drawPathToImage(path);
 }
 
 bool PathLookout::lookForObstacles()
 {
+    //FIXME: do not store obstacles in robot frame...
+
     //FIXME: This does currently not take the postion of the robot into account (thus also obstacles behind the robot
     // can stop the robot).
 
     if (map_ == NULL) {
         ROS_WARN("PathLookout has not received any map yet. No obstacle lookout is done.");
+        return false;
+    }
+    if (path_image_.empty()) {
+        ROS_WARN("PathLookout has not received any path yet. No obstacle lookout is done.");
         return false;
     }
 
@@ -79,12 +92,10 @@ bool PathLookout::lookForObstacles()
         }
     }
 
-    //TODO: Track the obstacles and weight them, depening on how long they are on the path, and how far away they are.
-
+    // Update tracker and calculate weights for the tracked obstacles.
     tracker_.update(obstacle_centers);
 
     vector<ObstacleTracker::TrackedObstacle> tracked_obs = tracker_.getTrackedObstacles();
-
     if (tracked_obs.empty()) {
         return false;
     }
@@ -93,17 +104,16 @@ bool PathLookout::lookForObstacles()
     weights.resize(tracked_obs.size());
     transform(tracked_obs.begin(), tracked_obs.end(), weights.begin(), boost::bind(&PathLookout::weightObstacle, this, _1));
     float max_weight = *max_element(weights.begin(), weights.end());
-    ROS_DEBUG("Max Obstacle Weight: %g", max_weight);
 
     // visualize obstacles in rviz
     if (visualizer_->hasSubscriber()) {
         for(size_t i = 0; i < tracked_obs.size(); ++i) {
             // this should be a unique identifier for a tracked obstacle
-            int id = tracked_obs[i].time_of_first_sight.toNSec();
+            int id = tracked_obs[i].time_of_first_sight().toNSec();
 
             geometry_msgs::Point gp;
-            gp.x = tracked_obs[i].last_position.x;
-            gp.y = tracked_obs[i].last_position.y;
+            gp.x = tracked_obs[i].last_position().x;
+            gp.y = tracked_obs[i].last_position().y;
             visualizer_->drawMark(id, gp, "obstacleonpath", 1,0,0, "/base_link");
 
             // show the weight.
@@ -114,19 +124,19 @@ bool PathLookout::lookForObstacles()
         }
     }
 
-    if (contours.empty()) {
-        // no obstacles on the path.
-        return false;
-    } else {
-        return false;// don't stop, for testing
-    }
+    // report obstacle, if the highest weight is higher than the defined limit.
+
+    ROS_DEBUG("Max Obstacle Weight: %g, limit: %g", max_weight, obstacle_weight_limit_);
+    return max_weight > obstacle_weight_limit_;
 }
 
 void PathLookout::configure()
 {
     //TODO: add params to documentation
     ros::param::param<float>("~obstacle_scale_distance", scale_obstacle_distance_, 2.0f);
-    ros::param::param<float>("~obstacle_scale_time", scale_obstacle_distance_, 0.1f);
+    ros::param::param<float>("~obstacle_scale_lifetime", scale_obstacle_lifetime_, 10.0f);
+    // there should be no need to make max. weight configurable, as it can be scaled using the parameters above.
+    obstacle_weight_limit_ = 1.0f;
 }
 
 
@@ -166,8 +176,16 @@ void PathLookout::drawPathToImage(const Path &path)
 float PathLookout::weightObstacle(ObstacleTracker::TrackedObstacle o) const
 {
     // This assumes, that the position is given in the robot frame (and thus pos_robot = 0).
-    float dist_to_robot = cv::norm(o.last_position);
-    ros::Duration lifetime = ros::Time::now() - o.time_of_first_sight;
+//    float dist_to_robot = cv::norm(o.last_position());
+//    ros::Duration lifetime = ros::Time::now() - o.time_of_first_sight();
+//    return scale_obstacle_distance_ * 1/dist_to_robot + scale_obstacle_duration_ * lifetime.toSec();
 
-    return scale_obstacle_distance_ * 1/dist_to_robot + scale_obstacle_duration_ * lifetime.toSec();
+    float dist_to_robot = cv::norm(o.last_position());
+    ros::Duration lifetime = ros::Time::now() - o.time_of_first_sight();
+    float w_dist = 1/exp(dist_to_robot - scale_obstacle_distance_); //TODO: something linear or quadratic would be better
+    float w_time = pow(lifetime.toSec()/scale_obstacle_lifetime_, 2);
+
+    ROS_WARN("WEIGHT: d = %g, t = %g, wd = %g, wt = %g", dist_to_robot, lifetime.toSec(), w_dist, w_time);
+
+    return w_dist + w_time;
 }
