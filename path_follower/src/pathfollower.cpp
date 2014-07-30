@@ -103,6 +103,11 @@ void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
     }
 }
 
+bool PathFollower::updateRobotPose()
+{
+    return getWorldPose( &robot_pose_, &robot_pose_msg_ );
+}
+
 
 bool PathFollower::getWorldPose(Vector3d *pose_vec , geometry_msgs::Pose *pose_msg) const
 {
@@ -193,15 +198,20 @@ void PathFollower::update()
     if (follow_path_server_.isActive() && active_ctrl_!=NULL) {
         FollowPathFeedback feedback;
         FollowPathResult result;
-        int is_running;
+        bool is_running;
 
+        is_running = false;
+        if (!updateRobotPose()) {
+            result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
+        }
         //TODO: is this a good place to run the obstacle lookout?
-        if (path_lookout_.lookForObstacles()) {
-            is_running = 0;
+        else if (path_lookout_.lookForObstacles()) {
             result.status = FollowPathResult::MOTION_STATUS_COLLISION;
-        } else {
+        }
+        else {
             is_running = active_ctrl_->execute(feedback, result);
         }
+
 
         if (is_running) {
             follow_path_server_.publishFeedback(feedback);
@@ -241,3 +251,15 @@ void PathFollower::say(string text)
     str.data = text;
     speech_pub_.publish(str);
 }
+
+Eigen::Vector3d PathFollower::getRobotPose() const
+{
+    return robot_pose_;
+}
+
+const geometry_msgs::Pose &PathFollower::getRobotPoseMsg() const
+{
+    return robot_pose_msg_;
+}
+
+

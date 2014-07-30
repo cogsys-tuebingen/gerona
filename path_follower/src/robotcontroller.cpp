@@ -31,6 +31,6 @@ void RobotController::setPath(PathWithPosition path)
 double RobotController::calculateAngleError()
 {
     geometry_msgs::Pose waypoint   = path_.nextWaypoint();
-    geometry_msgs::Pose robot_pose = path_driver_->getSlamPoseMsg();
+    geometry_msgs::Pose robot_pose = path_driver_->getRobotPoseMsg();
     return MathHelper::AngleClamp(tf::getYaw(waypoint.orientation) - tf::getYaw(robot_pose.orientation));
 }

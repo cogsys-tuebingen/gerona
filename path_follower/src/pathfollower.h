@@ -1,12 +1,16 @@
 #ifndef PATHFOLLOWER_H
 #define PATHFOLLOWER_H
 
+/// THIRD PARTY
+#include <Eigen/Core>
+
 /// ROS
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
 #include <nav_msgs/Odometry.h>
 #include <std_msgs/String.h>
 #include <tf/transform_listener.h>
+#include <geometry_msgs/Pose.h>
 
 /// PROJECT
 #include <path_msgs/FollowPathAction.h>
@@ -56,8 +60,11 @@ public:
     //! Send 'text' to a text to speech processor.
     void say(std::string text);
 
-    //FIXME: only for testing
+    //FIXME: public only for testing
     PathLookout path_lookout_;
+
+    Eigen::Vector3d getRobotPose() const;
+    const geometry_msgs::Pose &getRobotPoseMsg() const;
 
 private:
     typedef actionlib::SimpleActionServer<path_msgs::FollowPathAction> FollowPathServer;
@@ -107,6 +114,12 @@ private:
 
     RobotController *controller_;
 
+    //! Current pose of the robot as Eigen vector (x,y,theta).
+    Eigen::Vector3d robot_pose_;
+
+    //! Current pose of the robot as geometry_msgs pose.
+    geometry_msgs::Pose robot_pose_msg_;
+
 
 
     void followPathGoalCB();
@@ -119,6 +132,8 @@ private:
 
     //! Callback for the obstacle grid map. Used by ObstacleDetector and VectorFieldHistorgram.
     void obstacleMapCB(const nav_msgs::OccupancyGridConstPtr& map);
+
+    bool updateRobotPose();
 };
 
 #endif // PATHFOLLOWER_H

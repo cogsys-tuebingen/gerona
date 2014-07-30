@@ -33,6 +33,8 @@ public:
     bool lookForObstacles();
 
 private:
+    std::string obstacle_frame_;
+
     MapTransformer map_trans_;
     ObstacleTracker tracker_;
     Visualizer *visualizer_;
@@ -56,7 +58,7 @@ private:
     /** @see path_image_ */
     void drawPathToImage(const Path &path);
 
-    float weightObstacle(ObstacleTracker::TrackedObstacle o) const;
+    float weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const;
 };
 
 #endif // PATHLOOKOUT_H

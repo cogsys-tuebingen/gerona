@@ -46,7 +46,8 @@ PathFollower& BehaviouralPathDriver::Behaviour::getNode()
 }
 double BehaviouralPathDriver::Behaviour::distanceTo(const Waypoint& wp)
 {
-    return hypot(parent_.slam_pose_(0) - wp.x, parent_.slam_pose_(1) - wp.y);
+    Eigen::Vector3d pose = parent_.getRobotPose();
+    return hypot(pose(0) - wp.x, pose(1) - wp.y);
 }
 BehaviouralPathDriver::Command& BehaviouralPathDriver::Behaviour::getCommand()
 {
@@ -115,7 +116,7 @@ int BehaviouralPathDriver::getType()
 }
 
 
-int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResult& result)
+bool BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResult& result)
 {
     /* TODO:
      * The global use of the result-constants as status codes is a bit problematic, as there are feedback
@@ -124,8 +125,8 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResul
      */
 
     // constants for return codes
-    const int DONE = 0;
-    const int MOVING = 1;
+    const bool DONE   = false;
+    const bool MOVING = true;
 
     // Pending error?
     if ( pending_error_ >= 0 ) {
@@ -146,13 +147,13 @@ int BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResul
         start();
     }
 
-    if ( !node_->getWorldPose( &slam_pose_, &slam_pose_msg_ )) {
-        stop(); // FIXME: stop() sets velocity to 0, but due to the return, this is never published.
-        result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
-        return DONE;
-    }
+//    if ( !node_->getWorldPose( &slam_pose_, &slam_pose_msg_ )) {
+//        stop(); // FIXME: stop() sets velocity to 0, but due to the return, this is never published.
+//        result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
+//        return DONE;
+//    }
 
-    visualizer_->drawArrow(0, slam_pose_msg_, "slam pose", 2.0, 0.7, 1.0);
+    visualizer_->drawArrow(0, getRobotPoseMsg(), "slam pose", 2.0, 0.7, 1.0);
 
 
     int status = FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
@@ -391,12 +392,22 @@ bool BehaviouralPathDriver::checkCollision(double course)
     return collision;
 }
 
-RobotController *BehaviouralPathDriver::getController()
-{
-    return node_->getController();
-}
-
 PathFollower* BehaviouralPathDriver::getNode() const
 {
     return node_;
+}
+
+Vector3d BehaviouralPathDriver::getRobotPose() const
+{
+    return node_->getRobotPose();
+}
+
+const geometry_msgs::Pose &BehaviouralPathDriver::getRobotPoseMsg() const
+{
+    return node_->getRobotPoseMsg();
+}
+
+RobotController *BehaviouralPathDriver::getController()
+{
+    return node_->getController();
 }

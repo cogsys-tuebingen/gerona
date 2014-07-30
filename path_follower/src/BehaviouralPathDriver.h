@@ -144,7 +144,7 @@ public:
      * @param result Result of the finished path execution. Only meaningful, if return value is 0.
      * @return Returns 0 if the path execution is finished (no matter if successful or not) and 1 if it is still running.
      */
-    virtual int execute(path_msgs::FollowPathFeedback& feedback, path_msgs::FollowPathResult& result);
+    virtual bool execute(path_msgs::FollowPathFeedback& feedback, path_msgs::FollowPathResult& result);
     virtual void configure();
     virtual void setGoal(const path_msgs::FollowPathGoal& goal);
 
@@ -153,15 +153,9 @@ public:
     void setPath(const nav_msgs::Path& path);
     bool checkCollision(double course);
 
-    Vector3d getSlamPose() const
-    {
-        return slam_pose_;
-    }
+    Vector3d getRobotPose() const;
 
-    const geometry_msgs::Pose &getSlamPoseMsg() const
-    {
-        return slam_pose_msg_;
-    }
+    const geometry_msgs::Pose &getRobotPoseMsg() const;
 
     Behaviour* getActiveBehaviour() const
     {
@@ -191,8 +185,8 @@ private:
     Command current_command_;
     Options options_;
 
-    Vector3d slam_pose_;
-    geometry_msgs::Pose slam_pose_msg_;
+    //Vector3d slam_pose_;
+    //geometry_msgs::Pose slam_pose_msg_;
     nav_msgs::Path path_;
     std::vector<Path> paths_;
 

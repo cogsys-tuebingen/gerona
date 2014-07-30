@@ -5,7 +5,8 @@
 
 using namespace std;
 
-PathLookout::PathLookout()
+PathLookout::PathLookout():
+    obstacle_frame_("/map")
 {
     cv::namedWindow("Map", CV_WINDOW_KEEPRATIO);
     cv::namedWindow("Path", CV_WINDOW_KEEPRATIO);
@@ -84,7 +85,7 @@ bool PathLookout::lookForObstacles()
             // caclulate center of mass, using moments.
             cv::Moments mom = cv::moments(contours[i], true);
             cv::Point2f center(mom.m10/mom.m00, mom.m01/mom.m00);
-            center = map_trans_.transformPointFromMap(center, "/base_link");
+            center = map_trans_.transformPointFromMap(center, obstacle_frame_);
 
             obstacle_centers.push_back(center);
         } catch (const tf::TransformException& ex) {
@@ -100,9 +101,20 @@ bool PathLookout::lookForObstacles()
         return false;
     }
 
+    // get current robot position
+//    try {
+//        cv::Point2f robot_pos(0,0);
+//        center = map_trans_.transformPointFromMap(center, obstacle_frame_);
+
+//        obstacle_centers.push_back(center);
+//    } catch (const tf::TransformException& ex) {
+//        ROS_ERROR("TF-Error. Could not transform obstacle position. %s", ex.what());
+//    }
+
     vector<float> weights;
     weights.resize(tracked_obs.size());
-    transform(tracked_obs.begin(), tracked_obs.end(), weights.begin(), boost::bind(&PathLookout::weightObstacle, this, _1));
+    cv::Point2f robot_pos(0,0);
+    transform(tracked_obs.begin(), tracked_obs.end(), weights.begin(), boost::bind(&PathLookout::weightObstacle, this, robot_pos, _1));
     float max_weight = *max_element(weights.begin(), weights.end());
 
     // visualize obstacles in rviz
@@ -114,13 +126,13 @@ bool PathLookout::lookForObstacles()
             geometry_msgs::Point gp;
             gp.x = tracked_obs[i].last_position().x;
             gp.y = tracked_obs[i].last_position().y;
-            visualizer_->drawMark(id, gp, "obstacleonpath", 1,0,0, "/base_link");
+            visualizer_->drawMark(id, gp, "obstacleonpath", 1,0,0, obstacle_frame_);
 
             // show the weight.
             stringstream s;
             s << weights[i];
             gp.z = 0.5;
-            visualizer_->drawText(id, gp, s.str(), "obstacleonpath_weight", 1,0,0, "/base_link");
+            visualizer_->drawText(id, gp, s.str(), "obstacleonpath_weight", 1,0,0, obstacle_frame_);
         }
     }
 
@@ -173,14 +185,14 @@ void PathLookout::drawPathToImage(const Path &path)
     }
 }
 
-float PathLookout::weightObstacle(ObstacleTracker::TrackedObstacle o) const
+float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const
 {
     // This assumes, that the position is given in the robot frame (and thus pos_robot = 0).
 //    float dist_to_robot = cv::norm(o.last_position());
 //    ros::Duration lifetime = ros::Time::now() - o.time_of_first_sight();
 //    return scale_obstacle_distance_ * 1/dist_to_robot + scale_obstacle_duration_ * lifetime.toSec();
 
-    float dist_to_robot = cv::norm(o.last_position());
+    float dist_to_robot = cv::norm(robot_pos - o.last_position());
     ros::Duration lifetime = ros::Time::now() - o.time_of_first_sight();
     float w_dist = 1/exp(dist_to_robot - scale_obstacle_distance_); //TODO: something linear or quadratic would be better
     float w_time = pow(lifetime.toSec()/scale_obstacle_lifetime_, 2);
