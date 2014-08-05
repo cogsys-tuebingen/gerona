@@ -150,7 +150,7 @@ void PathLookout::drawPathToImage(const Path &path)
     /// This method assumes, that the map is already set!
 
     // first reset image
-    path_image_ = cv::Scalar(0);
+    path_image_ = cv::Scalar(0); //<- yup, this is possible in OpenCV :) Sets every pixel to 0.
 
     if (path.size() < 2) {
         ROS_WARN("Path has less than 2 waypoints. No obstacle lookout is done.");
@@ -183,17 +183,18 @@ void PathLookout::drawPathToImage(const Path &path)
 
 float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const
 {
-    // This assumes, that the position is given in the robot frame (and thus pos_robot = 0).
-//    float dist_to_robot = cv::norm(o.last_position());
-//    ros::Duration lifetime = ros::Time::now() - o.time_of_first_sight();
-//    return scale_obstacle_distance_ * 1/dist_to_robot + scale_obstacle_duration_ * lifetime.toSec();
-
     float dist_to_robot = cv::norm(robot_pos - o.last_position());
     ros::Duration lifetime = ros::Time::now() - o.time_of_first_sight();
-    float w_dist = 1/exp(dist_to_robot - opt_.scale_obstacle_distance_); //TODO: something linear or quadratic would be better
-    float w_time = pow(lifetime.toSec()/opt_.scale_obstacle_lifetime_, 2);
 
-    ROS_WARN("WEIGHT: d = %g, t = %g, wd = %g, wt = %g", dist_to_robot, lifetime.toSec(), w_dist, w_time);
+    // w_time is increasing quadratically with the time. t = scale => w_t = 1
+    float w_time = pow(lifetime.toSec()/opt_.scale_obstacle_lifetime_, 2);
+    // w_dist is increasing quadratically with decreasing distance. d = scale => w_d = 1.
+    // For d > 2*scale, w_d is zero (-> cuts off the other half of the parable).
+    float w_dist = dist_to_robot < 2*opt_.scale_obstacle_distance_
+                   ? pow((dist_to_robot - 2*opt_.scale_obstacle_distance_ )/opt_.scale_obstacle_distance_, 2)
+                   : 0;
+
+    //ROS_WARN("WEIGHT: d = %g, t = %g, wd = %g, wt = %g", dist_to_robot, lifetime.toSec(), w_dist, w_time);
 
     return w_dist + w_time;
 }
