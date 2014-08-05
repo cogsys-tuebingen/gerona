@@ -41,7 +41,7 @@ public:
     void setMap(const nav_msgs::OccupancyGridConstPtr &msg);
 
     //! Set the path, which is to be checked for obstacles.
-    void setPath(const Path &path);
+    void setPath(const PathWithPosition &path);
 
     //! Check if there is an obstacle on the path ahead of the robot, that gives a reason to cancel the current path.
     /**

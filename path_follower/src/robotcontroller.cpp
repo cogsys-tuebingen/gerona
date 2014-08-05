@@ -25,7 +25,7 @@ void RobotController::setPath(PathWithPosition path)
         throw new BehaviourEmergencyBreak(*path_driver_);
     }
 
-    path_driver_->getNode()->path_lookout_.setPath(*path.current_path);
+    path_driver_->getNode()->path_lookout_.setPath(path);
 }
 
 double RobotController::calculateAngleError()

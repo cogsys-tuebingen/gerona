@@ -1,6 +1,10 @@
 #include "pathlookout.h"
 
-//#include <opencv2/highgui/highgui.hpp>
+#define DEBUG_PATHLOOKOUT 0
+
+#if DEBUG_PATHLOOKOUT
+    #include <opencv2/highgui/highgui.hpp>
+#endif
 #include <vector>
 #include "pathfollower.h"
 
@@ -10,9 +14,11 @@ PathLookout::PathLookout(PathFollower *node):
     node_(node),
     obstacle_frame_("/map")
 {
-//    cv::namedWindow("Map", CV_WINDOW_KEEPRATIO);
-//    cv::namedWindow("Path", CV_WINDOW_KEEPRATIO);
-//    cv::namedWindow("Intersection", CV_WINDOW_KEEPRATIO);
+    #if DEBUG_PATHLOOKOUT
+        cv::namedWindow("Map", CV_WINDOW_KEEPRATIO);
+        cv::namedWindow("Path", CV_WINDOW_KEEPRATIO);
+        cv::namedWindow("Intersection", CV_WINDOW_KEEPRATIO);
+    #endif
 
     visualizer_ = Visualizer::getInstance();
     configure();
@@ -33,19 +39,24 @@ void PathLookout::setMap(const nav_msgs::OccupancyGridConstPtr &map)
     //map_image_.data = &map->data[0];  <- no copy, only references. Would be nice, but yields problems with const...
 }
 
-void PathLookout::setPath(const Path &path)
+void PathLookout::setPath(const PathWithPosition &path)
 {
     // if there is no map yet, we do not know the size of the path image -> do nothing
     if (map_ == NULL) {
         return;
     }
 
-    // initialize path image to fit map size
-    if (path_image_.empty()) {
-        path_image_ = cv::Mat(map_->info.height, map_->info.width, CV_8UC1, cv::Scalar(0));
+    // only use path from the last waypoint on (never mind if there is an obstacle behind the robot)
+    Path path_ahead;
+    if (path.wp_idx == 0) {
+        path_ahead = *path.current_path;
+    } else {
+        Path::const_iterator start = path.current_path->begin();
+        start += (path.wp_idx-1);
+        path_ahead.assign(start, (Path::const_iterator) path.current_path->end());
     }
 
-    drawPathToImage(path);
+    drawPathToImage(path_ahead);
 }
 
 bool PathLookout::lookForObstacles()
@@ -67,10 +78,12 @@ bool PathLookout::lookForObstacles()
     cv::bitwise_and(map_image_, path_image_, intersect);
 
     // debug
-//    cv::imshow("Map", map_image_);
-//    cv::imshow("Path", path_image_);
-//    cv::imshow("Intersection", intersect);
-//    cv::waitKey(5);
+    #if DEBUG_PATHLOOKOUT
+        cv::imshow("Map", map_image_);
+        cv::imshow("Path", path_image_);
+        cv::imshow("Intersection", intersect);
+        cv::waitKey(5);
+    #endif
 
     // find obstacle contours on the path
     vector<vector<cv::Point> > contours;
@@ -146,6 +159,11 @@ void PathLookout::configure()
 void PathLookout::drawPathToImage(const Path &path)
 {
     /// This method assumes, that the map is already set!
+
+    // initialize path image to fit map size
+    if (path_image_.empty()) {
+        path_image_ = cv::Mat(map_->info.height, map_->info.width, CV_8UC1, cv::Scalar(0));
+    }
 
     // first reset image
     path_image_ = cv::Scalar(0); //<- yup, this is possible in OpenCV :) Sets every pixel to 0.
