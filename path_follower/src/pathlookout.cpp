@@ -45,7 +45,6 @@ void PathLookout::setPath(const Path &path)
         path_image_ = cv::Mat(map_->info.height, map_->info.width, CV_8UC1, cv::Scalar(0));
     }
 
-    //path_ = path;
     drawPathToImage(path);
 }
 
@@ -128,7 +127,6 @@ bool PathLookout::lookForObstacles()
     }
 
     // report obstacle, if the highest weight is higher than the defined limit.
-
     ROS_DEBUG("Max Obstacle Weight: %g, limit: %g", max_weight, opt_.obstacle_weight_limit_);
     return max_weight > opt_.obstacle_weight_limit_;
 }

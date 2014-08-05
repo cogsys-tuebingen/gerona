@@ -18,6 +18,21 @@
 
 class PathFollower;
 
+
+/**
+ * @brief Looks out for obstacles on the path.
+ *
+ * Looks for obstacles farther ahead, that are blocking the path. Keeps track of such obstacles and weights them,
+ * depending on how long the obstacle is visible and how far away it is.
+ * If the weight of any obstacle exceeds a defined limit, an alarm is risen so the robot can early react e.g. by
+ * replaning.
+ *
+ * The weight is calculated in weightObstacle(). It increases quadratically with increasing lifetime and decreasing
+ * distance.
+ * There are two parameters to adjust the weight:
+ *    ~obstacle_scale_distance: Distance at which the robot stops, independed of the duration-weight.
+ *    ~obstacle_scale_lifetime: Duration after which the robot stops, independend of the distance-weight.
+ */
 class PathLookout
 {
 public:
@@ -44,24 +59,23 @@ private:
 
         //! Width of the path in meters.
         float path_width_;
-    };
+    } opt_;
 
-    Options opt_;
-
+    //! TF-Frame in which the obstacles are tracked (should be independent of the robots movement, thus /map is a good choise).
     std::string obstacle_frame_;
 
     PathFollower *node_;
-
     MapTransformer map_trans_;
     ObstacleTracker tracker_;
     Visualizer *visualizer_;
 
+    //! The current obstacle map.
     nav_msgs::OccupancyGridConstPtr map_;
 
+    //! Current map converted to cv::Mat.
     cv::Mat map_image_;
 
-    //Path path_;
-
+    //! Mask image of the path
     cv::Mat path_image_;
 
     void configure();
@@ -70,6 +84,7 @@ private:
     /** @see path_image_ */
     void drawPathToImage(const Path &path);
 
+    //! Compute weight for the given obstacle, depending on its distance to the robot and its lifetime.
     float weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const;
 };
 

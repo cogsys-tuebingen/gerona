@@ -5,6 +5,14 @@
 
 using namespace std;
 
+ObstacleTracker::ObstacleTracker()
+{
+    ros::param::param<float>("~obstacle_tracker/max_dist", opt_.max_dist_, 0.3f);
+    int ll;
+    ros::param::param<int>("~obstacle_tracker/lost_lifetime", ll, 1.0f);
+    opt_.lost_lifetime_ = ros::Duration(ll);
+}
+
 void ObstacleTracker::update(std::vector<cv::Point2f> observed_obstacles)
 {
     /**
@@ -61,7 +69,7 @@ void ObstacleTracker::update(std::vector<cv::Point2f> observed_obstacles)
         //ROS_DEBUG("min idx = %d (%d), dist = %g", d_idx.at<ushort>(min_idx), min_idx, dist.at<float>(d_idx.at<ushort>(min_idx)));
 
         // If the shortest distance is to big, assume that all matchable obstacles are matched.
-        if (min > max_dist_) {
+        if (min > opt_.max_dist_) {
             break;
         }
 
@@ -106,7 +114,7 @@ void ObstacleTracker::update(std::vector<cv::Point2f> observed_obstacles)
 
 bool ObstacleTracker::isDead(ObstacleTracker::TrackedObstacle o)
 {
-    return (ros::Time::now() - o.time_of_last_sight()) > lost_lifetime_;
+    return (ros::Time::now() - o.time_of_last_sight()) > opt_.lost_lifetime_;
 }
 
 void ObstacleTracker::removeRow(cv::Mat &m, int row)

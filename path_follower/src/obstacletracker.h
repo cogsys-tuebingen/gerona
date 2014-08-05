@@ -73,14 +73,11 @@ public:
         ros::Time time_of_last_sight_;
     };
 
-    ObstacleTracker():
-        max_dist_(0.3f),
-        lost_lifetime_(1) //FIXME: parameters
-    {}
+    ObstacleTracker();
 
     void setMaxDist(float md)
     {
-        max_dist_ = md;
+        opt_.max_dist_ = md;
     }
 
     std::vector<TrackedObstacle> getTrackedObstacles() const
@@ -96,14 +93,20 @@ public:
     void update(std::vector<cv::Point2f> obstacles);
 
 private:
-    //! Only match new observation with tracked obstacle, if the position change is less than this threshold.
-    float max_dist_;
+    struct Options
+    {
+        //! Only match new observation with tracked obstacle, if the position change is less than this threshold.
+        float max_dist_;
 
-    //! Duration for which a lost obstacle is still tracked at its last known position.
-    ros::Duration lost_lifetime_;
+        //! Duration for which a lost obstacle is still tracked at its last known position.
+        ros::Duration lost_lifetime_;
+    } opt_;
 
+    //! List of tracked obstacles
     std::vector<TrackedObstacle> obstacles_;
 
+    //! Check if an obstacle is dead (= no observation for more than the allowed ''lost lifetime'') and thus can be
+    //! removed from the list.
     bool isDead(TrackedObstacle o);
 
     /**
