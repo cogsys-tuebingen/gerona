@@ -129,23 +129,26 @@ bool PathLookout::lookForObstacles()
 
     // report obstacle, if the highest weight is higher than the defined limit.
 
-    ROS_DEBUG("Max Obstacle Weight: %g, limit: %g", max_weight, obstacle_weight_limit_);
-    return max_weight > obstacle_weight_limit_;
+    ROS_DEBUG("Max Obstacle Weight: %g, limit: %g", max_weight, opt_.obstacle_weight_limit_);
+    return max_weight > opt_.obstacle_weight_limit_;
 }
 
 void PathLookout::configure()
 {
     //TODO: add params to documentation
-    ros::param::param<float>("~obstacle_scale_distance", scale_obstacle_distance_, 3.0f);
-    ros::param::param<float>("~obstacle_scale_lifetime", scale_obstacle_lifetime_, 10.0f);
+    ros::param::param<float>("~obstacle_scale_distance", opt_.scale_obstacle_distance_, 3.0f);
+    ros::param::param<float>("~obstacle_scale_lifetime", opt_.scale_obstacle_lifetime_, 10.0f);
+    ros::param::param<float>("~path_width", opt_.path_width_, 0.5f);
 
     // there should be no need to make max. weight configurable, as it can be scaled using the parameters above.
-    obstacle_weight_limit_ = 1.0f;
+    opt_.obstacle_weight_limit_ = 1.0f;
 }
 
 
 void PathLookout::drawPathToImage(const Path &path)
 {
+    /// This method assumes, that the map is already set!
+
     // first reset image
     path_image_ = cv::Scalar(0);
 
@@ -154,8 +157,9 @@ void PathLookout::drawPathToImage(const Path &path)
         return;
     }
 
-    Path::const_iterator iter = path.begin();
+    int path_width_pixel = (int) ceil(opt_.path_width_ / map_->info.resolution);
 
+    Path::const_iterator iter = path.begin();
     try {
         // get first point
         cv::Point2f p1(iter->x, iter->y);
@@ -165,7 +169,7 @@ void PathLookout::drawPathToImage(const Path &path)
             cv::Point2f p2(iter->x, iter->y);
             p2 = map_trans_.transformPointToMap(p2, "/map");
 
-            cv::line(path_image_, p1, p2, cv::Scalar(255), 2); //TODO: more reasonable value for thickness
+            cv::line(path_image_, p1, p2, cv::Scalar(255), path_width_pixel);
             p1 = p2;
         }
     } catch (const tf::TransformException& ex) {
@@ -186,8 +190,8 @@ float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::Tracke
 
     float dist_to_robot = cv::norm(robot_pos - o.last_position());
     ros::Duration lifetime = ros::Time::now() - o.time_of_first_sight();
-    float w_dist = 1/exp(dist_to_robot - scale_obstacle_distance_); //TODO: something linear or quadratic would be better
-    float w_time = pow(lifetime.toSec()/scale_obstacle_lifetime_, 2);
+    float w_dist = 1/exp(dist_to_robot - opt_.scale_obstacle_distance_); //TODO: something linear or quadratic would be better
+    float w_time = pow(lifetime.toSec()/opt_.scale_obstacle_lifetime_, 2);
 
     ROS_WARN("WEIGHT: d = %g, t = %g, wd = %g, wt = %g", dist_to_robot, lifetime.toSec(), w_dist, w_time);
 

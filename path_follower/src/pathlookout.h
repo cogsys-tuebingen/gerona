@@ -35,6 +35,19 @@ public:
     bool lookForObstacles();
 
 private:
+    struct Options
+    {
+        float scale_obstacle_distance_;
+        float scale_obstacle_lifetime_;
+        //! Stop robot, if the weight of an obstacle becomes higher than this value.
+        float obstacle_weight_limit_;
+
+        //! Width of the path in meters.
+        float path_width_;
+    };
+
+    Options opt_;
+
     std::string obstacle_frame_;
 
     PathFollower *node_;
@@ -51,14 +64,9 @@ private:
 
     cv::Mat path_image_;
 
-    float scale_obstacle_distance_;
-    float scale_obstacle_lifetime_;
-    //! Stop robot, if the weight of an obstacle becomes higher than this value.
-    float obstacle_weight_limit_;
-
     void configure();
 
-    //! draw the path to the path image
+    //! draw the path to the path image (assumes, that map is already set!)
     /** @see path_image_ */
     void drawPathToImage(const Path &path);
 
