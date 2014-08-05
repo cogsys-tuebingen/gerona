@@ -14,7 +14,7 @@ ObstacleTracker::ObstacleTracker()
     opt_.lost_lifetime_ = ros::Duration(ll);
 }
 
-void ObstacleTracker::update(std::vector<cv::Point2f> observed_obstacles)
+void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
 {
     /**
      * There is a slight difference in the actual implementation of the algorithmen, compared to the description in the
@@ -25,6 +25,11 @@ void ObstacleTracker::update(std::vector<cv::Point2f> observed_obstacles)
      * fields in the distance matrix. This index-matrix is then used to cut away matched obstacles, instead of the
      * distance matrix itself.
      */
+
+    //FIXME: exploit enclosing circle of obstacles for matching (match if center is within the circle or something like that)
+
+    //FIXME: Reset tracker on replaning!
+
 
     // Delete "dead" obstacles, which could not be matched for more than the time, specified in lost_lifetime_.
     // Use ugly c++ version of functional "filter"...
@@ -44,7 +49,7 @@ void ObstacleTracker::update(std::vector<cv::Point2f> observed_obstacles)
     ushort i = 0; // ATTENTION: i is the data-index to dist. Therefore the outer loop must iterate over rows, the inner over columns!
     for (size_t o = 0; o < observed_obstacles.size(); ++o)
     for (size_t t = 0; t < obstacles_.size();         ++t) {
-        dist.at<float>(o, t)   = norm(observed_obstacles[o] - obstacles_[t].last_position());
+        dist.at<float>(o, t)   = norm(observed_obstacles[o].center - obstacles_[t].last_position());
         d_idx.at<ushort>(o, t) = i++;
 
     }

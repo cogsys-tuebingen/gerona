@@ -13,6 +13,13 @@
 /// PROJECT
 #include "maptransformer.h"
 
+struct Obstacle
+{
+    // Obstacle is representat as circle.
+    cv::Point2f center;
+    float radius;
+};
+
 /**
  * @brief Track obstacles on the path.
  *
@@ -36,21 +43,26 @@ class ObstacleTracker
 public:
     class TrackedObstacle {
     public:
-        TrackedObstacle(cv::Point2f pos):
-            last_position_(pos),
+        TrackedObstacle(Obstacle obs):
+            obstacle_(obs),
             time_of_first_sight_(ros::Time::now()),
             time_of_last_sight_(ros::Time::now())
         {}
 
-        void update(cv::Point2f pos)
+        void update(Obstacle obs)
         {
-            last_position_ = pos;
+            obstacle_ = obs;
             time_of_last_sight_ = ros::Time::now();
         }
 
         cv::Point2f last_position() const
         {
-            return last_position_;
+            return obstacle_.center;
+        }
+
+        float radius() const
+        {
+            return obstacle_.radius;
         }
 
         ros::Time time_of_first_sight() const
@@ -64,9 +76,8 @@ public:
         }
 
     private:
-        //std::vector<cv::Point> contour;
         //! Last known position of the obstacle.
-        cv::Point2f last_position_;
+        Obstacle obstacle_;
         //! Time, when the obstacle was detected for the first time (i.e. when it has been added to the list of tracked obstacles).
         ros::Time time_of_first_sight_;
         //! Time, when the obstacle was detected for the last time (to track lost obstacles).
@@ -90,7 +101,7 @@ public:
      * @brief Update the list ob tracked obstacles with a new observation.
      * @param obstacles List of obstacles observed in the last scan.
      */
-    void update(std::vector<cv::Point2f> obstacles);
+    void update(std::vector<Obstacle> obstacles);
 
 private:
     struct Options

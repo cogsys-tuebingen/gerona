@@ -83,10 +83,11 @@ public:
      * @param r       Marker color, red.
      * @param g       Marker color, green.
      * @param b       Marker color, blue.
+     * @param alpha   Marker color, alpha (for transparency)
      * @param live    Lifetime of the marker.
      */
     void drawCircle(int id, const geometry_msgs::Point &center, double radius, const std::string &frame,
-                    const std::string& ns, float r, float g, float b, double live = 3) const;
+                    const std::string& ns, float r, float g, float b, float alpha=1, double live = 3) const;
 
     /**
      * @brief Publish a simple marker to visualize a single point.

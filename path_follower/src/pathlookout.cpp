@@ -46,7 +46,7 @@ void PathLookout::setPath(const PathWithPosition &path)
         return;
     }
 
-    // only use path from the last waypoint on (never mind if there is an obstacle behind the robot)
+    // only use path from the last waypoint on ("do not look behind")
     Path path_ahead;
     if (path.wp_idx == 0) {
         path_ahead = *path.current_path;
@@ -61,8 +61,8 @@ void PathLookout::setPath(const PathWithPosition &path)
 
 bool PathLookout::lookForObstacles()
 {
-    //FIXME: This does currently not take the postion of the robot into account (thus also obstacles behind the robot
-    // can stop the robot).
+    //FIXME: Use bounding circle or something like that instead of only the center of mass
+    //TODO: dilate obstacle blobs before findinf contrours?
 
     if (map_ == NULL) {
         ROS_WARN("PathLookout has not received any map yet. No obstacle lookout is done.");
@@ -77,6 +77,37 @@ bool PathLookout::lookForObstacles()
     cv::Mat intersect;
     cv::bitwise_and(map_image_, path_image_, intersect);
 
+    // find obstacle contours on the path
+    vector<vector<cv::Point> > contours;
+    cv::findContours(intersect, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+
+    // Get center of each obstacle (for tracking)
+    vector<Obstacle> observed_obstacles;
+    observed_obstacles.reserve(contours.size());
+    for(size_t i = 0; i < contours.size(); ++i) {
+        try {
+            // calculate center of mass, using moments.
+            //cv::Moments mom = cv::moments(contours[i], true);
+            //cv::Point2f center(mom.m10/mom.m00, mom.m01/mom.m00);
+
+            Obstacle obstacle;
+            cv::minEnclosingCircle(contours[i], obstacle.center, obstacle.radius);
+
+            #if DEBUG_PATHLOOKOUT
+                // dont need intersect anymore, so it is ok to draw debug stuff to it.
+                cv::circle(intersect, obstacle.center, obstacle.radius, cv::Scalar(255));
+            #endif
+
+            // transform center and scale radius from pixel to meters.
+            obstacle.center = map_trans_.transformPointFromMap(obstacle.center, obstacle_frame_);
+            obstacle.radius *= map_->info.resolution;
+
+            observed_obstacles.push_back(obstacle);
+        } catch (const tf::TransformException& ex) {
+            ROS_ERROR("TF-Error. Could not transform obstacle position. %s", ex.what());
+        }
+    }
+
     // debug
     #if DEBUG_PATHLOOKOUT
         cv::imshow("Map", map_image_);
@@ -85,28 +116,8 @@ bool PathLookout::lookForObstacles()
         cv::waitKey(5);
     #endif
 
-    // find obstacle contours on the path
-    vector<vector<cv::Point> > contours;
-    cv::findContours(intersect, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-
-    // Get center of each obstacle (for tracking)
-    vector<cv::Point2f> obstacle_centers;
-    obstacle_centers.reserve(contours.size());
-    for(size_t i = 0; i < contours.size(); ++i) {
-        try {
-            // caclulate center of mass, using moments.
-            cv::Moments mom = cv::moments(contours[i], true);
-            cv::Point2f center(mom.m10/mom.m00, mom.m01/mom.m00);
-            center = map_trans_.transformPointFromMap(center, obstacle_frame_);
-
-            obstacle_centers.push_back(center);
-        } catch (const tf::TransformException& ex) {
-            ROS_ERROR("TF-Error. Could not transform obstacle position. %s", ex.what());
-        }
-    }
-
     // Update tracker and calculate weights for the tracked obstacles.
-    tracker_.update(obstacle_centers);
+    tracker_.update(observed_obstacles);
 
     vector<ObstacleTracker::TrackedObstacle> tracked_obs = tracker_.getTrackedObstacles();
     if (tracked_obs.empty()) {
@@ -129,7 +140,8 @@ bool PathLookout::lookForObstacles()
             geometry_msgs::Point gp;
             gp.x = tracked_obs[i].last_position().x;
             gp.y = tracked_obs[i].last_position().y;
-            visualizer_->drawMark(id, gp, "obstacleonpath", 1,0,0, obstacle_frame_);
+            //visualizer_->drawMark(id, gp, "obstacleonpath", 1,0,0, obstacle_frame_);
+            visualizer_->drawCircle(id, gp, tracked_obs[i].radius(), obstacle_frame_, "obstacleonpath", 1,0,0,0.5, 1);
 
             // show the weight.
             stringstream s;
@@ -199,7 +211,7 @@ void PathLookout::drawPathToImage(const Path &path)
 
 float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const
 {
-    float dist_to_robot = cv::norm(robot_pos - o.last_position());
+    float dist_to_robot = cv::norm(robot_pos - o.last_position()) - o.radius();
     ros::Duration lifetime = ros::Time::now() - o.time_of_first_sight();
 
     // w_time is increasing quadratically with the time. t = scale => w_t = 1

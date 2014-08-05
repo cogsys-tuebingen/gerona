@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
     ros::init(argc, argv, "test_obstacle_tracker");
     ros::NodeHandle nh;
 
+    /*
     vector<cv::Point2f> obs1;
     obs1.push_back(cv::Point2f(1,1));
     obs1.push_back(cv::Point2f(2,1));
@@ -47,7 +48,7 @@ int main(int argc, char** argv) {
     tracker.update(obs2);
     prettyPrint(tracker.getTrackedObstacles());
 
-    // DOES NOT WORK YET! Seems, like all tracked objects are dropped.
+    */
 
 //    ros::Rate rate(50);
 
