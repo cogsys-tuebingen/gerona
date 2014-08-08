@@ -330,6 +330,8 @@ void PathController::followPathFeedbackCB(const path_msgs::FollowPathFeedbackCon
         break;
     }
 
+    nav_feedback.obstacles_on_path = feedback->obstacles_on_path;
+
     navigate_to_goal_server_.publishFeedback(nav_feedback);
 }
 

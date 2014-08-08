@@ -44,6 +44,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
+add_message_files(
+  FILES
+    Obstacle.msg
+)
+
 # Generate actions in the 'action' folder
 add_action_files(
   FILES

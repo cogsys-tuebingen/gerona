@@ -12,12 +12,24 @@
 
 /// PROJECT
 #include "maptransformer.h"
+#include <path_msgs/Obstacle.h>
 
 struct Obstacle
 {
     // Obstacle is representat as circle.
     cv::Point2f center;
     float radius;
+
+    path_msgs::Obstacle toMsg() const
+    {
+        path_msgs::Obstacle msg;
+        msg.position.x = center.x;
+        msg.position.y = center.y;
+        msg.position.z = 0;
+        msg.radius = radius;
+
+        return msg;
+    }
 };
 
 /**
@@ -55,14 +67,9 @@ public:
             time_of_last_sight_ = ros::Time::now();
         }
 
-        cv::Point2f last_position() const
+        Obstacle obstacle() const
         {
-            return obstacle_.center;
-        }
-
-        float radius() const
-        {
-            return obstacle_.radius;
+            return obstacle_;
         }
 
         ros::Time time_of_first_sight() const

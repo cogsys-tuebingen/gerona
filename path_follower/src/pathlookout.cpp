@@ -7,6 +7,7 @@
 #endif
 #include <vector>
 #include "pathfollower.h"
+#include "boost/foreach.hpp"
 
 using namespace std;
 
@@ -59,9 +60,8 @@ void PathLookout::setPath(const PathWithPosition &path)
     drawPathToImage(path_ahead);
 }
 
-bool PathLookout::lookForObstacles()
+bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
 {
-    //FIXME: Use bounding circle or something like that instead of only the center of mass
     //TODO: dilate obstacle blobs before findinf contrours?
 
     if (map_ == NULL) {
@@ -116,7 +116,7 @@ bool PathLookout::lookForObstacles()
         cv::waitKey(5);
     #endif
 
-    // Update tracker and calculate weights for the tracked obstacles.
+    // Update tracker
     tracker_.update(observed_obstacles);
 
     vector<ObstacleTracker::TrackedObstacle> tracked_obs = tracker_.getTrackedObstacles();
@@ -124,6 +124,19 @@ bool PathLookout::lookForObstacles()
         return false;
     }
 
+    // Generate list of obstacle messages (both for action feedback and for visualization)
+    vector<path_msgs::Obstacle> obstacle_msgs;
+    obstacle_msgs.reserve(tracked_obs.size());
+    vector<ObstacleTracker::TrackedObstacle>::const_iterator it;
+    for (it = tracked_obs.begin(); it != tracked_obs.end(); ++it) {
+        obstacle_msgs.push_back(it->obstacle().toMsg());
+    }
+
+    if (feedback != NULL) {
+        feedback->obstacles_on_path = obstacle_msgs;
+    }
+
+    // calculate weights for the tracked obstacles.
     vector<float> weights;
     weights.resize(tracked_obs.size());
     Eigen::Vector3d robot_pos = node_->getRobotPose();
@@ -137,11 +150,9 @@ bool PathLookout::lookForObstacles()
             // this should be a unique identifier for a tracked obstacle
             int id = tracked_obs[i].time_of_first_sight().toNSec();
 
-            geometry_msgs::Point gp;
-            gp.x = tracked_obs[i].last_position().x;
-            gp.y = tracked_obs[i].last_position().y;
+            geometry_msgs::Point gp = obstacle_msgs[i].position;
             //visualizer_->drawMark(id, gp, "obstacleonpath", 1,0,0, obstacle_frame_);
-            visualizer_->drawCircle(id, gp, tracked_obs[i].radius(), obstacle_frame_, "obstacleonpath", 1,0,0,0.5, 0.1);
+            visualizer_->drawCircle(id, gp, tracked_obs[i].obstacle().radius, obstacle_frame_, "obstacleonpath", 1,0,0,0.5, 0.1);
 
             // show the weight.
             stringstream s;
@@ -218,7 +229,7 @@ void PathLookout::drawPathToImage(const Path &path)
 
 float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const
 {
-    float dist_to_robot = cv::norm(robot_pos - o.last_position()) - o.radius();
+    float dist_to_robot = cv::norm(robot_pos - o.obstacle().center) - o.obstacle().radius;
     ros::Duration lifetime = ros::Time::now() - o.time_of_first_sight();
 
     // w_time is increasing quadratically with the time. t = scale => w_t = 1
