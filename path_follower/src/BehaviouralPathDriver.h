@@ -82,8 +82,6 @@ public:
         //! the path follower will abort.
         double max_distance_to_path_;
 
-        float velocity_; //FIXME: obsolete when RobotController is working
-
         double steer_slow_threshold_;
 
         //! Width of the collisin box for obstacle avoidance.

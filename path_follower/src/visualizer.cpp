@@ -126,7 +126,7 @@ void Visualizer::drawMark(int id, const geometry_msgs::Point &pos, const std::st
 }
 
 void Visualizer::drawText(int id, const geometry_msgs::Point &pos, const std::string &text, const std::string &ns,
-                          float r, float g, float b, const std::string &frame) const
+                          float r, float g, float b, const std::string &frame, double live) const
 {
     visualization_msgs::Marker marker;
     marker.pose.position = pos;
@@ -135,7 +135,7 @@ void Visualizer::drawText(int id, const geometry_msgs::Point &pos, const std::st
     marker.header.stamp = ros::Time();
     marker.action = visualization_msgs::Marker::ADD;
     marker.id = id;
-    marker.lifetime = ros::Duration(3);
+    marker.lifetime = ros::Duration(live);
     marker.color.r = r;
     marker.color.g = g;
     marker.color.b = b;

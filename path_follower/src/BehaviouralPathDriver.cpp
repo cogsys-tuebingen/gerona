@@ -147,12 +147,6 @@ bool BehaviouralPathDriver::execute(FollowPathFeedback& feedback, FollowPathResu
         start();
     }
 
-//    if ( !node_->getWorldPose( &slam_pose_, &slam_pose_msg_ )) {
-//        stop(); // FIXME: stop() sets velocity to 0, but due to the return, this is never published.
-//        result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
-//        return DONE;
-//    }
-
     visualizer_->drawArrow(0, getRobotPoseMsg(), "slam pose", 2.0, 0.7, 1.0);
 
 
@@ -307,7 +301,6 @@ void BehaviouralPathDriver::setPath(const nav_msgs::Path& path)
 void BehaviouralPathDriver::setGoal(const FollowPathGoal &goal)
 {
     pending_error_ = -1;
-    options_.velocity_ = goal.velocity;
 
     if ( goal.path.poses.size() < 2 ) {
         ROS_ERROR( "Got an invalid path with less than two poses." );

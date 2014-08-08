@@ -112,9 +112,10 @@ public:
      * @param g     Marker color, green.
      * @param b     Marker color, blue.
      * @param frame TF-Frame, in which the position is given.
+     * @param live  Lifetime of the marker.
      */
     void drawText(int id, const geometry_msgs::Point &pos, const std::string &text, const std::string& ns,
-                  float r, float g, float b, const std::string &frame="/map") const;
+                  float r, float g, float b, const std::string &frame="/map", double live = 1) const;
 
     /**
      * @brief Draw an arrow to visualize the steering angle.

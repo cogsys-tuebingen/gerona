@@ -103,6 +103,9 @@ public:
      */
     void update(std::vector<Obstacle> obstacles);
 
+    //! Reset the tracker (= drop all tracked obstacles).
+    void reset();
+
 private:
     struct Options
     {

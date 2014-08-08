@@ -77,6 +77,9 @@ void PathFollower::followPathGoalCB()
 
     controller_->setVelocity(goalptr->velocity);
     active_ctrl_->setGoal(*goalptr);
+
+    // don't track obstacles of former paths.
+    path_lookout_.reset();
 }
 
 void PathFollower::followPathPreemptCB()
@@ -246,6 +249,11 @@ VectorFieldHistogram& PathFollower::getVFH()
 RobotController *PathFollower::getController()
 {
     return controller_;
+}
+
+PathLookout *PathFollower::getPathLookout()
+{
+    return &path_lookout_;
 }
 
 void PathFollower::say(string text)

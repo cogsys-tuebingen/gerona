@@ -141,19 +141,26 @@ bool PathLookout::lookForObstacles()
             gp.x = tracked_obs[i].last_position().x;
             gp.y = tracked_obs[i].last_position().y;
             //visualizer_->drawMark(id, gp, "obstacleonpath", 1,0,0, obstacle_frame_);
-            visualizer_->drawCircle(id, gp, tracked_obs[i].radius(), obstacle_frame_, "obstacleonpath", 1,0,0,0.5, 1);
+            visualizer_->drawCircle(id, gp, tracked_obs[i].radius(), obstacle_frame_, "obstacleonpath", 1,0,0,0.5, 0.1);
 
             // show the weight.
             stringstream s;
             s << weights[i];
             gp.z = 0.5;
-            visualizer_->drawText(id, gp, s.str(), "obstacleonpath_weight", 1,0,0, obstacle_frame_);
+            visualizer_->drawText(id, gp, s.str(), "obstacleonpath_weight", 1,0,0, obstacle_frame_, 0.1);
         }
     }
 
     // report obstacle, if the highest weight is higher than the defined limit.
     ROS_DEBUG("Max Obstacle Weight: %g, limit: %g", max_weight, opt_.obstacle_weight_limit_);
     return max_weight > opt_.obstacle_weight_limit_;
+}
+
+void PathLookout::reset()
+{
+    // important! path mask has to be reseted, otherwise obstacles will be readded immediately.
+    path_image_ = cv::Scalar(0);
+    tracker_.reset();
 }
 
 void PathLookout::configure()

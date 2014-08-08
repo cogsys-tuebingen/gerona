@@ -57,11 +57,10 @@ public:
 
     RobotController* getController();
 
+    PathLookout* getPathLookout();
+
     //! Send 'text' to a text to speech processor.
     void say(std::string text);
-
-    //FIXME: public only for testing
-    PathLookout path_lookout_;
 
     Eigen::Vector3d getRobotPose() const;
     const geometry_msgs::Pose &getRobotPoseMsg() const;
@@ -114,12 +113,13 @@ private:
 
     RobotController *controller_;
 
+    PathLookout path_lookout_;
+
     //! Current pose of the robot as Eigen vector (x,y,theta).
     Eigen::Vector3d robot_pose_;
 
     //! Current pose of the robot as geometry_msgs pose.
     geometry_msgs::Pose robot_pose_msg_;
-
 
 
     void followPathGoalCB();

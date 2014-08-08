@@ -28,8 +28,6 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
 
     //FIXME: exploit enclosing circle of obstacles for matching (match if center is within the circle or something like that)
 
-    //FIXME: Reset tracker on replaning!
-
 
     // Delete "dead" obstacles, which could not be matched for more than the time, specified in lost_lifetime_.
     // Use ugly c++ version of functional "filter"...
@@ -116,6 +114,11 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
     }
 
     ROS_DEBUG_NAMED("ObstacleTracker", "Added %d new obstacles", add_counter);
+}
+
+void ObstacleTracker::reset()
+{
+    obstacles_.clear();
 }
 
 bool ObstacleTracker::isDead(ObstacleTracker::TrackedObstacle o)

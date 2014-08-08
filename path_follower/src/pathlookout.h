@@ -49,6 +49,9 @@ public:
      */
     bool lookForObstacles();
 
+    //! Reset the obstacle tracker (should be called before starting a new path).
+    void reset();
+
 private:
     struct Options
     {
