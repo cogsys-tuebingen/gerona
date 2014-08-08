@@ -11,11 +11,12 @@
 #include "multiplepidwrapper.h"
 #include "visualizer.h"
 #include "obstacledetectoromnidrive.h"
+#include "pathfollower.h"
 
 class RobotController_Omnidrive_VirtualVehicle : public RobotController
 {
 public:
-    RobotController_Omnidrive_VirtualVehicle(ros::Publisher &cmd_publisher, BehaviouralPathDriver *path_driver);
+    RobotController_Omnidrive_VirtualVehicle(ros::Publisher &cmd_publisher, PathFollower *path_driver);
 
     virtual void publishCommand();
 
@@ -116,7 +117,7 @@ private:
     ros::Publisher points_pub_;
 
 
-    nav_msgs::Path put;
+    nav_msgs::Path interp_path;
     nav_msgs::Path vv_path;
     std::vector<double> p;
     std::vector<double> q;
@@ -139,7 +140,7 @@ private:
     double gama;
     double Ts;
     double psi_d_prev;
-    visualization_msgs::Marker tacke;
+    visualization_msgs::Marker robot_path;
 };
 
 #endif // ROBOTCONTROLLER_OMNIDRIVE_VV_H

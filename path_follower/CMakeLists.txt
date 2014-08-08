@@ -135,8 +135,6 @@ include_directories(
 add_executable(path_follower_node
   src/follower_node.cpp
   src/pathfollower.cpp
-  src/MotionController.cpp
-  src/BehaviouralPathDriver.cpp
   src/behaviours.cpp
   src/PidCtrl.cpp
   src/multiplepidwrapper.cpp
@@ -154,6 +152,9 @@ add_executable(path_follower_node
   src/robotcontroller_omnidrive_vv.cpp
   src/robotcontroller_omnidrive_orthexp.cpp
   src/path.h
+  src/pathlookout.cpp
+  src/obstacletracker.cpp
+  src/maptransformer.cpp
   src/cubic_spline_interpolation.cpp
 
 
@@ -174,6 +175,14 @@ add_executable(path_follower_node
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)
 target_link_libraries(path_follower_node
+  ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
+)
+
+add_executable(test_obstacle_tracker
+  src/test_obstacletracker.cpp
+  src/obstacletracker.cpp
+)
+target_link_libraries(test_obstacle_tracker
   ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
 )
 

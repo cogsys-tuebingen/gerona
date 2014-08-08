@@ -12,11 +12,12 @@
 #include "multiplepidwrapper.h"
 #include "visualizer.h"
 #include "obstacledetectoromnidrive.h"
+#include "pathfollower.h"
 
 class RobotController_Omnidrive_OrthogonalExponential : public RobotController
 {
 public:
-    RobotController_Omnidrive_OrthogonalExponential(ros::Publisher &cmd_publisher, BehaviouralPathDriver *path_driver);
+    RobotController_Omnidrive_OrthogonalExponential(ros::Publisher &cmd_publisher, PathFollower *path_driver);
 
     virtual void publishCommand();
 

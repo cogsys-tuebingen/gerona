@@ -12,8 +12,39 @@ double sign(double value) {
 }
 }
 
+
+//##### BEGIN Behaviour
+Path& Behaviour::getSubPath(unsigned index)
+{
+    return parent_.paths_[index];
+}
+int Behaviour::getSubPathCount() const
+{
+    return parent_.paths_.size();
+}
+
+double Behaviour::distanceTo(const Waypoint& wp)
+{
+    Eigen::Vector3d pose = parent_.getRobotPose();
+    return hypot(pose(0) - wp.x, pose(1) - wp.y);
+}
+PathFollower::Command& Behaviour::getCommand()
+{
+    return parent_.current_command_;
+}
+VectorFieldHistogram& Behaviour::getVFH()
+{
+    return parent_.getVFH();
+}
+PathFollower::Options& Behaviour::getOptions()
+{
+    return parent_.opt_;
+}
+//END Behaviour
+
+
 //##### BEGIN BehaviourDriveBase
-BehaviourDriveBase::BehaviourDriveBase(BehaviouralPathDriver &parent)
+BehaviourDriveBase::BehaviourDriveBase(PathFollower &parent)
     : Behaviour(parent)
 {
     visualizer_ = Visualizer::getInstance();
@@ -30,7 +61,7 @@ double BehaviourDriveBase::calculateDistanceToCurrentPathSegment()
      * and calculate the distance of the robot to this line.
      */
 
-    BehaviouralPathDriver::Options& opt = getOptions();
+    PathFollower::Options& opt = getOptions();
     Path& current_path = getSubPath(opt.path_idx);
 
     assert(opt.wp_idx < (int) current_path.size());
@@ -61,7 +92,7 @@ double BehaviourDriveBase::calculateDistanceToCurrentPathSegment()
     /////
 
     // get distance of robot (slam_pose_) to segment_line.
-    return segment_line.GetDistance(parent_.getSlamPose().head<2>());
+    return segment_line.GetDistance(parent_.getRobotPose().head<2>());
 }
 
 bool BehaviourDriveBase::isCollision(double course)
@@ -100,7 +131,7 @@ void BehaviourDriveBase::checkDistanceToPath()
         double dist = calculateDistanceToCurrentPathSegment();
         ROS_DEBUG("Distance to current path segment: %g m", dist);
         if (dist > getOptions().max_distance_to_path_) {
-            parent_.getNode()->say("abort: too far away!");
+            parent_.say("abort: too far away!");
 
             ROS_WARN("Moved too far away from the path (%g m, limit: %g m). Abort.",
                      calculateDistanceToCurrentPathSegment(),
@@ -114,7 +145,7 @@ void BehaviourDriveBase::checkDistanceToPath()
 
 PathWithPosition BehaviourDriveBase::getPathWithPosition()
 {
-    BehaviouralPathDriver::Options& opt = getOptions();
+    PathFollower::Options& opt = getOptions();
     Path& current_path = getSubPath(opt.path_idx);
     return PathWithPosition(&current_path, opt.wp_idx);
 }
@@ -124,7 +155,7 @@ PathWithPosition BehaviourDriveBase::getPathWithPosition()
 
 //##### BEGIN BehaviourOnLine
 
-BehaviourOnLine::BehaviourOnLine(BehaviouralPathDriver& parent)
+BehaviourOnLine::BehaviourOnLine(PathFollower& parent)
     : BehaviourDriveBase(parent)
 {
     controller_->initOnLine();
@@ -146,7 +177,7 @@ void BehaviourOnLine::execute(int *status)
 
 void BehaviourOnLine::getNextWaypoint()
 {
-    BehaviouralPathDriver::Options& opt = getOptions();
+    PathFollower::Options& opt = getOptions();
     Path& current_path = getSubPath(opt.path_idx);
 
     assert(opt.wp_idx < (int) current_path.size());
@@ -180,7 +211,7 @@ void BehaviourOnLine::getNextWaypoint()
     next_wp_map_.pose = current_path[opt.wp_idx];
     next_wp_map_.header.stamp = ros::Time::now();
 
-    if ( !getNode().transformToLocal( next_wp_map_, next_wp_local_ )) {
+    if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         throw new BehaviourEmergencyBreak(parent_);
     }
@@ -201,7 +232,7 @@ void BehaviourAvoidObstacle::execute(int *status)
 void BehaviourAvoidObstacle::getNextWaypoint()
 {
     // TODO: improve!
-    BehaviouralPathDriver::Options& opt = getOptions();
+    PathFollower::Options& opt = getOptions();
     Path& current_path = getSubPath(opt.path_idx);
 
     assert(opt.wp_idx < (int) current_path.size());
@@ -235,7 +266,7 @@ void BehaviourAvoidObstacle::getNextWaypoint()
     next_wp_map_.pose = current_path[opt.wp_idx];
     next_wp_map_.header.stamp = ros::Time::now();
 
-    if ( !getNode().transformToLocal( next_wp_map_, next_wp_local_ )) {
+    if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         throw new BehaviourEmergencyBreak(parent_);
     }
@@ -244,7 +275,7 @@ void BehaviourAvoidObstacle::getNextWaypoint()
 
 //##### BEGIN BehaviourApproachTurningPoint
 
-BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(BehaviouralPathDriver &parent)
+BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(PathFollower &parent)
     : BehaviourDriveBase(parent), done_(false)
 {
     controller_->initApproachTurningPoint();
@@ -262,77 +293,16 @@ void BehaviourApproachTurningPoint::execute(int *status)
         handleDone();
     }
 }
-//FIXME are there cases, where this more complicated check is necessary?
-/*
-bool BehaviourApproachTurningPoint::checkIfDone()
-{
-    BehaviouralPathDriver::Options& opt = getOptions();
-
-    if(!waiting_) {
-        //! Difference of current robot pose to the next waypoint.
-        Vector2d delta;
-        delta << next_wp_map_.pose.position.x - parent_.getSlamPoseMsg().position.x,
-                next_wp_map_.pose.position.y - parent_.getSlamPoseMsg().position.y;
-
-        if (controller_->getDirSign() < 0) {
-            delta *= -1;
-        }
-
-        Path& current_path = getSubPath(opt.path_idx);
-
-        //! Unit vector pointing in the direction of the next waypoints orientation.
-        Vector2d target_dir;
-        //NOTE: current_path[opt.wp_idx] == next_wp_map_ ??
-        target_dir << std::cos(current_path[opt.wp_idx].theta), std::sin(current_path[opt.wp_idx].theta);
-
-        // atan2(y,x) = angle of the vector.
-        //! Angle between the line from robot to waypoint and the waypoints orientation (only used for output?)
-        double angle = MathHelper::AngleClamp(std::atan2(delta(1), delta(0)) - std::atan2(target_dir(1), target_dir(0)));
-
-        ROS_WARN_STREAM_THROTTLE(1, "angle = " << angle);
-
-        //        bool done = std::abs(angle) >= M_PI / 2;
-        done |= delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
-    }
-
-    if(done || waiting_) {
-        controller_->stopMotion();
-
-        if(std::abs(parent_.getNode()->getVelocity().linear.x) > 0.01) {
-            ROS_WARN_THROTTLE(1, "WAITING until no more motion");
-            waiting_ = true;
-            return true;
-        } else {
-            done = true;
-        }
-
-        opt.path_idx++;
-        opt.wp_idx = 0;
-
-        if(opt.path_idx < getSubPathCount()) {
-            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
-            throw new BehaviourOnLine(parent_);
-
-        } else {
-            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
-            throw new BehaviouralPathDriver::NullBehaviour;
-        }
-    }
-
-    return done;
-}
-*/
-
 
 void BehaviourApproachTurningPoint::handleDone()
 {
     controller_->stopMotion();
 
-    if(std::abs(parent_.getNode()->getVelocity().linear.x) > 0.01) {
+    if(std::abs(parent_.getVelocity().linear.x) > 0.01) {
         ROS_INFO_THROTTLE(1, "WAITING until no more motion");
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
     } else {
-        BehaviouralPathDriver::Options& opt = getOptions();
+        PathFollower::Options& opt = getOptions();
 
         opt.path_idx++;
         opt.wp_idx = 0;
@@ -345,14 +315,14 @@ void BehaviourApproachTurningPoint::handleDone()
 
         } else {
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
-            throw new BehaviouralPathDriver::NullBehaviour;
+            throw new NullBehaviour;
         }
     }
 }
 
 void BehaviourApproachTurningPoint::getNextWaypoint()
 {
-    BehaviouralPathDriver::Options& opt = getOptions();
+    PathFollower::Options& opt = getOptions();
     Path& current_path = getSubPath(opt.path_idx);
 
     assert(opt.wp_idx < (int) current_path.size());
@@ -366,7 +336,7 @@ void BehaviourApproachTurningPoint::getNextWaypoint()
     next_wp_map_.pose = current_path[opt.wp_idx];
     next_wp_map_.header.stamp = ros::Time::now();
 
-    if ( !getNode().transformToLocal( next_wp_map_, next_wp_local_ )) {
+    if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         throw new BehaviourEmergencyBreak(parent_);
     }

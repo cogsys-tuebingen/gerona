@@ -8,7 +8,7 @@
 #include "path.h"
 #include "obstacledetector.h"
 
-class BehaviouralPathDriver;
+class PathFollower;
 
 class RobotController
 {
@@ -36,7 +36,7 @@ protected:
 
 /* REGULAR METHODS */
 public:
-    RobotController(ros::Publisher &cmd_publisher, BehaviouralPathDriver *path_driver) :
+    RobotController(ros::Publisher &cmd_publisher, PathFollower *path_driver) :
         cmd_pub_(cmd_publisher),
         path_driver_(path_driver),
         velocity_(0.0f),
@@ -89,7 +89,7 @@ public:
 protected:
     ros::Publisher& cmd_pub_;
 
-    BehaviouralPathDriver *path_driver_;
+    PathFollower *path_driver_;
 
     //! Desired velocity (defined by the action goal).
     float velocity_;

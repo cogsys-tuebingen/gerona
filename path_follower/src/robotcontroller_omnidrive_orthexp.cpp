@@ -3,7 +3,6 @@
 #include <visualization_msgs/Marker.h>
 
 /// PROJECT
-#include "BehaviouralPathDriver.h"
 #include "pathfollower.h"
 #include "behaviours.h"
 #include "robotcontroller_omnidrive_orthexp.h"
@@ -15,7 +14,7 @@ using namespace Eigen;
 
 
 RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_OrthogonalExponential(ros::Publisher &cmd_publisher,
-                                                                                                 BehaviouralPathDriver *path_driver):
+                                                                                                 PathFollower *path_driver):
     RobotController(cmd_publisher, path_driver),
     cmd_(this),
     nh_("~"),
@@ -102,7 +101,11 @@ void RobotController_Omnidrive_OrthogonalExponential::setPath(PathWithPosition p
     //***//
 
     //desired velocity
-    vn = path_driver_->getOptions().velocity_;
+    vn = path_driver_->getOptions().max_velocity_;
+    // TODO: fix this mess
+    if(vn > 1.0) {
+        vn = 1.0;
+    }
     //***//
 
     //initialization before the interpolation
@@ -118,6 +121,7 @@ void RobotController_Omnidrive_OrthogonalExponential::setPath(PathWithPosition p
 
 
     alglib::spline1dinterpolant s_int1, s_int2;
+    // FIXME: throws alglib::ap_error
     alglib::spline1dbuildcubic(l_alg_unif,X_alg,s_int1);
     alglib::spline1dbuildcubic(l_alg_unif,Y_alg,s_int2);
 
@@ -150,7 +154,7 @@ void RobotController_Omnidrive_OrthogonalExponential::setPath(PathWithPosition p
     //***//
 
     //initialize the desired angle and the angle error
-    double theta_meas = path_driver_->getSlamPose()[2];
+    double theta_meas = path_driver_->getRobotPose()[2];
     if(!has_look_at_) {
         theta_des = theta_meas;
     }
@@ -197,7 +201,7 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     //***/
 
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
-    Eigen::Vector3d current_pose = path_driver_->getSlamPose();
+    Eigen::Vector3d current_pose = path_driver_->getRobotPose();
 
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
@@ -305,7 +309,7 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     ROS_DEBUG("alpha: %f, alpha_e: %f, e_theta_curr: %f", (atan(-k*orth_proj) + theta_p)*180.0/M_PI, atan(-k*orth_proj)*180.0/M_PI, e_theta_curr);
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
 
@@ -335,7 +339,7 @@ bool RobotController_Omnidrive_OrthogonalExponential::behaveApproachTurningPoint
 {
     behaveOnLine();
 
-    Eigen::Vector3d current_pose = path_driver_->getSlamPose();
+    Eigen::Vector3d current_pose = path_driver_->getRobotPose();
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
 

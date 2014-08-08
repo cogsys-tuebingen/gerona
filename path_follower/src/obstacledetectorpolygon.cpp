@@ -6,6 +6,12 @@
 
 using namespace std;
 
+void ObstacleDetectorPolygon::setMap(const nav_msgs::OccupancyGridConstPtr &map)
+{
+    ObstacleDetector::setMap(map);
+    map_trans_.setMap(map);
+}
+
 bool ObstacleDetectorPolygon::checkForObstacle(float width, float length, float course_angle, float curve_enlarge_factor) const
 {
     bool collision = false;
@@ -87,38 +93,13 @@ bool ObstacleDetectorPolygon::checkForObstacle(float width, float length, float 
     return collision;
 }
 
-cv::Point2f ObstacleDetectorPolygon::transformPointToMap(const cv::Point2f &p, string from) const
-{
-    // lookup transform from point frame to map frame.
-    tf::StampedTransform trans_to_map_frame;
-    tf_listener_.lookupTransform(map_frame_, from, ros::Time(0), trans_to_map_frame);
-
-    // construct transform from map frame origin to map origin
-    tf::Transform trans_to_map_origin;
-    tf::poseMsgToTF(map_->info.origin, trans_to_map_origin);
-    // need the other way round
-    trans_to_map_origin = trans_to_map_origin.inverse();
-
-    // we need the point as tf::Vector3 ...
-    tf::Vector3 tf_p(p.x, p.y, 0);
-
-    // finally transform the point
-    tf_p = trans_to_map_origin * trans_to_map_frame * tf_p;
-
-    // to get map coordinates, the point has to be scaled to map resolution
-    tf_p /= map_->info.resolution;
-
-    // and finished. convert back to cv::Point and return :)
-    return cv::Point2f(tf_p.x(), tf_p.y());
-}
-
 void ObstacleDetectorPolygon::transformPolygonToMap(PolygonWithTfFrame *polygon) const
 {
     // transform each point
     vector<cv::Point2f>::iterator iter;
     for (iter = polygon->polygon.begin(); iter != polygon->polygon.end(); ++iter) {
-        *iter = transformPointToMap(*iter, polygon->frame);
+        *iter = map_trans_.transformPointToMap(*iter, polygon->frame);
     }
     // set new frame
-    polygon->frame = map_frame_;
+    polygon->frame = map_->header.frame_id;
 }
