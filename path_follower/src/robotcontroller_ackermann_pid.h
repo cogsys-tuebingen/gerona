@@ -18,7 +18,7 @@ class RobotController_Ackermann_Pid : public RobotController
 {
 public:
     RobotController_Ackermann_Pid(ros::Publisher &cmd_publisher,
-                                  BehaviouralPathDriver *path_driver,
+                                  PathFollower *path_driver,
                                   VectorFieldHistogram *vfh);
 
     virtual void publishCommand();

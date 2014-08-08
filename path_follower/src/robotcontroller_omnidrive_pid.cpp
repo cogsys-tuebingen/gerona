@@ -3,14 +3,13 @@
 /// PROJECT
 #include <utils_general/Line2d.h>
 #include <utils_general/MathHelper.h>
-#include "BehaviouralPathDriver.h"
 #include "pathfollower.h"
 #include "behaviours.h"
 
 using namespace Eigen;
 
 RobotController_Omnidrive_Pid::RobotController_Omnidrive_Pid(ros::Publisher &cmd_publisher,
-                                                             BehaviouralPathDriver *path_driver):
+                                                             PathFollower *path_driver):
     RobotController(cmd_publisher, path_driver),
     pids_(2),
     cmd_(this),
@@ -173,7 +172,7 @@ bool RobotController_Omnidrive_Pid::checkIfTurningPointApproached() const
 
 bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rotation, float speed)
 {
-    BehaviouralPathDriver::Options path_driver_opt = path_driver_->getOptions();
+    PathFollower::Options path_driver_opt = path_driver_->getOptions();
     BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
 
     setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
@@ -267,7 +266,7 @@ Eigen::Vector2d RobotController_Omnidrive_Pid::predictDirectionOfMovement()
         last_pos_msg.pose.orientation.w = 1;
 
         Vector3d last_position;
-        if ( !path_driver_->getNode()->transformToLocal(last_pos_msg, last_position) ) {
+        if ( !path_driver_->transformToLocal(last_pos_msg, last_position) ) {
             setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
             throw new BehaviourEmergencyBreak(*path_driver_);
         }
@@ -335,7 +334,7 @@ double RobotController_Omnidrive_Pid::calculateLineError()
 
     // transform this waypoint to local frame
     Vector3d followup_next_wp_local;
-    if (!path_driver_->getNode()->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
+    if (!path_driver_->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR);
         throw new BehaviourEmergencyBreak(*path_driver_);
     }

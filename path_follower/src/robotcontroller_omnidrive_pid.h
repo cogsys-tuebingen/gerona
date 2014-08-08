@@ -13,7 +13,7 @@
 class RobotController_Omnidrive_Pid : public RobotController
 {
 public:
-    RobotController_Omnidrive_Pid(ros::Publisher &cmd_publisher, BehaviouralPathDriver *path_driver);
+    RobotController_Omnidrive_Pid(ros::Publisher &cmd_publisher, PathFollower *path_driver);
 
     virtual void publishCommand();
 

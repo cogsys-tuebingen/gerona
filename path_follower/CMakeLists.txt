@@ -135,8 +135,6 @@ include_directories(
 add_executable(path_follower_node
   src/follower_node.cpp
   src/pathfollower.cpp
-  src/MotionController.cpp
-  src/BehaviouralPathDriver.cpp
   src/behaviours.cpp
   src/PidCtrl.cpp
   src/multiplepidwrapper.cpp

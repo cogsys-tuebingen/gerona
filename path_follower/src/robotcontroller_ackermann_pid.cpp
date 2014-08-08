@@ -7,7 +7,6 @@
 #include <ros/ros.h>
 
 /// PROJECT
-#include "BehaviouralPathDriver.h"
 #include "pathfollower.h"
 #include "behaviours.h"
 #include <utils_general/MathHelper.h>
@@ -26,7 +25,7 @@ double sign(double value) {
 
 
 RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(ros::Publisher &cmd_publisher,
-                                                             BehaviouralPathDriver *path_driver,
+                                                             PathFollower *path_driver,
                                                              VectorFieldHistogram *vfh):
     RobotController(cmd_publisher, path_driver),
     vfh_(vfh)
@@ -56,7 +55,7 @@ void RobotController_Ackermann_Pid::configure()
 
 bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 {
-    BehaviouralPathDriver::Options path_driver_opt = path_driver_->getOptions();
+    PathFollower::Options path_driver_opt = path_driver_->getOptions();
     BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
 
     double delta_f_raw = 0;
@@ -305,7 +304,7 @@ double RobotController_Ackermann_Pid::calculateLineError()
 
     Line2d target_line;
     Vector3d followup_next_wp_local;
-    if (!path_driver_->getNode()->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
+    if (!path_driver_->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR);
         throw new BehaviourEmergencyBreak(*path_driver_);
     }
@@ -365,7 +364,7 @@ void RobotController_Ackermann_Pid::visualizeCarrot(const Vector2d &carrot, int 
 
     carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
     geometry_msgs::PoseStamped carrot_map;
-    if (path_driver_->getNode()->transformToGlobal(carrot_local, carrot_map)) {
+    if (path_driver_->transformToGlobal(carrot_local, carrot_map)) {
         visualizer_->drawMark(id, carrot_map.pose.position, "prediction", r,g,b);
     }
 }
