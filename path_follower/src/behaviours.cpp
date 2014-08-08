@@ -136,6 +136,11 @@ void BehaviourOnLine::execute(int *status)
     initExecute(status);
 
     controller_->execBehaviourOnLine(getPathWithPosition());
+
+    // TODO: dirty hack, this needs to be fixed :)
+    if(controller_->isOmnidirectional()) {
+        throw new BehaviourApproachTurningPoint(parent_);
+    }
 }
 
 
@@ -331,6 +336,8 @@ void BehaviourApproachTurningPoint::handleDone()
 
         opt.path_idx++;
         opt.wp_idx = 0;
+
+        controller_->reset();
 
         if(opt.path_idx < getSubPathCount()) {
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;

@@ -9,7 +9,12 @@
 
 void RobotController::setStatus(int status)
 {
-    ((BehaviourDriveBase*) path_driver_->getActiveBehaviour())->setStatus(status);
+    BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
+    if(behaviour) {
+        behaviour->setStatus(status);
+    } else {
+        std::cerr << "cannot set status, behaviour is NULL" << std::endl;
+    }
 }
 
 void RobotController::setPath(PathWithPosition path)
@@ -31,4 +36,9 @@ double RobotController::calculateAngleError()
     geometry_msgs::Pose waypoint   = path_.nextWaypoint();
     geometry_msgs::Pose robot_pose = path_driver_->getSlamPoseMsg();
     return MathHelper::AngleClamp(tf::getYaw(waypoint.orientation) - tf::getYaw(robot_pose.orientation));
+}
+
+bool RobotController::isOmnidirectional() const
+{
+    return false;
 }

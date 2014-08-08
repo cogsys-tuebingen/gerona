@@ -3,6 +3,8 @@
 // Controller/Models
 #include "robotcontroller_ackermann_pid.h"
 #include "robotcontroller_omnidrive_pid.h"
+#include "robotcontroller_omnidrive_vv.h"
+#include "robotcontroller_omnidrive_orthexp.h"
 
 using namespace path_msgs;
 using namespace std;
@@ -50,6 +52,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         controller_ = new RobotController_Ackermann_Pid(cmd_pub_, (BehaviouralPathDriver*) active_ctrl_, vfh_ptr);
     } else if (param_controller == "omnidrive_pid") {
         controller_ = new RobotController_Omnidrive_Pid(cmd_pub_, (BehaviouralPathDriver*) active_ctrl_);
+    } else if (param_controller == "omnidrive_vv") {
+        controller_ = new RobotController_Omnidrive_VirtualVehicle(cmd_pub_, (BehaviouralPathDriver*) active_ctrl_);
+    } else if (param_controller == "omnidrive_orthexp") {
+        controller_ = new RobotController_Omnidrive_OrthogonalExponential(cmd_pub_, (BehaviouralPathDriver*) active_ctrl_);
     } else {
         ROS_FATAL("Unknown robot controller. Shutdown.");
         exit(1);
@@ -184,6 +190,17 @@ bool PathFollower::transformToGlobal(const geometry_msgs::PoseStamped &local_org
     } catch (tf::TransformException& ex) {
         ROS_ERROR("error with transform goal pose: %s", ex.what());
         return false;
+    }
+}
+
+void PathFollower::spin()
+{
+    ros::Rate rate(50);
+
+    while(ros::ok()) {
+        ros::spinOnce();
+        update();
+        rate.sleep();
     }
 }
 

@@ -30,6 +30,7 @@ public:
     bool transformToLocal(const geometry_msgs::PoseStamped& global, Vector3d& local );
     bool transformToGlobal(const geometry_msgs::PoseStamped& local, geometry_msgs::PoseStamped& global );
 
+    void spin();
     void update();
 
     /**

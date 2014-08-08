@@ -22,6 +22,8 @@ public:
     //! Immediatley stop any motion.
     virtual void stopMotion() = 0;
 
+    virtual bool isOmnidirectional() const;
+
 protected:
     virtual void behaveOnLine() = 0;
     virtual void behaveAvoidObstacle() = 0;
@@ -43,6 +45,8 @@ public:
     {
     }
 
+    /* RESET FOR A NEW PATH */
+    virtual void reset() {}
 
     /* BEHAVIOURS */
     //! Initialize the OnLine-Behaviour
@@ -110,7 +114,7 @@ protected:
     }
 
     void setStatus(int status);
-    void setPath(PathWithPosition path);
+    virtual void setPath(PathWithPosition path);
 
     //! Calculate the angle between the orientations of the waypoint and the robot.
     virtual double calculateAngleError();

@@ -179,6 +179,8 @@ protected:
     void clearActive();
     void beep(const std::vector<int>& beeps);
 
+    void findSegments(bool only_one_segment);
+
 private:
     PathFollower* node_;
 

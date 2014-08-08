@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <launch>
-<node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
-    <param name="use_obstacle_map" value="true" />
+<!-- <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
+    <param name="use_obstacle_map" value="false" />
     <param name="use_vfh" value="false" />
     
-    <param name="controller" value="omnidrive_pid" />
+    <param name="controller" value="omnidrive_vv" />
     <param name="cmd_vel" value="/robot_0/cmd_vel" />
     
     <param name="min_velocity" value="0.35" />
@@ -15,6 +15,6 @@
     <param name="collision_box_max_length" value="1.5" />
     <param name="collision_box_velocity_factor" value="1.0" />
     <param name="collision_box_velocity_saturation" value="1.0" />
-  </node>
+  </node> -->
   
-</launch>
+</launch> 

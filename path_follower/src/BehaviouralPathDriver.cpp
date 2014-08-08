@@ -236,6 +236,13 @@ void BehaviouralPathDriver::setPath(const nav_msgs::Path& path)
 
     paths_.clear();
 
+    findSegments(getController()->isOmnidirectional());
+
+    getController()->reset();
+}
+
+void BehaviouralPathDriver::findSegments(bool only_one_segment)
+{
     // find segments
     unsigned n = path_.poses.size();
     if(n < 2) {
@@ -276,7 +283,8 @@ void BehaviouralPathDriver::setPath(const nav_msgs::Path& path)
 
             double angle = MathHelper::AngleClamp(last_angle - next_angle);
 
-            if(std::abs(angle) > M_PI / 3.0) {
+            bool split_segment = std::abs(angle) > M_PI / 3.0;
+            if(!only_one_segment && split_segment) {
                 // new segment!
                 // current node is the last one of the old segment
                 segment_ends_with_this_node = true;

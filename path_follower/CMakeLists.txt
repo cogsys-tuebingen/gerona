@@ -151,7 +151,25 @@ add_executable(path_follower_node
   src/robotcontroller.cpp
   src/robotcontroller_ackermann_pid.cpp
   src/robotcontroller_omnidrive_pid.cpp
+  src/robotcontroller_omnidrive_vv.cpp
+  src/robotcontroller_omnidrive_orthexp.cpp
   src/path.h
+  src/cubic_spline_interpolation.cpp
+
+
+  src/alglib/interpolation.cpp
+  src/alglib/alglibinternal.cpp
+  src/alglib/alglibmisc.cpp
+  src/alglib/ap.cpp
+  src/alglib/dataanalysis.cpp
+  src/alglib/diffequations.cpp
+  src/alglib/fasttransforms.cpp
+  src/alglib/integration.cpp
+  src/alglib/linalg.cpp
+  src/alglib/optimization.cpp
+  src/alglib/solvers.cpp
+  src/alglib/specialfunctions.cpp
+  src/alglib/statistics.cpp
 )
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)

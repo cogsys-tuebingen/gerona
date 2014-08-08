@@ -117,6 +117,8 @@ public:
      */
     void visualizeLine(const Line2d &line);
 
+    ros::Publisher getMarkerPublisher();
+
 private:
     ros::NodeHandle private_nh_;
     ros::Publisher vis_pub_;
