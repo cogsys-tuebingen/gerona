@@ -28,3 +28,5 @@ uint8 MOTION_STATUS_MOVING = 1
 uint8 MOTION_STATUS_COLLISION = 2
 
 uint8 status
+
+Obstacle[] obstacles_on_path

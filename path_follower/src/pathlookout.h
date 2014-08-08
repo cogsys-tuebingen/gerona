@@ -15,6 +15,7 @@
 #include "maptransformer.h"
 #include "visualizer.h"
 #include "obstacletracker.h"
+#include <path_msgs/FollowPathFeedback.h>
 
 class PathFollower;
 
@@ -47,7 +48,7 @@ public:
     /**
      * @return True, if there is an obstacle that justifies the abortion of the path.
      */
-    bool lookForObstacles();
+    bool lookForObstacles(path_msgs::FollowPathFeedback *feedback);
 
     //! Reset the obstacle tracker (should be called before starting a new path).
     void reset();

@@ -17,7 +17,7 @@ ObstacleTracker::ObstacleTracker()
 void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
 {
     /**
-     * There is a slight difference in the actual implementation of the algorithmen, compared to the description in the
+     * There is a slight difference in the actual implementation of the algorithmn, compared to the description in the
      * class comment:
      * Since removing rows/columns from the distance matrix changes the indices of the remaining entries, it would be
      * quite complicated to keep the connetion between the obstacles and the entries in the matrix. Therefore, instead
@@ -47,7 +47,7 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
     ushort i = 0; // ATTENTION: i is the data-index to dist. Therefore the outer loop must iterate over rows, the inner over columns!
     for (size_t o = 0; o < observed_obstacles.size(); ++o)
     for (size_t t = 0; t < obstacles_.size();         ++t) {
-        dist.at<float>(o, t)   = norm(observed_obstacles[o].center - obstacles_[t].last_position());
+        dist.at<float>(o, t)   = norm(observed_obstacles[o].center - obstacles_[t].obstacle().center);
         d_idx.at<ushort>(o, t) = i++;
 
     }

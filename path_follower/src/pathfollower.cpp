@@ -112,7 +112,6 @@ bool PathFollower::updateRobotPose()
     return getWorldPose( &robot_pose_, &robot_pose_msg_ );
 }
 
-
 bool PathFollower::getWorldPose(Vector3d *pose_vec , geometry_msgs::Pose *pose_msg) const
 {
     tf::StampedTransform transform;
@@ -209,7 +208,7 @@ void PathFollower::update()
             result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         }
         //TODO: is this a good place to run the obstacle lookout?
-        else if (path_lookout_.lookForObstacles()) {
+        else if (path_lookout_.lookForObstacles(&feedback)) {
             result.status = FollowPathResult::MOTION_STATUS_COLLISION;
             // there's an obstacle ahead, pull the emergency break!
             controller_->stopMotion();
@@ -220,6 +219,8 @@ void PathFollower::update()
 
 
         if (is_running) {
+
+
             follow_path_server_.publishFeedback(feedback);
         } else {
             if (result.status == FollowPathResult::MOTION_STATUS_SUCCESS) {
