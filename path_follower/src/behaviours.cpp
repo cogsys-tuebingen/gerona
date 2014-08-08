@@ -61,7 +61,7 @@ double BehaviourDriveBase::calculateDistanceToCurrentPathSegment()
     /////
 
     // get distance of robot (slam_pose_) to segment_line.
-    return segment_line.GetDistance(parent_.getSlamPose().head<2>());
+    return segment_line.GetDistance(parent_.getRobotPose().head<2>());
 }
 
 bool BehaviourDriveBase::isCollision(double course)

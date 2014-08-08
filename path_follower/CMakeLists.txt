@@ -152,10 +152,21 @@ add_executable(path_follower_node
   src/robotcontroller_ackermann_pid.cpp
   src/robotcontroller_omnidrive_pid.cpp
   src/path.h
+  src/pathlookout.cpp
+  src/obstacletracker.cpp
+  src/maptransformer.cpp
 )
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)
 target_link_libraries(path_follower_node
+  ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
+)
+
+add_executable(test_obstacle_tracker
+  src/test_obstacletracker.cpp
+  src/obstacletracker.cpp
+)
+target_link_libraries(test_obstacle_tracker
   ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
 )
 

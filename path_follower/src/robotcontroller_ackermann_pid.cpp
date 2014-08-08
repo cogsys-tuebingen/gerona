@@ -69,7 +69,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
     }
     ROS_DEBUG("PID: error = %g, df = %g", error, delta_f_raw);
 
-    visualizer_->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
+    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
 
     double threshold = 5.0;
     double threshold_max_distance = 3.5 /*m*/;
@@ -93,7 +93,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
         }
     }
 
-    visualizer_->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_f, 0.0, 1.0, 1.0);
+    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f, 0.0, 1.0, 1.0);
 
 
     double steer = std::abs(delta_f);
@@ -171,9 +171,9 @@ void RobotController_Ackermann_Pid::behaveOnLine()
 
     // draw steer front
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(3, path_driver_->getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
+        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), e_combined, 1.0, 0.2, 0.2);
     }
 
     float speed = velocity_;
@@ -203,9 +203,9 @@ void RobotController_Ackermann_Pid::behaveAvoidObstacle()
 
     // draw steer front
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(3, path_driver_->getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
+        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), e_combined, 1.0, 0.2, 0.2);
     }
 
     float speed = velocity_;
@@ -246,9 +246,9 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
         visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_.nextWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
 
         // draw steer front
-        visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(3, path_driver_->getSlamPoseMsg(), e_combined, 1.0, 0.2, 0.2);
+        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), e_combined, 1.0, 0.2, 0.2);
     }
 
     float distance = std::sqrt(next_wp_local_.dot(next_wp_local_));

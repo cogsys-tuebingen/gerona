@@ -1,12 +1,16 @@
 #ifndef PATHFOLLOWER_H
 #define PATHFOLLOWER_H
 
+/// THIRD PARTY
+#include <Eigen/Core>
+
 /// ROS
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
 #include <nav_msgs/Odometry.h>
 #include <std_msgs/String.h>
 #include <tf/transform_listener.h>
+#include <geometry_msgs/Pose.h>
 
 /// PROJECT
 #include <path_msgs/FollowPathAction.h>
@@ -16,6 +20,7 @@
 #include "obstacledetectoromnidrive.h"
 #include "vector_field_histogram.h"
 #include "robotcontroller.h"
+#include "pathlookout.h"
 
 
 class PathFollower
@@ -48,33 +53,17 @@ public:
      */
     bool checkCollision(double course_angle, double box_length, double box_width = 0.3, double curve_enlarge_factor = 0.5);
 
-    /**
-     * @brief Check if there is an obstacle within a rectangular box in front of the robot.
-     *
-     * The box is placed in front of the laser and is defined by its width and length as displayed in the "figure" below:
-     *
-     *          +------------------+
-     *  ##   ## |                  | |
-     *  ####### |                  | width
-     *  ####### |                  | |
-     *  ##   ## |                  |
-     *          +------------------+
-     *   ^robot     <- length ->
-     *
-     *
-     *
-     * @param box_width Width of the box, which is checked for obstacles.
-     * @param box_length Length of the box, which is checked for obstacles.
-     * @return true, if there is an obstacle in the box.
-     */
-    bool simpleCheckCollision(float box_width, float box_length);
-
     VectorFieldHistogram& getVFH();
 
     RobotController* getController();
 
+    PathLookout* getPathLookout();
+
     //! Send 'text' to a text to speech processor.
     void say(std::string text);
+
+    Eigen::Vector3d getRobotPose() const;
+    const geometry_msgs::Pose &getRobotPoseMsg() const;
 
 private:
     typedef actionlib::SimpleActionServer<path_msgs::FollowPathAction> FollowPathServer;
@@ -124,6 +113,14 @@ private:
 
     RobotController *controller_;
 
+    PathLookout path_lookout_;
+
+    //! Current pose of the robot as Eigen vector (x,y,theta).
+    Eigen::Vector3d robot_pose_;
+
+    //! Current pose of the robot as geometry_msgs pose.
+    geometry_msgs::Pose robot_pose_msg_;
+
 
     void followPathGoalCB();
     void followPathPreemptCB();
@@ -135,6 +132,8 @@ private:
 
     //! Callback for the obstacle grid map. Used by ObstacleDetector and VectorFieldHistorgram.
     void obstacleMapCB(const nav_msgs::OccupancyGridConstPtr& map);
+
+    bool updateRobotPose();
 };
 
 #endif // PATHFOLLOWER_H

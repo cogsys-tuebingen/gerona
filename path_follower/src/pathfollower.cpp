@@ -8,6 +8,7 @@ using namespace path_msgs;
 using namespace std;
 
 PathFollower::PathFollower(ros::NodeHandle &nh):
+    path_lookout_(this),
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
     active_ctrl_(NULL),
@@ -76,6 +77,9 @@ void PathFollower::followPathGoalCB()
 
     controller_->setVelocity(goalptr->velocity);
     active_ctrl_->setGoal(*goalptr);
+
+    // don't track obstacles of former paths.
+    path_lookout_.reset();
 }
 
 void PathFollower::followPathPreemptCB()
@@ -95,13 +99,18 @@ void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan)
 
 void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
 {
-    controller_->getObstacleDetector()->gridMapCallback(map);
+    controller_->getObstacleDetector()->setMap(map);
+    path_lookout_.setMap(map);
 
     if(use_vfh_) {
         vfh_.setMap(*map);
     }
 }
 
+bool PathFollower::updateRobotPose()
+{
+    return getWorldPose( &robot_pose_, &robot_pose_msg_ );
+}
 
 bool PathFollower::getWorldPose(Vector3d *pose_vec , geometry_msgs::Pose *pose_msg) const
 {
@@ -189,14 +198,29 @@ bool PathFollower::transformToGlobal(const geometry_msgs::PoseStamped &local_org
 
 void PathFollower::update()
 {
-    //TODO: is isActive() good here?
     if (follow_path_server_.isActive() && active_ctrl_!=NULL) {
         FollowPathFeedback feedback;
         FollowPathResult result;
+        bool is_running;
 
-        int is_running = active_ctrl_->execute(feedback, result);
+        is_running = false;
+        if (!updateRobotPose()) {
+            result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
+        }
+        //TODO: is this a good place to run the obstacle lookout?
+        else if (path_lookout_.lookForObstacles(&feedback)) {
+            result.status = FollowPathResult::MOTION_STATUS_COLLISION;
+            // there's an obstacle ahead, pull the emergency break!
+            controller_->stopMotion();
+        }
+        else {
+            is_running = active_ctrl_->execute(feedback, result);
+        }
+
 
         if (is_running) {
+
+
             follow_path_server_.publishFeedback(feedback);
         } else {
             if (result.status == FollowPathResult::MOTION_STATUS_SUCCESS) {
@@ -218,47 +242,6 @@ bool PathFollower::checkCollision(double course_angle, double box_length, double
     }
 }
 
-bool PathFollower::simpleCheckCollision(float box_width, float box_length)
-{
-    for (size_t i=0; i < laser_scan_.ranges.size(); ++i) {
-        // project point to carthesian coordinates
-        float angle = laser_scan_.angle_min + i * laser_scan_.angle_increment;
-        float px = laser_scan_.ranges[i] * cos(angle);
-        float py = laser_scan_.ranges[i] * sin(angle);
-
-
-        /* Point p is inside the rectangle, if
-         *    p.x in [-width/2, +width/2]
-         * and
-         *    p.y in [0, length]
-         */
-
-        if ( py >= -box_width/2 &&
-             py <=  box_width/2 &&
-             px >= 0 &&
-             px <= box_length )
-        {
-            return true;
-        }
-    }
-
-//    //visualize box
-//    geometry_msgs::Point p1, p2, p3, p4;
-//    p1.y = -box_width/2;  p1.x = 0;
-//    p2.y = -box_width/2;  p2.x = box_length;
-//    p3.y = +box_width/2;  p3.x = 0;
-//    p4.y = +box_width/2;  p4.x = box_length;
-
-//    float r = collision ? 1 : 0;
-//    float g = 1 - r;
-//    visualizer_->drawLine(1, p1, p2, "laser", "collision_box", r,g,0, 3, 0.05);
-//    visualizer_->drawLine(2, p2, p4, "laser", "collision_box", r,g,0, 3, 0.05);
-//    visualizer_->drawLine(3, p1, p3, "laser", "collision_box", r,g,0, 3, 0.05);
-//    visualizer_->drawLine(4, p3, p4, "laser", "collision_box", r,g,0, 3, 0.05);
-
-    return false;
-}
-
 VectorFieldHistogram& PathFollower::getVFH()
 {
     return vfh_;
@@ -269,9 +252,26 @@ RobotController *PathFollower::getController()
     return controller_;
 }
 
+PathLookout *PathFollower::getPathLookout()
+{
+    return &path_lookout_;
+}
+
 void PathFollower::say(string text)
 {
     std_msgs::String str;
     str.data = text;
     speech_pub_.publish(str);
 }
+
+Eigen::Vector3d PathFollower::getRobotPose() const
+{
+    return robot_pose_;
+}
+
+const geometry_msgs::Pose &PathFollower::getRobotPoseMsg() const
+{
+    return robot_pose_msg_;
+}
+
+

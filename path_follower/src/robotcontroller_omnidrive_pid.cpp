@@ -60,8 +60,8 @@ void RobotController_Omnidrive_Pid::behaveOnLine()
     ROS_DEBUG("OnLine: e_dir = %g, e_angle = %g", e_direction, e_angle);
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_direction, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_direction, 0.2, 0.2, 1.0);
     }
 
     //TODO: speed control!
@@ -94,8 +94,8 @@ bool RobotController_Omnidrive_Pid::behaveApproachTurningPoint()
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_.nextWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
-        visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_direction, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_direction, 0.2, 0.2, 1.0);
     }
 
     float distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
@@ -136,7 +136,7 @@ bool RobotController_Omnidrive_Pid::checkIfTurningPointApproached() const
 
     /*** first check if the orientation is ok ***/
 
-    double orientation_diff = MathHelper::AngleClamp( next_wp.orientation - path_driver_->getSlamPose()[2]);
+    double orientation_diff = MathHelper::AngleClamp( next_wp.orientation - path_driver_->getRobotPose()[2]);
     bool reached_orientation = abs(orientation_diff) < 10 * M_PI/180; // 10° tolerance. - parameter for this?
 
     // if not done here, there is no need to check the position.
@@ -152,8 +152,8 @@ bool RobotController_Omnidrive_Pid::checkIfTurningPointApproached() const
 
     //! Difference of current robot pose to the next waypoint.
     Vector2d delta;
-    delta << next_wp.x - path_driver_->getSlamPoseMsg().position.x,
-             next_wp.y - path_driver_->getSlamPoseMsg().position.y;
+    delta << next_wp.x - path_driver_->getRobotPoseMsg().position.x,
+             next_wp.y - path_driver_->getRobotPoseMsg().position.y;
 
     //! Unit vector pointing in the direction of the next waypoints orientation.
     Vector2d target_dir;
@@ -189,7 +189,7 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rota
     ROS_DEBUG("PID-Direction: error = %g,\t delta = %g", e_direction, delta_dir);
     ROS_DEBUG("PID-Rotation:  error = %g,\t delta = %g", e_rotation, delta_rot);
 
-    visualizer_->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_dir, 0.0, 1.0, 1.0);
+    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_dir, 0.0, 1.0, 1.0);
 
 
     bool collision = false;
@@ -243,7 +243,7 @@ Eigen::Vector2d RobotController_Omnidrive_Pid::predictPosition()
 
     //TODO: do real prediction here?
 
-    return path_driver_->getSlamPose().head<2>();
+    return path_driver_->getRobotPose().head<2>();
 }
 
 Eigen::Vector2d RobotController_Omnidrive_Pid::predictDirectionOfMovement()
@@ -278,7 +278,7 @@ Eigen::Vector2d RobotController_Omnidrive_Pid::predictDirectionOfMovement()
 
     // only update every 0.3 seconds
     if (last_slam_pos_update_time_ < ros::Time::now() - ros::Duration(0.3)) {
-        last_position_direction_update_ = path_driver_->getSlamPose().head<2>();
+        last_position_direction_update_ = path_driver_->getRobotPose().head<2>();
         last_slam_pos_update_time_ = ros::Time::now();
         has_last_position_ = true;
     }
@@ -288,14 +288,16 @@ Eigen::Vector2d RobotController_Omnidrive_Pid::predictDirectionOfMovement()
 
 double RobotController_Omnidrive_Pid::predictSmoothedDirectionOfMovementAngle()
 {
-    //TODO: I'm not so happy with this, it is rather a dirty hack to make obstacle detection stable even when the robot
+    //FIXME: I'm not so happy with this, it is rather a dirty hack to make obstacle detection stable even when the robot
     //      makes slight sideways movements. I think, there must be a better, more reliable solution...
 
     // Only update, if the robot has moved at least a certain distance.
     Vector2d current_pos = predictPosition();
     double driven_dist = (last_position_smoothed_direction_update_ - current_pos).norm();
 
-    if (has_last_position_smoothed_ && driven_dist > 0.1) {
+    ROS_DEBUG("PSDOM: driven_dist = %g", driven_dist);
+
+    if (has_last_position_smoothed_ && driven_dist > 0.05) {
         // update
         Vector2d direction = predictDirectionOfMovement();
 
@@ -304,7 +306,17 @@ double RobotController_Omnidrive_Pid::predictSmoothedDirectionOfMovementAngle()
 
         last_position_smoothed_direction_update_ = current_pos;
         has_last_position_smoothed_ = true;
+
+        ROS_DEBUG_STREAM("PSDOM: smoothed_dir: " << smoothed_direction_);
     }
+
+    // this is true only in the first call -> initialize last_position
+    if (!has_last_position_smoothed_) {
+        last_position_smoothed_direction_update_ = current_pos;
+        has_last_position_smoothed_ = true;
+    }
+
+    ROS_DEBUG("PSDOM: angle = %g", atan2(smoothed_direction_[1], smoothed_direction_[0]));
 
     return atan2(smoothed_direction_[1], smoothed_direction_[0]);
 }

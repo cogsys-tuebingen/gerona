@@ -25,7 +25,7 @@ public:
   /**
     @return state
     */
-  virtual int execute (path_msgs::FollowPathFeedback& fb, path_msgs::FollowPathResult& result)=0;
+  virtual bool execute (path_msgs::FollowPathFeedback& fb, path_msgs::FollowPathResult& result)=0;
   virtual void configure ()=0;
   virtual void setGoal (const path_msgs::FollowPathGoal& goal)=0;
   virtual void sonarCallback(const sensor_msgs::PointCloudConstPtr& data);

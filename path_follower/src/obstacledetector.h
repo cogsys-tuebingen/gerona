@@ -26,7 +26,7 @@ public:
     ObstacleDetector();
 
     //! Callback for the obstacle map. Make sure, that the map is binary!
-    void gridMapCallback(const nav_msgs::OccupancyGridConstPtr &map);
+    virtual void setMap(const nav_msgs::OccupancyGridConstPtr &map);
 
     /**
      * @brief Check, if there is an obstacle in front of the robot.
