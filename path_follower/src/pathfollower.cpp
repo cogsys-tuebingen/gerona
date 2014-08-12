@@ -41,40 +41,37 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     path_lookout_(this),
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
-    use_obstacle_map_(false),
     active_behaviour_(NULL),
-    pending_error_(-1)
+    pending_error_(-1),
+    last_beep_(ros::Time::now()),
+    beep_pause_(2.0)
 {
+    configure();
+
     // Init. action server
     follow_path_server_.registerGoalCallback(boost::bind(&PathFollower::followPathGoalCB, this));
     follow_path_server_.registerPreemptCallback(boost::bind(&PathFollower::followPathPreemptCB,this));
 
-    string param_controller;
-
-    //TODO: move this to configure()
-    ros::param::param<string>("~world_frame", world_frame_, "/map");
-    ros::param::param<string>("~robot_frame", robot_frame_, "/base_link");
-    ros::param::param<bool>("~use_obstacle_map", use_obstacle_map_, false);
-    ros::param::param<bool>("~use_vfh", use_vfh_, false);
-    ros::param::param<string>("~controller", param_controller, "ackermann_pid");
-
     //cmd_pub_ = nh_.advertise<ramaxx_msgs::RamaxxMsg> (cmd_topic_, 10);
     std::string cmd_vel;
-    ros::param::param<string>("~cmd_vel", cmd_vel, "/cmd_vel");
+    ros::param::param<string>("~cmd_vel", cmd_vel, "/cmd_vel"); //FIXME: this parameter is unnecessary due to remaps.
     cmd_pub_ = node_handle_.advertise<geometry_msgs::Twist> (cmd_vel, 10);
-
     speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
+    beep_pub_ = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
 
     odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
-    if(use_obstacle_map_) {
+    if(opt_.use_obstacle_map_) {
         obstacle_map_sub_ = node_handle_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&PathFollower::obstacleMapCB, this, _1));
     } else {
         laser_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&PathFollower::laserCB, this, _1));
     }
 
-    VectorFieldHistogram* vfh_ptr = use_vfh_ ? &vfh_ : 0;
+    VectorFieldHistogram* vfh_ptr = opt_.use_vfh_ ? &vfh_ : 0;
 
+    // Choose robot controller
+    string param_controller;
+    ros::param::param<string>("~controller", param_controller, "ackermann_pid");
     ROS_INFO("Use robot controller '%s'", param_controller.c_str());
     if (param_controller == "ackermann_pid") {
         controller_ = new RobotController_Ackermann_Pid(cmd_pub_, this, vfh_ptr);
@@ -89,16 +86,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         exit(1);
     }
 
-
-    //---PathDriver
-    last_beep_ = ros::Time::now();
-    beep_pause_ = ros::Duration(2.0);
-
     visualizer_ = Visualizer::getInstance();
 
-    beeper_ = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
-    configure();
-    //#
 
     follow_path_server_.start();
     ROS_INFO("Initialisation done.");
@@ -147,7 +136,7 @@ void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
     controller_->getObstacleDetector()->setMap(map);
     path_lookout_.setMap(map);
 
-    if(use_vfh_) {
+    if(opt_.use_vfh_) {
         vfh_.setMap(*map);
     }
 }
@@ -160,7 +149,7 @@ bool PathFollower::updateRobotPose()
 
 bool PathFollower::isObstacleInBox(double course_angle, double box_length, double box_width, double curve_enlarge_factor)
 {
-    if(use_obstacle_map_) {
+    if(opt_.use_obstacle_map_) {
         return controller_->getObstacleDetector()->isObstacleAhead(box_width, box_length, course_angle, curve_enlarge_factor);
     } else {
         return laser_env_.CheckCollision(laser_scan_.ranges,laser_scan_.angle_min,laser_scan_.angle_max, course_angle,
@@ -174,7 +163,7 @@ bool PathFollower::getWorldPose(Vector3d *pose_vec , geometry_msgs::Pose *pose_m
     geometry_msgs::TransformStamped msg;
 
     try {
-        pose_listener_.lookupTransform(world_frame_, robot_frame_, ros::Time(0), transform);
+        pose_listener_.lookupTransform(opt_.world_frame_, opt_.robot_frame_, ros::Time(0), transform);
 
     } catch (tf::TransformException& ex) {
         ROS_ERROR("error with transform robot pose: %s", ex.what());
@@ -228,8 +217,8 @@ bool PathFollower::transformToLocal(const geometry_msgs::PoseStamped &global_org
 {
     geometry_msgs::PoseStamped global(global_org);
     try {
-        global.header.frame_id=world_frame_;
-        pose_listener_.transformPose(robot_frame_,ros::Time(0),global,world_frame_,local);
+        global.header.frame_id=opt_.world_frame_;
+        pose_listener_.transformPose(opt_.robot_frame_,ros::Time(0),global,opt_.world_frame_,local);
         return true;
 
     } catch (tf::TransformException& ex) {
@@ -242,8 +231,8 @@ bool PathFollower::transformToGlobal(const geometry_msgs::PoseStamped &local_org
 {
     geometry_msgs::PoseStamped local(local_org);
     try {
-        local.header.frame_id=robot_frame_;
-        pose_listener_.transformPose(world_frame_,ros::Time(0),local,robot_frame_,global);
+        local.header.frame_id=opt_.robot_frame_;
+        pose_listener_.transformPose(opt_.world_frame_,ros::Time(0),local,opt_.robot_frame_,global);
         return true;
 
     } catch (tf::TransformException& ex) {
@@ -274,20 +263,17 @@ void PathFollower::update()
         if (!updateRobotPose()) {
             result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         }
-        //TODO: is this a good place to run the obstacle lookout?
         else if (path_lookout_.lookForObstacles(&feedback)) {
             result.status = FollowPathResult::MOTION_STATUS_COLLISION;
             // there's an obstacle ahead, pull the emergency break!
             controller_->stopMotion();
         }
         else {
-            is_running = execute(feedback, result);
+            is_running = executeBehaviour(feedback, result);
         }
 
 
         if (is_running) {
-
-
             follow_path_server_.publishFeedback(feedback);
         } else {
             if (result.status == FollowPathResult::MOTION_STATUS_SUCCESS) {
@@ -396,7 +382,7 @@ void PathFollower::stop()
 }
 
 
-bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& result)
+bool PathFollower::executeBehaviour(FollowPathFeedback& feedback, FollowPathResult& result)
 {
     /* TODO:
      * The global use of the result-constants as status codes is a bit problematic, as there are feedback
@@ -482,6 +468,10 @@ void PathFollower::configure()
     nh.param( "max_distance_to_path", opt_.max_distance_to_path_, 0.3 ); //TODO: find reasonable default value.
 
     // use ros::param here, because nh.param can't handle floats...
+    ros::param::param<string>("~world_frame", opt_.world_frame_, "/map");
+    ros::param::param<string>("~robot_frame", opt_.robot_frame_, "/base_link");
+    ros::param::param<bool>("~use_obstacle_map", opt_.use_obstacle_map_, false);
+    ros::param::param<bool>("~use_vfh", opt_.use_vfh_, false);
     ros::param::param<float>( "~min_velocity", opt_.min_velocity_, 0.4 );
     ros::param::param<float>( "~max_velocity", opt_.max_velocity_, 2.0 );
     ros::param::param<float>( "~collision_box_width", opt_.collision_box_width_, 0.5);
@@ -622,5 +612,5 @@ void PathFollower::beep(const std::vector<int> &beeps)
 
     msg.data.insert(msg.data.begin(), beeps.begin(), beeps.end());
 
-    beeper_.publish(msg);
+    beep_pub_.publish(msg);
 }

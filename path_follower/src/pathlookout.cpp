@@ -176,7 +176,6 @@ void PathLookout::reset()
 
 void PathLookout::configure()
 {
-    //TODO: add params to documentation
     ros::param::param<float>("~obstacle_scale_distance", opt_.scale_obstacle_distance_, 3.0f);
     ros::param::param<float>("~obstacle_scale_lifetime", opt_.scale_obstacle_lifetime_, 10.0f);
     ros::param::param<float>("~path_width", opt_.path_width_, 0.5f);

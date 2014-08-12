@@ -7,7 +7,6 @@ using namespace std;
 
 ObstacleTracker::ObstacleTracker()
 {
-    //TODO: add params to documentation
     ros::param::param<float>("~obstacle_tracker/max_dist", opt_.max_dist_, 0.3f);
     int ll;
     ros::param::param<int>("~obstacle_tracker/lost_lifetime", ll, 1.0f);
