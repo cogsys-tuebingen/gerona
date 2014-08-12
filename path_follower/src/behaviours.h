@@ -61,8 +61,6 @@ struct BehaviourDriveBase : public Behaviour
     //! Calculate the distance of the robot to the current path segment.
     double calculateDistanceToCurrentPathSegment();
 
-    bool isCollision(double course);
-
     void setStatus(int status);//FIXME: is there a better solution than making this public? It should only be accessable for RobotController
 
 protected:

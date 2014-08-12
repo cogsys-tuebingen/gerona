@@ -173,60 +173,57 @@ bool RobotController_Omnidrive_Pid::checkIfTurningPointApproached() const
 bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rotation, float speed)
 {
     PathFollower::Options path_driver_opt = path_driver_->getOptions();
-    BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
 
-    setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
-
-    double errors[] = {e_direction, e_rotation};
-    vector<double> deltas;
-    if (!pids_.execute(errors, deltas)) {
-        // Nothing to do
-        return false;
-    }
-    double delta_dir = deltas[DIRECTION];
-    double delta_rot = deltas[ORIENTATION];
-    ROS_DEBUG("PID-Direction: error = %g,\t delta = %g", e_direction, delta_dir);
-    ROS_DEBUG("PID-Rotation:  error = %g,\t delta = %g", e_rotation, delta_rot);
-
-    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_dir, 0.0, 1.0, 1.0);
-
-
+    //TODO: use VFH
     bool collision = false;
-    //TODO: VFH here
-
-
-    double steer = std::abs(delta_dir);
-    //ROS_DEBUG_STREAM("dir=" << dir_sign_ << ", steer=" << steer);
-    if(steer > path_driver_opt.steer_slow_threshold_) {
-        ROS_WARN_STREAM_THROTTLE(2, "slowing down");
-        speed *= 0.5;
-    }
-
-    // make sure, the speed is in the allowed range
-    if (speed < path_driver_opt.min_velocity_) {
-        speed = path_driver_opt.min_velocity_;
-        ROS_WARN_THROTTLE(5, "Velocity is below minimum. It is set to minimum velocity.");
-    } else if (speed > path_driver_opt.max_velocity_) {
-        speed = path_driver_opt.max_velocity_;
-        ROS_WARN_THROTTLE(5, "Velocity is above maximum. Reduce to maximum velocity.");
-    }
-    //TODO: bounds for rotational speed?
-
-
-    cmd_.direction_angle += delta_dir;
-    cmd_.direction_angle = MathHelper::AngleClamp(cmd_.direction_angle);
-    //ROS_DEBUG("CMD-Direction = %g", cmd_.direction_angle);
-    cmd_.rotation = delta_rot;
-
-
-    collision |= behaviour->isCollision(predictSmoothedDirectionOfMovementAngle());
+    collision |= path_driver_->checkCollision(predictSmoothedDirectionOfMovementAngle());
 
     if(collision) {
         ROS_WARN_THROTTLE(1, "Collision!");
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION); //FIXME: not so good to use result-constant if it is not finishing the action...
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION); //TODO: not so good to use result-constant if it is not finishing the action...
 
         stopMotion();
     } else {
+
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
+
+        double errors[] = {e_direction, e_rotation};
+        vector<double> deltas;
+        if (!pids_.execute(errors, deltas)) {
+            // Nothing to do
+            return false;
+        }
+        double delta_dir = deltas[DIRECTION];
+        double delta_rot = deltas[ORIENTATION];
+        ROS_DEBUG("PID-Direction: error = %g,\t delta = %g", e_direction, delta_dir);
+        ROS_DEBUG("PID-Rotation:  error = %g,\t delta = %g", e_rotation, delta_rot);
+
+        visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_dir, 0.0, 1.0, 1.0);
+
+
+        double steer = std::abs(delta_dir);
+        //ROS_DEBUG_STREAM("dir=" << dir_sign_ << ", steer=" << steer);
+        if(steer > path_driver_opt.steer_slow_threshold_) {
+            ROS_WARN_STREAM_THROTTLE(2, "slowing down");
+            speed *= 0.5;
+        }
+
+        // make sure, the speed is in the allowed range
+        if (speed < path_driver_opt.min_velocity_) {
+            speed = path_driver_opt.min_velocity_;
+            ROS_WARN_THROTTLE(5, "Velocity is below minimum. It is set to minimum velocity.");
+        } else if (speed > path_driver_opt.max_velocity_) {
+            speed = path_driver_opt.max_velocity_;
+            ROS_WARN_THROTTLE(5, "Velocity is above maximum. Reduce to maximum velocity.");
+        }
+        //TODO: bounds for rotational speed?
+
+
+        cmd_.direction_angle += delta_dir;
+        cmd_.direction_angle = MathHelper::AngleClamp(cmd_.direction_angle);
+        //ROS_DEBUG("CMD-Direction = %g", cmd_.direction_angle);
+        cmd_.rotation = delta_rot;
+
         cmd_.speed = speed;
     }
 
@@ -296,11 +293,11 @@ double RobotController_Omnidrive_Pid::predictSmoothedDirectionOfMovementAngle()
 
     ROS_DEBUG("PSDOM: driven_dist = %g", driven_dist);
 
-    if (has_last_position_smoothed_ && driven_dist > 0.05) {
+    if (has_last_position_smoothed_ && driven_dist > 0.1) {
         // update
         Vector2d direction = predictDirectionOfMovement();
 
-        const float r = 0.7;
+        const float r = 0.0; //FIXME
         smoothed_direction_ = r*smoothed_direction_ + (1-r)*direction;
 
         last_position_smoothed_direction_update_ = current_pos;

@@ -56,7 +56,6 @@ void RobotController_Ackermann_Pid::configure()
 bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 {
     PathFollower::Options path_driver_opt = path_driver_->getOptions();
-    BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
 
     double delta_f_raw = 0;
 
@@ -114,7 +113,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
     cmd_.steer_front = dir_sign_ * delta_f;
     cmd_.steer_back = 0;
 
-    collision |= behaviour->isCollision(calculateCourse());
+    collision |= path_driver_->checkCollision(calculateCourse());
 
     if(collision) {
         ROS_WARN_THROTTLE(1, "Collision!");

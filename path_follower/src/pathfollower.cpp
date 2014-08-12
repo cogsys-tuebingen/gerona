@@ -287,6 +287,12 @@ void PathFollower::update()
 
 bool PathFollower::checkCollision(double course)
 {
+    // no laser backward, so do not check when drivin backwards.
+    // FIXME: this is a special case that should be implemented in the controller, not here!
+    if (controller_->getDirSign() < 0) {
+        return false;
+    }
+
     //! Factor which defines, how much the box is enlarged in curves.
     const float enlarge_factor = 0.5; //TODO: should this be a parameter?
 

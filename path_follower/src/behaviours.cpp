@@ -95,12 +95,6 @@ double BehaviourDriveBase::calculateDistanceToCurrentPathSegment()
     return segment_line.GetDistance(parent_.getRobotPose().head<2>());
 }
 
-bool BehaviourDriveBase::isCollision(double course)
-{
-    // only check for collisions, while driving forward (there's no laser at the backside)
-    return (controller_->getDirSign() > 0 && parent_.checkCollision(course));
-}
-
 void BehaviourDriveBase::setStatus(int status)
 {
     *status_ptr_ = status;
