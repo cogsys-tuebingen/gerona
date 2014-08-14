@@ -69,7 +69,6 @@ void RobotController_Omnidrive_OrthogonalExponential::setPath(PathWithPosition p
     RobotController::setPath(path);
 
     if(initialized) {
-
         return;
     }
 
@@ -197,7 +196,7 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 {
 
     //control parameters
-    double k = 1.5, kp = 2.0, kd = 2.0;
+    double k = 1.5, kp = 3.0, kd = 2.0;
     //***/
 
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
@@ -280,16 +279,11 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
         theta_des = std::atan2(look_at_.y - y_meas, look_at_.x - x_meas);
     }
 
-    double e_theta_new = (theta_des - theta_meas);
+    double e_theta_new = MathHelper::NormalizeAngle(theta_des - theta_meas);
 
-    if(e_theta_new > M_PI){
-
-        e_theta_new = 2*M_PI - e_theta_new;
-    }
-    else if(e_theta_new < -M_PI){
-
-        e_theta_new += 2*M_PI;
-    }
+//    if(std::abs(e_theta_new) > M_PI){
+//        e_theta_new = MathHelper::NormalizeAngle(2*M_PI - e_theta_new);
+//    }
 
     double e_theta_prim = (e_theta_new - e_theta_curr)/Ts;
 
@@ -344,7 +338,7 @@ bool RobotController_Omnidrive_OrthogonalExponential::behaveApproachTurningPoint
     double y_meas = current_pose[1];
 
     double distance_to_goal = hypot(x_meas - p[N-1], y_meas - q[N-1]);
-    ROS_WARN("distance to goal: %f", distance_to_goal);
+    ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal);
 
     // TODO: waypoint tolerance from options
     return distance_to_goal <= 0.3;

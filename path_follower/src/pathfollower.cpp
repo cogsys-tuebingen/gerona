@@ -529,6 +529,8 @@ void PathFollower::setPath(const nav_msgs::Path& path)
 
     // find segments
     findSegments(getController()->isOmnidirectional());
+
+    controller_->reset();
 }
 
 void PathFollower::findSegments(bool only_one_segment)

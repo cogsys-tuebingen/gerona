@@ -1,49 +1,86 @@
-#!/localhome/widmaier/catkin/devel/lib/csapex/csapex_node
-window_size:
-  - 1600
-  - 1151
-window_pos:
-  - 0
-  - 25
+#!~/ws/apex/devel/lib/csapex/csapex_node
 view_pos:
-  - 0
-  - 0
+  []
 uuid_map:
-  csapex::ExportRos: 3
-  csapex::ImageToMap: 2
-  csapex::ImportRos: 1
-  csapex::OutputDisplay: 1
-  csapex::ScanFilter: 2
-  csapex::ScanRenderer: 1
-  vision_plugins::ColorConvert: 1
+  csapex::AdaptiveThreshold: 1
+  csapex::BarCodeReader: 1
+  csapex::BlobDetector: 1
+  csapex::BoxBlur: 1
+  csapex::Camera: 4
+  csapex::Clock: 4
+  csapex::CloudRenderer: 2
+  csapex::ColorPointCloud: 1
+  csapex::DecisionTreeTrainer: 1
+  csapex::Delay: 5
+  csapex::DisplayKeypoints: 1
+  csapex::DoubleBuffer: 3
+  csapex::ExportFile: 1
+  csapex::ExportRos: 2
+  csapex::ExtractROI: 1
+  csapex::FileImporter: 2
+  csapex::FilterApplyMask: 1
+  csapex::FilterStaticMask: 1
+  csapex::Foreach: 1
+  csapex::GaussianBlur: 1
+  csapex::GrowROI: 1
+  csapex::ImportFile: 1
+  csapex::ImportRos: 4
+  csapex::LabeledScanToScan: 3
+  csapex::LegDetector: 1
+  csapex::LegFeatures: 1
+  csapex::LineFitSegmnetation: 1
+  csapex::MapToImage: 1
+  csapex::Morpholocial: 4
+  csapex::NumberGenerator: 5
+  csapex::OutputDisplay: 22
+  csapex::P2PLineSegmentation: 1
+  csapex::P2PSegmentation: 4
+  csapex::PatsyLegDetector: 1
+  csapex::Relay: 5
+  csapex::RenderROIs: 2
+  csapex::SayText: 3
+  csapex::ScanLabeler: 2
+  csapex::ScanRenderer: 6
+  csapex::ScanSegmentFeatureExtractor: 1
+  csapex::ScanSegmentation2DRenderer: 3
+  csapex::ScanToMap: 1
+  csapex::ScanToPointCloud: 1
+  csapex::Segmentation: 1
+  csapex::SpinelloDataImporter: 2
+  csapex::SpinelloPersonDetector: 3
+  csapex::TextDisplay: 6
+  csapex::TransformCombiner: 1
+  vision_plugins::AbsoluteDifference: 1
+  vision_plugins::ColorConvert: 3
+  vision_plugins::Debayer: 1
+  vision_plugins::GenericImageCombiner: 8
+  vision_plugins::PerspectiveTransform: 1
+  vision_plugins::Undistort: 1
 connections:
-  - uuid: csapex::ImportRos_1:|:out_0
-    targets:
-      - csapex::ScanRenderer_1:|:in_0
-  - uuid: csapex::ScanRenderer_1:|:out_0
-    targets:
-      - csapex::OutputDisplay_1:|:in_0
-      - vision_plugins::ColorConvert_1:|:in_0
-  - uuid: vision_plugins::ColorConvert_1:|:out_0
-    targets:
-      - csapex::ImageToMap_2:|:in_0
-  - uuid: csapex::ImageToMap_2:|:out_0
+  - uuid: csapex::ScanToMap_1:|:out_0
     targets:
       - csapex::ExportRos_2:|:in_0
+      - csapex::MapToImage_1:|:in_0
+  - uuid: csapex::ImportRos_4:|:out_0
+    targets:
+      - csapex::ScanToMap_1:|:in_0
+  - uuid: csapex::MapToImage_1:|:out_0
+    targets:
+      - csapex::OutputDisplay_22:|:in_0
 fulcrums:
-  - from: csapex::ScanRenderer_1:|:out_0
-    to: vision_plugins::ColorConvert_1:|:in_0
-    pts: [[728, 378], [144, 391]]
-    types: [0, 0]
+  []
+adapters:
+  - uuid: csapex::OutputDisplay_22
+    state:
+      width: 1000
+      height: 997
 ---
-{type: csapex::ImportRos, uuid: csapex::ImportRos_1, label: csapex::ImportRos_1, pos: [0, 0], minimized: false, enabled: true, flipped: false, state: {params: {refresh: {name: refresh, type: value}, topic: {name: topic, type: set, txt: /scan_filtered, string: /scan_filtered}}}}
+{type: csapex::ScanToMap, uuid: csapex::ScanToMap_1, label: csapex::ScanToMap_1, pos: [-620, -60], minimized: false, enabled: true, flipped: false, state: {params: {default: {name: default, type: range, int: 0}, drawRays: {name: drawRays, type: value, bool: false}, frame_id: {name: frame_id, type: value, string: /laser}, height: {name: height, type: range, int: 300}, resolution: {name: resolution, type: range, double: 0.05}, width: {name: width, type: range, int: 300}}}}
 ---
-{type: csapex::ScanRenderer, uuid: csapex::ScanRenderer_1, label: csapex::ScanRenderer_1, pos: [488, 7], minimized: false, enabled: true, flipped: false, state: {params: {color/bg: {name: color/bg, type: color, values: [255, 255, 255]}, color/hit: {name: color/hit, type: color, values: [0, 0, 0]}, color/ray: {name: color/ray, type: color, values: [255, 0, 255]}, drawHits: {name: drawHits, type: value, bool: true}, drawRays: {name: drawRays, type: value, bool: false}, height: {name: height, type: range, int: 100}, rotation: {name: rotation, type: range, double: 0}, scale: {name: scale, type: range, double: 1}, width: {name: width, type: range, int: 100}}}}
+{type: csapex::ImportRos, uuid: csapex::ImportRos_4, label: csapex::ImportRos_4, pos: [-930, -220], minimized: false, enabled: true, flipped: false, state: {params: {refresh: {name: refresh, type: value}, topic: {name: topic, type: set, txt: /scan_filtered, string: /scan_filtered}}}}
 ---
-{type: csapex::OutputDisplay, uuid: csapex::OutputDisplay_1, label: csapex::OutputDisplay_1, pos: [929, 0], minimized: false, enabled: true, flipped: false, state: {params: {}}}
+{type: csapex::ExportRos, uuid: csapex::ExportRos_2, label: csapex::ExportRos_2, pos: [-250, -190], minimized: false, enabled: true, flipped: false, state: {params: {topic: {name: topic, type: value, string: /obstacle_map}}}}
 ---
-{type: vision_plugins::ColorConvert, uuid: vision_plugins::ColorConvert_1, label: vision_plugins::ColorConvert_1, pos: [168, 522], minimized: false, enabled: true, flipped: false, state: {params: {input: {name: input, type: set, txt: BGR, int: 2}, output: {name: output, type: set, txt: MONO, int: 5}}}}
+{type: csapex::MapToImage, uuid: csapex::MapToImage_1, label: csapex::MapToImage_1, pos: [-40, -60], minimized: false, enabled: true, flipped: false, state: {params: {}}}
 ---
-{type: csapex::ImageToMap, uuid: csapex::ImageToMap_2, label: csapex::ImageToMap_2, pos: [549, 451], minimized: false, enabled: true, flipped: false, state: {params: {frame: {name: frame, type: value, string: laser}, resolution: {name: resolution, type: value, double: 0.1}}}}
----
-{type: csapex::ExportRos, uuid: csapex::ExportRos_2, label: csapex::ExportRos_2, pos: [990, 456], minimized: false, enabled: true, flipped: false, state: {params: {topic: {name: topic, type: value, string: obstaclemap}}}}
+{type: csapex::OutputDisplay, uuid: csapex::OutputDisplay_22, label: csapex::OutputDisplay_22, pos: [0, 0], minimized: false, enabled: true, flipped: false, state: {params: {}}}
