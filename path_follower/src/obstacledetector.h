@@ -26,15 +26,15 @@ public:
     ObstacleDetector();
 
     //! Callback for the obstacle map. Make sure, that the map is binary!
-    void gridMapCallback(const nav_msgs::OccupancyGridConstPtr &map);
+    virtual void setMap(const nav_msgs::OccupancyGridConstPtr &map);
 
     /**
-     * @brief Check, if there is an obstacle within the obstacle box.
+     * @brief Check, if there is an obstacle in front of the robot.
      * @return True if there is an obstacle, false if not.
      */
     bool isObstacleAhead(float width, float length, float course_angle, float curve_enlarge_factor) const;
 
-private:
+protected:
     //! Value of the obstacle map for free cells.
     static const char FREE = 0;
     //! Value of the obstacle map for occupied cells.
@@ -42,6 +42,8 @@ private:
 
     //! The current obstacle map.
     nav_msgs::OccupancyGridConstPtr map_;
+
+    virtual bool checkForObstacle(float width, float length, float course_angle, float curve_enlarge_factor) const = 0;
 };
 
 #endif // OBSTACLEDETECTOR_H

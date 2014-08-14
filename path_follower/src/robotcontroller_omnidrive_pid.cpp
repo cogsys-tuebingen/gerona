@@ -3,16 +3,18 @@
 /// PROJECT
 #include <utils_general/Line2d.h>
 #include <utils_general/MathHelper.h>
-#include "BehaviouralPathDriver.h"
 #include "pathfollower.h"
 #include "behaviours.h"
 
 using namespace Eigen;
 
 RobotController_Omnidrive_Pid::RobotController_Omnidrive_Pid(ros::Publisher &cmd_publisher,
-                                                             BehaviouralPathDriver *path_driver):
+                                                             PathFollower *path_driver):
     RobotController(cmd_publisher, path_driver),
-    pids_(2)
+    pids_(2),
+    cmd_(this),
+    last_position_direction_update_(0,0),
+    smoothed_direction_(0,0)
 {
     visualizer_ = Visualizer::getInstance();
 
@@ -44,6 +46,8 @@ void RobotController_Omnidrive_Pid::stopMotion()
 void RobotController_Omnidrive_Pid::initOnLine()
 {
     pids_.resetAll();
+    has_last_position_ = false;
+    has_last_position_smoothed_ = false;
 }
 
 void RobotController_Omnidrive_Pid::behaveOnLine()
@@ -55,8 +59,8 @@ void RobotController_Omnidrive_Pid::behaveOnLine()
     ROS_DEBUG("OnLine: e_dir = %g, e_angle = %g", e_direction, e_angle);
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_direction, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_direction, 0.2, 0.2, 1.0);
     }
 
     //TODO: speed control!
@@ -89,8 +93,8 @@ bool RobotController_Omnidrive_Pid::behaveApproachTurningPoint()
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_.nextWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
-        visualizer_->drawSteeringArrow(1, path_driver_->getSlamPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getSlamPoseMsg(), e_direction, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_direction, 0.2, 0.2, 1.0);
     }
 
     float distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
@@ -107,32 +111,48 @@ void RobotController_Omnidrive_Pid::configure()
 
     nh.param( "dead_time", options_.dead_time_, 0.10 );
 
-    double ta, kp, ki, i_max, delta_max, e_max;
+    double ta, kp, ki, i_max, delta_max=0, e_max=0;
     nh.param( "pid/ta", ta, 0.03 );
-    nh.param( "pid/kp", kp, 1.5 );
-    nh.param( "pid/ki", ki, 0.0 );
-    nh.param( "pid/i_max", i_max, 0.0 );
-    nh.param( "pid/delta_max", delta_max, 30.0 );
-    nh.param( "pid/e_max", e_max, 0.10 );
-
-    //FIXME: separate parameters for the controlers...
     pids_.setTa(ta);
+
+    nh.param( "pid/direction/kp", kp, 0.1 );
+    nh.param( "pid/direction/ki", ki, 0.0 );
+    nh.param( "pid/direction/i_max", i_max, 0.0 );
+//    nh.param( "pid/delta_max", delta_max, 30.0 ); //not used
+//    nh.param( "pid/e_max", e_max, 0.10 );
     pids_.configure(DIRECTION, kp, M_PI*delta_max/180.0, e_max, 0.5, ki, i_max);
+
+    nh.param( "pid/orientation/kp", kp, 1.0 );
+    nh.param( "pid/orientation/ki", ki, 0.0 );
+    nh.param( "pid/orientation/i_max", i_max, 0.0 );
     pids_.configure(ORIENTATION, kp, M_PI*delta_max/180.0, e_max, 0.5, ki, i_max);
 }
 
-bool RobotController_Omnidrive_Pid::checkIfTurningPointApproached()
+bool RobotController_Omnidrive_Pid::checkIfTurningPointApproached() const
 {
     Waypoint next_wp = path_.nextWaypoint();
 
+
+    /*** first check if the orientation is ok ***/
+
+    double orientation_diff = MathHelper::AngleClamp( next_wp.orientation - path_driver_->getRobotPose()[2]);
+    bool reached_orientation = abs(orientation_diff) < 10 * M_PI/180; // 10° tolerance. - parameter for this?
+
+    // if not done here, there is no need to check the position.
+    if (!reached_orientation) {
+        return false;
+    }
+
+    /******************************************************************************************
+     * If this line is reached, the robot's orientation fits the one of the waypoint.
+     * Now the more complicated check of the position is still to be done (this behaviour is
+     * only finished, if the robot matches the in orientation AND position with the waypoint).
+     *****************************************************************************************/
+
     //! Difference of current robot pose to the next waypoint.
     Vector2d delta;
-    delta << next_wp.x - path_driver_->getSlamPoseMsg().position.x,
-             next_wp.y - path_driver_->getSlamPoseMsg().position.y;
-
-//    if (controller_->getDirSign() < 0) {
-//        delta *= -1;
-//    }
+    delta << next_wp.x - path_driver_->getRobotPoseMsg().position.x,
+             next_wp.y - path_driver_->getRobotPoseMsg().position.y;
 
     //! Unit vector pointing in the direction of the next waypoints orientation.
     Vector2d target_dir;
@@ -144,18 +164,19 @@ bool RobotController_Omnidrive_Pid::checkIfTurningPointApproached()
 
     ROS_DEBUG_STREAM_THROTTLE(1, "angle = " << angle);
 
-    //        bool done = std::abs(angle) >= M_PI / 2;
-    return delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
+    bool reached_point = delta.dot(target_dir) < 0;  // done, if angle is greater than 90°?!
+
+
+    return reached_point;
 }
 
 bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rotation, float speed)
 {
-    BehaviouralPathDriver::Options path_driver_opt = path_driver_->getOptions();
+    PathFollower::Options path_driver_opt = path_driver_->getOptions();
     BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
 
     setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
 
-    // FIXME: Synchronize timers of the controllers
     double errors[] = {e_direction, e_rotation};
     vector<double> deltas;
     if (!pids_.execute(errors, deltas)) {
@@ -167,7 +188,7 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rota
     ROS_DEBUG("PID-Direction: error = %g,\t delta = %g", e_direction, delta_dir);
     ROS_DEBUG("PID-Rotation:  error = %g,\t delta = %g", e_rotation, delta_rot);
 
-    visualizer_->drawSteeringArrow(14, path_driver_->getSlamPoseMsg(), delta_dir, 0.0, 1.0, 1.0);
+    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_dir, 0.0, 1.0, 1.0);
 
 
     bool collision = false;
@@ -192,11 +213,13 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rota
     //TODO: bounds for rotational speed?
 
 
-    cmd_.direction_angle = delta_dir;
+    cmd_.direction_angle += delta_dir;
+    cmd_.direction_angle = MathHelper::AngleClamp(cmd_.direction_angle);
+    //ROS_DEBUG("CMD-Direction = %g", cmd_.direction_angle);
     cmd_.rotation = delta_rot;
 
 
-    collision |= behaviour->isCollision(cmd_.direction_angle);
+    collision |= behaviour->isCollision(predictSmoothedDirectionOfMovementAngle());
 
     if(collision) {
         ROS_WARN_THROTTLE(1, "Collision!");
@@ -217,9 +240,84 @@ Eigen::Vector2d RobotController_Omnidrive_Pid::predictPosition()
 //    double v  = getFilteredSpeed();
 //    double ds = dt*v;
 
-    //FIXME: do real prediction here
+    //TODO: do real prediction here?
 
-    return path_driver_->getSlamPose().head<2>();
+    return path_driver_->getRobotPose().head<2>();
+}
+
+Eigen::Vector2d RobotController_Omnidrive_Pid::predictDirectionOfMovement()
+{
+    //TODO: more sophisticated prediction
+
+    Vector2d direction;
+
+    if (!has_last_position_) {
+        // This is the first call, we can say nothing about the direction of movement.
+        // -> assume we are moving towards the next waypoint
+        direction = next_wp_local_.head<2>();
+
+        last_slam_pos_update_time_ = ros::Time(0); // force update
+    }
+    else {
+        // transform last position to robot frame
+        geometry_msgs::PoseStamped last_pos_msg;
+        last_pos_msg.pose.position.x = last_position_direction_update_.x();
+        last_pos_msg.pose.position.y = last_position_direction_update_.y();
+        last_pos_msg.pose.orientation.w = 1;
+
+        Vector3d last_position;
+        if ( !path_driver_->transformToLocal(last_pos_msg, last_position) ) {
+            setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
+            throw new BehaviourEmergencyBreak(*path_driver_);
+        }
+
+        // calculate direction of movement (current_pos - last_pos, where current_pos = 0)
+        direction = -last_position.head<2>();
+    }
+
+    // only update every 0.3 seconds
+    if (last_slam_pos_update_time_ < ros::Time::now() - ros::Duration(0.3)) {
+        last_position_direction_update_ = path_driver_->getRobotPose().head<2>();
+        last_slam_pos_update_time_ = ros::Time::now();
+        has_last_position_ = true;
+    }
+
+    return direction;
+}
+
+double RobotController_Omnidrive_Pid::predictSmoothedDirectionOfMovementAngle()
+{
+    //FIXME: I'm not so happy with this, it is rather a dirty hack to make obstacle detection stable even when the robot
+    //      makes slight sideways movements. I think, there must be a better, more reliable solution...
+
+    // Only update, if the robot has moved at least a certain distance.
+    Vector2d current_pos = predictPosition();
+    double driven_dist = (last_position_smoothed_direction_update_ - current_pos).norm();
+
+    ROS_DEBUG("PSDOM: driven_dist = %g", driven_dist);
+
+    if (has_last_position_smoothed_ && driven_dist > 0.05) {
+        // update
+        Vector2d direction = predictDirectionOfMovement();
+
+        const float r = 0.7;
+        smoothed_direction_ = r*smoothed_direction_ + (1-r)*direction;
+
+        last_position_smoothed_direction_update_ = current_pos;
+        has_last_position_smoothed_ = true;
+
+        ROS_DEBUG_STREAM("PSDOM: smoothed_dir: " << smoothed_direction_);
+    }
+
+    // this is true only in the first call -> initialize last_position
+    if (!has_last_position_smoothed_) {
+        last_position_smoothed_direction_update_ = current_pos;
+        has_last_position_smoothed_ = true;
+    }
+
+    ROS_DEBUG("PSDOM: angle = %g", atan2(smoothed_direction_[1], smoothed_direction_[0]));
+
+    return atan2(smoothed_direction_[1], smoothed_direction_[0]);
 }
 
 double RobotController_Omnidrive_Pid::calculateLineError()
@@ -236,7 +334,7 @@ double RobotController_Omnidrive_Pid::calculateLineError()
 
     // transform this waypoint to local frame
     Vector3d followup_next_wp_local;
-    if (!path_driver_->getNode()->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
+    if (!path_driver_->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR);
         throw new BehaviourEmergencyBreak(*path_driver_);
     }
@@ -247,7 +345,6 @@ double RobotController_Omnidrive_Pid::calculateLineError()
     visualizer_->visualizeLine(target_line);
 
     Vector2d pred_position = predictPosition();
-    //visualizer_->drawMark(0, );
 
     return -target_line.GetSignedDistance(pred_position);
 }
@@ -255,7 +352,13 @@ double RobotController_Omnidrive_Pid::calculateLineError()
 double RobotController_Omnidrive_Pid::calculateDirectionError()
 {
     Vector2d vec_to_wp = next_wp_local_.head<2>();
-    double angle = atan2(vec_to_wp(1), vec_to_wp(0));
+
+    Vector2d direction = predictDirectionOfMovement();
+    double dir_angle = atan2(direction[1], direction[0]);
+
+    // angle between the direction to the waypoint and the actual direction of movement.
+    double angle = atan2(vec_to_wp(1), vec_to_wp(0)) - dir_angle;
+    angle = MathHelper::AngleClamp(angle);
 
     return angle;
 }
@@ -265,7 +368,7 @@ double RobotController_Omnidrive_Pid::calculateDistanceToWaypoint()
     Vector2d pred_pos = predictPosition();
     Vector2d distance = next_wp_local_.head<2>() - pred_pos;
 
-    //FIXME: this is wrong?!
+    //NOTE: this is wrong?! - only intended for use in Approach Turning Point, where x ~ 0
     if(std::abs(distance(1)) < 0.1) {
         return 0;
     }

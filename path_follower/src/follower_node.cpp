@@ -7,13 +7,7 @@ int main(int argc, char** argv) {
 
     PathFollower pf(nh);
 
-    ros::Rate rate(50);
-
-    while(ros::ok()) {
-        ros::spinOnce();
-        pf.update();
-        rate.sleep();
-    }
+    pf.spin();
 
     return 0;
 }

@@ -6,17 +6,23 @@
 
 /// PROJECT
 #include "path.h"
+#include "obstacledetector.h"
 
-class BehaviouralPathDriver;
+class PathFollower;
 
 class RobotController
 {
 /* ABSTRACT METHODS */
 public:
+    //! Return obstacle detector working with obstacle map. Only used, if ~use_obstacle_map:=true
+    virtual ObstacleDetector* getObstacleDetector() = 0;
+
     virtual void publishCommand() = 0;
 
     //! Immediatley stop any motion.
     virtual void stopMotion() = 0;
+
+    virtual bool isOmnidirectional() const;
 
 protected:
     virtual void behaveOnLine() = 0;
@@ -30,7 +36,7 @@ protected:
 
 /* REGULAR METHODS */
 public:
-    RobotController(ros::Publisher &cmd_publisher, BehaviouralPathDriver *path_driver) :
+    RobotController(ros::Publisher &cmd_publisher, PathFollower *path_driver) :
         cmd_pub_(cmd_publisher),
         path_driver_(path_driver),
         velocity_(0.0f),
@@ -39,6 +45,8 @@ public:
     {
     }
 
+    /* RESET FOR A NEW PATH */
+    virtual void reset() {}
 
     /* BEHAVIOURS */
     //! Initialize the OnLine-Behaviour
@@ -81,7 +89,7 @@ public:
 protected:
     ros::Publisher& cmd_pub_;
 
-    BehaviouralPathDriver *path_driver_;
+    PathFollower *path_driver_;
 
     //! Desired velocity (defined by the action goal).
     float velocity_;
@@ -106,7 +114,7 @@ protected:
     }
 
     void setStatus(int status);
-    void setPath(PathWithPosition path);
+    virtual void setPath(PathWithPosition path);
 
     //! Calculate the angle between the orientations of the waypoint and the robot.
     virtual double calculateAngleError();

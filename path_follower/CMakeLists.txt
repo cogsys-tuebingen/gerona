@@ -3,6 +3,8 @@ project(path_follower)
 
 set(CMAKE_BUILD_TYPE Debug)
 
+#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -133,22 +135,54 @@ include_directories(
 add_executable(path_follower_node
   src/follower_node.cpp
   src/pathfollower.cpp
-  src/MotionController.cpp
-  src/BehaviouralPathDriver.cpp
   src/behaviours.cpp
   src/PidCtrl.cpp
   src/multiplepidwrapper.cpp
+
   src/obstacledetector.cpp
+  src/obstacledetectorpolygon.cpp
+  src/obstacledetectorackermann.cpp
+  src/obstacledetectoromnidrive.cpp
+
   src/vector_field_histogram.cpp
   src/visualizer.cpp
   src/robotcontroller.cpp
   src/robotcontroller_ackermann_pid.cpp
   src/robotcontroller_omnidrive_pid.cpp
+  src/robotcontroller_omnidrive_vv.cpp
+  src/robotcontroller_omnidrive_orthexp.cpp
   src/path.h
+  src/pathlookout.cpp
+  src/obstacletracker.cpp
+  src/maptransformer.cpp
+  src/cubic_spline_interpolation.cpp
+
+
+  src/alglib/interpolation.cpp
+  src/alglib/alglibinternal.cpp
+  src/alglib/alglibmisc.cpp
+  src/alglib/ap.cpp
+  src/alglib/dataanalysis.cpp
+  src/alglib/diffequations.cpp
+  src/alglib/fasttransforms.cpp
+  src/alglib/integration.cpp
+  src/alglib/linalg.cpp
+  src/alglib/optimization.cpp
+  src/alglib/solvers.cpp
+  src/alglib/specialfunctions.cpp
+  src/alglib/statistics.cpp
 )
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)
 target_link_libraries(path_follower_node
+  ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
+)
+
+add_executable(test_obstacle_tracker
+  src/test_obstacletracker.cpp
+  src/obstacletracker.cpp
+)
+target_link_libraries(test_obstacle_tracker
   ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
 )
 

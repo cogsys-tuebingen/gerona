@@ -68,12 +68,12 @@ struct PathWithPosition {
         wp_idx(wpid)
     {}
 
-    Waypoint getWaypoint(size_t idx)
+    Waypoint getWaypoint(size_t idx) const
     {
         return (*current_path)[idx];
     }
 
-    Waypoint nextWaypoint()
+    Waypoint nextWaypoint() const
     {
         return (*current_path)[wp_idx];
     }

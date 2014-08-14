@@ -3,14 +3,43 @@
 
 #include <ros/ros.h>
 
-#include "BehaviouralPathDriver.h"
+#include "pathfollower.h"
 #include "visualizer.h"
 #include <utils_general/Line2d.h>
 
 
-struct BehaviourEmergencyBreak : public BehaviouralPathDriver::Behaviour
+struct NullBehaviour {
+};
+
+class Behaviour
 {
-    BehaviourEmergencyBreak(BehaviouralPathDriver& parent)
+protected:
+    Behaviour(PathFollower& parent)
+        : parent_(parent), controller_(parent.getController())
+    {}
+    Path& getSubPath(unsigned index);
+    int getSubPathCount() const;
+    PathFollower& getNode();
+
+    PathFollower::Command& getCommand();//TODO: maybe Command is better placed in behaviours instead of PathFollower
+    VectorFieldHistogram& getVFH();
+    PathFollower::Options& getOptions();
+    double distanceTo(const Waypoint& wp);
+
+public:
+    virtual ~Behaviour() {}
+
+    virtual void execute(int* status) = 0;
+
+protected:
+    PathFollower& parent_;
+    RobotController* controller_;
+};
+
+
+struct BehaviourEmergencyBreak : public Behaviour
+{
+    BehaviourEmergencyBreak(PathFollower& parent)
         : Behaviour(parent)
     {
         // stop immediately
@@ -20,14 +49,14 @@ struct BehaviourEmergencyBreak : public BehaviouralPathDriver::Behaviour
     void execute(int *status)
     {
         *status = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
-        throw new BehaviouralPathDriver::NullBehaviour;
+        throw new NullBehaviour;
     }
 };
 
 
-struct BehaviourDriveBase : public BehaviouralPathDriver::Behaviour
+struct BehaviourDriveBase : public Behaviour
 {
-    BehaviourDriveBase(BehaviouralPathDriver& parent);
+    BehaviourDriveBase(PathFollower &parent);
 
     //! Calculate the distance of the robot to the current path segment.
     double calculateDistanceToCurrentPathSegment();
@@ -95,7 +124,7 @@ protected:
 
 struct BehaviourOnLine : public BehaviourDriveBase
 {
-    BehaviourOnLine(BehaviouralPathDriver& parent);
+    BehaviourOnLine(PathFollower &parent);
     void execute(int *status);
     void getNextWaypoint();
 };
@@ -103,7 +132,7 @@ struct BehaviourOnLine : public BehaviourDriveBase
 
 struct BehaviourAvoidObstacle : public BehaviourDriveBase
 {
-    BehaviourAvoidObstacle(BehaviouralPathDriver& parent)
+    BehaviourAvoidObstacle(PathFollower& parent)
         : BehaviourDriveBase(parent)
     {}
 
@@ -118,7 +147,7 @@ struct BehaviourAvoidObstacle : public BehaviourDriveBase
 
 struct BehaviourApproachTurningPoint : public BehaviourDriveBase
 {
-    BehaviourApproachTurningPoint(BehaviouralPathDriver& parent);
+    BehaviourApproachTurningPoint(PathFollower &parent);
 
     void execute(int *status);
 

@@ -8,11 +8,12 @@
 #include "robotcontroller.h"
 #include "multiplepidwrapper.h"
 #include "visualizer.h"
+#include "obstacledetectoromnidrive.h"
 
 class RobotController_Omnidrive_Pid : public RobotController
 {
 public:
-    RobotController_Omnidrive_Pid(ros::Publisher &cmd_publisher, BehaviouralPathDriver *path_driver);
+    RobotController_Omnidrive_Pid(ros::Publisher &cmd_publisher, PathFollower *path_driver);
 
     virtual void publishCommand();
 
@@ -20,6 +21,11 @@ public:
     virtual void stopMotion();
 
     virtual void initOnLine();
+
+    virtual ObstacleDetector* getObstacleDetector()
+    {
+        return &obstacle_detector_;
+    }
 
 
 protected:
@@ -36,8 +42,7 @@ protected:
 private:
     struct Command
     {
-        // was wird hier gebraucht? Wahrscheinlich 2d-vektor für velocity und scalar für rotation?!
-        // -> jupp, vektor aber besser in polarkoordinaten
+        RobotController_Omnidrive_Pid *parent_;
 
         //! Speed of the movement.
         float speed;
@@ -48,15 +53,22 @@ private:
 
 
         // initialize all values to zero
-        Command():
+        Command(RobotController_Omnidrive_Pid *parent):
+            parent_(parent),
             speed(0.0f), direction_angle(0.0f), rotation(0.0f)
         {}
 
         operator geometry_msgs::Twist()
         {
+            // direction_angle is relative to direction of movement;
+            // control angle, however, is relative to orientation of the robot.
+            //Eigen::Vector2d mov_dir = parent_->predictDirectionOfMovement(); //FIXME: auch falsch, mov_dir ist relativ zur welt?!s
+            //float angle = atan2(mov_dir(1), mov_dir(0)) + direction_angle;
+            float angle = direction_angle;
+
             geometry_msgs::Twist msg;
-            msg.linear.x  = speed * cos(direction_angle);
-            msg.linear.y  = speed * sin(direction_angle);
+            msg.linear.x  = speed * cos(angle);
+            msg.linear.y  = speed * sin(angle);
             msg.angular.z = rotation;
             return msg;
         }
@@ -100,16 +112,42 @@ private:
 
     Command cmd_;
     ControllerOptions options_;
+    ObstacleDetectorOmnidrive obstacle_detector_;
+
+    // variables for direction prediction
+    bool has_last_position_;
+    //! Position of the robot (in world frame), when direction was updated the last time.
+    Eigen::Vector2d last_position_direction_update_;
+    //! Time, when the direction prediction was updated the last time
+    ros::Time last_slam_pos_update_time_;
+    //! Position of the robot (in world frame), when the smoothed direction was updated the last time.
+    Eigen::Vector2d last_position_smoothed_direction_update_;
+    bool has_last_position_smoothed_;
+    //! smoothed direction of movement.
+    Eigen::Vector2d smoothed_direction_;
 
     void configure();
+
+    //! Check if approaching turning point is done.
+    bool checkIfTurningPointApproached() const;
 
     bool setCommand(double e_direction, double e_rotation, float speed);
 
     //! Predict the position of the robot.
     Eigen::Vector2d predictPosition();
 
-    //! Check if approaching turning point is done.
-    bool checkIfTurningPointApproached();
+    //! Predict direction of movement
+    Eigen::Vector2d predictDirectionOfMovement();
+
+    /**
+     * @brief Predict and smooth direction of movement, represented as angle relative to robot orientation.
+     *
+     * This prediction is only updated if the robot moved for at least a certain distance and it is smoothed to reduce
+     * the effect of jitter in the robots movement.
+     *
+     * @return Angle of movement direction, relative to robot orientation.
+     */
+    double predictSmoothedDirectionOfMovementAngle();
 
     /**
      * @brief Calculate distance of the robot to the next path segment.

@@ -15,6 +15,8 @@ PathController::PathController(ros::NodeHandle &nh):
     ros::param::param<int>("~num_replan_attempts", opt_.num_replan_attempts, 5);
 
     sys_pub_ = nh.advertise<std_msgs::String>("/syscommand", 10);
+    speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 5);
+
 
     // LEGACY path planning
     //    goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0);
@@ -22,9 +24,7 @@ PathController::PathController(ros::NodeHandle &nh):
 
     navigate_to_goal_server_.start();
     ROS_INFO("Initialisation done.");
-std::stringstream cmd;
-    cmd << "espeak \"" << "ready, steady, go!" << "\" 2> /dev/null 1> /dev/null &";
-    system(cmd.str().c_str());
+    say("ready, steady, go!"); //FIXME: is not spoken...
 }
 
 void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal)
@@ -76,9 +76,7 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
                 navigate_to_goal_server_.publishFeedback(feedback);
 
                 if(replan_counter <= opt_.num_replan_attempts) {
-                    std::stringstream cmd;
-                    cmd << "espeak \"" << "try again!" << "\" 2> /dev/null 1> /dev/null &";
-                    system(cmd.str().c_str());
+                    say("try again!");
                 }
             }
         }
@@ -332,6 +330,8 @@ void PathController::followPathFeedbackCB(const path_msgs::FollowPathFeedbackCon
         break;
     }
 
+    nav_feedback.obstacles_on_path = feedback->obstacles_on_path;
+
     navigate_to_goal_server_.publishFeedback(nav_feedback);
 }
 
@@ -401,8 +401,8 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
     if(state == actionlib::SimpleClientGoalState::SUCCEEDED) {
 
         std::stringstream cmd;
-        cmd << "espeak \"" << "path with " << path_planner_client_.getResult()->path.poses.size() << " nodes found" << "\" 2> /dev/null 1> /dev/null &";
-        system(cmd.str().c_str());
+        cmd << "path with " << path_planner_client_.getResult()->path.poses.size() << " nodes found";
+        say(cmd.str());
 
         ROS_INFO("Got a path, continue");
         nav_msgs::PathPtr path(new nav_msgs::Path(path_planner_client_.getResult()->path));
@@ -410,10 +410,7 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
         requested_path_ = path;
 
     } else {
-
-        std::stringstream cmd;
-        cmd << "espeak \"" << "no path found!" << "\" 2> /dev/null 1> /dev/null &";
-        system(cmd.str().c_str());
+        say("no path found!");
 
         ROS_ERROR_STREAM("Path planner failed. Final state: " << state.toString());
         path_planner_client_.cancelAllGoals();
@@ -437,4 +434,11 @@ bool PathController::waitForFollowPathDone(ros::Duration timeout)
     while (!follow_path_done_ && expire_time > ros::Time::now());
 
     return follow_path_done_;
+}
+
+void PathController::say(std::string text)
+{
+    std_msgs::String str;
+    str.data = text;
+    speech_pub_.publish(str);
 }

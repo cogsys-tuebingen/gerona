@@ -2,6 +2,8 @@
 #include <actionlib/client/simple_action_client.h>
 #include <path_msgs/NavigateToGoalAction.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <std_msgs/String.h>
+#include <string>
 
 using namespace path_msgs;
 
@@ -29,6 +31,8 @@ public:
         pnh.param("goal_topic", goal_topic, goal_topic);
         goal_sub_ = pnh.subscribe<geometry_msgs::PoseStamped>(goal_topic, 0, &HighDummy::goalCb, this);
         client_.waitForServer();
+
+        speech_pub_ = nh.advertise<std_msgs::String>("/speech", 0);
 
         // target speed
         pnh.param("target_speed", target_speed_, 1.0);
@@ -60,6 +64,7 @@ private:
     ros::NodeHandle nh_;
     actionlib::SimpleActionClient<path_msgs::NavigateToGoalAction> client_;
     ros::Subscriber goal_sub_;
+    ros::Publisher speech_pub_;
 
     double target_speed_;
     int failure_mode_;
@@ -71,16 +76,9 @@ private:
         ROS_INFO("DONE with action state %s", state.toString().c_str());
         if (result->reached_goal) {
             ROS_INFO("Successfully reached goal :)");
-
-    std::stringstream cmd;
-    cmd << "espeak \"" << "mission accomplished" << "\" 2> /dev/null 1> /dev/null &";
-    system(cmd.str().c_str());
-
+            say("mission accomplished");
         } else {
-
-    std::stringstream cmd;
-    cmd << "espeak \"" << "mission failed" << "\" 2> /dev/null 1> /dev/null &";
-    system(cmd.str().c_str());
+            say("mission failed");
 
             ROS_WARN("Did not reach goal :(");
             const char* status_names[] = {"OTHER_ERROR", "SUCCESS", "ABORTED", "COLLISION", "TIMEOUT", "LOST_PATH", "NO_PATH_FOUND"};
@@ -100,7 +98,7 @@ private:
     {
         switch (feedback->status) {
         case NavigateToGoalFeedback::STATUS_MOVING:
-            ROS_INFO_THROTTLE(1, "Feedback: Moving");
+            ROS_INFO_THROTTLE(1, "Feedback: Moving\n  There are %zu obstacles sighted on the path.", feedback->obstacles_on_path.size());
             break;
 
         case NavigateToGoalFeedback::STATUS_PATH_READY:
@@ -144,6 +142,12 @@ private:
     }
 
 
+    void say(std::string text)
+    {
+        std_msgs::String str;
+        str.data = text;
+        speech_pub_.publish(str);
+    }
 };
 
 

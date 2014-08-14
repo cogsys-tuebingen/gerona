@@ -12,12 +12,13 @@
 #include "PidCtrl.h"
 #include "vector_field_histogram.h"
 #include "visualizer.h"
+#include "obstacledetectorackermann.h"
 
 class RobotController_Ackermann_Pid : public RobotController
 {
 public:
     RobotController_Ackermann_Pid(ros::Publisher &cmd_publisher,
-                                  BehaviouralPathDriver *path_driver,
+                                  PathFollower *path_driver,
                                   VectorFieldHistogram *vfh);
 
     virtual void publishCommand();
@@ -26,6 +27,11 @@ public:
 
     virtual void initOnLine();
     virtual void initApproachTurningPoint();
+
+    virtual ObstacleDetector* getObstacleDetector()
+    {
+        return &obstacle_detector_;
+    }
 
 protected:
     virtual void behaveOnLine();
@@ -106,6 +112,7 @@ private:
     ControllerOptions options_;
     VectorFieldHistogram *vfh_;
     Visualizer *visualizer_;
+    ObstacleDetectorAckermann obstacle_detector_;
 
     //! Step counter for behaviour ApproachTurningPoint.
     int atp_step_;

@@ -79,7 +79,7 @@ void Visualizer::drawLine(int id, const Eigen::Vector2d &from, const Eigen::Vect
 }
 
 void Visualizer::drawCircle(int id, const geometry_msgs::Point &center, double radius, const std::string &frame,
-                            const std::string &ns, float r, float g, float b, double live) const
+                            const std::string &ns, float r, float g, float b, float alpha, double live) const
 {
     visualization_msgs::Marker marker;
     marker.ns = ns;
@@ -91,7 +91,7 @@ void Visualizer::drawCircle(int id, const geometry_msgs::Point &center, double r
     marker.color.r = r;
     marker.color.g = g;
     marker.color.b = b;
-    marker.color.a = 1.0;
+    marker.color.a = alpha;
     marker.pose.position = center;
     marker.pose.orientation.w = 1.0;
     marker.scale.x = radius;
@@ -125,6 +125,28 @@ void Visualizer::drawMark(int id, const geometry_msgs::Point &pos, const std::st
     vis_pub_.publish(marker);
 }
 
+void Visualizer::drawText(int id, const geometry_msgs::Point &pos, const std::string &text, const std::string &ns,
+                          float r, float g, float b, const std::string &frame, double live) const
+{
+    visualization_msgs::Marker marker;
+    marker.pose.position = pos;
+    marker.ns = ns;
+    marker.header.frame_id = frame;
+    marker.header.stamp = ros::Time();
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.id = id;
+    marker.lifetime = ros::Duration(live);
+    marker.color.r = r;
+    marker.color.g = g;
+    marker.color.b = b;
+    marker.color.a = 1.0;
+    marker.scale.z = 0.2;
+    marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+    marker.text = text;
+
+    vis_pub_.publish(marker);
+}
+
 
 void Visualizer::drawSteeringArrow(int id, geometry_msgs::Pose robot_pose, double angle, double r, double g, double b)
 {
@@ -146,3 +168,7 @@ void Visualizer::visualizeLine(const Line2d &line)
     drawLine(2, f, t, "/base_link", "line", 0.7, 0.2, 1.0, 1, 0.1);
 }
 
+ros::Publisher Visualizer::getMarkerPublisher()
+{
+    return vis_pub_;
+}
