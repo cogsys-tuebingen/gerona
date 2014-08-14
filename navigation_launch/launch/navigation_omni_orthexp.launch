@@ -11,9 +11,9 @@
 		<param name="use_unknown_cells" value="true" />
         <param name="use_cost_map" value="false" />
 
-		<param name="size/forward" value="0.475" />
-		<param name="size/backward" value="-0.55" />
-		<param name="size/width" value="0.5" />
+                <param name="size/forward" value="0.6" />
+                <param name="size/backward" value="-0.6" />
+                <param name="size/width" value="1" />
 	</node>
 
     <include file="$(find navigation_launch)/launch/mapping.launch" />
