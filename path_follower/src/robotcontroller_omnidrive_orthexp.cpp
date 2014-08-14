@@ -100,7 +100,7 @@ void RobotController_Omnidrive_OrthogonalExponential::setPath(PathWithPosition p
     //***//
 
     //desired velocity
-    vn = path_driver_->getOptions().max_velocity_;
+    vn = velocity_;
     // TODO: fix this mess
     if(vn > 1.0) {
         vn = 1.0;
@@ -196,7 +196,7 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 {
 
     //control parameters
-    double k = 1.5, kp = 3.0, kd = 2.0;
+    double k = 1.5, kp = 0.4, kd = 0.2;
     //***/
 
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
