@@ -51,6 +51,7 @@ protected:
         return true;
     }
 
+    void lookAtCommand(const std_msgs::StringConstPtr& cmd);
     void lookAt(const geometry_msgs::PointStampedConstPtr& look_at);
 
 private:
@@ -58,6 +59,9 @@ private:
     void clearBuffers();
     void interpolatePath();
     void publishInterpolatedPath();
+
+    void keepHeading();
+    void lookInDrivingDirection();
 
 private:
     struct Command
@@ -125,6 +129,7 @@ private:
     ros::Publisher points_pub_;
 
     ros::Subscriber look_at_sub_;
+    ros::Subscriber look_at_cmd_sub_;
 
 
     nav_msgs::Path interp_path;
@@ -133,7 +138,14 @@ private:
     std::vector<double> p_prim;
     std::vector<double> q_prim;
 
-    bool has_look_at_;
+
+    enum ViewDirection {
+        KeepHeading,
+        LookAtPoint,
+        LookInDrivingDirection
+    };
+
+    ViewDirection view_direction_;
     geometry_msgs::Point look_at_;
 
     bool initialized;
