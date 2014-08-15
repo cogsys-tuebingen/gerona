@@ -137,7 +137,13 @@ private:
     uint N;
     double Ts;
     double e_theta_curr;
-    double PI;
+
+
+    //control parameters
+    double param_k;
+    double param_kp;
+    double param_kd;
+
     visualization_msgs::Marker robot_path;
 };
 

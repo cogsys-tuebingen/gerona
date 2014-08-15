@@ -34,6 +34,12 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
 
     look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
                                                               boost::bind(&RobotController_Omnidrive_OrthogonalExponential::lookAt, this, _1));
+
+
+    //control parameters
+    nh_.param("k", param_k, 1.5);
+    nh_.param("kp", param_kp, 0.4);
+    nh_.param("kd", param_kd, 0.2);
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::publishCommand()
@@ -194,11 +200,6 @@ void RobotController_Omnidrive_OrthogonalExponential::initOnLine()
 
 void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 {
-
-    //control parameters
-    double k = 1.5, kp = 0.4, kd = 0.2;
-    //***/
-
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
     Eigen::Vector3d current_pose = path_driver_->getRobotPose();
 
@@ -294,13 +295,13 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     //control
 
     cmd_.speed = vn;
-    cmd_.direction_angle = atan(-k*orth_proj) + theta_p - theta_meas;
-    cmd_.rotation = kp*e_theta_curr + kd*e_theta_prim;
+    cmd_.direction_angle = atan(-param_k*orth_proj) + theta_p - theta_meas;
+    cmd_.rotation = param_kp*e_theta_curr + param_kd*e_theta_prim;
 
     //***//
 
 
-    ROS_DEBUG("alpha: %f, alpha_e: %f, e_theta_curr: %f", (atan(-k*orth_proj) + theta_p)*180.0/M_PI, atan(-k*orth_proj)*180.0/M_PI, e_theta_curr);
+    ROS_DEBUG("alpha: %f, alpha_e: %f, e_theta_curr: %f", (atan(-param_k*orth_proj) + theta_p)*180.0/M_PI, atan(-param_k*orth_proj)*180.0/M_PI, e_theta_curr);
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
