@@ -61,6 +61,7 @@ private:
     void publishInterpolatedPath();
 
     void keepHeading();
+    void lookInDrivingDirection();
 
 private:
     struct Command
@@ -137,7 +138,14 @@ private:
     std::vector<double> p_prim;
     std::vector<double> q_prim;
 
-    bool has_look_at_;
+
+    enum ViewDirection {
+        KeepHeading,
+        LookAtPoint,
+        LookInDrivingDirection
+    };
+
+    ViewDirection view_direction_;
     geometry_msgs::Point look_at_;
 
     bool initialized;

@@ -21,7 +21,7 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     RobotController(cmd_publisher, path_driver),
     cmd_(this),
     nh_("~"),
-    has_look_at_(false),
+    view_direction_(LookInDrivingDirection),
     initialized(false),
     vn(0.0),
     Ts(0.02),
@@ -67,6 +67,8 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     robot_path_marker.color.r = 0.0;
     robot_path_marker.color.g = 0.0;
     robot_path_marker.color.b = 1.0;
+
+    lookInDrivingDirection();
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::publishCommand()
@@ -95,15 +97,11 @@ void RobotController_Omnidrive_OrthogonalExponential::lookAtCommand(const std_ms
 {
     const std::string& command = cmd->data;
 
-    if(command == "reset") {
+    if(command == "reset" || command == "view") {
+        lookInDrivingDirection();
+    } else if(command == "keep") {
         keepHeading();
     }
-}
-
-void RobotController_Omnidrive_OrthogonalExponential::lookAt(const geometry_msgs::PointStampedConstPtr &look_at)
-{
-    look_at_ = look_at->point;
-    has_look_at_ = true;
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::setPath(PathWithPosition path)
@@ -127,18 +125,26 @@ void RobotController_Omnidrive_OrthogonalExponential::setPath(PathWithPosition p
     initialize();
 }
 
+void RobotController_Omnidrive_OrthogonalExponential::lookAt(const geometry_msgs::PointStampedConstPtr &look_at)
+{
+    look_at_ = look_at->point;
+    view_direction_ = LookAtPoint;
+}
+
 void RobotController_Omnidrive_OrthogonalExponential::keepHeading()
 {
-    has_look_at_ = false;
+    view_direction_ = KeepHeading;
     theta_des = path_driver_->getRobotPose()[2];
+}
+
+void RobotController_Omnidrive_OrthogonalExponential::lookInDrivingDirection()
+{
+    view_direction_ = LookInDrivingDirection;
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::initialize()
 {
     // initialize the desired angle and the angle error
-    if(!has_look_at_) {
-        keepHeading();
-    }
     e_theta_curr = path_driver_->getRobotPose()[2];
 
     // desired velocity
@@ -315,8 +321,19 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 
     //check the "look-at" point, and calculate the rotation control
 
-    if(has_look_at_) {
+    switch(view_direction_) {
+    case LookAtPoint:
         theta_des = std::atan2(look_at_.y - y_meas, look_at_.x - x_meas);
+        break;
+    case KeepHeading:
+        // do nothing
+        break;
+    case LookInDrivingDirection:
+        theta_des = cmd_.direction_angle + current_pose[2];//std::atan2(q[ind+1] - y_meas, p[ind+1] - x_meas);
+        break;
+    default:
+        throw std::runtime_error("unknown view direction mode");
+        break;
     }
 
     double e_theta_new = MathHelper::NormalizeAngle(theta_des - theta_meas);
