@@ -14,6 +14,7 @@
 /// PROJECT
 #include <utils_path/generic/Algorithms.hpp>
 #include <utils_path/generic/ReedsSheppExpansion.hpp>
+#include <utils_path/common/Bresenham2d.h>
 
 /// SYSTEM
 #include <nav_msgs/Path.h>
@@ -61,7 +62,7 @@ struct NonHolonomicNeighborhoodPrecise :
             return true;
         }
 
-	return false;
+        return false;
         // check, if goal is between reference an its predecessor
         if(reference->prev) {
             Pose2d v (*reference->prev);
@@ -87,13 +88,71 @@ struct NonHolonomicNeighborhoodPrecise :
             }
 
             double threshold = 1.41;
-//            std::cerr << "distance: " << line_distance << ", okay?" << (line_distance < threshold) << std::endl;
 
             return line_distance < threshold;
         }
 
         return false;
     }
+};
+
+
+struct LinearExpansion
+{
+    LinearExpansion()
+    {
+    }
+
+    template <class T, class Map>
+    bool expand(const T* start, const T* goal, const Map* map_ptr) {
+        start_ = *start;
+        goal_ = *goal;
+
+        bresenham.setGrid(map_ptr, std::floor(start_.x), std::floor(start_.y), std::floor(goal_.x),std::floor(goal_.y));
+
+        double theta = std::atan2(goal_.y-start_.y,goal_.x-start_.x);
+
+        unsigned x,y;
+        while(bresenham.next()) {
+            bresenham.coordinates(x,y);
+            if(!map_ptr->isFree(x,y,theta)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    template <class T, class Map>
+    static bool canExpand(const T* start, const T* goal, const Map* map_ptr)
+    {
+        return instance().expand(start,goal, map_ptr);
+    }
+
+    static LinearExpansion& instance()
+    {
+        static LinearExpansion inst;
+        return inst;
+    }
+
+    template <class PathT>
+    void get(PathT* out)
+    {
+        typedef typename PathT::NodeT NodeT;
+        NodeT node;
+        NodeT::init(node, goal_.x, goal_.y);
+        out->push_back(node);
+    }
+
+    template <class PathT>
+    static void getPath(PathT* out)
+    {
+        instance().get(out);
+    }
+
+    Bresenham2d bresenham;
+    Pose2d start_;
+    Pose2d goal_;
 };
 
 /**
@@ -118,7 +177,8 @@ struct PathPlanner : public Planner
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100> > AStar;
     //typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStar;
     //typedef AStarSearch<NHNeighbor> AStar; // Ackermann
-    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStar; // Omnidrive
+    //    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStar; // Omnidrive
+    typedef AStar2dSearch<DirectNeighborhood<8, 1>, LinearExpansion > AStar; // Omnidrive
 
     typedef AStar::PathT PathT;
 
@@ -157,8 +217,8 @@ struct PathPlanner : public Planner
     }
 
     nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,
-               const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-               const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
+                         const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
+                         const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
         algo.setMap(map_info);
 
         if(use_cost_map_) {
