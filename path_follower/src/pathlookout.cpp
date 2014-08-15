@@ -124,25 +124,39 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
         return false;
     }
 
-    // Generate list of obstacle messages (both for action feedback and for visualization)
+
+    /* The following loop does three things at once:
+     *  - calculate weight for each obstacle
+     *  - determine max. weight
+     *  - convert to obstacle-messages for feedback and visualization
+     */
+
+    // Calculaten is done with cv::Points, so robot pose has to be converted.
+    Eigen::Vector3d robot_pose_eigen = node_->getRobotPose();
+    cv::Point2f robot_pos(robot_pose_eigen[0], robot_pose_eigen[1]);
+
     vector<path_msgs::Obstacle> obstacle_msgs;
     obstacle_msgs.reserve(tracked_obs.size());
+
+    float max_weight = -1000.0f;
     vector<ObstacleTracker::TrackedObstacle>::const_iterator it;
     for (it = tracked_obs.begin(); it != tracked_obs.end(); ++it) {
-        obstacle_msgs.push_back(it->obstacle().toMsg());
+        // weight
+        float w = weightObstacle(robot_pos, *it);
+        max_weight = max(max_weight, w);
+
+        // convert to message
+        path_msgs::Obstacle o_msg = it->obstacle().toMsg();
+        o_msg.weight = w;
+        obstacle_msgs.push_back(o_msg);
     }
 
+
+    // report obstacles via feedback
     if (feedback != NULL) {
         feedback->obstacles_on_path = obstacle_msgs;
     }
 
-    // calculate weights for the tracked obstacles.
-    vector<float> weights;
-    weights.resize(tracked_obs.size());
-    Eigen::Vector3d robot_pos = node_->getRobotPose();
-    transform(tracked_obs.begin(), tracked_obs.end(), weights.begin(),
-              boost::bind(&PathLookout::weightObstacle, this, cv::Point2f(robot_pos(0), robot_pos(1)), _1));
-    float max_weight = *max_element(weights.begin(), weights.end());
 
     // visualize obstacles in rviz
     if (visualizer_->hasSubscriber()) {
@@ -156,7 +170,7 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
 
             // show the weight.
             stringstream s;
-            s << weights[i];
+            s << obstacle_msgs[i].weight;
             gp.z = 0.5;
             visualizer_->drawText(id, gp, s.str(), "obstacleonpath_weight", 1,0,0, obstacle_frame_, 0.1);
         }
