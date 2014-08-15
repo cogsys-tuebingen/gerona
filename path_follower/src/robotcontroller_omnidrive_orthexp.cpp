@@ -10,6 +10,9 @@
 #include "alglib/interpolation.h"
 #include <utils_general/MathHelper.h>
 
+/// SYSTEM
+#include <deque>
+
 using namespace Eigen;
 
 
@@ -140,14 +143,25 @@ void RobotController_Omnidrive_OrthogonalExponential::clearBuffers()
 
 void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
 {
-    std::vector<Waypoint> waypoints = *path_.current_path;
+    std::deque<Waypoint> waypoints;
+    waypoints.insert(waypoints.end(), path_.current_path->begin(), path_.current_path->end());
 
-    // dirty hack!!!!!
-    // TODO: find a way to do this correctly :-)
-//    waypoints.erase(waypoints.begin());
-//    waypoints.erase(waypoints.begin());
-//    waypoints.erase(waypoints.begin());
-//    waypoints.erase(waypoints.begin());
+    // (messy) hack!!!!!
+    // remove waypoints that are closer than 0.1 meters to the starting point
+    Waypoint start = waypoints.front();
+    while(!waypoints.empty()) {
+        std::deque<Waypoint>::iterator it = waypoints.begin();
+        const Waypoint& wp = *it;
+
+        double dx = wp.x - start.x;
+        double dy = wp.y - start.y;
+        double distance = hypot(dx, dy);
+        if(distance < 0.1) {
+            waypoints.pop_front();
+        } else {
+            break;
+        }
+    }
 
     //copy the waypoints to arrays X_arr and Y_arr, and introduce a new array l_arr_unif required for the interpolation
     N = waypoints.size();
