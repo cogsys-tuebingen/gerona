@@ -106,11 +106,7 @@ void RobotController_Omnidrive_OrthogonalExponential::setPath(PathWithPosition p
     //***//
 
     //desired velocity
-    vn = velocity_;
-    // TODO: fix this mess
-    if(vn > 1.0) {
-        vn = 1.0;
-    }
+    vn = std::min(path_driver_->getOptions().max_velocity_, velocity_);
     //***//
 
     //initialization before the interpolation
@@ -341,8 +337,7 @@ bool RobotController_Omnidrive_OrthogonalExponential::behaveApproachTurningPoint
     double distance_to_goal = hypot(x_meas - p[N-1], y_meas - q[N-1]);
     ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal);
 
-    // TODO: waypoint tolerance from options
-    return distance_to_goal <= 0.3;
+    return distance_to_goal <= path_driver_->getOptions().wp_tolerance_;
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::reset()
