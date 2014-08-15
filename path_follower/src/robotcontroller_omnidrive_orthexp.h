@@ -54,6 +54,12 @@ protected:
     void lookAt(const geometry_msgs::PointStampedConstPtr& look_at);
 
 private:
+    void initialize();
+    void clearBuffers();
+    void interpolatePath();
+    void publishInterpolatedPath();
+
+private:
     struct Command
     {
         RobotController_Omnidrive_OrthogonalExponential *parent_;
@@ -144,7 +150,7 @@ private:
     double param_kp;
     double param_kd;
 
-    visualization_msgs::Marker robot_path;
+    visualization_msgs::Marker robot_path_marker;
 };
 
 #endif // ROBOTCONTROLLER_OMNIDRIVE_ORTHEXP_H

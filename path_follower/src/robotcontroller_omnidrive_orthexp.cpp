@@ -40,6 +40,28 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     nh_.param("k", param_k, 1.5);
     nh_.param("kp", param_kp, 0.4);
     nh_.param("kd", param_kd, 0.2);
+
+    // path marker
+    robot_path_marker.header.frame_id = "map";
+    robot_path_marker.header.stamp = ros::Time();
+    robot_path_marker.ns = "my_namespace";
+    robot_path_marker.id = 50;
+    robot_path_marker.type = visualization_msgs::Marker::LINE_STRIP;
+    robot_path_marker.action = visualization_msgs::Marker::ADD;
+    robot_path_marker.pose.position.x = 0;
+    robot_path_marker.pose.position.y = 0;
+    robot_path_marker.pose.position.z = 0;
+    robot_path_marker.pose.orientation.x = 0.0;
+    robot_path_marker.pose.orientation.y = 0.0;
+    robot_path_marker.pose.orientation.z = 0.0;
+    robot_path_marker.pose.orientation.w = 1.0;
+    robot_path_marker.scale.x = 0.1;
+    robot_path_marker.scale.y = 0.0;
+    robot_path_marker.scale.z = 0.0;
+    robot_path_marker.color.a = 1.0;
+    robot_path_marker.color.r = 0.0;
+    robot_path_marker.color.g = 0.0;
+    robot_path_marker.color.b = 1.0;
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::publishCommand()
@@ -78,17 +100,54 @@ void RobotController_Omnidrive_OrthogonalExponential::setPath(PathWithPosition p
         return;
     }
 
+    clearBuffers();
+
+    try {
+        interpolatePath();
+        publishInterpolatedPath();
+
+    } catch(const alglib::ap_error& error) {
+        throw std::runtime_error(error.msg);
+    }
+
+    initialize();
+}
+
+void RobotController_Omnidrive_OrthogonalExponential::initialize()
+{
+    // initialize the desired angle and the angle error
+    double theta_meas = path_driver_->getRobotPose()[2];
+    if(!has_look_at_) {
+        theta_des = theta_meas;
+    }
+    e_theta_curr = theta_meas;
+
+    // desired velocity
+    vn = std::min(path_driver_->getOptions().max_velocity_, velocity_);
 
     initialized = true;
+}
 
+void RobotController_Omnidrive_OrthogonalExponential::clearBuffers()
+{
+    p.clear();
+    q.clear();
+    p_prim.clear();
+    q_prim.clear();
+    interp_path.poses.clear();
+    robot_path_marker.points.clear();
+}
+
+void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
+{
     std::vector<Waypoint> waypoints = *path_.current_path;
 
     // dirty hack!!!!!
     // TODO: find a way to do this correctly :-)
-    waypoints.erase(waypoints.begin());
-    waypoints.erase(waypoints.begin());
-    waypoints.erase(waypoints.begin());
-    waypoints.erase(waypoints.begin());
+//    waypoints.erase(waypoints.begin());
+//    waypoints.erase(waypoints.begin());
+//    waypoints.erase(waypoints.begin());
+//    waypoints.erase(waypoints.begin());
 
     //copy the waypoints to arrays X_arr and Y_arr, and introduce a new array l_arr_unif required for the interpolation
     N = waypoints.size();
@@ -103,14 +162,8 @@ void RobotController_Omnidrive_OrthogonalExponential::setPath(PathWithPosition p
         l_arr_unif[i] = i * f;
 
     }
-    //***//
-
-    //desired velocity
-    vn = std::min(path_driver_->getOptions().max_velocity_, velocity_);
-    //***//
 
     //initialization before the interpolation
-
     alglib::real_1d_array X_alg, Y_alg, l_alg_unif;
 
     X_alg.setcontent(N,X_arr);
@@ -118,76 +171,39 @@ void RobotController_Omnidrive_OrthogonalExponential::setPath(PathWithPosition p
     l_alg_unif.setcontent(N,l_arr_unif);
 
 
-    double x_s = 0.0, y_s = 0.0, x_s_prim = 0.0, y_s_prim = 0.0, x_s_sek = 0.0, y_s_sek = 0.0;
 
 
     alglib::spline1dinterpolant s_int1, s_int2;
-    // FIXME: throws alglib::ap_error
+
     alglib::spline1dbuildcubic(l_alg_unif,X_alg,s_int1);
     alglib::spline1dbuildcubic(l_alg_unif,Y_alg,s_int2);
 
-    p.clear();
-    q.clear();
-    p_prim.clear();
-    q_prim.clear();
-    interp_path.poses.clear();
-    //***//
-
     //interpolate the path and find the derivatives, then publish the interpolated path
     for(uint i = 0; i < N; ++i) {
-        geometry_msgs::PoseStamped poza;
+        double x_s = 0.0, y_s = 0.0, x_s_prim = 0.0, y_s_prim = 0.0, x_s_sek = 0.0, y_s_sek = 0.0;
         alglib::spline1ddiff(s_int1,l_alg_unif[i],x_s,x_s_prim,x_s_sek);
         alglib::spline1ddiff(s_int2,l_alg_unif[i],y_s,y_s_prim,y_s_sek);
-        poza.pose.position.x = x_s;
-        poza.pose.position.y = y_s;
-        interp_path.poses.push_back(poza);
 
-        p.push_back(poza.pose.position.x);
-        q.push_back(poza.pose.position.y);
+        p.push_back(x_s);
+        q.push_back(y_s);
 
         p_prim.push_back(x_s_prim);
         q_prim.push_back(y_s_prim);
-
+    }
+}
+void RobotController_Omnidrive_OrthogonalExponential::publishInterpolatedPath()
+{
+    for(uint i = 0; i < N; ++i) {
+        geometry_msgs::PoseStamped poza;
+        poza.pose.position.x = p[i];
+        poza.pose.position.y = q[i];
+        interp_path.poses.push_back(poza);
     }
 
     interp_path.header.frame_id = "map";
     interp_path_pub_.publish(interp_path);
-    //***//
-
-    //initialize the desired angle and the angle error
-    double theta_meas = path_driver_->getRobotPose()[2];
-    if(!has_look_at_) {
-        theta_des = theta_meas;
-    }
-    e_theta_curr = theta_meas;
-    //***//
-
-    ////////////////////////////////////////////////
-    robot_path.points.clear();
-    robot_path.header.frame_id = "map";
-    robot_path.header.stamp = ros::Time();
-    robot_path.ns = "my_namespace";
-    robot_path.id = 50;
-    robot_path.type = visualization_msgs::Marker::LINE_STRIP;
-    robot_path.action = visualization_msgs::Marker::ADD;
-    robot_path.pose.position.x = 0;
-    robot_path.pose.position.y = 0;
-    robot_path.pose.position.z = 0;
-    robot_path.pose.orientation.x = 0.0;
-    robot_path.pose.orientation.y = 0.0;
-    robot_path.pose.orientation.z = 0.0;
-    robot_path.pose.orientation.w = 1.0;
-    robot_path.scale.x = 0.1;
-    robot_path.scale.y = 0.0;
-    robot_path.scale.z = 0.0;
-    robot_path.color.a = 1.0;
-    robot_path.color.r = 0.0;
-    robot_path.color.g = 0.0;
-    robot_path.color.b = 1.0;
-    /////////////////////////////////////////////////
-
-
 }
+
 
 void RobotController_Omnidrive_OrthogonalExponential::initOnLine()
 {
@@ -278,9 +294,9 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 
     double e_theta_new = MathHelper::NormalizeAngle(theta_des - theta_meas);
 
-//    if(std::abs(e_theta_new) > M_PI){
-//        e_theta_new = MathHelper::NormalizeAngle(2*M_PI - e_theta_new);
-//    }
+    //    if(std::abs(e_theta_new) > M_PI){
+    //        e_theta_new = MathHelper::NormalizeAngle(2*M_PI - e_theta_new);
+    //    }
 
     double e_theta_prim = (e_theta_new - e_theta_curr)/Ts;
 
@@ -308,9 +324,9 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     geometry_msgs::Point pt;
     pt.x = x_meas;
     pt.y = y_meas;
-    robot_path.points.push_back(pt);
+    robot_path_marker.points.push_back(pt);
 
-    points_pub_.publish(robot_path);
+    points_pub_.publish(robot_path_marker);
 
     /////////////////////////////////////////////////
 
