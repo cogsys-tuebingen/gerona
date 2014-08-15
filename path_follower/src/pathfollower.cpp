@@ -439,6 +439,12 @@ bool PathFollower::executeBehaviour(FollowPathFeedback& feedback, FollowPathResu
         std::cout << "switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) << std::endl;
         clearActive();
         active_behaviour_ = next_behaviour;
+
+    } catch(const std::exception& e) {
+        ROS_ERROR_STREAM("uncaught exception: " << e.what() << " => abort");
+        current_command_.velocity = 0;
+        result.status = FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
+        return DONE;
     }
 
     getController()->publishCommand();
@@ -525,6 +531,8 @@ void PathFollower::setPath(const nav_msgs::Path& path)
 
     // find segments
     findSegments(getController()->isOmnidirectional());
+
+    controller_->reset();
 }
 
 void PathFollower::findSegments(bool only_one_segment)

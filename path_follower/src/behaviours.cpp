@@ -161,11 +161,6 @@ void BehaviourOnLine::execute(int *status)
     initExecute(status);
 
     controller_->execBehaviourOnLine(getPathWithPosition());
-
-    // TODO: dirty hack, this needs to be fixed :)
-    if(controller_->isOmnidirectional()) {
-        throw new BehaviourApproachTurningPoint(parent_);
-    }
 }
 
 

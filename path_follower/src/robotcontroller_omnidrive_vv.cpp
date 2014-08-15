@@ -270,7 +270,7 @@ void RobotController_Omnidrive_VirtualVehicle::behaveOnLine()
 
     cmd_.speed = gama*ro*cos(psi_d_prev - psi);
 
-    cmd_.direction_angle = k*(psi_d_prev - psi) + psi_d_prim;
+    cmd_.rotation = k*(psi_d_prev - psi) + psi_d_prim;
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
@@ -293,10 +293,10 @@ void RobotController_Omnidrive_VirtualVehicle::behaveOnLine()
     ROS_DEBUG("Counter: %d, N: %d", counter, N);
     if (counter >= N-1){
         counter = N-1;
-        if(ro <= 0.3){
+        //if(ro <= 0.3){
             cmd_.speed = 0.0;
             cmd_.direction_angle = 0.0;
-        }
+        //}
 
     }
 
