@@ -51,6 +51,7 @@ protected:
         return true;
     }
 
+    void lookAtCommand(const std_msgs::StringConstPtr& cmd);
     void lookAt(const geometry_msgs::PointStampedConstPtr& look_at);
 
 private:
@@ -58,6 +59,8 @@ private:
     void clearBuffers();
     void interpolatePath();
     void publishInterpolatedPath();
+
+    void keepHeading();
 
 private:
     struct Command
@@ -125,6 +128,7 @@ private:
     ros::Publisher points_pub_;
 
     ros::Subscriber look_at_sub_;
+    ros::Subscriber look_at_cmd_sub_;
 
 
     nav_msgs::Path interp_path;

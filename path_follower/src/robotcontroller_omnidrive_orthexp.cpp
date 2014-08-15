@@ -35,6 +35,8 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     interp_path_pub_ = nh_.advertise<nav_msgs::Path>("interp_path", 10);
     points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
 
+    look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
+                                                       boost::bind(&RobotController_Omnidrive_OrthogonalExponential::lookAtCommand, this, _1));
     look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
                                                               boost::bind(&RobotController_Omnidrive_OrthogonalExponential::lookAt, this, _1));
 
@@ -89,6 +91,15 @@ void RobotController_Omnidrive_OrthogonalExponential::stopMotion()
     publishCommand();
 }
 
+void RobotController_Omnidrive_OrthogonalExponential::lookAtCommand(const std_msgs::StringConstPtr &cmd)
+{
+    const std::string& command = cmd->data;
+
+    if(command == "reset") {
+        keepHeading();
+    }
+}
+
 void RobotController_Omnidrive_OrthogonalExponential::lookAt(const geometry_msgs::PointStampedConstPtr &look_at)
 {
     look_at_ = look_at->point;
@@ -116,14 +127,19 @@ void RobotController_Omnidrive_OrthogonalExponential::setPath(PathWithPosition p
     initialize();
 }
 
+void RobotController_Omnidrive_OrthogonalExponential::keepHeading()
+{
+    has_look_at_ = false;
+    theta_des = path_driver_->getRobotPose()[2];
+}
+
 void RobotController_Omnidrive_OrthogonalExponential::initialize()
 {
     // initialize the desired angle and the angle error
-    double theta_meas = path_driver_->getRobotPose()[2];
     if(!has_look_at_) {
-        theta_des = theta_meas;
+        keepHeading();
     }
-    e_theta_curr = theta_meas;
+    e_theta_curr = path_driver_->getRobotPose()[2];
 
     // desired velocity
     vn = std::min(path_driver_->getOptions().max_velocity_, velocity_);
@@ -183,9 +199,6 @@ void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
     X_alg.setcontent(N,X_arr);
     Y_alg.setcontent(N,Y_arr);
     l_alg_unif.setcontent(N,l_arr_unif);
-
-
-
 
     alglib::spline1dinterpolant s_int1, s_int2;
 
