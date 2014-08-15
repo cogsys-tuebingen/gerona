@@ -23,7 +23,7 @@
         <param name="num_replan_attempts" value="0" />
     </node>
     <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy" output="screen" respawn="true">
-        <param name="target_speed" value="0.5" />
+        <param name="target_speed" value="1.0" />
         <param name="failure_mode" value="replan" />
         <param name="goal_topic" value="/goal"/>
     </node>

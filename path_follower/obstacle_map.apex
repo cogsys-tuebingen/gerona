@@ -22,8 +22,8 @@ fulcrums:
 adapters:
   []
 ---
-{type: csapex::ImportRos, uuid: csapex::ImportRos_1, label: csapex::ImportRos_1, pos: [0, 0], minimized: false, enabled: true, flipped: false, state: {params: {refresh: {name: refresh, type: value}, topic: {name: topic, type: set, txt: /scan/front, string: /scan/front}}}}
+{type: csapex::ImportRos, uuid: csapex::ImportRos_1, label: csapex::ImportRos_1, pos: [0, 0], minimized: false, enabled: true, flipped: false, state: {params: {refresh: {name: refresh, type: value}, topic: {name: topic, type: set, txt: /scan/front/filtered, string: /scan/front/filtered}}}}
 ---
-{type: csapex::ExportRos, uuid: csapex::ExportRos_2, label: csapex::ExportRos_2, pos: [705, 99], minimized: false, enabled: true, flipped: false, state: {params: {topic: {name: topic, type: value, string: obstaclemap}}}}
+{type: csapex::ExportRos, uuid: csapex::ExportRos_2, label: csapex::ExportRos_2, pos: [705, 99], minimized: false, enabled: true, flipped: false, state: {params: {topic: {name: topic, type: value, string: /obstacle_map}}}}
 ---
-{type: csapex::ScanToMap, uuid: csapex::ScanToMap_1, label: csapex::ScanToMap_1, pos: [351, -26], minimized: false, enabled: true, flipped: false, state: {params: {default: {name: default, type: range, int: 0}, drawRays: {name: drawRays, type: value, bool: true}, frame_id: {name: frame_id, type: value, string: /laser}, height: {name: height, type: range, int: 200}, resolution: {name: resolution, type: range, double: 0.05}, width: {name: width, type: range, int: 200}}}}
+{type: csapex::ScanToMap, uuid: csapex::ScanToMap_1, label: csapex::ScanToMap_1, pos: [351, -26], minimized: false, enabled: true, flipped: false, state: {params: {default: {name: default, type: range, int: 0}, drawRays: {name: drawRays, type: value, bool: true}, frame_id: {name: frame_id, type: value, string: /laser_front}, height: {name: height, type: range, int: 200}, resolution: {name: resolution, type: range, double: 0.05}, width: {name: width, type: range, int: 200}}}}

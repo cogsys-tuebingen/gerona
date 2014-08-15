@@ -187,6 +187,7 @@ void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
 
     //copy the waypoints to arrays X_arr and Y_arr, and introduce a new array l_arr_unif required for the interpolation
     N = waypoints.size();
+
     double X_arr[N], Y_arr[N], l_arr_unif[N];
     double f = std::max(0.0001, 1.0 / (double) (N-1));
 
