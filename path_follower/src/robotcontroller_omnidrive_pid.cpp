@@ -12,9 +12,7 @@ RobotController_Omnidrive_Pid::RobotController_Omnidrive_Pid(ros::Publisher &cmd
                                                              PathFollower *path_driver):
     RobotController(cmd_publisher, path_driver),
     pids_(2),
-    cmd_(this),
-    last_position_direction_update_(0,0),
-    smoothed_direction_(0,0)
+    cmd_(this)
 {
     visualizer_ = Visualizer::getInstance();
 
@@ -46,8 +44,7 @@ void RobotController_Omnidrive_Pid::stopMotion()
 void RobotController_Omnidrive_Pid::initOnLine()
 {
     pids_.resetAll();
-    has_last_position_ = false;
-    has_last_position_smoothed_ = false;
+    path_driver_->getCoursePredictor().reset();
 }
 
 void RobotController_Omnidrive_Pid::behaveOnLine()
@@ -176,7 +173,11 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rota
 
     //TODO: use VFH
     bool collision = false;
-    collision |= path_driver_->checkCollision(predictSmoothedDirectionOfMovementAngle());
+    //TODO: Do this outside of the controller class
+    Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
+    if (!dir_of_mov.isZero()) {
+        collision |= path_driver_->checkCollision(MathHelper::Angle(dir_of_mov));
+    }
 
     if(collision) {
         ROS_WARN_THROTTLE(1, "Collision!");
@@ -242,80 +243,6 @@ Eigen::Vector2d RobotController_Omnidrive_Pid::predictPosition()
     return path_driver_->getRobotPose().head<2>();
 }
 
-Eigen::Vector2d RobotController_Omnidrive_Pid::predictDirectionOfMovement()
-{
-    //TODO: more sophisticated prediction
-
-    Vector2d direction;
-
-    if (!has_last_position_) {
-        // This is the first call, we can say nothing about the direction of movement.
-        // -> assume we are moving towards the next waypoint
-        direction = next_wp_local_.head<2>();
-
-        last_slam_pos_update_time_ = ros::Time(0); // force update
-    }
-    else {
-        // transform last position to robot frame
-        geometry_msgs::PoseStamped last_pos_msg;
-        last_pos_msg.pose.position.x = last_position_direction_update_.x();
-        last_pos_msg.pose.position.y = last_position_direction_update_.y();
-        last_pos_msg.pose.orientation.w = 1;
-
-        Vector3d last_position;
-        if ( !path_driver_->transformToLocal(last_pos_msg, last_position) ) {
-            setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
-            throw new BehaviourEmergencyBreak(*path_driver_);
-        }
-
-        // calculate direction of movement (current_pos - last_pos, where current_pos = 0)
-        direction = -last_position.head<2>();
-    }
-
-    // only update every 0.3 seconds
-    if (last_slam_pos_update_time_ < ros::Time::now() - ros::Duration(0.3)) {
-        last_position_direction_update_ = path_driver_->getRobotPose().head<2>();
-        last_slam_pos_update_time_ = ros::Time::now();
-        has_last_position_ = true;
-    }
-
-    return direction;
-}
-
-double RobotController_Omnidrive_Pid::predictSmoothedDirectionOfMovementAngle()
-{
-    //FIXME: I'm not so happy with this, it is rather a dirty hack to make obstacle detection stable even when the robot
-    //      makes slight sideways movements. I think, there must be a better, more reliable solution...
-
-    // Only update, if the robot has moved at least a certain distance.
-    Vector2d current_pos = predictPosition();
-    double driven_dist = (last_position_smoothed_direction_update_ - current_pos).norm();
-
-    ROS_DEBUG("PSDOM: driven_dist = %g", driven_dist);
-
-    if (has_last_position_smoothed_ && driven_dist > 0.1) {
-        // update
-        Vector2d direction = predictDirectionOfMovement();
-
-        const float r = 0.0; //FIXME
-        smoothed_direction_ = r*smoothed_direction_ + (1-r)*direction;
-
-        last_position_smoothed_direction_update_ = current_pos;
-        has_last_position_smoothed_ = true;
-
-        ROS_DEBUG_STREAM("PSDOM: smoothed_dir: " << smoothed_direction_);
-    }
-
-    // this is true only in the first call -> initialize last_position
-    if (!has_last_position_smoothed_) {
-        last_position_smoothed_direction_update_ = current_pos;
-        has_last_position_smoothed_ = true;
-    }
-
-    ROS_DEBUG("PSDOM: angle = %g", atan2(smoothed_direction_[1], smoothed_direction_[0]));
-
-    return atan2(smoothed_direction_[1], smoothed_direction_[0]);
-}
 
 double RobotController_Omnidrive_Pid::calculateLineError()
 {
@@ -350,7 +277,7 @@ double RobotController_Omnidrive_Pid::calculateDirectionError()
 {
     Vector2d vec_to_wp = next_wp_local_.head<2>();
 
-    Vector2d direction = predictDirectionOfMovement();
+    Vector2d direction = path_driver_->getCoursePredictor().predictDirectionOfMovement();
     double dir_angle = atan2(direction[1], direction[0]);
 
     // angle between the direction to the waypoint and the actual direction of movement.

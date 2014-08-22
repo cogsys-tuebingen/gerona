@@ -98,7 +98,8 @@ private:
     {
         switch (feedback->status) {
         case NavigateToGoalFeedback::STATUS_MOVING:
-            ROS_INFO_THROTTLE(1, "Feedback: Moving\n  There are %zu obstacles sighted on the path.", feedback->obstacles_on_path.size());
+            ROS_INFO_THROTTLE(1, "Feedback: Moving");
+            ROS_DEBUG_THROTTLE(1, "There are %zu obstacles sighted on the path.", feedback->obstacles_on_path.size());
             break;
 
         case NavigateToGoalFeedback::STATUS_PATH_READY:

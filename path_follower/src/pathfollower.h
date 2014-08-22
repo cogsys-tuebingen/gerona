@@ -29,6 +29,7 @@
 #include "vector_field_histogram.h"
 #include "visualizer.h"
 #include "path.h"
+#include "coursepredictor.h"
 
 
 //Forward declaration
@@ -149,6 +150,8 @@ public:
 
     PathLookout* getPathLookout();
 
+    CoursePredictor &getCoursePredictor();
+
     //! Send 'text' to a text to speech processor.
     void say(std::string text);
 
@@ -198,6 +201,9 @@ private:
 
     //! Look for obstacles on the path ahead of the robot.
     PathLookout path_lookout_;
+
+    //! Predict direction of movement for controlling and obstacle avoidance
+    CoursePredictor course_predictor_;
 
     //! Provides obstacle detection based on the laser scans. Is used instead of ObstacleDetector, if ~use_obstacle_map:=false
     LaserEnvironment laser_env_;

@@ -241,11 +241,20 @@ void RobotController_Omnidrive_OrthogonalExponential::publishInterpolatedPath()
 
 void RobotController_Omnidrive_OrthogonalExponential::initOnLine()
 {
-
+    path_driver_->getCoursePredictor().reset();
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 {
+    Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
+    if (!dir_of_mov.isZero() && path_driver_->checkCollision(MathHelper::Angle(dir_of_mov))) {
+        ROS_WARN_THROTTLE(1, "Collision!");
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION); //TODO: not so good to use result-constant if it is not finishing the action...
+
+        stopMotion();
+        return;
+    }
+
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
     Eigen::Vector3d current_pose = path_driver_->getRobotPose();
 

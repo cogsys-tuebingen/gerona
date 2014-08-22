@@ -39,6 +39,7 @@ std::string name(Behaviour* b) {
 
 PathFollower::PathFollower(ros::NodeHandle &nh):
     path_lookout_(this),
+    course_predictor_(this),
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
     active_behaviour_(NULL),
@@ -52,10 +53,9 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     follow_path_server_.registerGoalCallback(boost::bind(&PathFollower::followPathGoalCB, this));
     follow_path_server_.registerPreemptCallback(boost::bind(&PathFollower::followPathPreemptCB,this));
 
-    //cmd_pub_ = nh_.advertise<ramaxx_msgs::RamaxxMsg> (cmd_topic_, 10);
-    cmd_pub_ = node_handle_.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
+    cmd_pub_    = node_handle_.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
     speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
-    beep_pub_ = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
+    beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
 
     odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
@@ -141,7 +141,12 @@ void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
 
 bool PathFollower::updateRobotPose()
 {
-    return getWorldPose( &robot_pose_, &robot_pose_msg_ );
+    if (getWorldPose(&robot_pose_, &robot_pose_msg_)) {
+        course_predictor_.update();
+        return true;
+    } else {
+        return false;
+    }
 }
 
 
@@ -285,12 +290,6 @@ void PathFollower::update()
 
 bool PathFollower::checkCollision(double course)
 {
-    // no laser backward, so do not check when drivin backwards.
-    // FIXME: this is a special case that should be implemented in the controller, not here!
-    if (controller_->getDirSign() < 0) {
-        return false;
-    }
-
     //! Factor which defines, how much the box is enlarged in curves.
     const float enlarge_factor = 0.5; //TODO: should this be a parameter?
 
@@ -313,6 +312,8 @@ bool PathFollower::checkCollision(double course)
     const float f = std::min(1.0f, opt_.collision_box_velocity_factor_ * interp);
 
     float box_length = opt_.collision_box_min_length_ + span * f;
+
+    ROS_DEBUG("Collision Box: v = %g -> len = %g", v, box_length);
 
     Path& current_path = paths_[opt_.path_idx];
     double distance_to_goal = current_path.back().distanceTo(current_path[opt_.wp_idx]);
@@ -348,6 +349,11 @@ RobotController *PathFollower::getController()
 PathLookout *PathFollower::getPathLookout()
 {
     return &path_lookout_;
+}
+
+CoursePredictor &PathFollower::getCoursePredictor()
+{
+    return course_predictor_;
 }
 
 void PathFollower::say(string text)

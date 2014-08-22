@@ -156,6 +156,7 @@ add_executable(path_follower_node
   src/obstacletracker.cpp
   src/maptransformer.cpp
   src/cubic_spline_interpolation.cpp
+  src/coursepredictor.cpp
 
 
   src/alglib/interpolation.cpp

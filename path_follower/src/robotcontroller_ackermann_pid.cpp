@@ -113,7 +113,10 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
     cmd_.steer_front = dir_sign_ * delta_f;
     cmd_.steer_back = 0;
 
-    collision |= path_driver_->checkCollision(calculateCourse());
+    // no laser backward, so do not check when driving backwards.
+    if (dir_sign_ > 0) {
+        collision |= path_driver_->checkCollision(calculateCourse());
+    }
 
     if(collision) {
         ROS_WARN_THROTTLE(1, "Collision!");
