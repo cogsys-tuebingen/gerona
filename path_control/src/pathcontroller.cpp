@@ -34,7 +34,8 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
     if (unexpected_path_) {
         ROS_INFO("Cancel execution of unexpected path.");
     }
-        follow_path_client_.cancelAllGoals();
+
+    follow_path_client_.cancelAllGoals();
 	ros::spinOnce(); ros::Duration(0.1).sleep();
 
     current_goal_ = goal;

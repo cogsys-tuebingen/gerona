@@ -116,7 +116,8 @@ void PathFollower::followPathGoalCB()
 
 void PathFollower::followPathPreemptCB()
 {
-    stop(); stop(); /// @todo think about this
+    controller_->stopMotion();
+    pending_error_ = FollowPathResult::MOTION_STATUS_SUCCESS;
 }
 
 void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
@@ -386,9 +387,11 @@ void PathFollower::start()
 
 void PathFollower::stop()
 {
+    //FIXME: This stops nothing... behaviour will automatically be reinitialized, unless path execution is somehow
+    //       aborted. See preempt callback
     clearActive();
 
-    current_command_.velocity = 0; //TODO: should be published immediately
+    controller_->stopMotion();
 }
 
 
