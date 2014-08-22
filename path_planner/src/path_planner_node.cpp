@@ -138,7 +138,7 @@ struct LinearExpansion
     template <class PathT>
     void get(PathT* out)
     {
-        typedef typename PathT::NodeT NodeT;
+        typedef typename PathT::value_type NodeT;
         NodeT node;
         NodeT::init(node, goal_.x, goal_.y);
         out->push_back(node);
