@@ -17,9 +17,6 @@ ObstacleDetectorPolygon::PolygonWithTfFrame ObstacleDetectorOmnidrive::getPolygo
     corners.push_back(rot * tf::Point(length, -width/2, 0.0));
     corners.push_back(rot * tf::Point(length,  width/2, 0.0));
 
-    //std::for_each(corners.begin(), corners.end(), [&](tf::Point p){ return rot*p; });
-
-    //pwf.polygon = transform(corners.begin(), corners.end(), [](tf::Point p)->cv::Point2f { return cv::Point2f(p.x(), p.y()); });
     for (vector<tf::Point>::iterator it = corners.begin(); it != corners.end(); ++it) {
         pwf.polygon.push_back( cv::Point2f(it->x(), it->y()) );
     }

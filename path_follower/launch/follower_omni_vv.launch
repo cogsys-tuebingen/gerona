@@ -5,7 +5,6 @@
     <param name="use_vfh" value="false" />
     
     <param name="controller" value="omnidrive_vv" />
-    <param name="cmd_vel" value="/robot_0/cmd_vel" />
     
     <param name="min_velocity" value="0.35" />
     <param name="max_velocity" value="0.9" />

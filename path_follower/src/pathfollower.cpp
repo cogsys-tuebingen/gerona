@@ -53,9 +53,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     follow_path_server_.registerPreemptCallback(boost::bind(&PathFollower::followPathPreemptCB,this));
 
     //cmd_pub_ = nh_.advertise<ramaxx_msgs::RamaxxMsg> (cmd_topic_, 10);
-    std::string cmd_vel;
-    ros::param::param<string>("~cmd_vel", cmd_vel, "/cmd_vel"); //FIXME: this parameter is unnecessary due to remaps.
-    cmd_pub_ = node_handle_.advertise<geometry_msgs::Twist> (cmd_vel, 10);
+    cmd_pub_ = node_handle_.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
     speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
     beep_pub_ = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
 
