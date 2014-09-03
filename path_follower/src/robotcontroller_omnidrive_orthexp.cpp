@@ -188,6 +188,10 @@ void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
     //copy the waypoints to arrays X_arr and Y_arr, and introduce a new array l_arr_unif required for the interpolation
     N = waypoints.size();
 
+    if(N <= 2) {
+        return;
+    }
+
     double X_arr[N], Y_arr[N], l_arr_unif[N];
     double f = std::max(0.0001, 1.0 / (double) (N-1));
 
@@ -227,6 +231,10 @@ void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
 }
 void RobotController_Omnidrive_OrthogonalExponential::publishInterpolatedPath()
 {
+    if(N <= 2) {
+        return;
+    }
+
     for(uint i = 0; i < N; ++i) {
         geometry_msgs::PoseStamped poza;
         poza.pose.position.x = p[i];
@@ -246,6 +254,14 @@ void RobotController_Omnidrive_OrthogonalExponential::initOnLine()
 
 void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 {
+    if(N <= 2) {
+        ROS_ERROR("path is too short");
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS);
+
+        stopMotion();
+        return;
+    }
+
     Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
     if (!dir_of_mov.isZero() && path_driver_->checkCollision(MathHelper::Angle(dir_of_mov))) {
         ROS_WARN_THROTTLE(1, "Collision!");
@@ -398,6 +414,11 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveAvoidObstacle()
 
 bool RobotController_Omnidrive_OrthogonalExponential::behaveApproachTurningPoint()
 {
+    if(N <= 2) {
+        ROS_ERROR("path is too short");
+        return true;
+    }
+
     behaveOnLine();
 
     Eigen::Vector3d current_pose = path_driver_->getRobotPose();
