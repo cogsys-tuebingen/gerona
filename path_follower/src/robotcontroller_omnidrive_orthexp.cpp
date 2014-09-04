@@ -188,7 +188,7 @@ void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
     //copy the waypoints to arrays X_arr and Y_arr, and introduce a new array l_arr_unif required for the interpolation
     N = waypoints.size();
 
-    if(N <= 2) {
+    if(N < 2) {
         return;
     }
 
@@ -254,8 +254,8 @@ void RobotController_Omnidrive_OrthogonalExponential::initOnLine()
 
 void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 {
-    if(N <= 2) {
-        ROS_ERROR("path is too short");
+    if(N < 2) {
+        ROS_ERROR("[Line] path is too short");
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS);
 
         stopMotion();
@@ -414,8 +414,8 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveAvoidObstacle()
 
 bool RobotController_Omnidrive_OrthogonalExponential::behaveApproachTurningPoint()
 {
-    if(N <= 2) {
-        ROS_ERROR("path is too short");
+    if(N < 2) {
+        ROS_ERROR("[TurningPoint] path is too short");
         return true;
     }
 
