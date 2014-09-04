@@ -79,7 +79,6 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
     double delta_f = delta_f_raw;
     bool collision = false;
 
-    // FIXME: check if ~use_vfh == true
     if (vfh_ != 0) {
         if(!vfh_->isReady()) {
             ROS_WARN_THROTTLE(1, "Not using VFH, not ready yet! (Maybe obstacle map not published?)");
@@ -120,7 +119,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 
     if(collision) {
         ROS_WARN_THROTTLE(1, "Collision!");
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION); //FIXME: not so good to use result-constant if it is not finishing the action...
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION); //TODO: not so good to use result-constant if it is not finishing the action...
 
         stopMotion();
     } else {

@@ -494,7 +494,7 @@ void PathFollower::configure()
     ros::param::param<float>( "~min_velocity", opt_.min_velocity_, 0.4 );
     ros::param::param<float>( "~max_velocity", opt_.max_velocity_, 2.0 );
     ros::param::param<float>( "~collision_box_width", opt_.collision_box_width_, 0.5);
-    ros::param::param<float>( "~collision_box_min_length", opt_.collision_box_min_length_, 0.8);
+    ros::param::param<float>( "~collision_box_min_length", opt_.collision_box_min_length_, 0.5);
     ros::param::param<float>( "~collision_box_crit_length", opt_.collision_box_crit_length_, 0.3);
     ros::param::param<float>( "~collision_box_max_length", opt_.collision_box_max_length_, 1.0);
     ros::param::param<float>( "~collision_box_velocity_factor", opt_.collision_box_velocity_factor_, 1.0);

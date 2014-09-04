@@ -74,7 +74,7 @@ Eigen::Vector2d CoursePredictor::smoothedDirection()
     double driven_dist = (last_position_smoothed_ - current_pos).norm();
 
     //ROS_DEBUG("PSDOM: driven_dist = %g", driven_dist);
-    if (driven_dist > 0.1) {
+    if (driven_dist > 0.05) {
         // update
         Vector2d direction = predictDirectionOfMovement();
 
