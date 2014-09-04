@@ -401,9 +401,6 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
     actionlib::SimpleClientGoalState state = path_planner_client_.getState();
     if(state == actionlib::SimpleClientGoalState::SUCCEEDED) {
 
-        std::stringstream cmd;
-        cmd << "path with " << path_planner_client_.getResult()->path.poses.size() << " nodes found";
-        say(cmd.str());
 
         ROS_INFO("Got a path, continue");
         nav_msgs::PathPtr path(new nav_msgs::Path(path_planner_client_.getResult()->path));
