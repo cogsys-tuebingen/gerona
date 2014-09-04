@@ -1,19 +1,23 @@
+<?xml version="1.0" ?>
 <launch>
     <include file="$(find path_follower)/launch/filter.launch" />
 
+    <node name="growmap" type="costmap_grow_node" pkg="costmap" output="screen" respawn="true">
+    </node>
+    
     <node name="costmap" type="costmap_gradient_node" pkg="costmap" output="screen" respawn="true">
     </node>
 
     <node name="path_planner" type="path_planner_node" pkg="path_planner" output="screen" respawn="true">
         <param name="use_map_topic" value="true" />
-		<param name="map_service" value="/dynamic_map" />
-		<param name="map_topic" value="/map" />
+		<param name="map_service" value="/dynamic_map/inflated" />
+		<param name="map_topic" value="/map/inflated" />
 		<param name="use_unknown_cells" value="true" />
         <param name="use_cost_map" value="false" />
 
-                <param name="size/forward" value="0.45" />
-                <param name="size/backward" value="-0.45" />
-                <param name="size/width" value="0.7" />
+        <param name="size/forward" value="0.45" />
+        <param name="size/backward" value="-0.45" />
+        <param name="size/width" value="0.7" />
 	</node>
 
     <include file="$(find navigation_launch)/launch/mapping.launch" />
