@@ -225,12 +225,14 @@ struct PathPlanner : public Planner
             algo.setCostFunction(boost::bind(&PathPlanner::getCost, this, _1, _2));
         }
 
-        PathT path = algo.findPath(from_map, to_map);
-
-        if(path.empty()) {
-            ROS_WARN("no path found");
-        } else {
+        PathT path;
+        try {
+            path = algo.findPath(from_map, to_map);
             ROS_INFO_STREAM("path with " << path.size() << " nodes found");
+        }
+        catch(const std::logic_error& e) {
+            ROS_ERROR_STREAM("no path found: " << e.what());
+            path = algo.empty();
         }
 
         return path2msg(path, goal.header.stamp);
