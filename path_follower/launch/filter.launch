@@ -1,7 +1,13 @@
+<?xml version="1.0"?>
 <launch>
-  <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter">
+  <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter_front">
     <rosparam command="load" file="$(find path_follower)/laser_config.yaml" />
     <remap from="scan" to="/scan/front" />
     <remap from="scan_filtered" to="/scan/front/filtered" />
+  </node>
+  <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter_back">
+    <rosparam command="load" file="$(find path_follower)/laser_config.yaml" />
+    <remap from="scan" to="/scan/back" />
+    <remap from="scan_filtered" to="/scan/back/filtered" />
   </node>
 </launch>
