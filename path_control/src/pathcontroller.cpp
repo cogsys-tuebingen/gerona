@@ -83,7 +83,7 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
         }
 
         if (failed) {
-            ROS_WARN("Path execution failed. Max number of replan attempts reached.", replan_counter);
+            ROS_WARN("Path execution failed. Max number of replan attempts reached.");
             // send feedback
             NavigateToGoalFeedback feedback;
             feedback.status = NavigateToGoalFeedback::STATUS_REPLAN_FAILED;
