@@ -186,6 +186,7 @@ add_executable(test_obstacle_tracker
 target_link_libraries(test_obstacle_tracker
   ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
 )
+add_dependencies(test_obstacle_tracker path_msgs_generate_messages_cpp)
 
 #############
 ## Install ##
