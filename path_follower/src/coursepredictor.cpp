@@ -10,11 +10,9 @@ using namespace Eigen;
 
 CoursePredictor::CoursePredictor(PathFollower *path_driver):
     path_driver_(path_driver),
-    update_intervall_(0.3),
+    update_intervall_(0.1),
     last_update_time_(0),
-    last_positions_(5), //TODO: parameter for buffer size?
-    last_position_(0,0),
-    smoothed_direction_(0,0)
+    last_positions_(5) //TODO: parameter for buffer size?
 {
 }
 
@@ -24,7 +22,6 @@ void CoursePredictor::update()
         return;
     }
 
-    last_position_ = path_driver_->getRobotPose().head<2>();
     last_positions_.push_back(path_driver_->getRobotPose().head<2>());
     last_update_time_ = ros::Time::now();
 }
@@ -33,8 +30,6 @@ void CoursePredictor::reset()
 {
     last_update_time_   = ros::Time(0);
     last_positions_.clear();
-    last_position_      = Vector2d(0,0);
-    smoothed_direction_ = Vector2d(0,0);
 }
 
 Eigen::Vector2d CoursePredictor::predictDirectionOfMovement()
@@ -46,8 +41,8 @@ Eigen::Vector2d CoursePredictor::predictDirectionOfMovement()
     if (!last_update_time_.isZero()) {
         // transform last position to robot frame
         geometry_msgs::PoseStamped last_pos_msg;
-        last_pos_msg.pose.position.x = last_position_.x();
-        last_pos_msg.pose.position.y = last_position_.y();
+        last_pos_msg.pose.position.x = last_positions_.back().x();
+        last_pos_msg.pose.position.y = last_positions_.back().y();
         last_pos_msg.pose.orientation.w = 1;
 
         Vector3d last_position;
@@ -73,6 +68,8 @@ Eigen::Vector2d CoursePredictor::smoothedDirection()
     // convert circular buffer to vector
     vector<Vector2d> points;
     points.assign(last_positions_.begin(), last_positions_.end());
+    // at current position
+    points.push_back(path_driver_->getRobotPose().head<2>());
 
     MathHelper::Line line = MathHelper::FitLinear(points);
 
