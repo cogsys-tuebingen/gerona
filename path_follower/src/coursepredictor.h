@@ -35,15 +35,19 @@ public:
     void setUpdateIntervall(const ros::Duration &getUpdateIntervall);
 
 private:
+    typedef boost::circular_buffer<Eigen::Vector2d> buffer_type;
+
     PathFollower *path_driver_;
 
     ros::Duration update_intervall_;
 
     //! List of last known positions. The most recent position is pushed to the back.
-    boost::circular_buffer<Eigen::Vector2d> last_positions_;
+    buffer_type last_positions_;
 
     //! Time, when the direction prediction was updated the last time
     ros::Time last_update_time_;
+
+    void configure();
 };
 
 #endif // COURSEPREDICTOR_H

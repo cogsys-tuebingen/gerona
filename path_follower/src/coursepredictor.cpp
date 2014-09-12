@@ -10,10 +10,9 @@ using namespace Eigen;
 
 CoursePredictor::CoursePredictor(PathFollower *path_driver):
     path_driver_(path_driver),
-    update_intervall_(0.1),
-    last_update_time_(0),
-    last_positions_(5) //TODO: parameter for buffer size?
+    last_update_time_(0)
 {
+    configure();
 }
 
 void CoursePredictor::update()
@@ -112,5 +111,19 @@ ros::Duration CoursePredictor::getUpdateIntervall() const
 void CoursePredictor::setUpdateIntervall(const ros::Duration &update_intervall)
 {
     update_intervall_ = update_intervall;
+}
+
+void CoursePredictor::configure()
+{
+    float up_int;
+    ros::param::param<float>("coursepredictor/update_interval", up_int, 0.1f);
+    update_intervall_ = ros::Duration(up_int);
+
+    int buffer_size;
+    ros::param::param<int>("coursepredictor/buffer_size", buffer_size, 5);
+    last_positions_ = buffer_type(buffer_size);
+    if (buffer_size < 2) {
+        ROS_ERROR("Course Predictor: Buffer size must be at least 2 but is set to %d. Course prediction will not work!");
+    }
 }
 
