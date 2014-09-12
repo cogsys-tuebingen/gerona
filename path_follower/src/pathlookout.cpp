@@ -65,11 +65,11 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
     //TODO: dilate obstacle blobs before findinf contrours?
 
     if (map_ == NULL) {
-        ROS_WARN("PathLookout has not received any map yet. No obstacle lookout is done.");
+        ROS_WARN_THROTTLE(1, "PathLookout has not received any map yet. No obstacle lookout is done.");
         return false;
     }
     if (path_image_.empty()) {
-        ROS_WARN("PathLookout has not received any path yet. No obstacle lookout is done.");
+        ROS_WARN_THROTTLE(1, "PathLookout has not received any path yet. No obstacle lookout is done.");
         return false;
     }
 

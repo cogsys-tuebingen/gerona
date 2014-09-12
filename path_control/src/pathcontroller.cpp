@@ -29,7 +29,7 @@ PathController::PathController(ros::NodeHandle &nh):
 
 void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal)
 {
-    ROS_INFO("Start Action!");
+    ROS_INFO_STREAM("Start Action! Requested velocity: " << goal->velocity);
 
     if (unexpected_path_) {
         ROS_INFO("Cancel execution of unexpected path.");

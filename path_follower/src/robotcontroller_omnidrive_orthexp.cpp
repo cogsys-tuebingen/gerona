@@ -149,7 +149,7 @@ void RobotController_Omnidrive_OrthogonalExponential::initialize()
 
     // desired velocity
     vn = std::min(path_driver_->getOptions().max_velocity_, velocity_);
-
+    ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn);
     initialized = true;
 }
 
@@ -375,10 +375,27 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     //***//
 
     //control
+    double distance = hypot(x_meas - p[N-1], y_meas - q[N-1]);
+    double v = vn;
 
-    cmd_.speed = vn;
+    // TODO: make parameters
+    double brake_distance = 1.0;
+    double max_angular_velocity = 2.0;
+
+    if(distance < brake_distance) {
+        double min =  path_driver_->getOptions().min_velocity_;
+        v = min + (vn - min) * (distance / brake_distance);
+    }
+
+    cmd_.speed = v;
     cmd_.direction_angle = atan(-param_k*orth_proj) + theta_p - theta_meas;
     cmd_.rotation = param_kp*e_theta_curr + param_kd*e_theta_prim;
+
+    if(cmd_.rotation > max_angular_velocity) {
+        cmd_.rotation = max_angular_velocity;
+    } else if(cmd_.rotation < -max_angular_velocity) {
+        cmd_.rotation = -max_angular_velocity;
+    }
 
     //***//
 
@@ -426,9 +443,9 @@ bool RobotController_Omnidrive_OrthogonalExponential::behaveApproachTurningPoint
     double y_meas = current_pose[1];
 
     double distance_to_goal = hypot(x_meas - p[N-1], y_meas - q[N-1]);
-    ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal);
+    ROS_WARN("distance to goal: %f", distance_to_goal);
 
-    return distance_to_goal <= path_driver_->getOptions().wp_tolerance_;
+    return distance_to_goal <= path_driver_->getOptions().goal_tolerance_;
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::reset()

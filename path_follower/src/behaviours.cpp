@@ -180,7 +180,9 @@ void BehaviourOnLine::getNextWaypoint()
     }
 
     // if distance to wp < threshold
+    ROS_ERROR_STREAM_THROTTLE(2, "distance to wp: " << distanceTo(current_path[opt.wp_idx]) << " < " << tolerance);
     while(distanceTo(current_path[opt.wp_idx]) < tolerance) {
+        ROS_ERROR_STREAM("opt.wp_idx: " << opt.wp_idx << ", size: " << last_wp_idx);
         if(opt.wp_idx >= last_wp_idx) {
             // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
@@ -275,9 +277,9 @@ void BehaviourApproachTurningPoint::execute(int *status)
     initExecute(status);
 
     // check if point is reached
-    if(!done_) {
-        done_ = controller_->execBehaviourApproachTurningPoint(getPathWithPosition());
-    }
+    //if(!done_) {
+    done_ = controller_->execBehaviourApproachTurningPoint(getPathWithPosition());
+    //}
     if (done_) {
         handleDone();
     }
@@ -287,10 +289,14 @@ void BehaviourApproachTurningPoint::handleDone()
 {
     controller_->stopMotion();
 
-    if(std::abs(parent_.getVelocity().linear.x) > 0.01) {
+    if((std::abs(parent_.getVelocity().linear.x) > 0.01) ||
+       (std::abs(parent_.getVelocity().linear.y) > 0.01) ||
+       (std::abs(parent_.getVelocity().angular.z) > 0.01)) {
         ROS_INFO_THROTTLE(1, "WAITING until no more motion");
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
     } else {
+        ROS_INFO("Done at waypoint -> reset");
+
         PathFollower::Options& opt = getOptions();
 
         opt.path_idx++;
