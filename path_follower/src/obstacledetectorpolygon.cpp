@@ -1,7 +1,12 @@
 #include "obstacledetectorpolygon.h"
 
+#define DEBUG_PATHLOOKOUT 0
+
+#if DEBUG_PATHLOOKOUT
+    #include <opencv2/highgui/highgui.hpp>
+#endif
+
 #include <opencv2/imgproc/imgproc.hpp>
-//#include <opencv2/highgui/highgui.hpp> // only for debugging
 #include "visualizer.h"
 
 using namespace std;
@@ -16,8 +21,10 @@ bool ObstacleDetectorPolygon::checkForObstacle(float width, float length, float 
 {
     bool collision = false;
 
-//    cv::Mat debug(map_->info.height, map_->info.width, CV_8UC1, cv::Scalar::all(255));
-//    cv::namedWindow("ObstacleBox", CV_WINDOW_KEEPRATIO);
+    #if DEBUG_PATHLOOKOUT
+        cv::Mat debug(map_->info.height, map_->info.width, CV_8UC1, cv::Scalar::all(255));
+        cv::namedWindow("ObstacleBox", CV_WINDOW_KEEPRATIO);
+    #endif
 
     PolygonWithTfFrame pwf = getPolygon(width, length, course_angle, curve_enlarge_factor);
     PolygonWithTfFrame poly_for_viz = pwf;
@@ -41,7 +48,9 @@ bool ObstacleDetectorPolygon::checkForObstacle(float width, float length, float 
     const unsigned data_size = map_->info.height * map_->info.width;
     for (unsigned i = 0; i < data_size; ++i) {
 
-//        debug.data[i] = map_->data[i] == OCCUPIED ? 127 : 255;
+        #if DEBUG_PATHLOOKOUT
+            debug.data[i] = map_->data[i] == OCCUPIED ? 127 : 255;
+        #endif
 
         if (map_->data[i] == OCCUPIED) {
             // check if this map point is inside the polygon
@@ -55,12 +64,14 @@ bool ObstacleDetectorPolygon::checkForObstacle(float width, float length, float 
     }
 
 
-//    for (size_t i = 1; i < polygon.size(); ++i) {
-//        cv::line(debug, polygon[i-1], polygon[i], cv::Scalar(0));
-//    }
-//    cv::line(debug, polygon.front(), polygon.back(), cv::Scalar(0));
-//    cv::imshow("ObstacleBox", debug);
-//    cv::waitKey(10);
+    #if DEBUG_PATHLOOKOUT
+        for (size_t i = 1; i < polygon.size(); ++i) {
+            cv::line(debug, polygon[i-1], polygon[i], cv::Scalar(0));
+        }
+        cv::line(debug, polygon.front(), polygon.back(), cv::Scalar(0));
+        cv::imshow("ObstacleBox", debug);
+        cv::waitKey(10);
+    #endif
 
 
     // visualization
@@ -84,7 +95,7 @@ bool ObstacleDetectorPolygon::checkForObstacle(float width, float length, float 
             // colour is green when the box is empty and red if there is an obstacle
             float r = collision ? 1 : 0;
             float g = 1 - r;
-            vis->drawLine(marker_id++, gp1, gp2, poly_for_viz.frame, "collision_box", r,g,0, 3, 0.05);
+            vis->drawLine(marker_id++, gp1, gp2, poly_for_viz.frame, "collision_box", r,g,0, 0.1, 0.05);
 
             p1 = p2;
         }

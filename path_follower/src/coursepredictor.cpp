@@ -2,16 +2,17 @@
 #include "pathfollower.h"
 #include "behaviours.h"
 
+#include <utils_general/MathHelper.h>
+#include <tf/tf.h>
+
 using namespace std;
 using namespace Eigen;
 
 CoursePredictor::CoursePredictor(PathFollower *path_driver):
     path_driver_(path_driver),
-    update_intervall_(0.3),
-    last_update_time_(0),
-    last_position_(0,0),
-    smoothed_direction_(0,0)
+    last_update_time_(0)
 {
+    configure();
 }
 
 void CoursePredictor::update()
@@ -20,15 +21,14 @@ void CoursePredictor::update()
         return;
     }
 
-    last_position_ = path_driver_->getRobotPose().head<2>();
+    last_positions_.push_back(path_driver_->getRobotPose().head<2>());
     last_update_time_ = ros::Time::now();
 }
 
 void CoursePredictor::reset()
 {
     last_update_time_   = ros::Time(0);
-    last_position_      = Vector2d(0,0);
-    smoothed_direction_ = Vector2d(0,0);
+    last_positions_.clear();
 }
 
 Eigen::Vector2d CoursePredictor::predictDirectionOfMovement()
@@ -40,8 +40,8 @@ Eigen::Vector2d CoursePredictor::predictDirectionOfMovement()
     if (!last_update_time_.isZero()) {
         // transform last position to robot frame
         geometry_msgs::PoseStamped last_pos_msg;
-        last_pos_msg.pose.position.x = last_position_.x();
-        last_pos_msg.pose.position.y = last_position_.y();
+        last_pos_msg.pose.position.x = last_positions_.back().x();
+        last_pos_msg.pose.position.y = last_positions_.back().y();
         last_pos_msg.pose.orientation.w = 1;
 
         Vector3d last_position;
@@ -60,35 +60,47 @@ Eigen::Vector2d CoursePredictor::predictDirectionOfMovement()
 
 Eigen::Vector2d CoursePredictor::smoothedDirection()
 {
-    //FIXME: I'm not so happy with this, it is rather a dirty hack to make obstacle detection stable even when the robot
-    //      makes slight sideways movements. I think, there must be a better, more reliable solution...
-
-    Vector2d current_pos = path_driver_->getRobotPose().head<2>();
-
-    if (last_update_time_.isZero()) { // only true in initial call
-        last_position_smoothed_ = current_pos;
+    if (last_positions_.size() < 2) {
+        return Vector2d(0,0);
     }
 
+    // convert circular buffer to vector
+    vector<Vector2d> points;
+    points.assign(last_positions_.begin(), last_positions_.end());
+    // at current position
+    points.push_back(path_driver_->getRobotPose().head<2>());
 
-    // Only update, if the robot has moved at least a certain distance.
-    double driven_dist = (last_position_smoothed_ - current_pos).norm();
+    MathHelper::Line line = MathHelper::FitLinear(points);
 
-    //ROS_DEBUG("PSDOM: driven_dist = %g", driven_dist);
-    if (driven_dist > 0.05) {
-        // update
-        Vector2d direction = predictDirectionOfMovement();
-
-        const float r = 0.0; //FIXME
-        smoothed_direction_ = r*smoothed_direction_ + (1-r)*direction;
-
-        last_position_smoothed_ = current_pos;
-
-        //ROS_DEBUG_STREAM("PSDOM: smoothed_dir: " << smoothed_direction_);
+    /// make sure, the vector is pointing forward!
+    // rough direction estimation: vector from oldest to newest point in the buffer (new points are pushed to the back)
+    Vector2d rough_dir = last_positions_.back() - last_positions_.front();
+    double angle = MathHelper::Angle(line.direction, rough_dir);
+    if (angle > M_PI/2) {
+        line.direction *= -1;
     }
 
-    //ROS_DEBUG("PSDOM: angle = %g", atan2(smoothed_direction_[1], smoothed_direction_[0]));
-    //return atan2(smoothed_direction_[1], smoothed_direction_[0]);
-    return smoothed_direction_;
+    /** transform direction vector to robot frame **/
+    Eigen::Vector2d direction;
+    {
+        geometry_msgs::PoseStamped line_direction_as_pose_msg;
+        line_direction_as_pose_msg.pose.orientation = tf::createQuaternionMsgFromYaw(MathHelper::Angle( line.direction ));
+
+        geometry_msgs::PoseStamped local_msg;
+        if ( !path_driver_->transformToLocal(line_direction_as_pose_msg, local_msg) ) {
+            //FIXME: set status
+            //path_driver_->getActiveBehaviour()->setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
+            throw new BehaviourEmergencyBreak(*path_driver_);
+        }
+
+        tf::Quaternion rot;
+        tf::quaternionMsgToTF(local_msg.pose.orientation, rot);
+        tf::Vector3 direction_tf = tf::quatRotate(rot, tf::Vector3(1,0,0));
+        direction = Eigen::Vector2d(direction_tf.x(), direction_tf.y());
+    }
+    /** transformation end **/
+
+    return direction;
 }
 
 ros::Duration CoursePredictor::getUpdateIntervall() const
@@ -99,5 +111,19 @@ ros::Duration CoursePredictor::getUpdateIntervall() const
 void CoursePredictor::setUpdateIntervall(const ros::Duration &update_intervall)
 {
     update_intervall_ = update_intervall;
+}
+
+void CoursePredictor::configure()
+{
+    float up_int;
+    ros::param::param<float>("coursepredictor/update_interval", up_int, 0.1f);
+    update_intervall_ = ros::Duration(up_int);
+
+    int buffer_size;
+    ros::param::param<int>("coursepredictor/buffer_size", buffer_size, 5);
+    last_positions_ = buffer_type(buffer_size);
+    if (buffer_size < 2) {
+        ROS_ERROR("Course Predictor: Buffer size must be at least 2 but is set to %d. Course prediction will not work!");
+    }
 }
 

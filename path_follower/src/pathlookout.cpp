@@ -62,7 +62,7 @@ void PathLookout::setPath(const PathWithPosition &path)
 
 bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
 {
-    //TODO: dilate obstacle blobs before findinf contrours?
+    //TODO: dilate obstacle blobs before finding contours?
 
     if (map_ == NULL) {
         ROS_WARN_THROTTLE(1, "PathLookout has not received any map yet. No obstacle lookout is done.");

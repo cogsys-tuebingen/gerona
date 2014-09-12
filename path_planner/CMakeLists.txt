@@ -42,14 +42,18 @@ target_link_libraries(path_planner_node
 )
 
 if(${OMPL_FOUND})
-    include_directories(${OMPL_INCLUDE_DIRS})
+    if(${OMPLAPP_LIBRARIES})
+        include_directories(${OMPL_INCLUDE_DIRS})
 
-    add_executable(ompl_planner_node src/planner_node.cpp src/ompl_planner_node.cpp)
-    add_dependencies(ompl_planner_node path_msgs_generate_messages_cpp)
+        add_executable(ompl_planner_node src/planner_node.cpp src/ompl_planner_node.cpp)
+        add_dependencies(ompl_planner_node path_msgs_generate_messages_cpp)
 
-    target_link_libraries(ompl_planner_node
-        ${catkin_LIBRARIES} ${OMPL_LIBRARIES} ${OMPLAPP_LIBRARIES}
-    )
+        target_link_libraries(ompl_planner_node
+            ${catkin_LIBRARIES} ${OMPL_LIBRARIES} ${OMPLAPP_LIBRARIES}
+        )
+    else()
+        message("not building OMPL planner, your library is missing the OMPLAPP part")
+    endif()
 else()
     message("not building OMPL planner")
     message("if you want OMPL, see http://ompl.kavrakilab.org/download.html)")
