@@ -62,6 +62,7 @@ private:
 
     void keepHeading();
     void lookInDrivingDirection();
+    void rotate();
 
 private:
     struct Command
@@ -142,7 +143,8 @@ private:
     enum ViewDirection {
         KeepHeading,
         LookAtPoint,
-        LookInDrivingDirection
+        LookInDrivingDirection,
+        Rotate
     };
 
     ViewDirection view_direction_;
@@ -161,6 +163,11 @@ private:
     double param_k;
     double param_kp;
     double param_kd;
+
+    double brake_distance;
+    double max_angular_velocity;
+    double rotation_threshold_min;
+    double rotation_threshold_max;
 
     visualization_msgs::Marker robot_path_marker;
 };

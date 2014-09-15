@@ -12,6 +12,8 @@
 
 /// SYSTEM
 #include <deque>
+#include <Eigen/Core>
+#include <Eigen/Dense>
 
 using namespace Eigen;
 
@@ -45,6 +47,11 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     nh_.param("k", param_k, 1.5);
     nh_.param("kp", param_kp, 0.4);
     nh_.param("kd", param_kd, 0.2);
+    nh_.param("rotation_threshold_min", rotation_threshold_min, 0.4);
+    nh_.param("rotation_threshold_max", rotation_threshold_max, 0.8);
+    nh_.param("brake_distance", brake_distance, 1.0);
+    nh_.param("max_angular_velocity", max_angular_velocity, 2.0);
+
 
     // path marker
     robot_path_marker.header.frame_id = "map";
@@ -101,6 +108,8 @@ void RobotController_Omnidrive_OrthogonalExponential::lookAtCommand(const std_ms
         lookInDrivingDirection();
     } else if(command == "keep") {
         keepHeading();
+    } else if(command == "rotate") {
+        rotate();
     }
 }
 
@@ -135,6 +144,11 @@ void RobotController_Omnidrive_OrthogonalExponential::keepHeading()
 {
     view_direction_ = KeepHeading;
     theta_des = path_driver_->getRobotPose()[2];
+}
+
+void RobotController_Omnidrive_OrthogonalExponential::rotate()
+{
+    view_direction_ = Rotate;
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::lookInDrivingDirection()
@@ -357,6 +371,9 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     case LookInDrivingDirection:
         theta_des = cmd_.direction_angle + current_pose[2];//std::atan2(q[ind+1] - y_meas, p[ind+1] - x_meas);
         break;
+    case Rotate:
+        theta_des += 0.01;
+        break;
     default:
         throw std::runtime_error("unknown view direction mode");
         break;
@@ -375,21 +392,43 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     //***//
 
     //control
-    double distance = hypot(x_meas - p[N-1], y_meas - q[N-1]);
+    double distance_to_goal = hypot(x_meas - p[N-1], y_meas - q[N-1]);
     double v = vn;
 
-    // TODO: make parameters
-    double brake_distance = 1.0;
-    double max_angular_velocity = 2.0;
-
-    if(distance < brake_distance) {
+    if(distance_to_goal < brake_distance) {
         double min =  path_driver_->getOptions().min_velocity_;
-        v = min + (vn - min) * (distance / brake_distance);
+        v = min + (v - min) * (distance_to_goal / brake_distance);
+    }
+
+    double rotation = param_kp*e_theta_curr + param_kd*e_theta_prim;
+    double rotation_abs = std::abs(rotation);
+
+    if(rotation_abs <= rotation_threshold_max) {
+        if(rotation_abs >= rotation_threshold_min) {
+            //double factor = (rotation_abs - rotation_threshold_min) / (rotation_threshold_max - rotation_threshold_min);
+            //v = v * (1.0 - factor);
+            double wmin = rotation_threshold_min;
+            double wmax = rotation_threshold_max;
+            double vmin =  path_driver_->getOptions().min_velocity_;
+            double w = rotation_abs;
+            Eigen::Matrix4d Aw;
+            Aw << 1, wmin, wmin*wmin, wmin*wmin*wmin,
+                  1, wmax, wmax*wmax, wmax*wmax*wmax,
+                  0, 1, 2*wmin, 3*wmin*wmin,
+                  0, 1, 2*wmax, 3*wmax*wmax;
+
+            Eigen::Matrix4d Awi = Aw.inverse();
+            Eigen::Vector4d V; V << vn, vmin, 0, 0;
+            Eigen::Vector4d C = Awi * V;
+            v = C(0) + C(1) * w + C(2) * w*w + C(3) * w*w*w;
+        }
+    } else {
+        v = 0;
     }
 
     cmd_.speed = v;
     cmd_.direction_angle = atan(-param_k*orth_proj) + theta_p - theta_meas;
-    cmd_.rotation = param_kp*e_theta_curr + param_kd*e_theta_prim;
+    cmd_.rotation = rotation;
 
     if(cmd_.rotation > max_angular_velocity) {
         cmd_.rotation = max_angular_velocity;
