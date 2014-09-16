@@ -169,6 +169,9 @@ private:
     double rotation_threshold_min;
     double rotation_threshold_max;
 
+    Eigen::Matrix4d rot_vel_mat_;
+    Eigen::Matrix4d rot_vel_mat_inv_;
+
     visualization_msgs::Marker robot_path_marker;
 };
 

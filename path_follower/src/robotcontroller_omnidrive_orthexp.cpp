@@ -52,6 +52,15 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     nh_.param("brake_distance", brake_distance, 1.0);
     nh_.param("max_angular_velocity", max_angular_velocity, 2.0);
 
+    // couple linear velocity to angular velocity
+    double wmin = rotation_threshold_min;
+    double wmax = rotation_threshold_max;
+    rot_vel_mat_ << 1, wmin, wmin*wmin, wmin*wmin*wmin,
+          1, wmax, wmax*wmax, wmax*wmax*wmax,
+          0, 1, 2*wmin, 3*wmin*wmin,
+          0, 1, 2*wmax, 3*wmax*wmax;
+    rot_vel_mat_inv_ = rot_vel_mat_.inverse();
+
 
     // path marker
     robot_path_marker.header.frame_id = "map";
@@ -76,6 +85,7 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     robot_path_marker.color.b = 1.0;
 
     lookInDrivingDirection();
+
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::publishCommand()
@@ -380,11 +390,6 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     }
 
     double e_theta_new = MathHelper::NormalizeAngle(theta_des - theta_meas);
-
-    //    if(std::abs(e_theta_new) > M_PI){
-    //        e_theta_new = MathHelper::NormalizeAngle(2*M_PI - e_theta_new);
-    //    }
-
     double e_theta_prim = (e_theta_new - e_theta_curr)/Ts;
 
     e_theta_curr = e_theta_new;
@@ -405,21 +410,11 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 
     if(rotation_abs <= rotation_threshold_max) {
         if(rotation_abs >= rotation_threshold_min) {
-            //double factor = (rotation_abs - rotation_threshold_min) / (rotation_threshold_max - rotation_threshold_min);
-            //v = v * (1.0 - factor);
-            double wmin = rotation_threshold_min;
-            double wmax = rotation_threshold_max;
             double vmin =  path_driver_->getOptions().min_velocity_;
             double w = rotation_abs;
-            Eigen::Matrix4d Aw;
-            Aw << 1, wmin, wmin*wmin, wmin*wmin*wmin,
-                  1, wmax, wmax*wmax, wmax*wmax*wmax,
-                  0, 1, 2*wmin, 3*wmin*wmin,
-                  0, 1, 2*wmax, 3*wmax*wmax;
 
-            Eigen::Matrix4d Awi = Aw.inverse();
             Eigen::Vector4d V; V << vn, vmin, 0, 0;
-            Eigen::Vector4d C = Awi * V;
+            Eigen::Vector4d C = rot_vel_mat_inv_ * V;
             v = C(0) + C(1) * w + C(2) * w*w + C(3) * w*w*w;
         }
     } else {
