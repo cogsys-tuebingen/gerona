@@ -202,30 +202,35 @@ void PathController::handleFollowPathResult()
     /// Construct result message
     path_msgs::NavigateToGoalResult nav_result;
 
-    nav_result.reached_goal = (follow_path_result_->status == FollowPathResult::MOTION_STATUS_SUCCESS);
+    if (!follow_path_result_) {
+        nav_result.status = NavigateToGoalResult::STATUS_OTHER_ERROR;
+        nav_result.reached_goal = false;
+    } else {
+        nav_result.reached_goal = (follow_path_result_->status == FollowPathResult::MOTION_STATUS_SUCCESS);
 
-    ROS_DEBUG("FollowPathResult status = %d", follow_path_result_->status);
+        ROS_DEBUG("FollowPathResult status = %d", follow_path_result_->status);
 
-    if (nav_result.reached_goal) {
-        nav_result.status = NavigateToGoalResult::STATUS_SUCCESS;
-    }
-    else {
-        switch (follow_path_result_->status) {
-        case FollowPathResult::MOTION_STATUS_COLLISION:
-            nav_result.status = NavigateToGoalResult::STATUS_COLLISION;
-            break;
+        if (nav_result.reached_goal) {
+            nav_result.status = NavigateToGoalResult::STATUS_SUCCESS;
+        }
+        else {
+            switch (follow_path_result_->status) {
+            case FollowPathResult::MOTION_STATUS_COLLISION:
+                nav_result.status = NavigateToGoalResult::STATUS_COLLISION;
+                break;
 
-        case FollowPathResult::MOTION_STATUS_PATH_LOST:
-            nav_result.status = NavigateToGoalResult::STATUS_LOST_PATH;
-            break;
+            case FollowPathResult::MOTION_STATUS_PATH_LOST:
+                nav_result.status = NavigateToGoalResult::STATUS_LOST_PATH;
+                break;
 
-        case FollowPathResult::MOTION_STATUS_TIMEOUT:
-            nav_result.status = NavigateToGoalResult::STATUS_TIMEOUT;
-            break;
+            case FollowPathResult::MOTION_STATUS_TIMEOUT:
+                nav_result.status = NavigateToGoalResult::STATUS_TIMEOUT;
+                break;
 
-        default:
-            nav_result.status = NavigateToGoalResult::STATUS_OTHER_ERROR;
-            break;
+            default:
+                nav_result.status = NavigateToGoalResult::STATUS_OTHER_ERROR;
+                break;
+            }
         }
     }
 
@@ -241,6 +246,7 @@ void PathController::handleFollowPathResult()
     case GoalState::REJECTED:
     case GoalState::RECALLED:
     case GoalState::ABORTED:
+    case GoalState::LOST:
         navigate_to_goal_server_.setAborted(nav_result);
         break;
 
@@ -298,6 +304,10 @@ void PathController::pathCallback(const nav_msgs::PathConstPtr &path)
 void PathController::followPathDoneCB(const actionlib::SimpleClientGoalState &state,
                                       const path_msgs::FollowPathResultConstPtr &result)
 {
+    if (state == state.LOST) {
+        ROS_ERROR("Lost connection to path follower.");
+    }
+
     ROS_INFO("Path execution finished.\n---------------------");
 
     follow_path_final_state_ = state.state_;
