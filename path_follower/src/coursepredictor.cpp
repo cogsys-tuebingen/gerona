@@ -123,7 +123,8 @@ void CoursePredictor::configure()
     ros::param::param<int>("coursepredictor/buffer_size", buffer_size, 5);
     last_positions_ = buffer_type(buffer_size);
     if (buffer_size < 2) {
-        ROS_ERROR("Course Predictor: Buffer size must be at least 2 but is set to %d. Course prediction will not work!");
+        ROS_ERROR("Course Predictor: Buffer size must be at least 2 but is set to %d. Course prediction will not work!",
+                  buffer_size);
     }
 }
 
