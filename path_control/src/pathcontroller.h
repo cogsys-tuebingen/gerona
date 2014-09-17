@@ -53,17 +53,11 @@ private:
     //! Action client to communicate with the path_planner package
     PlanPathClient path_planner_client_;
 
-    //! Publishes goal as PoseStamped for path_planner and rviz.
-    ros::Publisher goal_pub_;
-
     //! Publishes system commands
     ros::Publisher sys_pub_;
 
     //! Publisher for text to speech messages.
     ros::Publisher speech_pub_;
-
-    //! Subscibes for the paths published by path_planner
-    ros::Subscriber path_sub_;
 
     /**
      * @brief Timestamp of the last goal that was send to path_planner
@@ -119,10 +113,6 @@ private:
     //! Callback for result of finished FollowPathAction with an unexpected path.
     void followUnexpectedPathDoneCB(const actionlib::SimpleClientGoalState &state,
                                     const path_msgs::FollowPathResultConstPtr &result);
-
-    //! Send a goal pose to path_follower and wait for the resulting path.
-    /** \todo Timeout! */
-    void waitForPath(const geometry_msgs::PoseStamped &goal_pose);
 
     void findPath(const geometry_msgs::PoseStamped &goal);
 

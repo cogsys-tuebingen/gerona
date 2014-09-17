@@ -17,11 +17,6 @@ PathController::PathController(ros::NodeHandle &nh):
     sys_pub_ = nh.advertise<std_msgs::String>("/syscommand", 10);
     speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 5);
 
-
-    // LEGACY path planning
-    //    goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0);
-    //    path_sub_ = nh.subscribe<nav_msgs::Path>("/path", 10, &PathController::pathCallback, this);
-
     navigate_to_goal_server_.start();
     ROS_INFO("Initialisation done.");
     say("ready, steady, go!"); //FIXME: is not spoken...
@@ -112,7 +107,6 @@ bool PathController::processGoal()
 //    follow_path_client_.cancelAllGoals();
 
     // send goal pose to planner and wait for the result
-    //waitForPath(current_goal_->goal_pose);
     findPath(current_goal_->goal_pose);
 
     ros::spinOnce();
@@ -173,7 +167,7 @@ bool PathController::processGoal()
         }
 
         // As long as only one action client is active, a new goal should automatically preempt the former goal.
-        // Separately checking for new goals should only be necessary, if there are more than one clients (or a client
+        // Separately checking for new goals should only be necessary, if there are more than one client (or a client
         // that gets restarted), which is currently not intended.
         //        if (navigate_to_goal_server_.isNewGoalAvailable()) {
         //            ROS_INFO("New goal available.\n---------------------");
@@ -351,29 +345,6 @@ void PathController::followUnexpectedPathDoneCB(const actionlib::SimpleClientGoa
 {
     ROS_INFO("Execution of unexpected path finished [%s].\n---------------------", state.toString().c_str());
     unexpected_path_ = false;
-}
-
-void PathController::waitForPath(const geometry_msgs::PoseStamped &goal_pose)
-{
-    //TODO: Can there be concurrency problems? I think not, but better think a bit more deeply about it.
-
-    //TODO: Timeout? Not so urgent here, as a new goal will abort waiting.
-    //TODO: Necessary to check for new goals? - I think yes.
-
-    goal_timestamp_ = goal_pose.header.stamp;
-    goal_pub_.publish(goal_pose);
-
-    ROS_DEBUG("Wait for path...");
-    while (!goal_timestamp_.isZero()
-           && ros::ok()
-           && !navigate_to_goal_server_.isPreemptRequested()
-           && !navigate_to_goal_server_.isNewGoalAvailable())
-    { }
-    ROS_DEBUG("Stop waiting (stamp: %d;   ok: %d;   preempt: %d;   new goal: %d)",
-              !goal_timestamp_.isZero(),
-              ros::ok(),
-              !navigate_to_goal_server_.isPreemptRequested(),
-              !navigate_to_goal_server_.isNewGoalAvailable());
 }
 
 void PathController::findPath(const geometry_msgs::PoseStamped& goal)

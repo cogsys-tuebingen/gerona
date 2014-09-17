@@ -42,39 +42,6 @@ class PathFollower
 public:
     friend class Behaviour;
 
-    struct Command
-    {
-        double velocity;
-        double steer_front;
-        double steer_back;
-
-        /* ramaxx_msg commented for the moment, as it would limit the use of this node to the rabots.
-         * Reimplement this, if you want to use a robot with front and back steerting.
-         */
-        /*
-        operator ramaxx_msgs::RamaxxMsg()
-        {
-            ramaxx_msgs::RamaxxMsg msg;
-            msg.data.resize(3);
-            msg.data[0].key = ramaxx_msgs::RamaxxMsg::CMD_STEER_FRONT_DEG;
-            msg.data[1].key = ramaxx_msgs::RamaxxMsg::CMD_STEER_REAR_DEG;
-            msg.data[2].key = ramaxx_msgs::RamaxxMsg::CMD_SPEED;
-            msg.data[0].value = steer_front * 180.0/M_PI;
-            msg.data[1].value = steer_back * 180.0/M_PI;
-            msg.data[2].value = v;
-            return msg;
-        }
-        */
-
-        operator geometry_msgs::Twist()
-        {
-            geometry_msgs::Twist msg;
-            msg.linear.x  = velocity;
-            msg.angular.z = steer_front;
-            return msg;
-        }
-    };
-
     struct Options
     {
         Options()
@@ -168,7 +135,6 @@ public:
         return opt_;
     }
 
-
 private:
     typedef actionlib::SimpleActionServer<path_msgs::FollowPathAction> FollowPathServer;
 
@@ -229,9 +195,6 @@ private:
     nav_msgs::Path path_;
     //! Path as a list of separated subpaths
     std::vector<Path> paths_;
-
-    //! The controll command that is sent to the robot
-    Command current_command_;
 
     //! If set to a value >= 0, path execution is stopped in the next iteration. The value of pending_error_ is used as status code.
     int pending_error_;
