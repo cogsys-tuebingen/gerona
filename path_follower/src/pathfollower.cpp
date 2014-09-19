@@ -292,7 +292,7 @@ void PathFollower::update()
 bool PathFollower::checkCollision(double course)
 {
     //! Factor which defines, how much the box is enlarged in curves.
-    const float enlarge_factor = 0.5; //TODO: should this be a parameter?
+    const float enlarge_factor = 0.5; // should this be a parameter?
 
     /* Calculate length of the collision box, depending on current velocity.
      * v <= v_min:
@@ -374,7 +374,6 @@ const geometry_msgs::Pose &PathFollower::getRobotPoseMsg() const
     return robot_pose_msg_;
 }
 
-
 void PathFollower::start()
 {
     opt_.reset();
@@ -440,8 +439,6 @@ bool PathFollower::executeBehaviour(FollowPathFeedback& feedback, FollowPathResu
 
         assert(status == FollowPathResult::MOTION_STATUS_SUCCESS);
 
-        current_command_.velocity = 0;
-
     } catch(Behaviour* next_behaviour) {
         std::cout << "switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) << std::endl;
         clearActive();
@@ -449,7 +446,6 @@ bool PathFollower::executeBehaviour(FollowPathFeedback& feedback, FollowPathResu
 
     } catch(const std::exception& e) {
         ROS_ERROR_STREAM("uncaught exception: " << e.what() << " => abort");
-        current_command_.velocity = 0;
         result.status = FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
         return DONE;
     }
@@ -484,7 +480,7 @@ void PathFollower::configure()
     nh.param( "waypoint_tolerance", opt_.wp_tolerance_, 0.20 );
     nh.param( "goal_tolerance", opt_.goal_tolerance_, 0.15 );
     nh.param( "steer_slow_threshold", opt_.steer_slow_threshold_, 0.25 );
-    nh.param( "max_distance_to_path", opt_.max_distance_to_path_, 0.3 ); //TODO: find reasonable default value.
+    nh.param( "max_distance_to_path", opt_.max_distance_to_path_, 0.3 );
 
     // use ros::param here, because nh.param can't handle floats...
     ros::param::param<string>("~world_frame", opt_.world_frame_, "/map");

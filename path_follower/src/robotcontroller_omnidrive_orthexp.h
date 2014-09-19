@@ -87,8 +87,6 @@ private:
         {
             // direction_angle is relative to direction of movement;
             // control angle, however, is relative to orientation of the robot.
-            //Eigen::Vector2d mov_dir = parent_->predictDirectionOfMovement(); //FIXME: auch falsch, mov_dir ist relativ zur welt?!s
-            //float angle = atan2(mov_dir(1), mov_dir(0)) + direction_angle;
             float angle = direction_angle;
 
             geometry_msgs::Twist msg;

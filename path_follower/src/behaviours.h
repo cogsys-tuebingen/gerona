@@ -13,53 +13,10 @@ struct NullBehaviour {
 
 class Behaviour
 {
-protected:
-    Behaviour(PathFollower& parent)
-        : parent_(parent), controller_(parent.getController())
-    {}
-    Path& getSubPath(unsigned index);
-    int getSubPathCount() const;
-    PathFollower& getNode();
-
-    PathFollower::Command& getCommand();//TODO: maybe Command is better placed in behaviours instead of PathFollower
-    VectorFieldHistogram& getVFH();
-    PathFollower::Options& getOptions();
-    double distanceTo(const Waypoint& wp);
-
 public:
     virtual ~Behaviour() {}
 
     virtual void execute(int* status) = 0;
-
-protected:
-    PathFollower& parent_;
-    RobotController* controller_;
-};
-
-
-struct BehaviourEmergencyBreak : public Behaviour
-{
-    BehaviourEmergencyBreak(PathFollower& parent)
-        : Behaviour(parent)
-    {
-        // stop immediately
-        controller_->stopMotion();
-    }
-
-    void execute(int *status)
-    {
-        *status = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
-        throw new NullBehaviour;
-    }
-};
-
-
-struct BehaviourDriveBase : public Behaviour
-{
-    BehaviourDriveBase(PathFollower &parent);
-
-    //! Calculate the distance of the robot to the current path segment.
-    double calculateDistanceToCurrentPathSegment();
 
     void setStatus(int status);//FIXME: is there a better solution than making this public? It should only be accessable for RobotController
 
@@ -86,6 +43,8 @@ protected:
     };
 
 
+    PathFollower& parent_;
+    RobotController* controller_;
     int* status_ptr_;
 
     //! Pose of the next waypoint in map frame.
@@ -98,6 +57,20 @@ protected:
     Timeout waypoint_timeout;
 
     Visualizer* visualizer_;
+
+
+    Behaviour(PathFollower& parent);
+    Path& getSubPath(unsigned index);
+    int getSubPathCount() const;
+    PathFollower& getNode();
+
+    VectorFieldHistogram& getVFH();
+    PathFollower::Options& getOptions();
+    double distanceTo(const Waypoint& wp);
+
+    //! Calculate the distance of the robot to the current path segment.
+    double calculateDistanceToCurrentPathSegment();
+
 
     void initExecute(int *status);
 
@@ -120,7 +93,27 @@ protected:
 
 
 
-struct BehaviourOnLine : public BehaviourDriveBase
+
+struct BehaviourEmergencyBreak : public Behaviour
+{
+    BehaviourEmergencyBreak(PathFollower& parent)
+        : Behaviour(parent)
+    {
+        // stop immediately
+        controller_->stopMotion();
+    }
+
+    void execute(int *status)
+    {
+        *status = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
+        throw new NullBehaviour;
+    }
+};
+
+
+
+
+struct BehaviourOnLine : public Behaviour
 {
     BehaviourOnLine(PathFollower &parent);
     void execute(int *status);
@@ -128,10 +121,10 @@ struct BehaviourOnLine : public BehaviourDriveBase
 };
 
 
-struct BehaviourAvoidObstacle : public BehaviourDriveBase
+struct BehaviourAvoidObstacle : public Behaviour
 {
     BehaviourAvoidObstacle(PathFollower& parent)
-        : BehaviourDriveBase(parent)
+        : Behaviour(parent)
     {}
 
     void execute(int *status);
@@ -143,7 +136,7 @@ struct BehaviourAvoidObstacle : public BehaviourDriveBase
     }
 };
 
-struct BehaviourApproachTurningPoint : public BehaviourDriveBase
+struct BehaviourApproachTurningPoint : public Behaviour
 {
     BehaviourApproachTurningPoint(PathFollower &parent);
 
