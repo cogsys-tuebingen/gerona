@@ -37,6 +37,10 @@ bool CostmapNode::getMap(nav_msgs::GetMap::Request &req, nav_msgs::GetMap::Respo
 {
   nav_msgs::GetMap map_service;
   map_service_client.call(map_service);
+
+  if(map_service.response.map.info.width == 0) {
+      return false;
+  }
   updateMap(map_service.response.map);
 
   res.map = current_map_;
