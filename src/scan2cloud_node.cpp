@@ -6,7 +6,7 @@ int main(int argc, char** argv)
 
     ScanConverter filter;
 
-    ros::spin();
+    filter.spin();
 
     return 0;
 }

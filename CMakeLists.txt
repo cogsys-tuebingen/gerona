@@ -8,8 +8,11 @@ find_package(catkin REQUIRED COMPONENTS
   laser_geometry
   roscpp
   std_msgs
+  pcl_ros
   tf
 )
+
+find_package(PCL REQUIRED common filters)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -96,6 +99,7 @@ catkin_package(
 # include_directories(include)
 include_directories(
   include/${PROJECT_NAME}	
+  ${PCL_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -104,8 +108,20 @@ add_library(scan2cloud
    src/${PROJECT_NAME}/scan2cloud.cpp
 )
 
+link_directories(
+        ${PCL_LIBRARY_DIRS}
+        ${catkin_LIBRARY_DIRS}
+)
+
+add_definitions(${PCL_DEFINITIONS})
+
+## link the pcl library against the *.so
+target_link_libraries(${PROJECT_NAME}
+                        ${PCL_LIBRARIES}
+)
+
 ## Declare a cpp executable
- add_executable(scan2cloud_node src/scan2cloud_node.cpp)
+add_executable(scan2cloud_node src/scan2cloud_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
