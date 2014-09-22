@@ -5,7 +5,8 @@
     <param name="resolution" value="0.05"/>
     <remap from="/scan" to="/scan/front/filtered" />
   </node>
- 
+
+<!--
   <node pkg="roimap" type="roimap_node" name="roimap" output="log" respawn="true">
     <param name="padding" value="1.0" />        
     <param name="topic_map"          value="/map/hector" />
@@ -23,7 +24,6 @@
   </node>
 
 
-<!--
 
   <arg name="tf_map_scanmatch_transform_frame_name" default="scanmatcher_frame"/>
   <arg name="base_frame" default="base_link"/>
