@@ -14,6 +14,18 @@ double sign(double value) {
 
 
 //##### BEGIN Behaviour
+Behaviour::Behaviour(PathFollower &parent):
+    parent_(parent),
+    controller_(parent.getController())
+{
+    visualizer_ = Visualizer::getInstance();
+
+    double wpto;
+    ros::param::param<double>("~waypoint_timeout", wpto, 10.0);
+    waypoint_timeout.duration = ros::Duration(wpto);
+    waypoint_timeout.reset();
+}
+
 Path& Behaviour::getSubPath(unsigned index)
 {
     return parent_.paths_[index];
@@ -28,34 +40,8 @@ double Behaviour::distanceTo(const Waypoint& wp)
     Eigen::Vector3d pose = parent_.getRobotPose();
     return hypot(pose(0) - wp.x, pose(1) - wp.y);
 }
-PathFollower::Command& Behaviour::getCommand()
-{
-    return parent_.current_command_;
-}
-VectorFieldHistogram& Behaviour::getVFH()
-{
-    return parent_.getVFH();
-}
-PathFollower::Options& Behaviour::getOptions()
-{
-    return parent_.opt_;
-}
-//END Behaviour
 
-
-//##### BEGIN BehaviourDriveBase
-BehaviourDriveBase::BehaviourDriveBase(PathFollower &parent)
-    : Behaviour(parent)
-{
-    visualizer_ = Visualizer::getInstance();
-
-    double wpto;
-    ros::param::param<double>("~waypoint_timeout", wpto, 10.0);
-    waypoint_timeout.duration = ros::Duration(wpto);
-    waypoint_timeout.reset();
-}
-
-double BehaviourDriveBase::calculateDistanceToCurrentPathSegment()
+double Behaviour::calculateDistanceToCurrentPathSegment()
 {
     /* Calculate line from last way point to current way point (which should be the line the robot is driving on)
      * and calculate the distance of the robot to this line.
@@ -95,12 +81,13 @@ double BehaviourDriveBase::calculateDistanceToCurrentPathSegment()
     return segment_line.GetDistance(parent_.getRobotPose().head<2>());
 }
 
-void BehaviourDriveBase::setStatus(int status)
+void Behaviour::setStatus(int status)
 {
     *status_ptr_ = status;
 }
 
-void BehaviourDriveBase::initExecute(int *status)
+
+void Behaviour::initExecute(int *status)
 {
     status_ptr_ = status;
 
@@ -109,7 +96,7 @@ void BehaviourDriveBase::initExecute(int *status)
     checkDistanceToPath();
 }
 
-void BehaviourDriveBase::checkWaypointTimeout()
+void Behaviour::checkWaypointTimeout()
 {
     if (waypoint_timeout.isExpired()) {
         ROS_WARN("Waypoint Timeout! The robot did not reach the next waypoint within %g sec. Abort path execution.",
@@ -119,7 +106,7 @@ void BehaviourDriveBase::checkWaypointTimeout()
     }
 }
 
-void BehaviourDriveBase::checkDistanceToPath()
+void Behaviour::checkDistanceToPath()
 {
     if (!isLeavingPathAllowed()) {
         double dist = calculateDistanceToCurrentPathSegment();
@@ -137,20 +124,29 @@ void BehaviourDriveBase::checkDistanceToPath()
     }
 }
 
-PathWithPosition BehaviourDriveBase::getPathWithPosition()
+PathWithPosition Behaviour::getPathWithPosition()
 {
     PathFollower::Options& opt = getOptions();
     Path& current_path = getSubPath(opt.path_idx);
     return PathWithPosition(&current_path, opt.wp_idx);
 }
 
+VectorFieldHistogram& Behaviour::getVFH()
+{
+    return parent_.getVFH();
+}
+PathFollower::Options& Behaviour::getOptions()
+{
+    return parent_.opt_;
+}
+//END Behaviour
 
 
 
 //##### BEGIN BehaviourOnLine
 
 BehaviourOnLine::BehaviourOnLine(PathFollower& parent)
-    : BehaviourDriveBase(parent)
+    : Behaviour(parent)
 {
     controller_->initOnLine();
 }
@@ -180,7 +176,9 @@ void BehaviourOnLine::getNextWaypoint()
     }
 
     // if distance to wp < threshold
+    ROS_ERROR_STREAM_THROTTLE(2, "distance to wp: " << distanceTo(current_path[opt.wp_idx]) << " < " << tolerance);
     while(distanceTo(current_path[opt.wp_idx]) < tolerance) {
+        ROS_ERROR_STREAM("opt.wp_idx: " << opt.wp_idx << ", size: " << last_wp_idx);
         if(opt.wp_idx >= last_wp_idx) {
             // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
@@ -265,7 +263,7 @@ void BehaviourAvoidObstacle::getNextWaypoint()
 //##### BEGIN BehaviourApproachTurningPoint
 
 BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(PathFollower &parent)
-    : BehaviourDriveBase(parent), done_(false)
+    : Behaviour(parent), done_(false)
 {
     controller_->initApproachTurningPoint();
 }
@@ -275,9 +273,9 @@ void BehaviourApproachTurningPoint::execute(int *status)
     initExecute(status);
 
     // check if point is reached
-    if(!done_) {
-        done_ = controller_->execBehaviourApproachTurningPoint(getPathWithPosition());
-    }
+    //if(!done_) {
+    done_ = controller_->execBehaviourApproachTurningPoint(getPathWithPosition());
+    //}
     if (done_) {
         handleDone();
     }
@@ -287,10 +285,14 @@ void BehaviourApproachTurningPoint::handleDone()
 {
     controller_->stopMotion();
 
-    if(std::abs(parent_.getVelocity().linear.x) > 0.01) {
+    if((std::abs(parent_.getVelocity().linear.x) > 0.01) ||
+       (std::abs(parent_.getVelocity().linear.y) > 0.01) ||
+       (std::abs(parent_.getVelocity().angular.z) > 0.01)) {
         ROS_INFO_THROTTLE(1, "WAITING until no more motion");
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
     } else {
+        ROS_INFO("Done at waypoint -> reset");
+
         PathFollower::Options& opt = getOptions();
 
         opt.path_idx++;

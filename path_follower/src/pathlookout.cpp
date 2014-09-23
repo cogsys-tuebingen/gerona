@@ -62,14 +62,12 @@ void PathLookout::setPath(const PathWithPosition &path)
 
 bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
 {
-    //TODO: dilate obstacle blobs before findinf contrours?
-
     if (map_ == NULL) {
-        ROS_WARN("PathLookout has not received any map yet. No obstacle lookout is done.");
+        ROS_WARN_THROTTLE(1, "PathLookout has not received any map yet. No obstacle lookout is done.");
         return false;
     }
     if (path_image_.empty()) {
-        ROS_WARN("PathLookout has not received any path yet. No obstacle lookout is done.");
+        ROS_WARN_THROTTLE(1, "PathLookout has not received any path yet. No obstacle lookout is done.");
         return false;
     }
 
@@ -190,7 +188,7 @@ void PathLookout::reset()
 
 void PathLookout::configure()
 {
-    ros::param::param<float>("~obstacle_scale_distance", opt_.scale_obstacle_distance_, 3.0f);
+    ros::param::param<float>("~obstacle_scale_distance", opt_.scale_obstacle_distance_, 1.0f);
     ros::param::param<float>("~obstacle_scale_lifetime", opt_.scale_obstacle_lifetime_, 10.0f);
     ros::param::param<float>("~path_width", opt_.path_width_, 0.5f);
 

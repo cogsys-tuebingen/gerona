@@ -74,7 +74,10 @@ private:
                 const path_msgs::NavigateToGoalResultConstPtr& result)
     {
         ROS_INFO("DONE with action state %s", state.toString().c_str());
-        if (result->reached_goal) {
+        if (!result) {
+            say("mission failed");
+            ROS_ERROR("Lost connection to path control.");
+        } else if (result->reached_goal) {
             ROS_INFO("Successfully reached goal :)");
             say("mission accomplished");
         } else {

@@ -10,12 +10,9 @@ using namespace Eigen;
 
 CoursePredictor::CoursePredictor(PathFollower *path_driver):
     path_driver_(path_driver),
-    update_intervall_(0.3),
-    last_update_time_(0),
-    last_positions_(5), //TODO: parameter for buffer size?
-    last_position_(0,0),
-    smoothed_direction_(0,0)
+    last_update_time_(0)
 {
+    configure();
 }
 
 void CoursePredictor::update()
@@ -24,7 +21,6 @@ void CoursePredictor::update()
         return;
     }
 
-    last_position_ = path_driver_->getRobotPose().head<2>();
     last_positions_.push_back(path_driver_->getRobotPose().head<2>());
     last_update_time_ = ros::Time::now();
 }
@@ -33,27 +29,24 @@ void CoursePredictor::reset()
 {
     last_update_time_   = ros::Time(0);
     last_positions_.clear();
-    last_position_      = Vector2d(0,0);
-    smoothed_direction_ = Vector2d(0,0);
 }
 
 Eigen::Vector2d CoursePredictor::predictDirectionOfMovement()
 {
-    //TODO: more sophisticated prediction
+    // The direction of movement is predicted by computing the vector from the last saved position to the current one.
 
     Vector2d direction(0, 0);
 
     if (!last_update_time_.isZero()) {
         // transform last position to robot frame
         geometry_msgs::PoseStamped last_pos_msg;
-        last_pos_msg.pose.position.x = last_position_.x();
-        last_pos_msg.pose.position.y = last_position_.y();
+        last_pos_msg.pose.position.x = last_positions_.back().x();
+        last_pos_msg.pose.position.y = last_positions_.back().y();
         last_pos_msg.pose.orientation.w = 1;
 
         Vector3d last_position;
         if ( !path_driver_->transformToLocal(last_pos_msg, last_position) ) {
-            //FIXME: set status
-            //path_driver_->getActiveBehaviour()->setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
+            path_driver_->getActiveBehaviour()->setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
             throw new BehaviourEmergencyBreak(*path_driver_);
         }
 
@@ -73,6 +66,8 @@ Eigen::Vector2d CoursePredictor::smoothedDirection()
     // convert circular buffer to vector
     vector<Vector2d> points;
     points.assign(last_positions_.begin(), last_positions_.end());
+    // at current position
+    points.push_back(path_driver_->getRobotPose().head<2>());
 
     MathHelper::Line line = MathHelper::FitLinear(points);
 
@@ -92,8 +87,7 @@ Eigen::Vector2d CoursePredictor::smoothedDirection()
 
         geometry_msgs::PoseStamped local_msg;
         if ( !path_driver_->transformToLocal(line_direction_as_pose_msg, local_msg) ) {
-            //FIXME: set status
-            //path_driver_->getActiveBehaviour()->setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
+            path_driver_->getActiveBehaviour()->setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
             throw new BehaviourEmergencyBreak(*path_driver_);
         }
 
@@ -115,5 +109,20 @@ ros::Duration CoursePredictor::getUpdateIntervall() const
 void CoursePredictor::setUpdateIntervall(const ros::Duration &update_intervall)
 {
     update_intervall_ = update_intervall;
+}
+
+void CoursePredictor::configure()
+{
+    float up_int;
+    ros::param::param<float>("coursepredictor/update_interval", up_int, 0.1f);
+    update_intervall_ = ros::Duration(up_int);
+
+    int buffer_size;
+    ros::param::param<int>("coursepredictor/buffer_size", buffer_size, 5);
+    last_positions_ = buffer_type(buffer_size);
+    if (buffer_size < 2) {
+        ROS_ERROR("Course Predictor: Buffer size must be at least 2 but is set to %d. Course prediction will not work!",
+                  buffer_size);
+    }
 }
 

@@ -73,6 +73,7 @@ public:
 
     virtual void setVelocity(float v)
     {
+        ROS_WARN_STREAM("setting velocity to " << v);
         velocity_ = v;
     }
 

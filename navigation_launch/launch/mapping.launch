@@ -5,8 +5,8 @@
     <param name="resolution" value="0.05"/>
     <remap from="/scan" to="/scan/front/filtered" />
   </node>
+
 <!--
- 
   <node pkg="roimap" type="roimap_node" name="roimap" output="log" respawn="true">
     <param name="padding" value="1.0" />        
     <param name="topic_map"          value="/map/hector" />
@@ -22,6 +22,7 @@
     <param name="map_service_result" value="/dynamic_map/obstacles" />
     <param name="null"               value="50" />
   </node>
+
 
 
   <arg name="tf_map_scanmatch_transform_frame_name" default="scanmatcher_frame"/>

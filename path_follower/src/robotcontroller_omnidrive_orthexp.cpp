@@ -12,6 +12,8 @@
 
 /// SYSTEM
 #include <deque>
+#include <Eigen/Core>
+#include <Eigen/Dense>
 
 using namespace Eigen;
 
@@ -55,6 +57,7 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     nh_.param("k", param_k, 1.5);
     nh_.param("kp", param_kp, 0.4);
     nh_.param("kd", param_kd, 0.2);
+    nh_.param("max_angular_velocity", max_angular_velocity, 2.0);
 
     // path marker
     robot_path_marker.header.frame_id = "map";
@@ -79,6 +82,7 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     robot_path_marker.color.b = 1.0;
 
     lookInDrivingDirection();
+
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::publishCommand()
@@ -111,6 +115,8 @@ void RobotController_Omnidrive_OrthogonalExponential::lookAtCommand(const std_ms
         lookInDrivingDirection();
     } else if(command == "keep") {
         keepHeading();
+    } else if(command == "rotate") {
+        rotate();
     }
 }
 
@@ -147,6 +153,11 @@ void RobotController_Omnidrive_OrthogonalExponential::keepHeading()
     theta_des = path_driver_->getRobotPose()[2];
 }
 
+void RobotController_Omnidrive_OrthogonalExponential::rotate()
+{
+    view_direction_ = Rotate;
+}
+
 void RobotController_Omnidrive_OrthogonalExponential::lookInDrivingDirection()
 {
     view_direction_ = LookInDrivingDirection;
@@ -159,7 +170,7 @@ void RobotController_Omnidrive_OrthogonalExponential::initialize()
 
     // desired velocity
     vn = std::min(path_driver_->getOptions().max_velocity_, velocity_);
-
+    ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn);
     initialized = true;
 }
 
@@ -291,7 +302,8 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
     if (!dir_of_mov.isZero() && path_driver_->checkCollision(MathHelper::Angle(dir_of_mov))) {
         ROS_WARN_THROTTLE(1, "Collision!");
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION); //TODO: not so good to use result-constant if it is not finishing the action...
+        //TODO: not so good to use result-constant if it is not finishing the action...
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION);
 
         stopMotion();
         return;
@@ -359,10 +371,12 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     //***//
 
     //determine the sign of the orthogonal distance
-    if( ((theta_p > -M_PI/2) && (theta_p < M_PI/2) && (q[ind] > y_meas)) ||
-            ((((theta_p > -M_PI) && (theta_p < -M_PI/2)) || ((theta_p > M_PI/2) && (theta_p < M_PI)) || (theta_p == M_PI))
-             && (q[ind] < y_meas)) ||
-            ((theta_p == -M_PI/2) && (p[ind] > x_meas)) || ((theta_p == M_PI/2) && (p[ind] < x_meas)) ){
+    static const double epsilon = 1e-3;
+    if( ((theta_p > -M_PI/2) && (theta_p < M_PI/2) && (q[ind] > y_meas))
+            || ((((theta_p > -M_PI) && (theta_p < -M_PI/2)) || ((theta_p > M_PI/2) && (theta_p < M_PI))
+                 || (std::abs(theta_p - M_PI) < epsilon)) && (q[ind] < y_meas))
+            || ((std::abs(theta_p + M_PI/2) < epsilon) && (p[ind] > x_meas))
+            || ((std::abs(theta_p - M_PI/2) < epsilon) && (p[ind] < x_meas)) ){
 
         orth_proj *= -1;
 
@@ -385,17 +399,15 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     case LookInDrivingDirection:
         theta_des = cmd_.direction_angle + current_pose[2];//std::atan2(q[ind+1] - y_meas, p[ind+1] - x_meas);
         break;
+    case Rotate:
+        theta_des += 0.01;
+        break;
     default:
         throw std::runtime_error("unknown view direction mode");
         break;
     }
 
     double e_theta_new = MathHelper::NormalizeAngle(theta_des - theta_meas);
-
-    //    if(std::abs(e_theta_new) > M_PI){
-    //        e_theta_new = MathHelper::NormalizeAngle(2*M_PI - e_theta_new);
-    //    }
-
     double e_theta_prim = (e_theta_new - e_theta_curr)/Ts;
 
     e_theta_curr = e_theta_new;
@@ -430,9 +442,22 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 
     //control
 
-    cmd_.speed = vn*exp(-(param_k_curv*fabs(curv_sum) + param_k_w*fabs(angular_vel) + param_k_o/distance_to_obstacle + param_k_g/distance_to_goal));
+    double exponent = param_k_curv*fabs(curv_sum)
+            + param_k_w*fabs(angular_vel)
+            + param_k_o/distance_to_obstacle
+            + param_k_g/distance_to_goal;
+
+    cmd_.speed = vn*exp(-exponent);
+
     cmd_.direction_angle = atan(-param_k*orth_proj) + theta_p - theta_meas;
+
     cmd_.rotation = param_kp*e_theta_curr + param_kd*e_theta_prim;
+
+    if(cmd_.rotation > max_angular_velocity) {
+        cmd_.rotation = max_angular_velocity;
+    } else if(cmd_.rotation < -max_angular_velocity) {
+        cmd_.rotation = -max_angular_velocity;
+    }
 
     //***//
 
@@ -442,7 +467,9 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     ///////////////////////////
 
 
-    ROS_DEBUG("alpha: %f, alpha_e: %f, e_theta_curr: %f", (atan(-param_k*orth_proj) + theta_p)*180.0/M_PI, atan(-param_k*orth_proj)*180.0/M_PI, e_theta_curr);
+    ROS_DEBUG("alpha: %f, alpha_e: %f, e_theta_curr: %f",
+              (atan(-param_k*orth_proj) + theta_p)*180.0/M_PI,
+              atan(-param_k*orth_proj)*180.0/M_PI, e_theta_curr);
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
@@ -484,9 +511,10 @@ bool RobotController_Omnidrive_OrthogonalExponential::behaveApproachTurningPoint
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
 
+    double distance_to_goal = hypot(x_meas - p[N-1], y_meas - q[N-1]);
     ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal);
 
-    return distance_to_goal <= path_driver_->getOptions().wp_tolerance_;
+    return distance_to_goal <= path_driver_->getOptions().goal_tolerance_;
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::reset()

@@ -8,7 +8,7 @@
 
 void RobotController::setStatus(int status)
 {
-    BehaviourDriveBase* behaviour = ((BehaviourDriveBase*) path_driver_->getActiveBehaviour());
+    Behaviour* behaviour = path_driver_->getActiveBehaviour();
     if(behaviour) {
         behaviour->setStatus(status);
     } else {
@@ -20,7 +20,6 @@ void RobotController::setPath(PathWithPosition path)
 {
     path_ = path;
 
-    //TODO: not nice. can this transform also be done in path?
     geometry_msgs::PoseStamped wp_pose;
     wp_pose.header.stamp = ros::Time::now();
     wp_pose.pose = path.nextWaypoint();
@@ -29,7 +28,7 @@ void RobotController::setPath(PathWithPosition path)
         throw new BehaviourEmergencyBreak(*path_driver_);
     }
 
-    path_driver_->getPathLookout()->setPath(path); //TODO: geht vielleicht geschickter
+    path_driver_->getPathLookout()->setPath(path);
 }
 
 double RobotController::calculateAngleError()
