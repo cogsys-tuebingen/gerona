@@ -137,7 +137,9 @@ private:
     std::vector<double> q;
     std::vector<double> p_prim;
     std::vector<double> q_prim;
-
+    ////////////
+    std::vector<double> curvature;
+    ////////////
 
     enum ViewDirection {
         KeepHeading,
@@ -156,11 +158,25 @@ private:
     double Ts;
     double e_theta_curr;
 
+    /////////////
+    double max_curv_sum;
+    double curv_sum;
+    double look_ahead_dist;
+    double distance_to_goal;
+    double distance_to_obstacle;
+    /////////////
+
 
     //control parameters
     double param_k;
     double param_kp;
     double param_kd;
+    /////////////
+    double param_k_curv;
+    double param_k_g;
+    double param_k_o;
+    double param_k_w;
+    /////////////
 
     visualization_msgs::Marker robot_path_marker;
 };
