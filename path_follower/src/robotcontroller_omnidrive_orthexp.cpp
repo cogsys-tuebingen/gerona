@@ -29,8 +29,18 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     Ts(0.02),
     N(0),
     e_theta_curr(0),
-    theta_des(90.0*M_PI/180.0)
-
+    theta_des(90.0*M_PI/180.0),
+    ///////////////////////////////
+    max_curv_sum(0),
+    curv_sum(0),
+    look_ahead_dist(0.5),
+    param_k_curv(0.05),
+    param_k_g(0.4),
+    param_k_o(1.0),
+    param_k_w(0.5),
+    distance_to_goal(0),
+    distance_to_obstacle(1e5) //????
+    /////////////////////////////
 
 {
     visualizer_ = Visualizer::getInstance();
@@ -47,20 +57,7 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     nh_.param("k", param_k, 1.5);
     nh_.param("kp", param_kp, 0.4);
     nh_.param("kd", param_kd, 0.2);
-    nh_.param("rotation_threshold_min", rotation_threshold_min, 0.4);
-    nh_.param("rotation_threshold_max", rotation_threshold_max, 0.8);
-    nh_.param("brake_distance", brake_distance, 1.0);
     nh_.param("max_angular_velocity", max_angular_velocity, 2.0);
-
-    // couple linear velocity to angular velocity
-    double wmin = rotation_threshold_min;
-    double wmax = rotation_threshold_max;
-    rot_vel_mat_ << 1, wmin, wmin*wmin, wmin*wmin*wmin,
-          1, wmax, wmax*wmax, wmax*wmax*wmax,
-          0, 1, 2*wmin, 3*wmin*wmin,
-          0, 1, 2*wmax, 3*wmax*wmax;
-    rot_vel_mat_inv_ = rot_vel_mat_.inverse();
-
 
     // path marker
     robot_path_marker.header.frame_id = "map";
@@ -185,6 +182,9 @@ void RobotController_Omnidrive_OrthogonalExponential::clearBuffers()
     q_prim.clear();
     interp_path.poses.clear();
     robot_path_marker.points.clear();
+    /////////////////////////////////////
+    curvature.clear();
+    /////////////////////////////////////
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
@@ -251,8 +251,21 @@ void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
 
         p_prim.push_back(x_s_prim);
         q_prim.push_back(y_s_prim);
+
+        ////////////////////
+        curvature.push_back((x_s_prim*x_s_sek - x_s_sek*y_s_prim)/
+                            (sqrt((x_s_prim*x_s_prim + y_s_prim*y_s_prim)*(x_s_prim*x_s_prim + y_s_prim*y_s_prim)
+                                  *(x_s_prim*x_s_prim + y_s_prim*y_s_prim))));
+        ////////////////////
     }
+
+    //////////////////////
+    for(uint i = 0; i < N; ++i) {
+        max_curv_sum += fabs(curvature[i]);
+    }
+    ////////////////////
 }
+
 void RobotController_Omnidrive_OrthogonalExponential::publishInterpolatedPath()
 {
     if(N <= 2) {
@@ -289,7 +302,8 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
     if (!dir_of_mov.isZero() && path_driver_->checkCollision(MathHelper::Angle(dir_of_mov))) {
         ROS_WARN_THROTTLE(1, "Collision!");
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION); //TODO: not so good to use result-constant if it is not finishing the action...
+        //TODO: not so good to use result-constant if it is not finishing the action...
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION);
 
         stopMotion();
         return;
@@ -357,17 +371,21 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     //***//
 
     //determine the sign of the orthogonal distance
-    if( ((theta_p > -M_PI/2) && (theta_p < M_PI/2) && (q[ind] > y_meas)) ||
-            ((((theta_p > -M_PI) && (theta_p < -M_PI/2)) || ((theta_p > M_PI/2) && (theta_p < M_PI))) && (q[ind] < y_meas)) ){
+    static const double epsilon = 1e-3;
+    if( ((theta_p > -M_PI/2) && (theta_p < M_PI/2) && (q[ind] > y_meas))
+            || ((((theta_p > -M_PI) && (theta_p < -M_PI/2)) || ((theta_p > M_PI/2) && (theta_p < M_PI))
+                 || (std::abs(theta_p - M_PI) < epsilon)) && (q[ind] < y_meas))
+            || ((std::abs(theta_p + M_PI/2) < epsilon) && (p[ind] > x_meas))
+            || ((std::abs(theta_p - M_PI/2) < epsilon) && (p[ind] < x_meas)) ){
 
         orth_proj *= -1;
 
     }
+
     ROS_DEBUG("Orthogonal distance: %f, theta_p: %f, theta_des: %f", orth_proj, theta_p*180.0/M_PI, theta_des*180.0/M_PI);
 
     //****//
 
-    //////////////////////////////////////////////////////////////////
 
     //check the "look-at" point, and calculate the rotation control
 
@@ -396,34 +414,44 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 
     //***//
 
-    //control
-    double distance_to_goal = hypot(x_meas - p[N-1], y_meas - q[N-1]);
-    double v = vn;
+    ////////////////////////////
+    uint look_ahead_index;
+    double look_ahead_difference = std::numeric_limits<double>::max();
 
-    if(distance_to_goal < brake_distance) {
-        double min =  path_driver_->getOptions().min_velocity_;
-        v = min + (v - min) * (distance_to_goal / brake_distance);
-    }
+    for (int i = ind; i < N; i++){
 
-    double rotation = param_kp*e_theta_curr + param_kd*e_theta_prim;
-    double rotation_abs = std::abs(rotation);
+        if(fabs(hypot(x_meas - p[i], y_meas - q[i]) - look_ahead_dist) < look_ahead_difference){
 
-    if(rotation_abs <= rotation_threshold_max) {
-        if(rotation_abs >= rotation_threshold_min) {
-            double vmin =  path_driver_->getOptions().min_velocity_;
-            double w = rotation_abs;
+            look_ahead_difference = fabs(hypot(x_meas - p[i], y_meas - q[i]) - look_ahead_dist);
+            look_ahead_index = i;
 
-            Eigen::Vector4d V; V << vn, vmin, 0, 0;
-            Eigen::Vector4d C = rot_vel_mat_inv_ * V;
-            v = C(0) + C(1) * w + C(2) * w*w + C(3) * w*w*w;
         }
-    } else {
-        v = 0;
     }
 
-    cmd_.speed = v;
+    curv_sum = 1e-10;
+    for (int i = ind; i <= look_ahead_index; i++){
+
+        curv_sum += fabs(curvature[i]);
+    }
+
+    distance_to_goal = hypot(x_meas - p[N-1], y_meas - q[N-1]);
+
+    double angular_vel = path_driver_->getVelocity().angular.z;
+
+    ///////////////////////////
+
+    //control
+
+    double exponent = param_k_curv*fabs(curv_sum)
+            + param_k_w*fabs(angular_vel)
+            + param_k_o/distance_to_obstacle
+            + param_k_g/distance_to_goal;
+
+    cmd_.speed = vn*exp(-exponent);
+
     cmd_.direction_angle = atan(-param_k*orth_proj) + theta_p - theta_meas;
-    cmd_.rotation = rotation;
+
+    cmd_.rotation = param_kp*e_theta_curr + param_kd*e_theta_prim;
 
     if(cmd_.rotation > max_angular_velocity) {
         cmd_.rotation = max_angular_velocity;
@@ -433,8 +461,15 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 
     //***//
 
+    ///////////////////////////
+    ROS_INFO("C_curv: %f, curv_sum: %f, max_curv_sum: %f, ind: %d, look_ahead_index: %d, vn: %f, v: %f",
+             exp(-param_k_curv*1/curv_sum), curv_sum, max_curv_sum, ind, look_ahead_index, vn, cmd_.speed);
+    ///////////////////////////
 
-    ROS_DEBUG("alpha: %f, alpha_e: %f, e_theta_curr: %f", (atan(-param_k*orth_proj) + theta_p)*180.0/M_PI, atan(-param_k*orth_proj)*180.0/M_PI, e_theta_curr);
+
+    ROS_DEBUG("alpha: %f, alpha_e: %f, e_theta_curr: %f",
+              (atan(-param_k*orth_proj) + theta_p)*180.0/M_PI,
+              atan(-param_k*orth_proj)*180.0/M_PI, e_theta_curr);
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
@@ -477,7 +512,7 @@ bool RobotController_Omnidrive_OrthogonalExponential::behaveApproachTurningPoint
     double y_meas = current_pose[1];
 
     double distance_to_goal = hypot(x_meas - p[N-1], y_meas - q[N-1]);
-    ROS_WARN("distance to goal: %f", distance_to_goal);
+    ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal);
 
     return distance_to_goal <= path_driver_->getOptions().goal_tolerance_;
 }
