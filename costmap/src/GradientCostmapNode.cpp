@@ -29,6 +29,7 @@ public:
         nh.param("map_service_result", map_service_result, map_service_result);
 
         nh.param("max_distance_meters", max_distance_meters_, 2.0);
+        nh.param("scale", scale_, 100.0);
 
         map_subscriber_ = nh.subscribe<nav_msgs::OccupancyGrid> (map_topic, 10, boost::bind(&GradientCostmapNode::updateMapCallback, this, _1));
         map_publisher_ = nh.advertise<nav_msgs::OccupancyGrid> (map_topic_result, 10, true);
@@ -77,7 +78,7 @@ public:
         cv::Mat distance;
         cv::distanceTransform(working, distance, CV_DIST_L2, CV_DIST_MASK_PRECISE);
 
-        distance.convertTo(working, CV_8UC1, (100 * map.info.resolution / max_distance_meters_));
+        distance.convertTo(working, CV_8UC1, (scale_ * map.info.resolution / max_distance_meters_));
 
         cv::threshold(working, working, 98, 98, CV_THRESH_TRUNC);
         working = 100 - working;
@@ -108,6 +109,7 @@ private:
     int running_avg_ticks_;
     int sampling_;
 
+    double scale_;
     double max_distance_meters_;
 };
 

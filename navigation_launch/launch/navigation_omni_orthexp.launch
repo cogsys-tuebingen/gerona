@@ -6,6 +6,8 @@
     </node>
     
     <node name="costmap" type="costmap_gradient_node" pkg="costmap" output="screen" respawn="true">
+        <param name="max_distance_meters" value="3.0" />
+        <param name="scale" value="300.0" />
     </node>
 
     <node name="path_planner" type="path_planner_node" pkg="path_planner" output="screen" respawn="true">
@@ -13,7 +15,7 @@
 		<param name="map_service" value="/dynamic_map/inflated" />
 		<param name="map_topic" value="/map/inflated" />
 		<param name="use_unknown_cells" value="true" />
-        <param name="use_cost_map" value="false" />
+        <param name="use_cost_map" value="true" />
 
         <param name="size/forward" value="0.45" />
         <param name="size/backward" value="-0.45" />
