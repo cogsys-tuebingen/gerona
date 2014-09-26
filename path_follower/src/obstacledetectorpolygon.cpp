@@ -17,7 +17,7 @@ void ObstacleDetectorPolygon::setMap(const nav_msgs::OccupancyGridConstPtr &map)
     map_trans_.setMap(map);
 }
 
-bool ObstacleDetectorPolygon::checkForObstacle(float width, float length, float course_angle, float curve_enlarge_factor) const
+bool ObstacleDetectorPolygon::checkOnMap(float width, float length, float course_angle, float curve_enlarge_factor)
 {
     bool collision = false;
 
@@ -75,31 +75,57 @@ bool ObstacleDetectorPolygon::checkForObstacle(float width, float length, float 
 
 
     // visualization
-    Visualizer* vis = Visualizer::getInstance();
-    if (vis->hasSubscriber()) {
-        // push first element to back, to close the polygon.
-        poly_for_viz.polygon.push_back(poly_for_viz.polygon.front());
+    visualize(poly_for_viz, collision);
 
-        vector<cv::Point2f>::iterator it = poly_for_viz.polygon.begin();
-        cv::Point2f p1 = *it;
+    return collision;
+}
 
-        int marker_id = 0;
-        for (++it; it != poly_for_viz.polygon.end(); ++it) {
-            cv::Point2f p2 = *it;
+bool ObstacleDetectorPolygon::checkOnScan(float width, float length, float course_angle, float curve_enlarge_factor)
+{
+    bool collision = false;
+    PolygonWithTfFrame pwf = getPolygon(width, length, course_angle, curve_enlarge_factor);
 
-            // convert cv::Point2f to ros points...
-            geometry_msgs::Point gp1, gp2;
-            gp1.x = p1.x;  gp1.y = p1.y;
-            gp2.x = p2.x;  gp2.y = p2.y;
 
-            // colour is green when the box is empty and red if there is an obstacle
-            float r = collision ? 1 : 0;
-            float g = 1 - r;
-            vis->drawLine(marker_id++, gp1, gp2, poly_for_viz.frame, "collision_box", r,g,0, 0.1, 0.05);
+    if (pwf.polygon.size() == 0) {
+        ROS_WARN("Obstacle polygon is empty -> no obstacle test is done!");
+        return false;
+    }
 
-            p1 = p2;
+    /// transform scan to point cloud in polygon frame
+    if(!tf_listener_.waitForTransform(
+                scan_->header.frame_id,
+                pwf.frame,
+                scan_->header.stamp + ros::Duration().fromSec(scan_->ranges.size()*scan_->time_increment),
+                ros::Duration(0.5))) {
+        ROS_WARN("Got no transform from scan to polygon. No obstacle check is done!");
+        return false;
+    }
+
+    sensor_msgs::PointCloud cloud;
+    try {
+        laser_projector_.transformLaserScanToPointCloud(pwf.frame, *scan_, cloud, tf_listener_);
+    } catch (tf::TransformException& ex) {
+        ROS_ERROR("Error with transform scan to obstacle polygon: %s", ex.what());
+        // can't check for obstacles, so better assume there is one.
+        return true;
+    }
+
+
+    /// now check each point of the scan
+    vector<geometry_msgs::Point32>::const_iterator iter;
+    for (iter = cloud.points.begin(); iter != cloud.points.end(); ++iter) {
+        // check if this scan point is inside the polygon
+        cv::Point2f point( iter->x, iter->y );
+
+        if (cv::pointPolygonTest(pwf.polygon, point, false) == 1) {
+            collision = true;
+            break; // no need to check the remaining points
         }
     }
+
+
+    // visualization
+    visualize(pwf, collision);
 
     return collision;
 }
@@ -113,4 +139,33 @@ void ObstacleDetectorPolygon::transformPolygonToMap(PolygonWithTfFrame *polygon)
     }
     // set new frame
     polygon->frame = map_->header.frame_id;
+}
+
+void ObstacleDetectorPolygon::visualize(ObstacleDetectorPolygon::PolygonWithTfFrame polygon, bool hasObstacle) const
+{
+    Visualizer* vis = Visualizer::getInstance();
+    if (vis->hasSubscriber()) {
+        // push first element to back, to close the polygon.
+        polygon.polygon.push_back(polygon.polygon.front());
+
+        vector<cv::Point2f>::iterator it = polygon.polygon.begin();
+        cv::Point2f p1 = *it;
+
+        int marker_id = 0;
+        for (++it; it != polygon.polygon.end(); ++it) {
+            cv::Point2f p2 = *it;
+
+            // convert cv::Point2f to ros points...
+            geometry_msgs::Point gp1, gp2;
+            gp1.x = p1.x;  gp1.y = p1.y;
+            gp2.x = p2.x;  gp2.y = p2.y;
+
+            // colour is green when the box is empty and red if there is an obstacle
+            float r = hasObstacle ? 1 : 0;
+            float g = 1 - r;
+            vis->drawLine(marker_id++, gp1, gp2, polygon.frame, "collision_box", r,g,0, 0.1, 0.05);
+
+            p1 = p2;
+        }
+    }
 }

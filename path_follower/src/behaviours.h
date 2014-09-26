@@ -18,7 +18,7 @@ public:
 
     virtual void execute(int* status) = 0;
 
-    void setStatus(int status);//FIXME: is there a better solution than making this public? It should only be accessable for RobotController
+    void setStatus(int status);
 
 protected:
     //! Very simple timeout class.
@@ -60,10 +60,9 @@ protected:
 
 
     Behaviour(PathFollower& parent);
+
     Path& getSubPath(unsigned index);
     int getSubPathCount() const;
-    PathFollower& getNode();
-
     VectorFieldHistogram& getVFH();
     PathFollower::Options& getOptions();
     double distanceTo(const Waypoint& wp);

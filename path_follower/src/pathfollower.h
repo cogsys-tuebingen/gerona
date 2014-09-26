@@ -18,7 +18,6 @@
 
 /// PROJECT
 #include <path_msgs/FollowPathAction.h>
-#include <utils_robot/LaserEnvironment.h>
 #include <utils_general/Global.h>
 #include "obstacledetectorackermann.h"
 #include "obstacledetectoromnidrive.h"
@@ -171,9 +170,6 @@ private:
     //! Predict direction of movement for controlling and obstacle avoidance
     CoursePredictor course_predictor_;
 
-    //! Provides obstacle detection based on the laser scans. Is used instead of ObstacleDetector, if ~use_obstacle_map:=false
-    LaserEnvironment laser_env_;
-
     //! Used for collision avoidance. Only used if ~use_obstacle_map:=true and ~use_vfh:=true.
     VectorFieldHistogram vfh_;
 
@@ -183,8 +179,6 @@ private:
 
     //! The last received odometry message.
     nav_msgs::Odometry odometry_;
-    //! Last received laser scan (set by callback).
-    sensor_msgs::LaserScan laser_scan_;
 
     //! Current pose of the robot as Eigen vector (x,y,theta).
     Eigen::Vector3d robot_pose_;

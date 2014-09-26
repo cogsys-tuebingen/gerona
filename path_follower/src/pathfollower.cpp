@@ -59,12 +59,6 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
     odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
-    if(opt_.use_obstacle_map_) {
-        obstacle_map_sub_ = node_handle_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&PathFollower::obstacleMapCB, this, _1));
-    } else {
-        laser_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&PathFollower::laserCB, this, _1));
-    }
-
     VectorFieldHistogram* vfh_ptr = opt_.use_vfh_ ? &vfh_ : 0;
 
     // Choose robot controller
@@ -83,6 +77,15 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         ROS_FATAL("Unknown robot controller. Shutdown.");
         exit(1);
     }
+
+
+    if(opt_.use_obstacle_map_) {
+        obstacle_map_sub_ = node_handle_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&PathFollower::obstacleMapCB, this, _1));
+    } else {
+        laser_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&PathFollower::laserCB, this, _1));
+    }
+    controller_->getObstacleDetector()->setUseMap(opt_.use_obstacle_map_);
+    controller_->getObstacleDetector()->setUseScan(!opt_.use_obstacle_map_);
 
     visualizer_ = Visualizer::getInstance();
 
@@ -127,7 +130,7 @@ void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
 
 void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan)
 {
-    laser_scan_ = *scan;
+    controller_->getObstacleDetector()->setScan(scan);
 }
 
 void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
@@ -153,12 +156,7 @@ bool PathFollower::updateRobotPose()
 
 bool PathFollower::isObstacleInBox(double course_angle, double box_length, double box_width, double curve_enlarge_factor)
 {
-    if(opt_.use_obstacle_map_) {
-        return controller_->getObstacleDetector()->isObstacleAhead(box_width, box_length, course_angle, curve_enlarge_factor);
-    } else {
-        return laser_env_.CheckCollision(laser_scan_.ranges,laser_scan_.angle_min,laser_scan_.angle_max, course_angle,
-                                         box_width, curve_enlarge_factor, box_length);
-    }
+    return controller_->getObstacleDetector()->isObstacleAhead(box_width, box_length, course_angle, curve_enlarge_factor);
 }
 
 bool PathFollower::getWorldPose(Vector3d *pose_vec , geometry_msgs::Pose *pose_msg) const
