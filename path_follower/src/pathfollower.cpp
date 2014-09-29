@@ -153,12 +153,6 @@ bool PathFollower::updateRobotPose()
     }
 }
 
-
-bool PathFollower::isObstacleInBox(double course_angle, double box_length, double box_width, double curve_enlarge_factor)
-{
-    return controller_->getObstacleDetector()->isObstacleAhead(box_width, box_length, course_angle, curve_enlarge_factor);
-}
-
 bool PathFollower::getWorldPose(Vector3d *pose_vec , geometry_msgs::Pose *pose_msg) const
 {
     tf::StampedTransform transform;
@@ -266,7 +260,7 @@ void PathFollower::update()
             result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         }
         else if (path_lookout_.lookForObstacles(&feedback)) {
-            result.status = FollowPathResult::MOTION_STATUS_COLLISION;
+            result.status = FollowPathResult::MOTION_STATUS_OBSTACLE;
             // there's an obstacle ahead, pull the emergency break!
             controller_->stopMotion();
         }
@@ -287,7 +281,7 @@ void PathFollower::update()
     }
 }
 
-bool PathFollower::checkCollision(double course)
+bool PathFollower::isObstacleAhead(double course)
 {
     //! Factor which defines, how much the box is enlarged in curves.
     const float enlarge_factor = 0.5; // should this be a parameter?
@@ -326,7 +320,10 @@ bool PathFollower::checkCollision(double course)
     }
 
 
-    bool collision = isObstacleInBox(course, box_length, opt_.collision_box_width_, enlarge_factor);
+    // call the obstacle detector. it is dependent of the controller als different driving models may require different
+    // handling
+    bool collision = controller_->getObstacleDetector()->isObstacleAhead(opt_.collision_box_width_, box_length, course,
+                                                                         enlarge_factor);
 
     if(collision) {
         beep(beep::OBSTACLE_IN_PATH);
@@ -450,10 +447,14 @@ bool PathFollower::executeBehaviour(FollowPathFeedback& feedback, FollowPathResu
 
     getController()->publishCommand();
 
-    if(status == FollowPathResult::MOTION_STATUS_COLLISION) {
-        // collision is not aborting (the obstacle might be moving away)
-        feedback.status = FollowPathFeedback::MOTION_STATUS_COLLISION;
-        return MOVING;
+    if(status == FollowPathResult::MOTION_STATUS_OBSTACLE) {
+        if (opt_.abort_if_obstacle_ahead_) {
+            result.status = FollowPathResult::MOTION_STATUS_OBSTACLE;
+            return DONE;
+        } else {
+            feedback.status = FollowPathFeedback::MOTION_STATUS_OBSTACLE;
+            return MOVING;
+        }
     } else if (status == FollowPathResult::MOTION_STATUS_MOVING) {
         feedback.status = FollowPathFeedback::MOTION_STATUS_MOVING;
         return MOVING;
@@ -493,6 +494,7 @@ void PathFollower::configure()
     ros::param::param<float>( "~collision_box_max_length", opt_.collision_box_max_length_, 1.0);
     ros::param::param<float>( "~collision_box_velocity_factor", opt_.collision_box_velocity_factor_, 1.0);
     ros::param::param<float>( "~collision_box_velocity_saturation", opt_.collision_box_velocity_saturation_, opt_.max_velocity_);
+    ros::param::param<bool>("~abort_if_obstacle_ahead", opt_.abort_if_obstacle_ahead_, false);
 
     if(opt_.max_velocity_ < opt_.min_velocity_) {
         ROS_ERROR("min velocity larger than max velocity!");

@@ -300,10 +300,10 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     }
 
     Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
-    if (!dir_of_mov.isZero() && path_driver_->checkCollision(MathHelper::Angle(dir_of_mov))) {
+    if (!dir_of_mov.isZero() && path_driver_->isObstacleAhead(MathHelper::Angle(dir_of_mov))) {
         ROS_WARN_THROTTLE(1, "Collision!");
         //TODO: not so good to use result-constant if it is not finishing the action...
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION);
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE);
 
         stopMotion();
         return;

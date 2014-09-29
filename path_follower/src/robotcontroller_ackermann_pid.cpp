@@ -114,12 +114,12 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 
     // no laser backward, so do not check when driving backwards.
     if (dir_sign_ > 0) {
-        collision |= path_driver_->checkCollision(calculateCourse());
+        collision |= path_driver_->isObstacleAhead(calculateCourse());
     }
 
     if(collision) {
         ROS_WARN_THROTTLE(1, "Collision!");
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION); //TODO: not so good to use result-constant if it is not finishing the action...
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE); //TODO: not so good to use result-constant if it is not finishing the action...
 
         stopMotion();
     } else {

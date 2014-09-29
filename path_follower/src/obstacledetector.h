@@ -36,7 +36,12 @@ public:
 
     /**
      * @brief Check, if there is an obstacle in front of the robot.
-     * @return True if there is an obstacle, false if not.
+     *
+     * @param width Width of the collision box.
+     * @param length Length of the collision box. If an object is within this distance, an collision is thrown.
+     * @param course_angle Angle of the current course (e.g. use steering angle).
+     * @param curve_enlarge_factor The width of the box is enlarged a bit in curves. This argument controls how much (it is misleadingly called 'length' in LaserEnvironment).
+     * @return True, if there is an object within the collision box.
      */
     bool isObstacleAhead(float width, float length, float course_angle, float curve_enlarge_factor);
 
