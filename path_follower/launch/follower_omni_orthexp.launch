@@ -20,6 +20,8 @@
  
     <param name="kp" value="2.5" />
     <param name="kd" value="1.0" />
+
+    <remap from="scan" to="scan/front" />
   </node>
   
 </launch>
