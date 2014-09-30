@@ -66,16 +66,19 @@ void ScanConverter::mergeSensorMsgsPointCloud2()
 
     combined_pcl = output_pcl_front;
     combined_pcl += output_pcl_back;
+/*
 
-
-    pcl::PointCloud<pcl::PointXYZ>::Ptr combined_pcl_ptr (&combined_pcl);
+  this part causes to crash
+  "double free or corruption"
     pcl::PointCloud<pcl::PointXYZ>::Ptr combined_pcl_filtered (new pcl::PointCloud<pcl::PointXYZ>);
+    if(combined_pcl.size() > 100){
+        ROS_INFO_STREAM("combined_pcl size " << combined_pcl.size());
+        pcl::PointCloud<pcl::PointXYZ>::Ptr combined_pcl_ptr (&combined_pcl);
 
-    ROS_INFO_STREAM("combined_pcl size " << combined_pcl.size());
-    if(combined_pcl.size() > 0){
-        //this->filter(combined_pcl_ptr,combined_pcl_filtered);
+        this->filter(combined_pcl_ptr,combined_pcl_filtered);
+
     }
-
+*/
 
     pcl::toROSMsg(combined_pcl, cloud_total_);
     cloud_total_.header.frame_id = baseFrame_;
@@ -86,19 +89,19 @@ void ScanConverter::filter(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudIn,
                            pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudOut){
 
 
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
-    try{
-        // Create the filtering object
-        pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
-        sor.setInputCloud (cloudIn);
-        sor.setMeanK (cloudFilterMean_);
-        sor.setStddevMulThresh (cloudFilterStdD_);
-        sor.filter (*cloud_filtered);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
 
-        cloudOut = cloud_filtered;
-    }catch(...){
-        cloudOut = cloudIn;
-    }
+    // Create the filtering object
+    pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+    sor.setInputCloud (cloudIn);
+    sor.setMeanK (cloudFilterMean_);
+    sor.setStddevMulThresh (cloudFilterStdD_);
+    sor.filter (*cloud_filtered);
+
+    cloudOut = cloud_filtered;
+
+    cloudOut = cloudIn;
+
 
 }
 
