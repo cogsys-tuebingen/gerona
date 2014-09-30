@@ -35,6 +35,9 @@ bool ObstacleDetectorPolygon::checkOnMap(float width, float length, float course
         ROS_ERROR("Error with transform obstacle polygon: %s", ex.what());
         // can't check for obstacles, so better assume there is one.
         return true;
+    } catch (const std::runtime_error &ex) { // is thrown, if no obstacle map is available.
+        ROS_ERROR("An error occured: %s", ex.what());
+        return false;
     }
 
     vector<cv::Point2f> polygon = pwf.polygon;

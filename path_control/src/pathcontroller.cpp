@@ -19,7 +19,6 @@ PathController::PathController(ros::NodeHandle &nh):
 
     navigate_to_goal_server_.start();
     ROS_INFO("Initialisation done.");
-    say("ready, steady, go!"); //FIXME: is not spoken...
 }
 
 void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal)
