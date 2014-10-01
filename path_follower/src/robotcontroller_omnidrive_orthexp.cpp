@@ -50,9 +50,9 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
                                                               boost::bind(&RobotController_Omnidrive_OrthogonalExponential::lookAt, this, _1));
 
-    laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front", 10,
+    laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
                                                                       boost::bind(&RobotController_Omnidrive_OrthogonalExponential::laserFront, this, _1));
-    laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back", 10,
+    laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
                                                                      boost::bind(&RobotController_Omnidrive_OrthogonalExponential::laserBack, this, _1));
 
     //control parameters
@@ -66,7 +66,7 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     nh_.param("k_w", param_k_w, 0.5);
     nh_.param("k_curv", param_k_curv, 0.05);
 
-
+    std::cout << "Value of K_O: " << param_k_o << std::endl;
     // path marker
     robot_path_marker.header.frame_id = "map";
     robot_path_marker.header.stamp = ros::Time();
@@ -187,11 +187,11 @@ void RobotController_Omnidrive_OrthogonalExponential::findMinDistance()
     std::sort(ranges.begin(), ranges.end());
 
     if(ranges.size() <= 7) {
-        distance_to_obstacle_ = 0;
+       distance_to_obstacle_ = 0;
         return;
     }
 
-    distance_to_obstacle_ = ranges[7];
+    distance_to_obstacle_ = ranges[0];
 
     //ROS_DEBUG_STREAM("minimum range is " << distance_to_obstacle_);
 }
@@ -218,7 +218,7 @@ void RobotController_Omnidrive_OrthogonalExponential::initialize()
     e_theta_curr = path_driver_->getRobotPose()[2];
 
     // desired velocity
-    vn = std::min(path_driver_->getOptions().max_velocity_, velocity_);
+    vn = 2.0; //std::min(path_driver_->getOptions().max_velocity_, velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn);
     initialized = true;
 }
@@ -509,6 +509,8 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 
 
     //control
+
+    std::cout << "Distance to obstacle: " << distance_to_obstacle_ << std::endl;
 
     double exponent = param_k_curv*fabs(curv_sum)
             + param_k_w*fabs(angular_vel)
