@@ -3,8 +3,8 @@
 ScanConverter::ScanConverter():node_("~"){
     // init parameter with a default value
     node_.param<std::string>("baseFrame",baseFrame_,"/base_link");
-    node_.param<std::string>("scanTopic_front",scanTopic_front_,"/scan/front/filtered");
-    node_.param<std::string>("scanTopic_back",scanTopic_back_,"/scan/back/filtered");
+    node_.param<std::string>("scanTopic_front",scanTopic_front_,"/scan/front");
+    node_.param<std::string>("scanTopic_back",scanTopic_back_,"/scan/back");
     node_.param<std::string>("cloudTopic",cloudTopic_,"/cloud/total");
 
     node_.param<double>("cloudFilterMean",cloudFilterMean_,51.0);
@@ -17,29 +17,38 @@ ScanConverter::ScanConverter():node_("~"){
 }
 
 void ScanConverter::scanCallback_front(const sensor_msgs::LaserScan::ConstPtr& scan_in){
-    if(!tfListener_.waitForTransform(
-                scan_in->header.frame_id,
-                "/base_link",
-                scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
-                ros::Duration(0.0))){
-        return;
+    try{
+        if(!tfListener_.waitForTransform(
+                    scan_in->header.frame_id,
+                    "/base_link",
+                    scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
+                    ros::Duration(0.0))){
+            return;
+        }
+        sensor_msgs::PointCloud2 cloud;
+        projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_front_, tfListener_);
+        cbCloud_ = true;
+
+    }catch(...){
+
     }
-    sensor_msgs::PointCloud2 cloud;
-    projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_front_, tfListener_);
-    cbCloud_ = true;
 
 }
 
 void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& scan_in){
-    if(!tfListener_.waitForTransform(
-                scan_in->header.frame_id,
-                "/base_link",
-                scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
-                ros::Duration(0.0))){
-        return;
+    try{
+        if(!tfListener_.waitForTransform(
+                    scan_in->header.frame_id,
+                    "/base_link",
+                    scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
+                    ros::Duration(0.0))){
+            return;
+        }
+        projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_back_, tfListener_);
+        cbCloud_ = true;
+    }catch(...){
+
     }
-    projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_back_, tfListener_);
-    cbCloud_ = true;
 }
 
 void ScanConverter::spin()
@@ -66,7 +75,7 @@ void ScanConverter::mergeSensorMsgsPointCloud2()
 
     combined_pcl = output_pcl_front;
     combined_pcl += output_pcl_back;
-/*
+    /*
 
   this part causes to crash
   "double free or corruption"
