@@ -53,12 +53,16 @@ protected:
 
     void lookAtCommand(const std_msgs::StringConstPtr& cmd);
     void lookAt(const geometry_msgs::PointStampedConstPtr& look_at);
+    void laserBack(const sensor_msgs::LaserScanConstPtr& scan_back);
+    void laserFront(const sensor_msgs::LaserScanConstPtr& scan_front);
 
 private:
     void initialize();
     void clearBuffers();
     void interpolatePath();
     void publishInterpolatedPath();
+
+    void findMinDistance();
 
     void keepHeading();
     void lookInDrivingDirection();
@@ -130,15 +134,19 @@ private:
     ros::Subscriber look_at_sub_;
     ros::Subscriber look_at_cmd_sub_;
 
+    ros::Subscriber laser_sub_front_;
+    ros::Subscriber laser_sub_back_;
+
+    std::vector<float> ranges_front_;
+    std::vector<float> ranges_back_;
 
     nav_msgs::Path interp_path;
     std::vector<double> p;
     std::vector<double> q;
     std::vector<double> p_prim;
     std::vector<double> q_prim;
-    ////////////
     std::vector<double> curvature;
-    ////////////
+
 
     enum ViewDirection {
         KeepHeading,
@@ -158,25 +166,22 @@ private:
     double Ts;
     double e_theta_curr;
 
-    /////////////
-    double max_curv_sum;
+
     double curv_sum;
     double look_ahead_dist;
     double distance_to_goal;
-    double distance_to_obstacle;
-    /////////////
+    double distance_to_obstacle_;
 
 
     //control parameters
     double param_k;
     double param_kp;
     double param_kd;
-    /////////////
     double param_k_curv;
     double param_k_g;
     double param_k_o;
     double param_k_w;
-    /////////////
+
 
     double max_angular_velocity;
 
