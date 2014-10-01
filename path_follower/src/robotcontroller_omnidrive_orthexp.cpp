@@ -34,7 +34,7 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     look_ahead_dist(0.5),
     param_k_curv(0.05),
     param_k_g(0.4),
-    param_k_o(1.0),
+    param_k_o(0.3),
     param_k_w(0.5),
     distance_to_goal(0),
     distance_to_obstacle_(0)
@@ -60,6 +60,12 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     nh_.param("kp", param_kp, 0.4);
     nh_.param("kd", param_kd, 0.2);
     nh_.param("max_angular_velocity", max_angular_velocity, 2.0);
+    
+    nh_.param("k_o", param_k_o, 0.3);
+    nh_.param("k_g", param_k_g, 0.4);
+    nh_.param("k_w", param_k_w, 0.5);
+    nh_.param("k_curv", param_k_curv, 0.05);
+
 
     // path marker
     robot_path_marker.header.frame_id = "map";
@@ -212,7 +218,7 @@ void RobotController_Omnidrive_OrthogonalExponential::initialize()
     e_theta_curr = path_driver_->getRobotPose()[2];
 
     // desired velocity
-    vn = 2.0;//std::min(path_driver_->getOptions().max_velocity_, velocity_); ///////////////////////////////
+    vn = std::min(path_driver_->getOptions().max_velocity_, velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn);
     initialized = true;
 }
