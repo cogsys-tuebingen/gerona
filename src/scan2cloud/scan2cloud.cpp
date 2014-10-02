@@ -7,7 +7,7 @@ ScanConverter::ScanConverter():node_("~"){
     node_.param<std::string>("scanTopic_back",scanTopic_back_,"/scan/back/filtered");
     node_.param<std::string>("cloudTopic",cloudTopic_,"/cloud/total");
 
-    node_.param<double>("cloudFilterMean",cloudFilterMean_,51.0);
+    node_.param<double>("cloudFilterMean",cloudFilterMean_,50.0);
     node_.param<double>("cloudFilterStdD",cloudFilterStdD_,1.0);
 
 
