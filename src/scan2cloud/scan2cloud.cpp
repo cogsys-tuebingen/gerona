@@ -3,8 +3,8 @@
 ScanConverter::ScanConverter():node_("~"){
     // init parameter with a default value
     node_.param<std::string>("baseFrame",baseFrame_,"/base_link");
-    node_.param<std::string>("scanTopic_front",scanTopic_front_,"/scan/front");
-    node_.param<std::string>("scanTopic_back",scanTopic_back_,"/scan/back");
+    node_.param<std::string>("scanTopic_front",scanTopic_front_,"/scan/front/filtered");
+    node_.param<std::string>("scanTopic_back",scanTopic_back_,"/scan/back/filtered");
     node_.param<std::string>("cloudTopic",cloudTopic_,"/cloud/total");
 
     node_.param<double>("cloudFilterMean",cloudFilterMean_,51.0);
@@ -27,7 +27,7 @@ void ScanConverter::scanCallback_front(const sensor_msgs::LaserScan::ConstPtr& s
         }
         sensor_msgs::PointCloud2 cloud;
         projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_front_, tfListener_);
-        cbCloud_ = true;
+        cbCloud_ |= true;
 
     }catch(...){
 
@@ -45,7 +45,7 @@ void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& sc
             return;
         }
         projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_back_, tfListener_);
-        cbCloud_ = true;
+        cbCloud_ |= true;
     }catch(...){
 
     }
@@ -57,8 +57,10 @@ void ScanConverter::spin()
     while(ros::ok()){
         cbCloud_ = false;
         ros::spinOnce();
-        this->mergeSensorMsgsPointCloud2();
-        point_cloud_publisher_.publish(cloud_total_);
+        if(cbCloud_){
+            this->mergeSensorMsgsPointCloud2();
+            point_cloud_publisher_.publish(cloud_total_);
+        }
         this->updateParameter();
         loopRate.sleep();
     }
