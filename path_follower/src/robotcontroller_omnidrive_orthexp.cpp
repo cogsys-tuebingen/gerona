@@ -218,7 +218,7 @@ void RobotController_Omnidrive_OrthogonalExponential::initialize()
     e_theta_curr = path_driver_->getRobotPose()[2];
 
     // desired velocity
-    vn = 2.0; //std::min(path_driver_->getOptions().max_velocity_, velocity_);
+    vn = std::min(path_driver_->getOptions().max_velocity_, velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn);
     initialized = true;
 }
@@ -517,7 +517,7 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
             + param_k_o/distance_to_obstacle_
             + param_k_g/distance_to_goal;
 
-    cmd_.speed = vn*exp(-exponent);
+    cmd_.speed = std::max(vn*exp(-exponent),0.2);
 
     cmd_.direction_angle = atan(-param_k*orth_proj) + theta_p - theta_meas;
 
@@ -535,7 +535,7 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     //ROS_INFO("C_curv: %f, curv_sum: %f, ind: %d, look_ahead_index: %d, vn: %f, v: %f",
              //exp(-param_k_curv*1/curv_sum), curv_sum, ind, look_ahead_index, vn, cmd_.speed);
 
-    ROS_INFO("Linear velocity: %f", cmd_.speed);
+    //ROS_INFO("Linear velocity: %f", cmd_.speed);
 
 
 
