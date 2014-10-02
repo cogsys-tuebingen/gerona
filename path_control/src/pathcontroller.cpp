@@ -19,7 +19,6 @@ PathController::PathController(ros::NodeHandle &nh):
 
     navigate_to_goal_server_.start();
     ROS_INFO("Initialisation done.");
-    say("ready, steady, go!"); //FIXME: is not spoken...
 }
 
 void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal)
@@ -209,7 +208,7 @@ void PathController::handleFollowPathResult()
         }
         else {
             switch (follow_path_result_->status) {
-            case FollowPathResult::MOTION_STATUS_COLLISION:
+            case FollowPathResult::MOTION_STATUS_OBSTACLE:
                 nav_result.status = NavigateToGoalResult::STATUS_COLLISION;
                 break;
 
@@ -326,7 +325,7 @@ void PathController::followPathFeedbackCB(const path_msgs::FollowPathFeedbackCon
         nav_feedback.status = NavigateToGoalFeedback::STATUS_MOVING;
         break;
 
-    case FollowPathFeedback::MOTION_STATUS_COLLISION:
+    case FollowPathFeedback::MOTION_STATUS_OBSTACLE:
         nav_feedback.status = NavigateToGoalFeedback::STATUS_COLLISION;
         break;
 

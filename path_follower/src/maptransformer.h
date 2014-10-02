@@ -18,6 +18,7 @@ public:
      * @param from  The TF-frame in which the point is defined.
      * @return      The transformed point in (non-integer!) map coordinates.
      * @throws tf::TransformException
+     * @throws std::runtime_error If no map was set.
      */
     cv::Point2f transformPointToMap(const cv::Point2f &p, std::string from) const;
 
@@ -27,6 +28,7 @@ public:
      * @param to    The target TF-frame in which the point is to be transformed.
      * @return      The transformed point.
      * @throws tf::TransformException
+     * @throws std::runtime_error If no map was set.
      */
     cv::Point2f transformPointFromMap(const cv::Point2f &p, std::string to) const;
 

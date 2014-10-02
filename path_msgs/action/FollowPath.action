@@ -10,7 +10,7 @@ float32 velocity
 
 #uint8 MOTION_STATUS_STOP = 0   #TODO: unused
 uint8 MOTION_STATUS_MOVING = 1 # FIXME: this makes no sense as a _result_ status
-uint8 MOTION_STATUS_COLLISION = 2
+uint8 MOTION_STATUS_OBSTACLE = 2
 uint8 MOTION_STATUS_SUCCESS = 3
 #uint8 MOTION_STATUS_MOVE_FAIL = 4 #TODO: unused
 uint8 MOTION_STATUS_INTERNAL_ERROR = 5
@@ -25,7 +25,7 @@ int8 status
 # FEEDBACK DEFINITION
 
 uint8 MOTION_STATUS_MOVING = 1
-uint8 MOTION_STATUS_COLLISION = 2
+uint8 MOTION_STATUS_OBSTACLE = 2
 
 uint8 status
 

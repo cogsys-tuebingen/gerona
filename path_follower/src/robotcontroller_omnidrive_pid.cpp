@@ -176,12 +176,12 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rota
     //TODO: Do this outside of the controller class
     Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
     if (!dir_of_mov.isZero()) {
-        collision |= path_driver_->checkCollision(MathHelper::Angle(dir_of_mov));
+        collision |= path_driver_->isObstacleAhead(MathHelper::Angle(dir_of_mov));
     }
 
     if(collision) {
         ROS_WARN_THROTTLE(1, "Collision!");
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_COLLISION); //TODO: not so good to use result-constant if it is not finishing the action...
+        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE); //TODO: not so good to use result-constant if it is not finishing the action...
 
         stopMotion();
     } else {

@@ -18,7 +18,6 @@
 
 /// PROJECT
 #include <path_msgs/FollowPathAction.h>
-#include <utils_robot/LaserEnvironment.h>
 #include <utils_general/Global.h>
 #include "obstacledetectorackermann.h"
 #include "obstacledetectoromnidrive.h"
@@ -89,6 +88,10 @@ public:
         //! If set to true, vector field histogram is used for collision avoidance.
         bool use_vfh_;
 
+        //! If set to true, path execution is aborted, if an obstacle is detected on front of the robot.
+        //! If false, the robot will stop, but not abort (the obstacle might move away).
+        bool abort_if_obstacle_ahead_;
+
         //TODO: those are not really options. maybe move them somewhere else?
         int path_idx;
         int wp_idx;
@@ -109,7 +112,7 @@ public:
 
     void update();
 
-    bool checkCollision(double course);
+    bool isObstacleAhead(double course);
 
     VectorFieldHistogram& getVFH();
 
@@ -171,9 +174,6 @@ private:
     //! Predict direction of movement for controlling and obstacle avoidance
     CoursePredictor course_predictor_;
 
-    //! Provides obstacle detection based on the laser scans. Is used instead of ObstacleDetector, if ~use_obstacle_map:=false
-    LaserEnvironment laser_env_;
-
     //! Used for collision avoidance. Only used if ~use_obstacle_map:=true and ~use_vfh:=true.
     VectorFieldHistogram vfh_;
 
@@ -183,8 +183,6 @@ private:
 
     //! The last received odometry message.
     nav_msgs::Odometry odometry_;
-    //! Last received laser scan (set by callback).
-    sensor_msgs::LaserScan laser_scan_;
 
     //! Current pose of the robot as Eigen vector (x,y,theta).
     Eigen::Vector3d robot_pose_;
@@ -227,22 +225,6 @@ private:
     //! Update the current pose of the robot.
     /** @see robot_pose_, robot_pose_msg_ */
     bool updateRobotPose();
-
-    /**
-     * @brief Check if there is an obstacle in front of the robot.
-     *
-     * By default, only the laser scan is used, by calling LaserEnvironment::CheckCollision().
-     * If parameter ~use_obstacle_map is set to true, the ObstacleDetector class is used instead.
-     * See those classes for more details
-     *
-     * @param course_angle Angle of the current course (e.g. use steering angle).
-     * @param box_length Length of the collision box. If an object is within this distance, an collision is thrown.
-     * @param box_width Width of the collision box.
-     * @param curve_enlarge_factor The width of the box is enlarged a bit in curves. This argument controls how much (it is misleadingly called 'length' in LaserEnvironment).
-     * @return True, if there is an object within the collision box.
-     * @see LaserEnvironment::CheckCollision() / ObstacleDetector for more details.
-     */
-    bool isObstacleInBox(double course_angle, double box_length, double box_width = 0.3, double curve_enlarge_factor = 0.5);
 
     //! Start driving on the path
     void start();

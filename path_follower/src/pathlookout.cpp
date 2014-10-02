@@ -103,6 +103,8 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
             observed_obstacles.push_back(obstacle);
         } catch (const tf::TransformException& ex) {
             ROS_ERROR("TF-Error. Could not transform obstacle position. %s", ex.what());
+        } catch (const std::runtime_error &ex) { // is thrown, if no obstacle map is available.
+            ROS_ERROR("An error occured: %s", ex.what());
         }
     }
 
@@ -235,6 +237,8 @@ void PathLookout::drawPathToImage(const Path &path)
         // In this case the lookout will work as intended but only check the first part of the path.
         // In the worst case, nothing was drawn, then the lookout will simply not see obstacles, but it will not crash
         // in any way.
+    } catch (const std::runtime_error &ex) { // is thrown, if no obstacle map is available.
+        ROS_ERROR("An error occured: %s", ex.what());
     }
 }
 

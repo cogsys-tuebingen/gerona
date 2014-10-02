@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   utils_robot
   tf
   cmake_modules
+  laser_geometry
 )
 
 find_package(OpenCV REQUIRED)

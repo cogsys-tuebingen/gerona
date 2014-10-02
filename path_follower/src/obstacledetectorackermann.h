@@ -2,6 +2,7 @@
 #define OBSTACLEDETECTORACKERMANN_H
 
 #include "obstacledetector.h"
+#include <utils_robot/LaserEnvironment.h>
 
 /**
  * @brief Checks for obstacles in front of the robot, using an obstacle map.
@@ -26,11 +27,13 @@ public:
 
 protected:
 
-    /**
-     * @brief Check, if there is an obstacle within the obstacle box.
-     * @return True if there is an obstacle, false if not.
-     */
-    virtual bool checkForObstacle(float width, float length, float course_angle, float curve_enlarge_factor) const;
+    virtual bool checkOnMap(float width, float length, float course_angle, float curve_enlarge_factor);
+
+    virtual bool checkOnScan(float width, float length, float course_angle, float curve_enlarge_factor);
+
+private:
+    //! Provides obstacle detection based on the laser scans. Is used instead of ObstacleDetector, if ~use_obstacle_map:=false
+    LaserEnvironment laser_env_;
 };
 
 #endif // OBSTACLEDETECTORACKERMANN_H

@@ -1,4 +1,5 @@
 #include "maptransformer.h"
+#include <exception>
 
 void MapTransformer::setMap(const nav_msgs::OccupancyGridConstPtr &map)
 {
@@ -10,7 +11,9 @@ void MapTransformer::setMap(const nav_msgs::OccupancyGridConstPtr &map)
 
 cv::Point2f MapTransformer::transformPointToMap(const cv::Point2f &p, std::string from) const
 {
-    //FIXME: check if map_ is set!
+    if (!map_) {
+        throw std::runtime_error("[MapTransformer] No map set.");
+    }
 
     // we need the point as tf::Vector3 ...
     tf::Vector3 tf_p(p.x, p.y, 0);
@@ -34,6 +37,10 @@ cv::Point2f MapTransformer::transformPointToMap(const cv::Point2f &p, std::strin
 
 cv::Point2f MapTransformer::transformPointFromMap(const cv::Point2f &p, std::string to) const
 {
+    if (!map_) {
+        throw std::runtime_error("[MapTransformer] No map set.");
+    }
+
     // we need the point as tf::Vector3 ...
     tf::Vector3 tf_p(p.x, p.y, 0);
 
