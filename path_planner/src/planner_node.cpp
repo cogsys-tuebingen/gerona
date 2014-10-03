@@ -3,11 +3,14 @@
 
 /// PROJECT
 #include <utils_path/common/CollisionGridMap2d.h>
+#include <utils_path/common/Bresenham2d.h>
+#include <utils_general/Stopwatch.h>
 
 /// SYSTEM
 #include <nav_msgs/GetMap.h>
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
+#include <opencv2/opencv.hpp>
 
 using namespace lib_path;
 
@@ -16,11 +19,11 @@ Planner::Planner()
       server_(nh, "/plan_path", boost::bind(&Planner::execute, this, _1), false),
       map_info(NULL)
 {
-    std::string target_topic = "/move_base_simple/goal";
+    std::string target_topic = "/goal";
     nh.param("target_topic", target_topic, target_topic);
 
-    goal_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>
-            (target_topic, 2, boost::bind(&Planner::updateGoalCallback, this, _1));
+    //    goal_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>
+    //            (target_topic, 2, boost::bind(&Planner::updateGoalCallback, this, _1));
 
     nh.param("use_map_topic", use_map_topic_, false);
     use_map_service_ = !use_map_topic_;
@@ -51,6 +54,21 @@ Planner::Planner()
         std::cout << "using cost map service " << costmap_service << std::endl;
     }
 
+    nh.param("use_scan_front", use_scan_front_, true);
+    nh.param("use_scan_back", use_scan_back_, true);
+
+    if(use_scan_front_) {
+        sub_front = nh.subscribe<sensor_msgs::LaserScan>("/scan/front", 0, boost::bind(&Planner::laserCallback, this, _1, true));
+    }
+    if(use_scan_back_) {
+        sub_back = nh.subscribe<sensor_msgs::LaserScan>("/scan/back", 0, boost::bind(&Planner::laserCallback, this, _1, false));
+    }
+
+    nh.param("preprocess", pre_process_, true);
+    nh.param("postprocess", post_process_, true);
+
+    nh.param("use_collision_gridmap", use_collision_gridmap_, false);
+
     viz_pub = nh.advertise<visualization_msgs::Marker>("/marker", 0);
 
     base_frame_ = "/base_link";
@@ -79,8 +97,8 @@ void Planner::preempt()
 
     thread_mutex.lock();
     bool running = thread_running;
-    thread_mutex.unlock(); 
-    if(running) {   
+    thread_mutex.unlock();
+    if(running) {
         ROS_WARN_STREAM("preempting path planner");
         thread_->interrupt();
         thread_->join();
@@ -114,11 +132,15 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map) {
             delete map_info;
         }
 
-        map_info = new lib_path::CollisionGridMap2d(map.info.width, map.info.height, map.info.resolution, size_forward, size_backward, size_width);
+        if(use_collision_gridmap_) {
+            map_info = new lib_path::CollisionGridMap2d(map.info.width, map.info.height, map.info.resolution, size_forward, size_backward, size_width);
+        } else {
+            map_info = new lib_path::SimpleGridMap2d(map.info.width, map.info.height, map.info.resolution);
+        }
     }
 
     bool use_unknown;
-    nh.param("use_unknown_cells", use_unknown, false);
+    nh.param("use_unknown_cells", use_unknown, true);
 
     std::vector<uint8_t> data(w*h);
 
@@ -126,9 +148,9 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map) {
     if(use_unknown) {
         /// Map data
         /// -1: unknown -> 0
-        /// 0:100 probabilities -> 1 - 101
+        /// 0:100 probabilities -> 1 - 100
         for(std::vector<int8_t>::const_iterator it = map.data.begin(); it != map.data.end(); ++it) {
-            data[i++] = *it + 1;
+            data[i++] = std::min(100, *it + 1);
         }
 
     } else {
@@ -261,27 +283,29 @@ void Planner::visualizePath(const nav_msgs::Path &path)
 void Planner::updateGoalCallback(const geometry_msgs::PoseStampedConstPtr &goal)
 {
     ROS_INFO("planner: got goal");
-    nav_msgs::Path path_raw;
-    nav_msgs::Path path = doPlan(lookupPose(), *goal, &path_raw);
 
-    publish(path, path_raw);
+    findPath(lookupPose(), *goal);
 }
 
 void Planner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
 {
+    Stopwatch sw_global;
     ROS_INFO("planner: got request");
-    geometry_msgs::PoseStamped s;
 
+    Stopwatch sw;
+
+    sw.reset();
+    geometry_msgs::PoseStamped s;
     if(goal->use_start) {
         s = goal->start;
     } else {
         s = lookupPose();
     }
+    ROS_INFO_STREAM("start pose lookup took " << sw.msElapsed() << "ms");
 
-    nav_msgs::Path path_raw;
-    nav_msgs::Path path = doPlan(s, goal->goal, &path_raw);
-
-    publish(path, path_raw);
+    sw.reset();
+    nav_msgs::Path path = findPath(s, goal->goal);
+    ROS_INFO_STREAM("findPath took " << sw.msElapsed() << "ms");
 
     if(path.poses.empty()) {
         feedback(path_msgs::PlanPathFeedback::STATUS_PLANNING_FAILED);
@@ -296,6 +320,149 @@ void Planner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
         success.path = path;
         server_.setSucceeded(success);
     }
+    ROS_INFO_STREAM("execution took " << sw_global.msElapsed() << "ms");
+}
+
+nav_msgs::Path Planner::findPath(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal)
+{
+    Stopwatch sw;
+
+    if(use_map_service_) {
+        sw.reset();
+        nav_msgs::GetMap map_service;
+        if(map_service_client.call(map_service)) {
+            updateMap(map_service.response.map);
+        } else {
+            ROS_ERROR("map service lookup failed");
+            return nav_msgs::Path();
+        }
+        ROS_INFO_STREAM("map service lookup took " << sw.msElapsed() << "ms");
+    }
+
+    if(map_info == NULL) {
+        ROS_ERROR("request for path planning, but no map there yet...");
+        return nav_msgs::Path();
+    }
+
+    if(use_scan_front_ && !scan_front.ranges.empty()) {
+        integrateLaserScan(scan_front);
+    }
+    if(use_scan_back_ && !scan_back.ranges.empty()) {
+        integrateLaserScan(scan_back);
+    }
+
+    if(use_cost_map_) {
+        sw.reset();
+        nav_msgs::GetMap map_service;
+        if(cost_map_service_client.call(map_service)) {
+            cost_map = map_service.response.map;
+        }
+        ROS_INFO_STREAM("cost map service lookup took " << sw.msElapsed() << "ms");
+    }
+
+    if(pre_process_) {
+        sw.reset();
+        preprocess(start, goal);
+        ROS_INFO_STREAM("preprocessing took " << sw.msElapsed() << "ms");
+    }
+
+    sw.reset();
+    nav_msgs::Path path_raw = doPlan(start, goal);
+    ROS_INFO_STREAM("planning took " << sw.msElapsed() << "ms");
+
+    nav_msgs::Path path;
+    if(post_process_) {
+        sw.reset();
+        path = postprocess(path_raw);
+        ROS_INFO_STREAM("postprocessing took " << sw.msElapsed() << "ms");
+    } else {
+        path = path_raw;
+    }
+
+    sw.reset();
+    publish(path, path_raw);
+    ROS_INFO_STREAM("publish took " << sw.msElapsed() << "ms");
+
+
+    return path;
+}
+
+
+void Planner::preprocess(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal)
+{
+// growth
+    cv::Mat map(map_info->getHeight(), map_info->getWidth(), CV_8UC1, map_info->getData());
+    cv::Mat working;
+    map.copyTo(working);
+
+    int erosion_size = 4;
+    int iterations = 2;
+    cv::Mat element = cv::getStructuringElement( cv::MORPH_ELLIPSE,
+                                                 cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
+                                                 cv::Point( erosion_size, erosion_size ) );
+    cv::dilate(working, working, element, cv::Point(-1,-1), iterations);
+
+
+    cv::Mat mask(working.rows, working.cols, CV_8UC1, cv::Scalar::all(255));
+
+    unsigned sx, sy;
+    map_info->point2cell(start.pose.position.x, start.pose.position.y, sx, sy);
+    unsigned gx, gy;
+    map_info->point2cell(goal.pose.position.x, goal.pose.position.y, gx, gy);
+
+    int r = erosion_size * iterations * 0.5;
+    cv::circle(mask, cv::Point(sx,sy), r, cv::Scalar::all(0), CV_FILLED);
+    cv::circle(mask, cv::Point(gx,gy), r, cv::Scalar::all(0), CV_FILLED);
+
+
+    working.copyTo(map, mask);
+
+
+    // cost
+    int h = map_info->getHeight();
+    int w = map_info->getWidth();
+    cost_map.data.resize(h*w);
+    cv::Mat costmap(h, w, CV_8UC1, cost_map.data.data());
+    map.copyTo(costmap);
+
+    cv::Mat unknown_mask;
+    cv::inRange(map, 0, 0, unknown_mask);
+    costmap.setTo(0, unknown_mask);
+    cv::threshold(costmap, costmap, 50, 255, cv::THRESH_BINARY);
+
+    costmap = 255 - costmap;
+
+    cv::Mat distance;
+    cv::distanceTransform(costmap, distance, CV_DIST_L2, CV_DIST_MASK_PRECISE);
+
+    double scale_  = 100.0;
+    double max_distance_meters_ = 2.0;
+    distance.convertTo(costmap, CV_8UC1, (scale_ * map_info->getResolution() / max_distance_meters_));
+
+    cv::threshold(costmap, costmap, 98, 98, CV_THRESH_TRUNC);
+    costmap = 100 - costmap;
+    costmap.setTo(50, unknown_mask);
+}
+
+nav_msgs::Path Planner::postprocess(const nav_msgs::Path& path)
+{
+    Stopwatch sw;
+
+    sw.restart();
+    nav_msgs::Path simplified_path = simplifyPath(path);
+    ROS_INFO_STREAM("simplifying took " << sw.msElapsed() << "ms");
+
+    //    nav_msgs::Path pre_smooted_path = smoothPath(simplified_path, 0.9, 0.3);
+
+    sw.restart();
+    nav_msgs::Path interpolated_path = interpolatePath(simplified_path, 0.1);
+    ROS_INFO_STREAM("interpolating took " << sw.msElapsed() << "ms");
+
+    sw.restart();
+    nav_msgs::Path smooted_path = smoothPath(interpolated_path, 2.0, 0.3);
+    ROS_INFO_STREAM("smoothing took " << sw.msElapsed() << "ms");
+
+    return smooted_path;
 }
 
 
@@ -304,43 +471,28 @@ geometry_msgs::PoseStamped Planner::lookupPose()
     geometry_msgs::PoseStamped own_pose;
     own_pose.header.frame_id = "/map";
     own_pose.header.stamp = ros::Time::now();
-    tf::StampedTransform trafo;
-    if(tfl.waitForTransform(own_pose.header.frame_id, base_frame_, own_pose.header.stamp, ros::Duration(1.0))) {
-        tfl.lookupTransform(own_pose.header.frame_id, base_frame_, own_pose.header.stamp, trafo);
-    } else {
-        ROS_WARN("cannot lookup own pose, using last estimate");
-        tfl.lookupTransform(own_pose.header.frame_id, base_frame_, ros::Time(0), trafo);
-    }
-
+    tf::StampedTransform trafo = lookupTransform(own_pose.header.frame_id, base_frame_, own_pose.header.stamp);
     tf::poseTFToMsg(trafo, own_pose.pose);
 
     return own_pose;
 }
 
+tf::StampedTransform Planner::lookupTransform(const std::string& from, const std::string& to, const ros::Time& stamp)
+{
+    tf::StampedTransform trafo;
+    if(tfl.waitForTransform(from, to, stamp, ros::Duration(1.0))) {
+        tfl.lookupTransform(from, to, stamp, trafo);
+    } else {
+        ROS_WARN("cannot lookup own pose, using last estimate");
+        tfl.lookupTransform(from, to, ros::Time(0), trafo);
+    }
+    return trafo;
+}
 
-nav_msgs::Path Planner::doPlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal,
-                               nav_msgs::Path* path_raw)
+
+nav_msgs::Path Planner::doPlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal)
 {
     feedback(path_msgs::PlanPathFeedback::STATUS_PLANNING);
-
-    if(use_map_service_) {
-        nav_msgs::GetMap map_service;
-        if(map_service_client.call(map_service)) {
-            updateMap(map_service.response.map);
-        }
-    }
-
-    if(use_cost_map_) {
-        nav_msgs::GetMap map_service;
-        if(cost_map_service_client.call(map_service)) {
-            cost_map = map_service.response.map;
-        }
-    }
-
-    if(map_info == NULL) {
-        ROS_WARN("request for path planning, but no map there yet...");
-        return nav_msgs::Path();
-    }
 
     ROS_INFO("starting search");
     lib_path::Pose2d from_world;
@@ -419,15 +571,7 @@ nav_msgs::Path Planner::doPlan(const geometry_msgs::PoseStamped &start, const ge
     nav_msgs::Path path = thread_result;
     thread_mutex.unlock();
 
-    nav_msgs::Path pre_smooted_path = smoothPath(path, 0.9, 0.3);
-    nav_msgs::Path interpolated_path = interpolatePath(pre_smooted_path, 0.1);
-    nav_msgs::Path smooted_path = smoothPath(interpolated_path, 2.0, 0.3);
-
-    if(path_raw) {
-        *path_raw = path;
-    }
-
-    return smooted_path;
+    return path;
 }
 
 void Planner::planThreaded(const geometry_msgs::PoseStamped &goal, const Pose2d &from_world, const Pose2d &to_world, const Pose2d &from_map, const Pose2d &to_map)
@@ -467,6 +611,44 @@ void Planner::subdividePath(nav_msgs::Path& result, geometry_msgs::PoseStamped l
         // then descent in upper part
         subdividePath(result, halfway, up, max_distance);
     }
+}
+
+namespace {
+bool isFree(SimpleGridMap2d* map_ptr, const geometry_msgs::Point& from, const geometry_msgs::Point& to)
+{
+    lib_path::Bresenham2d bresenham;
+
+    unsigned int fx, fy, tx, ty;
+    map_ptr->point2cell(from.x, from.y, fx, fy);
+    map_ptr->point2cell(to.x, to.y, tx, ty);
+    bresenham.setGrid(map_ptr, fx, fy, tx, ty);
+
+    unsigned x,y;
+    while(bresenham.next()) {
+        bresenham.coordinates(x,y);
+        if(!map_ptr->isFree(x,y)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+}
+
+nav_msgs::Path Planner::simplifyPath(const nav_msgs::Path &path)
+{
+    nav_msgs::Path result = path;
+
+    for(std::size_t i = 1; i < result.poses.size() - 1;) {
+        // check if i can be removed
+        if(isFree(map_info, result.poses[i-1].pose.position, result.poses[i+1].pose.position)) {
+            result.poses.erase(result.poses.begin() + i);
+        } else {
+            ++i;
+        }
+    }
+
+    return result;
 }
 
 nav_msgs::Path Planner::interpolatePath(const nav_msgs::Path& path, double max_distance) {
@@ -563,6 +745,34 @@ nav_msgs::Path Planner::smoothPath(const nav_msgs::Path& path, double weight_dat
 Pose2d Planner::convert(const geometry_msgs::PoseStamped& rhs)
 {
     return Pose2d(rhs.pose.position.x, rhs.pose.position.y, tf::getYaw(rhs.pose.orientation));
+}
+
+void Planner::laserCallback(const sensor_msgs::LaserScanConstPtr &scan, bool front)
+{
+    if(front) {
+        scan_front = *scan;
+    } else {
+        scan_back = *scan;
+    }
+}
+
+void Planner::integrateLaserScan(const sensor_msgs::LaserScan &scan)
+{
+    tf::StampedTransform trafo = lookupTransform("/map", scan.header.frame_id, scan.header.stamp);
+
+    double angle = scan.angle_min;
+    for(std::size_t i = 0, total = scan.ranges.size(); i < total; ++i) {
+        const float& range = scan.ranges[i];
+        tf::Vector3 pt_laser(std::cos(angle) * range, std::sin(angle) * range, 0);
+        tf::Vector3 pt_map = trafo * pt_laser;
+
+        unsigned int x,y;
+        if(map_info->point2cell(pt_map.x(), pt_map.y(), x, y)) {
+            map_info->setValue(x,y, 100);
+        }
+
+        angle += scan.angle_increment;
+    }
 }
 
 void Planner::publish(const nav_msgs::Path &path, const nav_msgs::Path &path_raw)
