@@ -212,8 +212,10 @@ struct PathPlanner : public Planner
             return std::numeric_limits<double>::max();
         }
 
-        static const double penalty_distance = 2.5;
-        return cost_map.data[cost_map.info.width * y + x] / 100.0 * map_info->getResolution() * penalty_distance;
+        static const double penalty_distance = 10.5;
+        double norm_cost = cost_map.data[cost_map.info.width * y + x] / 100.0;
+        double cost = norm_cost * map_info->getResolution() * penalty_distance;
+        return cost;
     }
 
     nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,

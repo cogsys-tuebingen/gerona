@@ -137,6 +137,7 @@ protected:
 
     bool use_map_topic_;
     bool use_cost_map_;
+    bool use_cost_map_service_;
     bool use_map_service_;
 
     bool use_scan_front_;
@@ -161,6 +162,7 @@ protected:
     actionlib::SimpleActionServer<path_msgs::PlanPathAction> server_;
 
     ros::Publisher viz_pub;
+    ros::Publisher cost_pub;
 
     tf::TransformListener tfl;
 
@@ -168,6 +170,8 @@ protected:
 
     lib_path::SimpleGridMap2d * map_info;
     nav_msgs::OccupancyGrid cost_map;
+    std::vector<double> gradient_x;
+    std::vector<double> gradient_y;
 
     sensor_msgs::LaserScan scan_front;
     sensor_msgs::LaserScan scan_back;

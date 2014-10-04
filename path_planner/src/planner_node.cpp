@@ -44,14 +44,23 @@ Planner::Planner()
         std::cout << "using map service " << map_service << std::endl;
     }
 
+    nh.param("preprocess", pre_process_, true);
+    nh.param("postprocess", post_process_, true);
 
     nh.param("use_cost_map", use_cost_map_, false);
-    if(use_cost_map_) {
+    if(use_cost_map_ && !pre_process_) {
+        use_cost_map_service_ = true;
         std::string costmap_service = "/dynamic_map/cost";
         nh.param("cost_map_service",costmap_service, costmap_service);
         cost_map_service_client = nh.serviceClient<nav_msgs::GetMap> (costmap_service);
 
         std::cout << "using cost map service " << costmap_service << std::endl;
+
+    } else {
+        use_cost_map_service_ = false;
+        if(pre_process_) {
+            use_cost_map_ = true;
+        }
     }
 
     nh.param("use_scan_front", use_scan_front_, true);
@@ -64,12 +73,11 @@ Planner::Planner()
         sub_back = nh.subscribe<sensor_msgs::LaserScan>("/scan/back", 0, boost::bind(&Planner::laserCallback, this, _1, false));
     }
 
-    nh.param("preprocess", pre_process_, true);
-    nh.param("postprocess", post_process_, true);
 
     nh.param("use_collision_gridmap", use_collision_gridmap_, false);
 
     viz_pub = nh.advertise<visualization_msgs::Marker>("/marker", 0);
+    cost_pub = nh.advertise<nav_msgs::OccupancyGrid>("cost", 1, true);
 
     base_frame_ = "/base_link";
     nh.param("base_frame", base_frame_, base_frame_);
@@ -166,6 +174,10 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map) {
     map_info->setOrigin(Point2d(map.info.origin.position.x, map.info.origin.position.y));
     map_info->setLowerThreshold(10);
     map_info->setUpperThreshold(70);
+
+
+    cost_map.header = map.header;
+    cost_map.info = map.info;
 }
 
 void Planner::visualizeOutline(const geometry_msgs::Pose& at, int id, const std::string &frame)
@@ -351,7 +363,7 @@ nav_msgs::Path Planner::findPath(const geometry_msgs::PoseStamped &start, const 
         integrateLaserScan(scan_back);
     }
 
-    if(use_cost_map_) {
+    if(use_cost_map_service_) {
         sw.reset();
         nav_msgs::GetMap map_service;
         if(cost_map_service_client.call(map_service)) {
@@ -390,7 +402,7 @@ nav_msgs::Path Planner::findPath(const geometry_msgs::PoseStamped &start, const 
 
 void Planner::preprocess(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal)
 {
-// growth
+    // growth
     cv::Mat map(map_info->getHeight(), map_info->getWidth(), CV_8UC1, map_info->getData());
     cv::Mat working;
     map.copyTo(working);
@@ -425,23 +437,28 @@ void Planner::preprocess(const geometry_msgs::PoseStamped &start, const geometry
     cv::Mat costmap(h, w, CV_8UC1, cost_map.data.data());
     map.copyTo(costmap);
 
-    cv::Mat unknown_mask;
-    cv::inRange(map, 0, 0, unknown_mask);
-    costmap.setTo(0, unknown_mask);
-    cv::threshold(costmap, costmap, 50, 255, cv::THRESH_BINARY);
+//    cv::Mat unknown_mask;
+//    cv::inRange(map, 0, 0, unknown_mask);
+//    costmap.setTo(0, unknown_mask);
+//    cv::threshold(costmap, costmap, 50, 255, cv::THRESH_BINARY);
 
-    costmap = 255 - costmap;
+    costmap = 100 - costmap;
 
     cv::Mat distance;
     cv::distanceTransform(costmap, distance, CV_DIST_L2, CV_DIST_MASK_PRECISE);
 
     double scale_  = 100.0;
-    double max_distance_meters_ = 2.0;
-    distance.convertTo(costmap, CV_8UC1, (scale_ * map_info->getResolution() / max_distance_meters_));
+    double max_distance_meters_ = 2.5;
+    double factor = (scale_ * map_info->getResolution() / max_distance_meters_);
+    distance.convertTo(costmap, CV_8UC1, factor);
 
-    cv::threshold(costmap, costmap, 98, 98, CV_THRESH_TRUNC);
-    costmap = 100 - costmap;
-    costmap.setTo(50, unknown_mask);
+//    cv::threshold(costmap, costmap, 98, 98, CV_THRESH_TRUNC);
+    costmap = cv::max(0, 98 - costmap);
+//    costmap.setTo(50, unknown_mask);
+
+    cv::imwrite("costmap.png", costmap);
+
+    cost_pub.publish(cost_map);
 }
 
 nav_msgs::Path Planner::postprocess(const nav_msgs::Path& path)
@@ -455,14 +472,25 @@ nav_msgs::Path Planner::postprocess(const nav_msgs::Path& path)
     //    nav_msgs::Path pre_smooted_path = smoothPath(simplified_path, 0.9, 0.3);
 
     sw.restart();
-    nav_msgs::Path interpolated_path = interpolatePath(simplified_path, 0.1);
-    ROS_INFO_STREAM("interpolating took " << sw.msElapsed() << "ms");
+    nav_msgs::Path interpolated_path = interpolatePath(simplified_path, 0.5);
+    ROS_INFO_STREAM("interpolation took " << sw.msElapsed() << "ms");
+
 
     sw.restart();
-    nav_msgs::Path smooted_path = smoothPath(interpolated_path, 2.0, 0.3);
+    nav_msgs::Path smooted_path = smoothPath(interpolated_path, 0.6, 0.3);
     ROS_INFO_STREAM("smoothing took " << sw.msElapsed() << "ms");
 
-    return smooted_path;
+
+    sw.restart();
+    nav_msgs::Path final_interpolated_path = interpolatePath(smooted_path, 0.1);
+    ROS_INFO_STREAM("final interpolation took " << sw.msElapsed() << "ms");
+
+
+    sw.restart();
+    nav_msgs::Path final_smoothed_path = smoothPath(final_interpolated_path, 2.0, 0.4);
+    ROS_INFO_STREAM("final smoothing took " << sw.msElapsed() << "ms");
+
+    return final_smoothed_path;
 }
 
 
@@ -614,7 +642,8 @@ void Planner::subdividePath(nav_msgs::Path& result, geometry_msgs::PoseStamped l
 }
 
 namespace {
-bool isFree(SimpleGridMap2d* map_ptr, const geometry_msgs::Point& from, const geometry_msgs::Point& to)
+bool isFree(SimpleGridMap2d* map_ptr, const nav_msgs::OccupancyGrid& costmap,
+            const geometry_msgs::Point& from, const geometry_msgs::Point& to)
 {
     lib_path::Bresenham2d bresenham;
 
@@ -623,10 +652,16 @@ bool isFree(SimpleGridMap2d* map_ptr, const geometry_msgs::Point& from, const ge
     map_ptr->point2cell(to.x, to.y, tx, ty);
     bresenham.setGrid(map_ptr, fx, fy, tx, ty);
 
+    std::size_t w = costmap.info.width;
+
     unsigned x,y;
     while(bresenham.next()) {
         bresenham.coordinates(x,y);
         if(!map_ptr->isFree(x,y)) {
+            return false;
+        }
+        std::size_t idx = y * w + x;
+        if(costmap.data[idx] > 5) {
             return false;
         }
     }
@@ -641,7 +676,7 @@ nav_msgs::Path Planner::simplifyPath(const nav_msgs::Path &path)
 
     for(std::size_t i = 1; i < result.poses.size() - 1;) {
         // check if i can be removed
-        if(isFree(map_info, result.poses[i-1].pose.position, result.poses[i+1].pose.position)) {
+        if(isFree(map_info, cost_map, result.poses[i-1].pose.position, result.poses[i+1].pose.position)) {
             result.poses.erase(result.poses.begin() + i);
         } else {
             ++i;
@@ -810,10 +845,10 @@ nav_msgs::Path Planner::smoothPathSegment(const nav_msgs::Path& path, double wei
             new_path_i = new_path_i + deltaData;
 
             Pose2d deltaSmooth =  weight_smooth * (new_path_ip1 + new_path_im1 - 2* new_path_i);
-            Pose2d nextSmooth = new_path_i + deltaSmooth;
+            new_path_i = new_path_i + deltaSmooth;
 
-            new_path.poses[i].pose.position.x = nextSmooth.x;
-            new_path.poses[i].pose.position.y = nextSmooth.y;
+            new_path.poses[i].pose.position.x = new_path_i.x;
+            new_path.poses[i].pose.position.y = new_path_i.y;
 
             change += deltaData.distance_to_origin() + deltaSmooth.distance_to_origin();
         }
