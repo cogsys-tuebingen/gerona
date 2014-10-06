@@ -8,7 +8,9 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 /// ROS
+#include <sensor_msgs/LaserScan.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <tf/transform_listener.h>
 
 /// PROJECT
 #include "path.h"
@@ -38,6 +40,9 @@ class PathLookout
 {
 public:
     PathLookout(PathFollower *node);
+
+    void setFrontScan(const sensor_msgs::LaserScanConstPtr &msg);
+    void setBackScan(const sensor_msgs::LaserScanConstPtr &msg);
 
     void setMap(const nav_msgs::OccupancyGridConstPtr &msg);
 
@@ -72,6 +77,10 @@ private:
     MapTransformer map_trans_;
     ObstacleTracker tracker_;
     Visualizer *visualizer_;
+    tf::TransformListener tf_listener_;
+
+    sensor_msgs::LaserScanConstPtr front_scan_;
+    sensor_msgs::LaserScanConstPtr back_scan_;
 
     //! The current obstacle map.
     nav_msgs::OccupancyGridConstPtr map_;
@@ -79,10 +88,18 @@ private:
     //! Current map converted to cv::Mat.
     cv::Mat map_image_;
 
+    Path path_;
+
     //! Mask image of the path
     cv::Mat path_image_;
 
     void configure();
+
+    std::vector<Obstacle> lookForObstaclesInMap();
+
+    std::vector<Obstacle> lookForObstaclesInScans();
+
+    std::vector<std::vector<cv::Point2f> > clusterPoints(const std::vector<cv::Point2f> &points);
 
     //! draw the path to the path image (assumes, that map is already set!)
     /** @see path_image_ */
@@ -90,6 +107,8 @@ private:
 
     //! Compute weight for the given obstacle, depending on its distance to the robot and its lifetime.
     float weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const;
+
+    std::vector<cv::Point2f> findObstacleInScan(const sensor_msgs::LaserScanConstPtr &scan);
 };
 
 #endif // PATHLOOKOUT_H

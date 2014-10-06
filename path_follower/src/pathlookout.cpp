@@ -9,6 +9,9 @@
 #include "pathfollower.h"
 #include "boost/foreach.hpp"
 
+#include <laser_geometry/laser_geometry.h>
+#include <opencv2/flann/flann.hpp>
+
 using namespace std;
 
 PathLookout::PathLookout(PathFollower *node):
@@ -23,6 +26,16 @@ PathLookout::PathLookout(PathFollower *node):
 
     visualizer_ = Visualizer::getInstance();
     configure();
+}
+
+void PathLookout::setFrontScan(const sensor_msgs::LaserScanConstPtr &msg)
+{
+    front_scan_ = msg;
+}
+
+void PathLookout::setBackScan(const sensor_msgs::LaserScanConstPtr &msg)
+{
+    back_scan_ = msg;
 }
 
 void PathLookout::setMap(const nav_msgs::OccupancyGridConstPtr &map)
@@ -57,13 +70,14 @@ void PathLookout::setPath(const PathWithPosition &path)
         path_ahead.assign(start, (Path::const_iterator) path.current_path->end());
     }
 
+    path_ = path_ahead;
     drawPathToImage(path_ahead);
 }
 
 bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
 {
-    if (map_ == NULL) {
-        ROS_WARN_THROTTLE(1, "PathLookout has not received any map yet. No obstacle lookout is done.");
+    if (!map_ && !front_scan_ && !back_scan_) {
+        ROS_WARN_THROTTLE(1, "PathLookout has not received any map or scan yet. No obstacle lookout is done.");
         return false;
     }
     if (path_image_.empty()) {
@@ -71,50 +85,17 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
         return false;
     }
 
-    // Calculate intersection of the obstacle map and the path ==> provides the obstacles on the path
-    cv::Mat intersect;
-    cv::bitwise_and(map_image_, path_image_, intersect);
 
-    // find obstacle contours on the path
-    vector<vector<cv::Point> > contours;
-    cv::findContours(intersect, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-
-    // Get center of each obstacle (for tracking)
     vector<Obstacle> observed_obstacles;
-    observed_obstacles.reserve(contours.size());
-    for(size_t i = 0; i < contours.size(); ++i) {
-        try {
-            // calculate center of mass, using moments.
-            //cv::Moments mom = cv::moments(contours[i], true);
-            //cv::Point2f center(mom.m10/mom.m00, mom.m01/mom.m00);
-
-            Obstacle obstacle;
-            cv::minEnclosingCircle(contours[i], obstacle.center, obstacle.radius);
-
-            #if DEBUG_PATHLOOKOUT
-                // dont need intersect anymore, so it is ok to draw debug stuff to it.
-                cv::circle(intersect, obstacle.center, obstacle.radius, cv::Scalar(255));
-            #endif
-
-            // transform center and scale radius from pixel to meters.
-            obstacle.center = map_trans_.transformPointFromMap(obstacle.center, obstacle_frame_);
-            obstacle.radius *= map_->info.resolution;
-
-            observed_obstacles.push_back(obstacle);
-        } catch (const tf::TransformException& ex) {
-            ROS_ERROR("TF-Error. Could not transform obstacle position. %s", ex.what());
-        } catch (const std::runtime_error &ex) { // is thrown, if no obstacle map is available.
-            ROS_ERROR("An error occured: %s", ex.what());
-        }
+    if (map_) {
+        observed_obstacles = lookForObstaclesInMap();
     }
 
-    // debug
-    #if DEBUG_PATHLOOKOUT
-        cv::imshow("Map", map_image_);
-        cv::imshow("Path", path_image_);
-        cv::imshow("Intersection", intersect);
-        cv::waitKey(5);
-    #endif
+    if (front_scan_ || back_scan_) {
+        vector<Obstacle> obs = lookForObstaclesInScans();
+        observed_obstacles.insert(observed_obstacles.end(), obs.begin(), obs.end());
+    }
+
 
     // Update tracker
     tracker_.update(observed_obstacles);
@@ -179,6 +160,129 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
     // report obstacle, if the highest weight is higher than the defined limit.
     ROS_DEBUG("Max Obstacle Weight: %g, limit: %g", max_weight, opt_.obstacle_weight_limit_);
     return max_weight > opt_.obstacle_weight_limit_;
+}
+
+vector<Obstacle> PathLookout::lookForObstaclesInMap()
+{
+    // Calculate intersection of the obstacle map and the path ==> provides the obstacles on the path
+    cv::Mat intersect;
+    cv::bitwise_and(map_image_, path_image_, intersect);
+
+    // find obstacle contours on the path
+    vector<vector<cv::Point> > contours;
+    cv::findContours(intersect, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+
+    // Get center of each obstacle (for tracking)
+    vector<Obstacle> observed_obstacles;
+    observed_obstacles.reserve(contours.size());
+    for(size_t i = 0; i < contours.size(); ++i) {
+        try {
+            // get obstacle position and size from enclosing circle
+            Obstacle obstacle;
+            cv::minEnclosingCircle(contours[i], obstacle.center, obstacle.radius);
+
+            #if DEBUG_PATHLOOKOUT
+                // dont need intersect anymore, so it is ok to draw debug stuff to it.
+                cv::circle(intersect, obstacle.center, obstacle.radius, cv::Scalar(255));
+            #endif
+
+            // transform center and scale radius from pixel to meters.
+            obstacle.center = map_trans_.transformPointFromMap(obstacle.center, obstacle_frame_);
+            obstacle.radius *= map_->info.resolution;
+
+            observed_obstacles.push_back(obstacle);
+        } catch (const tf::TransformException& ex) {
+            ROS_ERROR("TF-Error. Could not transform obstacle position. %s", ex.what());
+        } catch (const std::runtime_error &ex) { // is thrown, if no obstacle map is available.
+            ROS_ERROR("An error occured: %s", ex.what());
+        }
+    }
+
+    // debug
+    #if DEBUG_PATHLOOKOUT
+        cv::imshow("Map", map_image_);
+        cv::imshow("Path", path_image_);
+        cv::imshow("Intersection", intersect);
+        cv::waitKey(5);
+    #endif
+
+    return observed_obstacles;
+}
+
+vector<Obstacle> PathLookout::lookForObstaclesInScans()
+{
+    vector<cv::Point2f> obs_front, obs_back;
+    if (front_scan_) {
+        obs_front = findObstacleInScan(front_scan_);
+    }
+    if (back_scan_) {
+        obs_back = findObstacleInScan(back_scan_);
+    }
+
+    // merge result of front and back scan
+    obs_front.insert(obs_front.end(), obs_back.begin(), obs_back.end());
+
+    // cluster
+    vector<vector<cv::Point2f> > obstacle_points = clusterPoints(obs_front);
+
+    vector<Obstacle> observed_obstacles;
+    observed_obstacles.reserve(obstacle_points.size());
+    for (vector<vector<cv::Point2f> >::const_iterator it = obstacle_points.begin(); it != obstacle_points.end(); ++it) {
+        try {
+            // get obstacle position and size from enclosing circle
+            Obstacle obstacle;
+            cv::minEnclosingCircle(*it, obstacle.center, obstacle.radius);
+
+            observed_obstacles.push_back(obstacle);
+        } catch (const tf::TransformException& ex) {
+            ROS_ERROR("TF-Error. Could not transform obstacle position. %s", ex.what());
+        } catch (const std::runtime_error &ex) { // is thrown, if no obstacle map is available.
+            ROS_ERROR("An error occured: %s", ex.what());
+        }
+    }
+
+    return observed_obstacles;
+}
+
+vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f> &points)
+{
+//    // http://answers.opencv.org/question/8359/hierarchical-clustering-with-flann/
+//    cv::Mat in, centers(5, 2);
+//    for (vector<cv::Point2f>::iterator it = points.begin; it != points.end; ++it) {
+//        in.push_back(*it);
+//    }
+
+//    // create the kmeans parameters structure: branching factor = 32,
+//    // number of iterations = 100, choose initial centers by PP-algorithm
+//    cv::flann::KMeansIndexParams kmean_params(8, 10, cv::flann::FLANN_CENTERS_KMEANSPP);
+
+//    int num_clusters = cv::flann::hierarchicalClustering<cv::L2<float> >(in, centers, kmean_params);
+
+//    centers = centers.rowRange(cv::Range(0,true_number_clusters));
+
+    const float cluster_max_distance = 0.2;
+
+    vector<vector<cv::Point2f> > result;
+
+    if (points.empty()) {
+        return result;
+    }
+
+    vector<cv::Point2f> cluster;
+    cluster.push_back(points[0]);
+    for (size_t i = 1; i < points.size(); ++i) {
+        float d = cv::norm(points[i-1] - points[i]);
+        if (d > cluster_max_distance) {
+            // end cluster
+            result.push_back(cluster);
+            cluster.clear();
+        }
+        cluster.push_back(points[i]);
+    }
+    // add last cluster
+    result.push_back(cluster);
+
+    return result;
 }
 
 void PathLookout::reset()
@@ -258,4 +362,76 @@ float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::Tracke
     //ROS_WARN("WEIGHT: d = %g, t = %g, wd = %g, wt = %g", dist_to_robot, lifetime.toSec(), w_dist, w_time);
 
     return w_dist + w_time;
+}
+
+std::vector<cv::Point2f> PathLookout::findObstacleInScan(const sensor_msgs::LaserScanConstPtr &scan)
+{
+    if (path_.size() < 2) {
+        ROS_WARN("Path has less than 2 waypoints. No obstacle lookout is done.");
+        return std::vector<cv::Point2f>(); // return empty cloud
+    }
+
+    laser_geometry::LaserProjection proj;
+    sensor_msgs::PointCloud cloud;
+
+    try {
+        if(!tf_listener_.waitForTransform(
+                    scan->header.frame_id,
+                    "/map",
+                    scan->header.stamp + ros::Duration().fromSec(scan->ranges.size()*scan->time_increment),
+                    ros::Duration(1.0))) {
+            ROS_ERROR("[PathLookout] No transform for laser scan from %s to /map. No obstacle lookout is done!", scan->header.frame_id.c_str());
+            return std::vector<cv::Point2f>(); // return empty cloud
+        }
+
+        proj.transformLaserScanToPointCloud("/map", *scan, cloud, tf_listener_);
+    } catch (const tf::TransformException& ex) {
+        ROS_ERROR("[PathLookout] Failed to transform scan. TF-Exception: %s\n PathLookout will not be able to check for obstacles on the path!", ex.what());
+        return std::vector<cv::Point2f>(); // return empty cloud
+    }
+
+
+    std::vector<cv::Point2f> obstacle_points;
+
+    Path::const_iterator iter = path_.begin();
+    // get first point
+    cv::Point2f a(iter->x, iter->y);
+    // iterate over second to last point
+    for (++iter; iter != path_.end(); ++iter) {
+        cv::Point2f b(iter->x, iter->y);
+
+        // precompute AB and AB^2
+        cv::Point2f ab = b - a;
+        float ab2 = ab.dot(ab);
+
+        for (vector<geometry_msgs::Point32>::iterator sp = cloud.points.begin(); sp != cloud.points.end(); /* no ++ here, due to erase*/) {
+            cv::Point2f p(sp->x, sp->y);
+            cv::Point2f ap = p - a;
+            float lambda = ap.dot(ab) / ab2;
+
+            float dist;
+            if (lambda < 0) {
+                // A is nearest point
+                dist = cv::norm(ap);
+            } else if (lambda > 1) {
+                // B is nearest point
+                dist = cv::norm(p - b);
+            } else {
+                // F is nearest point
+                cv::Point2f f = a + lambda * ab;
+                dist = cv::norm(p - f);
+            }
+
+            if (dist < opt_.path_width_) {
+                obstacle_points.push_back(p);
+                // points that are recognized as obstacle, do not have to be checked again
+                sp = cloud.points.erase(sp);
+            } else {
+                ++sp;
+            }
+        }
+
+        a = b;
+    }
+
 }

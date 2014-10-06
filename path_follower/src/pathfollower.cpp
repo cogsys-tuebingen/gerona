@@ -131,6 +131,7 @@ void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
 void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan)
 {
     controller_->getObstacleDetector()->setScan(scan);
+    path_lookout_.setFrontScan(scan); //FIXME: back scan
 }
 
 void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
