@@ -28,7 +28,9 @@ class ScanConverter {
         sensor_msgs::PointCloud2 cloud_back_;
         sensor_msgs::PointCloud2 cloud_total_;
 
-        bool cbCloud_;
+
+        bool cbScanfront_;
+        bool cbScanback_;
 
          // ros params
         std::string baseFrame_;

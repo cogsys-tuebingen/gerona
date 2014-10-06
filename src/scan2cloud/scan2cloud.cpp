@@ -27,7 +27,7 @@ void ScanConverter::scanCallback_front(const sensor_msgs::LaserScan::ConstPtr& s
         }
         sensor_msgs::PointCloud2 cloud;
         projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_front_, tfListener_);
-        cbCloud_ |= true;
+        cbScanfront_ = true;
 
     }catch(...){
 
@@ -45,7 +45,7 @@ void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& sc
             return;
         }
         projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_back_, tfListener_);
-        cbCloud_ |= true;
+        cbScanback_ = true;
     }catch(...){
 
     }
@@ -55,9 +55,10 @@ void ScanConverter::spin()
 {
     ros::Rate loopRate(60);
     while(ros::ok()){
-        cbCloud_ = false;
+        cbScanfront_ = false;
+        cbScanback_ = false;
         ros::spinOnce();
-        if(cbCloud_){
+        if(cbScanfront_ || cbScanback_){
             this->mergeSensorMsgsPointCloud2();
             point_cloud_publisher_.publish(cloud_total_);
         }
@@ -72,11 +73,18 @@ void ScanConverter::mergeSensorMsgsPointCloud2()
     pcl::PointCloud<pcl::PointXYZ> output_pcl_front;
     pcl::PointCloud<pcl::PointXYZ> output_pcl_back;
 
-    pcl::fromROSMsg(cloud_front_,output_pcl_front);
-    pcl::fromROSMsg(cloud_back_,output_pcl_back);
-
-    combined_pcl = output_pcl_front;
-    combined_pcl += output_pcl_back;
+    if(cbScanfront_){
+        pcl::fromROSMsg(cloud_front_,output_pcl_front);
+        combined_pcl = output_pcl_front;
+    }
+    if(cbScanback_){
+        pcl::fromROSMsg(cloud_back_,output_pcl_back);
+        if(cbScanfront_){
+            combined_pcl += output_pcl_back;
+        }else{
+            combined_pcl = output_pcl_back;
+        }
+    }
     /*
 
   this part causes to crash
@@ -90,8 +98,8 @@ void ScanConverter::mergeSensorMsgsPointCloud2()
 
     }
 */
-
-    pcl::toROSMsg(combined_pcl, cloud_total_);
+    if(cbScanfront_ || cbScanback_)
+        pcl::toROSMsg(combined_pcl, cloud_total_);
     cloud_total_.header.frame_id = baseFrame_;
 
 }
