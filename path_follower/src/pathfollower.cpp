@@ -82,7 +82,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     if(opt_.use_obstacle_map_) {
         obstacle_map_sub_ = node_handle_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&PathFollower::obstacleMapCB, this, _1));
     } else {
-        laser_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan", 10, boost::bind(&PathFollower::laserCB, this, _1));
+        laser_front_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10, boost::bind(&PathFollower::laserCB, this, _1, false));
+        laser_back_sub_  = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10, boost::bind(&PathFollower::laserCB, this, _1, true));
     }
     controller_->getObstacleDetector()->setUseMap(opt_.use_obstacle_map_);
     controller_->getObstacleDetector()->setUseScan(!opt_.use_obstacle_map_);
@@ -114,7 +115,9 @@ void PathFollower::followPathGoalCB()
     setGoal(*goalptr);
 
     // don't track obstacles of former paths.
-    path_lookout_.reset();
+    if (opt_.use_path_lookout_) {
+        path_lookout_.reset();
+    }
 }
 
 void PathFollower::followPathPreemptCB()
@@ -128,15 +131,19 @@ void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
     odometry_ = *odom;
 }
 
-void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan)
+void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan, bool isBack)
 {
-    controller_->getObstacleDetector()->setScan(scan);
+    controller_->getObstacleDetector()->setScan(scan, isBack);
+    if (opt_.use_path_lookout_)
+        path_lookout_.setScan(scan, isBack);
 }
 
 void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
 {
     controller_->getObstacleDetector()->setMap(map);
-    path_lookout_.setMap(map);
+
+    if (opt_.use_path_lookout_)
+        path_lookout_.setMap(map);
 
     if(opt_.use_vfh_) {
         vfh_.setMap(*map);
@@ -259,7 +266,7 @@ void PathFollower::update()
         if (!updateRobotPose()) {
             result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         }
-        else if (path_lookout_.lookForObstacles(&feedback)) {
+        else if (opt_.use_path_lookout_ && path_lookout_.lookForObstacles(&feedback)) {
             result.status = FollowPathResult::MOTION_STATUS_OBSTACLE;
             // there's an obstacle ahead, pull the emergency break!
             controller_->stopMotion();
@@ -306,7 +313,7 @@ bool PathFollower::isObstacleAhead(double course)
 
     float box_length = opt_.collision_box_min_length_ + span * f;
 
-    ROS_DEBUG("Collision Box: v = %g -> len = %g", v, box_length);
+    //ROS_DEBUG("Collision Box: v = %g -> len = %g", v, box_length);
 
     Path& current_path = paths_[opt_.path_idx];
     double distance_to_goal = current_path.back().distanceTo(current_path[opt_.wp_idx]);
@@ -486,6 +493,7 @@ void PathFollower::configure()
     ros::param::param<string>("~robot_frame", opt_.robot_frame_, "/base_link");
     ros::param::param<bool>("~use_obstacle_map", opt_.use_obstacle_map_, false);
     ros::param::param<bool>("~use_vfh", opt_.use_vfh_, false);
+    ros::param::param<bool>("~use_path_lookout", opt_.use_path_lookout_, true);
     ros::param::param<float>( "~min_velocity", opt_.min_velocity_, 0.4 );
     ros::param::param<float>( "~max_velocity", opt_.max_velocity_, 2.0 );
     ros::param::param<float>( "~collision_box_width", opt_.collision_box_width_, 0.5);
