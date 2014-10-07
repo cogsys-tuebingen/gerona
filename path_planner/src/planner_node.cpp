@@ -798,16 +798,15 @@ void Planner::integrateLaserScan(const sensor_msgs::LaserScan &scan)
     double angle = scan.angle_min;
     for(std::size_t i = 0, total = scan.ranges.size(); i < total; ++i) {
         const float& range = scan.ranges[i];
-        if(range < scan.range_min || range > scan.range_max) {
-            continue;
-        }
+        if(range > scan.range_min && range < (scan.range_max - 1.0)) {
 
-        tf::Vector3 pt_laser(std::cos(angle) * range, std::sin(angle) * range, 0);
-        tf::Vector3 pt_map = trafo * pt_laser;
+            tf::Vector3 pt_laser(std::cos(angle) * range, std::sin(angle) * range, 0);
+            tf::Vector3 pt_map = trafo * pt_laser;
 
-        unsigned int x,y;
-        if(map_info->point2cell(pt_map.x(), pt_map.y(), x, y)) {
-            map_info->setValue(x,y, 100);
+            unsigned int x,y;
+            if(map_info->point2cell(pt_map.x(), pt_map.y(), x, y)) {
+                map_info->setValue(x,y, 100);
+            }
         }
 
         angle += scan.angle_increment;
