@@ -28,7 +28,7 @@ void RobotController::setPath(PathWithPosition path)
         throw new BehaviourEmergencyBreak(*path_driver_);
     }
 
-    if (path_driver_->getOptions().use_obstacle_map_)
+    if (path_driver_->getOptions().use_path_lookout_)
         path_driver_->getPathLookout()->setPath(path);
 }
 
