@@ -29,7 +29,7 @@ protected:
 
     virtual bool checkOnMap(float width, float length, float course_angle, float curve_enlarge_factor);
 
-    virtual bool checkOnScan(float width, float length, float course_angle, float curve_enlarge_factor);
+    virtual bool checkOnScan(const sensor_msgs::LaserScanConstPtr &scan, float width, float length, float course_angle, float curve_enlarge_factor);
 
 private:
     //! Provides obstacle detection based on the laser scans. Is used instead of ObstacleDetector, if ~use_obstacle_map:=false

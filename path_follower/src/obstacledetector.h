@@ -29,7 +29,7 @@ public:
     //! Callback for the obstacle map. Make sure, that the map is binary!
     virtual void setMap(const nav_msgs::OccupancyGridConstPtr &map);
     //! Callback for the laser scan
-    virtual void setScan(const sensor_msgs::LaserScanConstPtr &scan);
+    virtual void setScan(const sensor_msgs::LaserScanConstPtr &scan, bool isBack=false);
 
     virtual void setUseMap(bool use);
     virtual void setUseScan(bool use);
@@ -54,9 +54,6 @@ protected:
     //! The current obstacle map.
     nav_msgs::OccupancyGridConstPtr map_;
 
-    //! The current laser scan
-    sensor_msgs::LaserScanConstPtr scan_;
-
     /**
      * @brief Check, if there is an obstacle in the map within the obstacle box.
      * @return True if there is an obstacle, false if not.
@@ -67,11 +64,15 @@ protected:
      * @brief Check, if there is an scan point within the obstacle box.
      * @return True if there is an obstacle, false if not.
      */
-    virtual bool checkOnScan(float width, float length, float course_angle, float curve_enlarge_factor) = 0;
+    virtual bool checkOnScan(const sensor_msgs::LaserScanConstPtr &scan, float width, float length, float course_angle, float curve_enlarge_factor) = 0;
 
 private:
     bool use_map_;
     bool use_scan_;
+
+    //! The current laser scan
+    sensor_msgs::LaserScanConstPtr scan_;
+    sensor_msgs::LaserScanConstPtr scan_back_;
 };
 
 #endif // OBSTACLEDETECTOR_H
