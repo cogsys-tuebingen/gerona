@@ -153,8 +153,8 @@ bool ObstacleDetectorAckermann::checkOnMap(float width, float length, float cour
     return collision;
 }
 
-bool ObstacleDetectorAckermann::checkOnScan(float width, float length, float course_angle, float curve_enlarge_factor)
+bool ObstacleDetectorAckermann::checkOnScan(const sensor_msgs::LaserScanConstPtr &scan, float width, float length, float course_angle, float curve_enlarge_factor)
 {
-    return laser_env_.CheckCollision(scan_->ranges,scan_->angle_min,scan_->angle_max, course_angle,
+    return laser_env_.CheckCollision(scan->ranges, scan->angle_min, scan->angle_max, course_angle,
                                      width, curve_enlarge_factor, length);
 }

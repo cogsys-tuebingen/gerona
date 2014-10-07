@@ -110,7 +110,7 @@ void Behaviour::checkDistanceToPath()
 {
     if (!isLeavingPathAllowed()) {
         double dist = calculateDistanceToCurrentPathSegment();
-        ROS_DEBUG("Distance to current path segment: %g m", dist);
+        //ROS_DEBUG("Distance to current path segment: %g m", dist);
         if (dist > getOptions().max_distance_to_path_) {
             parent_.say("abort: too far away!");
 
