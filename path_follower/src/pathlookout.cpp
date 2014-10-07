@@ -6,6 +6,7 @@
     #include <opencv2/highgui/highgui.hpp>
 #endif
 #include <vector>
+#include <string>
 #include "pathfollower.h"
 #include "boost/foreach.hpp"
 
@@ -28,14 +29,13 @@ PathLookout::PathLookout(PathFollower *node):
     configure();
 }
 
-void PathLookout::setFrontScan(const sensor_msgs::LaserScanConstPtr &msg)
+void PathLookout::setScan(const sensor_msgs::LaserScanConstPtr &msg, bool isBack)
 {
-    front_scan_ = msg;
-}
-
-void PathLookout::setBackScan(const sensor_msgs::LaserScanConstPtr &msg)
-{
-    back_scan_ = msg;
+    if (isBack) {
+        back_scan_ = msg;
+    } else {
+        front_scan_ = msg;
+    }
 }
 
 void PathLookout::setMap(const nav_msgs::OccupancyGridConstPtr &map)
@@ -55,11 +55,6 @@ void PathLookout::setMap(const nav_msgs::OccupancyGridConstPtr &map)
 
 void PathLookout::setPath(const PathWithPosition &path)
 {
-    // if there is no map yet, we do not know the size of the path image -> do nothing
-    if (map_ == NULL) {
-        return;
-    }
-
     // only use path from the last waypoint on ("do not look behind")
     Path path_ahead;
     if (path.wp_idx == 0) {
@@ -71,7 +66,11 @@ void PathLookout::setPath(const PathWithPosition &path)
     }
 
     path_ = path_ahead;
-    drawPathToImage(path_ahead);
+
+    // if there is no map yet, we do not know the size of the path image (and do not need it anyway)
+    if (map_) {
+        drawPathToImage(path_ahead);
+    }
 }
 
 bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
@@ -80,7 +79,7 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
         ROS_WARN_THROTTLE(1, "PathLookout has not received any map or scan yet. No obstacle lookout is done.");
         return false;
     }
-    if (path_image_.empty()) {
+    if (path_.empty()) {
         ROS_WARN_THROTTLE(1, "PathLookout has not received any path yet. No obstacle lookout is done.");
         return false;
     }
@@ -213,10 +212,10 @@ vector<Obstacle> PathLookout::lookForObstaclesInScans()
 {
     vector<cv::Point2f> obs_front, obs_back;
     if (front_scan_) {
-        obs_front = findObstacleInScan(front_scan_);
+        obs_front = findObstaclesInScan(front_scan_);
     }
     if (back_scan_) {
-        obs_back = findObstacleInScan(back_scan_);
+        obs_back = findObstaclesInScan(back_scan_);
     }
 
     // merge result of front and back scan
@@ -260,7 +259,7 @@ vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f
 
 //    centers = centers.rowRange(cv::Range(0,true_number_clusters));
 
-    const float cluster_max_distance = 0.2;
+    const float cluster_max_distance = 0.5;
 
     vector<vector<cv::Point2f> > result;
 
@@ -272,7 +271,15 @@ vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f
     cluster.push_back(points[0]);
     for (size_t i = 1; i < points.size(); ++i) {
         float d = cv::norm(points[i-1] - points[i]);
+
+//        geometry_msgs::Point gp;
+//        gp.x = points[i].x;
+//        gp.y = points[i].y;
+//        gp.z = i*0.1;
+//        visualizer_->drawText(i, gp, boost::lexical_cast<std::string>(i), "fooooo", 0,1,0);
+
         if (d > cluster_max_distance) {
+            ROS_DEBUG("[PathLookout] End cluster. d = %g", d);
             // end cluster
             result.push_back(cluster);
             cluster.clear();
@@ -281,6 +288,8 @@ vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f
     }
     // add last cluster
     result.push_back(cluster);
+
+    ROS_DEBUG("[PathLookout] #points: %zu, #clusters: %zu", points.size(), result.size());
 
     return result;
 }
@@ -359,12 +368,12 @@ float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::Tracke
                    ? pow((dist_to_robot - 2*opt_.scale_obstacle_distance_ )/opt_.scale_obstacle_distance_, 2)
                    : 0;
 
-    //ROS_WARN("WEIGHT: d = %g, t = %g, wd = %g, wt = %g", dist_to_robot, lifetime.toSec(), w_dist, w_time);
+    //ROS_DEBUG("WEIGHT: d = %g, t = %g, wd = %g, wt = %g", dist_to_robot, lifetime.toSec(), w_dist, w_time);
 
     return w_dist + w_time;
 }
 
-std::vector<cv::Point2f> PathLookout::findObstacleInScan(const sensor_msgs::LaserScanConstPtr &scan)
+std::vector<cv::Point2f> PathLookout::findObstaclesInScan(const sensor_msgs::LaserScanConstPtr &scan)
 {
     if (path_.size() < 2) {
         ROS_WARN("Path has less than 2 waypoints. No obstacle lookout is done.");
@@ -384,12 +393,11 @@ std::vector<cv::Point2f> PathLookout::findObstacleInScan(const sensor_msgs::Lase
             return std::vector<cv::Point2f>(); // return empty cloud
         }
 
-        proj.transformLaserScanToPointCloud("/map", *scan, cloud, tf_listener_);
+        proj.transformLaserScanToPointCloud("/map", *scan, cloud, tf_listener_, scan->range_max-0.5);
     } catch (const tf::TransformException& ex) {
         ROS_ERROR("[PathLookout] Failed to transform scan. TF-Exception: %s\n PathLookout will not be able to check for obstacles on the path!", ex.what());
         return std::vector<cv::Point2f>(); // return empty cloud
     }
-
 
     std::vector<cv::Point2f> obstacle_points;
 
@@ -422,6 +430,8 @@ std::vector<cv::Point2f> PathLookout::findObstacleInScan(const sensor_msgs::Lase
                 dist = cv::norm(p - f);
             }
 
+            //ROS_DEBUG("dist = %g", dist);
+
             if (dist < opt_.path_width_) {
                 obstacle_points.push_back(p);
                 // points that are recognized as obstacle, do not have to be checked again
@@ -434,4 +444,5 @@ std::vector<cv::Point2f> PathLookout::findObstacleInScan(const sensor_msgs::Lase
         a = b;
     }
 
+    return obstacle_points;
 }

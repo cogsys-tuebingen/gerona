@@ -41,8 +41,7 @@ class PathLookout
 public:
     PathLookout(PathFollower *node);
 
-    void setFrontScan(const sensor_msgs::LaserScanConstPtr &msg);
-    void setBackScan(const sensor_msgs::LaserScanConstPtr &msg);
+    void setScan(const sensor_msgs::LaserScanConstPtr &msg, bool isBack=false);
 
     void setMap(const nav_msgs::OccupancyGridConstPtr &msg);
 
@@ -108,7 +107,7 @@ private:
     //! Compute weight for the given obstacle, depending on its distance to the robot and its lifetime.
     float weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const;
 
-    std::vector<cv::Point2f> findObstacleInScan(const sensor_msgs::LaserScanConstPtr &scan);
+    std::vector<cv::Point2f> findObstaclesInScan(const sensor_msgs::LaserScanConstPtr &scan);
 };
 
 #endif // PATHLOOKOUT_H

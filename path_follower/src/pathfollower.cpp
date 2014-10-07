@@ -131,7 +131,7 @@ void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
 void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan)
 {
     controller_->getObstacleDetector()->setScan(scan);
-    path_lookout_.setFrontScan(scan); //FIXME: back scan
+    path_lookout_.setScan(scan); //FIXME: back scan
 }
 
 void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
@@ -307,7 +307,7 @@ bool PathFollower::isObstacleAhead(double course)
 
     float box_length = opt_.collision_box_min_length_ + span * f;
 
-    ROS_DEBUG("Collision Box: v = %g -> len = %g", v, box_length);
+    //ROS_DEBUG("Collision Box: v = %g -> len = %g", v, box_length);
 
     Path& current_path = paths_[opt_.path_idx];
     double distance_to_goal = current_path.back().distanceTo(current_path[opt_.wp_idx]);
