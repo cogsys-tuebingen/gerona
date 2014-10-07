@@ -67,10 +67,10 @@ Planner::Planner()
     nh.param("use_scan_back", use_scan_back_, true);
 
     if(use_scan_front_) {
-        sub_front = nh.subscribe<sensor_msgs::LaserScan>("/scan/front", 0, boost::bind(&Planner::laserCallback, this, _1, true));
+        sub_front = nh.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, true));
     }
     if(use_scan_back_) {
-        sub_back = nh.subscribe<sensor_msgs::LaserScan>("/scan/back", 0, boost::bind(&Planner::laserCallback, this, _1, false));
+        sub_back = nh.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, false));
     }
 
 
