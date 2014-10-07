@@ -34,7 +34,7 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     look_ahead_dist(0.5),
     param_k_curv(0.05),
     param_k_g(0.4),
-    param_k_o(1.0),
+    param_k_o(0.3),
     param_k_w(0.5),
     distance_to_goal(0),
     distance_to_obstacle_(0)
@@ -50,9 +50,9 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
                                                               boost::bind(&RobotController_Omnidrive_OrthogonalExponential::lookAt, this, _1));
 
-    laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front", 10,
+    laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
                                                                       boost::bind(&RobotController_Omnidrive_OrthogonalExponential::laserFront, this, _1));
-    laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back", 10,
+    laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
                                                                      boost::bind(&RobotController_Omnidrive_OrthogonalExponential::laserBack, this, _1));
 
     //control parameters
@@ -60,7 +60,13 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     nh_.param("kp", param_kp, 0.4);
     nh_.param("kd", param_kd, 0.2);
     nh_.param("max_angular_velocity", max_angular_velocity, 2.0);
+    
+    nh_.param("k_o", param_k_o, 0.3);
+    nh_.param("k_g", param_k_g, 0.4);
+    nh_.param("k_w", param_k_w, 0.5);
+    nh_.param("k_curv", param_k_curv, 0.05);
 
+    std::cout << "Value of K_O: " << param_k_o << std::endl;
     // path marker
     robot_path_marker.header.frame_id = "map";
     robot_path_marker.header.stamp = ros::Time();
@@ -181,11 +187,11 @@ void RobotController_Omnidrive_OrthogonalExponential::findMinDistance()
     std::sort(ranges.begin(), ranges.end());
 
     if(ranges.size() <= 7) {
-        distance_to_obstacle_ = 0;
+       distance_to_obstacle_ = 0;
         return;
     }
 
-    distance_to_obstacle_ = ranges[7];
+    distance_to_obstacle_ = ranges[0];
 
     //ROS_DEBUG_STREAM("minimum range is " << distance_to_obstacle_);
 }
@@ -212,7 +218,7 @@ void RobotController_Omnidrive_OrthogonalExponential::initialize()
     e_theta_curr = path_driver_->getRobotPose()[2];
 
     // desired velocity
-    vn = 2.0;//std::min(path_driver_->getOptions().max_velocity_, velocity_); ///////////////////////////////
+    vn = std::min(path_driver_->getOptions().max_velocity_, velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn);
     initialized = true;
 }
@@ -365,7 +371,7 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     double theta_meas = current_pose[2];
     //***//
 
-    ROS_DEBUG("Theta: %f", theta_meas*180.0/M_PI);
+    //ROS_DEBUG("Theta: %f", theta_meas*180.0/M_PI);
 
     //find the orthogonal projection to the curve and extract the corresponding index
 
@@ -430,7 +436,7 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 
     }
 
-    ROS_DEBUG("Orthogonal distance: %f, theta_p: %f, theta_des: %f", orth_proj, theta_p*180.0/M_PI, theta_des*180.0/M_PI);
+    //ROS_DEBUG("Orthogonal distance: %f, theta_p: %f, theta_des: %f", orth_proj, theta_p*180.0/M_PI, theta_des*180.0/M_PI);
 
     //****//
 
@@ -504,12 +510,14 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 
     //control
 
+    //ROS_DEBUG_STREAM("Distance to obstacle: " << distance_to_obstacle_);
+
     double exponent = param_k_curv*fabs(curv_sum)
             + param_k_w*fabs(angular_vel)
             + param_k_o/distance_to_obstacle_
             + param_k_g/distance_to_goal;
 
-    cmd_.speed = vn*exp(-exponent);
+    cmd_.speed = std::max(vn*exp(-exponent),0.2);
 
     cmd_.direction_angle = atan(-param_k*orth_proj) + theta_p - theta_meas;
 
@@ -527,13 +535,13 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
     //ROS_INFO("C_curv: %f, curv_sum: %f, ind: %d, look_ahead_index: %d, vn: %f, v: %f",
              //exp(-param_k_curv*1/curv_sum), curv_sum, ind, look_ahead_index, vn, cmd_.speed);
 
-    ROS_INFO("Linear velocity: %f", cmd_.speed);
+    //ROS_INFO("Linear velocity: %f", cmd_.speed);
 
 
 
-    ROS_DEBUG("alpha: %f, alpha_e: %f, e_theta_curr: %f",
-              (atan(-param_k*orth_proj) + theta_p)*180.0/M_PI,
-              atan(-param_k*orth_proj)*180.0/M_PI, e_theta_curr);
+//    ROS_DEBUG("alpha: %f, alpha_e: %f, e_theta_curr: %f",
+//              (atan(-param_k*orth_proj) + theta_p)*180.0/M_PI,
+//              atan(-param_k*orth_proj)*180.0/M_PI, e_theta_curr);
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);

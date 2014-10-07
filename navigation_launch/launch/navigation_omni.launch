@@ -18,7 +18,7 @@
     <include file="$(find navigation_launch)/launch/mapping.launch" />
 
     <node pkg="path_control" type="path_control_node" name="path_control_node" output="screen" respawn="true">
-        <param name="nonaction_velocity" value="1.0" />
+        <param name="target_speed" value="1.0" />
         <param name="num_replan_attempts" value="1" />
     </node>
     <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy" output="screen" respawn="true">

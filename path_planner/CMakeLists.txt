@@ -12,6 +12,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 find_package(OMPL)
 find_package(SBPL)
+find_package(OpenCV REQUIRED)
 
 find_package(Eigen QUIET)
 if(NOT ${Eigen_FOUND})
@@ -20,6 +21,7 @@ endif()
 include_directories(
   ${EIGEN_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 catkin_package(
@@ -38,7 +40,7 @@ add_executable(path_planner_node src/planner_node.cpp src/path_planner_node.cpp)
 add_dependencies(path_planner_node path_msgs_generate_messages_cpp)
 
 target_link_libraries(path_planner_node
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
 
 if(${OMPL_FOUND})

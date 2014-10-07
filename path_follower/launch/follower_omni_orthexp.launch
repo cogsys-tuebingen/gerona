@@ -21,7 +21,12 @@
     <param name="kp" value="2.5" />
     <param name="kd" value="1.0" />
 
-    <remap from="scan" to="scan/front" />
+    <param name="k_o" value="0.2" />
+    <param name="k_g" value="0.4" />
+    <param name="k_w" value="0.5" />
+    <param name="k_curv" value="0.05" />
+
+    <remap from="scan" to="scan/front/filtered" />
   </node>
   
 </launch>

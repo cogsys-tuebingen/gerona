@@ -83,7 +83,7 @@ bool ObstacleDetectorPolygon::checkOnMap(float width, float length, float course
     return collision;
 }
 
-bool ObstacleDetectorPolygon::checkOnScan(float width, float length, float course_angle, float curve_enlarge_factor)
+bool ObstacleDetectorPolygon::checkOnScan(const sensor_msgs::LaserScanConstPtr &scan, float width, float length, float course_angle, float curve_enlarge_factor)
 {
     bool collision = false;
     PolygonWithTfFrame pwf = getPolygon(width, length, course_angle, curve_enlarge_factor);
@@ -96,9 +96,9 @@ bool ObstacleDetectorPolygon::checkOnScan(float width, float length, float cours
 
     /// transform scan to point cloud in polygon frame
     if(!tf_listener_.waitForTransform(
-                scan_->header.frame_id,
+                scan->header.frame_id,
                 pwf.frame,
-                scan_->header.stamp + ros::Duration().fromSec(scan_->ranges.size()*scan_->time_increment),
+                scan->header.stamp + ros::Duration().fromSec(scan->ranges.size()*scan->time_increment),
                 ros::Duration(0.5))) {
         ROS_WARN("Got no transform from scan to polygon. No obstacle check is done!");
         return false;
@@ -106,7 +106,7 @@ bool ObstacleDetectorPolygon::checkOnScan(float width, float length, float cours
 
     sensor_msgs::PointCloud cloud;
     try {
-        laser_projector_.transformLaserScanToPointCloud(pwf.frame, *scan_, cloud, tf_listener_);
+        laser_projector_.transformLaserScanToPointCloud(pwf.frame, *scan, cloud, tf_listener_);
     } catch (tf::TransformException& ex) {
         ROS_ERROR("Error with transform scan to obstacle polygon: %s", ex.what());
         // can't check for obstacles, so better assume there is one.

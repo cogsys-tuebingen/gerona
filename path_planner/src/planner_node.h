@@ -12,6 +12,7 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/Path.h>
 #include <actionlib/server/simple_action_server.h>
+#include <sensor_msgs/LaserScan.h>
 
 /**
  * @brief The Planner class is a base class for other planning algorithms
@@ -77,6 +78,8 @@ protected:
      */
     nav_msgs::Path interpolatePath(const nav_msgs::Path& path, double max_distance);
 
+    nav_msgs::Path simplifyPath(const nav_msgs::Path& path);
+
     /**
      * @brief smoothPath smooths the given path
      * @param path path to smooth
@@ -101,15 +104,26 @@ protected:
     void publish(const nav_msgs::Path& path, const nav_msgs::Path &path_raw);
 
 private:
+    void laserCallback(const sensor_msgs::LaserScanConstPtr& scan, bool front);
+    void integrateLaserScan(const sensor_msgs::LaserScan &scan);
+
     void preempt();
     void feedback(int status);
 
     geometry_msgs::PoseStamped lookupPose();
+    tf::StampedTransform lookupTransform(const std::string& from, const std::string& to, const ros::Time& stamp);
+
+    nav_msgs::Path findPath(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
 
     void planThreaded(const geometry_msgs::PoseStamped &goal,
                       const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                       const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map);
-    nav_msgs::Path doPlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal, nav_msgs::Path *path_raw = 0);
+    nav_msgs::Path doPlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
+
+
+    void preprocess(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
+    nav_msgs::Path postprocess(const nav_msgs::Path& path);
+
 
     nav_msgs::Path smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance);
 
@@ -123,8 +137,15 @@ protected:
 
     bool use_map_topic_;
     bool use_cost_map_;
+    bool use_cost_map_service_;
     bool use_map_service_;
 
+    bool use_scan_front_;
+    bool use_scan_back_;
+
+    bool pre_process_;
+    bool post_process_;
+    bool use_collision_gridmap_;
 
     double size_forward;
     double size_backward;
@@ -132,6 +153,8 @@ protected:
 
     ros::Subscriber goal_pose_sub;
     ros::Subscriber map_sub;
+    ros::Subscriber sub_front;
+    ros::Subscriber sub_back;
 
     ros::ServiceClient map_service_client;
     ros::ServiceClient cost_map_service_client;
@@ -139,6 +162,7 @@ protected:
     actionlib::SimpleActionServer<path_msgs::PlanPathAction> server_;
 
     ros::Publisher viz_pub;
+    ros::Publisher cost_pub;
 
     tf::TransformListener tfl;
 
@@ -146,6 +170,11 @@ protected:
 
     lib_path::SimpleGridMap2d * map_info;
     nav_msgs::OccupancyGrid cost_map;
+    std::vector<double> gradient_x;
+    std::vector<double> gradient_y;
+
+    sensor_msgs::LaserScan scan_front;
+    sensor_msgs::LaserScan scan_back;
 
     // threaded
     nav_msgs::Path thread_result;

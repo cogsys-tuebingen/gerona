@@ -88,6 +88,9 @@ public:
         //! If set to true, vector field histogram is used for collision avoidance.
         bool use_vfh_;
 
+        //! If set to true, path lookout is done (check if there are obstacles somewhere on the path ahead of the robot)
+        bool use_path_lookout_;
+
         //! If set to true, path execution is aborted, if an obstacle is detected on front of the robot.
         //! If false, the robot will stop, but not abort (the obstacle might move away).
         bool abort_if_obstacle_ahead_;
@@ -158,7 +161,8 @@ private:
     //! Subscriber for the obstacle grid map (used by ObstacleDetector).
     ros::Subscriber obstacle_map_sub_;
     //! Subscriber for laser scans (used for obstacle detection if no obstacle map is used).
-    ros::Subscriber laser_sub_;
+    ros::Subscriber laser_front_sub_;
+    ros::Subscriber laser_back_sub_;
 
     tf::TransformListener pose_listener_;
 
@@ -210,7 +214,7 @@ private:
     void odometryCB(const nav_msgs::OdometryConstPtr &odom);
 
     //! Callback for laser scan messages.
-    void laserCB(const sensor_msgs::LaserScanConstPtr& scan);
+    void laserCB(const sensor_msgs::LaserScanConstPtr& scan, bool isBack=false);
 
     //! Callback for the obstacle grid map. Used by ObstacleDetector and VectorFieldHistorgram.
     void obstacleMapCB(const nav_msgs::OccupancyGridConstPtr& map);
