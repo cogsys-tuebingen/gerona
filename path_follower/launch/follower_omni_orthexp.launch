@@ -3,7 +3,7 @@
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
     <param name="use_obstacle_map" value="false" />
     <param name="use_vfh" value="false" />
-    <param name="use_path_lookout" value="true" />
+    <param name="use_path_lookout" value="false" />
     
     <param name="controller" value="omnidrive_orthexp" />
     
@@ -20,6 +20,7 @@
     <param name="collision_box_velocity_saturation" value="1.0" />
     <param name="obstacle_scale_distance" value="1.0" />
     <param name="obstacle_scale_lifetime" value="5.0" />
+    <param name="path_width" value="0.5" />
  
     <param name="kp" value="2.5" />
     <param name="kd" value="1.0" />

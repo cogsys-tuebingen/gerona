@@ -6,11 +6,11 @@
     <include file="$(find navigation_launch)/launch/mapping.launch" />
 
     <node pkg="path_control" type="path_control_node" name="path_control_node" output="screen" respawn="true">
-        <param name="target_speed" value="2.0" />
-        <param name="num_replan_attempts" value="0" />
+        <param name="target_speed" value="1.2" />
+        <param name="num_replan_attempts" value="3" />
     </node>
     <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy" output="screen" respawn="true">
-        <param name="target_speed" value="2.0" />
+        <param name="target_speed" value="1.2" />
         <param name="failure_mode" value="replan" />
         <param name="goal_topic" value="/goal"/>
     </node>
