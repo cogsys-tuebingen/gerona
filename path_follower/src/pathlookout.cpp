@@ -296,7 +296,8 @@ vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f
 
 void PathLookout::reset()
 {
-    // important! path mask has to be reseted, otherwise obstacles will be readded immediately.
+    // important! path has to be reseted, otherwise obstacles will be readded immediately.
+    path_.clear();
     path_image_ = cv::Scalar(0);
     tracker_.reset();
 }
