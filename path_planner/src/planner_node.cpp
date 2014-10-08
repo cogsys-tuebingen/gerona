@@ -37,7 +37,7 @@ Planner::Planner()
         std::cout << "using map topic " << map_topic << std::endl;
 
     } else {
-        std::string map_service = "/dynamic_map";
+        std::string map_service = "/static_map";
         nh.param("map_service",map_service, map_service);
         map_service_client = nh.serviceClient<nav_msgs::GetMap> (map_service);
 
