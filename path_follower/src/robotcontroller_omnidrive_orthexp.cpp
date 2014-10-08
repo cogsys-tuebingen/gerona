@@ -61,6 +61,7 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     nh_.param("kd", param_kd, 0.2);
     nh_.param("max_angular_velocity", max_angular_velocity, 2.0);
     
+    nh_.param("look_ahead_dist", look_ahead_dist, look_ahead_dist);
     nh_.param("k_o", param_k_o, 0.3);
     nh_.param("k_g", param_k_g, 0.4);
     nh_.param("k_w", param_k_w, 0.5);
