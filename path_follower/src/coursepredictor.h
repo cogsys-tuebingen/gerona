@@ -16,6 +16,18 @@ public:
     void update();
     void reset();
 
+    //! Freeze update. No new points will be added -> direction will not change.
+    void freeze()
+    {
+        frozen_ = true;
+    }
+
+    //! Deaktivate freeze.
+    void unfreeze()
+    {
+        frozen_ = false;
+    }
+
     //! Predict direction of movement
     Eigen::Vector2d predictDirectionOfMovement();
 
@@ -46,6 +58,8 @@ private:
 
     //! Time, when the direction prediction was updated the last time
     ros::Time last_update_time_;
+
+    bool frozen_;
 
     void configure();
 };

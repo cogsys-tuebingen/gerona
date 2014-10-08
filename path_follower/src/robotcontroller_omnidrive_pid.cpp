@@ -184,6 +184,7 @@ bool RobotController_Omnidrive_Pid::setCommand(double e_direction, double e_rota
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE); //TODO: not so good to use result-constant if it is not finishing the action...
 
         stopMotion();
+        //TODO: freeze course predictor
     } else {
 
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);

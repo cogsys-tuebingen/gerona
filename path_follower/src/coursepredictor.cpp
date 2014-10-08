@@ -10,14 +10,15 @@ using namespace Eigen;
 
 CoursePredictor::CoursePredictor(PathFollower *path_driver):
     path_driver_(path_driver),
-    last_update_time_(0)
+    last_update_time_(0),
+    frozen_(false)
 {
     configure();
 }
 
 void CoursePredictor::update()
 {
-    if (ros::Time::now() - last_update_time_ < update_intervall_) {
+    if ((ros::Time::now() - last_update_time_ < update_intervall_) || frozen_) {
         return;
     }
 

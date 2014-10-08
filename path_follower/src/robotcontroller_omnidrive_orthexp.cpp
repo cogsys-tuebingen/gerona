@@ -361,8 +361,11 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE);
 
         stopMotion();
+        path_driver_->getCoursePredictor().freeze();
+
         return;
     }
+    path_driver_->getCoursePredictor().unfreeze();
 
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
     Eigen::Vector3d current_pose = path_driver_->getRobotPose();
