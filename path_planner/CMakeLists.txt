@@ -6,7 +6,7 @@ project(path_planner)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS nav_msgs path_msgs utils_path roscpp std_msgs tf roslib cmake_modules)
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 

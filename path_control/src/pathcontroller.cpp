@@ -352,7 +352,7 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
         // pause all activity that can be paused:
         std_msgs::String pause;
         pause.data = "pause";
-        sys_pub_.publish(pause);
+        //sys_pub_.publish(pause);
     }
 
     PlanPathGoal goal_msg;
@@ -401,7 +401,7 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
         // unpause all activity that can be paused:
         std_msgs::String unpause;
         unpause.data = "unpause";
-        sys_pub_.publish(unpause);
+        //sys_pub_.publish(unpause);
     }
 }
 
