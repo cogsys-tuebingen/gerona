@@ -11,9 +11,9 @@ ScanConverter::ScanConverter():node_("~"){
     node_.param<double>("cloudFilterStdD",cloudFilterStdD_,1.0);
 
 
-    scan_sub_front_ = node_.subscribe<sensor_msgs::LaserScan> (scanTopic_front_, 10, &ScanConverter::scanCallback_front, this);
-    scan_sub_back_ = node_.subscribe<sensor_msgs::LaserScan> (scanTopic_back_, 10, &ScanConverter::scanCallback_back, this);
-    point_cloud_publisher_ = node_.advertise<sensor_msgs::PointCloud2> (cloudTopic_, 10, false);
+    scan_sub_front_ = node_.subscribe<sensor_msgs::LaserScan> (scanTopic_front_, 50, &ScanConverter::scanCallback_front, this);
+    scan_sub_back_ = node_.subscribe<sensor_msgs::LaserScan> (scanTopic_back_, 50, &ScanConverter::scanCallback_back, this);
+    point_cloud_publisher_ = node_.advertise<sensor_msgs::PointCloud2> (cloudTopic_, 50, false);
 }
 
 void ScanConverter::scanCallback_front(const sensor_msgs::LaserScan::ConstPtr& scan_in){
@@ -53,16 +53,21 @@ void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& sc
 
 void ScanConverter::spin()
 {
-    ros::Rate loopRate(60);
+    int hz = 100;
+    ros::Rate loopRate(hz);
     while(ros::ok()){
+
         cbScanfront_ = false;
         cbScanback_ = false;
         ros::spinOnce();
         if(cbScanfront_ || cbScanback_){
             this->mergeSensorMsgsPointCloud2();
             point_cloud_publisher_.publish(cloud_total_);
+
         }
+
         this->updateParameter();
+
         loopRate.sleep();
     }
 }
