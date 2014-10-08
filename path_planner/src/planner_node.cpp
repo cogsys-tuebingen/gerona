@@ -67,10 +67,10 @@ Planner::Planner()
     nh.param("use_scan_back", use_scan_back_, true);
 
     if(use_scan_front_) {
-        sub_front = nh.subscribe<sensor_msgs::LaserScan>("/scan/front", 0, boost::bind(&Planner::laserCallback, this, _1, true));
+        sub_front = nh.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, true));
     }
     if(use_scan_back_) {
-        sub_back = nh.subscribe<sensor_msgs::LaserScan>("/scan/back", 0, boost::bind(&Planner::laserCallback, this, _1, false));
+        sub_back = nh.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, false));
     }
 
 
@@ -798,7 +798,7 @@ void Planner::integrateLaserScan(const sensor_msgs::LaserScan &scan)
     double angle = scan.angle_min;
     for(std::size_t i = 0, total = scan.ranges.size(); i < total; ++i) {
         const float& range = scan.ranges[i];
-        if(range > scan.range_min && range < (scan.range_max - 1.0)) {
+        if(range > scan.range_min && range < (scan.range_max - 1.0) && range == range) {
 
             tf::Vector3 pt_laser(std::cos(angle) * range, std::sin(angle) * range, 0);
             tf::Vector3 pt_map = trafo * pt_laser;

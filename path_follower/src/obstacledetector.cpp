@@ -11,9 +11,13 @@ void ObstacleDetector::setMap(const nav_msgs::OccupancyGridConstPtr &map)
     map_ = map;
 }
 
-void ObstacleDetector::setScan(const sensor_msgs::LaserScanConstPtr &scan)
+void ObstacleDetector::setScan(const sensor_msgs::LaserScanConstPtr &scan, bool isBack)
 {
-    scan_ = scan;
+    if (isBack) {
+        scan_back_ = scan;
+    } else {
+        scan_ = scan;
+    }
 }
 
 void ObstacleDetector::setUseMap(bool use)
@@ -34,16 +38,21 @@ bool ObstacleDetector::isObstacleAhead(float width, float length, float course_a
     if (use_map_) {
         if (!map_) {
             ROS_ERROR_THROTTLE(1, "ObstacleDetector: No map received.");
+        } else {
+            obstacle |= checkOnMap(width, length, course_angle, curve_enlarge_factor);
         }
-        obstacle |= checkOnMap(width, length, course_angle, curve_enlarge_factor);
     }
 
     if (use_scan_) {
-        if (!scan_) {
+        if (!scan_ && !scan_back_) {
             ROS_ERROR_THROTTLE(1, "ObstacleDetector: No scan received.");
-            return true;
         }
-        obstacle |= checkOnScan(width, length, course_angle, curve_enlarge_factor);
+        if (scan_) {
+            obstacle |= checkOnScan(scan_, width, length, course_angle, curve_enlarge_factor);
+        }
+        if (scan_back_) {
+            obstacle |= checkOnScan(scan_back_, width, length, course_angle, curve_enlarge_factor);
+        }
     }
 
     return obstacle;

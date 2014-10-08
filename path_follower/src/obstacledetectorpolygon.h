@@ -32,7 +32,7 @@ protected:
      */
     virtual bool checkOnMap(float width, float length, float course_angle, float curve_enlarge_factor);
 
-    virtual bool checkOnScan(float width, float length, float course_angle, float curve_enlarge_factor);
+    virtual bool checkOnScan(const sensor_msgs::LaserScanConstPtr &scan, float width, float length, float course_angle, float curve_enlarge_factor);
 
     /**
      * @brief Get the polygon which is checked for obstacles.
