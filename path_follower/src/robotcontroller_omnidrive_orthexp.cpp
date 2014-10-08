@@ -433,9 +433,11 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
             || ((std::abs(theta_p + M_PI/2) < epsilon) && (p[ind] > x_meas))
             || ((std::abs(theta_p - M_PI/2) < epsilon) && (p[ind] < x_meas)) ){
 
-        orth_proj *= -1;
+        orth_proj = -fabs(orth_proj);
 
-    }
+    }else{
+	orth_proj = fabs(orth_proj);
+	 }
 
     //ROS_DEBUG("Orthogonal distance: %f, theta_p: %f, theta_des: %f", orth_proj, theta_p*180.0/M_PI, theta_des*180.0/M_PI);
 
