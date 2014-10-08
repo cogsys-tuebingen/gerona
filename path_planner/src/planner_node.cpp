@@ -408,7 +408,7 @@ void Planner::preprocess(const geometry_msgs::PoseStamped &start, const geometry
     map.copyTo(working);
 
     int erosion_size = 4;
-    int iterations = 2;
+    int iterations = 3;
     cv::Mat element = cv::getStructuringElement( cv::MORPH_ELLIPSE,
                                                  cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
                                                  cv::Point( erosion_size, erosion_size ) );
@@ -798,7 +798,7 @@ void Planner::integrateLaserScan(const sensor_msgs::LaserScan &scan)
     double angle = scan.angle_min;
     for(std::size_t i = 0, total = scan.ranges.size(); i < total; ++i) {
         const float& range = scan.ranges[i];
-        if(range > scan.range_min && range < (scan.range_max - 1.0) && range == rangeex) {
+        if(range > scan.range_min && range < (scan.range_max - 1.0) && range == range) {
 
             tf::Vector3 pt_laser(std::cos(angle) * range, std::sin(angle) * range, 0);
             tf::Vector3 pt_map = trafo * pt_laser;
