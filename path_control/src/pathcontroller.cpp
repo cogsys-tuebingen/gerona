@@ -147,7 +147,9 @@ bool PathController::processGoal()
                                  boost::bind(&PathController::followPathActiveCB, this),
                                  boost::bind(&PathController::followPathFeedbackCB, this, _1));
 
+    ros::Rate rate(60);
     while ( ! follow_path_client_.getState().isDone() ) {
+        rate.sleep();
         ros::spinOnce();
         if (navigate_to_goal_server_.isPreemptRequested()) {
             ROS_INFO("Preempt goal.\n---------------------");

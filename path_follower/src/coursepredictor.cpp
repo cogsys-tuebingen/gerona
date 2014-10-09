@@ -28,6 +28,7 @@ void CoursePredictor::update()
 
 void CoursePredictor::reset()
 {
+    frozen_ = false;
     last_update_time_   = ros::Time(0);
     last_positions_.clear();
 }
