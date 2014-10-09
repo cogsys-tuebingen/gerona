@@ -25,7 +25,6 @@ void ScanConverter::scanCallback_front(const sensor_msgs::LaserScan::ConstPtr& s
                     ros::Duration(0.0))){
             return;
         }
-        sensor_msgs::PointCloud2 cloud;
         projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_front_, tfListener_);
         cbScanfront_ = true;
 
@@ -55,10 +54,10 @@ void ScanConverter::spin()
 {
     int hz = 100;
     ros::Rate loopRate(hz);
+    cbScanfront_ = false;
+    cbScanback_ = false;
     while(ros::ok()){
 
-        cbScanfront_ = false;
-        cbScanback_ = false;
         ros::spinOnce();
         if(cbScanfront_ || cbScanback_){
             this->mergeSensorMsgsPointCloud2();
