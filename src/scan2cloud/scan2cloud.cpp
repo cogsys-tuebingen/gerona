@@ -52,7 +52,7 @@ void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& sc
 
 void ScanConverter::spin()
 {
-    int hz = 100;
+    int hz = 60;
     ros::Rate loopRate(hz);
     cbScanfront_ = false;
     cbScanback_ = false;
