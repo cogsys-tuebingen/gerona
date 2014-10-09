@@ -36,6 +36,7 @@ void ScanConverter::scanCallback_front(const sensor_msgs::LaserScan::ConstPtr& s
 }
 
 void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& scan_in){
+
     try{
         if(!tfListener_.waitForTransform(
                     scan_in->header.frame_id,
@@ -53,13 +54,14 @@ void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& sc
 
 void ScanConverter::spin()
 {
-    int hz = 100;
+    int hz = 50;
     ros::Rate loopRate(hz);
     while(ros::ok()){
 
         cbScanfront_ = false;
         cbScanback_ = false;
-        ros::spinOnce();
+        //ros::spinOnce();
+        ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0));
         if(cbScanfront_ || cbScanback_){
             this->mergeSensorMsgsPointCloud2();
             point_cloud_publisher_.publish(cloud_total_);
