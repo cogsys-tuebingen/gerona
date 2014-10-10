@@ -147,7 +147,9 @@ bool PathController::processGoal()
                                  boost::bind(&PathController::followPathActiveCB, this),
                                  boost::bind(&PathController::followPathFeedbackCB, this, _1));
 
+    ros::Rate rate(60);
     while ( ! follow_path_client_.getState().isDone() ) {
+        rate.sleep();
         ros::spinOnce();
         if (navigate_to_goal_server_.isPreemptRequested()) {
             ROS_INFO("Preempt goal.\n---------------------");
@@ -352,7 +354,7 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
         // pause all activity that can be paused:
         std_msgs::String pause;
         pause.data = "pause";
-        sys_pub_.publish(pause);
+        //sys_pub_.publish(pause);
     }
 
     PlanPathGoal goal_msg;
@@ -401,7 +403,7 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
         // unpause all activity that can be paused:
         std_msgs::String unpause;
         unpause.data = "unpause";
-        sys_pub_.publish(unpause);
+        //sys_pub_.publish(unpause);
     }
 }
 

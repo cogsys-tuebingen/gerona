@@ -61,6 +61,7 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     nh_.param("kd", param_kd, 0.2);
     nh_.param("max_angular_velocity", max_angular_velocity, 2.0);
     
+    nh_.param("look_ahead_dist", look_ahead_dist, look_ahead_dist);
     nh_.param("k_o", param_k_o, 0.3);
     nh_.param("k_g", param_k_g, 0.4);
     nh_.param("k_w", param_k_w, 0.5);
@@ -360,8 +361,11 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE);
 
         stopMotion();
+        path_driver_->getCoursePredictor().freeze();
+
         return;
     }
+    path_driver_->getCoursePredictor().unfreeze();
 
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
     Eigen::Vector3d current_pose = path_driver_->getRobotPose();
@@ -432,9 +436,11 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
             || ((std::abs(theta_p + M_PI/2) < epsilon) && (p[ind] > x_meas))
             || ((std::abs(theta_p - M_PI/2) < epsilon) && (p[ind] < x_meas)) ){
 
-        orth_proj *= -1;
+        orth_proj = -fabs(orth_proj);
 
-    }
+    }else{
+	orth_proj = fabs(orth_proj);
+	 }
 
     //ROS_DEBUG("Orthogonal distance: %f, theta_p: %f, theta_des: %f", orth_proj, theta_p*180.0/M_PI, theta_des*180.0/M_PI);
 

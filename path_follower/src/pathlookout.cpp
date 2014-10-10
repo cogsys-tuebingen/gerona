@@ -259,7 +259,7 @@ vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f
 
 //    centers = centers.rowRange(cv::Range(0,true_number_clusters));
 
-    const float cluster_max_distance = 0.5;
+    const float cluster_max_distance = 1.0f;
 
     vector<vector<cv::Point2f> > result;
 
@@ -296,7 +296,8 @@ vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f
 
 void PathLookout::reset()
 {
-    // important! path mask has to be reseted, otherwise obstacles will be readded immediately.
+    // important! path has to be reseted, otherwise obstacles will be readded immediately.
+    path_.clear();
     path_image_ = cv::Scalar(0);
     tracker_.reset();
 }
@@ -400,13 +401,17 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInScan(const sensor_msgs::Las
     }
 
     std::vector<cv::Point2f> obstacle_points;
+    //! use 'steps' points and approximate them by one path segment
+    int steps = 4;
 
-    Path::const_iterator iter = path_.begin();
+//    Path::const_iterator iter = path_.begin();
     // get first point
-    cv::Point2f a(iter->x, iter->y);
+//    cv::Point2f a(iter->x, iter->y);
+    cv::Point2f a(path_[0].x, path_[0].y);
     // iterate over second to last point
-    for (++iter; iter != path_.end(); ++iter) {
-        cv::Point2f b(iter->x, iter->y);
+//    for (++iter; iter != path_.end(); ++iter) {
+    for (size_t i = steps; i < path_.size(); i+=steps) {
+        cv::Point2f b(path_[i].x, path_[i].y);
 
         // precompute AB and AB^2
         cv::Point2f ab = b - a;
