@@ -54,18 +54,22 @@ void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& sc
 
 void ScanConverter::spin()
 {
-    int hz = 50;
-    ros::Rate loopRate(hz);
+
+    ros::Rate loopRate(50);
     while(ros::ok()){
+
         cbScanfront_ = false;
         cbScanback_ = false;
         //ros::spinOnce();
         ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0));
+
         if(cbScanfront_ || cbScanback_){
             this->mergeSensorMsgsPointCloud2();
             point_cloud_publisher_.publish(cloud_total_);
         }
-        this->updateParameter();
+
+        //this->updateParameter();
+
         loopRate.sleep();
     }
 }
@@ -88,22 +92,11 @@ void ScanConverter::mergeSensorMsgsPointCloud2()
             combined_pcl = output_pcl_back;
         }
     }
-    /*
 
-  this part causes to crash
-  "double free or corruption"
-    pcl::PointCloud<pcl::PointXYZ>::Ptr combined_pcl_filtered (new pcl::PointCloud<pcl::PointXYZ>);
-    if(combined_pcl.size() > 100){
-        ROS_INFO_STREAM("combined_pcl size " << combined_pcl.size());
-        pcl::PointCloud<pcl::PointXYZ>::Ptr combined_pcl_ptr (&combined_pcl);
-
-        this->filter(combined_pcl_ptr,combined_pcl_filtered);
-
-    }
-*/
-    if(cbScanfront_ || cbScanback_)
+    if(cbScanfront_ || cbScanback_){
         pcl::toROSMsg(combined_pcl, cloud_total_);
-    cloud_total_.header.frame_id = baseFrame_;
+        cloud_total_.header.frame_id = baseFrame_;
+    }
 
 }
 
