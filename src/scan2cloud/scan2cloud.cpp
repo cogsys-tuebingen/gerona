@@ -11,9 +11,9 @@ ScanConverter::ScanConverter():node_("~"){
     node_.param<double>("cloudFilterStdD",cloudFilterStdD_,1.0);
 
 
-    scan_sub_front_ = node_.subscribe<sensor_msgs::LaserScan> (scanTopic_front_, 50, &ScanConverter::scanCallback_front, this);
-    scan_sub_back_ = node_.subscribe<sensor_msgs::LaserScan> (scanTopic_back_, 50, &ScanConverter::scanCallback_back, this);
-    point_cloud_publisher_ = node_.advertise<sensor_msgs::PointCloud2> (cloudTopic_, 50, false);
+    scan_sub_front_ = node_.subscribe<sensor_msgs::LaserScan> (scanTopic_front_, 1, boost::bind(&ScanConverter::scanCallback_front, this,_1));
+    scan_sub_back_ = node_.subscribe<sensor_msgs::LaserScan> (scanTopic_back_, 1, boost::bind(&ScanConverter::scanCallback_back, this,_1));
+    point_cloud_publisher_ = node_.advertise<sensor_msgs::PointCloud2> (cloudTopic_, 1, false);
 }
 
 void ScanConverter::scanCallback_front(const sensor_msgs::LaserScan::ConstPtr& scan_in){
@@ -35,6 +35,7 @@ void ScanConverter::scanCallback_front(const sensor_msgs::LaserScan::ConstPtr& s
 }
 
 void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& scan_in){
+
     try{
         if(!tfListener_.waitForTransform(
                     scan_in->header.frame_id,
@@ -52,20 +53,20 @@ void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& sc
 
 void ScanConverter::spin()
 {
-    int hz = 60;
-    ros::Rate loopRate(hz);
-    cbScanfront_ = false;
-    cbScanback_ = false;
+    ros::Rate loopRate(50);
     while(ros::ok()){
 
-        ros::spinOnce();
+        cbScanfront_ = false;
+        cbScanback_ = false;
+        //ros::spinOnce();
+        ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0));
+
         if(cbScanfront_ || cbScanback_){
             this->mergeSensorMsgsPointCloud2();
             point_cloud_publisher_.publish(cloud_total_);
-
         }
 
-        this->updateParameter();
+        //this->updateParameter();
 
         loopRate.sleep();
     }
@@ -89,22 +90,11 @@ void ScanConverter::mergeSensorMsgsPointCloud2()
             combined_pcl = output_pcl_back;
         }
     }
-    /*
 
-  this part causes to crash
-  "double free or corruption"
-    pcl::PointCloud<pcl::PointXYZ>::Ptr combined_pcl_filtered (new pcl::PointCloud<pcl::PointXYZ>);
-    if(combined_pcl.size() > 100){
-        ROS_INFO_STREAM("combined_pcl size " << combined_pcl.size());
-        pcl::PointCloud<pcl::PointXYZ>::Ptr combined_pcl_ptr (&combined_pcl);
-
-        this->filter(combined_pcl_ptr,combined_pcl_filtered);
-
-    }
-*/
-    if(cbScanfront_ || cbScanback_)
+    if(cbScanfront_ || cbScanback_){
         pcl::toROSMsg(combined_pcl, cloud_total_);
-    cloud_total_.header.frame_id = baseFrame_;
+        cloud_total_.header.frame_id = baseFrame_;
+    }
 
 }
 
