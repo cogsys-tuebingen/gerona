@@ -1,5 +1,5 @@
 <launch>
-    <include file="$(find path_follower)/launch/filter.launch" />
+    <include file="$(find path_follower)/launch/filter_ramaxx.launch" />
 
     <node name="costmap" type="costmap_gradient_node" pkg="costmap" output="log" respawn="true">
     </node>
