@@ -465,6 +465,8 @@ nav_msgs::Path Planner::postprocess(const nav_msgs::Path& path)
 {
     Stopwatch sw;
 
+    ROS_INFO("postprocessing");
+
     sw.restart();
     nav_msgs::Path simplified_path = simplifyPath(path);
     ROS_INFO_STREAM("simplifying took " << sw.msElapsed() << "ms");
@@ -672,6 +674,9 @@ bool isFree(SimpleGridMap2d* map_ptr, const nav_msgs::OccupancyGrid& costmap,
 
 nav_msgs::Path Planner::simplifyPath(const nav_msgs::Path &path)
 {
+    if(path.poses.size() <= 2) {
+        return path;
+    }
     nav_msgs::Path result = path;
 
     for(std::size_t i = 1; i < result.poses.size() - 1;) {
