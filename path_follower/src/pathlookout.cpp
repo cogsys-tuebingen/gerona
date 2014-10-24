@@ -142,17 +142,18 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
     if (visualizer_->hasSubscriber()) {
         for(size_t i = 0; i < tracked_obs.size(); ++i) {
             // this should be a unique identifier for a tracked obstacle
-            int id = tracked_obs[i].time_of_first_sight().toNSec();
+            //FIXME: scheinbar nicht unique genug...
+            //int id = tracked_obs[i].time_of_first_sight().toNSec();
 
             geometry_msgs::Point gp = obstacle_msgs[i].position;
             //visualizer_->drawMark(id, gp, "obstacleonpath", 1,0,0, obstacle_frame_);
-            visualizer_->drawCircle(id, gp, tracked_obs[i].obstacle().radius, obstacle_frame_, "obstacleonpath", 1,0,0,0.5, 0.1);
+            visualizer_->drawCircle(i, gp, tracked_obs[i].obstacle().radius, obstacle_frame_, "obstacleonpath", 1,0,0,0.5, 0.1);
 
             // show the weight.
             stringstream s;
             s << obstacle_msgs[i].weight;
             gp.z = 0.5;
-            visualizer_->drawText(id, gp, s.str(), "obstacleonpath_weight", 1,0,0, obstacle_frame_, 0.1);
+            visualizer_->drawText(i, gp, s.str(), "obstacleonpath_weight", 1,0,0, obstacle_frame_, 0.1);
         }
     }
 
@@ -227,6 +228,11 @@ vector<Obstacle> PathLookout::lookForObstaclesInScans()
     vector<Obstacle> observed_obstacles;
     observed_obstacles.reserve(obstacle_points.size());
     for (vector<vector<cv::Point2f> >::const_iterator it = obstacle_points.begin(); it != obstacle_points.end(); ++it) {
+        // ignore clusters, that are too small
+        if (it->size() < opt_.min_number_of_points_) {
+            continue;
+        }
+
         try {
             // get obstacle position and size from enclosing circle
             Obstacle obstacle;
@@ -259,7 +265,14 @@ vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f
 
 //    centers = centers.rowRange(cv::Range(0,true_number_clusters));
 
-    const float cluster_max_distance = 1.0f;
+
+    /* The clustering here is very simple and exploits the fact, that the points of the laser scan are already
+     * ordered by their scan angle.
+     * Consecutive points are put to the same cluster, until the distance between two neighbouring points exceeds
+     * the threshold defined by opt_.scan_cluster_max_distance_. In this case, the current cluster is closed and a
+     * new cluster is started.
+     *  --> clusters are in fact segments of the scan.
+     */
 
     vector<vector<cv::Point2f> > result;
 
@@ -272,14 +285,14 @@ vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f
     for (size_t i = 1; i < points.size(); ++i) {
         float d = cv::norm(points[i-1] - points[i]);
 
+//        // Debug - show point index in rviz
 //        geometry_msgs::Point gp;
 //        gp.x = points[i].x;
 //        gp.y = points[i].y;
 //        gp.z = i*0.1;
-//        visualizer_->drawText(i, gp, boost::lexical_cast<std::string>(i), "fooooo", 0,1,0);
+//        visualizer_->drawText(i, gp, boost::lexical_cast<std::string>(i), "obs_scan_index", 0,1,0);
 
-        if (d > cluster_max_distance) {
-            ROS_DEBUG("[PathLookout] End cluster. d = %g", d);
+        if (d > opt_.scan_cluster_max_distance_) {
             // end cluster
             result.push_back(cluster);
             cluster.clear();
@@ -307,6 +320,9 @@ void PathLookout::configure()
     ros::param::param<float>("~obstacle_scale_distance", opt_.scale_obstacle_distance_, 1.0f);
     ros::param::param<float>("~obstacle_scale_lifetime", opt_.scale_obstacle_lifetime_, 10.0f);
     ros::param::param<float>("~path_width", opt_.path_width_, 0.5f);
+    ros::param::param<int>("~segment_step_size", opt_.segment_step_size_, 5);
+    ros::param::param<float>("~scan_cluster_max_distance", opt_.scan_cluster_max_distance_, 0.5f);
+    ros::param::param<int>("~min_number_of_points", opt_.min_number_of_points_, 3);
 
     // there should be no need to make max. weight configurable, as it can be scaled using the parameters above.
     opt_.obstacle_weight_limit_ = 1.0f;
@@ -394,33 +410,48 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInScan(const sensor_msgs::Las
             return std::vector<cv::Point2f>(); // return empty cloud
         }
 
-        proj.transformLaserScanToPointCloud("/map", *scan, cloud, tf_listener_, scan->range_max-0.5);
+        proj.transformLaserScanToPointCloud("/map", *scan, cloud, tf_listener_, scan->range_max-0.5, laser_geometry::channel_option::Index);
     } catch (const tf::TransformException& ex) {
         ROS_ERROR("[PathLookout] Failed to transform scan. TF-Exception: %s\n PathLookout will not be able to check for obstacles on the path!", ex.what());
         return std::vector<cv::Point2f>(); // return empty cloud
     }
 
-    std::vector<cv::Point2f> obstacle_points;
-    //! use 'steps' points and approximate them by one path segment
-    int steps = 4;
 
-//    Path::const_iterator iter = path_.begin();
-    // get first point
-//    cv::Point2f a(iter->x, iter->y);
+    //! Contains an 'is obstacle' flag for each point in the cloud
+    vector<bool> is_point_obs(cloud.points.size(), false);
+
     cv::Point2f a(path_[0].x, path_[0].y);
-    // iterate over second to last point
-//    for (++iter; iter != path_.end(); ++iter) {
-    for (size_t i = steps; i < path_.size(); i+=steps) {
+
+    // iterate over second to last point, making steps of size opt_.segment_step_size_ (i.e. 'step_size' many segments
+    // are approximated by one bigger segment).
+    //FIXME: the last waypoints are ignored, if step size does not fit.
+    for (size_t i = opt_.segment_step_size_; i < path_.size(); i += opt_.segment_step_size_) {
         cv::Point2f b(path_[i].x, path_[i].y);
 
-        // precompute AB and AB^2
-        cv::Point2f ab = b - a;
-        float ab2 = ab.dot(ab);
+        /**
+         * For each point, compute the distance of this point to the current path segment. If the distance is too small,
+         * the corresponding field in is_point_obs is set to true (= this point is assumed to be an obstacle).
+         *
+         * Formulas taken from http://www.f09.fh-koeln.de/imperia/md/content/personen/schuh_werner/lehrveranstaltung/abstand
+         * Section 3 "Abstand zwischen einem Punkt und einer Strecke":
+         *
+         * Let A, B be the start and end point of the path segment. To get the distance of a point P to this segment
+         * first compute
+         *      $ \lambda = \frac{\overrightarrow{AP} \cdot \overrightarrow{AB}}{\overrightarrow{AB}^2} $
+         * If \lambda < 0:          dist = |\overrightarrow{AP}|
+         * If \lambda > 0:          dist = |\overrightarrow{BP}|
+         * If \lambda \in [0,1]:    dist = |\overrightarrow{FP}|,  where F = A + \lambda \cdot \overrightarrow{AB}
+         */
 
-        for (vector<geometry_msgs::Point32>::iterator sp = cloud.points.begin(); sp != cloud.points.end(); /* no ++ here, due to erase*/) {
-            cv::Point2f p(sp->x, sp->y);
-            cv::Point2f ap = p - a;
-            float lambda = ap.dot(ab) / ab2;
+        // precompute AB and AB^2
+        const cv::Point2f ab = b - a;
+        const float ab2 = ab.dot(ab);
+
+        // check distance of each point
+        for (size_t i = 0; i < cloud.points.size(); ++i) {
+            const cv::Point2f p(cloud.points[i].x, cloud.points[i].y);
+            const cv::Point2f ap = p - a;
+            const float lambda = ap.dot(ab) / ab2;
 
             float dist;
             if (lambda < 0) {
@@ -435,18 +466,20 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInScan(const sensor_msgs::Las
                 dist = cv::norm(p - f);
             }
 
-            //ROS_DEBUG("dist = %g", dist);
-
-            if (dist < opt_.path_width_) {
-                obstacle_points.push_back(p);
-                // points that are recognized as obstacle, do not have to be checked again
-                sp = cloud.points.erase(sp);
-            } else {
-                ++sp;
+            if (dist < opt_.path_width_/2.0) {
+                is_point_obs[i] = true;
             }
         }
 
         a = b;
+    }
+
+    vector<cv::Point2f> obstacle_points;
+    for (size_t i = 0; i < cloud.points.size(); ++i) {
+        if (is_point_obs[i]) {
+            cv::Point2f p(cloud.points[i].x, cloud.points[i].y);
+            obstacle_points.push_back(p);
+        }
     }
 
     return obstacle_points;

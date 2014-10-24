@@ -65,8 +65,17 @@ private:
         //! Stop robot, if the weight of an obstacle becomes higher than this value.
         float obstacle_weight_limit_;
 
-        //! Width of the path in meters.
+        //! Width of the path in meters (should be at least the width of the robot).
         float path_width_;
+
+        //! Number of segments that are merged together for speed up.
+        int segment_step_size_;
+
+        //! Maximum distance of a scan point to it's neighbour (in terms of scan angle), to combine them to the same cluster
+        float scan_cluster_max_distance_;
+
+        //! Minimum number of points on one obstacle (smaller clusters are ignored).
+        int min_number_of_points_;
     } opt_;
 
     //! TF-Frame in which the obstacles are tracked (should be independent of the robots movement, thus /map is a good choise).
