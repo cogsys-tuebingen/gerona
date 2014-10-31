@@ -26,7 +26,6 @@ PathLookout::PathLookout(PathFollower *node):
     #endif
 
     visualizer_ = Visualizer::getInstance();
-    configure();
 }
 
 void PathLookout::setScan(const sensor_msgs::LaserScanConstPtr &msg, bool isBack)
@@ -158,8 +157,9 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
     }
 
     // report obstacle, if the highest weight is higher than the defined limit.
-    ROS_DEBUG("Max Obstacle Weight: %g, limit: %g", max_weight, opt_.obstacle_weight_limit_);
-    return max_weight > opt_.obstacle_weight_limit_;
+    const float limit = 1.0f;
+    ROS_DEBUG("Max Obstacle Weight: %g, limit: %g", max_weight, limit);
+    return max_weight > limit;
 }
 
 vector<Obstacle> PathLookout::lookForObstaclesInMap()
@@ -229,7 +229,7 @@ vector<Obstacle> PathLookout::lookForObstaclesInScans()
     observed_obstacles.reserve(obstacle_points.size());
     for (vector<vector<cv::Point2f> >::const_iterator it = obstacle_points.begin(); it != obstacle_points.end(); ++it) {
         // ignore clusters, that are too small
-        if (it->size() < opt_.min_number_of_points_) {
+        if (it->size() < opt_.min_number_of_points()) {
             continue;
         }
 
@@ -269,7 +269,7 @@ vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f
     /* The clustering here is very simple and exploits the fact, that the points of the laser scan are already
      * ordered by their scan angle.
      * Consecutive points are put to the same cluster, until the distance between two neighbouring points exceeds
-     * the threshold defined by opt_.scan_cluster_max_distance_. In this case, the current cluster is closed and a
+     * the threshold defined by opt_.scan_cluster_max_distance(). In this case, the current cluster is closed and a
      * new cluster is started.
      *  --> clusters are in fact segments of the scan.
      */
@@ -292,7 +292,7 @@ vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f
 //        gp.z = i*0.1;
 //        visualizer_->drawText(i, gp, boost::lexical_cast<std::string>(i), "obs_scan_index", 0,1,0);
 
-        if (d > opt_.scan_cluster_max_distance_) {
+        if (d > opt_.scan_cluster_max_distance()) {
             // end cluster
             result.push_back(cluster);
             cluster.clear();
@@ -315,20 +315,6 @@ void PathLookout::reset()
     tracker_.reset();
 }
 
-void PathLookout::configure()
-{
-    ros::param::param<float>("~obstacle_scale_distance", opt_.scale_obstacle_distance_, 1.0f);
-    ros::param::param<float>("~obstacle_scale_lifetime", opt_.scale_obstacle_lifetime_, 10.0f);
-    ros::param::param<float>("~path_width", opt_.path_width_, 0.5f);
-    ros::param::param<int>("~segment_step_size", opt_.segment_step_size_, 5);
-    ros::param::param<float>("~scan_cluster_max_distance", opt_.scan_cluster_max_distance_, 0.5f);
-    ros::param::param<int>("~min_number_of_points", opt_.min_number_of_points_, 3);
-
-    // there should be no need to make max. weight configurable, as it can be scaled using the parameters above.
-    opt_.obstacle_weight_limit_ = 1.0f;
-}
-
-
 void PathLookout::drawPathToImage(const Path &path)
 {
     /// This method assumes, that the map is already set!
@@ -346,7 +332,7 @@ void PathLookout::drawPathToImage(const Path &path)
         return;
     }
 
-    int path_width_pixel = (int) ceil(opt_.path_width_ / map_->info.resolution);
+    int path_width_pixel = (int) ceil(opt_.path_width() / map_->info.resolution);
 
     Path::const_iterator iter = path.begin();
     try {
@@ -378,11 +364,11 @@ float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::Tracke
     ros::Duration lifetime = ros::Time::now() - o.time_of_first_sight();
 
     // w_time is increasing quadratically with the time. t = scale => w_t = 1
-    float w_time = pow(lifetime.toSec()/opt_.scale_obstacle_lifetime_, 2);
+    float w_time = pow(lifetime.toSec()/opt_.scale_obstacle_lifetime(), 2);
     // w_dist is increasing quadratically with decreasing distance. d = scale => w_d = 1.
     // For d > 2*scale, w_d is zero (-> cuts off the other half of the parable).
-    float w_dist = dist_to_robot < 2*opt_.scale_obstacle_distance_
-                   ? pow((dist_to_robot - 2*opt_.scale_obstacle_distance_ )/opt_.scale_obstacle_distance_, 2)
+    float w_dist = dist_to_robot < 2*opt_.scale_obstacle_distance()
+                   ? pow((dist_to_robot - 2*opt_.scale_obstacle_distance() )/opt_.scale_obstacle_distance(), 2)
                    : 0;
 
     //ROS_DEBUG("WEIGHT: d = %g, t = %g, wd = %g, wt = %g", dist_to_robot, lifetime.toSec(), w_dist, w_time);
@@ -422,10 +408,10 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInScan(const sensor_msgs::Las
 
     cv::Point2f a(path_[0].x, path_[0].y);
 
-    // iterate over second to last point, making steps of size opt_.segment_step_size_ (i.e. 'step_size' many segments
+    // iterate over second to last point, making steps of size opt_.segment_step_size() (i.e. 'step_size' many segments
     // are approximated by one bigger segment).
     //FIXME: the last waypoints are ignored, if step size does not fit.
-    for (size_t i = opt_.segment_step_size_; i < path_.size(); i += opt_.segment_step_size_) {
+    for (size_t i = opt_.segment_step_size(); i < path_.size(); i += opt_.segment_step_size()) {
         cv::Point2f b(path_[i].x, path_[i].y);
 
         /**
@@ -466,7 +452,7 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInScan(const sensor_msgs::Las
                 dist = cv::norm(p - f);
             }
 
-            if (dist < opt_.path_width_/2.0) {
+            if (dist < opt_.path_width()/2.0) {
                 is_point_obs[i] = true;
             }
         }

@@ -74,7 +74,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 
     double distance_to_goal = path_.current_path->back().distanceTo(path_.nextWaypoint());
     double threshold_distance = std::min(threshold_max_distance,
-                                         std::max((double) path_driver_opt.collision_box_min_length_, distance_to_goal));
+                                         std::max((double) path_driver_opt.collision_box_min_length(), distance_to_goal));
 
     double delta_f = delta_f_raw;
     bool collision = false;
@@ -95,17 +95,17 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 
     double steer = std::abs(delta_f);
     ROS_DEBUG_STREAM("dir=" << dir_sign_ << ", steer=" << steer);
-    if(steer > path_driver_opt.steer_slow_threshold_) {
+    if(steer > path_driver_opt.steer_slow_threshold()) {
         ROS_WARN_STREAM_THROTTLE(2, "slowing down");
         speed *= 0.5;
     }
 
     // make sure, the speed is in the allowed range
-    if (speed < path_driver_opt.min_velocity_) {
-        speed = path_driver_opt.min_velocity_;
+    if (speed < path_driver_opt.min_velocity()) {
+        speed = path_driver_opt.min_velocity();
         ROS_WARN_THROTTLE(5, "Velocity is below minimum. It is set to minimum velocity.");
-    } else if (speed > path_driver_opt.max_velocity_) {
-        speed = path_driver_opt.max_velocity_;
+    } else if (speed > path_driver_opt.max_velocity()) {
+        speed = path_driver_opt.max_velocity();
         ROS_WARN_THROTTLE(5, "Velocity is above maximum. Reduce to maximum velocity.");
     }
 
@@ -252,7 +252,7 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
     }
 
     float distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
-    float velocity = std::max(0.1f + distance / 2.0f, path_driver_->getOptions().min_velocity_);
+    float velocity = std::max(0.1f + distance / 2.0f, path_driver_->getOptions().min_velocity());
 
     setCommand(e_combined, velocity);
 

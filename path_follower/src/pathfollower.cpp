@@ -10,10 +10,10 @@
 
 /// ROS
 #include <geometry_msgs/Twist.h>
+#include <std_msgs/Int32MultiArray.h>
 
 /// PROJECT
 #include <path_follower/legacy/behaviours.h>
-#include <std_msgs/Int32MultiArray.h>
 // Controller/Models
 #include <path_follower/legacy/robotcontroller_ackermann_pid.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_pid.h>
@@ -47,8 +47,6 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     last_beep_(ros::Time::now()),
     beep_pause_(2.0)
 {
-    configure();
-
     // Init. action server
     follow_path_server_.registerGoalCallback(boost::bind(&PathFollower::followPathGoalCB, this));
     follow_path_server_.registerPreemptCallback(boost::bind(&PathFollower::followPathPreemptCB,this));
@@ -59,19 +57,17 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
     odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
-    VectorFieldHistogram* vfh_ptr = opt_.use_vfh_ ? &vfh_ : 0;
+    VectorFieldHistogram* vfh_ptr = opt_.use_vfh() ? &vfh_ : 0;
 
     // Choose robot controller
-    string param_controller;
-    ros::param::param<string>("~controller", param_controller, "ackermann_pid");
-    ROS_INFO("Use robot controller '%s'", param_controller.c_str());
-    if (param_controller == "ackermann_pid") {
+    ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
+    if (opt_.controller() == "ackermann_pid") {
         controller_ = new RobotController_Ackermann_Pid(cmd_pub_, this, vfh_ptr);
-    } else if (param_controller == "omnidrive_pid") {
+    } else if (opt_.controller() == "omnidrive_pid") {
         controller_ = new RobotController_Omnidrive_Pid(cmd_pub_, this);
-    } else if (param_controller == "omnidrive_vv") {
+    } else if (opt_.controller() == "omnidrive_vv") {
         controller_ = new RobotController_Omnidrive_VirtualVehicle(cmd_pub_, this);
-    } else if (param_controller == "omnidrive_orthexp") {
+    } else if (opt_.controller() == "omnidrive_orthexp") {
         controller_ = new RobotController_Omnidrive_OrthogonalExponential(cmd_pub_, this);
     } else {
         ROS_FATAL("Unknown robot controller. Shutdown.");
@@ -79,14 +75,14 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     }
 
 
-    if(opt_.use_obstacle_map_) {
+    if(opt_.use_obstacle_map()) {
         obstacle_map_sub_ = node_handle_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&PathFollower::obstacleMapCB, this, _1));
     } else {
         laser_front_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10, boost::bind(&PathFollower::laserCB, this, _1, false));
         laser_back_sub_  = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10, boost::bind(&PathFollower::laserCB, this, _1, true));
     }
-    controller_->getObstacleDetector()->setUseMap(opt_.use_obstacle_map_);
-    controller_->getObstacleDetector()->setUseScan(!opt_.use_obstacle_map_);
+    controller_->getObstacleDetector()->setUseMap(opt_.use_obstacle_map());
+    controller_->getObstacleDetector()->setUseScan(!opt_.use_obstacle_map());
 
     visualizer_ = Visualizer::getInstance();
 
@@ -115,7 +111,7 @@ void PathFollower::followPathGoalCB()
     setGoal(*goalptr);
 
     // don't track obstacles of former paths.
-    if (opt_.use_path_lookout_) {
+    if (opt_.use_path_lookout()) {
         path_lookout_.reset();
     }
 }
@@ -134,7 +130,7 @@ void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
 void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan, bool isBack)
 {
     controller_->getObstacleDetector()->setScan(scan, isBack);
-    if (opt_.use_path_lookout_)
+    if (opt_.use_path_lookout())
         path_lookout_.setScan(scan, isBack);
 }
 
@@ -142,10 +138,10 @@ void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
 {
     controller_->getObstacleDetector()->setMap(map);
 
-    if (opt_.use_path_lookout_)
+    if (opt_.use_path_lookout())
         path_lookout_.setMap(map);
 
-    if(opt_.use_vfh_) {
+    if(opt_.use_vfh()) {
         vfh_.setMap(*map);
     }
 }
@@ -166,7 +162,7 @@ bool PathFollower::getWorldPose(Vector3d *pose_vec , geometry_msgs::Pose *pose_m
     geometry_msgs::TransformStamped msg;
 
     try {
-        pose_listener_.lookupTransform(opt_.world_frame_, opt_.robot_frame_, ros::Time(0), transform);
+        pose_listener_.lookupTransform(opt_.world_frame(), opt_.robot_frame(), ros::Time(0), transform);
 
     } catch (tf::TransformException& ex) {
         ROS_ERROR("error with transform robot pose: %s", ex.what());
@@ -220,8 +216,8 @@ bool PathFollower::transformToLocal(const geometry_msgs::PoseStamped &global_org
 {
     geometry_msgs::PoseStamped global(global_org);
     try {
-        global.header.frame_id=opt_.world_frame_;
-        pose_listener_.transformPose(opt_.robot_frame_,ros::Time(0),global,opt_.world_frame_,local);
+        global.header.frame_id=opt_.world_frame();
+        pose_listener_.transformPose(opt_.robot_frame(),ros::Time(0),global,opt_.world_frame(),local);
         return true;
 
     } catch (tf::TransformException& ex) {
@@ -234,8 +230,8 @@ bool PathFollower::transformToGlobal(const geometry_msgs::PoseStamped &local_org
 {
     geometry_msgs::PoseStamped local(local_org);
     try {
-        local.header.frame_id=opt_.robot_frame_;
-        pose_listener_.transformPose(opt_.world_frame_,ros::Time(0),local,opt_.robot_frame_,global);
+        local.header.frame_id=opt_.robot_frame();
+        pose_listener_.transformPose(opt_.world_frame(),ros::Time(0),local,opt_.robot_frame(),global);
         return true;
 
     } catch (tf::TransformException& ex) {
@@ -266,7 +262,7 @@ void PathFollower::update()
         if (!updateRobotPose()) {
             result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         }
-        else if (opt_.use_path_lookout_ && path_lookout_.lookForObstacles(&feedback)) {
+        else if (opt_.use_path_lookout() && path_lookout_.lookForObstacles(&feedback)) {
             result.status = FollowPathResult::MOTION_STATUS_OBSTACLE;
             // there's an obstacle ahead, pull the emergency break!
             controller_->stopMotion();
@@ -304,32 +300,32 @@ bool PathFollower::isObstacleAhead(double course)
      */
     float v = getVelocity().linear.x;//current_command_.velocity;
 
-    const float diff_to_min_velocity = v - opt_.min_velocity_;
+    const float diff_to_min_velocity = v - opt_.min_velocity();
 
-    const float norm = opt_.collision_box_velocity_saturation_ - opt_.min_velocity_;
-    const float span = opt_.collision_box_max_length_ - opt_.collision_box_min_length_;
+    const float norm = opt_.collision_box_velocity_saturation() - opt_.min_velocity();
+    const float span = opt_.collision_box_max_length() - opt_.collision_box_min_length();
     const float interp = std::max(0.0f, diff_to_min_velocity) / std::max(norm, 0.001f);
-    const float f = std::min(1.0f, opt_.collision_box_velocity_factor_ * interp);
+    const float f = std::min(1.0f, opt_.collision_box_velocity_factor() * interp);
 
-    float box_length = opt_.collision_box_min_length_ + span * f;
+    float box_length = opt_.collision_box_min_length() + span * f;
 
     //ROS_DEBUG("Collision Box: v = %g -> len = %g", v, box_length);
 
-    Path& current_path = paths_[opt_.path_idx];
-    double distance_to_goal = current_path.back().distanceTo(current_path[opt_.wp_idx]);
+    Path& current_path = paths_[path_idx_.path_idx];
+    double distance_to_goal = current_path.back().distanceTo(current_path[path_idx_.wp_idx]);
 
     if(box_length > distance_to_goal) {
         box_length = distance_to_goal + 0.2;
     }
 
-    if(box_length < opt_.collision_box_crit_length_) {
-        box_length = opt_.collision_box_crit_length_;
+    if(box_length < opt_.collision_box_crit_length()) {
+        box_length = opt_.collision_box_crit_length();
     }
 
 
     // call the obstacle detector. it is dependent of the controller als different driving models may require different
     // handling
-    bool collision = controller_->getObstacleDetector()->isObstacleAhead(opt_.collision_box_width_, box_length, course,
+    bool collision = controller_->getObstacleDetector()->isObstacleAhead(opt_.collision_box_width(), box_length, course,
                                                                          enlarge_factor);
 
     if(collision) {
@@ -378,7 +374,7 @@ const geometry_msgs::Pose &PathFollower::getRobotPoseMsg() const
 
 void PathFollower::start()
 {
-    opt_.reset();
+    path_idx_.reset();
 
     clearActive();
 
@@ -455,7 +451,7 @@ bool PathFollower::executeBehaviour(FollowPathFeedback& feedback, FollowPathResu
     getController()->publishCommand();
 
     if(status == FollowPathResult::MOTION_STATUS_OBSTACLE) {
-        if (opt_.abort_if_obstacle_ahead_) {
+        if (opt_.abort_if_obstacle_ahead()) {
             result.status = FollowPathResult::MOTION_STATUS_OBSTACLE;
             return DONE;
         } else {
@@ -478,44 +474,6 @@ bool PathFollower::executeBehaviour(FollowPathFeedback& feedback, FollowPathResu
 
     result.status = status;
     return DONE;
-}
-
-void PathFollower::configure()
-{
-    ros::NodeHandle nh("~");
-    nh.param( "waypoint_tolerance", opt_.wp_tolerance_, 0.20 );
-    nh.param( "goal_tolerance", opt_.goal_tolerance_, 0.15 );
-    nh.param( "steer_slow_threshold", opt_.steer_slow_threshold_, 0.25 );
-    nh.param( "max_distance_to_path", opt_.max_distance_to_path_, 0.3 );
-
-    // use ros::param here, because nh.param can't handle floats...
-    ros::param::param<string>("~world_frame", opt_.world_frame_, "/map");
-    ros::param::param<string>("~robot_frame", opt_.robot_frame_, "/base_link");
-    ros::param::param<bool>("~use_obstacle_map", opt_.use_obstacle_map_, false);
-    ros::param::param<bool>("~use_vfh", opt_.use_vfh_, false);
-    ros::param::param<bool>("~use_path_lookout", opt_.use_path_lookout_, true);
-    ros::param::param<float>( "~min_velocity", opt_.min_velocity_, 0.4 );
-    ros::param::param<float>( "~max_velocity", opt_.max_velocity_, 2.0 );
-    ros::param::param<float>( "~collision_box_width", opt_.collision_box_width_, 0.5);
-    ros::param::param<float>( "~collision_box_min_length", opt_.collision_box_min_length_, 0.5);
-    ros::param::param<float>( "~collision_box_crit_length", opt_.collision_box_crit_length_, 0.3);
-    ros::param::param<float>( "~collision_box_max_length", opt_.collision_box_max_length_, 1.0);
-    ros::param::param<float>( "~collision_box_velocity_factor", opt_.collision_box_velocity_factor_, 1.0);
-    ros::param::param<float>( "~collision_box_velocity_saturation", opt_.collision_box_velocity_saturation_, opt_.max_velocity_);
-    ros::param::param<bool>("~abort_if_obstacle_ahead", opt_.abort_if_obstacle_ahead_, false);
-
-    if(opt_.max_velocity_ < opt_.min_velocity_) {
-        ROS_ERROR("min velocity larger than max velocity!");
-        opt_.max_velocity_ = opt_.min_velocity_;
-    }
-    if(opt_.collision_box_max_length_ < opt_.collision_box_min_length_) {
-        ROS_ERROR("min length larger than max length!");
-        opt_.collision_box_min_length_ = opt_.collision_box_max_length_;
-    }
-    if(opt_.collision_box_min_length_ < opt_.collision_box_crit_length_) {
-        ROS_ERROR("min length smaller than crit length!");
-        opt_.collision_box_crit_length_ = opt_.collision_box_min_length_;
-    }
 }
 
 void PathFollower::setGoal(const FollowPathGoal &goal)

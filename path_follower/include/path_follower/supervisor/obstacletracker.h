@@ -12,6 +12,7 @@
 
 /// PROJECT
 #include <path_follower/utils/maptransformer.h>
+#include <path_follower/utils/parameters.h>
 #include <path_msgs/Obstacle.h>
 
 struct Obstacle
@@ -91,11 +92,10 @@ public:
         ros::Time time_of_last_sight_;
     };
 
-    ObstacleTracker();
 
     void setMaxDist(float md)
     {
-        opt_.max_dist_ = md;
+        opt_.max_dist.set(md);
     }
 
     std::vector<TrackedObstacle> getTrackedObstacles() const
@@ -114,13 +114,15 @@ public:
     void reset();
 
 private:
-    struct Options
+    struct Options: public Parameters
     {
-        //! Only match new observation with tracked obstacle, if the position change is less than this threshold.
-        float max_dist_;
+        P<float> max_dist;
+        P<float> lost_lifetime;
 
-        //! Duration for which a lost obstacle is still tracked at its last known position.
-        ros::Duration lost_lifetime_;
+        Options():
+            max_dist(this, "~obstacle_tracker/max_dist", 0.3f, "Only match new observation with tracked obstacle, if the position change is less than this threshold."),
+            lost_lifetime(this, "~obstacle_tracker/lost_lifetime", 1.0f, "Duration (in seconds) for which a lost obstacle is still tracked at its last known position.")
+        {}
     } opt_;
 
     //! List of tracked obstacles

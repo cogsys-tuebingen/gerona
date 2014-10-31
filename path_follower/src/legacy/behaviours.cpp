@@ -47,27 +47,27 @@ double Behaviour::calculateDistanceToCurrentPathSegment()
      * and calculate the distance of the robot to this line.
      */
 
-    PathFollower::Options& opt = getOptions();
-    Path& current_path = getSubPath(opt.path_idx);
+    PathFollower::PathIndex& pidx = getPathIndex();
+    Path& current_path = getSubPath(pidx.path_idx);
 
-    assert(opt.wp_idx < (int) current_path.size());
+    assert(pidx.wp_idx < (int) current_path.size());
 
     // opt.wp_idx should be the index of the next waypoint. The last waypoint ist then simply wp_idx - 1.
     // Usually wp_idx is greater than zero, so this is possible.
     // There are, however, situations where wp_idx = 0. In this case the segment starting in wp_idx is used rather
     // than the one ending there (I am not absolutly sure if this a good behaviour, so observe this via debug-output).
     int wp1_idx = 0;
-    if (opt.wp_idx > 0) {
-        wp1_idx = opt.wp_idx - 1;
+    if (pidx.wp_idx > 0) {
+        wp1_idx = pidx.wp_idx - 1;
     } else {
         // if wp_idx == 0, use the segment from wp_idx to the following waypoint.
-        wp1_idx = opt.wp_idx + 1;
+        wp1_idx = pidx.wp_idx + 1;
 
         ROS_DEBUG("Toggle waypoints as wp_idx == 0 in calculateDistanceToCurrentPathSegment() (%s, line %d)", __FILE__, __LINE__);
     }
 
     geometry_msgs::Pose wp1 = current_path[wp1_idx];
-    geometry_msgs::Pose wp2 = current_path[opt.wp_idx];
+    geometry_msgs::Pose wp2 = current_path[pidx.wp_idx];
 
     // line from last waypoint to current one.
     Line2d segment_line(Vector2d(wp1.position.x, wp1.position.y), Vector2d(wp2.position.x, wp2.position.y));
@@ -111,12 +111,12 @@ void Behaviour::checkDistanceToPath()
     if (!isLeavingPathAllowed()) {
         double dist = calculateDistanceToCurrentPathSegment();
         //ROS_DEBUG("Distance to current path segment: %g m", dist);
-        if (dist > getOptions().max_distance_to_path_) {
+        if (dist > getOptions().max_distance_to_path()) {
             parent_.say("abort: too far away!");
 
             ROS_WARN("Moved too far away from the path (%g m, limit: %g m). Abort.",
                      calculateDistanceToCurrentPathSegment(),
-                     getOptions().max_distance_to_path_);
+                     getOptions().max_distance_to_path());
 
             setStatus(path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST);
             throw new BehaviourEmergencyBreak(parent_);
@@ -126,7 +126,7 @@ void Behaviour::checkDistanceToPath()
 
 PathWithPosition Behaviour::getPathWithPosition()
 {
-    PathFollower::Options& opt = getOptions();
+    PathFollower::PathIndex& opt = getPathIndex();
     Path& current_path = getSubPath(opt.path_idx);
     return PathWithPosition(&current_path, opt.wp_idx);
 }
@@ -138,6 +138,10 @@ VectorFieldHistogram& Behaviour::getVFH()
 PathFollower::Options& Behaviour::getOptions()
 {
     return parent_.opt_;
+}
+PathFollower::PathIndex& Behaviour::getPathIndex()
+{
+    return parent_.path_idx_;
 }
 //END Behaviour
 
@@ -163,13 +167,14 @@ void BehaviourOnLine::execute(int *status)
 void BehaviourOnLine::getNextWaypoint()
 {
     PathFollower::Options& opt = getOptions();
-    Path& current_path = getSubPath(opt.path_idx);
+    PathFollower::PathIndex& pidx = getPathIndex();
+    Path& current_path = getSubPath(pidx.path_idx);
 
-    assert(opt.wp_idx < (int) current_path.size());
+    assert(pidx.wp_idx < (int) current_path.size());
 
     int last_wp_idx = current_path.size() - 1;
 
-    double tolerance = opt.wp_tolerance_;
+    double tolerance = opt.wp_tolerance();
 
     if(controller_->getDirSign() < 0) {
         tolerance *= 2;
@@ -177,25 +182,25 @@ void BehaviourOnLine::getNextWaypoint()
 
     // if distance to wp < threshold
    // ROS_ERROR_STREAM_THROTTLE(2, "distance to wp: " << distanceTo(current_path[opt.wp_idx]) << " < " << tolerance);
-    while(distanceTo(current_path[opt.wp_idx]) < tolerance) {
+    while(distanceTo(current_path[pidx.wp_idx]) < tolerance) {
        // ROS_ERROR_STREAM("opt.wp_idx: " << opt.wp_idx << ", size: " << last_wp_idx);
-        if(opt.wp_idx >= last_wp_idx) {
+        if(pidx.wp_idx >= last_wp_idx) {
             // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
             throw new BehaviourApproachTurningPoint(parent_);
         }
         else {
             // else choose next wp
-            opt.wp_idx++;
+            pidx.wp_idx++;
 
             waypoint_timeout.reset();
         }
     }
 
-    visualizer_->drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
+    visualizer_->drawArrow(0, current_path[pidx.wp_idx], "current waypoint", 1, 1, 0);
     visualizer_->drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);
 
-    next_wp_map_.pose = current_path[opt.wp_idx];
+    next_wp_map_.pose = current_path[pidx.wp_idx];
     next_wp_map_.header.stamp = ros::Time::now();
 
     if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
@@ -220,37 +225,38 @@ void BehaviourAvoidObstacle::getNextWaypoint()
 {
     // TODO: improve!
     PathFollower::Options& opt = getOptions();
-    Path& current_path = getSubPath(opt.path_idx);
+    PathFollower::PathIndex& pidx = getPathIndex();
+    Path& current_path = getSubPath(pidx.path_idx);
 
-    assert(opt.wp_idx < (int) current_path.size());
+    assert(pidx.wp_idx < (int) current_path.size());
 
     int last_wp_idx = current_path.size() - 1;
 
-    double tolerance = opt.wp_tolerance_;
+    double tolerance = opt.wp_tolerance();
 
     if(controller_->getDirSign() < 0) {
         tolerance *= 2;
     }
 
     // if distance to wp < threshold
-    while(distanceTo(current_path[opt.wp_idx]) < tolerance) {
-        if(opt.wp_idx >= last_wp_idx) {
+    while(distanceTo(current_path[pidx.wp_idx]) < tolerance) {
+        if(pidx.wp_idx >= last_wp_idx) {
             // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
             throw new BehaviourApproachTurningPoint(parent_);
         }
         else {
             // else choose next wp
-            opt.wp_idx++;
+            pidx.wp_idx++;
 
             waypoint_timeout.reset();
         }
     }
 
-    visualizer_->drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
+    visualizer_->drawArrow(0, current_path[pidx.wp_idx], "current waypoint", 1, 1, 0);
     visualizer_->drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);
 
-    next_wp_map_.pose = current_path[opt.wp_idx];
+    next_wp_map_.pose = current_path[pidx.wp_idx];
     next_wp_map_.header.stamp = ros::Time::now();
 
     if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
@@ -293,7 +299,7 @@ void BehaviourApproachTurningPoint::handleDone()
     } else {
         ROS_INFO("Done at waypoint -> reset");
 
-        PathFollower::Options& opt = getOptions();
+        PathFollower::PathIndex& opt = getPathIndex();
 
         opt.path_idx++;
         opt.wp_idx = 0;
@@ -313,7 +319,7 @@ void BehaviourApproachTurningPoint::handleDone()
 
 void BehaviourApproachTurningPoint::getNextWaypoint()
 {
-    PathFollower::Options& opt = getOptions();
+    PathFollower::PathIndex& opt = getPathIndex();
     Path& current_path = getSubPath(opt.path_idx);
 
     assert(opt.wp_idx < (int) current_path.size());
