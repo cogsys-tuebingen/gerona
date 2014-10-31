@@ -1,4 +1,4 @@
-#include "cubic_spline_interpolation.h"
+#include <path_follower/utils/cubic_spline_interpolation.h>
 
 // band_matrix implementation
 // -------------------------

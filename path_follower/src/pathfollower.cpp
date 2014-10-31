@@ -1,4 +1,4 @@
-#include "pathfollower.h"
+#include <path_follower/pathfollower.h>
 
 /// SYSTEM
 #include <boost/foreach.hpp>
@@ -12,13 +12,13 @@
 #include <geometry_msgs/Twist.h>
 
 /// PROJECT
-#include "behaviours.h"
+#include <path_follower/legacy/behaviours.h>
 #include <std_msgs/Int32MultiArray.h>
 // Controller/Models
-#include "robotcontroller_ackermann_pid.h"
-#include "robotcontroller_omnidrive_pid.h"
-#include "robotcontroller_omnidrive_vv.h"
-#include "robotcontroller_omnidrive_orthexp.h"
+#include <path_follower/legacy/robotcontroller_ackermann_pid.h>
+#include <path_follower/legacy/robotcontroller_omnidrive_pid.h>
+#include <path_follower/legacy/robotcontroller_omnidrive_vv.h>
+#include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 
 using namespace path_msgs;
 using namespace std;

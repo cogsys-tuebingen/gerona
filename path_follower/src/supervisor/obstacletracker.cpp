@@ -1,4 +1,4 @@
-#include "obstacletracker.h"
+#include <path_follower/supervisor/obstacletracker.h>
 
 #include <boost/foreach.hpp>
 #include <algorithm>

@@ -19,16 +19,16 @@
 /// PROJECT
 #include <path_msgs/FollowPathAction.h>
 #include <utils_general/Global.h>
-#include "obstacle_avoidance/obstacledetectorackermann.h"
-#include "obstacle_avoidance/obstacledetectoromnidrive.h"
-#include "legacy/vector_field_histogram.h"
-#include "controller/robotcontroller.h"
-#include "supervisor/pathlookout.h"
-#include "utils/PidCtrl.h"
-#include "legacy/vector_field_histogram.h"
-#include "utils/visualizer.h"
-#include "utils/path.h"
-#include "utils/coursepredictor.h"
+#include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
+#include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
+#include <path_follower/legacy/vector_field_histogram.h>
+#include <path_follower/controller/robotcontroller.h>
+#include <path_follower/supervisor/pathlookout.h>
+#include <path_follower/utils/PidCtrl.h>
+#include <path_follower/legacy/vector_field_histogram.h>
+#include <path_follower/utils/visualizer.h>
+#include <path_follower/utils/path.h>
+#include <path_follower/utils/coursepredictor.h>
 
 
 //Forward declaration

@@ -8,11 +8,11 @@
 #include <Eigen/Core>
 
 /// PROJECT
-#include "robotcontroller.h"
-#include "PidCtrl.h"
-#include "vector_field_histogram.h"
-#include "visualizer.h"
-#include "obstacledetectorackermann.h"
+#include <path_follower/controller/robotcontroller.h>
+#include <path_follower/utils/PidCtrl.h>
+#include <path_follower/utils/visualizer.h>
+#include <path_follower/legacy/vector_field_histogram.h>
+#include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
 
 class RobotController_Ackermann_Pid : public RobotController
 {

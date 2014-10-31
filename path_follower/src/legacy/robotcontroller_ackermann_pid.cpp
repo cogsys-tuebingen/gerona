@@ -1,4 +1,4 @@
-#include "robotcontroller_ackermann_pid.h"
+#include <path_follower/legacy/robotcontroller_ackermann_pid.h>
 
 /// STL
 #include <sstream>
@@ -7,8 +7,8 @@
 #include <ros/ros.h>
 
 /// PROJECT
-#include "pathfollower.h"
-#include "behaviours.h"
+#include <path_follower/pathfollower.h>
+#include <path_follower/legacy/behaviours.h>
 #include <utils_general/MathHelper.h>
 
 using namespace Eigen;

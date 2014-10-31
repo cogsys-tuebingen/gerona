@@ -5,8 +5,8 @@
 #include <Eigen/Core>
 
 /// PROJECT
-#include "path.h"
-#include "obstacledetector.h"
+#include <path_follower/utils/path.h>
+#include <path_follower/obstacle_avoidance/obstacledetector.h>
 
 class PathFollower;
 

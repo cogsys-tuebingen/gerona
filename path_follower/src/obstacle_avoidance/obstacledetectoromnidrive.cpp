@@ -1,4 +1,4 @@
-#include "obstacledetectoromnidrive.h"
+#include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
 #include <algorithm>
 
 using namespace std;

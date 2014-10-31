@@ -1,4 +1,4 @@
-#include "obstacledetector.h"
+#include <path_follower/obstacle_avoidance/obstacledetector.h>
 
 ObstacleDetector::ObstacleDetector():
     use_map_(true),

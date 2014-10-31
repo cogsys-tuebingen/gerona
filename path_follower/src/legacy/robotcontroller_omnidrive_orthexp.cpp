@@ -3,11 +3,11 @@
 #include <visualization_msgs/Marker.h>
 
 /// PROJECT
-#include "pathfollower.h"
-#include "behaviours.h"
-#include "robotcontroller_omnidrive_orthexp.h"
-#include "cubic_spline_interpolation.h"
-#include "alglib/interpolation.h"
+#include <path_follower/pathfollower.h>
+#include <path_follower/legacy/behaviours.h>
+#include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
+#include <path_follower/utils/cubic_spline_interpolation.h>
+#include "../alglib/interpolation.h"
 #include <utils_general/MathHelper.h>
 
 /// SYSTEM

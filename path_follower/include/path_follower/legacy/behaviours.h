@@ -3,8 +3,8 @@
 
 #include <ros/ros.h>
 
-#include "pathfollower.h"
-#include "visualizer.h"
+#include <path_follower/pathfollower.h>
+#include <path_follower/utils/visualizer.h>
 #include <utils_general/Line2d.h>
 
 

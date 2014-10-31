@@ -13,10 +13,10 @@
 #include <tf/transform_listener.h>
 
 /// PROJECT
-#include "path.h"
-#include "maptransformer.h"
-#include "visualizer.h"
-#include "obstacletracker.h"
+#include <path_follower/utils/path.h>
+#include <path_follower/utils/maptransformer.h>
+#include <path_follower/utils/visualizer.h>
+#include <path_follower/supervisor/obstacletracker.h>
 #include <path_msgs/FollowPathFeedback.h>
 
 class PathFollower;

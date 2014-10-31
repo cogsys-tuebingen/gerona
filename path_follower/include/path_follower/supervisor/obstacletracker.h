@@ -11,7 +11,7 @@
 #include <ros/ros.h>
 
 /// PROJECT
-#include "maptransformer.h"
+#include <path_follower/utils/maptransformer.h>
 #include <path_msgs/Obstacle.h>
 
 struct Obstacle

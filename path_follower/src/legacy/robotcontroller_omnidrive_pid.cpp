@@ -1,10 +1,10 @@
-#include "robotcontroller_omnidrive_pid.h"
+#include <path_follower/legacy/robotcontroller_omnidrive_pid.h>
 
 /// PROJECT
 #include <utils_general/Line2d.h>
 #include <utils_general/MathHelper.h>
-#include "pathfollower.h"
-#include "behaviours.h"
+#include <path_follower/pathfollower.h>
+#include <path_follower/legacy/behaviours.h>
 
 using namespace Eigen;
 

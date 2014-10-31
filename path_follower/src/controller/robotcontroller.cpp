@@ -1,8 +1,8 @@
-#include "robotcontroller.h"
+#include <path_follower/controller/robotcontroller.h>
 
 /// PROJECT
-#include "pathfollower.h"
-#include "behaviours.h"
+#include <path_follower/pathfollower.h>
+#include <path_follower/legacy/behaviours.h>
 #include <utils_general/MathHelper.h>
 
 

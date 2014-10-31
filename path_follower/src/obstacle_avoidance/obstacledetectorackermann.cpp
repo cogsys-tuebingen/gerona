@@ -1,8 +1,8 @@
-#include "obstacledetectorackermann.h"
+#include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
 
 #include <Eigen/Core>
 //#include <opencv2/opencv.hpp> // only for debugging
-#include "visualizer.h"
+#include <path_follower/utils/visualizer.h>
 
 using namespace Eigen;
 

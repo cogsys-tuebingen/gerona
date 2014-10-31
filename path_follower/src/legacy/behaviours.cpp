@@ -1,5 +1,5 @@
-#include "behaviours.h"
-#include "pathfollower.h"
+#include <path_follower/legacy/behaviours.h>
+#include <path_follower/pathfollower.h>
 #include <utils_general/MathHelper.h>
 
 using namespace Eigen;

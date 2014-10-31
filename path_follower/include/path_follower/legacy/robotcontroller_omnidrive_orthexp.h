@@ -8,11 +8,11 @@
 #include <geometry_msgs/PointStamped.h>
 
 /// PROJECT
-#include "robotcontroller.h"
-#include "multiplepidwrapper.h"
-#include "visualizer.h"
-#include "obstacledetectoromnidrive.h"
-#include "pathfollower.h"
+#include <path_follower/controller/robotcontroller.h>
+#include <path_follower/utils/multiplepidwrapper.h>
+#include <path_follower/utils/visualizer.h>
+#include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
+#include <path_follower/pathfollower.h>
 
 class RobotController_Omnidrive_OrthogonalExponential : public RobotController
 {

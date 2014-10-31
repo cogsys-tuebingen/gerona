@@ -1,4 +1,4 @@
-#include "obstacledetectorpolygon.h"
+#include <path_follower/obstacle_avoidance/obstacledetectorpolygon.h>
 
 #define DEBUG_PATHLOOKOUT 0
 
@@ -7,7 +7,7 @@
 #endif
 
 #include <opencv2/imgproc/imgproc.hpp>
-#include "visualizer.h"
+#include <path_follower/utils/visualizer.h>
 
 using namespace std;
 

@@ -1,4 +1,4 @@
-#include "pathlookout.h"
+#include <path_follower/supervisor/pathlookout.h>
 
 #define DEBUG_PATHLOOKOUT 0
 
@@ -7,8 +7,8 @@
 #endif
 #include <vector>
 #include <string>
-#include "pathfollower.h"
-#include "boost/foreach.hpp"
+#include <path_follower/pathfollower.h>
+#include <boost/foreach.hpp>
 
 #include <laser_geometry/laser_geometry.h>
 #include <opencv2/flann/flann.hpp>

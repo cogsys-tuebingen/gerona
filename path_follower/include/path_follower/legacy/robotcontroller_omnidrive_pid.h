@@ -5,10 +5,10 @@
 #include <Eigen/Core>
 
 /// PROJECT
-#include "robotcontroller.h"
-#include "multiplepidwrapper.h"
-#include "visualizer.h"
-#include "obstacledetectoromnidrive.h"
+#include <path_follower/controller/robotcontroller.h>
+#include <path_follower/utils/multiplepidwrapper.h>
+#include <path_follower/utils/visualizer.h>
+#include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
 
 class RobotController_Omnidrive_Pid : public RobotController
 {

@@ -92,7 +92,7 @@ find_package(OpenCV REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES path_follower
 #  CATKIN_DEPENDS actionlib path_msgs roscpp
 #  DEPENDS system_lib
@@ -111,10 +111,14 @@ endif()
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
+  include
   ${EIGEN_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
- ${OpenCV_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
+
+
+file(GLOB_RECURSE INCLUDE_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} FOLLOW_SYMLINKS include/*.hpp include/*.h)
 
 ## Declare a cpp library
 # add_library(path_follower
@@ -134,32 +138,34 @@ include_directories(
 # )
 
 add_executable(path_follower_node
+  ${INCLUDE_HEADERS}
   src/follower_node.cpp
   src/pathfollower.cpp
   src/legacy/behaviours.cpp
+
+  src/utils/parameters.cpp
+  src/utils/visualizer.cpp
   src/utils/PidCtrl.cpp
   src/utils/multiplepidwrapper.cpp
-  src/utils/parameters.cpp
+  src/utils/maptransformer.cpp
+  src/utils/cubic_spline_interpolation.cpp
+  src/utils/coursepredictor.cpp
+  include/path_follower/utils/path.h
 
   src/obstacle_avoidance/obstacledetector.cpp
   src/obstacle_avoidance/obstacledetectorpolygon.cpp
   src/obstacle_avoidance/obstacledetectorackermann.cpp
   src/obstacle_avoidance/obstacledetectoromnidrive.cpp
 
-  src/legacy/vector_field_histogram.cpp
-  src/utils/visualizer.cpp
   src/controller/robotcontroller.cpp
   src/legacy/robotcontroller_ackermann_pid.cpp
   src/legacy/robotcontroller_omnidrive_pid.cpp
   src/legacy/robotcontroller_omnidrive_vv.cpp
   src/legacy/robotcontroller_omnidrive_orthexp.cpp
-  src/utils/path.h
+
   src/supervisor/pathlookout.cpp
   src/supervisor/obstacletracker.cpp
-  src/utils/maptransformer.cpp
-  src/utils/cubic_spline_interpolation.cpp
-  src/utils/coursepredictor.cpp
-
+  src/legacy/vector_field_histogram.cpp
 
   src/alglib/interpolation.cpp
   src/alglib/alglibinternal.cpp
