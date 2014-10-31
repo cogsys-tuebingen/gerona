@@ -41,6 +41,9 @@
  *
  * @author Felix Widmaier <felix.widmaier@web.de>
  * @version 1.2
+ *
+ * @todo: optional parameter "module name" for constructor, to use as headline in print, when there are several modules
+ *        using Parameters.
  */
 class Parameters
 {

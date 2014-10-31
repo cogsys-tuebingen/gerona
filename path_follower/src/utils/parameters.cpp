@@ -57,14 +57,14 @@ void Parameters::unregisterInstance(Parameters *ptr)
 
 void Parameters::printAllInstances()
 {
-    for (vector<Parameters*>::const_iterator it = instances_.begin(); it != instances_.end(); ++it) {
+    for (vector<Parameters*>::const_reverse_iterator it = instances_.rbegin(); it != instances_.rend(); ++it) {
         (*it)->print();
     }
 }
 
 void Parameters::printToFileAllInstances(const string &filename)
 {
-    for (vector<Parameters*>::const_iterator it = instances_.begin(); it != instances_.end(); ++it) {
+    for (vector<Parameters*>::const_reverse_iterator it = instances_.rbegin(); it != instances_.rend(); ++it) {
         (*it)->printToFile(filename);
     }
 }
