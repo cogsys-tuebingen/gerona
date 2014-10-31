@@ -5,7 +5,7 @@
 #include <opencv2/core/core.hpp>
 #include <tf/transform_listener.h>
 #include <laser_geometry/laser_geometry.h>
-#include "maptransformer.h"
+#include "../utils/maptransformer.h"
 
 class ObstacleDetectorPolygon : public ObstacleDetector
 {

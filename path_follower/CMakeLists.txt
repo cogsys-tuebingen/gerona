@@ -136,28 +136,29 @@ include_directories(
 add_executable(path_follower_node
   src/follower_node.cpp
   src/pathfollower.cpp
-  src/behaviours.cpp
-  src/PidCtrl.cpp
-  src/multiplepidwrapper.cpp
+  src/legacy/behaviours.cpp
+  src/utils/PidCtrl.cpp
+  src/utils/multiplepidwrapper.cpp
+  src/utils/parameters.cpp
 
-  src/obstacledetector.cpp
-  src/obstacledetectorpolygon.cpp
-  src/obstacledetectorackermann.cpp
-  src/obstacledetectoromnidrive.cpp
+  src/obstacle_avoidance/obstacledetector.cpp
+  src/obstacle_avoidance/obstacledetectorpolygon.cpp
+  src/obstacle_avoidance/obstacledetectorackermann.cpp
+  src/obstacle_avoidance/obstacledetectoromnidrive.cpp
 
-  src/vector_field_histogram.cpp
-  src/visualizer.cpp
-  src/robotcontroller.cpp
-  src/robotcontroller_ackermann_pid.cpp
-  src/robotcontroller_omnidrive_pid.cpp
-  src/robotcontroller_omnidrive_vv.cpp
-  src/robotcontroller_omnidrive_orthexp.cpp
-  src/path.h
-  src/pathlookout.cpp
-  src/obstacletracker.cpp
-  src/maptransformer.cpp
-  src/cubic_spline_interpolation.cpp
-  src/coursepredictor.cpp
+  src/legacy/vector_field_histogram.cpp
+  src/utils/visualizer.cpp
+  src/controller/robotcontroller.cpp
+  src/legacy/robotcontroller_ackermann_pid.cpp
+  src/legacy/robotcontroller_omnidrive_pid.cpp
+  src/legacy/robotcontroller_omnidrive_vv.cpp
+  src/legacy/robotcontroller_omnidrive_orthexp.cpp
+  src/utils/path.h
+  src/supervisor/pathlookout.cpp
+  src/supervisor/obstacletracker.cpp
+  src/utils/maptransformer.cpp
+  src/utils/cubic_spline_interpolation.cpp
+  src/utils/coursepredictor.cpp
 
 
   src/alglib/interpolation.cpp
@@ -182,7 +183,7 @@ target_link_libraries(path_follower_node
 
 add_executable(test_obstacle_tracker
   src/test_obstacletracker.cpp
-  src/obstacletracker.cpp
+  src/supervisor/obstacletracker.cpp
 )
 target_link_libraries(test_obstacle_tracker
   ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
