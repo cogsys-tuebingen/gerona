@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(path_follower)
 
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 
 #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
 
@@ -159,7 +159,6 @@ add_executable(path_follower_node
 
   src/controller/robotcontroller.cpp
   src/legacy/robotcontroller_ackermann_pid.cpp
-  src/legacy/robotcontroller_omnidrive_pid.cpp
   src/legacy/robotcontroller_omnidrive_vv.cpp
   src/legacy/robotcontroller_omnidrive_orthexp.cpp
 

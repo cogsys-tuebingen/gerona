@@ -14,6 +14,8 @@
 #include <path_follower/legacy/vector_field_histogram.h>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
 
+class Behaviour;
+
 class RobotController_Ackermann_Pid : public RobotController
 {
 public:
@@ -25,6 +27,10 @@ public:
 
     virtual void stopMotion();
 
+    virtual void reset();
+    virtual void start();
+    virtual ControlStatus execute();
+
     virtual void initOnLine();
     virtual void initApproachTurningPoint();
 
@@ -35,7 +41,6 @@ public:
 
 protected:
     virtual void behaveOnLine();
-    virtual void behaveAvoidObstacle();
     virtual bool behaveApproachTurningPoint();
 
 
@@ -106,6 +111,7 @@ private:
         double l_;
     };
 
+    Behaviour* active_behaviour_;
 
     PidCtrl pid_;
     Command cmd_;

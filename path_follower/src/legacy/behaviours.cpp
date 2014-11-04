@@ -156,7 +156,8 @@ void BehaviourOnLine::execute(int *status)
 {
     initExecute(status);
 
-    controller_->execBehaviourOnLine(getPathWithPosition());
+    controller_->setPath(getPathWithPosition());
+    controller_->behaveOnLine();
 }
 
 
@@ -206,60 +207,6 @@ void BehaviourOnLine::getNextWaypoint()
 
 
 
-//##### BEGIN BehaviourAvoidObstacle
-void BehaviourAvoidObstacle::execute(int *status)
-{
-    initExecute(status);
-
-    controller_->execBehaviourAvoidObstacle(getPathWithPosition());
-}
-
-
-
-void BehaviourAvoidObstacle::getNextWaypoint()
-{
-    // TODO: improve!
-    PathFollower::Options& opt = getOptions();
-    Path& current_path = getSubPath(opt.path_idx);
-
-    assert(opt.wp_idx < (int) current_path.size());
-
-    int last_wp_idx = current_path.size() - 1;
-
-    double tolerance = opt.wp_tolerance_;
-
-    if(controller_->getDirSign() < 0) {
-        tolerance *= 2;
-    }
-
-    // if distance to wp < threshold
-    while(distanceTo(current_path[opt.wp_idx]) < tolerance) {
-        if(opt.wp_idx >= last_wp_idx) {
-            // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
-            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
-            throw new BehaviourApproachTurningPoint(parent_);
-        }
-        else {
-            // else choose next wp
-            opt.wp_idx++;
-
-            waypoint_timeout.reset();
-        }
-    }
-
-    visualizer_->drawArrow(0, current_path[opt.wp_idx], "current waypoint", 1, 1, 0);
-    visualizer_->drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);
-
-    next_wp_map_.pose = current_path[opt.wp_idx];
-    next_wp_map_.header.stamp = ros::Time::now();
-
-    if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
-        throw new BehaviourEmergencyBreak(parent_);
-    }
-}
-
-
 //##### BEGIN BehaviourApproachTurningPoint
 
 BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(PathFollower &parent)
@@ -274,7 +221,8 @@ void BehaviourApproachTurningPoint::execute(int *status)
 
     // check if point is reached
     //if(!done_) {
-    done_ = controller_->execBehaviourApproachTurningPoint(getPathWithPosition());
+    controller_->setPath(getPathWithPosition());
+    done_ = controller_->behaveApproachTurningPoint();
     //}
     if (done_) {
         handleDone();

@@ -339,19 +339,20 @@ void RobotController_Omnidrive_OrthogonalExponential::publishInterpolatedPath()
 }
 
 
-void RobotController_Omnidrive_OrthogonalExponential::initOnLine()
+void RobotController_Omnidrive_OrthogonalExponential::start()
 {
     path_driver_->getCoursePredictor().reset();
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
+
+RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::execute()
 {
     if(N < 2) {
         ROS_ERROR("[Line] path is too short");
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS);
 
         stopMotion();
-        return;
+        return SUCCESS;
     }
 
     Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
@@ -363,7 +364,7 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
         stopMotion();
         path_driver_->getCoursePredictor().freeze();
 
-        return;
+        return OBSTACLE;
     }
     path_driver_->getCoursePredictor().unfreeze();
 
@@ -569,30 +570,16 @@ void RobotController_Omnidrive_OrthogonalExponential::behaveOnLine()
 
 
     publishCommand();
-}
 
-void RobotController_Omnidrive_OrthogonalExponential::behaveAvoidObstacle()
-{
-    behaveOnLine();
-}
-
-bool RobotController_Omnidrive_OrthogonalExponential::behaveApproachTurningPoint()
-{
-    if(N < 2) {
-        ROS_ERROR("[TurningPoint] path is too short");
-        return true;
-    }
-
-    behaveOnLine();
-
-    Eigen::Vector3d current_pose = path_driver_->getRobotPose();
-    double x_meas = current_pose[0];
-    double y_meas = current_pose[1];
-
+    // check for end
     double distance_to_goal = hypot(x_meas - p[N-1], y_meas - q[N-1]);
     ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal);
 
-    return distance_to_goal <= path_driver_->getOptions().goal_tolerance_;
+    if(distance_to_goal <= path_driver_->getOptions().goal_tolerance_) {
+        return SUCCESS;
+    } else {
+        return MOVING;
+    }
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::reset()

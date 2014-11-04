@@ -24,7 +24,8 @@ public:
     //! Immediately stop any motion.
     virtual void stopMotion();
 
-    virtual void initOnLine();
+    virtual void start();
+    virtual ControlStatus execute();
 
     virtual ObstacleDetector* getObstacleDetector()
     {
@@ -34,15 +35,6 @@ public:
 
 protected:
     virtual void setPath(PathWithPosition path);
-
-    virtual void behaveOnLine();
-
-    virtual void behaveAvoidObstacle();
-
-    /**
-     * @return True, when turning point is reached, otherwise false.
-     */
-    virtual bool behaveApproachTurningPoint();
 
     virtual void reset();
 

@@ -41,8 +41,6 @@ protected:
 
     virtual void behaveOnLine();
 
-    virtual void behaveAvoidObstacle();
-
     /**
      * @return True, when turning point is reached, otherwise false.
      */

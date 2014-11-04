@@ -120,21 +120,6 @@ struct BehaviourOnLine : public Behaviour
 };
 
 
-struct BehaviourAvoidObstacle : public Behaviour
-{
-    BehaviourAvoidObstacle(PathFollower& parent)
-        : Behaviour(parent)
-    {}
-
-    void execute(int *status);
-    void getNextWaypoint();
-
-    virtual bool isLeavingPathAllowed() const
-    {
-        return true;
-    }
-};
-
 struct BehaviourApproachTurningPoint : public Behaviour
 {
     BehaviourApproachTurningPoint(PathFollower &parent);

@@ -307,11 +307,6 @@ void RobotController_Omnidrive_VirtualVehicle::behaveOnLine()
     publishCommand();
 }
 
-void RobotController_Omnidrive_VirtualVehicle::behaveAvoidObstacle()
-{
-    behaveOnLine();
-}
-
 bool RobotController_Omnidrive_VirtualVehicle::behaveApproachTurningPoint()
 {
     behaveOnLine();

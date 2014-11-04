@@ -2,6 +2,7 @@
 
 /// STL
 #include <sstream>
+#include <cxxabi.h>
 
 /// ROS
 #include <ros/ros.h>
@@ -10,10 +11,11 @@
 #include <path_follower/pathfollower.h>
 #include <path_follower/legacy/behaviours.h>
 #include <utils_general/MathHelper.h>
+#include <path_msgs/FollowPathAction.h>
 
 using namespace Eigen;
 using namespace std;
-
+using namespace path_msgs;
 
 namespace {
 double sign(double value) {
@@ -23,12 +25,21 @@ double sign(double value) {
 }
 }
 
+namespace {
+std::string name(Behaviour* b) {
+    int status;
+    return abi::__cxa_demangle(typeid(*b).name(),  0, 0, &status);
+}
+}
+
+
 
 RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(ros::Publisher &cmd_publisher,
                                                              PathFollower *path_driver,
                                                              VectorFieldHistogram *vfh):
     RobotController(cmd_publisher, path_driver),
-    vfh_(vfh)
+    vfh_(vfh),
+    active_behaviour_(NULL)
 {
     configure();
 
@@ -153,6 +164,55 @@ void RobotController_Ackermann_Pid::stopMotion()
     publishCommand();
 }
 
+void RobotController_Ackermann_Pid::reset()
+{
+    if(active_behaviour_ != NULL) {
+        delete active_behaviour_;
+    }
+    active_behaviour_ = NULL;
+}
+
+void RobotController_Ackermann_Pid::start()
+{
+    active_behaviour_ = new BehaviourOnLine(*path_driver_);
+    ROS_INFO_STREAM("init with " << name(active_behaviour_));
+}
+
+RobotController::ControlStatus RobotController_Ackermann_Pid::execute()
+{
+    try {
+        ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
+        int status = FollowPathFeedback::MOTION_STATUS_MOVING;
+        active_behaviour_->execute(&status);
+
+        switch(status) {
+        case FollowPathFeedback::MOTION_STATUS_MOVING:
+            return MOVING;
+        case FollowPathFeedback::MOTION_STATUS_OBSTACLE:
+            return OBSTACLE;
+        default:
+            ROS_WARN_STREAM("unknown status: " << status);
+            return ERROR;
+        }
+
+    } catch(NullBehaviour* null) {
+        ROS_WARN_STREAM("stopping after " << name(active_behaviour_));
+        reset();
+        return ERROR;
+
+    } catch(Behaviour* next_behaviour) {
+        std::cout << "switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) << std::endl;
+        reset();
+        active_behaviour_ = next_behaviour;
+        return MOVING;
+
+    } catch(const std::exception& e) {
+        ROS_ERROR_STREAM("uncaught exception: " << e.what() << " => abort");
+        reset();
+        return ERROR;
+    }
+}
+
 void RobotController_Ackermann_Pid::initOnLine()
 {
     pid_.reset();
@@ -187,36 +247,6 @@ void RobotController_Ackermann_Pid::behaveOnLine()
 
     if(setCommand(e_combined, speed)) {
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
-        throw new BehaviourAvoidObstacle(*path_driver_);
-    }
-}
-
-void RobotController_Ackermann_Pid::behaveAvoidObstacle()
-{
-    dir_sign_ = sign(next_wp_local_.x());
-
-    // Calculate target line from current to next waypoint (if there is any)
-    double e_distance = calculateLineError();
-    double e_angle = calculateAngleError();
-
-    double e_combined = e_distance + e_angle;
-
-    // draw steer front
-    if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), e_combined, 1.0, 0.2, 0.2);
-    }
-
-    float speed = velocity_;
-
-    if(dir_sign_ < 0) {
-        speed *= 0.5;
-    }
-
-    if(!setCommand(e_combined, speed)) {
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
-        throw new BehaviourOnLine(*path_driver_);
     }
 }
 

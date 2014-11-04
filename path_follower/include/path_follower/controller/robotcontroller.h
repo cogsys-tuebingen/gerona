@@ -12,7 +12,17 @@ class PathFollower;
 
 class RobotController
 {
-/* ABSTRACT METHODS */
+    /* DATA */
+public:
+    enum ControlStatus
+    {
+        MOVING,
+        OBSTACLE,
+        SUCCESS,
+        ERROR
+    };
+
+    /* ABSTRACT METHODS */
 public:
     //! Return obstacle detector working with obstacle map. Only used, if ~use_obstacle_map:=true
     virtual ObstacleDetector* getObstacleDetector() = 0;
@@ -24,17 +34,19 @@ public:
 
     virtual bool isOmnidirectional() const;
 
-protected:
-    virtual void behaveOnLine() = 0;
-    virtual void behaveAvoidObstacle() = 0;
+    virtual void start() {}
+    virtual ControlStatus execute() {}
+
+
+    virtual void behaveOnLine() {}
 
     /**
      * @return True, when turning point is reached, otherwise false.
      */
-    virtual bool behaveApproachTurningPoint() = 0;
+    virtual bool behaveApproachTurningPoint() {}
 
 
-/* REGULAR METHODS */
+    /* REGULAR METHODS */
 public:
     RobotController(ros::Publisher &cmd_publisher, PathFollower *path_driver) :
         cmd_pub_(cmd_publisher),
@@ -48,28 +60,14 @@ public:
     /* RESET FOR A NEW PATH */
     virtual void reset() {}
 
+
+    virtual void setPath(PathWithPosition path);
+
     /* BEHAVIOURS */
     //! Initialize the OnLine-Behaviour
     virtual void initOnLine() {}
-    //! Initialize the AvoidObstacle-Behaviour
-    virtual void initAvoidObstacle() {}
     //! Initialize the ApproachTurningPoint-Behaviour
     virtual void initApproachTurningPoint() {}
-
-    virtual void execBehaviourOnLine(PathWithPosition path) {
-        setPath(path);
-        behaveOnLine();
-    }
-    virtual void execBehaviourAvoidObstacle(PathWithPosition path) {
-        setPath(path);
-        behaveAvoidObstacle();
-    }
-
-    //! Return true, when turning point is reached.
-    virtual bool execBehaviourApproachTurningPoint(PathWithPosition path) {
-        setPath(path);
-        return behaveApproachTurningPoint();
-    }
 
     virtual void setVelocity(float v)
     {
@@ -115,7 +113,6 @@ protected:
     }
 
     void setStatus(int status);
-    virtual void setPath(PathWithPosition path);
 
     //! Calculate the angle between the orientations of the waypoint and the robot.
     virtual double calculateAngleError();
