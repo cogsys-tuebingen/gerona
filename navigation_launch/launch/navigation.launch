@@ -29,6 +29,6 @@
 
     <include file="$(find path_follower)/launch/follower.launch" />
   
-    <node name="obstacle_map_3d" pkg="csapex" type="csapex_node" output="screen" respawn="true"
-          args="/home/robot/.csapex/local_map_fused.apex --headless" />
+<!--    <node name="obstacle_map_3d" pkg="csapex" type="csapex_node" output="screen" respawn="true"
+          args="/home/robot/.csapex/local_map_fused.apex - -headless" /> -->
 </launch>
