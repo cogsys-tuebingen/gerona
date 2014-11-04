@@ -98,7 +98,7 @@ void RobotController_Omnidrive_VirtualVehicle::setPath(PathWithPosition path)
 
     ROS_DEBUG("L: %f", L);
 
-    vn = path_driver_->getOptions().max_velocity_; //desired velocity
+    vn = path_driver_->getOptions().max_velocity(); //desired velocity
 
     c = exp(alpha*d);
     gama = vn/d;

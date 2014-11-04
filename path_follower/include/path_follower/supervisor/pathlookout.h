@@ -16,6 +16,7 @@
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/maptransformer.h>
 #include <path_follower/utils/visualizer.h>
+#include <path_follower/utils/parameters.h>
 #include <path_follower/supervisor/obstacletracker.h>
 #include <path_msgs/FollowPathFeedback.h>
 
@@ -58,25 +59,28 @@ public:
     void reset();
 
 private:
-    struct Options
+    struct Options : public Parameters
     {
-        float scale_obstacle_distance_;
-        float scale_obstacle_lifetime_;
+        P<float> scale_obstacle_distance;
+        P<float> scale_obstacle_lifetime;
+        P<float> path_width;
+        P<int> segment_step_size;
+        P<float> scan_cluster_max_distance;
+        P<int> min_number_of_points;
+
         //! Stop robot, if the weight of an obstacle becomes higher than this value.
-        float obstacle_weight_limit_;
+        //P<float> obstacle_weight_limit;
 
-        //! Width of the path in meters (should be at least the width of the robot).
-        float path_width_;
-
-        //! Number of segments that are merged together for speed up.
-        int segment_step_size_;
-
-        //! Maximum distance of a scan point to it's neighbour (in terms of scan angle), to combine them to the same cluster
-        float scan_cluster_max_distance_;
-
-        //! Minimum number of points on one obstacle (smaller clusters are ignored).
-        int min_number_of_points_;
+        Options():
+            scale_obstacle_distance(this, "~obstacle_scale_distance",  1.0f, ""),
+            scale_obstacle_lifetime(this, "~obstacle_scale_lifetime",  10.0f, ""),
+            path_width(this, "~path_width",  0.5f, "Width of the path in meters (should be at least the width of the robot)."),
+            segment_step_size(this, "~segment_step_size",  5, "Number of segments that are merged together for speed up."),
+            scan_cluster_max_distance(this, "~scan_cluster_max_distance",  0.5f, "Maximum distance of a scan point to it's neighbour (in terms of scan angle), to combine them to the same cluster."),
+            min_number_of_points(this, "~min_number_of_points",  3, "Minimum number of points on one obstacle (smaller clusters are ignored).")
+        {}
     } opt_;
+
 
     //! TF-Frame in which the obstacles are tracked (should be independent of the robots movement, thus /map is a good choise).
     std::string obstacle_frame_;
@@ -100,8 +104,6 @@ private:
 
     //! Mask image of the path
     cv::Mat path_image_;
-
-    void configure();
 
     std::vector<Obstacle> lookForObstaclesInMap();
 

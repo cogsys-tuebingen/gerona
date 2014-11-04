@@ -15,9 +15,8 @@
  * Inherit this class and add a public member of type 'P' for each of your parameters and add a constructor to define
  * them.
  *
- *     class MyParameters : public Parameters
+ *     struct MyParameters : public Parameters
  *     {
- *     public:
  *         P<int> foo;
  *         P<float> bar;
  *
@@ -41,7 +40,10 @@
  * program.
  *
  * @author Felix Widmaier <felix.widmaier@web.de>
- * @version 1.1
+ * @version 1.2
+ *
+ * @todo: optional parameter "module name" for constructor, to use as headline in print, when there are several modules
+ *        using Parameters.
  */
 class Parameters
 {
@@ -66,9 +68,15 @@ public:
         }
 
         //! Returns the parameters value.
-        T operator() ()
+        T operator() () const
         {
             return value_;
+        }
+
+        //! Change the value.
+        void set(T v)
+        {
+            value_ = v;
         }
 
     private:

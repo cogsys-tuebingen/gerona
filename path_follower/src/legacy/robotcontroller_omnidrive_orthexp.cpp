@@ -219,7 +219,7 @@ void RobotController_Omnidrive_OrthogonalExponential::initialize()
     e_theta_curr = path_driver_->getRobotPose()[2];
 
     // desired velocity
-    vn = std::min(path_driver_->getOptions().max_velocity_, velocity_);
+    vn = std::min(path_driver_->getOptions().max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn);
     initialized = true;
 }
@@ -575,7 +575,7 @@ RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::
     double distance_to_goal = hypot(x_meas - p[N-1], y_meas - q[N-1]);
     ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal);
 
-    if(distance_to_goal <= path_driver_->getOptions().goal_tolerance_) {
+    if(distance_to_goal <= path_driver_->getOptions().goal_tolerance()) {
         return SUCCESS;
     } else {
         return MOVING;

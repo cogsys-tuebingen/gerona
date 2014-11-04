@@ -65,6 +65,7 @@ protected:
     int getSubPathCount() const;
     VectorFieldHistogram& getVFH();
     PathFollower::Options& getOptions();
+    PathFollower::PathIndex& getPathIndex();
     double distanceTo(const Waypoint& wp);
 
     //! Calculate the distance of the robot to the current path segment.
