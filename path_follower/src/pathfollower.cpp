@@ -247,7 +247,7 @@ void PathFollower::update()
         FollowPathResult result;
 
         if(!is_running_) {
-            controller_->start();
+            start();
         }
 
         if (!updateRobotPose()) {
@@ -379,6 +379,8 @@ void PathFollower::start()
     controller_->reset();
 
     controller_->start();
+
+    is_running_ = true;
 }
 
 void PathFollower::stop()

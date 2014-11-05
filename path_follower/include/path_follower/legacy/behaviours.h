@@ -7,16 +7,12 @@
 #include <path_follower/utils/visualizer.h>
 #include <utils_general/Line2d.h>
 
-
-struct NullBehaviour {
-};
-
 class Behaviour
 {
 public:
     virtual ~Behaviour() {}
 
-    virtual void execute(int* status) = 0;
+    virtual Behaviour* execute(int* status) = 0;
 
     void setStatus(int status);
 
@@ -72,13 +68,7 @@ protected:
     double calculateDistanceToCurrentPathSegment();
 
 
-    void initExecute(int *status);
-
-    //! Check if waypoint timeout has expired. If yes, switch to BehaviourEmergencyBreak.
-    void checkWaypointTimeout();
-
-    //! Check if the robot moves too far away from the path. If yes, switch to BehaviourEmergencyBreak.
-    void checkDistanceToPath();
+    Behaviour *initExecute(int *status);
 
     PathWithPosition getPathWithPosition();
 
@@ -87,8 +77,10 @@ protected:
         return false;
     }
 
-    virtual void getNextWaypoint()
-    {}
+    virtual Behaviour* selectNextWaypoint()
+    {
+        return this;
+    }
 };
 
 
@@ -103,10 +95,11 @@ struct BehaviourEmergencyBreak : public Behaviour
         controller_->stopMotion();
     }
 
-    void execute(int *status)
+    Behaviour* execute(int *status)
     {
+        ROS_WARN("commencing emergency break");
         *status = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
-        throw new NullBehaviour;
+        return NULL;
     }
 };
 
@@ -116,8 +109,8 @@ struct BehaviourEmergencyBreak : public Behaviour
 struct BehaviourOnLine : public Behaviour
 {
     BehaviourOnLine(PathFollower &parent);
-    void execute(int *status);
-    void getNextWaypoint();
+    Behaviour* execute(int *status);
+    Behaviour *selectNextWaypoint();
 };
 
 
@@ -125,13 +118,13 @@ struct BehaviourApproachTurningPoint : public Behaviour
 {
     BehaviourApproachTurningPoint(PathFollower &parent);
 
-    void execute(int *status);
+    Behaviour* execute(int *status);
 
     bool checkIfDone();
 
-    void handleDone();
+    Behaviour *handleDone();
 
-    void getNextWaypoint();
+    Behaviour* selectNextWaypoint();
 
     bool done_;
 };

@@ -43,6 +43,7 @@ protected:
     virtual void behaveOnLine();
     virtual bool behaveApproachTurningPoint();
 
+    void switchBehaviour(Behaviour* next_behaviour);
 
 private:
     struct Command

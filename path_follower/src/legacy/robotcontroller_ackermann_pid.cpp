@@ -12,6 +12,7 @@
 #include <path_follower/legacy/behaviours.h>
 #include <utils_general/MathHelper.h>
 #include <path_msgs/FollowPathAction.h>
+#include <path_follower/utils/path_exceptions.h>
 
 using namespace Eigen;
 using namespace std;
@@ -178,12 +179,28 @@ void RobotController_Ackermann_Pid::start()
     ROS_INFO_STREAM("init with " << name(active_behaviour_));
 }
 
+void RobotController_Ackermann_Pid::switchBehaviour(Behaviour* next_behaviour)
+{
+    reset();
+    active_behaviour_ = next_behaviour;
+}
+
 RobotController::ControlStatus RobotController_Ackermann_Pid::execute()
 {
     try {
         ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
         int status = FollowPathFeedback::MOTION_STATUS_MOVING;
-        active_behaviour_->execute(&status);
+        Behaviour* next_behaviour = active_behaviour_->execute(&status);
+
+        if(next_behaviour == NULL) {
+            switchBehaviour(NULL);
+            return SUCCESS;
+        }
+
+        if(active_behaviour_ != next_behaviour) {
+            std::cout << "switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) << std::endl;
+            switchBehaviour(next_behaviour);
+        }
 
         switch(status) {
         case FollowPathFeedback::MOTION_STATUS_MOVING:
@@ -194,18 +211,6 @@ RobotController::ControlStatus RobotController_Ackermann_Pid::execute()
             ROS_WARN_STREAM("unknown status: " << status);
             return ERROR;
         }
-
-    } catch(NullBehaviour* null) {
-        ROS_WARN_STREAM("stopping after " << name(active_behaviour_));
-        reset();
-        return ERROR;
-
-    } catch(Behaviour* next_behaviour) {
-        std::cout << "switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) << std::endl;
-        reset();
-        active_behaviour_ = next_behaviour;
-        return MOVING;
-
     } catch(const std::exception& e) {
         ROS_ERROR_STREAM("uncaught exception: " << e.what() << " => abort");
         reset();
@@ -337,7 +342,7 @@ double RobotController_Ackermann_Pid::calculateLineError()
     Vector3d followup_next_wp_local;
     if (!path_driver_->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR);
-        throw new BehaviourEmergencyBreak(*path_driver_);
+        throw new EmergencyBreakException("Cannot transform next waypoint");
     }
     target_line = Line2d( next_wp_local_.head<2>(), followup_next_wp_local.head<2>());
     visualizer_->visualizeLine(target_line);
