@@ -21,7 +21,7 @@ Behaviour::Behaviour(PathFollower &parent):
     visualizer_ = Visualizer::getInstance();
 
     double wpto;
-    ros::param::param<double>("~waypoint_timeout", wpto, 10.0);
+    ros::param::param<double>("~waypoint_timeout", wpto, 10.0); //TODO: wrap all these param accesses with Parameters class
     waypoint_timeout.duration = ros::Duration(wpto);
     waypoint_timeout.reset();
 }
