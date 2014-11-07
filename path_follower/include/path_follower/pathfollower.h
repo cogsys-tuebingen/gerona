@@ -32,9 +32,6 @@
 #include <path_follower/utils/parameters.h>
 
 
-//Forward declaration
-class Behaviour;
-
 
 class PathFollower
 {
@@ -150,10 +147,7 @@ public:
     Eigen::Vector3d getRobotPose() const;
     const geometry_msgs::Pose &getRobotPoseMsg() const;
 
-    Behaviour* getActiveBehaviour() const
-    {
-        return active_behaviour_;
-    }
+    void setStatus(int status);
 
     const PathFollower::Options &getOptions() const
     {
@@ -188,9 +182,6 @@ private:
     //! The robot controller is responsible for everything that is dependend on robot model and controller type.
     RobotController *controller_;
 
-    //! Active behaviour used to follow the path.
-    Behaviour* active_behaviour_;
-
     //! Look for obstacles on the path ahead of the robot.
     PathLookout path_lookout_;
 
@@ -224,6 +215,8 @@ private:
     ros::Time last_beep_;
     ros::Duration beep_pause_;
 
+    bool is_running_;
+
 
     //! Callback for new follow_path action goals.
     void followPathGoalCB();
@@ -239,10 +232,6 @@ private:
     //! Callback for the obstacle grid map. Used by ObstacleDetector and VectorFieldHistorgram.
     void obstacleMapCB(const nav_msgs::OccupancyGridConstPtr& map);
 
-
-    //! Remove the active behaviour.
-    void clearActive();
-
     //! Publish beep commands.
     void beep(const std::vector<int>& beeps);
 
@@ -257,12 +246,12 @@ private:
     void stop();
 
     /**
-     * @brief Execute one path following iteration, using the active behaviour.
+     * @brief Execute one path following iteration
      * @param feedback Feedback of the running path execution. Only meaningful, if return value is 1.
      * @param result Result of the finished path execution. Only meaningful, if return value is 0.
      * @return Returns `false` if the path execution is finished (no matter if successful or not) and `true` if it is still running.
      */
-    bool executeBehaviour(path_msgs::FollowPathFeedback& feedback, path_msgs::FollowPathResult& result);
+    bool execute(path_msgs::FollowPathFeedback& feedback, path_msgs::FollowPathResult& result);
 
     void setGoal(const path_msgs::FollowPathGoal& goal);
     void setPath(const nav_msgs::Path& path);

@@ -2,6 +2,7 @@
 
 /// STL
 #include <sstream>
+#include <cxxabi.h>
 
 /// ROS
 #include <ros/ros.h>
@@ -10,10 +11,12 @@
 #include <path_follower/pathfollower.h>
 #include <path_follower/legacy/behaviours.h>
 #include <utils_general/MathHelper.h>
+#include <path_msgs/FollowPathAction.h>
+#include <path_follower/utils/path_exceptions.h>
 
 using namespace Eigen;
 using namespace std;
-
+using namespace path_msgs;
 
 namespace {
 double sign(double value) {
@@ -23,12 +26,21 @@ double sign(double value) {
 }
 }
 
+namespace {
+std::string name(Behaviour* b) {
+    int status;
+    return abi::__cxa_demangle(typeid(*b).name(),  0, 0, &status);
+}
+}
+
+
 
 RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(ros::Publisher &cmd_publisher,
                                                              PathFollower *path_driver,
                                                              VectorFieldHistogram *vfh):
     RobotController(cmd_publisher, path_driver),
-    vfh_(vfh)
+    vfh_(vfh),
+    active_behaviour_(NULL)
 {
     configure();
 
@@ -153,6 +165,59 @@ void RobotController_Ackermann_Pid::stopMotion()
     publishCommand();
 }
 
+void RobotController_Ackermann_Pid::reset()
+{
+    if(active_behaviour_ != NULL) {
+        delete active_behaviour_;
+    }
+    active_behaviour_ = NULL;
+}
+
+void RobotController_Ackermann_Pid::start()
+{
+    active_behaviour_ = new BehaviourOnLine(*path_driver_);
+    ROS_INFO_STREAM("init with " << name(active_behaviour_));
+}
+
+void RobotController_Ackermann_Pid::switchBehaviour(Behaviour* next_behaviour)
+{
+    reset();
+    active_behaviour_ = next_behaviour;
+}
+
+RobotController::ControlStatus RobotController_Ackermann_Pid::execute()
+{
+    try {
+        ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
+        int status = FollowPathFeedback::MOTION_STATUS_MOVING;
+        Behaviour* next_behaviour = active_behaviour_->execute(&status);
+
+        if(next_behaviour == NULL) {
+            switchBehaviour(NULL);
+            return SUCCESS;
+        }
+
+        if(active_behaviour_ != next_behaviour) {
+            std::cout << "switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) << std::endl;
+            switchBehaviour(next_behaviour);
+        }
+
+        switch(status) {
+        case FollowPathFeedback::MOTION_STATUS_MOVING:
+            return MOVING;
+        case FollowPathFeedback::MOTION_STATUS_OBSTACLE:
+            return OBSTACLE;
+        default:
+            ROS_WARN_STREAM("unknown status: " << status);
+            return ERROR;
+        }
+    } catch(const std::exception& e) {
+        ROS_ERROR_STREAM("uncaught exception: " << e.what() << " => abort");
+        reset();
+        return ERROR;
+    }
+}
+
 void RobotController_Ackermann_Pid::initOnLine()
 {
     pid_.reset();
@@ -187,36 +252,6 @@ void RobotController_Ackermann_Pid::behaveOnLine()
 
     if(setCommand(e_combined, speed)) {
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
-        throw new BehaviourAvoidObstacle(*path_driver_);
-    }
-}
-
-void RobotController_Ackermann_Pid::behaveAvoidObstacle()
-{
-    dir_sign_ = sign(next_wp_local_.x());
-
-    // Calculate target line from current to next waypoint (if there is any)
-    double e_distance = calculateLineError();
-    double e_angle = calculateAngleError();
-
-    double e_combined = e_distance + e_angle;
-
-    // draw steer front
-    if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), e_combined, 1.0, 0.2, 0.2);
-    }
-
-    float speed = velocity_;
-
-    if(dir_sign_ < 0) {
-        speed *= 0.5;
-    }
-
-    if(!setCommand(e_combined, speed)) {
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
-        throw new BehaviourOnLine(*path_driver_);
     }
 }
 
@@ -307,7 +342,7 @@ double RobotController_Ackermann_Pid::calculateLineError()
     Vector3d followup_next_wp_local;
     if (!path_driver_->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR);
-        throw new BehaviourEmergencyBreak(*path_driver_);
+        throw new EmergencyBreakException("Cannot transform next waypoint");
     }
     target_line = Line2d( next_wp_local_.head<2>(), followup_next_wp_local.head<2>());
     visualizer_->visualizeLine(target_line);

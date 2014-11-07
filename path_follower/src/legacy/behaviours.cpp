@@ -1,6 +1,7 @@
 #include <path_follower/legacy/behaviours.h>
 #include <path_follower/pathfollower.h>
 #include <utils_general/MathHelper.h>
+#include <path_follower/utils/path_exceptions.h>
 
 using namespace Eigen;
 
@@ -87,27 +88,22 @@ void Behaviour::setStatus(int status)
 }
 
 
-void Behaviour::initExecute(int *status)
+Behaviour* Behaviour::initExecute(int *status)
 {
     status_ptr_ = status;
 
-    getNextWaypoint();
-    checkWaypointTimeout();
-    checkDistanceToPath();
-}
+    Behaviour* next_behaviour = selectNextWaypoint();
+    if(next_behaviour != this) {
+        return next_behaviour;
+    }
 
-void Behaviour::checkWaypointTimeout()
-{
     if (waypoint_timeout.isExpired()) {
         ROS_WARN("Waypoint Timeout! The robot did not reach the next waypoint within %g sec. Abort path execution.",
                  waypoint_timeout.duration.toSec());
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_TIMEOUT;
-        throw new BehaviourEmergencyBreak(parent_);
+        return new BehaviourEmergencyBreak(parent_);
     }
-}
 
-void Behaviour::checkDistanceToPath()
-{
     if (!isLeavingPathAllowed()) {
         double dist = calculateDistanceToCurrentPathSegment();
         //ROS_DEBUG("Distance to current path segment: %g m", dist);
@@ -119,9 +115,11 @@ void Behaviour::checkDistanceToPath()
                      getOptions().max_distance_to_path());
 
             setStatus(path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST);
-            throw new BehaviourEmergencyBreak(parent_);
+            return new BehaviourEmergencyBreak(parent_);
         }
     }
+
+    return this;
 }
 
 PathWithPosition Behaviour::getPathWithPosition()
@@ -156,15 +154,21 @@ BehaviourOnLine::BehaviourOnLine(PathFollower& parent)
 }
 
 
-void BehaviourOnLine::execute(int *status)
+Behaviour* BehaviourOnLine::execute(int *status)
 {
-    initExecute(status);
+    Behaviour* next = initExecute(status);
+    if(next != this) {
+        return next;
+    }
 
-    controller_->execBehaviourOnLine(getPathWithPosition());
+    controller_->setPath(getPathWithPosition());
+    controller_->behaveOnLine();
+
+    return this;
 }
 
 
-void BehaviourOnLine::getNextWaypoint()
+Behaviour* BehaviourOnLine::selectNextWaypoint()
 {
     PathFollower::Options& opt = getOptions();
     PathFollower::PathIndex& pidx = getPathIndex();
@@ -187,7 +191,7 @@ void BehaviourOnLine::getNextWaypoint()
         if(pidx.wp_idx >= last_wp_idx) {
             // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
-            throw new BehaviourApproachTurningPoint(parent_);
+            return new BehaviourApproachTurningPoint(parent_);
         }
         else {
             // else choose next wp
@@ -205,65 +209,12 @@ void BehaviourOnLine::getNextWaypoint()
 
     if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
-        throw new BehaviourEmergencyBreak(parent_);
+        throw new EmergencyBreakException("cannot transform next waypoint");
     }
+
+    return this;
 }
 
-
-
-//##### BEGIN BehaviourAvoidObstacle
-void BehaviourAvoidObstacle::execute(int *status)
-{
-    initExecute(status);
-
-    controller_->execBehaviourAvoidObstacle(getPathWithPosition());
-}
-
-
-
-void BehaviourAvoidObstacle::getNextWaypoint()
-{
-    // TODO: improve!
-    PathFollower::Options& opt = getOptions();
-    PathFollower::PathIndex& pidx = getPathIndex();
-    Path& current_path = getSubPath(pidx.path_idx);
-
-    assert(pidx.wp_idx < (int) current_path.size());
-
-    int last_wp_idx = current_path.size() - 1;
-
-    double tolerance = opt.wp_tolerance();
-
-    if(controller_->getDirSign() < 0) {
-        tolerance *= 2;
-    }
-
-    // if distance to wp < threshold
-    while(distanceTo(current_path[pidx.wp_idx]) < tolerance) {
-        if(pidx.wp_idx >= last_wp_idx) {
-            // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
-            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
-            throw new BehaviourApproachTurningPoint(parent_);
-        }
-        else {
-            // else choose next wp
-            pidx.wp_idx++;
-
-            waypoint_timeout.reset();
-        }
-    }
-
-    visualizer_->drawArrow(0, current_path[pidx.wp_idx], "current waypoint", 1, 1, 0);
-    visualizer_->drawArrow(1, current_path[last_wp_idx], "current waypoint", 1, 0, 0);
-
-    next_wp_map_.pose = current_path[pidx.wp_idx];
-    next_wp_map_.header.stamp = ros::Time::now();
-
-    if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
-        throw new BehaviourEmergencyBreak(parent_);
-    }
-}
 
 
 //##### BEGIN BehaviourApproachTurningPoint
@@ -274,20 +225,26 @@ BehaviourApproachTurningPoint::BehaviourApproachTurningPoint(PathFollower &paren
     controller_->initApproachTurningPoint();
 }
 
-void BehaviourApproachTurningPoint::execute(int *status)
+Behaviour* BehaviourApproachTurningPoint::execute(int *status)
 {
-    initExecute(status);
+    Behaviour* next = initExecute(status);
+    if(next != this) {
+        return next;
+    }
 
     // check if point is reached
     //if(!done_) {
-    done_ = controller_->execBehaviourApproachTurningPoint(getPathWithPosition());
+    controller_->setPath(getPathWithPosition());
+    done_ = controller_->behaveApproachTurningPoint();
     //}
     if (done_) {
-        handleDone();
+        return handleDone();
     }
+
+    return this;
 }
 
-void BehaviourApproachTurningPoint::handleDone()
+Behaviour* BehaviourApproachTurningPoint::handleDone()
 {
     controller_->stopMotion();
 
@@ -296,6 +253,7 @@ void BehaviourApproachTurningPoint::handleDone()
        (std::abs(parent_.getVelocity().angular.z) > 0.01)) {
         ROS_INFO_THROTTLE(1, "WAITING until no more motion");
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+
     } else {
         ROS_INFO("Done at waypoint -> reset");
 
@@ -304,20 +262,20 @@ void BehaviourApproachTurningPoint::handleDone()
         opt.path_idx++;
         opt.wp_idx = 0;
 
-        controller_->reset();
-
         if(opt.path_idx < getSubPathCount()) {
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
-            throw new BehaviourOnLine(parent_);
+            return new BehaviourOnLine(parent_);
 
         } else {
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
-            throw new NullBehaviour;
+            return NULL;
         }
     }
+
+    return this;
 }
 
-void BehaviourApproachTurningPoint::getNextWaypoint()
+Behaviour* BehaviourApproachTurningPoint::selectNextWaypoint()
 {
     PathFollower::PathIndex& opt = getPathIndex();
     Path& current_path = getSubPath(opt.path_idx);
@@ -335,6 +293,8 @@ void BehaviourApproachTurningPoint::getNextWaypoint()
 
     if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
         *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
-        throw new BehaviourEmergencyBreak(parent_);
+        throw new EmergencyBreakException("Cannot transform next waypoint");
     }
+
+    return this;
 }

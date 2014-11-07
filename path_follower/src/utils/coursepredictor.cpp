@@ -1,6 +1,6 @@
 #include <path_follower/utils/coursepredictor.h>
 #include <path_follower/pathfollower.h>
-#include <path_follower/legacy/behaviours.h>
+#include <path_follower/utils/path_exceptions.h>
 
 #include <utils_general/MathHelper.h>
 #include <tf/tf.h>
@@ -48,8 +48,8 @@ Eigen::Vector2d CoursePredictor::predictDirectionOfMovement()
 
         Vector3d last_position;
         if ( !path_driver_->transformToLocal(last_pos_msg, last_position) ) {
-            path_driver_->getActiveBehaviour()->setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
-            throw new BehaviourEmergencyBreak(*path_driver_);
+            path_driver_->setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
+            throw EmergencyBreakException("cannot transform last known position");
         }
 
         // calculate direction of movement (current_pos - last_pos, where current_pos = 0)
@@ -89,8 +89,8 @@ Eigen::Vector2d CoursePredictor::smoothedDirection()
 
         geometry_msgs::PoseStamped local_msg;
         if ( !path_driver_->transformToLocal(line_direction_as_pose_msg, local_msg) ) {
-            path_driver_->getActiveBehaviour()->setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
-            throw new BehaviourEmergencyBreak(*path_driver_);
+            path_driver_->setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
+            throw EmergencyBreakException("cannot transform line");
         }
 
         tf::Quaternion rot;

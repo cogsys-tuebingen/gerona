@@ -2,18 +2,13 @@
 
 /// PROJECT
 #include <path_follower/pathfollower.h>
-#include <path_follower/legacy/behaviours.h>
 #include <utils_general/MathHelper.h>
+#include <path_follower/utils/path_exceptions.h>
 
 
 void RobotController::setStatus(int status)
 {
-    Behaviour* behaviour = path_driver_->getActiveBehaviour();
-    if(behaviour) {
-        behaviour->setStatus(status);
-    } else {
-        std::cerr << "cannot set status, behaviour is NULL" << std::endl;
-    }
+    path_driver_->setStatus(status);
 }
 
 void RobotController::setPath(PathWithPosition path)
@@ -25,7 +20,7 @@ void RobotController::setPath(PathWithPosition path)
     wp_pose.pose = path.nextWaypoint();
     if ( !path_driver_->transformToLocal( wp_pose, next_wp_local_)) {
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
-        throw new BehaviourEmergencyBreak(*path_driver_);
+        throw EmergencyBreakException("cannot transform path");
     }
 
     if (path_driver_->getOptions().use_path_lookout())
