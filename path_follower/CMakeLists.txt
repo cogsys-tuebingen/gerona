@@ -162,6 +162,7 @@ add_executable(path_follower_node
   src/legacy/robotcontroller_omnidrive_vv.cpp
   src/legacy/robotcontroller_omnidrive_orthexp.cpp
 
+  src/supervisor/supervisorchain.cpp
   src/supervisor/pathlookout.cpp
   src/supervisor/obstacletracker.cpp
   src/legacy/vector_field_histogram.cpp

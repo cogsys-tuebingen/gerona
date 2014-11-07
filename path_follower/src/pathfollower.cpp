@@ -29,7 +29,6 @@ static std::vector<int> OBSTACLE_IN_PATH = boost::assign::list_of(25)(25)(25);
 
 PathFollower::PathFollower(ros::NodeHandle &nh):
     controller_(NULL),
-    path_lookout_(this),
     course_predictor_(this),
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
@@ -76,6 +75,14 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     visualizer_ = Visualizer::getInstance();
 
 
+    // Initialize supervisors
+
+    if (opt_.use_path_lookout()) {
+        Supervisor::Ptr tmp(new PathLookout( opt_.use_obstacle_map() ));
+        supervisors_.addSupervisor(tmp);
+    }
+
+
     follow_path_server_.start();
     ROS_INFO("Initialisation done.");
 }
@@ -99,10 +106,7 @@ void PathFollower::followPathGoalCB()
     controller_->setVelocity(goalptr->velocity);
     setGoal(*goalptr);
 
-    // don't track obstacles of former paths.
-    if (opt_.use_path_lookout()) {
-        path_lookout_.reset();
-    }
+    supervisors_.notifyNewGoal();
 }
 
 void PathFollower::followPathPreemptCB()
@@ -119,16 +123,11 @@ void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
 void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan, bool isBack)
 {
     controller_->getObstacleDetector()->setScan(scan, isBack);
-    if (opt_.use_path_lookout())
-        path_lookout_.setScan(scan, isBack);
 }
 
 void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
 {
     controller_->getObstacleDetector()->setMap(map);
-
-    if (opt_.use_path_lookout())
-        path_lookout_.setMap(map);
 
     if(opt_.use_vfh()) {
         vfh_.setMap(*map);
@@ -255,15 +254,30 @@ void PathFollower::update()
             is_running_ = false;
             result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         }
-        else if (opt_.use_path_lookout() && path_lookout_.lookForObstacles(&feedback)) {
-            ROS_ERROR("path lookout sees collision");
-            is_running_ = false;
-            result.status = FollowPathResult::MOTION_STATUS_OBSTACLE;
-            // there's an obstacle ahead, pull the emergency break!
-            controller_->stopMotion();
-        }
-        else {
+//        else if (opt_.use_path_lookout() && path_lookout_.lookForObstacles(&feedback)) {
+//            ROS_ERROR("path lookout sees collision");
+//            is_running_ = false;
+//            result.status = FollowPathResult::MOTION_STATUS_OBSTACLE;
+//            // there's an obstacle ahead, pull the emergency break!
+//            controller_->stopMotion();
+//        }
+//        else {
+//            is_running_ = execute(feedback, result);
+//        }
+
+        // Ask supervisor whether path following can continue
+        Supervisor::State state(robot_pose_,
+                                getPathWithPosition(),
+                                feedback);
+
+        Supervisor::Result s_res = supervisors_.supervise(state);
+        if (s_res.can_continue) {
             is_running_ = execute(feedback, result);
+        } else {
+            ROS_ERROR("My supervisor told me to stop.");
+            is_running_ = false;
+            result.status = s_res.status;
+            controller_->stopMotion();
         }
 
 
@@ -286,6 +300,8 @@ void PathFollower::setStatus(int status)
 
 bool PathFollower::isObstacleAhead(double course)
 {
+    return false; //FIXME: Remove!!
+
     //! Factor which defines, how much the box is enlarged in curves.
     const float enlarge_factor = 0.5; // should this be a parameter?
 
@@ -345,11 +361,6 @@ RobotController *PathFollower::getController()
     return controller_;
 }
 
-PathLookout *PathFollower::getPathLookout()
-{
-    return &path_lookout_;
-}
-
 CoursePredictor &PathFollower::getCoursePredictor()
 {
     return course_predictor_;
@@ -372,6 +383,12 @@ const geometry_msgs::Pose &PathFollower::getRobotPoseMsg() const
     return robot_pose_msg_;
 }
 
+PathWithPosition::Ptr PathFollower::getPathWithPosition()
+{
+    Path *current_path = &paths_[path_idx_.path_idx];
+    return PathWithPosition::Ptr(new PathWithPosition(current_path, path_idx_.wp_idx));
+}
+
 void PathFollower::start()
 {
     path_idx_.reset();
@@ -379,6 +396,7 @@ void PathFollower::start()
     controller_->reset();
 
     controller_->start();
+    controller_->setPath(*getPathWithPosition());
 
     is_running_ = true;
 }

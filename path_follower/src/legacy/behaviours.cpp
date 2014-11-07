@@ -122,11 +122,9 @@ Behaviour* Behaviour::initExecute(int *status)
     return this;
 }
 
-PathWithPosition Behaviour::getPathWithPosition()
+PathWithPosition::Ptr Behaviour::getPathWithPosition()
 {
-    PathFollower::PathIndex& opt = getPathIndex();
-    Path& current_path = getSubPath(opt.path_idx);
-    return PathWithPosition(&current_path, opt.wp_idx);
+    return parent_.getPathWithPosition();
 }
 
 VectorFieldHistogram& Behaviour::getVFH()
@@ -161,7 +159,7 @@ Behaviour* BehaviourOnLine::execute(int *status)
         return next;
     }
 
-    controller_->setPath(getPathWithPosition());
+    controller_->setPath(*getPathWithPosition());
     controller_->behaveOnLine();
 
     return this;
@@ -234,7 +232,7 @@ Behaviour* BehaviourApproachTurningPoint::execute(int *status)
 
     // check if point is reached
     //if(!done_) {
-    controller_->setPath(getPathWithPosition());
+    controller_->setPath(*getPathWithPosition());
     done_ = controller_->behaveApproachTurningPoint();
     //}
     if (done_) {

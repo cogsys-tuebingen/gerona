@@ -15,8 +15,7 @@
 
 using namespace std;
 
-PathLookout::PathLookout(PathFollower *node):
-    node_(node),
+PathLookout::PathLookout(bool use_map):
     obstacle_frame_("/map")
 {
     #if DEBUG_PATHLOOKOUT
@@ -26,6 +25,15 @@ PathLookout::PathLookout(PathFollower *node):
     #endif
 
     visualizer_ = Visualizer::getInstance();
+
+    // FIXME: it is ugly, having to subscribe the same topic at different places...
+    ros::NodeHandle node_handle_;
+    if(use_map) {
+        obstacle_map_sub_ = node_handle_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, &PathLookout::setMap, this);
+    } else {
+        laser_front_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan/filtered", 10, boost::bind(&PathLookout::setScan, this, _1, false));
+        laser_back_sub_  = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10, boost::bind(&PathLookout::setScan, this, _1, true));
+    }
 }
 
 void PathLookout::setScan(const sensor_msgs::LaserScanConstPtr &msg, bool isBack)
@@ -72,15 +80,20 @@ void PathLookout::setPath(const PathWithPosition &path)
     }
 }
 
-bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
+void PathLookout::supervise(State &state, Supervisor::Result *out)
 {
+    setPath(*state.path);
+
+    // hope for the best
+    out->can_continue = true;
+
     if (!map_ && !front_scan_ && !back_scan_) {
         ROS_WARN_THROTTLE(1, "PathLookout has not received any map or scan yet. No obstacle lookout is done.");
-        return false;
+        return;
     }
     if (path_.empty()) {
         ROS_WARN_THROTTLE(1, "PathLookout has not received any path yet. No obstacle lookout is done.");
-        return false;
+        return;
     }
 
 
@@ -100,7 +113,8 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
 
     vector<ObstacleTracker::TrackedObstacle> tracked_obs = tracker_.getTrackedObstacles();
     if (tracked_obs.empty()) {
-        return false;
+        // no obstacles --> everything is fine.
+        return;
     }
 
 
@@ -111,8 +125,7 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
      */
 
     // Calculaten is done with cv::Points, so robot pose has to be converted.
-    Eigen::Vector3d robot_pose_eigen = node_->getRobotPose();
-    cv::Point2f robot_pos(robot_pose_eigen[0], robot_pose_eigen[1]);
+    cv::Point2f robot_pos(state.robot_pose[0], state.robot_pose[1]);
 
     vector<path_msgs::Obstacle> obstacle_msgs;
     obstacle_msgs.reserve(tracked_obs.size());
@@ -132,9 +145,7 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
 
 
     // report obstacles via feedback
-    if (feedback != NULL) {
-        feedback->obstacles_on_path = obstacle_msgs;
-    }
+    state.feedback.obstacles_on_path = obstacle_msgs;
 
 
     // visualize obstacles in rviz
@@ -159,7 +170,15 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
     // report obstacle, if the highest weight is higher than the defined limit.
     const float limit = 1.0f;
     ROS_DEBUG("Max Obstacle Weight: %g, limit: %g", max_weight, limit);
-    return max_weight > limit;
+    if (max_weight > limit) {
+        out->can_continue = false;
+        out->status = path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE;
+    }
+}
+
+void PathLookout::eventNewGoal()
+{
+    reset();
 }
 
 vector<Obstacle> PathLookout::lookForObstaclesInMap()

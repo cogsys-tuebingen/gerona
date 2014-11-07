@@ -54,6 +54,10 @@ typedef std::vector<Waypoint> Path;
 
 //! A simple wrapper for the current path and the id of the next waypoint on this path.
 struct PathWithPosition {
+    typedef boost::shared_ptr<PathWithPosition> Ptr;
+    typedef boost::shared_ptr<PathWithPosition const> ConstPtr;
+
+
     //! The current sub path
     Path *current_path;
     //! Index of the next waypoint

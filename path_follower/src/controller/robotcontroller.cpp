@@ -23,8 +23,8 @@ void RobotController::setPath(PathWithPosition path)
         throw EmergencyBreakException("cannot transform path");
     }
 
-    if (path_driver_->getOptions().use_path_lookout())
-        path_driver_->getPathLookout()->setPath(path);
+//    if (path_driver_->getOptions().use_path_lookout())
+//        path_driver_->getPathLookout()->setPath(path);
 }
 
 double RobotController::calculateAngleError()

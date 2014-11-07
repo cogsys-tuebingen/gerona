@@ -70,7 +70,7 @@ protected:
 
     Behaviour *initExecute(int *status);
 
-    PathWithPosition getPathWithPosition();
+    PathWithPosition::Ptr getPathWithPosition();
 
     virtual bool isLeavingPathAllowed() const
     {

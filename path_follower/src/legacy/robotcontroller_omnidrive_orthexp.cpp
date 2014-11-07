@@ -348,7 +348,7 @@ void RobotController_Omnidrive_OrthogonalExponential::start()
 RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::execute()
 {
     if(N < 2) {
-        ROS_ERROR("[Line] path is too short");
+        ROS_ERROR("[Line] path is too short (N = %d)", N);
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS);
 
         stopMotion();

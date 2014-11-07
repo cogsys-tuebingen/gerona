@@ -90,9 +90,9 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
         removeColumn(d_idx, mj_idx);
     }
 
-    ROS_DEBUG_NAMED("ObstacleTracker", "Matched %d obstacles", match_counter);
-    ROS_DEBUG_NAMED("ObstacleTracker", "Lost %zu obstacles", obstacles_.size() - match_counter);
-    ROS_DEBUG_NAMED("ObstacleTracker", "Droped %zu dead obstacles", dead_count);
+//    ROS_DEBUG_NAMED("ObstacleTracker", "Matched %d obstacles", match_counter);
+//    ROS_DEBUG_NAMED("ObstacleTracker", "Lost %zu obstacles", obstacles_.size() - match_counter);
+//    ROS_DEBUG_NAMED("ObstacleTracker", "Droped %zu dead obstacles", dead_count);
 
     // If there are unmatched obstacles in the observation, add them as new obstacles
     int add_counter = 0;
@@ -104,7 +104,7 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
         }
     }
 
-    ROS_DEBUG_NAMED("ObstacleTracker", "Added %d new obstacles", add_counter);
+//    ROS_DEBUG_NAMED("ObstacleTracker", "Added %d new obstacles", add_counter);
 }
 
 void ObstacleTracker::reset()

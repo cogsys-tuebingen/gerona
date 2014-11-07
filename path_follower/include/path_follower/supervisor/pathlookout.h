@@ -13,14 +13,13 @@
 #include <tf/transform_listener.h>
 
 /// PROJECT
+#include <path_follower/supervisor/supervisor.h>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/maptransformer.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/supervisor/obstacletracker.h>
 #include <path_msgs/FollowPathFeedback.h>
-
-class PathFollower;
 
 
 /**
@@ -37,23 +36,20 @@ class PathFollower;
  *    ~obstacle_scale_distance: Distance at which the robot stops, independed of the duration-weight.
  *    ~obstacle_scale_lifetime: Duration after which the robot stops, independend of the distance-weight.
  */
-class PathLookout
+class PathLookout : public Supervisor
 {
 public:
-    PathLookout(PathFollower *node);
+    PathLookout(bool use_map);
 
     void setScan(const sensor_msgs::LaserScanConstPtr &msg, bool isBack=false);
 
     void setMap(const nav_msgs::OccupancyGridConstPtr &msg);
 
-    //! Set the path, which is to be checked for obstacles.
-    void setPath(const PathWithPosition &path);
 
     //! Check if there is an obstacle on the path ahead of the robot, that gives a reason to cancel the current path.
-    /**
-     * @return True, if there is an obstacle that justifies the abortion of the path.
-     */
-    bool lookForObstacles(path_msgs::FollowPathFeedback *feedback);
+    virtual void supervise(State &state, Result *out);
+
+    virtual inline void eventNewGoal();
 
     //! Reset the obstacle tracker (should be called before starting a new path).
     void reset();
@@ -85,11 +81,14 @@ private:
     //! TF-Frame in which the obstacles are tracked (should be independent of the robots movement, thus /map is a good choise).
     std::string obstacle_frame_;
 
-    PathFollower *node_;
     MapTransformer map_trans_;
     ObstacleTracker tracker_;
     Visualizer *visualizer_;
     tf::TransformListener tf_listener_;
+
+    ros::Subscriber obstacle_map_sub_;
+    ros::Subscriber laser_front_sub_;
+    ros::Subscriber laser_back_sub_;
 
     sensor_msgs::LaserScanConstPtr front_scan_;
     sensor_msgs::LaserScanConstPtr back_scan_;
@@ -104,6 +103,10 @@ private:
 
     //! Mask image of the path
     cv::Mat path_image_;
+
+
+    //! Set the path, which is to be checked for obstacles.
+    void setPath(const PathWithPosition &path);
 
     std::vector<Obstacle> lookForObstaclesInMap();
 

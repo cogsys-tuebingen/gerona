@@ -23,7 +23,6 @@
 #include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
 #include <path_follower/legacy/vector_field_histogram.h>
 #include <path_follower/controller/robotcontroller.h>
-#include <path_follower/supervisor/pathlookout.h>
 #include <path_follower/utils/PidCtrl.h>
 #include <path_follower/legacy/vector_field_histogram.h>
 #include <path_follower/utils/visualizer.h>
@@ -31,7 +30,8 @@
 #include <path_follower/utils/coursepredictor.h>
 #include <path_follower/utils/parameters.h>
 
-
+#include <path_follower/supervisor/supervisorchain.h>
+#include <path_follower/supervisor/pathlookout.h>
 
 class PathFollower
 {
@@ -137,8 +137,6 @@ public:
 
     RobotController* getController();
 
-    PathLookout* getPathLookout();
-
     CoursePredictor &getCoursePredictor();
 
     //! Send 'text' to a text to speech processor.
@@ -146,6 +144,8 @@ public:
 
     Eigen::Vector3d getRobotPose() const;
     const geometry_msgs::Pose &getRobotPoseMsg() const;
+
+    PathWithPosition::Ptr getPathWithPosition();
 
     void setStatus(int status);
 
@@ -182,8 +182,7 @@ private:
     //! The robot controller is responsible for everything that is dependend on robot model and controller type.
     RobotController *controller_;
 
-    //! Look for obstacles on the path ahead of the robot.
-    PathLookout path_lookout_;
+    SupervisorChain supervisors_;
 
     //! Predict direction of movement for controlling and obstacle avoidance
     CoursePredictor course_predictor_;
