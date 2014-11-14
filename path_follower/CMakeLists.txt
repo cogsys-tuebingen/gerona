@@ -150,7 +150,7 @@ add_executable(path_follower_node
   src/utils/maptransformer.cpp
   src/utils/cubic_spline_interpolation.cpp
   src/utils/coursepredictor.cpp
-  include/path_follower/utils/path.h
+  src/utils/path.cpp
 
   src/obstacle_avoidance/obstacledetector.cpp
   src/obstacle_avoidance/obstacledetectorpolygon.cpp

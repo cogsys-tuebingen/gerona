@@ -57,11 +57,10 @@ protected:
 
     Behaviour(PathFollower& parent);
 
-    Path& getSubPath(unsigned index);
-    int getSubPathCount() const;
+    const SubPath &getCurrentSubPath();
+    size_t getSubPathCount() const;
     VectorFieldHistogram& getVFH();
     PathFollower::Options& getOptions();
-    PathFollower::PathIndex& getPathIndex();
     double distanceTo(const Waypoint& wp);
 
     //! Calculate the distance of the robot to the current path segment.
@@ -70,7 +69,7 @@ protected:
 
     Behaviour *initExecute(int *status);
 
-    PathWithPosition::Ptr getPathWithPosition();
+    Path::Ptr getPath();
 
     virtual bool isLeavingPathAllowed() const
     {

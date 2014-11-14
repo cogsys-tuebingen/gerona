@@ -37,7 +37,7 @@ public:
 
 
 protected:
-    virtual void setPath(PathWithPosition path);
+    virtual void setPath(Path::Ptr path);
 
     virtual void behaveOnLine();
 

@@ -17,14 +17,14 @@ public:
     {
         typedef boost::shared_ptr<State> Ptr;
 
-        State(const Eigen::Vector3d &robot_pose, PathWithPosition::ConstPtr path, path_msgs::FollowPathFeedback &feedback):
+        State(const Eigen::Vector3d &robot_pose, Path::ConstPtr path, path_msgs::FollowPathFeedback &feedback):
             robot_pose(robot_pose),
             path(path),
             feedback(feedback)
         {}
 
         const Eigen::Vector3d& robot_pose;
-        const PathWithPosition::ConstPtr path;
+        const Path::ConstPtr path;
 
         path_msgs::FollowPathFeedback &feedback;
     };

@@ -60,19 +60,19 @@ void PathLookout::setMap(const nav_msgs::OccupancyGridConstPtr &map)
     //map_image_.data = &map->data[0];  <- no copy, only references. Would be nice, but yields problems with const...
 }
 
-void PathLookout::setPath(const PathWithPosition &path)
+void PathLookout::setPath(Path::ConstPtr path)
 {
     // only use path from the last waypoint on ("do not look behind")
-    Path path_ahead;
-    if (path.wp_idx == 0) {
-        path_ahead = *path.current_path;
+    SubPath path_ahead;
+    if (path->getWaypointIndex() == 0) {
+        path_ahead = path->getCurrentSubPath();
     } else {
-        Path::const_iterator start = path.current_path->begin();
-        start += (path.wp_idx-1);
-        path_ahead.assign(start, (Path::const_iterator) path.current_path->end());
+        SubPath::const_iterator start = path->getCurrentSubPath().begin();
+        start += (path->getWaypointIndex()-1);
+        path_ahead.assign(start, (SubPath::const_iterator) path->getCurrentSubPath().end());
     }
 
-    path_ = path_ahead;
+    path_ = path_ahead; //TODO: is it possible to do this without copy?
 
     // if there is no map yet, we do not know the size of the path image (and do not need it anyway)
     if (map_) {
@@ -82,7 +82,7 @@ void PathLookout::setPath(const PathWithPosition &path)
 
 void PathLookout::supervise(State &state, Supervisor::Result *out)
 {
-    setPath(*state.path);
+    setPath(state.path);
 
     // hope for the best
     out->can_continue = true;
@@ -334,7 +334,7 @@ void PathLookout::reset()
     tracker_.reset();
 }
 
-void PathLookout::drawPathToImage(const Path &path)
+void PathLookout::drawPathToImage(const SubPath &path)
 {
     /// This method assumes, that the map is already set!
 
@@ -353,7 +353,7 @@ void PathLookout::drawPathToImage(const Path &path)
 
     int path_width_pixel = (int) ceil(opt_.path_width() / map_->info.resolution);
 
-    Path::const_iterator iter = path.begin();
+    SubPath::const_iterator iter = path.begin();
     try {
         // get first point
         cv::Point2f p1(iter->x, iter->y);

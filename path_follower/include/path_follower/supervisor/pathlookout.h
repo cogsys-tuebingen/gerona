@@ -99,14 +99,14 @@ private:
     //! Current map converted to cv::Mat.
     cv::Mat map_image_;
 
-    Path path_;
+    SubPath path_;
 
     //! Mask image of the path
     cv::Mat path_image_;
 
 
     //! Set the path, which is to be checked for obstacles.
-    void setPath(const PathWithPosition &path);
+    void setPath(Path::ConstPtr path);
 
     std::vector<Obstacle> lookForObstaclesInMap();
 
@@ -116,7 +116,7 @@ private:
 
     //! draw the path to the path image (assumes, that map is already set!)
     /** @see path_image_ */
-    void drawPathToImage(const Path &path);
+    void drawPathToImage(const SubPath &path);
 
     //! Compute weight for the given obstacle, depending on its distance to the robot and its lifetime.
     float weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const;

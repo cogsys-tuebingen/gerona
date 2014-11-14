@@ -62,7 +62,7 @@ void RobotController_Omnidrive_VirtualVehicle::stopMotion()
     publishCommand();
 }
 
-void RobotController_Omnidrive_VirtualVehicle::setPath(PathWithPosition path)
+void RobotController_Omnidrive_VirtualVehicle::setPath(Path::Ptr path)
 {
     RobotController::setPath(path);
 
@@ -74,7 +74,7 @@ void RobotController_Omnidrive_VirtualVehicle::setPath(PathWithPosition path)
 
     initialized = true;
 
-    const std::vector<Waypoint>& waypoints = *path_.current_path;
+    const SubPath& waypoints = path_->getCurrentSubPath();
 
     std::vector<double> X, Y;
 

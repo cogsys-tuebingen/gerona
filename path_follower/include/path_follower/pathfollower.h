@@ -39,21 +39,6 @@ class PathFollower
 public:
     friend class Behaviour;
 
-    struct PathIndex //TODO: better name...
-    {
-        PathIndex()
-        { reset(); }
-
-        void reset() {
-            path_idx = 0;
-            wp_idx = 0;
-        }
-
-        int path_idx;
-        int wp_idx;
-    };
-
-
     struct Options : public Parameters
     {
         P<std::string> controller;
@@ -145,7 +130,7 @@ public:
     Eigen::Vector3d getRobotPose() const;
     const geometry_msgs::Pose &getRobotPoseMsg() const;
 
-    PathWithPosition::Ptr getPathWithPosition();
+    Path::Ptr getPath();
 
     void setStatus(int status);
 
@@ -193,7 +178,6 @@ private:
     Visualizer* visualizer_;
 
     Options opt_;
-    PathIndex path_idx_;
 
     //! The last received odometry message.
     nav_msgs::Odometry odometry_;
@@ -203,10 +187,8 @@ private:
     //! Current pose of the robot as geometry_msgs pose.
     geometry_msgs::Pose robot_pose_msg_;
 
-    //! Full path
-    nav_msgs::Path path_;
     //! Path as a list of separated subpaths
-    std::vector<Path> paths_;
+    Path::Ptr paths_;
 
     //! If set to a value >= 0, path execution is stopped in the next iteration. The value of pending_error_ is used as status code.
     int pending_error_;
@@ -256,7 +238,7 @@ private:
     void setPath(const nav_msgs::Path& path);
 
     //! Split path into subpaths at turning points.
-    void findSegments(bool only_one_segment);
+    void findSegments(const nav_msgs::Path& path, bool only_one_segment);
 };
 
 #endif // PATHFOLLOWER_H

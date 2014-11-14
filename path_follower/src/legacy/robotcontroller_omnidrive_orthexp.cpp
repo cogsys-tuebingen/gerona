@@ -129,7 +129,7 @@ void RobotController_Omnidrive_OrthogonalExponential::lookAtCommand(const std_ms
     }
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::setPath(PathWithPosition path)
+void RobotController_Omnidrive_OrthogonalExponential::setPath(Path::Ptr path)
 {
     RobotController::setPath(path);
 
@@ -239,7 +239,7 @@ void RobotController_Omnidrive_OrthogonalExponential::clearBuffers()
 void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
 {
     std::deque<Waypoint> waypoints;
-    waypoints.insert(waypoints.end(), path_.current_path->begin(), path_.current_path->end());
+    waypoints.insert(waypoints.end(), path_->getCurrentSubPath().begin(), path_->getCurrentSubPath().end());
 
     // (messy) hack!!!!!
     // remove waypoints that are closer than 0.1 meters to the starting point

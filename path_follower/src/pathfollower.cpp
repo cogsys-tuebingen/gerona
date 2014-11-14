@@ -32,6 +32,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     course_predictor_(this),
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
+    paths_(new Path),
     pending_error_(-1),
     last_beep_(ros::Time::now()),
     beep_pause_(2.0),
@@ -267,7 +268,7 @@ void PathFollower::update()
 
         // Ask supervisor whether path following can continue
         Supervisor::State state(robot_pose_,
-                                getPathWithPosition(),
+                                getPath(),
                                 feedback);
 
         Supervisor::Result s_res = supervisors_.supervise(state);
@@ -327,8 +328,7 @@ bool PathFollower::isObstacleAhead(double course)
 
     //ROS_DEBUG("Collision Box: v = %g -> len = %g", v, box_length);
 
-    Path& current_path = paths_[path_idx_.path_idx];
-    double distance_to_goal = current_path.back().distanceTo(current_path[path_idx_.wp_idx]);
+    double distance_to_goal = paths_->getCurrentSubPath().back().distanceTo(paths_->getCurrentWaypoint());
 
     if(box_length > distance_to_goal) {
         box_length = distance_to_goal + 0.2;
@@ -383,20 +383,19 @@ const geometry_msgs::Pose &PathFollower::getRobotPoseMsg() const
     return robot_pose_msg_;
 }
 
-PathWithPosition::Ptr PathFollower::getPathWithPosition()
+Path::Ptr PathFollower::getPath()
 {
-    Path *current_path = &paths_[path_idx_.path_idx];
-    return PathWithPosition::Ptr(new PathWithPosition(current_path, path_idx_.wp_idx));
+    return paths_;
 }
 
 void PathFollower::start()
 {
-    path_idx_.reset();
+    //path_idx_.reset();
 
     controller_->reset();
 
     controller_->start();
-    controller_->setPath(*getPathWithPosition());
+    controller_->setPath(getPath());
 
     is_running_ = true;
 }
@@ -431,7 +430,7 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
         return DONE;
     }
 
-    if(paths_.empty()) {
+    if(paths_->empty()) {
         controller_->reset();
         result.status = FollowPathResult::MOTION_STATUS_SUCCESS;
         ROS_WARN("no path");
@@ -489,32 +488,31 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
 
 void PathFollower::setPath(const nav_msgs::Path& path)
 {
-    path_ = path;
-
-    paths_.clear();
+    paths_->clear();
 
     // find segments
-    findSegments(getController()->isOmnidirectional());
+    findSegments(path, getController()->isOmnidirectional());
 
     controller_->reset();
 }
 
-void PathFollower::findSegments(bool only_one_segment)
+void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segment)
 {
-    unsigned n = path_.poses.size();
+    unsigned n = path.poses.size();
     if(n < 2) {
         return;
     }
 
-    Path current_segment;
+    vector<SubPath> subpaths;
+    SubPath current_segment;
 
-    Waypoint last_point(path_.poses[0]);
+    Waypoint last_point(path.poses[0]);
     current_segment.push_back(last_point);
 
     int id = 0;
 
     for(unsigned i = 1; i < n; ++i){
-        const Waypoint current_point(path_.poses[i]);
+        const Waypoint current_point(path.poses[i]);
 
         // append to current segment
         current_segment.push_back(current_point);
@@ -527,7 +525,7 @@ void PathFollower::findSegments(bool only_one_segment)
             segment_ends_with_this_node = true;
 
         } else {
-            const Waypoint next_point(path_.poses[i+1]);
+            const Waypoint next_point(path.poses[i+1]);
 
             // if angle between last direction and next direction to large -> segment ends
             double diff_last_x = current_point.x - last_point.x;
@@ -554,7 +552,7 @@ void PathFollower::findSegments(bool only_one_segment)
             visualizer_->drawMark(id++, ((geometry_msgs::Pose)current_point).position, "paths", 0.2,0.2,0.2);
 
 
-            paths_.push_back(current_segment);
+            subpaths.push_back(current_segment);
             current_segment.clear();
 
             if(!is_the_last_node) {
@@ -566,6 +564,8 @@ void PathFollower::findSegments(bool only_one_segment)
 
         last_point = current_point;
     }
+
+    paths_->setPath(subpaths);
 }
 
 void PathFollower::beep(const std::vector<int> &beeps)

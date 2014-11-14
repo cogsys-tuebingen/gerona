@@ -84,7 +84,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
     double threshold = 5.0;
     double threshold_max_distance = 3.5 /*m*/;
 
-    double distance_to_goal = path_.current_path->back().distanceTo(path_.nextWaypoint());
+    double distance_to_goal = path_->getCurrentSubPath().back().distanceTo(path_->getCurrentWaypoint());
     double threshold_distance = std::min(threshold_max_distance,
                                          std::max((double) path_driver_opt.collision_box_min_length(), distance_to_goal));
 
@@ -278,7 +278,7 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
     ROS_DEBUG("Approach: e_dist = %g, e_angle = %g  ==>  e_comb = %g", e_distance, e_angle, e_combined);
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_.nextWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
+        visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_->getCurrentWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
 
         // draw steer front
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
@@ -332,10 +332,10 @@ double RobotController_Ackermann_Pid::calculateLineError()
     geometry_msgs::PoseStamped followup_next_wp_map;
     followup_next_wp_map.header.stamp = ros::Time::now();
 
-    if(path_.wp_idx + 1 == path_.current_path->size()) {
-        followup_next_wp_map.pose = path_.getWaypoint(path_.wp_idx - 1);
+    if(path_->getWaypointIndex() + 1 == path_->getCurrentSubPath().size()) {
+        followup_next_wp_map.pose = path_->getWaypoint(path_->getWaypointIndex() - 1);
     } else {
-        followup_next_wp_map.pose = path_.getWaypoint(path_.wp_idx + 1);
+        followup_next_wp_map.pose = path_->getWaypoint(path_->getWaypointIndex() + 1);
     }
 
     Line2d target_line;

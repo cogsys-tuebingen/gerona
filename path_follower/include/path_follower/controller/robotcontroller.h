@@ -61,7 +61,7 @@ public:
     virtual void reset() {}
 
 
-    virtual void setPath(PathWithPosition path);
+    virtual void setPath(Path::Ptr path);
 
     /* BEHAVIOURS */
     //! Initialize the OnLine-Behaviour
@@ -98,8 +98,8 @@ protected:
     //! Indicates the direction of movement (>0 -> forward, <0 -> backward)
     float dir_sign_;
 
-    //! Current subpath.
-    PathWithPosition path_;
+    //! Current path.
+    Path::Ptr path_;
     //! The next waypoint in the robot frame (set by setPath).
     Eigen::Vector3d next_wp_local_;
 
