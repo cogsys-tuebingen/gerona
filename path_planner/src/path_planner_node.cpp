@@ -176,8 +176,8 @@ struct PathPlanner : public Planner
     //typedef AStarNoOrientationSearch<> AStar;
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100> > AStar;
     //typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStar;
-//    typedef AStarSearch<NHNeighbor> AStar; // Ackermann
-    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStar; // Omnidrive
+    typedef AStarSearch<NHNeighbor> AStar; // Ackermann
+//    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStar; // Omnidrive
 
     typedef AStar::PathT PathT;
 

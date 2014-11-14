@@ -30,11 +30,11 @@ Behaviour::Behaviour(PathFollower &parent):
 const SubPath& Behaviour::getCurrentSubPath()
 {
     //return parent_.paths_[index];
-    return parent_.paths_->getCurrentSubPath();
+    return parent_.path_->getCurrentSubPath();
 }
 size_t Behaviour::getSubPathCount() const
 {
-    return parent_.paths_->subPathCount();
+    return parent_.path_->subPathCount();
 }
 
 double Behaviour::distanceTo(const Waypoint& wp)

@@ -4,6 +4,7 @@
  * @brief Some simple classes to represent a path.
  */
 
+#include <boost/function.hpp>
 #include <geometry_msgs/Pose.h>
 #include <tf/tf.h>
 #include <Eigen/Core>
@@ -64,10 +65,12 @@ class Path {
 public:
     typedef boost::shared_ptr<Path> Ptr;
     typedef boost::shared_ptr<Path const> ConstPtr;
+    typedef boost::function<void ()> NextWaypointCallback_t;
 
 
     Path():
-        current_sub_path(path_.begin())
+        current_sub_path(path_.begin()),
+        has_callback_(false)
     {}
 
     //! Clear path and reset current subpath/waypoint.
@@ -76,6 +79,19 @@ public:
     //! Set a new path. Current sub path and waypoint are set to the
     //! beginning of the path
     void setPath(const std::vector<SubPath> &path);
+
+    /**
+     * @brief Register callback function for next waypoint event.
+     *
+     * If set, the specified callback function is called every time
+     * the current waypoint changes.
+     * There can only be one function at the same time. Thus, if the
+     * method is called twice, the second callback will replace the
+     * first.
+     *
+     * @param func
+     */
+    void registerNextWaypointCallback(NextWaypointCallback_t func);
 
     //! Switch to the first waypoint in the next sub path.
     void switchToNextSubPath();
@@ -129,6 +145,11 @@ private:
     std::vector<SubPath> path_;
     std::vector<SubPath>::const_iterator current_sub_path;
     size_t next_waypoint_idx_; //TODO: maybe use here iterator like for path?
+
+    NextWaypointCallback_t next_wp_callback_;
+    bool has_callback_;
+
+    inline void fireNextWaypointCallback() const;
 };
 
 

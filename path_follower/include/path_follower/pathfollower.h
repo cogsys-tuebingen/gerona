@@ -188,7 +188,7 @@ private:
     geometry_msgs::Pose robot_pose_msg_;
 
     //! Path as a list of separated subpaths
-    Path::Ptr paths_;
+    Path::Ptr path_;
 
     //! If set to a value >= 0, path execution is stopped in the next iteration. The value of pending_error_ is used as status code.
     int pending_error_;

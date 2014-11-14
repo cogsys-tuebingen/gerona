@@ -32,7 +32,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     course_predictor_(this),
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
-    paths_(new Path),
+    path_(new Path),
     pending_error_(-1),
     last_beep_(ros::Time::now()),
     beep_pause_(2.0),
@@ -76,7 +76,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     visualizer_ = Visualizer::getInstance();
 
 
-    // Initialize supervisors
+    /*** Initialize supervisors ***/
+
+    // register callback for new waypoint event.
+    path_->registerNextWaypointCallback(boost::bind(&SupervisorChain::notifyNewWaypoint, &supervisors_));
 
     if (opt_.use_path_lookout()) {
         Supervisor::Ptr tmp(new PathLookout( opt_.use_obstacle_map() ));
@@ -255,16 +258,6 @@ void PathFollower::update()
             is_running_ = false;
             result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
         }
-//        else if (opt_.use_path_lookout() && path_lookout_.lookForObstacles(&feedback)) {
-//            ROS_ERROR("path lookout sees collision");
-//            is_running_ = false;
-//            result.status = FollowPathResult::MOTION_STATUS_OBSTACLE;
-//            // there's an obstacle ahead, pull the emergency break!
-//            controller_->stopMotion();
-//        }
-//        else {
-//            is_running_ = execute(feedback, result);
-//        }
 
         // Ask supervisor whether path following can continue
         Supervisor::State state(robot_pose_,
@@ -328,7 +321,7 @@ bool PathFollower::isObstacleAhead(double course)
 
     //ROS_DEBUG("Collision Box: v = %g -> len = %g", v, box_length);
 
-    double distance_to_goal = paths_->getCurrentSubPath().back().distanceTo(paths_->getCurrentWaypoint());
+    double distance_to_goal = path_->getCurrentSubPath().back().distanceTo(path_->getCurrentWaypoint());
 
     if(box_length > distance_to_goal) {
         box_length = distance_to_goal + 0.2;
@@ -385,7 +378,7 @@ const geometry_msgs::Pose &PathFollower::getRobotPoseMsg() const
 
 Path::Ptr PathFollower::getPath()
 {
-    return paths_;
+    return path_;
 }
 
 void PathFollower::start()
@@ -430,7 +423,7 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
         return DONE;
     }
 
-    if(paths_->empty()) {
+    if(path_->empty()) {
         controller_->reset();
         result.status = FollowPathResult::MOTION_STATUS_SUCCESS;
         ROS_WARN("no path");
@@ -438,7 +431,6 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
     }
 
     visualizer_->drawArrow(0, getRobotPoseMsg(), "slam pose", 2.0, 0.7, 1.0);
-
 
     RobotController::ControlStatus status = controller_->execute();
 
@@ -488,7 +480,7 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
 
 void PathFollower::setPath(const nav_msgs::Path& path)
 {
-    paths_->clear();
+    path_->clear();
 
     // find segments
     findSegments(path, getController()->isOmnidirectional());
@@ -565,7 +557,7 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
         last_point = current_point;
     }
 
-    paths_->setPath(subpaths);
+    path_->setPath(subpaths);
 }
 
 void PathFollower::beep(const std::vector<int> &beeps)

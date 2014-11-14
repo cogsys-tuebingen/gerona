@@ -15,24 +15,34 @@ void Path::setPath(const std::vector<SubPath> &path)
     next_waypoint_idx_ = 0;
 }
 
+void Path::registerNextWaypointCallback(NextWaypointCallback_t func)
+{
+    next_wp_callback_ = func;
+    has_callback_ = true;
+}
+
 void Path::switchToNextSubPath()
 {
     // only proceed, if there is a next sub path
     if (current_sub_path != path_.end()) {
         ++current_sub_path;
         next_waypoint_idx_ = 0;
+        fireNextWaypointCallback();
     }
 }
 
 void Path::switchToNextWaypoint()
 {
-    if (!isSubPathDone())
+    if (!isSubPathDone()) {
         ++next_waypoint_idx_;
+        fireNextWaypointCallback();
+    }
 }
 
 void Path::switchToLastWaypoint()
 {
     next_waypoint_idx_ = current_sub_path->size() - 1;
+    fireNextWaypointCallback();
 }
 
 bool Path::empty() const
@@ -83,4 +93,11 @@ const Waypoint &Path::getLastWaypoint() const
 size_t Path::getWaypointIndex() const
 {
     return next_waypoint_idx_;
+}
+
+void Path::fireNextWaypointCallback() const
+{
+    if (has_callback_) {
+        next_wp_callback_();
+    }
 }
