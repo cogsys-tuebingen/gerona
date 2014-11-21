@@ -31,7 +31,6 @@
 #include <path_follower/utils/parameters.h>
 
 #include <path_follower/supervisor/supervisorchain.h>
-#include <path_follower/supervisor/pathlookout.h>
 
 class PathFollower
 {

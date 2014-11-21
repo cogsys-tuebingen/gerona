@@ -17,6 +17,9 @@
 #include <path_follower/legacy/robotcontroller_ackermann_pid.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_vv.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
+// Supervisors
+#include <path_follower/supervisor/pathlookout.h>
+#include <path_follower/supervisor/waypointtimeout.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -85,6 +88,11 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         Supervisor::Ptr tmp(new PathLookout( opt_.use_obstacle_map() ));
         supervisors_.addSupervisor(tmp);
     }
+
+    double wpto;
+    ros::param::param<double>("~waypoint_timeout", wpto, 10.0); //TODO: wrap all these param accesses with Parameters class
+    Supervisor::Ptr waypoint_timeout(new WaypointTimeout(ros::Duration(wpto)));
+    supervisors_.addSupervisor(waypoint_timeout);
 
 
     follow_path_server_.start();

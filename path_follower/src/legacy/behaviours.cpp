@@ -20,11 +20,6 @@ Behaviour::Behaviour(PathFollower &parent):
     controller_(parent.getController())
 {
     visualizer_ = Visualizer::getInstance();
-
-    double wpto;
-    ros::param::param<double>("~waypoint_timeout", wpto, 10.0); //TODO: wrap all these param accesses with Parameters class
-    waypoint_timeout.duration = ros::Duration(wpto);
-    waypoint_timeout.reset();
 }
 
 const SubPath& Behaviour::getCurrentSubPath()
@@ -92,13 +87,6 @@ Behaviour* Behaviour::initExecute(int *status)
     Behaviour* next_behaviour = selectNextWaypoint();
     if(next_behaviour != this) {
         return next_behaviour;
-    }
-
-    if (waypoint_timeout.isExpired()) {
-        ROS_WARN("Waypoint Timeout! The robot did not reach the next waypoint within %g sec. Abort path execution.",
-                 waypoint_timeout.duration.toSec());
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_TIMEOUT;
-        return new BehaviourEmergencyBreak(parent_);
     }
 
     if (!isLeavingPathAllowed()) {
@@ -182,8 +170,6 @@ Behaviour* BehaviourOnLine::selectNextWaypoint()
         else {
             // else choose next wp
             path->switchToNextWaypoint();
-
-            waypoint_timeout.reset();
         }
     }
 

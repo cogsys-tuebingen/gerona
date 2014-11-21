@@ -165,6 +165,7 @@ add_executable(path_follower_node
   src/supervisor/supervisorchain.cpp
   src/supervisor/pathlookout.cpp
   src/supervisor/obstacletracker.cpp
+  src/supervisor/waypointtimeout.cpp
   src/legacy/vector_field_histogram.cpp
 
   src/alglib/interpolation.cpp

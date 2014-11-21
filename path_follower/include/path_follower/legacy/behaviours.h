@@ -17,28 +17,6 @@ public:
     void setStatus(int status);
 
 protected:
-    //! Very simple timeout class.
-    class Timeout {
-    public:
-        Timeout() {
-            reset();
-        }
-
-        ros::Duration duration;
-
-        void reset() {
-            started = ros::Time::now();
-        }
-
-        bool isExpired() {
-            return (started + duration) < ros::Time::now();
-        }
-
-    private:
-        ros::Time started;
-    };
-
-
     PathFollower& parent_;
     RobotController* controller_;
     int* status_ptr_;
@@ -48,9 +26,6 @@ protected:
 
     //! Pose of the next waypoint in robot frame.
     Vector3d next_wp_local_;
-
-    //! Timeout to abort, if the robot takes to long to reach the next waypoint.
-    Timeout waypoint_timeout;
 
     Visualizer* visualizer_;
 
