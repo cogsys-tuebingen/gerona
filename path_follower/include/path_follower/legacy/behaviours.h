@@ -38,10 +38,6 @@ protected:
     PathFollower::Options& getOptions();
     double distanceTo(const Waypoint& wp);
 
-    //! Calculate the distance of the robot to the current path segment.
-    double calculateDistanceToCurrentPathSegment();
-
-
     Behaviour *initExecute(int *status);
 
     Path::Ptr getPath();

@@ -20,6 +20,7 @@
 // Supervisors
 #include <path_follower/supervisor/pathlookout.h>
 #include <path_follower/supervisor/waypointtimeout.h>
+#include <path_follower/supervisor/distancetopathsupervisor.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -89,10 +90,14 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         supervisors_.addSupervisor(tmp);
     }
 
+    // Waypoint timeout
     double wpto;
     ros::param::param<double>("~waypoint_timeout", wpto, 10.0); //TODO: wrap all these param accesses with Parameters class
     Supervisor::Ptr waypoint_timeout(new WaypointTimeout(ros::Duration(wpto)));
     supervisors_.addSupervisor(waypoint_timeout);
+
+    // Distance to path
+    supervisors_.addSupervisor(Supervisor::Ptr(new DistanceToPathSupervisor(opt_.max_distance_to_path())));
 
 
     follow_path_server_.start();

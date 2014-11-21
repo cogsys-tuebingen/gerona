@@ -38,42 +38,6 @@ double Behaviour::distanceTo(const Waypoint& wp)
     return hypot(pose(0) - wp.x, pose(1) - wp.y);
 }
 
-double Behaviour::calculateDistanceToCurrentPathSegment()
-{
-    /* Calculate line from last way point to current way point (which should be the line the robot is driving on)
-     * and calculate the distance of the robot to this line.
-     */
-
-    Path::Ptr path = getPath();
-
-    // Get previous waypoint
-    // If the current waypoint is the first in this sub path (i.e. index == 0), use the next
-    // instead. (I am not absolutly sure if this a good behaviour, so observe this via debug-output).
-    int wp1_idx = 0;
-    if (path->getWaypointIndex() > 0) {
-        wp1_idx = path->getWaypointIndex() - 1;
-    } else {
-        // if wp_idx == 0, use the segment from 0th to 1st waypoint.
-        wp1_idx = 1;
-
-        ROS_DEBUG("Toggle waypoints as wp_idx == 0 in calculateDistanceToCurrentPathSegment() (%s, line %d)", __FILE__, __LINE__);
-    }
-
-    geometry_msgs::Pose wp1 = path->getWaypoint(wp1_idx);
-    geometry_msgs::Pose wp2 = path->getCurrentWaypoint();
-
-    // line from last waypoint to current one.
-    Line2d segment_line(Vector2d(wp1.position.x, wp1.position.y), Vector2d(wp2.position.x, wp2.position.y));
-
-    ///// visualize start and end point of the current segment (for debugging)
-    visualizer_->drawMark(24, wp1.position, "segment_marker", 0, 1, 1);
-    visualizer_->drawMark(25, wp2.position, "segment_marker", 1, 0, 1);
-    /////
-
-    // get distance of robot (slam_pose_) to segment_line.
-    return segment_line.GetDistance(parent_.getRobotPose().head<2>());
-}
-
 void Behaviour::setStatus(int status)
 {
     *status_ptr_ = status;
@@ -85,26 +49,12 @@ Behaviour* Behaviour::initExecute(int *status)
     status_ptr_ = status;
 
     Behaviour* next_behaviour = selectNextWaypoint();
-    if(next_behaviour != this) {
-        return next_behaviour;
-    }
+    return next_behaviour;
 
-    if (!isLeavingPathAllowed()) {
-        double dist = calculateDistanceToCurrentPathSegment();
-        //ROS_DEBUG("Distance to current path segment: %g m", dist);
-        if (dist > getOptions().max_distance_to_path()) {
-            parent_.say("abort: too far away!");
-
-            ROS_WARN("Moved too far away from the path (%g m, limit: %g m). Abort.",
-                     calculateDistanceToCurrentPathSegment(),
-                     getOptions().max_distance_to_path());
-
-            setStatus(path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST);
-            return new BehaviourEmergencyBreak(parent_);
-        }
-    }
-
-    return this;
+//    if(next_behaviour != this) {
+//        return next_behaviour;
+//    }
+//    return this;
 }
 
 Path::Ptr Behaviour::getPath()
