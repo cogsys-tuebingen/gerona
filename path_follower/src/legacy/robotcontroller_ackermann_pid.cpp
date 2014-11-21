@@ -67,7 +67,7 @@ void RobotController_Ackermann_Pid::configure()
 
 bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 {
-    PathFollower::Options path_driver_opt = path_driver_->getOptions();
+    PathFollowerParameters path_driver_opt = path_driver_->getOptions();
 
     double delta_f_raw = 0;
 

@@ -18,9 +18,11 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   cmake_modules
   laser_geometry
+  pcl_ros
 )
 
 find_package(OpenCV REQUIRED)
+find_package(PCL REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -115,6 +117,7 @@ include_directories(
   ${EIGEN_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
 
 
@@ -186,7 +189,7 @@ add_executable(path_follower_node
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)
 target_link_libraries(path_follower_node
-  ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES} ${PCL_LIBRARIES}
 )
 
 add_executable(test_obstacle_tracker

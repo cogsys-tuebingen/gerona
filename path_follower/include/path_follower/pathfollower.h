@@ -19,6 +19,7 @@
 /// PROJECT
 #include <path_msgs/FollowPathAction.h>
 #include <utils_general/Global.h>
+#include <path_follower/pathfollowerparameters.h>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
 #include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
 #include <path_follower/legacy/vector_field_histogram.h>
@@ -34,72 +35,7 @@
 
 class PathFollower
 {
-
-public:
     friend class Behaviour;
-
-    struct Options : public Parameters
-    {
-        P<std::string> controller;
-        P<double> wp_tolerance;
-        P<double> goal_tolerance;
-        P<float> min_velocity;
-        P<float> max_velocity;
-        P<double> steer_slow_threshold;
-        P<double> max_distance_to_path;
-        P<float> collision_box_width;
-        P<float> collision_box_min_length;
-        P<float> collision_box_crit_length;
-        P<float> collision_box_max_length;
-        P<float> collision_box_velocity_factor;
-        P<float> collision_box_velocity_saturation;
-        P<std::string> world_frame;
-        P<std::string> robot_frame;
-        P<bool> use_obstacle_map;
-        P<bool> use_vfh;
-        P<bool> use_path_lookout;
-        P<bool> abort_if_obstacle_ahead;
-
-        Options():
-            controller(this, "~controller", "ackermann_pid", "Defines, which controller is used."),
-            wp_tolerance(this,  "~waypoint_tolerance",  0.20 , ""),
-            goal_tolerance(this,  "~goal_tolerance",  0.15 , ""),
-            steer_slow_threshold(this,  "~steer_slow_threshold",  0.25 , ""),
-            max_distance_to_path(this,  "~max_distance_to_path",  0.3 , "Maximum distance the robot is allowed to depart from the path. If this threshold is exceeded, the path follower will abort."),
-
-            world_frame(this, "~world_frame",  "/map", "Name of the world frame."),
-            robot_frame(this, "~robot_frame",  "/base_link", "Name of the robot frame."),
-
-            use_obstacle_map(this, "~use_obstacle_map",  false, "If set to true, the obstacle map is used for obstacle detection, otherwise the laser scans."),
-            use_vfh(this, "~use_vfh",  false, "If set to true, vector field histogram is used for collision avoidance."),
-            use_path_lookout(this, "~use_path_lookout",  true, "If set to true, path lookout is done (check if there are obstacles somewhere on the path ahead of the robot)."),
-
-            min_velocity(this,  "~min_velocity",  0.4 , "Minimum speed of the robot (needed, as the outdoor buggys can't handle velocities below about 0.3)."),
-            max_velocity(this,  "~max_velocity",  2.0 , "Maximum velocity (to prevent the high level control from running amok)."),
-
-            collision_box_width(this,  "~collision_box_width",  0.5, "Width of the collision box for obstacle avoidance."),
-            collision_box_min_length(this,  "~collision_box_min_length",  0.5, "Minimum length of the collision box for obstacle avoidance (grows with increasing velocity)."),
-            collision_box_crit_length(this,  "~collision_box_crit_length",  0.3, ""),
-            collision_box_max_length(this,  "~collision_box_max_length",  1.0, "Maximum length of the collision box for obstacle avoidance."),
-            collision_box_velocity_factor(this,  "~collision_box_velocity_factor",  1.0, "This factor determines, how much the length of the box is increased, depending on the velocity."),
-            collision_box_velocity_saturation(this,  "~collision_box_velocity_saturation",  max_velocity(), "The velocity for which the maximum length should be used."),
-            abort_if_obstacle_ahead(this, "~abort_if_obstacle_ahead",  false, "If set to true, path execution is aborted, if an obstacle is detected on front of the robot. If false, the robot will stop, but not abort (the obstacle might move away).")
-        {
-            if(max_velocity() < min_velocity()) {
-                ROS_ERROR("min velocity larger than max velocity!");
-                max_velocity.set(min_velocity());
-            }
-            if(collision_box_max_length() < collision_box_min_length()) {
-                ROS_ERROR("min length larger than max length!");
-                collision_box_min_length.set(collision_box_max_length());
-            }
-            if(collision_box_min_length() < collision_box_crit_length()) {
-                ROS_ERROR("min length smaller than crit length!");
-                collision_box_crit_length.set(collision_box_min_length());
-            }
-        }
-    };
-
 
 public:
     PathFollower(ros::NodeHandle &nh);
@@ -133,7 +69,7 @@ public:
 
     void setStatus(int status);
 
-    const PathFollower::Options &getOptions() const
+    const PathFollowerParameters &getOptions() const
     {
         return opt_;
     }
@@ -176,7 +112,7 @@ private:
 
     Visualizer* visualizer_;
 
-    Options opt_;
+    PathFollowerParameters opt_;
 
     //! The last received odometry message.
     nav_msgs::Odometry odometry_;

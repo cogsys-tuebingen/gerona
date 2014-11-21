@@ -307,7 +307,7 @@ void PathFollower::setStatus(int status)
 
 bool PathFollower::isObstacleAhead(double course)
 {
-    return false; //FIXME: Remove!!
+//    return false; //FIXME: Remove!!
 
     //! Factor which defines, how much the box is enlarged in curves.
     const float enlarge_factor = 0.5; // should this be a parameter?

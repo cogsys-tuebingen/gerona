@@ -1,11 +1,15 @@
 #ifndef OBSTACLEDETECTOR_H
 #define OBSTACLEDETECTOR_H
 
+#include <path_follower/obstacle_avoidance/obstacleavoider.h>
+
 #include <vector>
 
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <sensor_msgs/LaserScan.h>
+
+#include <path_follower/utils/parameters.h>
 
 /**
  * @brief Checks for obstacles in front of the robot, using an obstacle map.
@@ -21,18 +25,20 @@
  * In courves, the box is bend toward the direction of the path. For more details on this, see the comments inside
  * the method isObstacleAhead().
  */
-class ObstacleDetector
+class ObstacleDetector: public ObstacleAvoider
 {
 public:
     ObstacleDetector();
 
-    //! Callback for the obstacle map. Make sure, that the map is binary!
-    virtual void setMap(const nav_msgs::OccupancyGridConstPtr &map);
-    //! Callback for the laser scan
-    virtual void setScan(const sensor_msgs::LaserScanConstPtr &scan, bool isBack=false);
+    virtual void avoid(tf::Vector3 * const cmd, const ObstacleCloud &obstacles, const State &state);
 
-    virtual void setUseMap(bool use);
-    virtual void setUseScan(bool use);
+    //! Callback for the obstacle map. Make sure, that the map is binary!
+    ROS_DEPRECATED virtual void setMap(const nav_msgs::OccupancyGridConstPtr &map);
+    //! Callback for the laser scan
+    ROS_DEPRECATED virtual void setScan(const sensor_msgs::LaserScanConstPtr &scan, bool isBack=false);
+
+    ROS_DEPRECATED virtual void setUseMap(bool use);
+    ROS_DEPRECATED virtual void setUseScan(bool use);
 
     /**
      * @brief Check, if there is an obstacle in front of the robot.
@@ -43,7 +49,7 @@ public:
      * @param curve_enlarge_factor The width of the box is enlarged a bit in curves. This argument controls how much (it is misleadingly called 'length' in LaserEnvironment).
      * @return True, if there is an object within the collision box.
      */
-    bool isObstacleAhead(float width, float length, float course_angle, float curve_enlarge_factor);
+    ROS_DEPRECATED bool isObstacleAhead(float width, float length, float course_angle, float curve_enlarge_factor);
 
 protected:
     //! Value of the obstacle map for free cells.

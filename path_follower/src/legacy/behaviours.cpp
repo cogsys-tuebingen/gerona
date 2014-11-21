@@ -66,7 +66,7 @@ VectorFieldHistogram& Behaviour::getVFH()
 {
     return parent_.getVFH();
 }
-PathFollower::Options& Behaviour::getOptions()
+PathFollowerParameters& Behaviour::getOptions()
 {
     return parent_.opt_;
 }
@@ -99,7 +99,7 @@ Behaviour* BehaviourOnLine::execute(int *status)
 
 Behaviour* BehaviourOnLine::selectNextWaypoint()
 {
-    PathFollower::Options& opt = getOptions();
+    PathFollowerParameters& opt = getOptions();
     Path::Ptr path = getPath();
 
     double tolerance = opt.wp_tolerance();
