@@ -133,6 +133,48 @@ bool ObstacleDetectorPolygon::checkOnScan(const sensor_msgs::LaserScanConstPtr &
     return collision;
 }
 
+bool ObstacleDetectorPolygon::checkOnCloud(ObstacleCloud::ConstPtr obstacles, float width, float length, float course_angle, float curve_enlarge_factor)
+{
+    bool collision = false;
+    PolygonWithTfFrame pwf = getPolygon(width, length, course_angle, curve_enlarge_factor);
+
+
+    if (pwf.polygon.size() == 0) {
+        ROS_WARN("Obstacle polygon is empty -> no obstacle test is done!");
+        return false;
+    }
+
+
+
+    ObstacleCloud cloud;
+    try {
+        tf_listener_.transformPointCloud(pwf.frame, *obstacles, cloud);
+    } catch (tf::TransformException& ex) {
+        ROS_ERROR("Failed to transform obstacle cloud to polygon frame: %s", ex.what());
+        // can't check for obstacles, so better assume there is one.
+        return true;
+    }
+
+
+    /// now check each point of the scan
+    vector<geometry_msgs::Point32>::const_iterator iter;
+    for (iter = cloud.points.begin(); iter != cloud.points.end(); ++iter) {
+        // check if this scan point is inside the polygon
+        cv::Point2f point( iter->x, iter->y );
+
+        if (cv::pointPolygonTest(pwf.polygon, point, false) == 1) {
+            collision = true;
+            break; // no need to check the remaining points
+        }
+    }
+
+
+    // visualization
+    visualize(pwf, collision);
+
+    return collision;
+}
+
 void ObstacleDetectorPolygon::transformPolygonToMap(PolygonWithTfFrame *polygon) const
 {
     // transform each point

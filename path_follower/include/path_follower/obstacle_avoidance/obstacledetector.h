@@ -64,21 +64,23 @@ protected:
      * @brief Check, if there is an obstacle in the map within the obstacle box.
      * @return True if there is an obstacle, false if not.
      */
-    virtual bool checkOnMap(float width, float length, float course_angle, float curve_enlarge_factor) = 0;
+    ROS_DEPRECATED virtual bool checkOnMap(float width, float length, float course_angle, float curve_enlarge_factor) = 0;
 
     /**
      * @brief Check, if there is an scan point within the obstacle box.
      * @return True if there is an obstacle, false if not.
      */
-    virtual bool checkOnScan(const sensor_msgs::LaserScanConstPtr &scan, float width, float length, float course_angle, float curve_enlarge_factor) = 0;
+    ROS_DEPRECATED virtual bool checkOnScan(const sensor_msgs::LaserScanConstPtr &scan, float width, float length, float course_angle, float curve_enlarge_factor) = 0;
+
+    virtual bool checkOnCloud(ObstacleCloud::ConstPtr obstacles, float width, float length, float course_angle, float curve_enlarge_factor) = 0;
 
 private:
-    bool use_map_;
-    bool use_scan_;
+    ROS_DEPRECATED bool use_map_;
+    ROS_DEPRECATED bool use_scan_;
 
     //! The current laser scan
-    sensor_msgs::LaserScanConstPtr scan_;
-    sensor_msgs::LaserScanConstPtr scan_back_;
+    ROS_DEPRECATED sensor_msgs::LaserScanConstPtr scan_;
+    ROS_DEPRECATED sensor_msgs::LaserScanConstPtr scan_back_;
 };
 
 #endif // OBSTACLEDETECTOR_H

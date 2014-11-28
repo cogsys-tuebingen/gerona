@@ -158,3 +158,9 @@ bool ObstacleDetectorAckermann::checkOnScan(const sensor_msgs::LaserScanConstPtr
     return laser_env_.CheckCollision(scan->ranges, scan->angle_min, scan->angle_max, course_angle,
                                      width, curve_enlarge_factor, length);
 }
+
+bool ObstacleDetectorAckermann::checkOnCloud(ObstacleCloud::ConstPtr obstacles, float width, float length, float course_angle, float curve_enlarge_factor)
+{
+    ROS_WARN("Obtacle Box for Ackermann not yet implemented!");
+    return false;
+}
