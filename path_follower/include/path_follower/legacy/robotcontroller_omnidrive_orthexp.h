@@ -11,13 +11,12 @@
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/multiplepidwrapper.h>
 #include <path_follower/utils/visualizer.h>
-#include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
 #include <path_follower/pathfollower.h>
 
 class RobotController_Omnidrive_OrthogonalExponential : public RobotController
 {
 public:
-    RobotController_Omnidrive_OrthogonalExponential(ros::Publisher &cmd_publisher, PathFollower *path_driver);
+    RobotController_Omnidrive_OrthogonalExponential(PathFollower *path_driver);
 
     virtual void publishCommand();
 
@@ -25,15 +24,12 @@ public:
     virtual void stopMotion();
 
     virtual void start();
-    virtual ControlStatus execute();
-
-    virtual ObstacleDetector* getObstacleDetector()
-    {
-        return &obstacle_detector_;
-    }
 
 
 protected:
+    virtual ControlStatus computeMoveCommand(MoveCommand* cmd);
+    virtual void publish(const MoveCommand &cmd) const;
+
     virtual void setPath(Path::Ptr path);
 
     virtual void reset();
@@ -117,7 +113,6 @@ private:
     Visualizer *visualizer_;
 
     Command cmd_;
-    ObstacleDetectorOmnidrive obstacle_detector_;
 
     ros::NodeHandle nh_;
     ros::Publisher interp_path_pub_;

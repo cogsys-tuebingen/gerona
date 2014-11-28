@@ -27,6 +27,12 @@ void RobotController::setPath(Path::Ptr path)
 //        path_driver_->getPathLookout()->setPath(path);
 }
 
+void RobotController::initPublisher(ros::Publisher *pub) const
+{
+    ros::NodeHandle nh; //TODO: does this work with only a local nh?
+    *pub = nh.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
+}
+
 double RobotController::calculateAngleError()
 {
     geometry_msgs::Pose waypoint   = path_->getCurrentWaypoint();
@@ -37,4 +43,26 @@ double RobotController::calculateAngleError()
 bool RobotController::isOmnidirectional() const
 {
     return false;
+}
+
+RobotController::ControlStatus RobotController::execute()
+{
+    MoveCommand cmd;
+    ControlStatus status = computeMoveCommand(&cmd);
+
+    /*TODO: das ganze konzept mit dem ControlStatus passt hier nicht mehr so richtig.
+         * computeMoveCommand hat keine Ahnung von Hindernissen, sondern kann nur sagen, ob
+         * die Berechnung des MoveCommand erfolgreich war oder nicht.
+         * Evlt wäre es auch sinnvoll den SUCCESS check nicht dort, sondern in einer separaten
+         * Methode zu machen?
+         */
+
+    if (!status == MOVING) {
+        return status;
+    } else {
+        bool cmd_modified = path_driver_->callObstacleAvoider(&cmd);
+
+        publish(cmd);
+        return cmd_modified ? OBSTACLE : MOVING;
+    }
 }

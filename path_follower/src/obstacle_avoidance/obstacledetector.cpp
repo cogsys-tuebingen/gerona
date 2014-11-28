@@ -6,10 +6,12 @@ ObstacleDetector::ObstacleDetector():
 {
 }
 
-void ObstacleDetector::avoid(tf::Vector3 * const cmd,
-                             const ObstacleAvoider::ObstacleCloud &obstacles,
+bool ObstacleDetector::avoid(tf::Vector3 * const cmd,
+                             ObstacleCloud::ConstPtr obstacles,
                              const ObstacleAvoider::State &state)
 {
+#warning this has to be adjusted to the obstacle cloud!
+
     float course = atan2(cmd->y(), cmd->x()); //FIXME: use course prediction!
 
     //! Factor which defines, how much the box is enlarged in curves.
@@ -58,7 +60,7 @@ void ObstacleDetector::avoid(tf::Vector3 * const cmd,
         // stop motion
         cmd->setZ(0.0);
     }
-
+    return collision;
 }
 
 void ObstacleDetector::setMap(const nav_msgs::OccupancyGridConstPtr &map)

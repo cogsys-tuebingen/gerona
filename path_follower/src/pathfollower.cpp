@@ -21,6 +21,9 @@
 #include <path_follower/supervisor/pathlookout.h>
 #include <path_follower/supervisor/waypointtimeout.h>
 #include <path_follower/supervisor/distancetopathsupervisor.h>
+// Obstacle Avoiders
+#include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
+#include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -33,6 +36,7 @@ static std::vector<int> OBSTACLE_IN_PATH = boost::assign::list_of(25)(25)(25);
 
 PathFollower::PathFollower(ros::NodeHandle &nh):
     controller_(NULL),
+    obstacle_avoider_(NULL),
     course_predictor_(this),
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
@@ -46,7 +50,6 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     follow_path_server_.registerGoalCallback(boost::bind(&PathFollower::followPathGoalCB, this));
     follow_path_server_.registerPreemptCallback(boost::bind(&PathFollower::followPathPreemptCB,this));
 
-    cmd_pub_    = node_handle_.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
     speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
     beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
 
@@ -57,11 +60,14 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // Choose robot controller
     ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
     if (opt_.controller() == "ackermann_pid") {
-        controller_ = new RobotController_Ackermann_Pid(cmd_pub_, this, vfh_ptr);
+        obstacle_avoider_ = new ObstacleDetectorAckermann;
+        controller_ = new RobotController_Ackermann_Pid(this, vfh_ptr);
     } else if (opt_.controller() == "omnidrive_vv") {
-        controller_ = new RobotController_Omnidrive_VirtualVehicle(cmd_pub_, this);
+        obstacle_avoider_ = new ObstacleDetectorOmnidrive;
+        controller_ = new RobotController_Omnidrive_VirtualVehicle(this);
     } else if (opt_.controller() == "omnidrive_orthexp") {
-        controller_ = new RobotController_Omnidrive_OrthogonalExponential(cmd_pub_, this);
+        obstacle_avoider_ = new ObstacleDetectorOmnidrive;
+        controller_ = new RobotController_Omnidrive_OrthogonalExponential(this);
     } else {
         ROS_FATAL("Unknown robot controller. Shutdown.");
         exit(1);
@@ -71,11 +77,13 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     if(opt_.use_obstacle_map()) {
         obstacle_map_sub_ = node_handle_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&PathFollower::obstacleMapCB, this, _1));
     } else {
-        laser_front_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan/filtered", 10, boost::bind(&PathFollower::laserCB, this, _1, false));
         laser_back_sub_  = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10, boost::bind(&PathFollower::laserCB, this, _1, true));
     }
-    controller_->getObstacleDetector()->setUseMap(opt_.use_obstacle_map());
-    controller_->getObstacleDetector()->setUseScan(!opt_.use_obstacle_map());
+//    controller_->getObstacleDetector()->setUseMap(opt_.use_obstacle_map());
+//    controller_->getObstacleDetector()->setUseScan(!opt_.use_obstacle_map());
+
+    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleAvoider::ObstacleCloud>("/obstacle_cloud", 10,
+                                                                                 &PathFollower::obstacleCloudCB, this);
 
     visualizer_ = Visualizer::getInstance();
 
@@ -109,6 +117,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 PathFollower::~PathFollower()
 {
     delete controller_;
+    delete obstacle_avoider_;
 }
 
 
@@ -137,15 +146,21 @@ void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
     odometry_ = *odom;
 }
 
+void PathFollower::obstacleCloudCB(const ObstacleAvoider::ObstacleCloud::ConstPtr &msg)
+{
+    obstacle_cloud_ = msg;
+}
+
 void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan, bool isBack)
 {
-    controller_->getObstacleDetector()->setScan(scan, isBack);
 }
 
 void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
 {
-    controller_->getObstacleDetector()->setMap(map);
+    //NOTE: obstacle map is goning to be kicked due to bad performance.
+    //      Use obstacle cloud instead.
 
+    // TODO: convert vfh to a ObstacleAvoider and use obstacle cloud instead of map
     if(opt_.use_vfh()) {
         vfh_.setMap(*map);
     }
@@ -305,6 +320,23 @@ void PathFollower::setStatus(int status)
     // TODO: don't use status this way...
 }
 
+bool PathFollower::callObstacleAvoider(RobotController::MoveCommand *cmd)
+{
+    if (obstacle_avoider_ == NULL) {
+        ROS_WARN_ONCE("No obstacle avoider selected. Obstacle avoidace is deactivated!");
+        return false;
+    }
+
+    if (obstacle_cloud_ == NULL) {
+        ROS_ERROR("No obstacle cloud received. Obstacle avoidace is skipped!");
+        return false;
+    }
+
+    ObstacleAvoider::State state(path_, opt_);
+
+    return obstacle_avoider_->avoid(cmd, obstacle_cloud_, state);
+}
+
 bool PathFollower::isObstacleAhead(double course)
 {
 //    return false; //FIXME: Remove!!
@@ -347,8 +379,9 @@ bool PathFollower::isObstacleAhead(double course)
 
     // call the obstacle detector. it is dependent of the controller als different driving models may require different
     // handling
-    bool collision = controller_->getObstacleDetector()->isObstacleAhead(opt_.collision_box_width(), box_length, course,
-                                                                         enlarge_factor);
+//    bool collision = controller_->getObstacleDetector()->isObstacleAhead(opt_.collision_box_width(), box_length, course,
+//                                                                         enlarge_factor);
+    bool collision = false;
 
     if(collision) {
         beep(beep::OBSTACLE_IN_PATH);
@@ -446,6 +479,8 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
     visualizer_->drawArrow(0, getRobotPoseMsg(), "slam pose", 2.0, 0.7, 1.0);
 
     RobotController::ControlStatus status = controller_->execute();
+
+    //TODO: hier muss der ObstacleAvoider zwischengeschaltet werden
 
     controller_->publishCommand();
 

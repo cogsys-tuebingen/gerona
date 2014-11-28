@@ -35,10 +35,9 @@ std::string name(Behaviour* b) {
 
 
 
-RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(ros::Publisher &cmd_publisher,
-                                                             PathFollower *path_driver,
+RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_driver,
                                                              VectorFieldHistogram *vfh):
-    RobotController(cmd_publisher, path_driver),
+    RobotController(path_driver),
     vfh_(vfh),
     active_behaviour_(NULL)
 {
@@ -125,10 +124,11 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
     cmd_.steer_back = 0;
 
     // no laser backward, so do not check when driving backwards.
-    if (dir_sign_ > 0) {
-        collision |= path_driver_->isObstacleAhead(calculateCourse());
-    }
+//    if (dir_sign_ > 0) {
+//        collision |= path_driver_->isObstacleAhead(calculateCourse());
+//    }
 
+#warning dont do obstacle detection here
     if(collision) {
         ROS_WARN_THROTTLE(1, "Collision!");
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE); //TODO: not so good to use result-constant if it is not finishing the action...
@@ -183,39 +183,6 @@ void RobotController_Ackermann_Pid::switchBehaviour(Behaviour* next_behaviour)
 {
     reset();
     active_behaviour_ = next_behaviour;
-}
-
-RobotController::ControlStatus RobotController_Ackermann_Pid::execute()
-{
-    try {
-        ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
-        int status = FollowPathFeedback::MOTION_STATUS_MOVING;
-        Behaviour* next_behaviour = active_behaviour_->execute(&status);
-
-        if(next_behaviour == NULL) {
-            switchBehaviour(NULL);
-            return SUCCESS;
-        }
-
-        if(active_behaviour_ != next_behaviour) {
-            std::cout << "switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) << std::endl;
-            switchBehaviour(next_behaviour);
-        }
-
-        switch(status) {
-        case FollowPathFeedback::MOTION_STATUS_MOVING:
-            return MOVING;
-        case FollowPathFeedback::MOTION_STATUS_OBSTACLE:
-            return OBSTACLE;
-        default:
-            ROS_WARN_STREAM("unknown status: " << status);
-            return ERROR;
-        }
-    } catch(const std::exception& e) {
-        ROS_ERROR_STREAM("uncaught exception: " << e.what() << " => abort");
-        reset();
-        return ERROR;
-    }
 }
 
 void RobotController_Ackermann_Pid::initOnLine()
@@ -292,6 +259,55 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
     setCommand(e_combined, velocity);
 
     return false;
+}
+
+RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand(RobotController::MoveCommand *cmd)
+{
+    try {
+        ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
+        int status = FollowPathFeedback::MOTION_STATUS_MOVING;
+        Behaviour* next_behaviour = active_behaviour_->execute(&status);
+
+        if(next_behaviour == NULL) {
+            switchBehaviour(NULL);
+            return SUCCESS;
+        }
+
+        if(active_behaviour_ != next_behaviour) {
+            std::cout << "switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) << std::endl;
+            switchBehaviour(next_behaviour);
+        }
+
+        // Quickfix: simply convert ackermann command to move command
+        cmd->setX(cos(cmd_.steer_front));
+        cmd->setY(sin(cmd_.steer_front));
+        cmd->setZ(cmd_.velocity);
+
+        switch(status) {
+        case FollowPathFeedback::MOTION_STATUS_MOVING:
+            return MOVING;
+        case FollowPathFeedback::MOTION_STATUS_OBSTACLE:
+            return OBSTACLE;
+        default:
+            ROS_WARN_STREAM("unknown status: " << status);
+            return ERROR;
+        }
+    } catch(const std::exception& e) {
+        ROS_ERROR_STREAM("uncaught exception: " << e.what() << " => abort");
+        reset();
+        return ERROR;
+    }
+}
+
+void RobotController_Ackermann_Pid::publish(const RobotController::MoveCommand &cmd) const
+{
+    geometry_msgs::Twist msg;
+    //msg.linear.x  = velocity;
+    //msg.angular.z = steer_front;
+    msg.linear.x  = cmd.z();
+    msg.angular.z = atan2(cmd.y(), cmd.x());
+
+    cmd_pub_.publish(msg);
 }
 
 void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &rear_pred)

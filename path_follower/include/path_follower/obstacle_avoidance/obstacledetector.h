@@ -30,7 +30,7 @@ class ObstacleDetector: public ObstacleAvoider
 public:
     ObstacleDetector();
 
-    virtual void avoid(tf::Vector3 * const cmd, const ObstacleCloud &obstacles, const State &state);
+    virtual bool avoid(tf::Vector3 * const cmd, ObstacleCloud::ConstPtr obstacles, const State &state);
 
     //! Callback for the obstacle map. Make sure, that the map is binary!
     ROS_DEPRECATED virtual void setMap(const nav_msgs::OccupancyGridConstPtr &map);

@@ -1,12 +1,15 @@
 #ifndef ROBOTCONTROLLER_H
 #define ROBOTCONTROLLER_H
 
-/// THIRD PARTY
+// THIRD PARTY
+#include <ros/node_handle.h>
+#include <geometry_msgs/Twist.h>
 #include <Eigen/Core>
 
-/// PROJECT
+// PROJECT
 #include <path_follower/utils/path.h>
 #include <path_follower/obstacle_avoidance/obstacledetector.h>
+#include <path_follower/obstacle_avoidance/obstacleavoider.h>
 
 class PathFollower;
 
@@ -14,6 +17,9 @@ class RobotController
 {
     /* DATA */
 public:
+    //TODO: better use own struct to get clear variable names (x, y, velocity)
+    typedef tf::Vector3 MoveCommand;
+
     enum ControlStatus
     {
         MOVING,
@@ -24,9 +30,6 @@ public:
 
     /* ABSTRACT METHODS */
 public:
-    //! Return obstacle detector working with obstacle map. Only used, if ~use_obstacle_map:=true
-    virtual ObstacleDetector* getObstacleDetector() = 0;
-
     virtual void publishCommand() = 0;
 
     //! Immediatley stop any motion.
@@ -35,8 +38,6 @@ public:
     virtual bool isOmnidirectional() const;
 
     virtual void start() {}
-    virtual ControlStatus execute() {}
-
 
     virtual void behaveOnLine() {}
 
@@ -45,17 +46,31 @@ public:
      */
     virtual bool behaveApproachTurningPoint() {}
 
+protected:
+    /**
+     * @brief Computes the next move command.
+     * @param cmd Output. The move command for this iteration.
+     * @return Status that can be used to indicate errors. `MOVING` if everything is ok.
+     */
+    virtual ControlStatus computeMoveCommand(MoveCommand* cmd) = 0;
+
+    //! Converts the move command to ros message and publishs it.
+    virtual void publish(const MoveCommand &cmd) const = 0;
+
 
     /* REGULAR METHODS */
 public:
-    RobotController(ros::Publisher &cmd_publisher, PathFollower *path_driver) :
-        cmd_pub_(cmd_publisher),
+    RobotController(PathFollower *path_driver) :
         path_driver_(path_driver),
         velocity_(0.0f),
         filtered_speed_(0.0f),
         dir_sign_(1.0f)
     {
+        initPublisher(&cmd_pub_);
     }
+
+    //! Execute one iteration of path following. This method should not be overwritten by subclasses!
+    /*final*/ ControlStatus execute();
 
     /* RESET FOR A NEW PATH */
     virtual void reset() {}
@@ -86,9 +101,9 @@ public:
     }
 
 protected:
-    ros::Publisher& cmd_pub_;
+    ros::Publisher cmd_pub_;
 
-    PathFollower *path_driver_;
+    PathFollower* path_driver_;
 
     //! Desired velocity (defined by the action goal).
     float velocity_;
@@ -102,6 +117,9 @@ protected:
     Path::Ptr path_;
     //! The next waypoint in the robot frame (set by setPath).
     Eigen::Vector3d next_wp_local_;
+
+
+    virtual void initPublisher(ros::Publisher* pub) const;
 
 
     virtual void setFilteredSpeed( const float speed ) {

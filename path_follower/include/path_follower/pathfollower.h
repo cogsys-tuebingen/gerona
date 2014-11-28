@@ -30,6 +30,7 @@
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/coursepredictor.h>
 #include <path_follower/utils/parameters.h>
+#include <path_follower/obstacle_avoidance/obstacleavoider.h>
 
 #include <path_follower/supervisor/supervisorchain.h>
 
@@ -51,7 +52,7 @@ public:
 
     void update();
 
-    bool isObstacleAhead(double course);
+    ROS_DEPRECATED bool isObstacleAhead(double course);
 
     VectorFieldHistogram& getVFH();
 
@@ -68,6 +69,8 @@ public:
     Path::Ptr getPath();
 
     void setStatus(int status);
+
+    bool callObstacleAvoider(RobotController::MoveCommand *cmd);
 
     const PathFollowerParameters &getOptions() const
     {
@@ -93,6 +96,8 @@ private:
     ros::Subscriber odom_sub_;
     //! Subscriber for the obstacle grid map (used by ObstacleDetector).
     ros::Subscriber obstacle_map_sub_;
+    //! Subscriber for the obstacle point cloud (used by ObstacleAvoider).
+    ros::Subscriber obstacle_cloud_sub_;
     //! Subscriber for laser scans (used for obstacle detection if no obstacle map is used).
     ros::Subscriber laser_front_sub_;
     ros::Subscriber laser_back_sub_;
@@ -100,7 +105,9 @@ private:
     tf::TransformListener pose_listener_;
 
     //! The robot controller is responsible for everything that is dependend on robot model and controller type.
-    RobotController *controller_;
+    RobotController* controller_;
+
+    ObstacleAvoider* obstacle_avoider_;
 
     SupervisorChain supervisors_;
 
@@ -116,6 +123,9 @@ private:
 
     //! The last received odometry message.
     nav_msgs::Odometry odometry_;
+
+    //! The last received obstacle cloud (TODO: better store mesage directly as shared_ptr?)
+    ObstacleAvoider::ObstacleCloud::ConstPtr obstacle_cloud_;
 
     //! Current pose of the robot as Eigen vector (x,y,theta).
     Eigen::Vector3d robot_pose_;
@@ -142,11 +152,13 @@ private:
     //! Callback for odometry messages
     void odometryCB(const nav_msgs::OdometryConstPtr &odom);
 
+    void obstacleCloudCB(const ObstacleAvoider::ObstacleCloud::ConstPtr&);
+
     //! Callback for laser scan messages.
-    void laserCB(const sensor_msgs::LaserScanConstPtr& scan, bool isBack=false);
+    ROS_DEPRECATED void laserCB(const sensor_msgs::LaserScanConstPtr& scan, bool isBack=false);
 
     //! Callback for the obstacle grid map. Used by ObstacleDetector and VectorFieldHistorgram.
-    void obstacleMapCB(const nav_msgs::OccupancyGridConstPtr& map);
+    ROS_DEPRECATED void obstacleMapCB(const nav_msgs::OccupancyGridConstPtr& map);
 
     //! Publish beep commands.
     void beep(const std::vector<int>& beeps);

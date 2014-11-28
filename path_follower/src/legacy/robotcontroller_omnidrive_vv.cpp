@@ -12,9 +12,8 @@
 using namespace Eigen;
 
 
-RobotController_Omnidrive_VirtualVehicle::RobotController_Omnidrive_VirtualVehicle(ros::Publisher &cmd_publisher,
-                                                                                   PathFollower *path_driver):
-    RobotController(cmd_publisher, path_driver),
+RobotController_Omnidrive_VirtualVehicle::RobotController_Omnidrive_VirtualVehicle(PathFollower *path_driver):
+    RobotController(path_driver),
     cmd_(this),
     nh_("~"),
     initialized(false),
@@ -214,6 +213,16 @@ void RobotController_Omnidrive_VirtualVehicle::initOnLine()
 {
 
 
+}
+
+RobotController::ControlStatus RobotController_Omnidrive_VirtualVehicle::computeMoveCommand(RobotController::MoveCommand *cmd)
+{
+    ROS_BREAK(); /*not implemented*/
+}
+
+void RobotController_Omnidrive_VirtualVehicle::publish(const RobotController::MoveCommand &cmd) const
+{
+    ROS_BREAK(); /*not implemented*/
 }
 
 void RobotController_Omnidrive_VirtualVehicle::behaveOnLine()
