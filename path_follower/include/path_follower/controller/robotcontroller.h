@@ -44,7 +44,7 @@ public:
     /**
      * @return True, when turning point is reached, otherwise false.
      */
-    virtual bool behaveApproachTurningPoint() {}
+    virtual bool behaveApproachTurningPoint() { return false; }
 
 protected:
     /**

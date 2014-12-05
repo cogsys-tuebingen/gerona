@@ -9,21 +9,21 @@ struct PathFollowerParameters : public Parameters
     P<std::string> controller;
     P<double> wp_tolerance;
     P<double> goal_tolerance;
-    P<float> min_velocity;
-    P<float> max_velocity;
     P<double> steer_slow_threshold;
     P<double> max_distance_to_path;
+    P<std::string> world_frame;
+    P<std::string> robot_frame;
+    P<bool> use_obstacle_map;
+    P<bool> use_vfh;
+    P<bool> use_path_lookout;
+    P<float> min_velocity;
+    P<float> max_velocity;
     P<float> collision_box_width;
     P<float> collision_box_min_length;
     P<float> collision_box_crit_length;
     P<float> collision_box_max_length;
     P<float> collision_box_velocity_factor;
     P<float> collision_box_velocity_saturation;
-    P<std::string> world_frame;
-    P<std::string> robot_frame;
-    P<bool> use_obstacle_map;
-    P<bool> use_vfh;
-    P<bool> use_path_lookout;
     P<bool> abort_if_obstacle_ahead;
 
     PathFollowerParameters():
