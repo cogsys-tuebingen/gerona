@@ -7,6 +7,7 @@
 #endif
 
 #include <opencv2/imgproc/imgproc.hpp>
+#include <pcl_ros/transforms.h>
 #include <path_follower/utils/visualizer.h>
 
 using namespace std;
@@ -148,7 +149,7 @@ bool ObstacleDetectorPolygon::checkOnCloud(ObstacleCloud::ConstPtr obstacles, fl
 
     ObstacleCloud cloud;
     try {
-        tf_listener_.transformPointCloud(pwf.frame, *obstacles, cloud);
+        pcl_ros::transformPointCloud(pwf.frame, *obstacles, cloud, tf_listener_);
     } catch (tf::TransformException& ex) {
         ROS_ERROR("Failed to transform obstacle cloud to polygon frame: %s", ex.what());
         // can't check for obstacles, so better assume there is one.
@@ -157,10 +158,10 @@ bool ObstacleDetectorPolygon::checkOnCloud(ObstacleCloud::ConstPtr obstacles, fl
 
 
     /// now check each point of the scan
-    vector<geometry_msgs::Point32>::const_iterator iter;
-    for (iter = cloud.points.begin(); iter != cloud.points.end(); ++iter) {
+    ObstacleCloud::const_iterator point_it;
+    for (point_it = cloud.begin(); point_it != cloud.end(); ++point_it) {
         // check if this scan point is inside the polygon
-        cv::Point2f point( iter->x, iter->y );
+        cv::Point2f point( point_it->x, point_it->y );
 
         if (cv::pointPolygonTest(pwf.polygon, point, false) == 1) {
             collision = true;

@@ -11,7 +11,8 @@
 class ObstacleAvoider
 {
 public:
-    typedef pcl::PointXY ObstaclePoint;
+    // PointXY would be sufficient, but buildin transform of point clouds works only with XYZ-points...
+    typedef pcl::PointXYZ ObstaclePoint;
     typedef pcl::PointCloud<ObstaclePoint> ObstacleCloud;
 
     //! Additional information about the robots state, that might be required by the obstacle avodier
