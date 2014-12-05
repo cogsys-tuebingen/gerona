@@ -29,6 +29,8 @@ public:
         {}
     };
 
+    virtual ~ObstacleAvoider() {}
+
     /**
      * @brief Determines, if there are obstacles, which are blocking the path and adjusts the
      *        move command such that a collision is avoided.

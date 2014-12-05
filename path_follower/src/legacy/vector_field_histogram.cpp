@@ -43,8 +43,8 @@ void VectorFieldHistogram::create(double influence_distance, double threshold)
 
     debug_map_ = cv::Mat(map_.info.height, map_.info.width, CV_32FC3, cv::Scalar::all(127));
 
-    for(int y = 0; y < map_.info.height; ++y) {
-        for(int x = 0; x < map_.info.width; ++x) {
+    for(unsigned int y = 0; y < map_.info.height; ++y) {
+        for(unsigned int x = 0; x < map_.info.width; ++x) {
             double px = x * res;
             double py = y * res;
 
@@ -129,7 +129,7 @@ void VectorFieldHistogram::create(double influence_distance, double threshold)
     }
 
     // check which valley is wide and which is narrow
-    for(int i = 0; i <= valley_.size(); ++i) {
+    for(size_t i = 0; i <= valley_.size(); ++i) {
         int valley = valley_[i];
         is_valley_wide_[valley] = valley_width_[valley] > s_max_;
     }
@@ -195,7 +195,7 @@ bool VectorFieldHistogram::adjust(double course, double threshold, double& resul
     int closest_valley = -1;
     int closest_dist = 2 * n;
 
-    for(int i = 0; i < valley_.size(); ++i) {
+    for(size_t i = 0; i < valley_.size(); ++i) {
         int valley = valley_[i];
         int begin = valley_begin_[valley];
         int end = valley_end_[valley];
@@ -265,7 +265,7 @@ void VectorFieldHistogram::visualize(double course, double threshold)
     std::size_t n = histogram_.size();
     cv::Mat hist_img(h,w*n, CV_8UC3, cv::Scalar::all(0));
 
-    for(int i = 0; i < n; ++i) {
+    for(std::size_t i = 0; i < n; ++i) {
         double val = histogram_.at(i);
         int col_h = normalizer * val;
         // background

@@ -35,11 +35,11 @@ static std::vector<int> OBSTACLE_IN_PATH = boost::assign::list_of(25)(25)(25);
 }
 
 PathFollower::PathFollower(ros::NodeHandle &nh):
+    node_handle_(nh),
+    follow_path_server_(nh, "follow_path", false),
     controller_(NULL),
     obstacle_avoider_(NULL),
     course_predictor_(this),
-    node_handle_(nh),
-    follow_path_server_(nh, "follow_path", false),
     path_(new Path),
     pending_error_(-1),
     last_beep_(ros::Time::now()),
@@ -335,59 +335,6 @@ bool PathFollower::callObstacleAvoider(RobotController::MoveCommand *cmd)
     ObstacleAvoider::State state(path_, opt_);
 
     return obstacle_avoider_->avoid(cmd, obstacle_cloud_, state);
-}
-
-bool PathFollower::isObstacleAhead(double course)
-{
-//    return false; //FIXME: Remove!!
-
-    //! Factor which defines, how much the box is enlarged in curves.
-    const float enlarge_factor = 0.5; // should this be a parameter?
-
-    /* Calculate length of the collision box, depending on current velocity.
-     * v <= v_min:
-     *   length = min_length
-     * v > v_min && v < v_sat:
-     *   length  interpolated between min_length and max_length:
-     *   length = min_length + FACTOR * (max_length - min_length) * (v - v_min) / (v_sat - v_min)
-     * v >= v_sat:
-     *   length = max_length
-     */
-    float v = getVelocity().linear.x;//current_command_.velocity;
-
-    const float diff_to_min_velocity = v - opt_.min_velocity();
-
-    const float norm = opt_.collision_box_velocity_saturation() - opt_.min_velocity();
-    const float span = opt_.collision_box_max_length() - opt_.collision_box_min_length();
-    const float interp = std::max(0.0f, diff_to_min_velocity) / std::max(norm, 0.001f);
-    const float f = std::min(1.0f, opt_.collision_box_velocity_factor() * interp);
-
-    float box_length = opt_.collision_box_min_length() + span * f;
-
-    //ROS_DEBUG("Collision Box: v = %g -> len = %g", v, box_length);
-
-    double distance_to_goal = path_->getCurrentSubPath().back().distanceTo(path_->getCurrentWaypoint());
-
-    if(box_length > distance_to_goal) {
-        box_length = distance_to_goal + 0.2;
-    }
-
-    if(box_length < opt_.collision_box_crit_length()) {
-        box_length = opt_.collision_box_crit_length();
-    }
-
-
-    // call the obstacle detector. it is dependent of the controller als different driving models may require different
-    // handling
-//    bool collision = controller_->getObstacleDetector()->isObstacleAhead(opt_.collision_box_width(), box_length, course,
-//                                                                         enlarge_factor);
-    bool collision = false;
-
-    if(collision) {
-        beep(beep::OBSTACLE_IN_PATH);
-    }
-
-    return collision;
 }
 
 VectorFieldHistogram& PathFollower::getVFH()

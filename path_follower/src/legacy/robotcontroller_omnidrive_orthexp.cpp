@@ -25,20 +25,18 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     view_direction_(LookInDrivingDirection),
     initialized(false),
     vn(0.0),
-    Ts(0.02),
-    N(0),
-    e_theta_curr(0),
     theta_des(90.0*M_PI/180.0),
+    N(0),
+    Ts(0.02),
+    e_theta_curr(0),
     curv_sum(0),
     look_ahead_dist(0.5),
+    distance_to_goal(0),
+    distance_to_obstacle_(0),
     param_k_curv(0.05),
     param_k_g(0.4),
     param_k_o(0.3),
-    param_k_w(0.5),
-    distance_to_goal(0),
-    distance_to_obstacle_(0)
-
-
+    param_k_w(0.5)
 {
     visualizer_ = Visualizer::getInstance();
     interp_path_pub_ = nh_.advertise<nav_msgs::Path>("interp_path", 10);
@@ -266,14 +264,15 @@ void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
         return;
     }
 
-    double X_arr[N], Y_arr[N], l_arr_unif[N], l_cum[N];
+    double X_arr[N], Y_arr[N], l_arr_unif[N];
+    //double l_cum[N];
     double L = 0;
 
-    l_cum[0] = 0;
+    //l_cum[0] = 0;
     for(std::size_t i = 1; i < N; i++){
 
         L += hypot(X_arr[i] - X_arr[i-1], Y_arr[i] - Y_arr[i-1]);
-        l_cum[i] = L;
+        //l_cum[i] = L;
     }
 
 
@@ -353,8 +352,8 @@ RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::
         return SUCCESS;
     }
 
-#warning no obstacle detection here!
-    Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
+#warning TODO: no obstacle detection here!
+//    Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
 //    if (!dir_of_mov.isZero() && path_driver_->isObstacleAhead(MathHelper::Angle(dir_of_mov))) {
 //        ROS_WARN_THROTTLE(1, "Collision!");
 //        //TODO: not so good to use result-constant if it is not finishing the action...
@@ -383,7 +382,7 @@ RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::
     int ind = 0;
     double orth_proj = std::numeric_limits<double>::max();
 
-    for (int i = 0; i < N; i++){
+    for (unsigned int i = 0; i < N; i++){
 
         dist = hypot(x_meas - p[i], y_meas - q[i]);
         if(dist < orth_proj){
@@ -482,7 +481,7 @@ RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::
     double look_ahead_cum_sum = 0;
     curv_sum = 1e-10;
 
-    for (int i = ind + 1; i < N; i++){
+    for (unsigned int i = ind + 1; i < N; i++){
 
         look_ahead_cum_sum += hypot(p[i] - p[i-1], q[i] - q[i-1]);
         curv_sum += fabs(curvature[i]);

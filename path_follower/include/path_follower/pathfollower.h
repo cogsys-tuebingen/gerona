@@ -52,8 +52,6 @@ public:
 
     void update();
 
-    ROS_DEPRECATED bool isObstacleAhead(double course);
-
     VectorFieldHistogram& getVFH();
 
     RobotController* getController();

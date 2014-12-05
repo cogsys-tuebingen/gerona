@@ -4,8 +4,6 @@ bool ObstacleDetector::avoid(tf::Vector3 * const cmd,
                              ObstacleCloud::ConstPtr obstacles,
                              const ObstacleAvoider::State &state)
 {
-#warning this has to be adjusted to the obstacle cloud!
-
     float course = atan2(cmd->y(), cmd->x()); //FIXME: use course prediction!
 
     //! Factor which defines, how much the box is enlarged in curves.

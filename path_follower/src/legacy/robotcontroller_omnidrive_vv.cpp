@@ -23,9 +23,9 @@ RobotController_Omnidrive_VirtualVehicle::RobotController_Omnidrive_VirtualVehic
     d(0.5),
     k(1.5),
     epsilon(d),
-    ro(d),
     alpha(0.1),
     c(exp(alpha*d)),
+    ro(d),
     gama(vn/d),
     Ts(0.02),
     psi_d_prev(0.0)
@@ -218,6 +218,7 @@ void RobotController_Omnidrive_VirtualVehicle::initOnLine()
 RobotController::ControlStatus RobotController_Omnidrive_VirtualVehicle::computeMoveCommand(RobotController::MoveCommand *cmd)
 {
     ROS_BREAK(); /*not implemented*/
+    return ERROR;
 }
 
 void RobotController_Omnidrive_VirtualVehicle::publish(const RobotController::MoveCommand &cmd) const

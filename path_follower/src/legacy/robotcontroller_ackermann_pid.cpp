@@ -38,8 +38,8 @@ std::string name(Behaviour* b) {
 RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_driver,
                                                              VectorFieldHistogram *vfh):
     RobotController(path_driver),
-    vfh_(vfh),
-    active_behaviour_(NULL)
+    active_behaviour_(NULL),
+    vfh_(vfh)
 {
     configure();
 
@@ -128,7 +128,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 //        collision |= path_driver_->isObstacleAhead(calculateCourse());
 //    }
 
-#warning dont do obstacle detection here
+#warning TODO: dont do obstacle detection here
     if(collision) {
         ROS_WARN_THROTTLE(1, "Collision!");
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE); //TODO: not so good to use result-constant if it is not finishing the action...

@@ -69,6 +69,8 @@ public:
         initPublisher(&cmd_pub_);
     }
 
+    virtual ~RobotController() {}
+
     //! Execute one iteration of path following. This method should not be overwritten by subclasses!
     /*final*/ ControlStatus execute();
 
