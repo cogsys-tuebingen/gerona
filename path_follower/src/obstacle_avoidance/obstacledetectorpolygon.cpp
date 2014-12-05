@@ -67,7 +67,8 @@ void ObstacleDetectorPolygon::transformPolygonToMap(PolygonWithTfFrame *polygon)
 //    polygon->frame = map_->header.frame_id;
 }
 
-void ObstacleDetectorPolygon::visualize(ObstacleDetectorPolygon::PolygonWithTfFrame polygon, bool hasObstacle) const
+void ObstacleDetectorPolygon::visualize(ObstacleDetectorPolygon::PolygonWithTfFrame polygon,
+                                        bool hasObstacle) const
 {
     Visualizer* vis = Visualizer::getInstance();
     if (vis->hasSubscriber()) {

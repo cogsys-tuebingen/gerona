@@ -61,16 +61,15 @@ ObstacleDetectorPolygon::PolygonWithTfFrame ObstacleDetectorAckermann::getPolygo
     }
 
     Vector2f r = p + length * Vector2f(cos_angle, sin_angle);
-    Vector2f s = r - Vector2f(0.f, width);
-
+    Vector2f s = q + length * Vector2f(cos_angle, sin_angle);
 
     PolygonWithTfFrame pwf;
     pwf.frame = "/base_link";
 
     pwf.polygon.push_back( cv::Point2f(p[0], p[1]) );
-    pwf.polygon.push_back( cv::Point2f(q[0], p[1]) );
-    pwf.polygon.push_back( cv::Point2f(r[0], p[1]) );
-    pwf.polygon.push_back( cv::Point2f(s[0], p[1]) );
+    pwf.polygon.push_back( cv::Point2f(q[0], q[1]) );
+    pwf.polygon.push_back( cv::Point2f(s[0], s[1]) );
+    pwf.polygon.push_back( cv::Point2f(r[0], r[1]) );
 
     return pwf;
 }
