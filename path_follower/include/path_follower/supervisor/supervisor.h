@@ -1,6 +1,7 @@
 #ifndef SUPERVISOR_H
 #define SUPERVISOR_H
 
+#include <string>
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Core>
 
@@ -42,6 +43,8 @@ public:
     };
 
     virtual void supervise(State &state, Result *out) = 0;
+
+    virtual std::string getName() const = 0;
 
     virtual void eventNewGoal() {}
     virtual void eventNewWaypoint() {}

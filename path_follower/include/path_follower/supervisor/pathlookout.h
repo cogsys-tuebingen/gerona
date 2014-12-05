@@ -41,6 +41,10 @@ class PathLookout : public Supervisor
 public:
     PathLookout(bool use_map);
 
+    virtual std::string getName() const {
+        return "PathLookout";
+    }
+
     void setScan(const sensor_msgs::LaserScanConstPtr &msg, bool isBack=false);
 
     void setMap(const nav_msgs::OccupancyGridConstPtr &msg);

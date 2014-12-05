@@ -8,6 +8,7 @@ SupervisorChain::SupervisorChain()
 
 void SupervisorChain::addSupervisor(Supervisor::Ptr supervisor)
 {
+    ROS_INFO("Use Supervisor '%s'", supervisor->getName().c_str());
     supervisors_.push_back(supervisor);
 }
 

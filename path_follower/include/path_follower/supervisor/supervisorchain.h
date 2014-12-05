@@ -7,8 +7,6 @@
 class SupervisorChain
 {
 public:
-    SupervisorChain();
-
     void addSupervisor(Supervisor::Ptr supervisor);
 
     Supervisor::Result supervise(Supervisor::State &state);

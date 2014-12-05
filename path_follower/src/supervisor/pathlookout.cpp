@@ -248,7 +248,7 @@ vector<Obstacle> PathLookout::lookForObstaclesInScans()
     observed_obstacles.reserve(obstacle_points.size());
     for (vector<vector<cv::Point2f> >::const_iterator it = obstacle_points.begin(); it != obstacle_points.end(); ++it) {
         // ignore clusters, that are too small
-        if (it->size() < opt_.min_number_of_points()) {
+        if (it->size() < (size_t)opt_.min_number_of_points()) {
             continue;
         }
 
