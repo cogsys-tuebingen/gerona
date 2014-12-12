@@ -17,8 +17,6 @@ class RobotController_Omnidrive_VirtualVehicle : public RobotController
 public:
     RobotController_Omnidrive_VirtualVehicle(PathFollower *path_driver);
 
-    virtual void publishCommand();
-
     //! Immediatley stop any motion.
     virtual void stopMotion();
 
@@ -32,7 +30,7 @@ public:
 
 protected:
     virtual ControlStatus computeMoveCommand(MoveCommand* cmd);
-    virtual void publish(const MoveCommand &cmd) const;
+    virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
     virtual void setPath(Path::Ptr path);
 

@@ -427,10 +427,6 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
 
     RobotController::ControlStatus status = controller_->execute();
 
-    //TODO: hier muss der ObstacleAvoider zwischengeschaltet werden
-
-    controller_->publishCommand();
-
     switch(status)
     {
     case RobotController::SUCCESS:

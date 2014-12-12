@@ -39,7 +39,8 @@ RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_
                                                              VectorFieldHistogram *vfh):
     RobotController(path_driver),
     active_behaviour_(NULL),
-    vfh_(vfh)
+    vfh_(vfh),
+    filtered_speed_(0.0f)
 {
     configure();
 
@@ -142,27 +143,17 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
     return (std::abs(delta_f - delta_f_raw) > 0.05);
 }
 
-void RobotController_Ackermann_Pid::publishCommand()
-{
-    if (!cmd_.isValid()) {
-        ROS_FATAL("Invalid Command in RobotController_Ackermann_Pid.");
-        return;
-    }
-
-    //ramaxx_msgs::RamaxxMsg msg = current_command_;
-    geometry_msgs::Twist msg = cmd_;
-    cmd_pub_.publish(msg);
-
-    setFilteredSpeed(cmd_.velocity);
-}
-
 void RobotController_Ackermann_Pid::stopMotion()
 {
-    cmd_.velocity = 0.0;
-    cmd_.steer_front = 0.0;
-    cmd_.steer_back= 0.0;
+    //FIXME: this method should be improved (Command could implement cast to MoveCommand)
 
-    publishCommand();
+    cmd_.velocity    = 0.0;
+    cmd_.steer_front = 0.0;
+    cmd_.steer_back  = 0.0;
+
+    MoveCommand mcmd;
+    mcmd.setZ(0);
+    publishMoveCommand(mcmd);
 }
 
 void RobotController_Ackermann_Pid::reset()
@@ -283,6 +274,8 @@ RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand
         cmd->setY(sin(cmd_.steer_front));
         cmd->setZ(cmd_.velocity);
 
+        filtered_speed_ = cmd_.velocity;
+
         switch(status) {
         case FollowPathFeedback::MOTION_STATUS_MOVING:
             return MOVING;
@@ -299,7 +292,7 @@ RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand
     }
 }
 
-void RobotController_Ackermann_Pid::publish(const RobotController::MoveCommand &cmd) const
+void RobotController_Ackermann_Pid::publishMoveCommand(const RobotController::MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
     //msg.linear.x  = velocity;
@@ -312,10 +305,12 @@ void RobotController_Ackermann_Pid::publish(const RobotController::MoveCommand &
 
 void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &rear_pred)
 {
+    //TODO: revise this code
+
     double dt = options_.dead_time_;
     double deltaf = cmd_.steer_front;
     double deltar = cmd_.steer_back;
-    double v = 2*getFilteredSpeed();
+    double v = 2*filtered_speed_;
 
     double beta = std::atan(0.5*(std::tan(deltaf)+std::tan(deltar)));
     double ds = v*dt;

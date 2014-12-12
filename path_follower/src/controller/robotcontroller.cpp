@@ -22,9 +22,6 @@ void RobotController::setPath(Path::Ptr path)
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
         throw EmergencyBreakException("cannot transform path");
     }
-
-//    if (path_driver_->getOptions().use_path_lookout())
-//        path_driver_->getPathLookout()->setPath(path);
 }
 
 void RobotController::initPublisher(ros::Publisher *pub) const
@@ -51,18 +48,18 @@ RobotController::ControlStatus RobotController::execute()
     ControlStatus status = computeMoveCommand(&cmd);
 
     /*TODO: das ganze konzept mit dem ControlStatus passt hier nicht mehr so richtig.
-         * computeMoveCommand hat keine Ahnung von Hindernissen, sondern kann nur sagen, ob
-         * die Berechnung des MoveCommand erfolgreich war oder nicht.
-         * Evlt wäre es auch sinnvoll den SUCCESS check nicht dort, sondern in einer separaten
-         * Methode zu machen?
-         */
+     * computeMoveCommand hat keine Ahnung von Hindernissen, sondern kann nur sagen, ob
+     * die Berechnung des MoveCommand erfolgreich war oder nicht.
+     * Evlt wäre es auch sinnvoll den SUCCESS check nicht dort, sondern in einer separaten
+     * Methode zu machen?
+     */
 
     if (!status == MOVING) {
         return status;
     } else {
         bool cmd_modified = path_driver_->callObstacleAvoider(&cmd);
 
-        publish(cmd);
+        publishMoveCommand(cmd);
         return cmd_modified ? OBSTACLE : MOVING;
     }
 }

@@ -30,8 +30,6 @@ public:
 
     /* ABSTRACT METHODS */
 public:
-    virtual void publishCommand() = 0;
-
     //! Immediatley stop any motion.
     virtual void stopMotion() = 0;
 
@@ -55,7 +53,7 @@ protected:
     virtual ControlStatus computeMoveCommand(MoveCommand* cmd) = 0;
 
     //! Converts the move command to ros message and publishs it.
-    virtual void publish(const MoveCommand &cmd) const = 0;
+    virtual void publishMoveCommand(const MoveCommand &cmd) const = 0;
 
 
     /* REGULAR METHODS */
@@ -63,7 +61,6 @@ public:
     RobotController(PathFollower *path_driver) :
         path_driver_(path_driver),
         velocity_(0.0f),
-        filtered_speed_(0.0f),
         dir_sign_(1.0f)
     {
         initPublisher(&cmd_pub_);
@@ -110,8 +107,6 @@ protected:
     //! Desired velocity (defined by the action goal).
     float velocity_;
 
-    float filtered_speed_;
-
     //! Indicates the direction of movement (>0 -> forward, <0 -> backward)
     float dir_sign_;
 
@@ -122,15 +117,6 @@ protected:
 
 
     virtual void initPublisher(ros::Publisher* pub) const;
-
-
-    virtual void setFilteredSpeed( const float speed ) {
-        filtered_speed_ = speed;
-    }
-
-    virtual float getFilteredSpeed() const {
-        return filtered_speed_;
-    }
 
     void setStatus(int status);
 

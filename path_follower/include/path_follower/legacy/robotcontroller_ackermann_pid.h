@@ -21,8 +21,6 @@ public:
     RobotController_Ackermann_Pid(PathFollower *path_driver,
                                   VectorFieldHistogram *vfh);
 
-    virtual void publishCommand();
-
     virtual void stopMotion();
 
     virtual void reset();
@@ -36,7 +34,7 @@ protected:
     virtual bool behaveApproachTurningPoint();
 
     virtual ControlStatus computeMoveCommand(MoveCommand* cmd);
-    virtual void publish(const MoveCommand &cmd) const;
+    virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
     void switchBehaviour(Behaviour* next_behaviour);
 
@@ -117,6 +115,8 @@ private:
 
     //! Step counter for behaviour ApproachTurningPoint.
     int atp_step_;
+
+    float filtered_speed_;
 
     void configure();
 

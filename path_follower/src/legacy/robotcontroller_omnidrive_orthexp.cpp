@@ -91,26 +91,17 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
 
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::publishCommand()
-{
-    if (!cmd_.isValid()) {
-        ROS_FATAL("Invalid Command in RobotController_Omnidrive_OrthogonalExponential.");
-        return;
-    }
-
-    geometry_msgs::Twist msg = cmd_;
-    cmd_pub_.publish(msg);
-
-    setFilteredSpeed(cmd_.speed);
-}
-
 void RobotController_Omnidrive_OrthogonalExponential::stopMotion()
 {
+    //FIXME: this method should be improved
+
     cmd_.speed = 0;
     cmd_.direction_angle = 0;
     cmd_.rotation = 0;
 
-    publishCommand();
+    MoveCommand mcmd;
+    mcmd.setZ(0);
+    publishMoveCommand(mcmd);
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::lookAtCommand(const std_msgs::StringConstPtr &cmd)
@@ -583,7 +574,7 @@ RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::
     }
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::publish(const RobotController::MoveCommand &cmd) const
+void RobotController_Omnidrive_OrthogonalExponential::publishMoveCommand(const RobotController::MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
     //msg.linear.x  = speed * cos(angle);
