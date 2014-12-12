@@ -124,11 +124,6 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
     cmd_.steer_front = dir_sign_ * delta_f;
     cmd_.steer_back = 0;
 
-    // no laser backward, so do not check when driving backwards.
-//    if (dir_sign_ > 0) {
-//        collision |= path_driver_->isObstacleAhead(calculateCourse());
-//    }
-
 #warning TODO: dont do obstacle detection here
     if(collision) {
         ROS_WARN_THROTTLE(1, "Collision!");
@@ -152,7 +147,7 @@ void RobotController_Ackermann_Pid::stopMotion()
     cmd_.steer_back  = 0.0;
 
     MoveCommand mcmd;
-    mcmd.setZ(0);
+    mcmd.setVelocity(0);
     publishMoveCommand(mcmd);
 }
 
@@ -252,7 +247,7 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
     return false;
 }
 
-RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand(RobotController::MoveCommand *cmd)
+RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand(MoveCommand *cmd)
 {
     try {
         ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
@@ -270,9 +265,8 @@ RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand
         }
 
         // Quickfix: simply convert ackermann command to move command
-        cmd->setX(cos(cmd_.steer_front));
-        cmd->setY(sin(cmd_.steer_front));
-        cmd->setZ(cmd_.velocity);
+        cmd->setDirection(cmd_.steer_front);
+        cmd->setVelocity(cmd_.velocity);
 
         filtered_speed_ = cmd_.velocity;
 
@@ -292,13 +286,13 @@ RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand
     }
 }
 
-void RobotController_Ackermann_Pid::publishMoveCommand(const RobotController::MoveCommand &cmd) const
+void RobotController_Ackermann_Pid::publishMoveCommand(const MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
     //msg.linear.x  = velocity;
     //msg.angular.z = steer_front;
-    msg.linear.x  = cmd.z();
-    msg.angular.z = atan2(cmd.y(), cmd.x());
+    msg.linear.x  = cmd.getVelocity();
+    msg.angular.z = cmd.getDirectionAngle();
 
     cmd_pub_.publish(msg);
 }

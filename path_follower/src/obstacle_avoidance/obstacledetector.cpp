@@ -1,10 +1,10 @@
 #include <path_follower/obstacle_avoidance/obstacledetector.h>
 
-bool ObstacleDetector::avoid(tf::Vector3 * const cmd,
+bool ObstacleDetector::avoid(MoveCommand * const cmd,
                              ObstacleCloud::ConstPtr obstacles,
                              const ObstacleAvoider::State &state)
 {
-    float course = atan2(cmd->y(), cmd->x()); //FIXME: use course prediction!
+    float course = cmd->getDirectionAngle(); //FIXME: use course prediction!
 
     //! Factor which defines, how much the box is enlarged in curves.
     const float enlarge_factor = 0.5; // should this be a parameter?
@@ -18,7 +18,7 @@ bool ObstacleDetector::avoid(tf::Vector3 * const cmd,
      * v >= v_sat:
      *   length = max_length
      */
-    float v = cmd->z();//current_command_.velocity;
+    float v = cmd->getVelocity();
 
     const float diff_to_min_velocity = v - state.parameters.min_velocity();
 
@@ -50,7 +50,7 @@ bool ObstacleDetector::avoid(tf::Vector3 * const cmd,
 //        beep(beep::OBSTACLE_IN_PATH);
 
         // stop motion
-        cmd->setZ(0.0);
+        cmd->setVelocity(0);
     }
     return collision;
 }

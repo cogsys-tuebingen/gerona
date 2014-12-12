@@ -22,7 +22,7 @@
 class ObstacleDetector: public ObstacleAvoider
 {
 public:
-    virtual bool avoid(tf::Vector3 * const cmd,
+    virtual bool avoid(MoveCommand * const cmd,
                        ObstacleCloud::ConstPtr obstacles,
                        const State &state);
 

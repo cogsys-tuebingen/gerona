@@ -320,7 +320,7 @@ void PathFollower::setStatus(int status)
     // TODO: don't use status this way...
 }
 
-bool PathFollower::callObstacleAvoider(RobotController::MoveCommand *cmd)
+bool PathFollower::callObstacleAvoider(MoveCommand *cmd)
 {
     if (obstacle_avoider_ == NULL) {
         ROS_WARN_ONCE("No obstacle avoider selected. Obstacle avoidace is deactivated!");

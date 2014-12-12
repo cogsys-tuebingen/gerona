@@ -68,7 +68,7 @@ public:
 
     void setStatus(int status);
 
-    bool callObstacleAvoider(RobotController::MoveCommand *cmd);
+    bool callObstacleAvoider(MoveCommand *cmd);
 
     const PathFollowerParameters &getOptions() const
     {

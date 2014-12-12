@@ -48,7 +48,7 @@ void RobotController_Omnidrive_VirtualVehicle::stopMotion()
     cmd_.rotation = 0;
 
     MoveCommand mcmd;
-    mcmd.setZ(0);
+    mcmd.setVelocity(0);
     publishMoveCommand(mcmd);
 }
 
@@ -206,13 +206,13 @@ void RobotController_Omnidrive_VirtualVehicle::initOnLine()
 
 }
 
-RobotController::ControlStatus RobotController_Omnidrive_VirtualVehicle::computeMoveCommand(RobotController::MoveCommand *cmd)
+RobotController::ControlStatus RobotController_Omnidrive_VirtualVehicle::computeMoveCommand(MoveCommand *cmd)
 {
     ROS_BREAK(); /*not implemented*/
     return ERROR;
 }
 
-void RobotController_Omnidrive_VirtualVehicle::publishMoveCommand(const RobotController::MoveCommand &cmd) const
+void RobotController_Omnidrive_VirtualVehicle::publishMoveCommand(const MoveCommand &cmd) const
 {
     ROS_BREAK(); /*not implemented*/
 }

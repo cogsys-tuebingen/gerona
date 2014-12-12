@@ -154,6 +154,7 @@ add_executable(path_follower_node
   src/utils/cubic_spline_interpolation.cpp
   src/utils/coursepredictor.cpp
   src/utils/path.cpp
+  src/utils/movecommand.cpp
 
   src/obstacle_avoidance/obstacledetector.cpp
   src/obstacle_avoidance/obstacledetectorpolygon.cpp

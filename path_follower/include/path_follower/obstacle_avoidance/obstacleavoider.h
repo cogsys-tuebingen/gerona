@@ -7,6 +7,7 @@
 
 #include <path_follower/pathfollowerparameters.h>
 #include <path_follower/utils/path.h>
+#include <path_follower/utils/movecommand.h>
 
 class ObstacleAvoider
 {
@@ -39,7 +40,7 @@ public:
      * @param state     Additional information about the current state of the robot.
      * @return True, if the move command was modified, otherwise false.
      */
-    virtual bool avoid(tf::Vector3* const cmd,
+    virtual bool avoid(MoveCommand* const cmd,
                        ObstacleCloud::ConstPtr obstacles,
                        const State &state) = 0;
 };

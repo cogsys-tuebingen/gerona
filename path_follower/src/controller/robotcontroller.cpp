@@ -52,14 +52,22 @@ RobotController::ControlStatus RobotController::execute()
      * die Berechnung des MoveCommand erfolgreich war oder nicht.
      * Evlt wäre es auch sinnvoll den SUCCESS check nicht dort, sondern in einer separaten
      * Methode zu machen?
+     *
+     *TODO: Status 'MOVING' should be renamed as depending on the obstacle avoider, the robot
+     * might also move when status is OBSTACLE.
      */
 
-    if (!status == MOVING) {
+    if (status != MOVING) {
         return status;
     } else {
         bool cmd_modified = path_driver_->callObstacleAvoider(&cmd);
 
-        publishMoveCommand(cmd);
-        return cmd_modified ? OBSTACLE : MOVING;
+        if (!cmd.isValid()) {
+            ROS_ERROR("Invalid move command.");
+            return ERROR;
+        } else {
+            publishMoveCommand(cmd);
+            return cmd_modified ? OBSTACLE : MOVING;
+        }
     }
 }

@@ -8,6 +8,7 @@
 
 // PROJECT
 #include <path_follower/utils/path.h>
+#include <path_follower/utils/movecommand.h>
 #include <path_follower/obstacle_avoidance/obstacledetector.h>
 #include <path_follower/obstacle_avoidance/obstacleavoider.h>
 
@@ -17,9 +18,6 @@ class RobotController
 {
     /* DATA */
 public:
-    //TODO: better use own struct to get clear variable names (x, y, velocity)
-    typedef tf::Vector3 MoveCommand;
-
     enum ControlStatus
     {
         MOVING,

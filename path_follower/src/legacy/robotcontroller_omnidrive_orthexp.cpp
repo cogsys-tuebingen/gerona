@@ -100,7 +100,7 @@ void RobotController_Omnidrive_OrthogonalExponential::stopMotion()
     cmd_.rotation = 0;
 
     MoveCommand mcmd;
-    mcmd.setZ(0);
+    mcmd.setVelocity(0);
     publishMoveCommand(mcmd);
 }
 
@@ -333,8 +333,11 @@ void RobotController_Omnidrive_OrthogonalExponential::start()
     path_driver_->getCoursePredictor().reset();
 }
 
-RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::computeMoveCommand(RobotController::MoveCommand *cmd)
+RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::computeMoveCommand(MoveCommand *cmd)
 {
+    // omni drive can rotate.
+    *cmd = MoveCommand(true);
+
     if(N < 2) {
         ROS_ERROR("[Line] path is too short (N = %d)", N);
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS);
@@ -343,7 +346,6 @@ RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::
         return SUCCESS;
     }
 
-#warning TODO: no obstacle detection here!
 //    Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
 //    if (!dir_of_mov.isZero() && path_driver_->isObstacleAhead(MathHelper::Angle(dir_of_mov))) {
 //        ROS_WARN_THROTTLE(1, "Collision!");
@@ -355,7 +357,7 @@ RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::
 
 //        return OBSTACLE;
 //    }
-    path_driver_->getCoursePredictor().unfreeze();
+//    path_driver_->getCoursePredictor().unfreeze();
 
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
     Eigen::Vector3d current_pose = path_driver_->getRobotPose();
@@ -565,24 +567,25 @@ RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::
         return SUCCESS;
     } else {
         // Quickfix: simply convert omnidrive command to move command
-        cmd->setX(cos(cmd_.direction_angle));
-        cmd->setY(sin(cmd_.direction_angle));
-        cmd->setZ(cmd_.speed);
-        //NOTE: rotation is not represented in cmd!
+        cmd->setDirection(cmd_.direction_angle);
+        cmd->setVelocity(cmd_.speed);
+        cmd->setRotation(cmd_.rotation);
 
         return MOVING;
     }
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::publishMoveCommand(const RobotController::MoveCommand &cmd) const
+void RobotController_Omnidrive_OrthogonalExponential::publishMoveCommand(const MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
     //msg.linear.x  = speed * cos(angle);
     //msg.linear.y  = speed * sin(angle);
     //msg.angular.z = rotation;
-    msg.linear.x  = cmd.z() * cmd.x();
-    msg.linear.y  = cmd.z() * cmd.y();
-    msg.angular.z = cmd_.rotation;
+    Vector2f v = cmd.getVelocityVector();
+    msg.linear.x  = v[0];
+    msg.linear.y  = v[1];
+    assert(cmd.hasRotation());
+    msg.angular.z = cmd.getRotation();
 
     cmd_pub_.publish(msg);
 }
