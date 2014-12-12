@@ -11,15 +11,13 @@
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/PidCtrl.h>
 #include <path_follower/utils/visualizer.h>
-#include <path_follower/legacy/vector_field_histogram.h>
 
 class Behaviour;
 
 class RobotController_Ackermann_Pid : public RobotController
 {
 public:
-    RobotController_Ackermann_Pid(PathFollower *path_driver,
-                                  VectorFieldHistogram *vfh);
+    RobotController_Ackermann_Pid(PathFollower *path_driver);
 
     virtual void stopMotion();
 
@@ -110,7 +108,6 @@ private:
     PidCtrl pid_;
     Command cmd_;
     ControllerOptions options_;
-    VectorFieldHistogram *vfh_;
     Visualizer *visualizer_;
 
     //! Step counter for behaviour ApproachTurningPoint.

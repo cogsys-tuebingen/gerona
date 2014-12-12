@@ -55,13 +55,11 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
     odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
-    VectorFieldHistogram* vfh_ptr = opt_.use_vfh() ? &vfh_ : 0;
-
     // Choose robot controller
     ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
     if (opt_.controller() == "ackermann_pid") {
         obstacle_avoider_ = new ObstacleDetectorAckermann;
-        controller_ = new RobotController_Ackermann_Pid(this, vfh_ptr);
+        controller_ = new RobotController_Ackermann_Pid(this);
     } else if (opt_.controller() == "omnidrive_vv") {
         obstacle_avoider_ = new ObstacleDetectorOmnidrive;
         controller_ = new RobotController_Omnidrive_VirtualVehicle(this);
@@ -72,15 +70,6 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         ROS_FATAL("Unknown robot controller. Shutdown.");
         exit(1);
     }
-
-
-    if(opt_.use_obstacle_map()) {
-        obstacle_map_sub_ = node_handle_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&PathFollower::obstacleMapCB, this, _1));
-    } else {
-        laser_back_sub_  = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10, boost::bind(&PathFollower::laserCB, this, _1, true));
-    }
-//    controller_->getObstacleDetector()->setUseMap(opt_.use_obstacle_map());
-//    controller_->getObstacleDetector()->setUseScan(!opt_.use_obstacle_map());
 
     obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleAvoider::ObstacleCloud>("/obstacle_cloud", 10,
                                                                                  &PathFollower::obstacleCloudCB, this);
@@ -149,21 +138,6 @@ void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
 void PathFollower::obstacleCloudCB(const ObstacleAvoider::ObstacleCloud::ConstPtr &msg)
 {
     obstacle_cloud_ = msg;
-}
-
-void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan, bool isBack)
-{
-}
-
-void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
-{
-    //NOTE: obstacle map is goning to be kicked due to bad performance.
-    //      Use obstacle cloud instead.
-
-    // TODO: convert vfh to a ObstacleAvoider and use obstacle cloud instead of map
-    if(opt_.use_vfh()) {
-        vfh_.setMap(*map);
-    }
 }
 
 bool PathFollower::updateRobotPose()
@@ -335,11 +309,6 @@ bool PathFollower::callObstacleAvoider(MoveCommand *cmd)
     ObstacleAvoider::State state(path_, opt_);
 
     return obstacle_avoider_->avoid(cmd, obstacle_cloud_, state);
-}
-
-VectorFieldHistogram& PathFollower::getVFH()
-{
-    return vfh_;
 }
 
 RobotController *PathFollower::getController()

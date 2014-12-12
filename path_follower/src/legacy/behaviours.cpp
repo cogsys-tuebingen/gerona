@@ -62,10 +62,6 @@ Path::Ptr Behaviour::getPath()
     return parent_.getPath();
 }
 
-VectorFieldHistogram& Behaviour::getVFH()
-{
-    return parent_.getVFH();
-}
 PathFollowerParameters& Behaviour::getOptions()
 {
     return parent_.opt_;

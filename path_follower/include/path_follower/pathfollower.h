@@ -22,10 +22,8 @@
 #include <path_follower/pathfollowerparameters.h>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
 #include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
-#include <path_follower/legacy/vector_field_histogram.h>
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/PidCtrl.h>
-#include <path_follower/legacy/vector_field_histogram.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/coursepredictor.h>
@@ -51,8 +49,6 @@ public:
     void spin();
 
     void update();
-
-    VectorFieldHistogram& getVFH();
 
     RobotController* getController();
 
@@ -92,13 +88,8 @@ private:
 
     //! Subscriber for odometry messages.
     ros::Subscriber odom_sub_;
-    //! Subscriber for the obstacle grid map (used by ObstacleDetector).
-    ros::Subscriber obstacle_map_sub_;
     //! Subscriber for the obstacle point cloud (used by ObstacleAvoider).
     ros::Subscriber obstacle_cloud_sub_;
-    //! Subscriber for laser scans (used for obstacle detection if no obstacle map is used).
-    ros::Subscriber laser_front_sub_;
-    ros::Subscriber laser_back_sub_;
 
     tf::TransformListener pose_listener_;
 
@@ -111,9 +102,6 @@ private:
 
     //! Predict direction of movement for controlling and obstacle avoidance
     CoursePredictor course_predictor_;
-
-    //! Used for collision avoidance. Only used if ~use_obstacle_map:=true and ~use_vfh:=true.
-    VectorFieldHistogram vfh_;
 
     Visualizer* visualizer_;
 
@@ -151,12 +139,6 @@ private:
     void odometryCB(const nav_msgs::OdometryConstPtr &odom);
 
     void obstacleCloudCB(const ObstacleAvoider::ObstacleCloud::ConstPtr&);
-
-    //! Callback for laser scan messages.
-    ROS_DEPRECATED void laserCB(const sensor_msgs::LaserScanConstPtr& scan, bool isBack=false);
-
-    //! Callback for the obstacle grid map. Used by ObstacleDetector and VectorFieldHistorgram.
-    ROS_DEPRECATED void obstacleMapCB(const nav_msgs::OccupancyGridConstPtr& map);
 
     //! Publish beep commands.
     void beep(const std::vector<int>& beeps);

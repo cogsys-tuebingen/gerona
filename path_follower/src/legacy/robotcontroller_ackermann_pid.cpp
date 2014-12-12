@@ -35,11 +35,9 @@ std::string name(Behaviour* b) {
 
 
 
-RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_driver,
-                                                             VectorFieldHistogram *vfh):
+RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_driver):
     RobotController(path_driver),
     active_behaviour_(NULL),
-    vfh_(vfh),
     filtered_speed_(0.0f)
 {
     configure();
@@ -81,28 +79,8 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 
     visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
 
-    double threshold = 5.0;
-    double threshold_max_distance = 3.5 /*m*/;
-
-    double distance_to_goal = path_->getCurrentSubPath().back().distanceTo(path_->getCurrentWaypoint());
-    double threshold_distance = std::min(threshold_max_distance,
-                                         std::max((double) path_driver_opt.collision_box_min_length(), distance_to_goal));
-
     double delta_f = delta_f_raw;
-    bool collision = false;
-
-    if (vfh_ != 0) {
-        if(!vfh_->isReady()) {
-            ROS_WARN_THROTTLE(1, "Not using VFH, not ready yet! (Maybe obstacle map not published?)");
-            //delta_f = delta_f_raw;
-        } else {
-            vfh_->create(threshold_distance, threshold);
-            collision = !vfh_->adjust(delta_f_raw, threshold, delta_f);
-            vfh_->visualize(delta_f_raw, threshold);
-        }
-    }
-
-    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f, 0.0, 1.0, 1.0);
+//    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f, 0.0, 1.0, 1.0);
 
 
     double steer = std::abs(delta_f);
@@ -123,16 +101,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 
     cmd_.steer_front = dir_sign_ * delta_f;
     cmd_.steer_back = 0;
-
-#warning TODO: dont do obstacle detection here
-    if(collision) {
-        ROS_WARN_THROTTLE(1, "Collision!");
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE); //TODO: not so good to use result-constant if it is not finishing the action...
-
-        stopMotion();
-    } else {
-        cmd_.velocity = dir_sign_ * speed;
-    }
+    cmd_.velocity = dir_sign_ * speed;
 
     ROS_DEBUG("Set velocity to %g", cmd_.velocity);
     return (std::abs(delta_f - delta_f_raw) > 0.05);

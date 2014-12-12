@@ -34,7 +34,6 @@ protected:
 
     const SubPath &getCurrentSubPath();
     size_t getSubPathCount() const;
-    VectorFieldHistogram& getVFH();
     PathFollowerParameters& getOptions();
     double distanceTo(const Waypoint& wp);
 
