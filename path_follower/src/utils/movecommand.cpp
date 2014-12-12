@@ -33,7 +33,7 @@ float MoveCommand::getDirectionAngle() const
 
 float MoveCommand::getVelocity() const
 {
-    return move_dir_.norm();
+    return velocity_;
 }
 
 bool MoveCommand::hasRotation() const

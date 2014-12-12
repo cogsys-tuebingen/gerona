@@ -250,7 +250,7 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
 RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand(MoveCommand *cmd)
 {
     try {
-        ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
+//        ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
         int status = FollowPathFeedback::MOTION_STATUS_MOVING;
         Behaviour* next_behaviour = active_behaviour_->execute(&status);
 
@@ -260,7 +260,8 @@ RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand
         }
 
         if(active_behaviour_ != next_behaviour) {
-            std::cout << "switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) << std::endl;
+            ROS_INFO_STREAM("switching behaviour from " << name(active_behaviour_)
+                            << " to " << name(next_behaviour));
             switchBehaviour(next_behaviour);
         }
 
