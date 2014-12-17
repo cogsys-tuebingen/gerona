@@ -39,10 +39,10 @@ struct NonHolonomicNeighborhoodNoEndOrientation :
 
 
 // MORE PRECISE END POSITION
-template <int n, int distance>
+template <int n, int distance, int moves = NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD>
 struct NonHolonomicNeighborhoodPrecise :
-        public NonHolonomicNeighborhood<n, distance> {
-    typedef NonHolonomicNeighborhood<n, distance> Parent;
+        public NonHolonomicNeighborhood<n, distance, moves> {
+    typedef NonHolonomicNeighborhood<n, distance, moves> Parent;
 
     using Parent::distance_step_pixel;
 
@@ -174,10 +174,15 @@ struct PathPlanner : public Planner
 
     //  TODO: make these two (or more?) selectable:
     //typedef AStarNoOrientationSearch<> AStar;
-    //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100> > AStar;
-    //typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStar;
-    typedef AStarSearch<NHNeighbor> AStar; // Ackermann
-//    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStar; // Omnidrive
+//    typedef AStarSearch<NHNeighbor> AStarAckermann; // Ackermann
+//    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
+//    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
+    typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD> > AStarPatsyForward;
+    typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD>,
+    ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
+//    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStarOmnidrive; // Omnidrive
+
+    typedef AStarPatsyForward AStar;
 
     typedef AStar::PathT PathT;
 
