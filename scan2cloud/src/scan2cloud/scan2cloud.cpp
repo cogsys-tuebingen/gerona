@@ -53,11 +53,11 @@ void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& sc
 
 void ScanConverter::spin()
 {
+
+    cbScanfront_ = false;
+    cbScanback_ = false;
     ros::Rate loopRate(50);
     while(ros::ok()){
-
-        cbScanfront_ = false;
-        cbScanback_ = false;
         //ros::spinOnce();
         ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0));
 
