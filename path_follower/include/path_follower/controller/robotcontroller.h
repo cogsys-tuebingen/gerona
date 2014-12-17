@@ -18,6 +18,7 @@ class RobotController
 {
     /* DATA */
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     enum ControlStatus
     {
         MOVING,
@@ -111,7 +112,7 @@ protected:
     //! Current path.
     Path::Ptr path_;
     //! The next waypoint in the robot frame (set by setPath).
-    Eigen::Vector3d next_wp_local_;
+    Eigen:: Vector3d next_wp_local_;
 
 
     virtual void initPublisher(ros::Publisher* pub) const;

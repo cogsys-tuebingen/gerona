@@ -37,6 +37,9 @@ class PathFollower
     friend class Behaviour;
 
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+public:
     PathFollower(ros::NodeHandle &nh);
     ~PathFollower();
 

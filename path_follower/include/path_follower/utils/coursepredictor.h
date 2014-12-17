@@ -47,7 +47,7 @@ public:
     void setUpdateIntervall(const ros::Duration &getUpdateIntervall);
 
 private:
-    typedef boost::circular_buffer<Eigen::Vector2d> buffer_type;
+    typedef boost::circular_buffer<Eigen::Vector2d,Eigen::aligned_allocator<Eigen::Vector2d> > buffer_type;
 
     PathFollower *path_driver_;
 

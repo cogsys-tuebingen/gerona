@@ -19,6 +19,8 @@
 class MoveCommand
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     /**
      * @brief Constructor.
      * @param can_rotate Set this to true if the used robot model supports direct rotation

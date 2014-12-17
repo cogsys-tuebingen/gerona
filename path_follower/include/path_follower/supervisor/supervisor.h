@@ -12,6 +12,8 @@
 class Supervisor
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     typedef boost::shared_ptr<Supervisor> Ptr;
 
     struct State

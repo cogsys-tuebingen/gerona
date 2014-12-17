@@ -10,6 +10,8 @@
 class Behaviour
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     virtual ~Behaviour() {}
 
     virtual Behaviour* execute(int* status) = 0;
