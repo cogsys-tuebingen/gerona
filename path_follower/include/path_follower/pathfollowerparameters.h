@@ -13,7 +13,6 @@ struct PathFollowerParameters : public Parameters
     P<double> max_distance_to_path;
     P<std::string> world_frame;
     P<std::string> robot_frame;
-    P<bool> use_obstacle_map;
     P<bool> use_vfh;
     P<bool> use_path_lookout;
     P<float> min_velocity;
@@ -36,7 +35,6 @@ struct PathFollowerParameters : public Parameters
         world_frame(this, "~world_frame",  "/map", "Name of the world frame."),
         robot_frame(this, "~robot_frame",  "/base_link", "Name of the robot frame."),
 
-        use_obstacle_map(this, "~use_obstacle_map",  false, "If set to true, obstacle map is used for collision avoidance."),
         use_vfh(this, "~use_vfh",  false, "If set to true, vector field histogram is used for collision avoidance."),
         use_path_lookout(this, "~use_path_lookout",  true, "If set to true, path lookout is done (check if there are obstacles somewhere on the path ahead of the robot)."),
 

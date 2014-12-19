@@ -9,13 +9,11 @@
 
 /// ROS
 #include <sensor_msgs/LaserScan.h>
-#include <nav_msgs/OccupancyGrid.h>
 #include <tf/transform_listener.h>
 
 /// PROJECT
 #include <path_follower/supervisor/supervisor.h>
 #include <path_follower/utils/path.h>
-#include <path_follower/utils/maptransformer.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/supervisor/obstacletracker.h>
@@ -39,16 +37,13 @@
 class PathLookout : public Supervisor
 {
 public:
-    PathLookout(bool use_map);
+    PathLookout();
 
     virtual std::string getName() const {
         return "PathLookout";
     }
 
     void setScan(const sensor_msgs::LaserScanConstPtr &msg, bool isBack=false);
-
-    void setMap(const nav_msgs::OccupancyGridConstPtr &msg);
-
 
     //! Check if there is an obstacle on the path ahead of the robot, that gives a reason to cancel the current path.
     virtual void supervise(State &state, Result *out);
@@ -85,42 +80,25 @@ private:
     //! TF-Frame in which the obstacles are tracked (should be independent of the robots movement, thus /map is a good choise).
     std::string obstacle_frame_;
 
-    MapTransformer map_trans_;
     ObstacleTracker tracker_;
     Visualizer *visualizer_;
     tf::TransformListener tf_listener_;
 
-    ros::Subscriber obstacle_map_sub_;
     ros::Subscriber laser_front_sub_;
     ros::Subscriber laser_back_sub_;
 
     sensor_msgs::LaserScanConstPtr front_scan_;
     sensor_msgs::LaserScanConstPtr back_scan_;
 
-    //! The current obstacle map.
-    nav_msgs::OccupancyGridConstPtr map_;
-
-    //! Current map converted to cv::Mat.
-    cv::Mat map_image_;
-
     SubPath path_;
-
-    //! Mask image of the path
-    cv::Mat path_image_;
 
 
     //! Set the path, which is to be checked for obstacles.
     void setPath(Path::ConstPtr path);
 
-    std::vector<Obstacle> lookForObstaclesInMap();
-
     std::vector<Obstacle> lookForObstaclesInScans();
 
     std::vector<std::vector<cv::Point2f> > clusterPoints(const std::vector<cv::Point2f> &points);
-
-    //! draw the path to the path image (assumes, that map is already set!)
-    /** @see path_image_ */
-    void drawPathToImage(const SubPath &path);
 
     //! Compute weight for the given obstacle, depending on its distance to the robot and its lifetime.
     float weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const;

@@ -83,8 +83,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     path_->registerNextWaypointCallback(boost::bind(&SupervisorChain::notifyNewWaypoint, &supervisors_));
 
     if (opt_.use_path_lookout()) {
-        Supervisor::Ptr tmp(new PathLookout( opt_.use_obstacle_map() ));
-        supervisors_.addSupervisor(tmp);
+        supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout) );
     }
 
     // Waypoint timeout
