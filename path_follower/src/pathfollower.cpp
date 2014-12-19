@@ -71,7 +71,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         exit(1);
     }
 
-    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleAvoider::ObstacleCloud>("/obstacle_cloud", 10,
+    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacle_cloud", 10,
                                                                                  &PathFollower::obstacleCloudCB, this);
 
     visualizer_ = Visualizer::getInstance();
@@ -134,7 +134,7 @@ void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
     odometry_ = *odom;
 }
 
-void PathFollower::obstacleCloudCB(const ObstacleAvoider::ObstacleCloud::ConstPtr &msg)
+void PathFollower::obstacleCloudCB(const ObstacleCloud::ConstPtr &msg)
 {
     obstacle_cloud_ = msg;
 }

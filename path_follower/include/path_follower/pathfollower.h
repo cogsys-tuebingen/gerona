@@ -114,7 +114,7 @@ private:
     nav_msgs::Odometry odometry_;
 
     //! The last received obstacle cloud (TODO: better store mesage directly as shared_ptr?)
-    ObstacleAvoider::ObstacleCloud::ConstPtr obstacle_cloud_;
+    ObstacleCloud::ConstPtr obstacle_cloud_;
 
     //! Current pose of the robot as Eigen vector (x,y,theta).
     Eigen::Vector3d robot_pose_;
@@ -141,7 +141,7 @@ private:
     //! Callback for odometry messages
     void odometryCB(const nav_msgs::OdometryConstPtr &odom);
 
-    void obstacleCloudCB(const ObstacleAvoider::ObstacleCloud::ConstPtr&);
+    void obstacleCloudCB(const ObstacleCloud::ConstPtr&);
 
     //! Publish beep commands.
     void beep(const std::vector<int>& beeps);

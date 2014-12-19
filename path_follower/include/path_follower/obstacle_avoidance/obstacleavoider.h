@@ -2,20 +2,16 @@
 #define OBSTACLEAVOIDER_H
 
 #include <Eigen/Core>
-#include <pcl_ros/point_cloud.h>
 #include <tf/tf.h>
 
 #include <path_follower/pathfollowerparameters.h>
+#include <path_follower/utils/obstaclecloud.hpp>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/movecommand.h>
 
 class ObstacleAvoider
 {
 public:
-    // PointXY would be sufficient, but buildin transform of point clouds works only with XYZ-points...
-    typedef pcl::PointXYZ ObstaclePoint;
-    typedef pcl::PointCloud<ObstaclePoint> ObstacleCloud;
-
     //! Additional information about the robots state, that might be required by the obstacle avodier
     struct State
     {
