@@ -26,7 +26,9 @@ public:
             feedback(feedback)
         {}
 
+        //! Current pose of the robot in world frame. The first two values are x/y-coords, the third is the yaw angle.
         const Eigen::Vector3d& robot_pose;
+        //! The current path
         const Path::ConstPtr path;
 
         path_msgs::FollowPathFeedback &feedback;

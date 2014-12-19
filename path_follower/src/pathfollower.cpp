@@ -401,7 +401,7 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
         result.status = FollowPathResult::MOTION_STATUS_SUCCESS;
         return DONE;
 
-    case RobotController::OBSTACLE:
+    case RobotController::OBSTACLE: //TODO: not sure right now, but i think this case can not happen any more with ObstacleAvoider.
         if (opt_.abort_if_obstacle_ahead()) {
             result.status = FollowPathResult::MOTION_STATUS_OBSTACLE;
             return DONE;
