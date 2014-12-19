@@ -12,7 +12,6 @@
 
 #include <laser_geometry/laser_geometry.h>
 #include <pcl_ros/transforms.h>
-#include <opencv2/flann/flann.hpp>
 
 using namespace std;
 
@@ -114,13 +113,9 @@ void PathLookout::supervise(State &state, Supervisor::Result *out)
     // visualize obstacles in rviz
     if (visualizer_->hasSubscriber()) {
         for(size_t i = 0; i < tracked_obs.size(); ++i) {
-            // this should be a unique identifier for a tracked obstacle
-            //FIXME: scheinbar nicht unique genug...
-            //int id = tracked_obs[i].time_of_first_sight().toNSec();
-
             geometry_msgs::Point gp = obstacle_msgs[i].position;
-            //visualizer_->drawMark(id, gp, "obstacleonpath", 1,0,0, obstacle_frame_);
-            visualizer_->drawCircle(i, gp, tracked_obs[i].obstacle().radius, obstacle_frame_, "obstacleonpath", 1,0,0,0.5, 0.1);
+            visualizer_->drawCircle(tracked_obs[i].id(), gp, tracked_obs[i].obstacle().radius,
+                                    obstacle_frame_, "obstacleonpath", 1,0,0,0.5, 0.1);
 
             // show the weight.
             stringstream s;
@@ -146,17 +141,6 @@ void PathLookout::eventNewGoal()
 
 vector<Obstacle> PathLookout::lookForObstacles()
 {
-//    vector<cv::Point2f> obs_front, obs_back;
-//    if (front_scan_) {
-//        obs_front = findObstaclesInScan(front_scan_);
-//    }
-//    if (back_scan_) {
-//        obs_back = findObstaclesInScan(back_scan_);
-//    }
-
-//    // merge result of front and back scan
-//    obs_front.insert(obs_front.end(), obs_back.begin(), obs_back.end());
-
     vector<cv::Point2f> obs_front = findObstaclesInCloud(obstacle_cloud_);
 
     // cluster
@@ -209,6 +193,8 @@ vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f
      * the threshold defined by opt_.scan_cluster_max_distance(). In this case, the current cluster is closed and a
      * new cluster is started.
      *  --> clusters are in fact segments of the scan.
+     *
+     * FIXME: this is not guaranteed anymore using the obstacle cloud!
      */
 
     vector<vector<cv::Point2f> > result;

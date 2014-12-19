@@ -59,7 +59,8 @@ public:
         TrackedObstacle(Obstacle obs):
             obstacle_(obs),
             time_of_first_sight_(ros::Time::now()),
-            time_of_last_sight_(ros::Time::now())
+            time_of_last_sight_(ros::Time::now()),
+            id_(nextId())
         {}
 
         void update(Obstacle obs)
@@ -83,6 +84,11 @@ public:
             return time_of_last_sight_;
         }
 
+        int id() const
+        {
+            return id_;
+        }
+
     private:
         //! Last known position of the obstacle.
         Obstacle obstacle_;
@@ -90,6 +96,14 @@ public:
         ros::Time time_of_first_sight_;
         //! Time, when the obstacle was detected for the last time (to track lost obstacles).
         ros::Time time_of_last_sight_;
+        //! Unique identifier
+        int id_;
+
+        static int nextId()
+        {
+            static int x = 0;
+            return x++;
+        }
     };
 
 
