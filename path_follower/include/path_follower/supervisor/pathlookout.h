@@ -14,6 +14,7 @@
 /// PROJECT
 #include <path_follower/supervisor/supervisor.h>
 #include <path_follower/utils/path.h>
+#include <path_follower/utils/obstaclecloud.hpp>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/supervisor/obstacletracker.h>
@@ -43,7 +44,7 @@ public:
         return "PathLookout";
     }
 
-    void setScan(const sensor_msgs::LaserScanConstPtr &msg, bool isBack=false);
+    void setObstacleCloud(const ObstacleCloud::ConstPtr &cloud);
 
     //! Check if there is an obstacle on the path ahead of the robot, that gives a reason to cancel the current path.
     virtual void supervise(State &state, Result *out);
@@ -84,11 +85,9 @@ private:
     Visualizer *visualizer_;
     tf::TransformListener tf_listener_;
 
-    ros::Subscriber laser_front_sub_;
-    ros::Subscriber laser_back_sub_;
+    ros::Subscriber obstacle_cloud_sub_;
 
-    sensor_msgs::LaserScanConstPtr front_scan_;
-    sensor_msgs::LaserScanConstPtr back_scan_;
+    ObstacleCloud::ConstPtr obstacle_cloud_;
 
     SubPath path_;
 
@@ -96,14 +95,14 @@ private:
     //! Set the path, which is to be checked for obstacles.
     void setPath(Path::ConstPtr path);
 
-    std::vector<Obstacle> lookForObstaclesInScans();
+    std::vector<Obstacle> lookForObstacles();
 
     std::vector<std::vector<cv::Point2f> > clusterPoints(const std::vector<cv::Point2f> &points);
 
     //! Compute weight for the given obstacle, depending on its distance to the robot and its lifetime.
     float weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const;
 
-    std::vector<cv::Point2f> findObstaclesInScan(const sensor_msgs::LaserScanConstPtr &scan);
+    std::vector<cv::Point2f> findObstaclesInCloud(const ObstacleCloud::ConstPtr &cloud);
 };
 
 #endif // PATHLOOKOUT_H

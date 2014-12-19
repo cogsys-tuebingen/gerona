@@ -11,6 +11,7 @@
 #include <boost/foreach.hpp>
 
 #include <laser_geometry/laser_geometry.h>
+#include <pcl_ros/transforms.h>
 #include <opencv2/flann/flann.hpp>
 
 using namespace std;
@@ -28,17 +29,12 @@ PathLookout::PathLookout():
 
     // FIXME: it is ugly, having to subscribe the same topic at different places...
     ros::NodeHandle node_handle_;
-    laser_front_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan/filtered", 10, boost::bind(&PathLookout::setScan, this, _1, false));
-    laser_back_sub_  = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10, boost::bind(&PathLookout::setScan, this, _1, true));
+    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacle_cloud", 10, &PathLookout::setObstacleCloud, this);
 }
 
-void PathLookout::setScan(const sensor_msgs::LaserScanConstPtr &msg, bool isBack)
+void PathLookout::setObstacleCloud(const ObstacleCloud::ConstPtr &cloud)
 {
-    if (isBack) {
-        back_scan_ = msg;
-    } else {
-        front_scan_ = msg;
-    }
+    obstacle_cloud_ = cloud;
 }
 
 void PathLookout::setPath(Path::ConstPtr path)
@@ -63,8 +59,8 @@ void PathLookout::supervise(State &state, Supervisor::Result *out)
     // hope for the best
     out->can_continue = true;
 
-    if (!front_scan_ && !back_scan_) {
-        ROS_WARN_THROTTLE(1, "PathLookout has not received any scan yet. No obstacle lookout is done.");
+    if (!obstacle_cloud_) {
+        ROS_WARN_THROTTLE(1, "PathLookout has not received any obstacle cloud yet. No obstacle lookout is done.");
         return;
     }
     if (path_.empty()) {
@@ -73,12 +69,7 @@ void PathLookout::supervise(State &state, Supervisor::Result *out)
     }
 
 
-    vector<Obstacle> observed_obstacles;
-    if (front_scan_ || back_scan_) {
-        vector<Obstacle> obs = lookForObstaclesInScans();
-        observed_obstacles.insert(observed_obstacles.end(), obs.begin(), obs.end());
-    }
-
+    vector<Obstacle> observed_obstacles = lookForObstacles();
 
     // Update tracker
     tracker_.update(observed_obstacles);
@@ -153,18 +144,20 @@ void PathLookout::eventNewGoal()
     reset();
 }
 
-vector<Obstacle> PathLookout::lookForObstaclesInScans()
+vector<Obstacle> PathLookout::lookForObstacles()
 {
-    vector<cv::Point2f> obs_front, obs_back;
-    if (front_scan_) {
-        obs_front = findObstaclesInScan(front_scan_);
-    }
-    if (back_scan_) {
-        obs_back = findObstaclesInScan(back_scan_);
-    }
+//    vector<cv::Point2f> obs_front, obs_back;
+//    if (front_scan_) {
+//        obs_front = findObstaclesInScan(front_scan_);
+//    }
+//    if (back_scan_) {
+//        obs_back = findObstaclesInScan(back_scan_);
+//    }
 
-    // merge result of front and back scan
-    obs_front.insert(obs_front.end(), obs_back.begin(), obs_back.end());
+//    // merge result of front and back scan
+//    obs_front.insert(obs_front.end(), obs_back.begin(), obs_back.end());
+
+    vector<cv::Point2f> obs_front = findObstaclesInCloud(obstacle_cloud_);
 
     // cluster
     vector<vector<cv::Point2f> > obstacle_points = clusterPoints(obs_front);
@@ -276,35 +269,24 @@ float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::Tracke
     return w_dist + w_time;
 }
 
-std::vector<cv::Point2f> PathLookout::findObstaclesInScan(const sensor_msgs::LaserScanConstPtr &scan)
+std::vector<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::ConstPtr &cloud)
 {
     if (path_.size() < 2) {
         ROS_WARN("Path has less than 2 waypoints. No obstacle lookout is done.");
         return std::vector<cv::Point2f>(); // return empty cloud
     }
 
-    laser_geometry::LaserProjection proj;
-    sensor_msgs::PointCloud cloud;
-
+    //TODO: are cloud and path in the same frame?
+    ObstacleCloud trans_cloud;
     try {
-        if(!tf_listener_.waitForTransform(
-                    scan->header.frame_id,
-                    "/map",
-                    scan->header.stamp + ros::Duration().fromSec(scan->ranges.size()*scan->time_increment),
-                    ros::Duration(1.0))) {
-            ROS_ERROR("[PathLookout] No transform for laser scan from %s to /map. No obstacle lookout is done!", scan->header.frame_id.c_str());
-            return std::vector<cv::Point2f>(); // return empty cloud
-        }
-
-        proj.transformLaserScanToPointCloud("/map", *scan, cloud, tf_listener_, scan->range_max-0.5, laser_geometry::channel_option::Index);
-    } catch (const tf::TransformException& ex) {
-        ROS_ERROR("[PathLookout] Failed to transform scan. TF-Exception: %s\n PathLookout will not be able to check for obstacles on the path!", ex.what());
+        pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, tf_listener_);
+    } catch (tf::TransformException& ex) {
+        ROS_ERROR("Failed to transform obstacle cloud: %s", ex.what());
         return std::vector<cv::Point2f>(); // return empty cloud
     }
 
-
     //! Contains an 'is obstacle' flag for each point in the cloud
-    vector<bool> is_point_obs(cloud.points.size(), false);
+    vector<bool> is_point_obs(trans_cloud.size(), false);
 
     cv::Point2f a(path_[0].x, path_[0].y);
 
@@ -334,8 +316,8 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInScan(const sensor_msgs::Las
         const float ab2 = ab.dot(ab);
 
         // check distance of each point
-        for (size_t i = 0; i < cloud.points.size(); ++i) {
-            const cv::Point2f p(cloud.points[i].x, cloud.points[i].y);
+        for (size_t i = 0; i < trans_cloud.size(); ++i) {
+            const cv::Point2f p(trans_cloud.at(i).x, trans_cloud.at(i).y);
             const cv::Point2f ap = p - a;
             const float lambda = ap.dot(ab) / ab2;
 
@@ -361,9 +343,9 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInScan(const sensor_msgs::Las
     }
 
     vector<cv::Point2f> obstacle_points;
-    for (size_t i = 0; i < cloud.points.size(); ++i) {
+    for (size_t i = 0; i < trans_cloud.size(); ++i) {
         if (is_point_obs[i]) {
-            cv::Point2f p(cloud.points[i].x, cloud.points[i].y);
+            cv::Point2f p(trans_cloud.at(i).x, trans_cloud.at(i).y);
             obstacle_points.push_back(p);
         }
     }
