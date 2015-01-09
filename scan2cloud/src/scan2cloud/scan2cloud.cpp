@@ -25,7 +25,10 @@ void ScanConverter::scanCallback_front(const sensor_msgs::LaserScan::ConstPtr& s
                     ros::Duration(0.0))){
             return;
         }
-        projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_front_, tfListener_);
+        // as (at least in the simulation) there are end-of-range scans slightly below the
+        // range_max value, move the cutof to 99% of the range.
+        double range_cutoff = scan_in->range_max * 0.99;
+        projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_front_, tfListener_, range_cutoff);
         cbScanfront_ = true;
 
     }catch(...){
@@ -35,7 +38,8 @@ void ScanConverter::scanCallback_front(const sensor_msgs::LaserScan::ConstPtr& s
 }
 
 void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& scan_in){
-
+    //TODO: get rid of this code duplication by making on callback for front and back with and
+    // additional flag.
     try{
         if(!tfListener_.waitForTransform(
                     scan_in->header.frame_id,
@@ -44,7 +48,10 @@ void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& sc
                     ros::Duration(0.0))){
             return;
         }
-        projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_back_, tfListener_);
+        // as (at least in the simulation) there are end-of-range scans slightly below the
+        // range_max value, move the cutof to 99% of the range.
+        double range_cutoff = scan_in->range_max * 0.99;
+        projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_back_, tfListener_, range_cutoff);
         cbScanback_ = true;
     }catch(...){
 
