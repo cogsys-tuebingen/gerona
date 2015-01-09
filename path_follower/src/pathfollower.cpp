@@ -397,7 +397,7 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
 
     switch(status)
     {
-    case RobotController::SUCCESS:
+    case RobotController::REACHED_GOAL:
         result.status = FollowPathResult::MOTION_STATUS_SUCCESS;
         return DONE;
 
@@ -410,7 +410,7 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
             return MOVING;
         }
 
-    case RobotController::MOVING:
+    case RobotController::OKAY:
         feedback.status = FollowPathFeedback::MOTION_STATUS_MOVING;
         return MOVING;
 

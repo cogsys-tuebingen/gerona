@@ -225,7 +225,7 @@ RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand
 
         if(next_behaviour == NULL) {
             switchBehaviour(NULL);
-            return SUCCESS;
+            return REACHED_GOAL;
         }
 
         if(active_behaviour_ != next_behaviour) {
@@ -242,7 +242,7 @@ RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand
 
         switch(status) {
         case FollowPathFeedback::MOTION_STATUS_MOVING:
-            return MOVING;
+            return OKAY;
         case FollowPathFeedback::MOTION_STATUS_OBSTACLE:
             return OBSTACLE;
         default:

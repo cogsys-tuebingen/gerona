@@ -21,9 +21,9 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     enum ControlStatus
     {
-        MOVING,
-        OBSTACLE,
-        SUCCESS,
+        OKAY,
+        OBSTACLE, //TODO: remove OBSTACLE, it is not task of the controller to check this.
+        REACHED_GOAL,
         ERROR
     };
 
