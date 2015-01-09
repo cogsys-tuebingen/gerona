@@ -31,7 +31,7 @@ protected:
     virtual void behaveOnLine();
     virtual bool behaveApproachTurningPoint();
 
-    virtual ControlStatus computeMoveCommand(MoveCommand* cmd);
+    virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
     void switchBehaviour(Behaviour* next_behaviour);

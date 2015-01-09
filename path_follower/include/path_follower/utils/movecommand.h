@@ -64,6 +64,7 @@ private:
     float rotation_;
     //! If false, rotation_ is undefined and must not be used.
     bool use_rotation_;
+    //TODO: do we need rotational velocity?
 
     //! Check if the given value is neither NaN nor +/-infinity.
     bool isValid(float val) const;

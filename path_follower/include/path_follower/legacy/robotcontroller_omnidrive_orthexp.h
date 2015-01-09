@@ -25,7 +25,7 @@ public:
 
 
 protected:
-    virtual ControlStatus computeMoveCommand(MoveCommand* cmd);
+    virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
     virtual void setPath(Path::Ptr path);

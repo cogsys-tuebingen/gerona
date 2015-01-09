@@ -216,7 +216,7 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
     return false;
 }
 
-RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand(MoveCommand *cmd)
+RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCommand(MoveCommand *cmd)
 {
     try {
 //        ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
@@ -225,7 +225,7 @@ RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand
 
         if(next_behaviour == NULL) {
             switchBehaviour(NULL);
-            return REACHED_GOAL;
+            return MC_REACHED_GOAL;
         }
 
         if(active_behaviour_ != next_behaviour) {
@@ -242,17 +242,15 @@ RobotController::ControlStatus RobotController_Ackermann_Pid::computeMoveCommand
 
         switch(status) {
         case FollowPathFeedback::MOTION_STATUS_MOVING:
-            return OKAY;
-        case FollowPathFeedback::MOTION_STATUS_OBSTACLE:
-            return OBSTACLE;
+            return MC_OKAY;
         default:
             ROS_WARN_STREAM("unknown status: " << status);
-            return ERROR;
+            return MC_ERROR;
         }
     } catch(const std::exception& e) {
         ROS_ERROR_STREAM("uncaught exception: " << e.what() << " => abort");
         reset();
-        return ERROR;
+        return MC_ERROR;
     }
 }
 

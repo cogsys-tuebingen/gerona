@@ -137,7 +137,8 @@ private:
         goal.velocity = target_speed_;
 
         client_.cancelAllGoals();
-	ros::spinOnce(); ros::Duration(0.1).sleep();
+        ros::spinOnce();
+        ros::Duration(0.1).sleep();
 
         client_.sendGoal(goal,
                          boost::bind(&HighDummy::doneCb, this, _1, _2),

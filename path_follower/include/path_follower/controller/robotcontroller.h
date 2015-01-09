@@ -22,7 +22,7 @@ public:
     enum ControlStatus
     {
         OKAY,
-        OBSTACLE, //TODO: remove OBSTACLE, it is not task of the controller to check this.
+        OBSTACLE,
         REACHED_GOAL,
         ERROR
     };
@@ -44,12 +44,18 @@ public:
     virtual bool behaveApproachTurningPoint() { return false; }
 
 protected:
+    //! This is a subset of ControlStatus. computeMoveCommand is not allowed to report obstacles
+    enum MoveCommandStatus
+    {
+        MC_OKAY, MC_REACHED_GOAL, MC_ERROR
+    };
+
     /**
      * @brief Computes the next move command.
      * @param cmd Output. The move command for this iteration.
-     * @return Status that can be used to indicate errors. `MOVING` if everything is ok.
+     * @return Status that can be used to indicate errors. `OKAY` if everything is ok.
      */
-    virtual ControlStatus computeMoveCommand(MoveCommand* cmd) = 0;
+    virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd) = 0;
 
     //! Converts the move command to ros message and publishs it.
     virtual void publishMoveCommand(const MoveCommand &cmd) const = 0;
@@ -121,6 +127,9 @@ protected:
 
     //! Calculate the angle between the orientations of the waypoint and the robot.
     virtual double calculateAngleError();
+
+    //! Convert a MoveCommandStatus to its corresponding ControlStatus
+    static ControlStatus MCS2CS(MoveCommandStatus s);
 };
 
 #endif // ROBOTCONTROLLER_H

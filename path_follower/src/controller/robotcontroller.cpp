@@ -37,6 +37,20 @@ double RobotController::calculateAngleError()
     return MathHelper::AngleClamp(tf::getYaw(waypoint.orientation) - tf::getYaw(robot_pose.orientation));
 }
 
+RobotController::ControlStatus RobotController::MCS2CS(RobotController::MoveCommandStatus s)
+{
+    switch (s) {
+    case MC_OKAY:
+        return OKAY;
+    case MC_REACHED_GOAL:
+        return REACHED_GOAL;
+    default:
+        ROS_ERROR("MoveCommandStatus %d is not handled by MCS2CS! Return ERROR instead.", s);
+    case MC_ERROR:
+        return ERROR;
+    }
+}
+
 bool RobotController::isOmnidirectional() const
 {
     return false;
@@ -45,17 +59,15 @@ bool RobotController::isOmnidirectional() const
 RobotController::ControlStatus RobotController::execute()
 {
     MoveCommand cmd;
-    ControlStatus status = computeMoveCommand(&cmd);
+    MoveCommandStatus status = computeMoveCommand(&cmd);
 
-    /*TODO: das ganze konzept mit dem ControlStatus passt hier nicht mehr so richtig.
-     * computeMoveCommand hat keine Ahnung von Hindernissen, sondern kann nur sagen, ob
-     * die Berechnung des MoveCommand erfolgreich war oder nicht.
-     * Evlt wäre es auch sinnvoll den SUCCESS check nicht dort, sondern in einer separaten
-     * Methode zu machen?
+    /*TODO: Evlt wäre es sinnvoll den REACHED_GOAL check nicht in computeMoveCommand zu machen,
+     * sondern in einer separaten Methode außerhalb, die einfach abstand zum ziel mit einer
+     * bestimmten toleranz misst?
      */
 
-    if (status != OKAY) {
-        return status;
+    if (status != MC_OKAY) {
+        return MCS2CS(status);
     } else {
         bool cmd_modified = path_driver_->callObstacleAvoider(&cmd);
 

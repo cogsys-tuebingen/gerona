@@ -333,7 +333,7 @@ void RobotController_Omnidrive_OrthogonalExponential::start()
     path_driver_->getCoursePredictor().reset();
 }
 
-RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::computeMoveCommand(MoveCommand *cmd)
+RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponential::computeMoveCommand(MoveCommand *cmd)
 {
     // omni drive can rotate.
     *cmd = MoveCommand(true);
@@ -343,7 +343,7 @@ RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS);
 
         stopMotion();
-        return REACHED_GOAL;
+        return MC_REACHED_GOAL;
     }
 
 //    Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
@@ -564,14 +564,14 @@ RobotController::ControlStatus RobotController_Omnidrive_OrthogonalExponential::
     ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal);
 
     if(distance_to_goal <= path_driver_->getOptions().goal_tolerance()) {
-        return REACHED_GOAL;
+        return MC_REACHED_GOAL;
     } else {
         // Quickfix: simply convert omnidrive command to move command
         cmd->setDirection(cmd_.direction_angle);
         cmd->setVelocity(cmd_.speed);
         cmd->setRotation(cmd_.rotation);
 
-        return OKAY;
+        return MC_OKAY;
     }
 }
 
