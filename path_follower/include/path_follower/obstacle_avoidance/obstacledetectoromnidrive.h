@@ -6,8 +6,8 @@
 class ObstacleDetectorOmnidrive : public ObstacleDetectorPolygon
 {
 public:
-    ObstacleDetectorOmnidrive():
-        ObstacleDetectorPolygon()
+    ObstacleDetectorOmnidrive(const tf::TransformListener *tf_listener):
+        ObstacleDetectorPolygon(tf_listener)
     {}
 
 protected:

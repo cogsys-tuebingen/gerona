@@ -12,8 +12,8 @@
 class ObstacleDetectorAckermann : public ObstacleDetectorPolygon
 {
 public:
-    ObstacleDetectorAckermann():
-        ObstacleDetectorPolygon()
+    ObstacleDetectorAckermann(const tf::TransformListener *tf_listener):
+        ObstacleDetectorPolygon(tf_listener)
     {}
 
 protected:

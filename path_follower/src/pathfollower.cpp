@@ -58,13 +58,13 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // Choose robot controller
     ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
     if (opt_.controller() == "ackermann_pid") {
-        obstacle_avoider_ = new ObstacleDetectorAckermann;
+        obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
         controller_ = new RobotController_Ackermann_Pid(this);
     } else if (opt_.controller() == "omnidrive_vv") {
-        obstacle_avoider_ = new ObstacleDetectorOmnidrive;
+        obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
         controller_ = new RobotController_Omnidrive_VirtualVehicle(this);
     } else if (opt_.controller() == "omnidrive_orthexp") {
-        obstacle_avoider_ = new ObstacleDetectorOmnidrive;
+        obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
         controller_ = new RobotController_Omnidrive_OrthogonalExponential(this);
     } else {
         ROS_FATAL("Unknown robot controller. Shutdown.");
@@ -72,7 +72,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     }
 
     obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacle_cloud", 10,
-                                                                                 &PathFollower::obstacleCloudCB, this);
+                                                                &PathFollower::obstacleCloudCB, this);
 
     visualizer_ = Visualizer::getInstance();
 
@@ -83,7 +83,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     path_->registerNextWaypointCallback(boost::bind(&SupervisorChain::notifyNewWaypoint, &supervisors_));
 
     if (opt_.use_path_lookout()) {
-        supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout) );
+        supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );
     }
 
     // Waypoint timeout

@@ -7,6 +7,11 @@
 
 class ObstacleDetectorPolygon : public ObstacleDetector
 {
+public:
+    ObstacleDetectorPolygon(const tf::TransformListener *tf_listener):
+        tf_listener_(tf_listener)
+    {}
+
 protected:
     struct PolygonWithTfFrame
     {
@@ -38,7 +43,7 @@ protected:
 
 
 private:
-    tf::TransformListener tf_listener_;
+    const tf::TransformListener *tf_listener_;
 
     //! Transform the given polygon to map coordinates.
     /** @throws tf::TransformException */

@@ -29,7 +29,7 @@ bool ObstacleDetectorPolygon::checkOnCloud(ObstacleCloud::ConstPtr obstacles, fl
     try {
         //TODO: it would be faster to transform the (comparatively small) polygon instead of the
         //      whole point cloud
-        pcl_ros::transformPointCloud(pwf.frame, *obstacles, cloud, tf_listener_);
+        pcl_ros::transformPointCloud(pwf.frame, *obstacles, cloud, *tf_listener_);
     } catch (tf::TransformException& ex) {
         ROS_ERROR("Failed to transform obstacle cloud to polygon frame: %s", ex.what());
         // can't check for obstacles, so better assume there is one.

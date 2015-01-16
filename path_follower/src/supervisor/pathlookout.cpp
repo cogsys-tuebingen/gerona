@@ -15,8 +15,9 @@
 
 using namespace std;
 
-PathLookout::PathLookout():
-    obstacle_frame_("/map")
+PathLookout::PathLookout(const tf::TransformListener *tf_listener):
+    obstacle_frame_("/map"),
+    tf_listener_(tf_listener)
 {
     #if DEBUG_PATHLOOKOUT
         cv::namedWindow("Map", CV_WINDOW_KEEPRATIO);
@@ -261,7 +262,7 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::
     //TODO: are cloud and path in the same frame?
     ObstacleCloud trans_cloud;
     try {
-        pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, tf_listener_);
+        pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, *tf_listener_);
     } catch (tf::TransformException& ex) {
         ROS_ERROR("Failed to transform obstacle cloud: %s", ex.what());
         return std::vector<cv::Point2f>(); // return empty cloud

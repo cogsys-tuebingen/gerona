@@ -38,7 +38,7 @@
 class PathLookout : public Supervisor
 {
 public:
-    PathLookout();
+    PathLookout(const tf::TransformListener *tf_listener);
 
     virtual std::string getName() const {
         return "PathLookout";
@@ -83,7 +83,7 @@ private:
 
     ObstacleTracker tracker_;
     Visualizer *visualizer_;
-    tf::TransformListener tf_listener_;
+    const tf::TransformListener *tf_listener_;
 
     ObstacleCloud::ConstPtr obstacle_cloud_;
 
