@@ -30,13 +30,8 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     Ts(0.02),
     e_theta_curr(0),
     curv_sum(0),
-    look_ahead_dist(0.5),
     distance_to_goal(0),
-    distance_to_obstacle_(0),
-    param_k_curv(0.05),
-    param_k_g(0.4),
-    param_k_o(0.3),
-    param_k_w(0.5)
+    distance_to_obstacle_(0)
 {
     visualizer_ = Visualizer::getInstance();
     interp_path_pub_ = nh_.advertise<nav_msgs::Path>("interp_path", 10);
@@ -52,19 +47,7 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
                                                                      boost::bind(&RobotController_Omnidrive_OrthogonalExponential::laserBack, this, _1));
 
-    //control parameters
-    nh_.param("k", param_k, 1.5);
-    nh_.param("kp", param_kp, 0.4);
-    nh_.param("kd", param_kd, 0.2);
-    nh_.param("max_angular_velocity", max_angular_velocity, 2.0);
-    
-    nh_.param("look_ahead_dist", look_ahead_dist, look_ahead_dist);
-    nh_.param("k_o", param_k_o, 0.3);
-    nh_.param("k_g", param_k_g, 0.4);
-    nh_.param("k_w", param_k_w, 0.5);
-    nh_.param("k_curv", param_k_curv, 0.05);
-
-    std::cout << "Value of K_O: " << param_k_o << std::endl;
+    std::cout << "Value of K_O: " << opt_.k_o() << std::endl;
     // path marker
     robot_path_marker.header.frame_id = "map";
     robot_path_marker.header.stamp = ros::Time();
@@ -479,7 +462,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
         look_ahead_cum_sum += hypot(p[i] - p[i-1], q[i] - q[i-1]);
         curv_sum += fabs(curvature[i]);
 
-        if(look_ahead_dist - look_ahead_cum_sum >= 0){
+        if(opt_.look_ahead_dist() - look_ahead_cum_sum >= 0){
             break;
         }
     }
@@ -510,21 +493,21 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 
     //ROS_DEBUG_STREAM("Distance to obstacle: " << distance_to_obstacle_);
 
-    double exponent = param_k_curv*fabs(curv_sum)
-            + param_k_w*fabs(angular_vel)
-            + param_k_o/distance_to_obstacle_
-            + param_k_g/distance_to_goal;
+    double exponent = opt_.k_curv()*fabs(curv_sum)
+            + opt_.k_w()*fabs(angular_vel)
+            + opt_.k_o()/distance_to_obstacle_
+            + opt_.k_g()/distance_to_goal;
 
     cmd_.speed = std::max(vn*exp(-exponent),0.2);
 
-    cmd_.direction_angle = atan(-param_k*orth_proj) + theta_p - theta_meas;
+    cmd_.direction_angle = atan(-opt_.k()*orth_proj) + theta_p - theta_meas;
 
-    cmd_.rotation = param_kp*e_theta_curr + param_kd*e_theta_prim;
+    cmd_.rotation = opt_.kp()*e_theta_curr + opt_.kd()*e_theta_prim;
 
-    if(cmd_.rotation > max_angular_velocity) {
-        cmd_.rotation = max_angular_velocity;
-    } else if(cmd_.rotation < -max_angular_velocity) {
-        cmd_.rotation = -max_angular_velocity;
+    if(cmd_.rotation > opt_.max_angular_velocity()) {
+        cmd_.rotation = opt_.max_angular_velocity();
+    } else if(cmd_.rotation < -opt_.max_angular_velocity()) {
+        cmd_.rotation = -opt_.max_angular_velocity();
     }
 
     //***//

@@ -87,9 +87,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     }
 
     // Waypoint timeout
-    double wpto;
-    ros::param::param<double>("~waypoint_timeout", wpto, 10.0); //TODO: wrap all these param accesses with Parameters class
-    Supervisor::Ptr waypoint_timeout(new WaypointTimeout(ros::Duration(wpto)));
+    Supervisor::Ptr waypoint_timeout(
+                new WaypointTimeout(ros::Duration( opt_.supervisor_waypoint_timeout_time())));
     supervisors_.addSupervisor(waypoint_timeout);
 
     // Distance to path

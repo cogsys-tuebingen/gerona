@@ -6,6 +6,7 @@
 
 struct PathFollowerParameters : public Parameters
 {
+    //TODO: find a better structure for parameters related to submodules (supervisors, OAs)
     P<std::string> controller;
     P<double> wp_tolerance;
     P<double> goal_tolerance;
@@ -24,6 +25,7 @@ struct PathFollowerParameters : public Parameters
     P<float> collision_box_velocity_factor;
     P<float> collision_box_velocity_saturation;
     P<bool> abort_if_obstacle_ahead;
+    P<float> supervisor_waypoint_timeout_time;
 
     PathFollowerParameters():
         controller(this, "~controller", "ackermann_pid", "Defines, which controller is used."),
@@ -47,7 +49,10 @@ struct PathFollowerParameters : public Parameters
         collision_box_max_length(this,  "~collision_box_max_length",  1.0, "Maximum length of the collision box for obstacle avoidance."),
         collision_box_velocity_factor(this,  "~collision_box_velocity_factor",  1.0, "This factor determines, how much the length of the box is increased, depending on the velocity."),
         collision_box_velocity_saturation(this,  "~collision_box_velocity_saturation",  max_velocity(), "The velocity for which the maximum length should be used."),
-        abort_if_obstacle_ahead(this, "~abort_if_obstacle_ahead",  false, "If set to true, path execution is aborted, if an obstacle is detected on front of the robot. If false, the robot will stop, but not abort (the obstacle might move away).")
+        abort_if_obstacle_ahead(this, "~abort_if_obstacle_ahead",  false, "If set to true, path execution is aborted, if an obstacle is detected on front of the robot. If false, the robot will stop, but not abort (the obstacle might move away)."),
+
+        supervisor_waypoint_timeout_time(this, "~supervisor/waypoint_timeout/time", 10.0,
+                                         "If the robot needs more than this time (in seconds), supervisor WaypointTimeout will stop the path execution.")
     {
         if(max_velocity() < min_velocity()) {
             ROS_ERROR("min velocity larger than max velocity!");

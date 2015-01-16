@@ -11,6 +11,7 @@
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/PidCtrl.h>
 #include <path_follower/utils/visualizer.h>
+#include <path_follower/utils/parameters.h>
 
 class Behaviour;
 
@@ -97,17 +98,33 @@ private:
         }
     };
 
-    struct ControllerOptions
+    struct ControllerParameters : public Parameters
     {
-        double dead_time_;
-        double l_;
-    };
+        P<double> dead_time;
+        P<double> l;
+        P<double> pid_ta;
+        P<double> pid_kp;
+        P<double> pid_ki;
+        P<double> pid_i_max;
+        P<double> pid_delta_max;
+        P<double> pid_e_max;
+
+        ControllerParameters():
+            dead_time(this, "~dead_time", 0.1, ""),
+            l(this, "~l", 0.38, "Not sure... distance between front and rear wheels?"),
+            pid_ta(this, "pid/ta", 0.03, "Update interval of the PID controller."),
+            pid_kp(this, "~pid/kp", 1.5, "Proportional coefficient of the PID controller."),
+            pid_ki(this, "~pid/ki", 0.001, "Integral coefficient of the PID controller."),
+            pid_i_max(this, "~pid/i_max", 0.0, "Limit to the integral part of the PID controller."),
+            pid_delta_max(this, "~pid/delta_max", 30.0, "Not used in current implementation..."),
+            pid_e_max(this, "~pid/e_max", 0.10, "Not used in current implementation...")
+        {}
+    } opt_;
 
     Behaviour* active_behaviour_;
 
     PidCtrl pid_;
     Command cmd_;
-    ControllerOptions options_;
     Visualizer *visualizer_;
 
     //! Step counter for behaviour ApproachTurningPoint.

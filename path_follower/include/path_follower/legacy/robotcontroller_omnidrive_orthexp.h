@@ -11,6 +11,7 @@
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/multiplepidwrapper.h>
 #include <path_follower/utils/visualizer.h>
+#include <path_follower/utils/parameters.h>
 #include <path_follower/pathfollower.h>
 
 class RobotController_Omnidrive_OrthogonalExponential : public RobotController
@@ -55,6 +56,31 @@ private:
     void rotate();
 
 private:
+    struct ControllerParameters : public Parameters
+    {
+        P<double> k;
+        P<double> kp;
+        P<double> kd;
+        P<double> max_angular_velocity;
+        P<double> look_ahead_dist;
+        P<double> k_o;
+        P<double> k_g;
+        P<double> k_w;
+        P<double> k_curv;
+
+        ControllerParameters():
+            k(this, "~k", 1.5, ""),
+            kp(this, "~kp", 0.4, ""),
+            kd(this, "~kd", 0.2, ""),
+            max_angular_velocity(this, "~max_angular_velocity", 2.0, ""),
+            look_ahead_dist(this, "~look_ahead_dist", 0.5, ""),
+            k_o(this, "~k_o", 0.3, ""),
+            k_g(this, "~k_g", 0.4, ""),
+            k_w(this, "~k_w", 0.5, ""),
+            k_curv(this, "~k_curv", 0.05, "")
+        {}
+    } opt_;
+
     struct Command
     {
         RobotController_Omnidrive_OrthogonalExponential *parent_;
@@ -151,24 +177,9 @@ private:
     double Ts;
     double e_theta_curr;
 
-
     double curv_sum;
-    double look_ahead_dist;
     double distance_to_goal;
     double distance_to_obstacle_;
-
-
-    //control parameters
-    double param_k;
-    double param_kp;
-    double param_kd;
-    double param_k_curv;
-    double param_k_g;
-    double param_k_o;
-    double param_k_w;
-
-
-    double max_angular_velocity;
 
     visualization_msgs::Marker robot_path_marker;
 };

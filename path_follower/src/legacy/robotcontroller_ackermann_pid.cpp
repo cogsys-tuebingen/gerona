@@ -47,20 +47,13 @@ RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_
 
 void RobotController_Ackermann_Pid::configure()
 {
-    ros::NodeHandle nh("~");
-
-    nh.param( "dead_time", options_.dead_time_, 0.10 );
-    nh.param( "l", options_.l_, 0.38 );
-
-    double ta, kp, ki, i_max, delta_max, e_max;
-    nh.param( "pid/ta", ta, 0.03 );
-    nh.param( "pid/kp", kp, 1.5 );
-    nh.param( "pid/ki", ki, 0.001 );
-    nh.param( "pid/i_max", i_max, 0.0 );
-    nh.param( "pid/delta_max", delta_max, 30.0 );
-    nh.param( "pid/e_max", e_max, 0.10 );
-
-    pid_.configure( kp, ki, i_max, M_PI*delta_max/180.0, e_max, 0.5, ta );
+    pid_.configure(opt_.pid_kp(),
+                   opt_.pid_ki(),
+                   opt_.pid_i_max(),
+                   opt_.pid_delta_max() * M_PI/180.0,
+                   opt_.pid_e_max(),
+                   0.5,
+                   opt_.pid_ta());
 }
 
 bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
@@ -269,14 +262,14 @@ void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &
 {
     //TODO: revise this code
 
-    double dt = options_.dead_time_;
+    double dt = opt_.dead_time();
     double deltaf = cmd_.steer_front;
     double deltar = cmd_.steer_back;
     double v = 2*filtered_speed_;
 
     double beta = std::atan(0.5*(std::tan(deltaf)+std::tan(deltar)));
     double ds = v*dt;
-    double dtheta = ds*std::cos(beta)*(std::tan(deltaf)-std::tan(deltar))/options_.l_;
+    double dtheta = ds*std::cos(beta)*(std::tan(deltaf)-std::tan(deltar))/opt_.l();
     double thetan = dtheta; //TODO <- why this ???
     double yn = ds*std::sin(dtheta*0.5+beta*0.5);
     double xn = ds*std::cos(dtheta*0.5+beta*0.5);
@@ -287,10 +280,10 @@ void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &
     // step 1: dt = 0.1, deltaf = 9.75024e+199, deltar = 4.26137e+257, v = 0,   beta = 0.308293, ds = 0,   dtheta = 0,   yn = 0,    xn = 0
     // step 2: dt = 0.1, deltaf = 9.75024e+199, deltar = 4.26137e+257, v = inf, beta = 0.308293, ds = inf, dtheta = inf, yn = -nan, xn = -nan
 
-    front_pred[0] = xn+cos(thetan)*options_.l_/2.0;
-    front_pred[1] = yn+sin(thetan)*options_.l_/2.0;
-    rear_pred[0] = xn-cos(thetan)*options_.l_/2.0;
-    rear_pred[1] = yn-sin(thetan)*options_.l_/2.0;
+    front_pred[0] = xn+cos(thetan)*opt_.l()/2.0;
+    front_pred[1] = yn+sin(thetan)*opt_.l()/2.0;
+    rear_pred[0] = xn-cos(thetan)*opt_.l()/2.0;
+    rear_pred[1] = yn-sin(thetan)*opt_.l()/2.0;
 
     ROS_DEBUG_STREAM("predict pose. front: " << front_pred << ", rear: " << rear_pred);
 }
