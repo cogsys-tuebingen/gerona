@@ -151,12 +151,12 @@ private:
     std::vector<float> ranges_front_;
     std::vector<float> ranges_back_;
 
-    nav_msgs::Path interp_path;
-    std::vector<double> p;
-    std::vector<double> q;
-    std::vector<double> p_prim;
-    std::vector<double> q_prim;
-    std::vector<double> curvature;
+    nav_msgs::Path interp_path_;
+    std::vector<double> p_;
+    std::vector<double> q_;
+    std::vector<double> p_prim_;
+    std::vector<double> q_prim_;
+    std::vector<double> curvature_;
 
 
     enum ViewDirection {
@@ -169,19 +169,19 @@ private:
     ViewDirection view_direction_;
     geometry_msgs::Point look_at_;
 
-    bool initialized;
+    bool initialized_;
 
-    double vn;
-    double theta_des;
-    uint N;
-    double Ts;
-    double e_theta_curr;
+    double vn_;
+    double theta_des_;
+    uint N_;
+    double Ts_;
+    double e_theta_curr_;
 
-    double curv_sum;
-    double distance_to_goal;
+    double curv_sum_;
+    double distance_to_goal_;
     double distance_to_obstacle_;
 
-    visualization_msgs::Marker robot_path_marker;
+    visualization_msgs::Marker robot_path_marker_;
 };
 
 #endif // ROBOTCONTROLLER_OMNIDRIVE_ORTHEXP_H
