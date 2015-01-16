@@ -262,6 +262,7 @@ void PathFollower::update()
         // Ask supervisor whether path following can continue
         Supervisor::State state(robot_pose_,
                                 getPath(),
+                                obstacle_cloud_,
                                 feedback);
 
         Supervisor::Result s_res = supervisors_.supervise(state);

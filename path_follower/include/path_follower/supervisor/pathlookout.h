@@ -85,8 +85,6 @@ private:
     Visualizer *visualizer_;
     tf::TransformListener tf_listener_;
 
-    ros::Subscriber obstacle_cloud_sub_;
-
     ObstacleCloud::ConstPtr obstacle_cloud_;
 
     SubPath path_;

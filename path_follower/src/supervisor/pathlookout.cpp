@@ -25,10 +25,6 @@ PathLookout::PathLookout():
     #endif
 
     visualizer_ = Visualizer::getInstance();
-
-    // FIXME: it is ugly, having to subscribe the same topic at different places...
-    ros::NodeHandle node_handle_;
-    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacle_cloud", 10, &PathLookout::setObstacleCloud, this);
 }
 
 void PathLookout::setObstacleCloud(const ObstacleCloud::ConstPtr &cloud)
@@ -54,19 +50,19 @@ void PathLookout::setPath(Path::ConstPtr path)
 void PathLookout::supervise(State &state, Supervisor::Result *out)
 {
     setPath(state.path);
+    setObstacleCloud(state.obstacle_cloud);
 
     // hope for the best
     out->can_continue = true;
 
     if (!obstacle_cloud_) {
-        ROS_WARN_THROTTLE(1, "PathLookout has not received any obstacle cloud yet. No obstacle lookout is done.");
+        ROS_WARN_THROTTLE(1, "PathLookout has not received a valid obstacle cloud. No obstacle lookout is done.");
         return;
     }
     if (path_.empty()) {
         ROS_WARN_THROTTLE(1, "PathLookout has not received any path yet. No obstacle lookout is done.");
         return;
     }
-
 
     vector<Obstacle> observed_obstacles = lookForObstacles();
 
