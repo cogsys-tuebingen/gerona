@@ -14,15 +14,20 @@
  *
  * Inherit this class and add a public member of type 'P' for each of your parameters and add a constructor to define
  * them.
+ * For types that are not directly supported by the parameter server but can be initialized by a single parameter
+ * value, `WrappedP` can be used (In the example below, an parameter "~baz" of type `float` is defined but accessing
+ * `baz` will give a `ros::Duration` which is initialized with this float value).
  *
  *     struct MyParameters : public Parameters
  *     {
  *         P<int> foo;
  *         P<float> bar;
+ *         WrappedP<ros::Duration, float> baz;
  *
  *         MyParameters():
  *             foo(this, "~foo", 13, "Meaningless number"),
  *             bar(this, "~bar", 3.14, "Pi"),
+ *             baz(this, "~baz", 5, "Update interval in seconds")
  *         {}
  *     }
  *
@@ -40,7 +45,7 @@
  * program.
  *
  * @author Felix Widmaier <felix.widmaier@web.de>
- * @version 1.2
+ * @version 1.3
  *
  * @todo: optional parameter "module name" for constructor, to use as headline in print, when there are several modules
  *        using Parameters.
@@ -48,8 +53,14 @@
 class Parameters
 {
     friend class P;
+    friend class WrappedP;
 
 public:
+    /**
+     * @brief A common parameter
+     *
+     * Parameter value can be accessed via the ()-operator
+     */
     template<typename T>
     class P
     {
@@ -64,6 +75,57 @@ public:
         P(Parameters *opt, const std::string& param_name, const T& default_val, const std::string& desc)
         {
             ros::param::param<T>(param_name, value_, default_val);
+            opt->registerParam(param_name, default_val, desc);
+        }
+
+        //! Returns the parameters value.
+        T operator() () const
+        {
+            return value_;
+        }
+
+        //! Change the value.
+        void set(T v)
+        {
+            value_ = v;
+        }
+
+    private:
+        T value_;
+    };
+
+
+    /**
+     * @brief A wrapped parameter, e.g. for ros::Duration
+     *
+     * This class can be used for parameters with types that are not directly supported by
+     * `ros::param`, but have to be initialized with parameter values.
+     * A common example is `ros::Duration`. Typically one would define a float parameter and use
+     * its value to initialize the `ros::Duration`. Using `WrappedP` this intermediate step can
+     * be ommited by defining a parameter
+     *
+     *     WrappedP<ros::Duration, float> foo;
+     *
+     * This fetchs a float value from the parameter server and uses it to initialize a
+     * `ros::Duration`. When accessing via `foo()` this `ros::Duration` is returned instead of
+     * the float.
+     */
+    template<typename T, typename ParamT>
+    class WrappedP
+    {
+    public:
+        /**
+         * @brief A Parameter that is wrapped by some class.
+         * @param opt          Pointer to the parent Parameters class. Set this always to 'this'.
+         * @param param_name   Name of this parameter (add prefix '~' for private parameters).
+         * @param default_val  Default value.
+         * @param desc         Description of the parameter.
+         */
+        WrappedP(Parameters *opt, const std::string& param_name, const ParamT& default_val, const std::string& desc)
+        {
+            ParamT val;
+            ros::param::param<ParamT>(param_name, val, default_val);
+            value_ = T(val);
             opt->registerParam(param_name, default_val, desc);
         }
 
