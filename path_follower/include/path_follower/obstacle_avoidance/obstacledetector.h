@@ -2,6 +2,7 @@
 #define OBSTACLEDETECTOR_H
 
 #include <path_follower/obstacle_avoidance/obstacleavoider.h>
+#include <path_follower/utils/parameters.h>
 
 /**
  * @brief Simple 'emergency break' obstacle avoider that stops when an obstacle is within a
@@ -27,6 +28,39 @@ public:
                        const State &state);
 
 protected:
+    struct ObstacleDetectorParameters : public Parameters
+    {
+        P<float> width;
+        P<float> min_length;
+        P<float> crit_length;
+        P<float> max_length;
+        P<float> velocity_factor;
+        P<float> velocity_saturation;
+
+        ObstacleDetectorParameters():
+            width(this,  "~obstacle_avoider/collision_box/width",  0.5,
+                  "Width of the collision box for obstacle avoidance."),
+            min_length(this,  "~obstacle_avoider/collision_box/min_length",  0.5,
+                       "Minimum length of the collision box for obstacle avoidance (grows with increasing velocity)."),
+            crit_length(this,  "~obstacle_avoider/collision_box/crit_length",  0.3, ""),
+            max_length(this,  "~obstacle_avoider/collision_box/max_length",  1.0,
+                       "Maximum length of the collision box for obstacle avoidance."),
+            velocity_factor(this,  "~obstacle_avoider/collision_box/velocity_factor",  1.0,
+                            "This factor determines, how much the length of the box is increased, depending on the velocity."),
+            velocity_saturation(this,  "~obstacle_avoider/collision_box/velocity_saturation",  -1.0,
+                                "The velocity for which the maximum length should be used. If set to a value < 0, the max. velocity is used.")
+        {
+            if(max_length() < min_length()) {
+                ROS_ERROR("min length larger than max length!");
+                min_length.set(max_length());
+            }
+            if(min_length() < crit_length()) {
+                ROS_ERROR("min length smaller than crit length!");
+                crit_length.set(min_length());
+            }
+        }
+    } opt_;
+
     /**
      * @brief Check, if there is an obstacle within the obstacle box in front of the robot.
      *

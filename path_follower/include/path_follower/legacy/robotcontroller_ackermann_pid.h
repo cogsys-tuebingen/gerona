@@ -112,7 +112,7 @@ private:
         ControllerParameters():
             dead_time(this, "~dead_time", 0.1, ""),
             l(this, "~l", 0.38, "Not sure... distance between front and rear wheels?"),
-            pid_ta(this, "pid/ta", 0.03, "Update interval of the PID controller."),
+            pid_ta(this, "~pid/ta", 0.03, "Update interval of the PID controller."),
             pid_kp(this, "~pid/kp", 1.5, "Proportional coefficient of the PID controller."),
             pid_ki(this, "~pid/ki", 0.001, "Integral coefficient of the PID controller."),
             pid_i_max(this, "~pid/i_max", 0.0, "Limit to the integral part of the PID controller."),

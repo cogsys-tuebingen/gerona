@@ -22,6 +22,7 @@
 #include <path_follower/supervisor/waypointtimeout.h>
 #include <path_follower/supervisor/distancetopathsupervisor.h>
 // Obstacle Avoiders
+#include <path_follower/obstacle_avoidance/noneavoider.hpp>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
 #include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
 
@@ -58,13 +59,16 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // Choose robot controller
     ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
     if (opt_.controller() == "ackermann_pid") {
-        obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
         controller_ = new RobotController_Ackermann_Pid(this);
     } else if (opt_.controller() == "omnidrive_vv") {
-        obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
         controller_ = new RobotController_Omnidrive_VirtualVehicle(this);
     } else if (opt_.controller() == "omnidrive_orthexp") {
-        obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
         controller_ = new RobotController_Omnidrive_OrthogonalExponential(this);
     } else {
         ROS_FATAL("Unknown robot controller. Shutdown.");
@@ -82,18 +86,28 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // register callback for new waypoint event.
     path_->registerNextWaypointCallback(boost::bind(&SupervisorChain::notifyNewWaypoint, &supervisors_));
 
-    if (opt_.use_path_lookout()) {
+    if (opt_.supervisor_use_path_lookout()) {
         supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );
     }
 
     // Waypoint timeout
-    Supervisor::Ptr waypoint_timeout(
-                new WaypointTimeout(ros::Duration( opt_.supervisor_waypoint_timeout_time())));
-    supervisors_.addSupervisor(waypoint_timeout);
+    if (opt_.supervisor_use_waypoint_timeout()) {
+        Supervisor::Ptr waypoint_timeout(
+                    new WaypointTimeout(ros::Duration( opt_.supervisor_waypoint_timeout_time())));
+        supervisors_.addSupervisor(waypoint_timeout);
+    }
 
     // Distance to path
-    supervisors_.addSupervisor(Supervisor::Ptr(new DistanceToPathSupervisor(opt_.max_distance_to_path())));
+    if (opt_.supervisor_use_distance_to_path()) {
+        supervisors_.addSupervisor(Supervisor::Ptr(
+                                       new DistanceToPathSupervisor(opt_.supervisor_distance_to_path_max_dist())));
+    }
 
+
+    //  if no obstacle avoider was set, use the none-avoider
+    if (obstacle_avoider_ == NULL) {
+        obstacle_avoider_ = new NoneAvoider();
+    }
 
     follow_path_server_.start();
     ROS_INFO("Initialisation done.");

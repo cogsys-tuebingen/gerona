@@ -22,12 +22,15 @@ bool ObstacleDetector::avoid(MoveCommand * const cmd,
 
     const float diff_to_min_velocity = v - state.parameters.min_velocity();
 
-    const float norm = state.parameters.collision_box_velocity_saturation() - state.parameters.min_velocity();
-    const float span = state.parameters.collision_box_max_length() - state.parameters.collision_box_min_length();
+    float vel_saturation = opt_.velocity_saturation() > 0
+            ? opt_.velocity_saturation()
+            : state.parameters.max_velocity();
+    const float norm = vel_saturation - state.parameters.min_velocity();
+    const float span = opt_.max_length() - opt_.min_length();
     const float interp = std::max(0.0f, diff_to_min_velocity) / std::max(norm, 0.001f);
-    const float f = std::min(1.0f, state.parameters.collision_box_velocity_factor() * interp);
+    const float f = std::min(1.0f, opt_.velocity_factor() * interp);
 
-    float box_length = state.parameters.collision_box_min_length() + span * f;
+    float box_length = opt_.min_length() + span * f;
 
     //ROS_DEBUG("Collision Box: v = %g -> len = %g", v, box_length);
 
@@ -37,12 +40,12 @@ bool ObstacleDetector::avoid(MoveCommand * const cmd,
         box_length = distance_to_goal + 0.2;
     }
 
-    if(box_length < state.parameters.collision_box_crit_length()) {
-        box_length = state.parameters.collision_box_crit_length();
+    if(box_length < opt_.crit_length()) {
+        box_length = opt_.crit_length();
     }
 
 
-    bool collision = checkOnCloud(obstacles, state.parameters.collision_box_width(),
+    bool collision = checkOnCloud(obstacles, opt_.width(),
                                   box_length, course, enlarge_factor);
 
 
