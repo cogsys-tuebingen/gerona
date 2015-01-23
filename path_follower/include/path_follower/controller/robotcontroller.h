@@ -74,7 +74,7 @@ public:
     virtual ~RobotController() {}
 
     //! Execute one iteration of path following. This method should not be overwritten by subclasses!
-    /*final*/ ControlStatus execute();
+    ControlStatus execute();
 
     /* RESET FOR A NEW PATH */
     virtual void reset() {}

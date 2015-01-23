@@ -1,8 +1,8 @@
-/// THIRD PARTY
+// THIRD PARTY
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
 
-/// PROJECT
+// PROJECT
 #include <path_follower/pathfollower.h>
 #include <path_follower/legacy/behaviours.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
@@ -10,7 +10,7 @@
 #include "../alglib/interpolation.h"
 #include <utils_general/MathHelper.h>
 
-/// SYSTEM
+// SYSTEM
 #include <deque>
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -38,14 +38,14 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
 
     look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
-                                                       boost::bind(&RobotController_Omnidrive_OrthogonalExponential::lookAtCommand, this, _1));
+                                                       &RobotController_Omnidrive_OrthogonalExponential::lookAtCommand, this);
     look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
-                                                              boost::bind(&RobotController_Omnidrive_OrthogonalExponential::lookAt, this, _1));
+                                                              &RobotController_Omnidrive_OrthogonalExponential::lookAt, this);
 
     laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
-                                                                      boost::bind(&RobotController_Omnidrive_OrthogonalExponential::laserFront, this, _1));
+                                                             &RobotController_Omnidrive_OrthogonalExponential::laserFront, this);
     laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
-                                                                     boost::bind(&RobotController_Omnidrive_OrthogonalExponential::laserBack, this, _1));
+                                                            &RobotController_Omnidrive_OrthogonalExponential::laserBack, this);
 
     std::cout << "Value of K_O: " << opt_.k_o() << std::endl;
     // path marker

@@ -2,7 +2,7 @@
 #define SUPERVISOR_H
 
 #include <string>
-#include <boost/shared_ptr.hpp>
+#include <memory> // std::shared_ptr
 #include <Eigen/Core>
 
 #include <path_msgs/FollowPathFeedback.h>
@@ -15,11 +15,11 @@ class Supervisor
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    typedef boost::shared_ptr<Supervisor> Ptr;
+    typedef std::shared_ptr<Supervisor> Ptr;
 
     struct State
     {
-        typedef boost::shared_ptr<State> Ptr;
+        typedef std::shared_ptr<State> Ptr;
 
         State(const Eigen::Vector3d &robot_pose,
               Path::ConstPtr path,

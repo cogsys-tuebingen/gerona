@@ -8,7 +8,6 @@
 #include <vector>
 #include <string>
 #include <path_follower/pathfollower.h>
-#include <boost/foreach.hpp>
 
 #include <laser_geometry/laser_geometry.h>
 #include <pcl_ros/transforms.h>

@@ -1,7 +1,6 @@
 #include <path_follower/pathfollower.h>
 
 /// SYSTEM
-#include <boost/foreach.hpp>
 #include <Eigen/Core>
 #include <utils_general/MathHelper.h>
 #include <cmath>
@@ -48,8 +47,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     is_running_(false)
 {
     // Init. action server
-    follow_path_server_.registerGoalCallback(boost::bind(&PathFollower::followPathGoalCB, this));
-    follow_path_server_.registerPreemptCallback(boost::bind(&PathFollower::followPathPreemptCB,this));
+    follow_path_server_.registerGoalCallback([this]() { followPathGoalCB(); });
+    follow_path_server_.registerPreemptCallback([this]() {followPathPreemptCB(); });
 
     speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
     beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
@@ -84,7 +83,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     /*** Initialize supervisors ***/
 
     // register callback for new waypoint event.
-    path_->registerNextWaypointCallback(boost::bind(&SupervisorChain::notifyNewWaypoint, &supervisors_));
+    path_->registerNextWaypointCallback([this]() { supervisors_.notifyNewWaypoint(); });
 
     if (opt_.supervisor_use_path_lookout()) {
         supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );

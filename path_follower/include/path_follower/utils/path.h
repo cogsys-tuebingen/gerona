@@ -4,7 +4,8 @@
  * @brief Some simple classes to represent a path.
  */
 
-#include <boost/function.hpp>
+#include <memory>
+#include <functional>
 #include <geometry_msgs/Pose.h>
 #include <tf/tf.h>
 #include <Eigen/Core>
@@ -63,9 +64,9 @@ typedef std::vector<Waypoint> SubPath;
  */
 class Path {
 public:
-    typedef boost::shared_ptr<Path> Ptr;
-    typedef boost::shared_ptr<Path const> ConstPtr;
-    typedef boost::function<void ()> NextWaypointCallback_t;
+    typedef std::shared_ptr<Path> Ptr;
+    typedef std::shared_ptr<Path const> ConstPtr;
+    typedef std::function<void ()> NextWaypointCallback_t;
 
 
     Path():
