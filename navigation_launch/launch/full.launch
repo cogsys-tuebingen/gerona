@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <include file="$(find path_follower)/launch/filter.launch" />
+  <include file="$(find navigation_launch)/launch/laser_filter.launch" />
   
   <node pkg="path_planner" type="path_planner_node" name="path_planner_node" output="screen" respawn="true">
     <param name="use_unknown_cells" value="true" />

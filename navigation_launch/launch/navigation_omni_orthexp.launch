@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <launch>
-    <include file="$(find path_follower)/launch/filter.launch" />
+    <include file="$(find navigation_launch)/launch/laser_filter.launch" />
 
     <include file="$(find navigation_launch)/launch/planner.launch" />
     <include file="$(find navigation_launch)/launch/mapping.launch" />
