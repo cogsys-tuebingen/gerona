@@ -2,8 +2,20 @@ cmake_minimum_required(VERSION 2.8.3)
 project(path_follower)
 
 set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # -std=gnu++0x
 
-#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
+## Enforce that we use C++11
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-std=c++11" COMPILER_SUPPORTS_CXX11)
+check_cxx_compiler_flag("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+if(COMPILER_SUPPORTS_CXX11)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+elseif(COMPILER_SUPPORTS_CXX0X)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+else()
+  message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+endif()
+
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -18,9 +30,11 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   cmake_modules
   laser_geometry
+  pcl_ros
 )
 
 find_package(OpenCV REQUIRED)
+find_package(PCL REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -115,6 +129,7 @@ include_directories(
   ${EIGEN_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
 
 
@@ -150,7 +165,8 @@ add_executable(path_follower_node
   src/utils/maptransformer.cpp
   src/utils/cubic_spline_interpolation.cpp
   src/utils/coursepredictor.cpp
-  include/path_follower/utils/path.h
+  src/utils/path.cpp
+  src/utils/movecommand.cpp
 
   src/obstacle_avoidance/obstacledetector.cpp
   src/obstacle_avoidance/obstacledetectorpolygon.cpp
@@ -162,8 +178,11 @@ add_executable(path_follower_node
   src/legacy/robotcontroller_omnidrive_vv.cpp
   src/legacy/robotcontroller_omnidrive_orthexp.cpp
 
+  src/supervisor/supervisorchain.cpp
   src/supervisor/pathlookout.cpp
   src/supervisor/obstacletracker.cpp
+  src/supervisor/waypointtimeout.cpp
+  src/supervisor/distancetopathsupervisor.cpp
   src/legacy/vector_field_histogram.cpp
 
   src/alglib/interpolation.cpp
@@ -183,7 +202,7 @@ add_executable(path_follower_node
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)
 target_link_libraries(path_follower_node
-  ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES} ${PCL_LIBRARIES}
 )
 
 add_executable(test_obstacle_tracker

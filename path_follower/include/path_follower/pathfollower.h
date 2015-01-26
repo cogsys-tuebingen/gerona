@@ -19,103 +19,25 @@
 /// PROJECT
 #include <path_msgs/FollowPathAction.h>
 #include <utils_general/Global.h>
+#include <path_follower/pathfollowerparameters.h>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
 #include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
-#include <path_follower/legacy/vector_field_histogram.h>
 #include <path_follower/controller/robotcontroller.h>
-#include <path_follower/supervisor/pathlookout.h>
 #include <path_follower/utils/PidCtrl.h>
-#include <path_follower/legacy/vector_field_histogram.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/coursepredictor.h>
 #include <path_follower/utils/parameters.h>
+#include <path_follower/obstacle_avoidance/obstacleavoider.h>
 
-
+#include <path_follower/supervisor/supervisorchain.h>
 
 class PathFollower
 {
-
-public:
     friend class Behaviour;
 
-    struct PathIndex //TODO: better name...
-    {
-        PathIndex()
-        { reset(); }
-
-        void reset() {
-            path_idx = 0;
-            wp_idx = 0;
-        }
-
-        int path_idx;
-        int wp_idx;
-    };
-
-
-    struct Options : public Parameters
-    {
-        P<std::string> controller;
-        P<double> wp_tolerance;
-        P<double> goal_tolerance;
-        P<float> min_velocity;
-        P<float> max_velocity;
-        P<double> steer_slow_threshold;
-        P<double> max_distance_to_path;
-        P<float> collision_box_width;
-        P<float> collision_box_min_length;
-        P<float> collision_box_crit_length;
-        P<float> collision_box_max_length;
-        P<float> collision_box_velocity_factor;
-        P<float> collision_box_velocity_saturation;
-        P<std::string> world_frame;
-        P<std::string> robot_frame;
-        P<bool> use_obstacle_map;
-        P<bool> use_vfh;
-        P<bool> use_path_lookout;
-        P<bool> abort_if_obstacle_ahead;
-
-        Options():
-            controller(this, "~controller", "ackermann_pid", "Defines, which controller is used."),
-            wp_tolerance(this,  "~waypoint_tolerance",  0.20 , ""),
-            goal_tolerance(this,  "~goal_tolerance",  0.15 , ""),
-            steer_slow_threshold(this,  "~steer_slow_threshold",  0.25 , ""),
-            max_distance_to_path(this,  "~max_distance_to_path",  0.3 , "Maximum distance the robot is allowed to depart from the path. If this threshold is exceeded, the path follower will abort."),
-
-            world_frame(this, "~world_frame",  "/map", "Name of the world frame."),
-            robot_frame(this, "~robot_frame",  "/base_link", "Name of the robot frame."),
-
-            use_obstacle_map(this, "~use_obstacle_map",  false, "If set to true, the obstacle map is used for obstacle detection, otherwise the laser scans."),
-            use_vfh(this, "~use_vfh",  false, "If set to true, vector field histogram is used for collision avoidance."),
-            use_path_lookout(this, "~use_path_lookout",  true, "If set to true, path lookout is done (check if there are obstacles somewhere on the path ahead of the robot)."),
-
-            min_velocity(this,  "~min_velocity",  0.4 , "Minimum speed of the robot (needed, as the outdoor buggys can't handle velocities below about 0.3)."),
-            max_velocity(this,  "~max_velocity",  2.0 , "Maximum velocity (to prevent the high level control from running amok)."),
-
-            collision_box_width(this,  "~collision_box_width",  0.5, "Width of the collision box for obstacle avoidance."),
-            collision_box_min_length(this,  "~collision_box_min_length",  0.5, "Minimum length of the collision box for obstacle avoidance (grows with increasing velocity)."),
-            collision_box_crit_length(this,  "~collision_box_crit_length",  0.3, ""),
-            collision_box_max_length(this,  "~collision_box_max_length",  1.0, "Maximum length of the collision box for obstacle avoidance."),
-            collision_box_velocity_factor(this,  "~collision_box_velocity_factor",  1.0, "This factor determines, how much the length of the box is increased, depending on the velocity."),
-            collision_box_velocity_saturation(this,  "~collision_box_velocity_saturation",  max_velocity(), "The velocity for which the maximum length should be used."),
-            abort_if_obstacle_ahead(this, "~abort_if_obstacle_ahead",  false, "If set to true, path execution is aborted, if an obstacle is detected on front of the robot. If false, the robot will stop, but not abort (the obstacle might move away).")
-        {
-            if(max_velocity() < min_velocity()) {
-                ROS_ERROR("min velocity larger than max velocity!");
-                max_velocity.set(min_velocity());
-            }
-            if(collision_box_max_length() < collision_box_min_length()) {
-                ROS_ERROR("min length larger than max length!");
-                collision_box_min_length.set(collision_box_max_length());
-            }
-            if(collision_box_min_length() < collision_box_crit_length()) {
-                ROS_ERROR("min length smaller than crit length!");
-                collision_box_crit_length.set(collision_box_min_length());
-            }
-        }
-    };
-
+public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
 public:
     PathFollower(ros::NodeHandle &nh);
@@ -131,13 +53,7 @@ public:
 
     void update();
 
-    bool isObstacleAhead(double course);
-
-    VectorFieldHistogram& getVFH();
-
     RobotController* getController();
-
-    PathLookout* getPathLookout();
 
     CoursePredictor &getCoursePredictor();
 
@@ -147,9 +63,13 @@ public:
     Eigen::Vector3d getRobotPose() const;
     const geometry_msgs::Pose &getRobotPoseMsg() const;
 
+    Path::Ptr getPath();
+
     void setStatus(int status);
 
-    const PathFollower::Options &getOptions() const
+    bool callObstacleAvoider(MoveCommand *cmd);
+
+    const PathFollowerParameters &getOptions() const
     {
         return opt_;
     }
@@ -171,43 +91,38 @@ private:
 
     //! Subscriber for odometry messages.
     ros::Subscriber odom_sub_;
-    //! Subscriber for the obstacle grid map (used by ObstacleDetector).
-    ros::Subscriber obstacle_map_sub_;
-    //! Subscriber for laser scans (used for obstacle detection if no obstacle map is used).
-    ros::Subscriber laser_front_sub_;
-    ros::Subscriber laser_back_sub_;
+    //! Subscriber for the obstacle point cloud (used by ObstacleAvoider).
+    ros::Subscriber obstacle_cloud_sub_;
 
     tf::TransformListener pose_listener_;
 
     //! The robot controller is responsible for everything that is dependend on robot model and controller type.
-    RobotController *controller_;
+    RobotController* controller_;
 
-    //! Look for obstacles on the path ahead of the robot.
-    PathLookout path_lookout_;
+    ObstacleAvoider* obstacle_avoider_;
+
+    SupervisorChain supervisors_;
 
     //! Predict direction of movement for controlling and obstacle avoidance
     CoursePredictor course_predictor_;
 
-    //! Used for collision avoidance. Only used if ~use_obstacle_map:=true and ~use_vfh:=true.
-    VectorFieldHistogram vfh_;
-
     Visualizer* visualizer_;
 
-    Options opt_;
-    PathIndex path_idx_;
+    PathFollowerParameters opt_;
 
     //! The last received odometry message.
     nav_msgs::Odometry odometry_;
+
+    //! The last received obstacle cloud (TODO: better store mesage directly as shared_ptr?)
+    ObstacleCloud::ConstPtr obstacle_cloud_;
 
     //! Current pose of the robot as Eigen vector (x,y,theta).
     Eigen::Vector3d robot_pose_;
     //! Current pose of the robot as geometry_msgs pose.
     geometry_msgs::Pose robot_pose_msg_;
 
-    //! Full path
-    nav_msgs::Path path_;
     //! Path as a list of separated subpaths
-    std::vector<Path> paths_;
+    Path::Ptr path_;
 
     //! If set to a value >= 0, path execution is stopped in the next iteration. The value of pending_error_ is used as status code.
     int pending_error_;
@@ -226,11 +141,7 @@ private:
     //! Callback for odometry messages
     void odometryCB(const nav_msgs::OdometryConstPtr &odom);
 
-    //! Callback for laser scan messages.
-    void laserCB(const sensor_msgs::LaserScanConstPtr& scan, bool isBack=false);
-
-    //! Callback for the obstacle grid map. Used by ObstacleDetector and VectorFieldHistorgram.
-    void obstacleMapCB(const nav_msgs::OccupancyGridConstPtr& map);
+    void obstacleCloudCB(const ObstacleCloud::ConstPtr&);
 
     //! Publish beep commands.
     void beep(const std::vector<int>& beeps);
@@ -257,7 +168,7 @@ private:
     void setPath(const nav_msgs::Path& path);
 
     //! Split path into subpaths at turning points.
-    void findSegments(bool only_one_segment);
+    void findSegments(const nav_msgs::Path& path, bool only_one_segment);
 };
 
 #endif // PATHFOLLOWER_H

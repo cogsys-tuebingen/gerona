@@ -12,6 +12,7 @@
 #include <path_follower/legacy/behaviours.h>
 #include <utils_general/MathHelper.h>
 #include <path_msgs/FollowPathAction.h>
+#include <path_follower/utils/path_exceptions.h>
 
 using namespace Eigen;
 using namespace std;
@@ -34,12 +35,10 @@ std::string name(Behaviour* b) {
 
 
 
-RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(ros::Publisher &cmd_publisher,
-                                                             PathFollower *path_driver,
-                                                             VectorFieldHistogram *vfh):
-    RobotController(cmd_publisher, path_driver),
-    vfh_(vfh),
-    active_behaviour_(NULL)
+RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_driver):
+    RobotController(path_driver),
+    active_behaviour_(NULL),
+    filtered_speed_(0.0f)
 {
     configure();
 
@@ -48,25 +47,19 @@ RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(ros::Publisher &cmd
 
 void RobotController_Ackermann_Pid::configure()
 {
-    ros::NodeHandle nh("~");
-
-    nh.param( "dead_time", options_.dead_time_, 0.10 );
-    nh.param( "l", options_.l_, 0.38 );
-
-    double ta, kp, ki, i_max, delta_max, e_max;
-    nh.param( "pid/ta", ta, 0.03 );
-    nh.param( "pid/kp", kp, 1.5 );
-    nh.param( "pid/ki", ki, 0.001 );
-    nh.param( "pid/i_max", i_max, 0.0 );
-    nh.param( "pid/delta_max", delta_max, 30.0 );
-    nh.param( "pid/e_max", e_max, 0.10 );
-
-    pid_.configure( kp, ki, i_max, M_PI*delta_max/180.0, e_max, 0.5, ta );
+    opt_.printAllInstances();
+    pid_.configure(opt_.pid_kp(),
+                   opt_.pid_ki(),
+                   opt_.pid_i_max(),
+                   opt_.pid_delta_max() * M_PI/180.0,
+                   opt_.pid_e_max(),
+                   0.5,
+                   opt_.pid_ta());
 }
 
 bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 {
-    PathFollower::Options path_driver_opt = path_driver_->getOptions();
+    PathFollowerParameters path_driver_opt = path_driver_->getOptions();
 
     double delta_f_raw = 0;
 
@@ -80,28 +73,8 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 
     visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
 
-    double threshold = 5.0;
-    double threshold_max_distance = 3.5 /*m*/;
-
-    double distance_to_goal = path_.current_path->back().distanceTo(path_.nextWaypoint());
-    double threshold_distance = std::min(threshold_max_distance,
-                                         std::max((double) path_driver_opt.collision_box_min_length(), distance_to_goal));
-
     double delta_f = delta_f_raw;
-    bool collision = false;
-
-    if (vfh_ != 0) {
-        if(!vfh_->isReady()) {
-            ROS_WARN_THROTTLE(1, "Not using VFH, not ready yet! (Maybe obstacle map not published?)");
-            //delta_f = delta_f_raw;
-        } else {
-            vfh_->create(threshold_distance, threshold);
-            collision = !vfh_->adjust(delta_f_raw, threshold, delta_f);
-            vfh_->visualize(delta_f_raw, threshold);
-        }
-    }
-
-    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f, 0.0, 1.0, 1.0);
+//    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f, 0.0, 1.0, 1.0);
 
 
     double steer = std::abs(delta_f);
@@ -122,46 +95,23 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 
     cmd_.steer_front = dir_sign_ * delta_f;
     cmd_.steer_back = 0;
-
-    // no laser backward, so do not check when driving backwards.
-    if (dir_sign_ > 0) {
-        collision |= path_driver_->isObstacleAhead(calculateCourse());
-    }
-
-    if(collision) {
-        ROS_WARN_THROTTLE(1, "Collision!");
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE); //TODO: not so good to use result-constant if it is not finishing the action...
-
-        stopMotion();
-    } else {
-        cmd_.velocity = dir_sign_ * speed;
-    }
+    cmd_.velocity = dir_sign_ * speed;
 
     ROS_DEBUG("Set velocity to %g", cmd_.velocity);
     return (std::abs(delta_f - delta_f_raw) > 0.05);
 }
 
-void RobotController_Ackermann_Pid::publishCommand()
-{
-    if (!cmd_.isValid()) {
-        ROS_FATAL("Invalid Command in RobotController_Ackermann_Pid.");
-        return;
-    }
-
-    //ramaxx_msgs::RamaxxMsg msg = current_command_;
-    geometry_msgs::Twist msg = cmd_;
-    cmd_pub_.publish(msg);
-
-    setFilteredSpeed(cmd_.velocity);
-}
-
 void RobotController_Ackermann_Pid::stopMotion()
 {
-    cmd_.velocity = 0.0;
-    cmd_.steer_front = 0.0;
-    cmd_.steer_back= 0.0;
+    //FIXME: this method should be improved (Command could implement cast to MoveCommand)
 
-    publishCommand();
+    cmd_.velocity    = 0.0;
+    cmd_.steer_front = 0.0;
+    cmd_.steer_back  = 0.0;
+
+    MoveCommand mcmd;
+    mcmd.setVelocity(0);
+    publishMoveCommand(mcmd);
 }
 
 void RobotController_Ackermann_Pid::reset()
@@ -178,39 +128,10 @@ void RobotController_Ackermann_Pid::start()
     ROS_INFO_STREAM("init with " << name(active_behaviour_));
 }
 
-RobotController::ControlStatus RobotController_Ackermann_Pid::execute()
+void RobotController_Ackermann_Pid::switchBehaviour(Behaviour* next_behaviour)
 {
-    try {
-        ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
-        int status = FollowPathFeedback::MOTION_STATUS_MOVING;
-        active_behaviour_->execute(&status);
-
-        switch(status) {
-        case FollowPathFeedback::MOTION_STATUS_MOVING:
-            return MOVING;
-        case FollowPathFeedback::MOTION_STATUS_OBSTACLE:
-            return OBSTACLE;
-        default:
-            ROS_WARN_STREAM("unknown status: " << status);
-            return ERROR;
-        }
-
-    } catch(NullBehaviour* null) {
-        ROS_WARN_STREAM("stopping after " << name(active_behaviour_));
-        reset();
-        return ERROR;
-
-    } catch(Behaviour* next_behaviour) {
-        std::cout << "switching behaviour from " << name(active_behaviour_) << " to " << name(next_behaviour) << std::endl;
-        reset();
-        active_behaviour_ = next_behaviour;
-        return MOVING;
-
-    } catch(const std::exception& e) {
-        ROS_ERROR_STREAM("uncaught exception: " << e.what() << " => abort");
-        reset();
-        return ERROR;
-    }
+    reset();
+    active_behaviour_ = next_behaviour;
 }
 
 void RobotController_Ackermann_Pid::initOnLine()
@@ -242,7 +163,7 @@ void RobotController_Ackermann_Pid::behaveOnLine()
     //       - backwards not slower, but lower max speed
     //       - slower when close to goal, similar to ApproachGoal
     if(dir_sign_ < 0) {
-        speed *= 0.5;
+        //speed *= 0.5;
     }
 
     if(setCommand(e_combined, speed)) {
@@ -273,7 +194,7 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
     ROS_DEBUG("Approach: e_dist = %g, e_angle = %g  ==>  e_comb = %g", e_distance, e_angle, e_combined);
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_.nextWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
+        visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_->getCurrentWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
 
         // draw steer front
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
@@ -289,16 +210,67 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
     return false;
 }
 
+RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCommand(MoveCommand *cmd)
+{
+    try {
+//        ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
+        int status = FollowPathFeedback::MOTION_STATUS_MOVING;
+        Behaviour* next_behaviour = active_behaviour_->execute(&status);
+
+        if(next_behaviour == NULL) {
+            switchBehaviour(NULL);
+            return MC_REACHED_GOAL;
+        }
+
+        if(active_behaviour_ != next_behaviour) {
+            ROS_INFO_STREAM("switching behaviour from " << name(active_behaviour_)
+                            << " to " << name(next_behaviour));
+            switchBehaviour(next_behaviour);
+        }
+
+        // Quickfix: simply convert ackermann command to move command
+        cmd->setDirection(cmd_.steer_front);
+        cmd->setVelocity(cmd_.velocity);
+
+        filtered_speed_ = cmd_.velocity;
+
+        switch(status) {
+        case FollowPathFeedback::MOTION_STATUS_MOVING:
+            return MC_OKAY;
+        default:
+            ROS_WARN_STREAM("unknown status: " << status);
+            return MC_ERROR;
+        }
+    } catch(const std::exception& e) {
+        ROS_ERROR_STREAM("uncaught exception: " << e.what() << " => abort");
+        reset();
+        return MC_ERROR;
+    }
+}
+
+void RobotController_Ackermann_Pid::publishMoveCommand(const MoveCommand &cmd) const
+{
+    geometry_msgs::Twist msg;
+    //msg.linear.x  = velocity;
+    //msg.angular.z = steer_front;
+    msg.linear.x  = cmd.getVelocity();
+    msg.angular.z = cmd.getDirectionAngle();
+
+    cmd_pub_.publish(msg);
+}
+
 void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &rear_pred)
 {
-    double dt = options_.dead_time_;
+    //TODO: revise this code
+
+    double dt = opt_.dead_time();
     double deltaf = cmd_.steer_front;
     double deltar = cmd_.steer_back;
-    double v = 2*getFilteredSpeed();
+    double v = 2*filtered_speed_;
 
     double beta = std::atan(0.5*(std::tan(deltaf)+std::tan(deltar)));
     double ds = v*dt;
-    double dtheta = ds*std::cos(beta)*(std::tan(deltaf)-std::tan(deltar))/options_.l_;
+    double dtheta = ds*std::cos(beta)*(std::tan(deltaf)-std::tan(deltar))/opt_.l();
     double thetan = dtheta; //TODO <- why this ???
     double yn = ds*std::sin(dtheta*0.5+beta*0.5);
     double xn = ds*std::cos(dtheta*0.5+beta*0.5);
@@ -309,10 +281,10 @@ void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &
     // step 1: dt = 0.1, deltaf = 9.75024e+199, deltar = 4.26137e+257, v = 0,   beta = 0.308293, ds = 0,   dtheta = 0,   yn = 0,    xn = 0
     // step 2: dt = 0.1, deltaf = 9.75024e+199, deltar = 4.26137e+257, v = inf, beta = 0.308293, ds = inf, dtheta = inf, yn = -nan, xn = -nan
 
-    front_pred[0] = xn+cos(thetan)*options_.l_/2.0;
-    front_pred[1] = yn+sin(thetan)*options_.l_/2.0;
-    rear_pred[0] = xn-cos(thetan)*options_.l_/2.0;
-    rear_pred[1] = yn-sin(thetan)*options_.l_/2.0;
+    front_pred[0] = xn+cos(thetan)*opt_.l()/2.0;
+    front_pred[1] = yn+sin(thetan)*opt_.l()/2.0;
+    rear_pred[0] = xn-cos(thetan)*opt_.l()/2.0;
+    rear_pred[1] = yn-sin(thetan)*opt_.l()/2.0;
 
     ROS_DEBUG_STREAM("predict pose. front: " << front_pred << ", rear: " << rear_pred);
 }
@@ -327,17 +299,17 @@ double RobotController_Ackermann_Pid::calculateLineError()
     geometry_msgs::PoseStamped followup_next_wp_map;
     followup_next_wp_map.header.stamp = ros::Time::now();
 
-    if(path_.wp_idx + 1 == path_.current_path->size()) {
-        followup_next_wp_map.pose = path_.getWaypoint(path_.wp_idx - 1);
+    if(path_->getWaypointIndex() + 1 == path_->getCurrentSubPath().size()) {
+        followup_next_wp_map.pose = path_->getWaypoint(path_->getWaypointIndex() - 1);
     } else {
-        followup_next_wp_map.pose = path_.getWaypoint(path_.wp_idx + 1);
+        followup_next_wp_map.pose = path_->getWaypoint(path_->getWaypointIndex() + 1);
     }
 
     Line2d target_line;
     Vector3d followup_next_wp_local;
     if (!path_driver_->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR);
-        throw new BehaviourEmergencyBreak(*path_driver_);
+        throw new EmergencyBreakException("Cannot transform next waypoint");
     }
     target_line = Line2d( next_wp_local_.head<2>(), followup_next_wp_local.head<2>());
     visualizer_->visualizeLine(target_line);

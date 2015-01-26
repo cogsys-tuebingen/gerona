@@ -8,16 +8,15 @@
 #include <vector>
 #include <string>
 #include <path_follower/pathfollower.h>
-#include <boost/foreach.hpp>
 
 #include <laser_geometry/laser_geometry.h>
-#include <opencv2/flann/flann.hpp>
+#include <pcl_ros/transforms.h>
 
 using namespace std;
 
-PathLookout::PathLookout(PathFollower *node):
-    node_(node),
-    obstacle_frame_("/map")
+PathLookout::PathLookout(const tf::TransformListener *tf_listener):
+    obstacle_frame_("/map"),
+    tf_listener_(tf_listener)
 {
     #if DEBUG_PATHLOOKOUT
         cv::namedWindow("Map", CV_WINDOW_KEEPRATIO);
@@ -28,79 +27,52 @@ PathLookout::PathLookout(PathFollower *node):
     visualizer_ = Visualizer::getInstance();
 }
 
-void PathLookout::setScan(const sensor_msgs::LaserScanConstPtr &msg, bool isBack)
+void PathLookout::setObstacleCloud(const ObstacleCloud::ConstPtr &cloud)
 {
-    if (isBack) {
-        back_scan_ = msg;
-    } else {
-        front_scan_ = msg;
-    }
+    obstacle_cloud_ = cloud;
 }
 
-void PathLookout::setMap(const nav_msgs::OccupancyGridConstPtr &map)
-{
-    map_ = map;
-    map_trans_.setMap(map);
-
-    // convert to image
-    map_image_ = cv::Mat(map->info.height, map->info.width, CV_8UC1);
-    // Directly copy. Now 0 -> free, >0 -> obstacle. For visualization, it would usually be inverted, here, however,
-    // this is perfectly fine, as the obstacles have to be "true" for the intersection with the path image.
-    // Note, that it is important, that the path image is then really binary with only 0 and 255, to make sure, that the
-    // bitwise_and can not miss any obstacle pixels.
-    std::copy(map->data.begin(), map->data.end(), map_image_.data);
-    //map_image_.data = &map->data[0];  <- no copy, only references. Would be nice, but yields problems with const...
-}
-
-void PathLookout::setPath(const PathWithPosition &path)
+void PathLookout::setPath(Path::ConstPtr path)
 {
     // only use path from the last waypoint on ("do not look behind")
-    Path path_ahead;
-    if (path.wp_idx == 0) {
-        path_ahead = *path.current_path;
+    SubPath path_ahead;
+    if (path->getWaypointIndex() == 0) {
+        path_ahead = path->getCurrentSubPath();
     } else {
-        Path::const_iterator start = path.current_path->begin();
-        start += (path.wp_idx-1);
-        path_ahead.assign(start, (Path::const_iterator) path.current_path->end());
+        SubPath::const_iterator start = path->getCurrentSubPath().begin();
+        start += (path->getWaypointIndex()-1);
+        path_ahead.assign(start, (SubPath::const_iterator) path->getCurrentSubPath().end());
     }
 
-    path_ = path_ahead;
-
-    // if there is no map yet, we do not know the size of the path image (and do not need it anyway)
-    if (map_) {
-        drawPathToImage(path_ahead);
-    }
+    path_ = path_ahead; //TODO: is it possible to do this without copy?
 }
 
-bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
+void PathLookout::supervise(State &state, Supervisor::Result *out)
 {
-    if (!map_ && !front_scan_ && !back_scan_) {
-        ROS_WARN_THROTTLE(1, "PathLookout has not received any map or scan yet. No obstacle lookout is done.");
-        return false;
+    setPath(state.path);
+    setObstacleCloud(state.obstacle_cloud);
+
+    // hope for the best
+    out->can_continue = true;
+
+    if (!obstacle_cloud_) {
+        ROS_WARN_THROTTLE(1, "PathLookout has not received a valid obstacle cloud. No obstacle lookout is done.");
+        return;
     }
     if (path_.empty()) {
         ROS_WARN_THROTTLE(1, "PathLookout has not received any path yet. No obstacle lookout is done.");
-        return false;
+        return;
     }
 
-
-    vector<Obstacle> observed_obstacles;
-    if (map_) {
-        observed_obstacles = lookForObstaclesInMap();
-    }
-
-    if (front_scan_ || back_scan_) {
-        vector<Obstacle> obs = lookForObstaclesInScans();
-        observed_obstacles.insert(observed_obstacles.end(), obs.begin(), obs.end());
-    }
-
+    vector<Obstacle> observed_obstacles = lookForObstacles();
 
     // Update tracker
     tracker_.update(observed_obstacles);
 
     vector<ObstacleTracker::TrackedObstacle> tracked_obs = tracker_.getTrackedObstacles();
     if (tracked_obs.empty()) {
-        return false;
+        // no obstacles --> everything is fine.
+        return;
     }
 
 
@@ -111,8 +83,7 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
      */
 
     // Calculaten is done with cv::Points, so robot pose has to be converted.
-    Eigen::Vector3d robot_pose_eigen = node_->getRobotPose();
-    cv::Point2f robot_pos(robot_pose_eigen[0], robot_pose_eigen[1]);
+    cv::Point2f robot_pos(state.robot_pose[0], state.robot_pose[1]);
 
     vector<path_msgs::Obstacle> obstacle_msgs;
     obstacle_msgs.reserve(tracked_obs.size());
@@ -132,21 +103,15 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
 
 
     // report obstacles via feedback
-    if (feedback != NULL) {
-        feedback->obstacles_on_path = obstacle_msgs;
-    }
+    state.feedback.obstacles_on_path = obstacle_msgs;
 
 
     // visualize obstacles in rviz
     if (visualizer_->hasSubscriber()) {
         for(size_t i = 0; i < tracked_obs.size(); ++i) {
-            // this should be a unique identifier for a tracked obstacle
-            //FIXME: scheinbar nicht unique genug...
-            //int id = tracked_obs[i].time_of_first_sight().toNSec();
-
             geometry_msgs::Point gp = obstacle_msgs[i].position;
-            //visualizer_->drawMark(id, gp, "obstacleonpath", 1,0,0, obstacle_frame_);
-            visualizer_->drawCircle(i, gp, tracked_obs[i].obstacle().radius, obstacle_frame_, "obstacleonpath", 1,0,0,0.5, 0.1);
+            visualizer_->drawCircle(tracked_obs[i].id(), gp, tracked_obs[i].obstacle().radius,
+                                    obstacle_frame_, "obstacleonpath", 1,0,0,0.5, 0.1);
 
             // show the weight.
             stringstream s;
@@ -159,68 +124,20 @@ bool PathLookout::lookForObstacles(path_msgs::FollowPathFeedback *feedback)
     // report obstacle, if the highest weight is higher than the defined limit.
     const float limit = 1.0f;
     ROS_DEBUG("Max Obstacle Weight: %g, limit: %g", max_weight, limit);
-    return max_weight > limit;
+    if (max_weight > limit) {
+        out->can_continue = false;
+        out->status = path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE;
+    }
 }
 
-vector<Obstacle> PathLookout::lookForObstaclesInMap()
+void PathLookout::eventNewGoal()
 {
-    // Calculate intersection of the obstacle map and the path ==> provides the obstacles on the path
-    cv::Mat intersect;
-    cv::bitwise_and(map_image_, path_image_, intersect);
-
-    // find obstacle contours on the path
-    vector<vector<cv::Point> > contours;
-    cv::findContours(intersect, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-
-    // Get center of each obstacle (for tracking)
-    vector<Obstacle> observed_obstacles;
-    observed_obstacles.reserve(contours.size());
-    for(size_t i = 0; i < contours.size(); ++i) {
-        try {
-            // get obstacle position and size from enclosing circle
-            Obstacle obstacle;
-            cv::minEnclosingCircle(contours[i], obstacle.center, obstacle.radius);
-
-            #if DEBUG_PATHLOOKOUT
-                // dont need intersect anymore, so it is ok to draw debug stuff to it.
-                cv::circle(intersect, obstacle.center, obstacle.radius, cv::Scalar(255));
-            #endif
-
-            // transform center and scale radius from pixel to meters.
-            obstacle.center = map_trans_.transformPointFromMap(obstacle.center, obstacle_frame_);
-            obstacle.radius *= map_->info.resolution;
-
-            observed_obstacles.push_back(obstacle);
-        } catch (const tf::TransformException& ex) {
-            ROS_ERROR("TF-Error. Could not transform obstacle position. %s", ex.what());
-        } catch (const std::runtime_error &ex) { // is thrown, if no obstacle map is available.
-            ROS_ERROR("An error occured: %s", ex.what());
-        }
-    }
-
-    // debug
-    #if DEBUG_PATHLOOKOUT
-        cv::imshow("Map", map_image_);
-        cv::imshow("Path", path_image_);
-        cv::imshow("Intersection", intersect);
-        cv::waitKey(5);
-    #endif
-
-    return observed_obstacles;
+    reset();
 }
 
-vector<Obstacle> PathLookout::lookForObstaclesInScans()
+vector<Obstacle> PathLookout::lookForObstacles()
 {
-    vector<cv::Point2f> obs_front, obs_back;
-    if (front_scan_) {
-        obs_front = findObstaclesInScan(front_scan_);
-    }
-    if (back_scan_) {
-        obs_back = findObstaclesInScan(back_scan_);
-    }
-
-    // merge result of front and back scan
-    obs_front.insert(obs_front.end(), obs_back.begin(), obs_back.end());
+    vector<cv::Point2f> obs_front = findObstaclesInCloud(obstacle_cloud_);
 
     // cluster
     vector<vector<cv::Point2f> > obstacle_points = clusterPoints(obs_front);
@@ -229,7 +146,7 @@ vector<Obstacle> PathLookout::lookForObstaclesInScans()
     observed_obstacles.reserve(obstacle_points.size());
     for (vector<vector<cv::Point2f> >::const_iterator it = obstacle_points.begin(); it != obstacle_points.end(); ++it) {
         // ignore clusters, that are too small
-        if (it->size() < opt_.min_number_of_points()) {
+        if (it->size() < (size_t)opt_.min_number_of_points()) {
             continue;
         }
 
@@ -272,6 +189,8 @@ vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f
      * the threshold defined by opt_.scan_cluster_max_distance(). In this case, the current cluster is closed and a
      * new cluster is started.
      *  --> clusters are in fact segments of the scan.
+     *
+     * FIXME: this is not guaranteed anymore using the obstacle cloud!
      */
 
     vector<vector<cv::Point2f> > result;
@@ -311,51 +230,7 @@ void PathLookout::reset()
 {
     // important! path has to be reseted, otherwise obstacles will be readded immediately.
     path_.clear();
-    path_image_ = cv::Scalar(0);
     tracker_.reset();
-}
-
-void PathLookout::drawPathToImage(const Path &path)
-{
-    /// This method assumes, that the map is already set!
-
-    // initialize path image to fit map size
-    if (path_image_.empty()) {
-        path_image_ = cv::Mat(map_->info.height, map_->info.width, CV_8UC1, cv::Scalar(0));
-    }
-
-    // first reset image
-    path_image_ = cv::Scalar(0); //<- yup, this is possible in OpenCV :) Sets every pixel to 0.
-
-    if (path.size() < 2) {
-        ROS_WARN("Path has less than 2 waypoints. No obstacle lookout is done.");
-        return;
-    }
-
-    int path_width_pixel = (int) ceil(opt_.path_width() / map_->info.resolution);
-
-    Path::const_iterator iter = path.begin();
-    try {
-        // get first point
-        cv::Point2f p1(iter->x, iter->y);
-        p1 = map_trans_.transformPointToMap(p1, "/map");
-        // iterate over second to last point
-        for (++iter; iter != path.end(); ++iter) {
-            cv::Point2f p2(iter->x, iter->y);
-            p2 = map_trans_.transformPointToMap(p2, "/map");
-
-            cv::line(path_image_, p1, p2, cv::Scalar(255), path_width_pixel);
-            p1 = p2;
-        }
-    } catch (const tf::TransformException& ex) {
-        ROS_ERROR("Failed to transform path to map in PathLookout. TF-Exception: %s\n PathLookout will not be able to check for obstacles on the path!", ex.what());
-        // Nothing to do here. Maybe parts of the path have been drawed to the map before the exception occured.
-        // In this case the lookout will work as intended but only check the first part of the path.
-        // In the worst case, nothing was drawn, then the lookout will simply not see obstacles, but it will not crash
-        // in any way.
-    } catch (const std::runtime_error &ex) { // is thrown, if no obstacle map is available.
-        ROS_ERROR("An error occured: %s", ex.what());
-    }
 }
 
 float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const
@@ -376,35 +251,24 @@ float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::Tracke
     return w_dist + w_time;
 }
 
-std::vector<cv::Point2f> PathLookout::findObstaclesInScan(const sensor_msgs::LaserScanConstPtr &scan)
+std::vector<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::ConstPtr &cloud)
 {
     if (path_.size() < 2) {
         ROS_WARN("Path has less than 2 waypoints. No obstacle lookout is done.");
         return std::vector<cv::Point2f>(); // return empty cloud
     }
 
-    laser_geometry::LaserProjection proj;
-    sensor_msgs::PointCloud cloud;
-
+    //TODO: are cloud and path in the same frame?
+    ObstacleCloud trans_cloud;
     try {
-        if(!tf_listener_.waitForTransform(
-                    scan->header.frame_id,
-                    "/map",
-                    scan->header.stamp + ros::Duration().fromSec(scan->ranges.size()*scan->time_increment),
-                    ros::Duration(1.0))) {
-            ROS_ERROR("[PathLookout] No transform for laser scan from %s to /map. No obstacle lookout is done!", scan->header.frame_id.c_str());
-            return std::vector<cv::Point2f>(); // return empty cloud
-        }
-
-        proj.transformLaserScanToPointCloud("/map", *scan, cloud, tf_listener_, scan->range_max-0.5, laser_geometry::channel_option::Index);
-    } catch (const tf::TransformException& ex) {
-        ROS_ERROR("[PathLookout] Failed to transform scan. TF-Exception: %s\n PathLookout will not be able to check for obstacles on the path!", ex.what());
+        pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, *tf_listener_);
+    } catch (tf::TransformException& ex) {
+        ROS_ERROR("Failed to transform obstacle cloud: %s", ex.what());
         return std::vector<cv::Point2f>(); // return empty cloud
     }
 
-
     //! Contains an 'is obstacle' flag for each point in the cloud
-    vector<bool> is_point_obs(cloud.points.size(), false);
+    vector<bool> is_point_obs(trans_cloud.size(), false);
 
     cv::Point2f a(path_[0].x, path_[0].y);
 
@@ -434,8 +298,8 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInScan(const sensor_msgs::Las
         const float ab2 = ab.dot(ab);
 
         // check distance of each point
-        for (size_t i = 0; i < cloud.points.size(); ++i) {
-            const cv::Point2f p(cloud.points[i].x, cloud.points[i].y);
+        for (size_t i = 0; i < trans_cloud.size(); ++i) {
+            const cv::Point2f p(trans_cloud.at(i).x, trans_cloud.at(i).y);
             const cv::Point2f ap = p - a;
             const float lambda = ap.dot(ab) / ab2;
 
@@ -461,9 +325,9 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInScan(const sensor_msgs::Las
     }
 
     vector<cv::Point2f> obstacle_points;
-    for (size_t i = 0; i < cloud.points.size(); ++i) {
+    for (size_t i = 0; i < trans_cloud.size(); ++i) {
         if (is_point_obs[i]) {
-            cv::Point2f p(cloud.points[i].x, cloud.points[i].y);
+            cv::Point2f p(trans_cloud.at(i).x, trans_cloud.at(i).y);
             obstacle_points.push_back(p);
         }
     }

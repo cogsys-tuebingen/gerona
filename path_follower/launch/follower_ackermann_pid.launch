@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<!--
+Launch the path follower with the PID controller for a car-like (Ackermann) robot.
+-->
+<launch>
+  <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
+    <param name="controller" value="ackermann_pid" />
+    
+    <param name="pid/kp" value="0" />
+    <param name="pid/ki" value="0" />
+
+    <!-- supervisors -->
+    <param name="supervisor/use_path_lookout" value="true" />
+    <param name="supervisor/use_waypoint_timeout" value="true" />
+    <param name="supervisor/use_distance_to_path" value="true" />
+    
+    <param name="supervisor/path_lookout/obstacle_scale_distance" value="1.0" />
+    <param name="supervisor/path_lookout/obstacle_scale_lifetime" value="5.0" />
+    <param name="supervisor/path_lookout/path_width" value="0.5" />
+    <param name="supervisor/distance_to_path/max_dist" value="2.0" />
+    
+    
+    <!-- obstacle avoider -->
+    <!-- right now, there is only the collision box avoider -->
+    <param name="obstacle_avoider/use_collision_box" value="true" />
+    
+    <param name="obstacle_avoider/collision_box/width" value="0.4" />
+    <param name="obstacle_avoider/collision_box/crit_length" value="0.4" />
+    <param name="obstacle_avoider/collision_box/min_length" value="0.7" />
+    <param name="obstacle_avoider/collision_box/max_length" value="1.5" />
+    <param name="obstacle_avoider/collision_box/velocity_factor" value="1.0" />
+    <param name="obstacle_avoider/collision_box/velocity_saturation" value="1.0" />
+    
+    
+    <!-- general parameters of the follower -->
+    <param name="min_velocity" value="0.4" />
+    <param name="max_velocity" value="0.7" />
+    <param name="waypoint_tolerance" value="2.0" />
+    <param name="goal_tolerance" value="0.4" />
+    
+    
+    <!-- parameters, that are dependent of the controller or the robot model -->
+	<!-- Set PID parameters here, if default is not working -->
+
+
+    <remap from="scan" to="scan/front/filtered" />
+  </node>
+  
+</launch>

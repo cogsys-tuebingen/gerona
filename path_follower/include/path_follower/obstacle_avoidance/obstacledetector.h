@@ -1,78 +1,84 @@
 #ifndef OBSTACLEDETECTOR_H
 #define OBSTACLEDETECTOR_H
 
-#include <vector>
-
-#include <ros/ros.h>
-#include <nav_msgs/OccupancyGrid.h>
-#include <sensor_msgs/LaserScan.h>
+#include <path_follower/obstacle_avoidance/obstacleavoider.h>
+#include <path_follower/utils/parameters.h>
 
 /**
- * @brief Checks for obstacles in front of the robot, using an obstacle map.
+ * @brief Simple 'emergency break' obstacle avoider that stops when an obstacle is within a
+ *        defined 'obstacle box' in front of the robot.
  *
- * For the obstacle detection, an up-to-date obstacle map is required, which can be set, using gridMapCallback (e.g.
- * by directly setting this method as callback for a subscriber.
- * The map has to be binary, i.e. each cell is either "free" or "occupied".
- * The robot is assumed to be in the origin of the map.
+ * This is the most simple obstacle avoider which should be feasible for all robot models. It is
+ * therefore a good fallback which can always be used, when there is no more intelligent
+ * obstacle avoider.
+ * When checking for obstacles, a box in front of the robot is calculated. If one or more
+ * obstacles are within this box, the robot is stopped immediately by setting the velocity of
+ * the move command to zero. There are no attempts to get around the obstacle.
+ * There are several child classes which implement different shapes of obstacle boxes
  *
- * When checking for obstacles, a box in front of the robot is calculated. An obstacle is recognized, if there is one
- * (or more) occupied cell inside this box.
  *
  * In courves, the box is bend toward the direction of the path. For more details on this, see the comments inside
  * the method isObstacleAhead().
  */
-class ObstacleDetector
+class ObstacleDetector: public ObstacleAvoider
 {
 public:
-    ObstacleDetector();
-
-    //! Callback for the obstacle map. Make sure, that the map is binary!
-    virtual void setMap(const nav_msgs::OccupancyGridConstPtr &map);
-    //! Callback for the laser scan
-    virtual void setScan(const sensor_msgs::LaserScanConstPtr &scan, bool isBack=false);
-
-    virtual void setUseMap(bool use);
-    virtual void setUseScan(bool use);
-
-    /**
-     * @brief Check, if there is an obstacle in front of the robot.
-     *
-     * @param width Width of the collision box.
-     * @param length Length of the collision box. If an object is within this distance, an collision is thrown.
-     * @param course_angle Angle of the current course (e.g. use steering angle).
-     * @param curve_enlarge_factor The width of the box is enlarged a bit in curves. This argument controls how much (it is misleadingly called 'length' in LaserEnvironment).
-     * @return True, if there is an object within the collision box.
-     */
-    bool isObstacleAhead(float width, float length, float course_angle, float curve_enlarge_factor);
+    virtual bool avoid(MoveCommand * const cmd,
+                       ObstacleCloud::ConstPtr obstacles,
+                       const State &state);
 
 protected:
-    //! Value of the obstacle map for free cells.
-    static const char FREE = 0;
-    //! Value of the obstacle map for occupied cells.
-    static const char OCCUPIED = 100;
+    struct ObstacleDetectorParameters : public Parameters
+    {
+        P<float> width;
+        P<float> min_length;
+        P<float> crit_length;
+        P<float> max_length;
+        P<float> velocity_factor;
+        P<float> velocity_saturation;
 
-    //! The current obstacle map.
-    nav_msgs::OccupancyGridConstPtr map_;
+        ObstacleDetectorParameters():
+            width(this,  "~obstacle_avoider/collision_box/width",  0.5,
+                  "Width of the collision box for obstacle avoidance."),
+            min_length(this,  "~obstacle_avoider/collision_box/min_length",  0.5,
+                       "Minimum length of the collision box for obstacle avoidance (grows with increasing velocity)."),
+            crit_length(this,  "~obstacle_avoider/collision_box/crit_length",  0.3, ""),
+            max_length(this,  "~obstacle_avoider/collision_box/max_length",  1.0,
+                       "Maximum length of the collision box for obstacle avoidance."),
+            velocity_factor(this,  "~obstacle_avoider/collision_box/velocity_factor",  1.0,
+                            "This factor determines, how much the length of the box is increased, depending on the velocity."),
+            velocity_saturation(this,  "~obstacle_avoider/collision_box/velocity_saturation",  -1.0,
+                                "The velocity for which the maximum length should be used. If set to a value < 0, the max. velocity is used.")
+        {
+            if(max_length() < min_length()) {
+                ROS_ERROR("min length larger than max length!");
+                min_length.set(max_length());
+            }
+            if(min_length() < crit_length()) {
+                ROS_ERROR("min length smaller than crit length!");
+                crit_length.set(min_length());
+            }
+        }
+    } opt_;
 
     /**
-     * @brief Check, if there is an obstacle in the map within the obstacle box.
-     * @return True if there is an obstacle, false if not.
+     * @brief Check, if there is an obstacle within the obstacle box in front of the robot.
+     *
+     * @param obstacles Point cloud with points for detected obstacles.
+     * @param width Width of the collision box.
+     * @param length Length of the collision box. If an object is within this distance, an
+     *               collision is thrown.
+     * @param course_angle Angle of the current course (e.g. use steering angle).
+     * @param curve_enlarge_factor The width of the box is enlarged a bit in curves. This
+     *                             argument controls how much (it is misleadingly called
+     *                             'length' in LaserEnvironment).
+     * @return True, if there is an object within the collision box.
      */
-    virtual bool checkOnMap(float width, float length, float course_angle, float curve_enlarge_factor) = 0;
-
-    /**
-     * @brief Check, if there is an scan point within the obstacle box.
-     * @return True if there is an obstacle, false if not.
-     */
-    virtual bool checkOnScan(const sensor_msgs::LaserScanConstPtr &scan, float width, float length, float course_angle, float curve_enlarge_factor) = 0;
-
-private:
-    bool use_map_;
-    bool use_scan_;
-
-    //! The current laser scan
-    sensor_msgs::LaserScanConstPtr scan_;
-    sensor_msgs::LaserScanConstPtr scan_back_;
+    virtual bool checkOnCloud(ObstacleCloud::ConstPtr obstacles,
+                              float width,
+                              float length,
+                              float course_angle,
+                              float curve_enlarge_factor) = 0;
 };
 
 #endif // OBSTACLEDETECTOR_H

@@ -11,38 +11,31 @@
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/PidCtrl.h>
 #include <path_follower/utils/visualizer.h>
-#include <path_follower/legacy/vector_field_histogram.h>
-#include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
+#include <path_follower/utils/parameters.h>
 
 class Behaviour;
 
 class RobotController_Ackermann_Pid : public RobotController
 {
 public:
-    RobotController_Ackermann_Pid(ros::Publisher &cmd_publisher,
-                                  PathFollower *path_driver,
-                                  VectorFieldHistogram *vfh);
-
-    virtual void publishCommand();
+    RobotController_Ackermann_Pid(PathFollower *path_driver);
 
     virtual void stopMotion();
 
     virtual void reset();
     virtual void start();
-    virtual ControlStatus execute();
 
     virtual void initOnLine();
     virtual void initApproachTurningPoint();
-
-    virtual ObstacleDetector* getObstacleDetector()
-    {
-        return &obstacle_detector_;
-    }
 
 protected:
     virtual void behaveOnLine();
     virtual bool behaveApproachTurningPoint();
 
+    virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
+    virtual void publishMoveCommand(const MoveCommand &cmd) const;
+
+    void switchBehaviour(Behaviour* next_behaviour);
 
 private:
     struct Command
@@ -105,23 +98,39 @@ private:
         }
     };
 
-    struct ControllerOptions
+    struct ControllerParameters : public Parameters
     {
-        double dead_time_;
-        double l_;
-    };
+        P<double> dead_time;
+        P<double> l;
+        P<double> pid_ta;
+        P<double> pid_kp;
+        P<double> pid_ki;
+        P<double> pid_i_max;
+        P<double> pid_delta_max;
+        P<double> pid_e_max;
+
+        ControllerParameters():
+            dead_time(this, "~dead_time", 0.1, ""),
+            l(this, "~l", 0.38, "Not sure... distance between front and rear wheels?"),
+            pid_ta(this, "~pid/ta", 0.03, "Update interval of the PID controller."),
+            pid_kp(this, "~pid/kp", 1.0, "Proportional coefficient of the PID controller."),
+            pid_ki(this, "~pid/ki", 0.001, "Integral coefficient of the PID controller."),
+            pid_i_max(this, "~pid/i_max", 0.0, "Limit to the integral part of the PID controller."),
+            pid_delta_max(this, "~pid/delta_max", 30.0, "Not used in current implementation..."),
+            pid_e_max(this, "~pid/e_max", 0.10, "Not used in current implementation...")
+        {}
+    } opt_;
 
     Behaviour* active_behaviour_;
 
     PidCtrl pid_;
     Command cmd_;
-    ControllerOptions options_;
-    VectorFieldHistogram *vfh_;
     Visualizer *visualizer_;
-    ObstacleDetectorAckermann obstacle_detector_;
 
     //! Step counter for behaviour ApproachTurningPoint.
     int atp_step_;
+
+    float filtered_speed_;
 
     void configure();
 

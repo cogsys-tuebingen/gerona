@@ -4,7 +4,7 @@
   <node pkg="karto" type="slam_karto" name="slam_karto" output="screen" respawn="true">
     <param name="map_update_interval" value="1"/>
     <param name="resolution" value="0.05"/>
-    <remap from="/scan" to="/scan/filtered" />
+    <remap from="/scan" to="/scan/front/filtered" />
   </node>
 
 </launch>

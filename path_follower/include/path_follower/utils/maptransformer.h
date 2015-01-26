@@ -10,6 +10,10 @@
 class MapTransformer
 {
 public:
+    MapTransformer(const tf::TransformListener *tf_listener):
+        tf_listener_(tf_listener)
+    {}
+
     void setMap(const nav_msgs::OccupancyGridConstPtr &map);
 
     /**
@@ -35,7 +39,7 @@ public:
 private:
     nav_msgs::OccupancyGridConstPtr map_;
 
-    tf::TransformListener tf_listener_;
+    const tf::TransformListener *tf_listener_;
 
     tf::Transform trans_from_map_cell_to_map_frame_;
 };

@@ -12,9 +12,8 @@
 using namespace Eigen;
 
 
-RobotController_Omnidrive_VirtualVehicle::RobotController_Omnidrive_VirtualVehicle(ros::Publisher &cmd_publisher,
-                                                                                   PathFollower *path_driver):
-    RobotController(cmd_publisher, path_driver),
+RobotController_Omnidrive_VirtualVehicle::RobotController_Omnidrive_VirtualVehicle(PathFollower *path_driver):
+    RobotController(path_driver),
     cmd_(this),
     nh_("~"),
     initialized(false),
@@ -24,9 +23,9 @@ RobotController_Omnidrive_VirtualVehicle::RobotController_Omnidrive_VirtualVehic
     d(0.5),
     k(1.5),
     epsilon(d),
-    ro(d),
     alpha(0.1),
     c(exp(alpha*d)),
+    ro(d),
     gama(vn/d),
     Ts(0.02),
     psi_d_prev(0.0)
@@ -40,29 +39,20 @@ RobotController_Omnidrive_VirtualVehicle::RobotController_Omnidrive_VirtualVehic
 
 }
 
-void RobotController_Omnidrive_VirtualVehicle::publishCommand()
-{
-    if (!cmd_.isValid()) {
-        ROS_FATAL("Invalid Command in RobotController_Omnidrive_VirtualVehicle.");
-        return;
-    }
-
-    geometry_msgs::Twist msg = cmd_;
-    cmd_pub_.publish(msg);
-
-    setFilteredSpeed(cmd_.speed);
-}
-
 void RobotController_Omnidrive_VirtualVehicle::stopMotion()
 {
+    //FIXME: this method should be improved (Command could implement cast to MoveCommand)
+
     cmd_.speed = 0;
     cmd_.direction_angle = 0;
     cmd_.rotation = 0;
 
-    publishCommand();
+    MoveCommand mcmd;
+    mcmd.setVelocity(0);
+    publishMoveCommand(mcmd);
 }
 
-void RobotController_Omnidrive_VirtualVehicle::setPath(PathWithPosition path)
+void RobotController_Omnidrive_VirtualVehicle::setPath(Path::Ptr path)
 {
     RobotController::setPath(path);
 
@@ -74,7 +64,7 @@ void RobotController_Omnidrive_VirtualVehicle::setPath(PathWithPosition path)
 
     initialized = true;
 
-    const std::vector<Waypoint>& waypoints = *path_.current_path;
+    const SubPath& waypoints = path_->getCurrentSubPath();
 
     std::vector<double> X, Y;
 
@@ -216,6 +206,17 @@ void RobotController_Omnidrive_VirtualVehicle::initOnLine()
 
 }
 
+RobotController::MoveCommandStatus RobotController_Omnidrive_VirtualVehicle::computeMoveCommand(MoveCommand *cmd)
+{
+    ROS_BREAK(); /*not implemented*/
+    return MC_ERROR;
+}
+
+void RobotController_Omnidrive_VirtualVehicle::publishMoveCommand(const MoveCommand &cmd) const
+{
+    ROS_BREAK(); /*not implemented*/
+}
+
 void RobotController_Omnidrive_VirtualVehicle::behaveOnLine()
 {
     // pose:
@@ -304,7 +305,7 @@ void RobotController_Omnidrive_VirtualVehicle::behaveOnLine()
     setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
 
 
-    publishCommand();
+    //publishCommand();
 }
 
 bool RobotController_Omnidrive_VirtualVehicle::behaveApproachTurningPoint()

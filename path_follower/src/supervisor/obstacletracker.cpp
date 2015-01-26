@@ -1,6 +1,5 @@
 #include <path_follower/supervisor/obstacletracker.h>
 
-#include <boost/foreach.hpp>
 #include <algorithm>
 
 using namespace std;
@@ -27,8 +26,11 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
     // matching will cause the same problem though, as there is a small amount of time passing between the two steps.
     // It has somehow to be guaranteed, that no obstacles are dropped, that could be matched in this iteration.
     size_t dead_count = obstacles_.size();
-    obstacles_.erase(std::remove_if(obstacles_.begin(), obstacles_.end(), boost::bind(&ObstacleTracker::isDead, this, _1)), obstacles_.end());
+    obstacles_.erase(std::remove_if(obstacles_.begin(), obstacles_.end(),
+                                    [this](TrackedObstacle o) { return isDead(o); }),
+                     obstacles_.end());
     dead_count = dead_count - obstacles_.size();
+
 
     // construct distanc matrix. D[i,j] = distance between observed obstacle i and tracked obstacle j.
     cv::Mat dist(observed_obstacles.size(), obstacles_.size(), CV_32F);
@@ -90,9 +92,9 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
         removeColumn(d_idx, mj_idx);
     }
 
-    ROS_DEBUG_NAMED("ObstacleTracker", "Matched %d obstacles", match_counter);
-    ROS_DEBUG_NAMED("ObstacleTracker", "Lost %zu obstacles", obstacles_.size() - match_counter);
-    ROS_DEBUG_NAMED("ObstacleTracker", "Droped %zu dead obstacles", dead_count);
+//    ROS_DEBUG_NAMED("ObstacleTracker", "Matched %d obstacles", match_counter);
+//    ROS_DEBUG_NAMED("ObstacleTracker", "Lost %zu obstacles", obstacles_.size() - match_counter);
+//    ROS_DEBUG_NAMED("ObstacleTracker", "Droped %zu dead obstacles", dead_count);
 
     // If there are unmatched obstacles in the observation, add them as new obstacles
     int add_counter = 0;
@@ -104,7 +106,7 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
         }
     }
 
-    ROS_DEBUG_NAMED("ObstacleTracker", "Added %d new obstacles", add_counter);
+//    ROS_DEBUG_NAMED("ObstacleTracker", "Added %d new obstacles", add_counter);
 }
 
 void ObstacleTracker::reset()
