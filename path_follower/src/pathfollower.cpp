@@ -15,6 +15,7 @@
 #include <std_msgs/Int32MultiArray.h>
 // Controller/Models
 #include <path_follower/legacy/robotcontroller_ackermann_pid.h>
+#include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_vv.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 // Supervisors
@@ -62,6 +63,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         controller_ = new RobotController_Omnidrive_VirtualVehicle(cmd_pub_, this);
     } else if (opt_.controller() == "omnidrive_orthexp") {
         controller_ = new RobotController_Omnidrive_OrthogonalExponential(cmd_pub_, this);
+    } else if (opt_.controller() == "ackermann_orthexp") {
+        controller_ = new RobotController_Ackermann_OrthogonalExponential(cmd_pub_, this);
     } else {
         ROS_FATAL("Unknown robot controller. Shutdown.");
         exit(1);

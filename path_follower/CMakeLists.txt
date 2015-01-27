@@ -162,6 +162,7 @@ add_executable(path_follower_node
 
   src/controller/robotcontroller.cpp
   src/legacy/robotcontroller_ackermann_pid.cpp
+  src/legacy/robotcontroller_ackermann_orthexp.cpp
   src/legacy/robotcontroller_omnidrive_vv.cpp
   src/legacy/robotcontroller_omnidrive_orthexp.cpp
 
