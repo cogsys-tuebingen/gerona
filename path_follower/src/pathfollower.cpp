@@ -1,7 +1,6 @@
 #include <path_follower/pathfollower.h>
 
 /// SYSTEM
-#include <boost/foreach.hpp>
 #include <Eigen/Core>
 #include <utils_general/MathHelper.h>
 #include <cmath>
@@ -22,6 +21,10 @@
 #include <path_follower/supervisor/pathlookout.h>
 #include <path_follower/supervisor/waypointtimeout.h>
 #include <path_follower/supervisor/distancetopathsupervisor.h>
+// Obstacle Avoiders
+#include <path_follower/obstacle_avoidance/noneavoider.hpp>
+#include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
+#include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -33,10 +36,11 @@ static std::vector<int> OBSTACLE_IN_PATH = boost::assign::list_of(25)(25)(25);
 }
 
 PathFollower::PathFollower(ros::NodeHandle &nh):
-    controller_(NULL),
-    course_predictor_(this),
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
+    controller_(NULL),
+    obstacle_avoider_(NULL),
+    course_predictor_(this),
     path_(new Path),
     pending_error_(-1),
     last_beep_(ros::Time::now()),
@@ -44,41 +48,39 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     is_running_(false)
 {
     // Init. action server
-    follow_path_server_.registerGoalCallback(boost::bind(&PathFollower::followPathGoalCB, this));
-    follow_path_server_.registerPreemptCallback(boost::bind(&PathFollower::followPathPreemptCB,this));
+    follow_path_server_.registerGoalCallback([this]() { followPathGoalCB(); });
+    follow_path_server_.registerPreemptCallback([this]() {followPathPreemptCB(); });
 
-    cmd_pub_    = node_handle_.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
     speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
     beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
 
     odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
-    VectorFieldHistogram* vfh_ptr = opt_.use_vfh() ? &vfh_ : 0;
-
     // Choose robot controller
     ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
     if (opt_.controller() == "ackermann_pid") {
-        controller_ = new RobotController_Ackermann_Pid(cmd_pub_, this, vfh_ptr);
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+        controller_ = new RobotController_Ackermann_Pid(this);
     } else if (opt_.controller() == "omnidrive_vv") {
-        controller_ = new RobotController_Omnidrive_VirtualVehicle(cmd_pub_, this);
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+        controller_ = new RobotController_Omnidrive_VirtualVehicle(this);
     } else if (opt_.controller() == "omnidrive_orthexp") {
-        controller_ = new RobotController_Omnidrive_OrthogonalExponential(cmd_pub_, this);
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+        controller_ = new RobotController_Omnidrive_OrthogonalExponential(this);
     } else if (opt_.controller() == "ackermann_orthexp") {
-        controller_ = new RobotController_Ackermann_OrthogonalExponential(cmd_pub_, this);
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+        controller_ = new RobotController_Ackermann_OrthogonalExponential(this);
     } else {
         ROS_FATAL("Unknown robot controller. Shutdown.");
         exit(1);
     }
 
-
-    if(opt_.use_obstacle_map()) {
-        obstacle_map_sub_ = node_handle_.subscribe<nav_msgs::OccupancyGrid>("/obstacle_map", 0, boost::bind(&PathFollower::obstacleMapCB, this, _1));
-    } else {
-        laser_front_sub_ = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan/filtered", 10, boost::bind(&PathFollower::laserCB, this, _1, false));
-        laser_back_sub_  = node_handle_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10, boost::bind(&PathFollower::laserCB, this, _1, true));
-    }
-    controller_->getObstacleDetector()->setUseMap(opt_.use_obstacle_map());
-    controller_->getObstacleDetector()->setUseScan(!opt_.use_obstacle_map());
+    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacle_cloud", 10,
+                                                                &PathFollower::obstacleCloudCB, this);
 
     visualizer_ = Visualizer::getInstance();
 
@@ -86,22 +88,30 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     /*** Initialize supervisors ***/
 
     // register callback for new waypoint event.
-    path_->registerNextWaypointCallback(boost::bind(&SupervisorChain::notifyNewWaypoint, &supervisors_));
+    path_->registerNextWaypointCallback([this]() { supervisors_.notifyNewWaypoint(); });
 
-    if (opt_.use_path_lookout()) {
-        Supervisor::Ptr tmp(new PathLookout( opt_.use_obstacle_map() ));
-        supervisors_.addSupervisor(tmp);
+    if (opt_.supervisor_use_path_lookout()) {
+        supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );
     }
 
     // Waypoint timeout
-    double wpto;
-    ros::param::param<double>("~waypoint_timeout", wpto, 10.0); //TODO: wrap all these param accesses with Parameters class
-    Supervisor::Ptr waypoint_timeout(new WaypointTimeout(ros::Duration(wpto)));
-    supervisors_.addSupervisor(waypoint_timeout);
+    if (opt_.supervisor_use_waypoint_timeout()) {
+        Supervisor::Ptr waypoint_timeout(
+                    new WaypointTimeout(ros::Duration( opt_.supervisor_waypoint_timeout_time())));
+        supervisors_.addSupervisor(waypoint_timeout);
+    }
 
     // Distance to path
-    supervisors_.addSupervisor(Supervisor::Ptr(new DistanceToPathSupervisor(opt_.max_distance_to_path())));
+    if (opt_.supervisor_use_distance_to_path()) {
+        supervisors_.addSupervisor(Supervisor::Ptr(
+                                       new DistanceToPathSupervisor(opt_.supervisor_distance_to_path_max_dist())));
+    }
 
+
+    //  if no obstacle avoider was set, use the none-avoider
+    if (obstacle_avoider_ == NULL) {
+        obstacle_avoider_ = new NoneAvoider();
+    }
 
     follow_path_server_.start();
     ROS_INFO("Initialisation done.");
@@ -112,6 +122,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 PathFollower::~PathFollower()
 {
     delete controller_;
+    delete obstacle_avoider_;
 }
 
 
@@ -140,18 +151,9 @@ void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
     odometry_ = *odom;
 }
 
-void PathFollower::laserCB(const sensor_msgs::LaserScanConstPtr &scan, bool isBack)
+void PathFollower::obstacleCloudCB(const ObstacleCloud::ConstPtr &msg)
 {
-    controller_->getObstacleDetector()->setScan(scan, isBack);
-}
-
-void PathFollower::obstacleMapCB(const nav_msgs::OccupancyGridConstPtr &map)
-{
-    controller_->getObstacleDetector()->setMap(map);
-
-    if(opt_.use_vfh()) {
-        vfh_.setMap(*map);
-    }
+    obstacle_cloud_ = msg;
 }
 
 bool PathFollower::updateRobotPose()
@@ -278,6 +280,7 @@ void PathFollower::update()
         // Ask supervisor whether path following can continue
         Supervisor::State state(robot_pose_,
                                 getPath(),
+                                obstacle_cloud_,
                                 feedback);
 
         Supervisor::Result s_res = supervisors_.supervise(state);
@@ -308,61 +311,21 @@ void PathFollower::setStatus(int status)
     // TODO: don't use status this way...
 }
 
-bool PathFollower::isObstacleAhead(double course)
+bool PathFollower::callObstacleAvoider(MoveCommand *cmd)
 {
-//    return false; //FIXME: Remove!!
-
-    //! Factor which defines, how much the box is enlarged in curves.
-    const float enlarge_factor = 0.5; // should this be a parameter?
-
-    /* Calculate length of the collision box, depending on current velocity.
-     * v <= v_min:
-     *   length = min_length
-     * v > v_min && v < v_sat:
-     *   length  interpolated between min_length and max_length:
-     *   length = min_length + FACTOR * (max_length - min_length) * (v - v_min) / (v_sat - v_min)
-     * v >= v_sat:
-     *   length = max_length
-     */
-    float v = getVelocity().linear.x;//current_command_.velocity;
-
-    const float diff_to_min_velocity = v - opt_.min_velocity();
-
-    const float norm = opt_.collision_box_velocity_saturation() - opt_.min_velocity();
-    const float span = opt_.collision_box_max_length() - opt_.collision_box_min_length();
-    const float interp = std::max(0.0f, diff_to_min_velocity) / std::max(norm, 0.001f);
-    const float f = std::min(1.0f, opt_.collision_box_velocity_factor() * interp);
-
-    float box_length = opt_.collision_box_min_length() + span * f;
-
-    //ROS_DEBUG("Collision Box: v = %g -> len = %g", v, box_length);
-
-    double distance_to_goal = path_->getCurrentSubPath().back().distanceTo(path_->getCurrentWaypoint());
-
-    if(box_length > distance_to_goal) {
-        box_length = distance_to_goal + 0.2;
+    if (obstacle_avoider_ == NULL) {
+        ROS_WARN_ONCE("No obstacle avoider selected. Obstacle avoidace is deactivated!");
+        return false;
     }
 
-    if(box_length < opt_.collision_box_crit_length()) {
-        box_length = opt_.collision_box_crit_length();
+    if (obstacle_cloud_ == NULL) {
+        ROS_ERROR("No obstacle cloud received. Obstacle avoidace is skipped!");
+        return false;
     }
 
+    ObstacleAvoider::State state(path_, opt_);
 
-    // call the obstacle detector. it is dependent of the controller als different driving models may require different
-    // handling
-    bool collision = controller_->getObstacleDetector()->isObstacleAhead(opt_.collision_box_width(), box_length, course,
-                                                                         enlarge_factor);
-
-    if(collision) {
-        beep(beep::OBSTACLE_IN_PATH);
-    }
-
-    return collision;
-}
-
-VectorFieldHistogram& PathFollower::getVFH()
-{
-    return vfh_;
+    return obstacle_avoider_->avoid(cmd, obstacle_cloud_, state);
 }
 
 RobotController *PathFollower::getController()
@@ -450,11 +413,9 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
 
     RobotController::ControlStatus status = controller_->execute();
 
-    controller_->publishCommand();
-
     switch(status)
     {
-    case RobotController::SUCCESS:
+    case RobotController::REACHED_GOAL:
         result.status = FollowPathResult::MOTION_STATUS_SUCCESS;
         return DONE;
 
@@ -467,7 +428,7 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
             return MOVING;
         }
 
-    case RobotController::MOVING:
+    case RobotController::OKAY:
         feedback.status = FollowPathFeedback::MOTION_STATUS_MOVING;
         return MOVING;
 

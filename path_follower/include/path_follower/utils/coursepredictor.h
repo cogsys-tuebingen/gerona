@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 #include <ros/ros.h>
 #include <boost/circular_buffer.hpp>
+#include <path_follower/utils/parameters.h>
 
 class PathFollower;
 
@@ -47,11 +48,25 @@ public:
     void setUpdateIntervall(const ros::Duration &getUpdateIntervall);
 
 private:
-    typedef boost::circular_buffer<Eigen::Vector2d> buffer_type;
+    typedef boost::circular_buffer<Eigen::Vector2d,Eigen::aligned_allocator<Eigen::Vector2d> > buffer_type;
+
+    struct CoursePredictorParameters : public Parameters
+    {
+        WrappedP<ros::Duration, float> update_interval;
+        P<int> buffer_size;
+
+        CoursePredictorParameters():
+            update_interval(this, "~coursepredictor/update_interval", 0.1f, "Update interval (in sec) of the course prediction."),
+            buffer_size(this, "~coursepredictor/buffer_size", 5, "Number of last positions that are kept in the buffer.")
+        {
+            if (buffer_size() < 2) {
+                ROS_ERROR("Course Predictor: Buffer size must be at least 2 but is set to %d. Course prediction will not work!",
+                          buffer_size());
+            }
+        }
+    } opt_;
 
     PathFollower *path_driver_;
-
-    ros::Duration update_intervall_;
 
     //! List of last known positions. The most recent position is pushed to the back.
     buffer_type last_positions_;
@@ -60,8 +75,6 @@ private:
     ros::Time last_update_time_;
 
     bool frozen_;
-
-    void configure();
 };
 
 #endif // COURSEPREDICTOR_H

@@ -16,6 +16,10 @@ class DistanceToPathSupervisor : public Supervisor
 public:
     DistanceToPathSupervisor(double max_distance_to_path);
 
+    virtual std::string getName() const {
+        return "DistanceToPath";
+    }
+
     virtual void supervise(State &state, Result *out);
 
 private:

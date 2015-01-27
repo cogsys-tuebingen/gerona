@@ -1,12 +1,16 @@
 #ifndef ROBOTCONTROLLER_H
 #define ROBOTCONTROLLER_H
 
-/// THIRD PARTY
+// THIRD PARTY
+#include <ros/node_handle.h>
+#include <geometry_msgs/Twist.h>
 #include <Eigen/Core>
 
-/// PROJECT
+// PROJECT
 #include <path_follower/utils/path.h>
+#include <path_follower/utils/movecommand.h>
 #include <path_follower/obstacle_avoidance/obstacledetector.h>
+#include <path_follower/obstacle_avoidance/obstacleavoider.h>
 
 class PathFollower;
 
@@ -14,48 +18,63 @@ class RobotController
 {
     /* DATA */
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     enum ControlStatus
     {
-        MOVING,
+        OKAY,
         OBSTACLE,
-        SUCCESS,
+        REACHED_GOAL,
         ERROR
     };
 
     /* ABSTRACT METHODS */
 public:
-    //! Return obstacle detector working with obstacle map. Only used, if ~use_obstacle_map:=true
-    virtual ObstacleDetector* getObstacleDetector() = 0;
-
-    virtual void publishCommand() = 0;
-
     //! Immediatley stop any motion.
     virtual void stopMotion() = 0;
 
     virtual bool isOmnidirectional() const;
 
     virtual void start() {}
-    virtual ControlStatus execute() {}
-
 
     virtual void behaveOnLine() {}
 
     /**
      * @return True, when turning point is reached, otherwise false.
      */
-    virtual bool behaveApproachTurningPoint() {}
+    virtual bool behaveApproachTurningPoint() { return false; }
+
+protected:
+    //! This is a subset of ControlStatus. computeMoveCommand is not allowed to report obstacles
+    enum MoveCommandStatus
+    {
+        MC_OKAY, MC_REACHED_GOAL, MC_ERROR
+    };
+
+    /**
+     * @brief Computes the next move command.
+     * @param cmd Output. The move command for this iteration.
+     * @return Status that can be used to indicate errors. `OKAY` if everything is ok.
+     */
+    virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd) = 0;
+
+    //! Converts the move command to ros message and publishs it.
+    virtual void publishMoveCommand(const MoveCommand &cmd) const = 0;
 
 
     /* REGULAR METHODS */
 public:
-    RobotController(ros::Publisher &cmd_publisher, PathFollower *path_driver) :
-        cmd_pub_(cmd_publisher),
+    RobotController(PathFollower *path_driver) :
         path_driver_(path_driver),
         velocity_(0.0f),
-        filtered_speed_(0.0f),
         dir_sign_(1.0f)
     {
+        initPublisher(&cmd_pub_);
     }
+
+    virtual ~RobotController() {}
+
+    //! Execute one iteration of path following. This method should not be overwritten by subclasses!
+    ControlStatus execute();
 
     /* RESET FOR A NEW PATH */
     virtual void reset() {}
@@ -86,14 +105,12 @@ public:
     }
 
 protected:
-    ros::Publisher& cmd_pub_;
+    ros::Publisher cmd_pub_;
 
-    PathFollower *path_driver_;
+    PathFollower* path_driver_;
 
     //! Desired velocity (defined by the action goal).
     float velocity_;
-
-    float filtered_speed_;
 
     //! Indicates the direction of movement (>0 -> forward, <0 -> backward)
     float dir_sign_;
@@ -101,21 +118,18 @@ protected:
     //! Current path.
     Path::Ptr path_;
     //! The next waypoint in the robot frame (set by setPath).
-    Eigen::Vector3d next_wp_local_;
+    Eigen:: Vector3d next_wp_local_;
 
 
-    virtual void setFilteredSpeed( const float speed ) {
-        filtered_speed_ = speed;
-    }
-
-    virtual float getFilteredSpeed() const {
-        return filtered_speed_;
-    }
+    virtual void initPublisher(ros::Publisher* pub) const;
 
     void setStatus(int status);
 
     //! Calculate the angle between the orientations of the waypoint and the robot.
     virtual double calculateAngleError();
+
+    //! Convert a MoveCommandStatus to its corresponding ControlStatus
+    static ControlStatus MCS2CS(MoveCommandStatus s);
 };
 
 #endif // ROBOTCONTROLLER_H

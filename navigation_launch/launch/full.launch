@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!--
+Launch tha navigation nodes as well as nodes for laser filter, SLAM,
+and obstacle detection (based on 2d laser).
+This is a complete setup and enought to actually navigate the robot.
+-->
+<launch>
+	<!-- laser filter to avoid that the robot scans itself -->
+    <include file="$(find navigation_launch)/launch/laser_filter.launch" />
+
+	<!-- mapping -->
+    <!--node name="costmap" type="costmap_gradient_node" pkg="costmap"
+                output="log" respawn="true" /-->
+    <include file="$(find navigation_launch)/launch/mapping.launch" />
+    
+    <!-- obstacle cloud (simply converting laser scans to cloud) -->
+    <node name="obstacle_cloud" type="scan2cloud_node" pkg="scan2cloud" output="screen">
+        <remap from="/scan/front/filtered" to="/scan/filtered" />
+        <remap from="/cloud/total" to="/obstacle_cloud" />
+    </node>
+    
+    <include file="$(find navigation_launch)/launch/navigation.launch" />
+</launch>

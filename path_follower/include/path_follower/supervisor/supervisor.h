@@ -1,30 +1,42 @@
 #ifndef SUPERVISOR_H
 #define SUPERVISOR_H
 
-#include <boost/shared_ptr.hpp>
+#include <string>
+#include <memory> // std::shared_ptr
 #include <Eigen/Core>
 
 #include <path_msgs/FollowPathFeedback.h>
 #include <path_msgs/FollowPathResult.h>
 #include <path_follower/utils/path.h>
+#include <path_follower/utils/obstaclecloud.hpp>
 
 class Supervisor
 {
 public:
-    typedef boost::shared_ptr<Supervisor> Ptr;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+    typedef std::shared_ptr<Supervisor> Ptr;
 
     struct State
     {
-        typedef boost::shared_ptr<State> Ptr;
+        typedef std::shared_ptr<State> Ptr;
 
-        State(const Eigen::Vector3d &robot_pose, Path::ConstPtr path, path_msgs::FollowPathFeedback &feedback):
+        State(const Eigen::Vector3d &robot_pose,
+              Path::ConstPtr path,
+              ObstacleCloud::ConstPtr obstacle_cloud,
+              path_msgs::FollowPathFeedback &feedback):
             robot_pose(robot_pose),
             path(path),
+            obstacle_cloud(obstacle_cloud),
             feedback(feedback)
         {}
 
+        //! Current pose of the robot in world frame. The first two values are x/y-coords, the third is the yaw angle.
         const Eigen::Vector3d& robot_pose;
+        //! The current path
         const Path::ConstPtr path;
+        //! The last obstacle cloud
+        const ObstacleCloud::ConstPtr obstacle_cloud;
 
         path_msgs::FollowPathFeedback &feedback;
     };
@@ -42,6 +54,8 @@ public:
     };
 
     virtual void supervise(State &state, Result *out) = 0;
+
+    virtual std::string getName() const = 0;
 
     virtual void eventNewGoal() {}
     virtual void eventNewWaypoint() {}

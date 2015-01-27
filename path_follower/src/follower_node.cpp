@@ -8,7 +8,8 @@ int main(int argc, char** argv) {
 
     PathFollower pf(nh);
 
-//    Parameters::printToFileAllInstances();
+    // print table of parameters to /tmp/parameters.md
+    Parameters::printToFileAllInstances();
 
     pf.spin();
 

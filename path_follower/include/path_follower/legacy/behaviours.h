@@ -10,6 +10,8 @@
 class Behaviour
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     virtual ~Behaviour() {}
 
     virtual Behaviour* execute(int* status) = 0;
@@ -34,7 +36,6 @@ protected:
 
     const SubPath &getCurrentSubPath();
     size_t getSubPathCount() const;
-    VectorFieldHistogram& getVFH();
     PathFollowerParameters& getOptions();
     double distanceTo(const Waypoint& wp);
 

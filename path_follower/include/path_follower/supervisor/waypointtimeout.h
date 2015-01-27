@@ -35,6 +35,10 @@ class WaypointTimeout : public Supervisor, private Timeout
 public:
     WaypointTimeout(ros::Duration max_duration);
 
+    virtual std::string getName() const {
+        return "WaypointTimeout";
+    }
+
     virtual void supervise(Supervisor::State &state, Supervisor::Result *out);
     virtual void eventNewGoal();
     virtual void eventNewWaypoint();

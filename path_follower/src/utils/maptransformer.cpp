@@ -20,7 +20,7 @@ cv::Point2f MapTransformer::transformPointToMap(const cv::Point2f &p, std::strin
 
     // lookup transform from point frame to map frame.
     tf::StampedTransform trans_to_map_frame;
-    tf_listener_.lookupTransform(map_->header.frame_id, from, ros::Time(0), trans_to_map_frame);
+    tf_listener_->lookupTransform(map_->header.frame_id, from, ros::Time(0), trans_to_map_frame);
 
     // transform from map frame to map cell
     tf::Transform trans_to_map_origin = trans_from_map_cell_to_map_frame_.inverse();
@@ -49,7 +49,7 @@ cv::Point2f MapTransformer::transformPointFromMap(const cv::Point2f &p, std::str
 
     // lookup transform from map frame to desired frame.
     tf::StampedTransform trans_from_map_frame;
-    tf_listener_.lookupTransform(to, map_->header.frame_id, ros::Time(0), trans_from_map_frame);
+    tf_listener_->lookupTransform(to, map_->header.frame_id, ros::Time(0), trans_from_map_frame);
 
     // finally transform the point
     tf_p = trans_from_map_frame * trans_from_map_cell_to_map_frame_ * tf_p;

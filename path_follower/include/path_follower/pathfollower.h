@@ -22,20 +22,22 @@
 #include <path_follower/pathfollowerparameters.h>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
 #include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
-#include <path_follower/legacy/vector_field_histogram.h>
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/PidCtrl.h>
-#include <path_follower/legacy/vector_field_histogram.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/coursepredictor.h>
 #include <path_follower/utils/parameters.h>
+#include <path_follower/obstacle_avoidance/obstacleavoider.h>
 
 #include <path_follower/supervisor/supervisorchain.h>
 
 class PathFollower
 {
     friend class Behaviour;
+
+public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
 public:
     PathFollower(ros::NodeHandle &nh);
@@ -51,10 +53,6 @@ public:
 
     void update();
 
-    bool isObstacleAhead(double course);
-
-    VectorFieldHistogram& getVFH();
-
     RobotController* getController();
 
     CoursePredictor &getCoursePredictor();
@@ -68,6 +66,8 @@ public:
     Path::Ptr getPath();
 
     void setStatus(int status);
+
+    bool callObstacleAvoider(MoveCommand *cmd);
 
     const PathFollowerParameters &getOptions() const
     {
@@ -91,24 +91,20 @@ private:
 
     //! Subscriber for odometry messages.
     ros::Subscriber odom_sub_;
-    //! Subscriber for the obstacle grid map (used by ObstacleDetector).
-    ros::Subscriber obstacle_map_sub_;
-    //! Subscriber for laser scans (used for obstacle detection if no obstacle map is used).
-    ros::Subscriber laser_front_sub_;
-    ros::Subscriber laser_back_sub_;
+    //! Subscriber for the obstacle point cloud (used by ObstacleAvoider).
+    ros::Subscriber obstacle_cloud_sub_;
 
     tf::TransformListener pose_listener_;
 
     //! The robot controller is responsible for everything that is dependend on robot model and controller type.
-    RobotController *controller_;
+    RobotController* controller_;
+
+    ObstacleAvoider* obstacle_avoider_;
 
     SupervisorChain supervisors_;
 
     //! Predict direction of movement for controlling and obstacle avoidance
     CoursePredictor course_predictor_;
-
-    //! Used for collision avoidance. Only used if ~use_obstacle_map:=true and ~use_vfh:=true.
-    VectorFieldHistogram vfh_;
 
     Visualizer* visualizer_;
 
@@ -116,6 +112,9 @@ private:
 
     //! The last received odometry message.
     nav_msgs::Odometry odometry_;
+
+    //! The last received obstacle cloud (TODO: better store mesage directly as shared_ptr?)
+    ObstacleCloud::ConstPtr obstacle_cloud_;
 
     //! Current pose of the robot as Eigen vector (x,y,theta).
     Eigen::Vector3d robot_pose_;
@@ -142,11 +141,7 @@ private:
     //! Callback for odometry messages
     void odometryCB(const nav_msgs::OdometryConstPtr &odom);
 
-    //! Callback for laser scan messages.
-    void laserCB(const sensor_msgs::LaserScanConstPtr& scan, bool isBack=false);
-
-    //! Callback for the obstacle grid map. Used by ObstacleDetector and VectorFieldHistorgram.
-    void obstacleMapCB(const nav_msgs::OccupancyGridConstPtr& map);
+    void obstacleCloudCB(const ObstacleCloud::ConstPtr&);
 
     //! Publish beep commands.
     void beep(const std::vector<int>& beeps);
