@@ -1,0 +1,11 @@
+scan_filter_chain:
+- name: better_footprint_filter
+  type: laser_filters/PolygonLaserFilter
+  params:
+      calibrate: 0
+      polygon_path: "/localhome/widmaier/ws/misc/src/sick-robot-day-2014/laser_filter/laser_polygon_front.xml"
+      polygon_marker_id: 1
+      calibration_min_cycles: 100
+      calibration_max_no_change: 10
+      calibration_radius: 0.5
+      calibration_growth_ratio: 1.3

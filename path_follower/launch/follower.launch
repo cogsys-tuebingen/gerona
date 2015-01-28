@@ -1,17 +1,9 @@
 <?xml version="1.0"?>
+<!--
+Launch the path follower. Choose the appropriate controller/robot model-launchfile
+by uncommenting the corresponding line.
+-->
 <launch>
-  <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
-    <param name="use_obstacle_map" value="true" />
-    <param name="use_vfh" value="false" />
-    
-    <param name="min_velocity" value="0.35" />
-    <param name="max_velocity" value="0.9" />
-    <param name="collision_box_width" value="0.4" />
-    <param name="collision_box_crit_length" value="0.6" />
-    <param name="collision_box_min_length" value="1.0" />
-    <param name="collision_box_max_length" value="1.5" />
-    <param name="collision_box_velocity_factor" value="1.0" />
-    <param name="collision_box_velocity_saturation" value="1.0" />
-  </node>
-  
+    <include file="$(find path_follower)/launch/follower_ackermann_pid.launch" />
+    <!--<include file="$(find path_follower)/launch/follower_omni_orthexp.launch" />-->
 </launch>

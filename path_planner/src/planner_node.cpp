@@ -11,6 +11,7 @@
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
 #include <opencv2/opencv.hpp>
+#include <pcl_ros/publisher.h>
 
 using namespace lib_path;
 
@@ -63,9 +64,13 @@ Planner::Planner()
         }
     }
 
+    nh.param("use_cloud", use_cloud_, false);
     nh.param("use_scan_front", use_scan_front_, true);
     nh.param("use_scan_back", use_scan_back_, true);
 
+    if(use_cloud_) {
+        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("/obstacles", 0, boost::bind(&Planner::cloudCallback, this, _1));
+    }
     if(use_scan_front_) {
         sub_front = nh.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, true));
     }
@@ -172,7 +177,7 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map) {
 
     map_info->set(data, w, h);
     map_info->setOrigin(Point2d(map.info.origin.position.x, map.info.origin.position.y));
-    map_info->setLowerThreshold(10);
+    map_info->setLowerThreshold(50);
     map_info->setUpperThreshold(70);
 
 
@@ -355,7 +360,13 @@ nav_msgs::Path Planner::findPath(const geometry_msgs::PoseStamped &start, const 
         ROS_ERROR("request for path planning, but no map there yet...");
         return nav_msgs::Path();
     }
+//    cv::Mat map_raw(map_info->getHeight(), map_info->getWidth(), CV_8UC1, map_info->getData());
+//    cv::imshow("map_raw", map_raw);
+//    cv::waitKey(100);
 
+    if(use_cloud_ && !cloud_.data.empty()) {
+        integratePointCloud(cloud_);
+    }
     if(use_scan_front_ && !scan_front.ranges.empty()) {
         integrateLaserScan(scan_front);
     }
@@ -377,6 +388,13 @@ nav_msgs::Path Planner::findPath(const geometry_msgs::PoseStamped &start, const 
         preprocess(start, goal);
         ROS_INFO_STREAM("preprocessing took " << sw.msElapsed() << "ms");
     }
+
+//    cv::Mat map(map_info->getHeight(), map_info->getWidth(), CV_8UC1, map_info->getData());
+////    cv::Mat colored(map_info->getHeight(), map_info->getWidth(), CV_8UC3);
+////    map.convertTo(colored, CV_8UC3);
+
+//    cv::imshow("map", map);
+//    cv::waitKey(100);
 
     sw.reset();
     nav_msgs::Path path_raw = doPlan(start, goal);
@@ -468,13 +486,13 @@ nav_msgs::Path Planner::postprocess(const nav_msgs::Path& path)
     ROS_INFO("postprocessing");
 
     sw.restart();
-    nav_msgs::Path simplified_path = simplifyPath(path);
+//    nav_msgs::Path simplified_path = simplifyPath(path);
     ROS_INFO_STREAM("simplifying took " << sw.msElapsed() << "ms");
 
     //    nav_msgs::Path pre_smooted_path = smoothPath(simplified_path, 0.9, 0.3);
 
     sw.restart();
-    nav_msgs::Path interpolated_path = interpolatePath(simplified_path, 0.5);
+    nav_msgs::Path interpolated_path = interpolatePath(path, 0.5);
     ROS_INFO_STREAM("interpolation took " << sw.msElapsed() << "ms");
 
 
@@ -815,6 +833,32 @@ void Planner::integrateLaserScan(const sensor_msgs::LaserScan &scan)
         }
 
         angle += scan.angle_increment;
+    }
+}
+
+
+void Planner::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud)
+{
+    cloud_ = *cloud;
+}
+
+void Planner::integratePointCloud(const sensor_msgs::PointCloud2 &cloud)
+{
+    tf::StampedTransform trafo = lookupTransform("/map", cloud.header.frame_id, cloud.header.stamp);
+
+    pcl::PointCloud<pcl::PointXYZL>::Ptr ptr(new pcl::PointCloud<pcl::PointXYZL>());
+    pcl::fromROSMsg(cloud, *ptr);
+
+    for(pcl::PointCloud<pcl::PointXYZL>::const_iterator it = ptr->begin(); it != ptr->end(); ++it) {
+        const pcl::PointXYZL& pt = *it;
+
+        tf::Vector3 pt_cloud(pt.x, pt.y, pt.z);
+        tf::Vector3 pt_map = trafo * pt_cloud;
+
+        unsigned int x,y;
+        if(map_info->point2cell(pt_map.x(), pt_map.y(), x, y)) {
+            map_info->setValue(x,y, 100);
+        }
     }
 }
 

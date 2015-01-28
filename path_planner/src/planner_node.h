@@ -13,6 +13,7 @@
 #include <nav_msgs/Path.h>
 #include <actionlib/server/simple_action_server.h>
 #include <sensor_msgs/LaserScan.h>
+#include <sensor_msgs/PointCloud2.h>
 
 /**
  * @brief The Planner class is a base class for other planning algorithms
@@ -107,6 +108,9 @@ private:
     void laserCallback(const sensor_msgs::LaserScanConstPtr& scan, bool front);
     void integrateLaserScan(const sensor_msgs::LaserScan &scan);
 
+    void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud);
+    void integratePointCloud(const sensor_msgs::PointCloud2 &cloud);
+
     void preempt();
     void feedback(int status);
 
@@ -140,6 +144,7 @@ protected:
     bool use_cost_map_service_;
     bool use_map_service_;
 
+    bool use_cloud_;
     bool use_scan_front_;
     bool use_scan_back_;
 
@@ -153,6 +158,7 @@ protected:
 
     ros::Subscriber goal_pose_sub;
     ros::Subscriber map_sub;
+    ros::Subscriber sub_cloud;
     ros::Subscriber sub_front;
     ros::Subscriber sub_back;
 
@@ -173,6 +179,7 @@ protected:
     std::vector<double> gradient_x;
     std::vector<double> gradient_y;
 
+    sensor_msgs::PointCloud2 cloud_;
     sensor_msgs::LaserScan scan_front;
     sensor_msgs::LaserScan scan_back;
 

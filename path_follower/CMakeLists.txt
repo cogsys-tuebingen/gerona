@@ -1,9 +1,21 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(path_follower)
 
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # -std=gnu++0x
 
-#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
+## Enforce that we use C++11
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-std=c++11" COMPILER_SUPPORTS_CXX11)
+check_cxx_compiler_flag("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+if(COMPILER_SUPPORTS_CXX11)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+elseif(COMPILER_SUPPORTS_CXX0X)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+else()
+  message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+endif()
+
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -18,9 +30,11 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   cmake_modules
   laser_geometry
+  pcl_ros
 )
 
 find_package(OpenCV REQUIRED)
+find_package(PCL REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -92,7 +106,7 @@ find_package(OpenCV REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES path_follower
 #  CATKIN_DEPENDS actionlib path_msgs roscpp
 #  DEPENDS system_lib
@@ -111,10 +125,15 @@ endif()
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
+  include
   ${EIGEN_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
- ${OpenCV_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
+
+
+file(GLOB_RECURSE INCLUDE_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} FOLLOW_SYMLINKS include/*.hpp include/*.h)
 
 ## Declare a cpp library
 # add_library(path_follower
@@ -134,31 +153,38 @@ include_directories(
 # )
 
 add_executable(path_follower_node
+  ${INCLUDE_HEADERS}
   src/follower_node.cpp
   src/pathfollower.cpp
-  src/behaviours.cpp
-  src/PidCtrl.cpp
-  src/multiplepidwrapper.cpp
+  src/legacy/behaviours.cpp
 
-  src/obstacledetector.cpp
-  src/obstacledetectorpolygon.cpp
-  src/obstacledetectorackermann.cpp
-  src/obstacledetectoromnidrive.cpp
+  src/utils/parameters.cpp
+  src/utils/visualizer.cpp
+  src/utils/PidCtrl.cpp
+  src/utils/multiplepidwrapper.cpp
+  src/utils/maptransformer.cpp
+  src/utils/cubic_spline_interpolation.cpp
+  src/utils/coursepredictor.cpp
+  src/utils/path.cpp
+  src/utils/movecommand.cpp
 
-  src/vector_field_histogram.cpp
-  src/visualizer.cpp
-  src/robotcontroller.cpp
-  src/robotcontroller_ackermann_pid.cpp
-  src/robotcontroller_omnidrive_pid.cpp
-  src/robotcontroller_omnidrive_vv.cpp
-  src/robotcontroller_omnidrive_orthexp.cpp
-  src/path.h
-  src/pathlookout.cpp
-  src/obstacletracker.cpp
-  src/maptransformer.cpp
-  src/cubic_spline_interpolation.cpp
-  src/coursepredictor.cpp
+  src/obstacle_avoidance/obstacledetector.cpp
+  src/obstacle_avoidance/obstacledetectorpolygon.cpp
+  src/obstacle_avoidance/obstacledetectorackermann.cpp
+  src/obstacle_avoidance/obstacledetectoromnidrive.cpp
 
+  src/controller/robotcontroller.cpp
+  src/legacy/robotcontroller_ackermann_pid.cpp
+  src/legacy/robotcontroller_ackermann_orthexp.cpp
+  src/legacy/robotcontroller_omnidrive_vv.cpp
+  src/legacy/robotcontroller_omnidrive_orthexp.cpp
+
+  src/supervisor/supervisorchain.cpp
+  src/supervisor/pathlookout.cpp
+  src/supervisor/obstacletracker.cpp
+  src/supervisor/waypointtimeout.cpp
+  src/supervisor/distancetopathsupervisor.cpp
+  src/legacy/vector_field_histogram.cpp
 
   src/alglib/interpolation.cpp
   src/alglib/alglibinternal.cpp
@@ -177,12 +203,12 @@ add_executable(path_follower_node
 
 add_dependencies(path_follower_node path_msgs_generate_messages_cpp)
 target_link_libraries(path_follower_node
-  ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES} ${PCL_LIBRARIES}
 )
 
 add_executable(test_obstacle_tracker
   src/test_obstacletracker.cpp
-  src/obstacletracker.cpp
+  src/supervisor/obstacletracker.cpp
 )
 target_link_libraries(test_obstacle_tracker
   ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
