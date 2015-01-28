@@ -4,6 +4,7 @@ Launch the path follower. Choose the appropriate controller/robot model-launchfi
 by uncommenting the corresponding line.
 -->
 <launch>
-    <include file="$(find path_follower)/launch/follower_ackermann_pid.launch" />
+    <include file="$(find path_follower)/launch/follower_ackermann_orthexp.launch" />
+    <!--<include file="$(find path_follower)/launch/follower_ackermann_pid.launch" />-->
     <!--<include file="$(find path_follower)/launch/follower_omni_orthexp.launch" />-->
 </launch>
