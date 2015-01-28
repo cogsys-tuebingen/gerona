@@ -70,6 +70,7 @@ Planner::Planner()
 
     if(use_cloud_) {
         sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("/obstacles", 0, boost::bind(&Planner::cloudCallback, this, _1));
+//        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("/obstacle_cloud", 0, boost::bind(&Planner::cloudCallback, this, _1));
     }
     if(use_scan_front_) {
         sub_front = nh.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, true));

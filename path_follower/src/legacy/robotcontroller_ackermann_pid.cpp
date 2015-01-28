@@ -73,7 +73,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 
     visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
 
-    double delta_f = delta_f_raw;
+    double delta_f = std::max(-0.52, std::min(0.52, delta_f_raw));
 //    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f, 0.0, 1.0, 1.0);
 
 
@@ -81,7 +81,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
     ROS_DEBUG_STREAM("dir=" << dir_sign_ << ", steer=" << steer);
     if(steer > path_driver_opt.steer_slow_threshold()) {
         ROS_WARN_STREAM_THROTTLE(2, "slowing down");
-        speed *= 0.5;
+        speed *= 0.75;
     }
 
     // make sure, the speed is in the allowed range

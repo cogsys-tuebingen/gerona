@@ -74,7 +74,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         exit(1);
     }
 
-    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacle_cloud", 10,
+    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
+//    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
                                                                 &PathFollower::obstacleCloudCB, this);
 
     visualizer_ = Visualizer::getInstance();
