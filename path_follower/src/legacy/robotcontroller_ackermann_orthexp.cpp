@@ -554,7 +554,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
         // Quickfix: simply convert omnidrive command to move command
         cmd->setDirection(cmd_.direction_angle);
         cmd->setVelocity(cmd_.speed);
-        cmd->setRotation(cmd_.rotation);
 
         return MC_OKAY;
     }
@@ -566,11 +565,9 @@ void RobotController_Ackermann_OrthogonalExponential::publishMoveCommand(const M
     //msg.linear.x  = speed * cos(angle);
     //msg.linear.y  = speed * sin(angle);
     //msg.angular.z = rotation;
-    Vector2f v = cmd.getVelocityVector();
-    msg.linear.x  = v[0];
-    msg.linear.y  = v[1];
-    assert(cmd.hasRotation());
-    msg.angular.z = cmd.getRotation();
+    msg.linear.x  = cmd.getVelocity();
+    msg.linear.y  = 0;
+    msg.angular.z = cmd.getDirectionAngle();
 
     cmd_pub_.publish(msg);
 }
