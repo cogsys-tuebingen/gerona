@@ -113,7 +113,7 @@ private:
     //! The last received odometry message.
     nav_msgs::Odometry odometry_;
 
-    //! The last received obstacle cloud (TODO: better store mesage directly as shared_ptr?)
+    //! The last received obstacle cloud
     ObstacleCloud::ConstPtr obstacle_cloud_;
 
     //! Current pose of the robot as Eigen vector (x,y,theta).
