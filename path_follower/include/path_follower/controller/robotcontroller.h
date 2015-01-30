@@ -19,12 +19,13 @@ class RobotController
     /* DATA */
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    enum ControlStatus
+
+    enum class ControlStatus
     {
-        OKAY,
-        OBSTACLE,
-        REACHED_GOAL,
-        ERROR
+        OKAY,          //!< Everything is okay, the robot is still driving.
+        OBSTACLE,      //!< The obstacle avoider is active and modified the move command.
+        REACHED_GOAL,  //!< Goal is reached. Path execution is finished.
+        ERROR          //!< Some error occured. Path execution is aborted.
     };
 
     /* ABSTRACT METHODS */
@@ -45,9 +46,9 @@ public:
 
 protected:
     //! This is a subset of ControlStatus. computeMoveCommand is not allowed to report obstacles
-    enum MoveCommandStatus
+    enum class MoveCommandStatus
     {
-        MC_OKAY, MC_REACHED_GOAL, MC_ERROR
+        OKAY, REACHED_GOAL, ERROR
     };
 
     /**

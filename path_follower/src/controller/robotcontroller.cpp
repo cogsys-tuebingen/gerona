@@ -40,14 +40,14 @@ double RobotController::calculateAngleError()
 RobotController::ControlStatus RobotController::MCS2CS(RobotController::MoveCommandStatus s)
 {
     switch (s) {
-    case MC_OKAY:
-        return OKAY;
-    case MC_REACHED_GOAL:
-        return REACHED_GOAL;
+    case MoveCommandStatus::OKAY:
+        return ControlStatus::OKAY;
+    case MoveCommandStatus::REACHED_GOAL:
+        return ControlStatus::REACHED_GOAL;
     default:
         ROS_ERROR("MoveCommandStatus %d is not handled by MCS2CS! Return ERROR instead.", s);
-    case MC_ERROR:
-        return ERROR;
+    case MoveCommandStatus::ERROR:
+        return ControlStatus::ERROR;
     }
 }
 
@@ -66,17 +66,17 @@ RobotController::ControlStatus RobotController::execute()
      * bestimmten toleranz misst?
      */
 
-    if (status != MC_OKAY) {
+    if (status != MoveCommandStatus::OKAY) {
         return MCS2CS(status);
     } else {
         bool cmd_modified = path_driver_->callObstacleAvoider(&cmd);
 
         if (!cmd.isValid()) {
             ROS_ERROR("Invalid move command.");
-            return ERROR;
+            return ControlStatus::ERROR;
         } else {
             publishMoveCommand(cmd);
-            return cmd_modified ? OBSTACLE : OKAY;
+            return cmd_modified ? ControlStatus::OBSTACLE : ControlStatus::OKAY;
         }
     }
 }

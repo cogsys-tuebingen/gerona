@@ -219,7 +219,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCom
 
         if(next_behaviour == NULL) {
             switchBehaviour(NULL);
-            return MC_REACHED_GOAL;
+            return MoveCommandStatus::REACHED_GOAL;
         }
 
         if(active_behaviour_ != next_behaviour) {
@@ -236,15 +236,15 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCom
 
         switch(status) {
         case FollowPathFeedback::MOTION_STATUS_MOVING:
-            return MC_OKAY;
+            return MoveCommandStatus::OKAY;
         default:
             ROS_WARN_STREAM("unknown status: " << status);
-            return MC_ERROR;
+            return MoveCommandStatus::ERROR;
         }
     } catch(const std::exception& e) {
         ROS_ERROR_STREAM("uncaught exception: " << e.what() << " => abort");
         reset();
-        return MC_ERROR;
+        return MoveCommandStatus::ERROR;
     }
 }
 

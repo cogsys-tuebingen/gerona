@@ -209,7 +209,7 @@ void RobotController_Omnidrive_VirtualVehicle::initOnLine()
 RobotController::MoveCommandStatus RobotController_Omnidrive_VirtualVehicle::computeMoveCommand(MoveCommand *cmd)
 {
     ROS_BREAK(); /*not implemented*/
-    return MC_ERROR;
+    return MoveCommandStatus::ERROR;
 }
 
 void RobotController_Omnidrive_VirtualVehicle::publishMoveCommand(const MoveCommand &cmd) const

@@ -415,11 +415,11 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
 
     switch(status)
     {
-    case RobotController::REACHED_GOAL:
+    case RobotController::ControlStatus::REACHED_GOAL:
         result.status = FollowPathResult::MOTION_STATUS_SUCCESS;
         return DONE;
 
-    case RobotController::OBSTACLE:
+    case RobotController::ControlStatus::OBSTACLE:
         if (opt_.abort_if_obstacle_ahead()) {
             result.status = FollowPathResult::MOTION_STATUS_OBSTACLE;
             return DONE;
@@ -428,12 +428,12 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
             return MOVING;
         }
 
-    case RobotController::OKAY:
+    case RobotController::ControlStatus::OKAY:
         feedback.status = FollowPathFeedback::MOTION_STATUS_MOVING;
         return MOVING;
 
     default:
-        ROS_INFO_STREAM("aborting, status=" << status);
+        ROS_INFO_STREAM("aborting, status=" << static_cast<int>(status));
         result.status = FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
         return DONE;
     }
