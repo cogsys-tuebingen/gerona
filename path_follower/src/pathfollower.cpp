@@ -38,8 +38,8 @@ static std::vector<int> OBSTACLE_IN_PATH = boost::assign::list_of(25)(25)(25);
 PathFollower::PathFollower(ros::NodeHandle &nh):
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
-    controller_(NULL),
-    obstacle_avoider_(NULL),
+    controller_(nullptr),
+    obstacle_avoider_(nullptr),
     course_predictor_(this),
     path_(new Path),
     pending_error_(-1),
@@ -109,7 +109,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
 
     //  if no obstacle avoider was set, use the none-avoider
-    if (obstacle_avoider_ == NULL) {
+    if (obstacle_avoider_ == nullptr) {
         obstacle_avoider_ = new NoneAvoider();
     }
 
@@ -184,7 +184,7 @@ bool PathFollower::getWorldPose(Vector3d *pose_vec , geometry_msgs::Pose *pose_m
     pose_vec->y()  = msg.transform.translation.y;
     (*pose_vec)(2) = tf::getYaw(msg.transform.rotation);
 
-    if(pose_msg != NULL) {
+    if(pose_msg != nullptr) {
         pose_msg->position.x = msg.transform.translation.x;
         pose_msg->position.y = msg.transform.translation.y;
         pose_msg->position.z = msg.transform.translation.z;
@@ -313,12 +313,12 @@ void PathFollower::setStatus(int status)
 
 bool PathFollower::callObstacleAvoider(MoveCommand *cmd)
 {
-    if (obstacle_avoider_ == NULL) {
+    if (obstacle_avoider_ == nullptr) {
         ROS_WARN_ONCE("No obstacle avoider selected. Obstacle avoidace is deactivated!");
         return false;
     }
 
-    if (obstacle_cloud_ == NULL) {
+    if (obstacle_cloud_ == nullptr) {
         ROS_ERROR("No obstacle cloud received. Obstacle avoidace is skipped!");
         return false;
     }

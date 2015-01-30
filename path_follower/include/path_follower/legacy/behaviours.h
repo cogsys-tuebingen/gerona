@@ -70,7 +70,7 @@ struct BehaviourEmergencyBreak : public Behaviour
     {
         ROS_WARN("commencing emergency break");
         *status = path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
-        return NULL;
+        return nullptr;
     }
 };
 

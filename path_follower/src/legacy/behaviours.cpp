@@ -180,7 +180,7 @@ Behaviour* BehaviourApproachTurningPoint::handleDone()
 
         if(path->isDone()) {
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
-            return NULL;
+            return nullptr;
         } else {
             *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
             return new BehaviourOnLine(parent_);

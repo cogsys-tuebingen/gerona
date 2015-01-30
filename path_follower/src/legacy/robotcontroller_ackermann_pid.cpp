@@ -37,7 +37,7 @@ std::string name(Behaviour* b) {
 
 RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_driver):
     RobotController(path_driver),
-    active_behaviour_(NULL),
+    active_behaviour_(nullptr),
     filtered_speed_(0.0f)
 {
     configure();
@@ -116,10 +116,10 @@ void RobotController_Ackermann_Pid::stopMotion()
 
 void RobotController_Ackermann_Pid::reset()
 {
-    if(active_behaviour_ != NULL) {
+    if(active_behaviour_ != nullptr) {
         delete active_behaviour_;
     }
-    active_behaviour_ = NULL;
+    active_behaviour_ = nullptr;
 }
 
 void RobotController_Ackermann_Pid::start()
@@ -217,8 +217,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCom
         int status = FollowPathFeedback::MOTION_STATUS_MOVING;
         Behaviour* next_behaviour = active_behaviour_->execute(&status);
 
-        if(next_behaviour == NULL) {
-            switchBehaviour(NULL);
+        if(next_behaviour == nullptr) {
+            switchBehaviour(nullptr);
             return MoveCommandStatus::REACHED_GOAL;
         }
 
