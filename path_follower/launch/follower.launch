@@ -1,10 +1,13 @@
 <?xml version="1.0"?>
 <!--
-Launch the path follower. Choose the appropriate controller/robot model-launchfile
-by uncommenting the corresponding line.
+Launch the path follower with setup for the selected robot controller.
+
+To specify which robot controller/model is used, set the name of the controller in the
+environment variable `ROBOT_CONTROLLER`. Default is 'ackermann_pid'.
+This file will simply include the specialized launch file for this controller, so for every
+controller, there has to be a lauch file with the name `follower_CONTROLLER_NAME.launch`.
+Please make sure, you add an according launch file, if you implement a new controller.
 -->
 <launch>
-    <include file="$(find path_follower)/launch/follower_ackermann_orthexp.launch" />
-    <!--<include file="$(find path_follower)/launch/follower_ackermann_pid.launch" />-->
-    <!--<include file="$(find path_follower)/launch/follower_omni_orthexp.launch" />-->
+    <include file="$(find path_follower)/launch/follower_$(optenv ROBOT_CONTROLLER ackermann_pid).launch" />
 </launch>
