@@ -17,6 +17,10 @@
 
 using namespace Eigen;
 
+namespace {
+//! Module name, that is used for ros console output
+const std::string MODULE = "controller";
+}
 
 RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_OrthogonalExponential(PathFollower *path_driver):
     RobotController(path_driver),
@@ -165,7 +169,7 @@ void RobotController_Omnidrive_OrthogonalExponential::findMinDistance()
 
     distance_to_obstacle_ = ranges[0];
 
-    //ROS_DEBUG_STREAM("minimum range is " << distance_to_obstacle_);
+    //ROS_DEBUG_STREAM_NAMED(MODULE, "minimum range is " << distance_to_obstacle_);
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::keepHeading()
@@ -191,7 +195,7 @@ void RobotController_Omnidrive_OrthogonalExponential::initialize()
 
     // desired velocity
     vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
-    ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
+    ROS_WARN_STREAM_NAMED(MODULE, "velocity_: " << velocity_ << ", vn: " << vn_);
     initialized_ = true;
 }
 
@@ -322,7 +326,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     *cmd = MoveCommand(true);
 
     if(N_ < 2) {
-        ROS_ERROR("[Line] path is too short (N = %d)", N_);
+        ROS_ERROR_NAMED(MODULE, "[Line] path is too short (N = %d)", N_);
         setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS);
 
         stopMotion();
@@ -331,7 +335,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 
 //    Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
 //    if (!dir_of_mov.isZero() && path_driver_->isObstacleAhead(MathHelper::Angle(dir_of_mov))) {
-//        ROS_WARN_THROTTLE(1, "Collision!");
+//        ROS_WARN_THROTTLE_NAMED(1, MODULE, "Collision!");
 //        //TODO: not so good to use result-constant if it is not finishing the action...
 //        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE);
 
@@ -350,7 +354,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     double theta_meas = current_pose[2];
     //***//
 
-    //ROS_DEBUG("Theta: %f", theta_meas*180.0/M_PI);
+    //ROS_DEBUG_NAMED(MODULE, "Theta: %f", theta_meas*180.0/M_PI);
 
     //find the orthogonal projection to the curve and extract the corresponding index
 
@@ -417,7 +421,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
         orth_proj = fabs(orth_proj);
     }
 
-    //ROS_DEBUG("Orthogonal distance: %f, theta_p: %f, theta_des: %f", orth_proj, theta_p*180.0/M_PI, theta_des*180.0/M_PI);
+    //ROS_DEBUG_NAMED(MODULE, "Orthogonal distance: %f, theta_p: %f, theta_des: %f", orth_proj, theta_p*180.0/M_PI, theta_des*180.0/M_PI);
 
     //****//
 
@@ -491,7 +495,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 
     //control
 
-    //ROS_DEBUG_STREAM("Distance to obstacle: " << distance_to_obstacle_);
+    //ROS_DEBUG_STREAM_NAMED(MODULE, "Distance to obstacle: " << distance_to_obstacle_);
 
     double exponent = opt_.k_curv()*fabs(curv_sum_)
             + opt_.k_w()*fabs(angular_vel)
@@ -513,14 +517,14 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     //***//
 
 
-    //ROS_INFO("C_curv: %f, curv_sum: %f, ind: %d, look_ahead_index: %d, vn: %f, v: %f",
+    //ROS_INFO_NAMED(MODULE, "C_curv: %f, curv_sum: %f, ind: %d, look_ahead_index: %d, vn: %f, v: %f",
              //exp(-param_k_curv*1/curv_sum), curv_sum, ind, look_ahead_index, vn, cmd_.speed);
 
-    //ROS_INFO("Linear velocity: %f", cmd_.speed);
+    //ROS_INFO_NAMED(MODULE, "Linear velocity: %f", cmd_.speed);
 
 
 
-//    ROS_DEBUG("alpha: %f, alpha_e: %f, e_theta_curr: %f",
+//    ROS_DEBUG_NAMED(MODULE, "alpha: %f, alpha_e: %f, e_theta_curr: %f",
 //              (atan(-param_k*orth_proj) + theta_p)*180.0/M_PI,
 //              atan(-param_k*orth_proj)*180.0/M_PI, e_theta_curr);
 
@@ -544,7 +548,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 
     // check for end
     double distance_to_goal = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
-    ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal);
+    ROS_WARN_THROTTLE_NAMED(1, MODULE, "distance to goal: %f", distance_to_goal);
 
     if(distance_to_goal <= path_driver_->getOptions().goal_tolerance()) {
         return MoveCommandStatus::REACHED_GOAL;

@@ -444,7 +444,7 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
     pending_error_ = -1;
 
     if ( goal.path.poses.size() < 2 ) {
-        ROS_ERROR( "Got an invalid path with less than two poses." );
+        ROS_ERROR("Got an invalid path with less than two poses.");
         stop();
         pending_error_ = FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
         return;

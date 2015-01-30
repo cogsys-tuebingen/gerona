@@ -1,5 +1,10 @@
 #include <path_follower/obstacle_avoidance/obstacledetector.h>
 
+namespace {
+//! Module name, that is used for ros console output
+const std::string MODULE = "obstacle_avoider";
+}
+
 bool ObstacleDetector::avoid(MoveCommand * const cmd,
                              ObstacleCloud::ConstPtr obstacles,
                              const ObstacleAvoider::State &state)
@@ -32,7 +37,7 @@ bool ObstacleDetector::avoid(MoveCommand * const cmd,
 
     float box_length = opt_.min_length() + span * f;
 
-    //ROS_DEBUG("Collision Box: v = %g -> len = %g", v, box_length);
+    //ROS_DEBUG_NAMED(MODULE, "Collision Box: v = %g -> len = %g", v, box_length);
 
     double distance_to_goal = state.path->getCurrentSubPath().back().distanceTo(state.path->getCurrentWaypoint());
 

@@ -14,6 +14,11 @@
 
 using namespace std;
 
+namespace {
+//! Module name, that is used for ros console output
+const std::string MODULE = "s_pathlookout";
+}
+
 PathLookout::PathLookout(const tf::TransformListener *tf_listener):
     obstacle_frame_("/map"),
     tf_listener_(tf_listener)
@@ -56,11 +61,11 @@ void PathLookout::supervise(State &state, Supervisor::Result *out)
     out->can_continue = true;
 
     if (!obstacle_cloud_) {
-        ROS_WARN_THROTTLE(1, "PathLookout has not received a valid obstacle cloud. No obstacle lookout is done.");
+        ROS_WARN_THROTTLE_NAMED(1, MODULE, "PathLookout has not received a valid obstacle cloud. No obstacle lookout is done.");
         return;
     }
     if (path_.empty()) {
-        ROS_WARN_THROTTLE(1, "PathLookout has not received any path yet. No obstacle lookout is done.");
+        ROS_WARN_THROTTLE_NAMED(1, MODULE, "PathLookout has not received any path yet. No obstacle lookout is done.");
         return;
     }
 
@@ -123,7 +128,7 @@ void PathLookout::supervise(State &state, Supervisor::Result *out)
 
     // report obstacle, if the highest weight is higher than the defined limit.
     const float limit = 1.0f;
-    ROS_DEBUG("Max Obstacle Weight: %g, limit: %g", max_weight, limit);
+    ROS_DEBUG_NAMED(MODULE, "Max Obstacle Weight: %g, limit: %g", max_weight, limit);
     if (max_weight > limit) {
         out->can_continue = false;
         out->status = path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE;
@@ -157,9 +162,9 @@ vector<Obstacle> PathLookout::lookForObstacles()
 
             observed_obstacles.push_back(obstacle);
         } catch (const tf::TransformException& ex) {
-            ROS_ERROR("TF-Error. Could not transform obstacle position. %s", ex.what());
+            ROS_ERROR_NAMED(MODULE, "TF-Error. Could not transform obstacle position. %s", ex.what());
         } catch (const std::runtime_error &ex) { // is thrown, if no obstacle map is available.
-            ROS_ERROR("An error occured: %s", ex.what());
+            ROS_ERROR_NAMED(MODULE, "An error occured: %s", ex.what());
         }
     }
 
@@ -221,7 +226,7 @@ vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f
     // add last cluster
     result.push_back(cluster);
 
-    ROS_DEBUG("[PathLookout] #points: %zu, #clusters: %zu", points.size(), result.size());
+    ROS_DEBUG_NAMED(MODULE, "[PathLookout] #points: %zu, #clusters: %zu", points.size(), result.size());
 
     return result;
 }
@@ -246,7 +251,7 @@ float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::Tracke
                    ? pow((dist_to_robot - 2*opt_.scale_obstacle_distance() )/opt_.scale_obstacle_distance(), 2)
                    : 0;
 
-    //ROS_DEBUG("WEIGHT: d = %g, t = %g, wd = %g, wt = %g", dist_to_robot, lifetime.toSec(), w_dist, w_time);
+    //ROS_DEBUG_NAMED(MODULE, "WEIGHT: d = %g, t = %g, wd = %g, wt = %g", dist_to_robot, lifetime.toSec(), w_dist, w_time);
 
     return w_dist + w_time;
 }
@@ -254,7 +259,7 @@ float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::Tracke
 std::vector<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::ConstPtr &cloud)
 {
     if (path_.size() < 2) {
-        ROS_WARN("Path has less than 2 waypoints. No obstacle lookout is done.");
+        ROS_WARN_NAMED(MODULE, "Path has less than 2 waypoints. No obstacle lookout is done.");
         return std::vector<cv::Point2f>(); // return empty cloud
     }
 
@@ -263,7 +268,7 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::
     try {
         pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, *tf_listener_);
     } catch (tf::TransformException& ex) {
-        ROS_ERROR("Failed to transform obstacle cloud: %s", ex.what());
+        ROS_ERROR_NAMED(MODULE, "Failed to transform obstacle cloud: %s", ex.what());
         return std::vector<cv::Point2f>(); // return empty cloud
     }
 

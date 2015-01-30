@@ -6,6 +6,11 @@
 
 using namespace Eigen;
 
+namespace {
+//! Module name, that is used for ros console output
+const std::string MODULE = "s_disttopath";
+}
+
 DistanceToPathSupervisor::DistanceToPathSupervisor(double max_distance_to_path):
     max_dist_(max_distance_to_path),
     visualizer_(Visualizer::getInstance())
@@ -14,11 +19,11 @@ DistanceToPathSupervisor::DistanceToPathSupervisor(double max_distance_to_path):
 void DistanceToPathSupervisor::supervise(Supervisor::State &state, Supervisor::Result *out)
 {
     double dist = calculateDistanceToCurrentPathSegment(state);
-    //ROS_DEBUG("Distance to current path segment: %g m", dist);
+    ROS_DEBUG_NAMED(MODULE, "Distance to current path segment: %g m", dist);
     if (dist > max_dist_) {
         //parent_.say("abort: too far away!"); //TODO: give supervisors access to say().
 
-        ROS_WARN("Moved too far away from the path (%g m, limit: %g m). Abort.",
+        ROS_WARN_NAMED(MODULE, "Moved too far away from the path (%g m, limit: %g m). Abort.",
                  dist, max_dist_);
 
         out->can_continue = false;
@@ -42,7 +47,7 @@ double DistanceToPathSupervisor::calculateDistanceToCurrentPathSegment(const Sup
         // if wp_idx == 0, use the segment from 0th to 1st waypoint.
         wp1_idx = 1;
 
-        ROS_DEBUG("Toggle waypoints as wp_idx == 0 in calculateDistanceToCurrentPathSegment() (%s, line %d)", __FILE__, __LINE__);
+        ROS_DEBUG_NAMED(MODULE, "Toggle waypoints as wp_idx == 0 in calculateDistanceToCurrentPathSegment() (%s, line %d)", __FILE__, __LINE__);
     }
 
     geometry_msgs::Pose wp1 = state.path->getWaypoint(wp1_idx);

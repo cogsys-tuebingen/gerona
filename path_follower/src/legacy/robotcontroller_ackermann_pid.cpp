@@ -19,6 +19,11 @@ using namespace std;
 using namespace path_msgs;
 
 namespace {
+//! Module name, that is used for ros console output
+const std::string MODULE = "controller";
+}
+
+namespace {
 double sign(double value) {
     if (value < 0) return -1.0;
     if (value > 0) return 1.0;
@@ -47,7 +52,6 @@ RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_
 
 void RobotController_Ackermann_Pid::configure()
 {
-    opt_.printAllInstances();
     pid_.configure(opt_.pid_kp(),
                    opt_.pid_ki(),
                    opt_.pid_i_max(),
@@ -69,7 +73,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
         // Nothing to do
         return false;
     }
-    ROS_DEBUG("PID: error = %g, df = %g", error, delta_f_raw);
+    ROS_DEBUG_NAMED(MODULE, "PID: error = %g, df = %g", error, delta_f_raw);
 
     visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
 
@@ -78,26 +82,26 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 
 
     double steer = std::abs(delta_f);
-    ROS_DEBUG_STREAM("dir=" << dir_sign_ << ", steer=" << steer);
+    ROS_DEBUG_STREAM_NAMED(MODULE, "dir=" << dir_sign_ << ", steer=" << steer);
     if(steer > path_driver_opt.steer_slow_threshold()) {
-        ROS_WARN_STREAM_THROTTLE(2, "slowing down");
+        ROS_WARN_STREAM_THROTTLE_NAMED(2, MODULE, "slowing down");
         speed *= 0.5;
     }
 
     // make sure, the speed is in the allowed range
     if (speed < path_driver_opt.min_velocity()) {
         speed = path_driver_opt.min_velocity();
-        ROS_WARN_THROTTLE(5, "Velocity is below minimum. It is set to minimum velocity.");
+        ROS_WARN_THROTTLE_NAMED(5, MODULE, "Velocity is below minimum. It is set to minimum velocity.");
     } else if (speed > path_driver_opt.max_velocity()) {
         speed = path_driver_opt.max_velocity();
-        ROS_WARN_THROTTLE(5, "Velocity is above maximum. Reduce to maximum velocity.");
+        ROS_WARN_THROTTLE_NAMED(5, MODULE, "Velocity is above maximum. Reduce to maximum velocity.");
     }
 
     cmd_.steer_front = dir_sign_ * delta_f;
     cmd_.steer_back = 0;
     cmd_.velocity = dir_sign_ * speed;
 
-    ROS_DEBUG("Set velocity to %g", cmd_.velocity);
+    ROS_DEBUG_NAMED(MODULE, "Set velocity to %g", cmd_.velocity);
     return (std::abs(delta_f - delta_f_raw) > 0.05);
 }
 
@@ -125,7 +129,7 @@ void RobotController_Ackermann_Pid::reset()
 void RobotController_Ackermann_Pid::start()
 {
     active_behaviour_ = new BehaviourOnLine(*path_driver_);
-    ROS_INFO_STREAM("init with " << name(active_behaviour_));
+    ROS_INFO_STREAM_NAMED(MODULE, "init with " << name(active_behaviour_));
 }
 
 void RobotController_Ackermann_Pid::switchBehaviour(Behaviour* next_behaviour)
@@ -148,7 +152,7 @@ void RobotController_Ackermann_Pid::behaveOnLine()
     double e_angle = calculateAngleError();
 
     double e_combined = e_distance + e_angle;
-    ROS_DEBUG("OnLine: e_dist = %g, e_angle = %g  ==>  e_comb = %g", e_distance, e_angle, e_combined);
+    ROS_DEBUG_NAMED(MODULE, "OnLine: e_dist = %g, e_angle = %g  ==>  e_comb = %g", e_distance, e_angle, e_combined);
 
     // draw steer front
     if (visualizer_->hasSubscriber()) {
@@ -191,7 +195,7 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
     double e_angle = calculateAngleError();
 
     double e_combined = e_distance + e_angle;
-    ROS_DEBUG("Approach: e_dist = %g, e_angle = %g  ==>  e_comb = %g", e_distance, e_angle, e_combined);
+    ROS_DEBUG_NAMED(MODULE, "Approach: e_dist = %g, e_angle = %g  ==>  e_comb = %g", e_distance, e_angle, e_combined);
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_->getCurrentWaypoint()).position, 0.5, "/map", "turning point", 1, 1, 1);
@@ -213,7 +217,7 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
 RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCommand(MoveCommand *cmd)
 {
     try {
-//        ROS_DEBUG_STREAM("executing " << name(active_behaviour_));
+//        ROS_DEBUG_STREAM_NAMED(MODULE, "executing " << name(active_behaviour_));
         int status = FollowPathFeedback::MOTION_STATUS_MOVING;
         Behaviour* next_behaviour = active_behaviour_->execute(&status);
 
@@ -223,7 +227,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCom
         }
 
         if(active_behaviour_ != next_behaviour) {
-            ROS_INFO_STREAM("switching behaviour from " << name(active_behaviour_)
+            ROS_INFO_STREAM_NAMED(MODULE, "switching behaviour from " << name(active_behaviour_)
                             << " to " << name(next_behaviour));
             switchBehaviour(next_behaviour);
         }
@@ -238,11 +242,11 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCom
         case FollowPathFeedback::MOTION_STATUS_MOVING:
             return MoveCommandStatus::OKAY;
         default:
-            ROS_WARN_STREAM("unknown status: " << status);
+            ROS_WARN_STREAM_NAMED(MODULE, "unknown status: " << status);
             return MoveCommandStatus::ERROR;
         }
     } catch(const std::exception& e) {
-        ROS_ERROR_STREAM("uncaught exception: " << e.what() << " => abort");
+        ROS_ERROR_STREAM_NAMED(MODULE, "uncaught exception: " << e.what() << " => abort");
         reset();
         return MoveCommandStatus::ERROR;
     }
@@ -275,7 +279,7 @@ void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &
     double yn = ds*std::sin(dtheta*0.5+beta*0.5);
     double xn = ds*std::cos(dtheta*0.5+beta*0.5);
 
-    ROS_DEBUG("predict pose: dt = %g, deltaf = %g, deltar = %g, v = %g, beta = %g, ds = %g, dtheta = %g, yn = %g, xn = %g",
+    ROS_DEBUG_NAMED(MODULE, "predict pose: dt = %g, deltaf = %g, deltar = %g, v = %g, beta = %g, ds = %g, dtheta = %g, yn = %g, xn = %g",
               dt, deltaf, deltar, v, beta, ds, dtheta, yn, xn);
     // output when nan-values occured (hopefully fixed with commit 8bad8fd)
     // step 1: dt = 0.1, deltaf = 9.75024e+199, deltar = 4.26137e+257, v = 0,   beta = 0.308293, ds = 0,   dtheta = 0,   yn = 0,    xn = 0
@@ -286,7 +290,7 @@ void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &
     rear_pred[0] = xn-cos(thetan)*opt_.l()/2.0;
     rear_pred[1] = yn-sin(thetan)*opt_.l()/2.0;
 
-    ROS_DEBUG_STREAM("predict pose. front: " << front_pred << ", rear: " << rear_pred);
+    ROS_DEBUG_STREAM_NAMED(MODULE, "predict pose. front: " << front_pred << ", rear: " << rear_pred);
 }
 
 double RobotController_Ackermann_Pid::calculateCourse()

@@ -4,6 +4,11 @@
 
 using namespace std;
 
+namespace {
+//! Module name, that is used for ros console output
+const std::string MODULE = "s_obstacle_tracker";
+}
+
 void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
 {
     /**
@@ -45,12 +50,12 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
 
     }
 
-    //ROS_DEBUG_STREAM("D =\n" << dist);
+    //ROS_DEBUG_STREAM_NAMED(MODULE, "D =\n" << dist);
 
     // now match the points
     int match_counter = 0;
     while (!d_idx.empty()) {
-        //ROS_DEBUG_STREAM("Didx =\n" << d_idx);
+        //ROS_DEBUG_STREAM_NAMED(MODULE, "Didx =\n" << d_idx);
 
         // min_idx = argmin(D)
         float min = dist.at<float>(d_idx.at<ushort>(0));
@@ -63,7 +68,7 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
             }
         }
 
-        //ROS_DEBUG("min idx = %d (%d), dist = %g", d_idx.at<ushort>(min_idx), min_idx, dist.at<float>(d_idx.at<ushort>(min_idx)));
+        //ROS_DEBUG_NAMED(MODULE, "min idx = %d (%d), dist = %g", d_idx.at<ushort>(min_idx), min_idx, dist.at<float>(d_idx.at<ushort>(min_idx)));
 
         // If the shortest distance is to big, assume that all matchable obstacles are matched.
         if (min > opt_.max_dist()) {
@@ -77,7 +82,7 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
         int mi_idx = min_idx / d_idx.cols;
         int mj_idx = min_idx % d_idx.cols;
 
-        //ROS_DEBUG("matched %d, %d (%d,%d)", mi, mj, mi_idx, mj_idx);
+        //ROS_DEBUG_NAMED(MODULE, "matched %d, %d (%d,%d)", mi, mj, mi_idx, mj_idx);
 
         // match observed obstacle mi with tracked obstacle mj
         obstacles_[mj].update(observed_obstacles[mi]);
@@ -92,9 +97,9 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
         removeColumn(d_idx, mj_idx);
     }
 
-//    ROS_DEBUG_NAMED("ObstacleTracker", "Matched %d obstacles", match_counter);
-//    ROS_DEBUG_NAMED("ObstacleTracker", "Lost %zu obstacles", obstacles_.size() - match_counter);
-//    ROS_DEBUG_NAMED("ObstacleTracker", "Droped %zu dead obstacles", dead_count);
+//    ROS_DEBUG_NAMED(MODULE, "Matched %d obstacles", match_counter);
+//    ROS_DEBUG_NAMED(MODULE, "Lost %zu obstacles", obstacles_.size() - match_counter);
+//    ROS_DEBUG_NAMED(MODULE, "Droped %zu dead obstacles", dead_count);
 
     // If there are unmatched obstacles in the observation, add them as new obstacles
     int add_counter = 0;
@@ -106,7 +111,7 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
         }
     }
 
-//    ROS_DEBUG_NAMED("ObstacleTracker", "Added %d new obstacles", add_counter);
+//    ROS_DEBUG_NAMED(MODULE, "Added %d new obstacles", add_counter);
 }
 
 void ObstacleTracker::reset()

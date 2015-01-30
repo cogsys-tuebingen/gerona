@@ -11,7 +11,8 @@ void WaypointTimeout::supervise(Supervisor::State &state, Supervisor::Result *ou
     out->can_continue = !isExpired();
 
     if (!out->can_continue) {
-        ROS_WARN("Waypoint Timeout! The robot did not reach the next waypoint within %g sec. Abort path execution.",
+        ROS_WARN_NAMED("s_waypoint_timeout", "Waypoint Timeout! The robot did not reach the"
+                       " next waypoint within %g sec. Abort path execution.",
                  duration_.toSec());
     }
 
