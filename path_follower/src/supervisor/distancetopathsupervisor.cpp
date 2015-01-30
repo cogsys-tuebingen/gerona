@@ -42,7 +42,7 @@ double DistanceToPathSupervisor::calculateDistanceToCurrentPathSegment(const Sup
     // instead. (I am not absolutly sure if this a good behaviour, so observe this via debug-output).
     int wp1_idx = 0;
     if (state.path->getWaypointIndex() > 0) {
-        wp1_idx =state. path->getWaypointIndex() - 1;
+        wp1_idx = state.path->getWaypointIndex() - 1;
     } else {
         // if wp_idx == 0, use the segment from 0th to 1st waypoint.
         wp1_idx = 1;
