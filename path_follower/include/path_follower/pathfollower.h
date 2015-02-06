@@ -65,7 +65,7 @@ public:
 
     Path::Ptr getPath();
 
-    void setStatus(int status);
+    ROS_DEPRECATED void setStatus(int status);
 
     bool callObstacleAvoider(MoveCommand *cmd);
 

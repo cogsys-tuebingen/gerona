@@ -5,15 +5,6 @@
 
 using namespace Eigen;
 
-namespace {
-double sign(double value) {
-    if (value < 0) return -1;
-    if (value > 0) return 1;
-    return 0;
-}
-}
-
-
 //##### BEGIN Behaviour
 Behaviour::Behaviour(PathFollower &parent):
     parent_(parent),

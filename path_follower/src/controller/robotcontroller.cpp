@@ -61,11 +61,6 @@ RobotController::ControlStatus RobotController::execute()
     MoveCommand cmd;
     MoveCommandStatus status = computeMoveCommand(&cmd);
 
-    /*TODO: Evlt wäre es sinnvoll den REACHED_GOAL check nicht in computeMoveCommand zu machen,
-     * sondern in einer separaten Methode außerhalb, die einfach abstand zum ziel mit einer
-     * bestimmten toleranz misst?
-     */
-
     if (status != MoveCommandStatus::OKAY) {
         return MCS2CS(status);
     } else {
