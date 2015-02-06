@@ -16,7 +16,7 @@ void WaypointTimeout::supervise(Supervisor::State &state, Supervisor::Result *ou
                  duration_.toSec());
     }
 
-    out->status = path_msgs::FollowPathResult::MOTION_STATUS_TIMEOUT;
+    out->status = path_msgs::FollowPathResult::RESULT_STATUS_TIMEOUT;
 }
 
 void WaypointTimeout::eventNewGoal()

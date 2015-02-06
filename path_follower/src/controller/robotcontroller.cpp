@@ -19,7 +19,7 @@ void RobotController::setPath(Path::Ptr path)
     wp_pose.header.stamp = ros::Time::now();
     wp_pose.pose = path->getCurrentWaypoint();
     if ( !path_driver_->transformToLocal( wp_pose, next_wp_local_)) {
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
+        setStatus(path_msgs::FollowPathResult::RESULT_STATUS_SLAM_FAIL);
         throw EmergencyBreakException("cannot transform path");
     }
 }

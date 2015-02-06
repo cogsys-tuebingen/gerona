@@ -101,7 +101,7 @@ Behaviour* BehaviourOnLine::selectNextWaypoint()
        // ROS_ERROR_STREAM("opt.wp_idx: " << opt.wp_idx << ", size: " << last_wp_idx);
         if(path->isLastWaypoint() || path->isSubPathDone()) {
             // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
-            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+            *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_MOVING;
             return new BehaviourApproachTurningPoint(parent_);
         }
         else {
@@ -117,7 +117,7 @@ Behaviour* BehaviourOnLine::selectNextWaypoint()
     next_wp_map_.header.stamp = ros::Time::now();
 
     if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
+        *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_SLAM_FAIL;
         throw new EmergencyBreakException("cannot transform next waypoint");
     }
 
@@ -161,7 +161,7 @@ Behaviour* BehaviourApproachTurningPoint::handleDone()
        (std::abs(parent_.getVelocity().linear.y) > 0.01) ||
        (std::abs(parent_.getVelocity().angular.z) > 0.01)) {
         ROS_INFO_THROTTLE(1, "WAITING until no more motion");
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+        *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_MOVING;
 
     } else {
         ROS_INFO("Done at waypoint -> reset");
@@ -170,10 +170,10 @@ Behaviour* BehaviourApproachTurningPoint::handleDone()
         path->switchToNextSubPath();
 
         if(path->isDone()) {
-            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
+            *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS;
             return nullptr;
         } else {
-            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+            *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_MOVING;
             return new BehaviourOnLine(parent_);
         }
     }
@@ -194,7 +194,7 @@ Behaviour* BehaviourApproachTurningPoint::selectNextWaypoint()
     next_wp_map_.header.stamp = ros::Time::now();
 
     if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
+        *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_SLAM_FAIL;
         throw new EmergencyBreakException("Cannot transform next waypoint");
     }
 

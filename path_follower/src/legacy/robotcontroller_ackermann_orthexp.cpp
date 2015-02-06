@@ -325,7 +325,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 
     if(N_ < 2) {
         ROS_ERROR("[Line] path is too short (N = %d)", N_);
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS);
+        setStatus(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
 
         stopMotion();
         return MoveCommandStatus::REACHED_GOAL;
@@ -542,7 +542,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 
 
     // NULL PTR
-    setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
+    setStatus(path_msgs::FollowPathResult::RESULT_STATUS_MOVING);
 
     // check for end
     double distance_to_goal = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
