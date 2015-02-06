@@ -21,7 +21,7 @@ public:
 protected:
     PathFollower& parent_;
     RobotController* controller_;
-    int* status_ptr_;
+    int* status_ptr_; //TODO: is this ever read?
 
     //! Pose of the next waypoint in map frame.
     geometry_msgs::PoseStamped next_wp_map_;

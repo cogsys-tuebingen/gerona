@@ -11,7 +11,6 @@
 #include <std_msgs/Int32MultiArray.h>
 
 /// PROJECT
-#include <std_msgs/Int32MultiArray.h>
 // Controller/Models
 #include <path_follower/legacy/robotcontroller_ackermann_pid.h>
 #include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
@@ -25,6 +24,8 @@
 #include <path_follower/obstacle_avoidance/noneavoider.hpp>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
 #include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
+// Utils
+#include <path_follower/utils/path_exceptions.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -255,9 +256,18 @@ void PathFollower::spin()
     ros::Rate rate(50);
 
     while(ros::ok()) {
-        ros::spinOnce();
-        update();
-        rate.sleep();
+        try {
+            ros::spinOnce();
+            update();
+            rate.sleep();
+        } catch (const EmergencyBreakException &e) {
+            ROS_ERROR("Emergency Break [status %d]: %s", e.status_code, e.what());
+            controller_->stopMotion();
+
+            FollowPathResult result;
+            result.status = e.status_code;
+            follow_path_server_.setAborted(result);
+        }
     }
 }
 

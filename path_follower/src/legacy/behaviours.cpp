@@ -117,8 +117,9 @@ Behaviour* BehaviourOnLine::selectNextWaypoint()
     next_wp_map_.header.stamp = ros::Time::now();
 
     if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
-        *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_SLAM_FAIL;
-        throw new EmergencyBreakException("cannot transform next waypoint");
+        *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL;
+        throw EmergencyBreakException("cannot transform next waypoint",
+                                      path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
 
     return this;
@@ -194,8 +195,9 @@ Behaviour* BehaviourApproachTurningPoint::selectNextWaypoint()
     next_wp_map_.header.stamp = ros::Time::now();
 
     if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
-        *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_SLAM_FAIL;
-        throw new EmergencyBreakException("Cannot transform next waypoint");
+        *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL;
+        throw EmergencyBreakException("Cannot transform next waypoint",
+                                      path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
 
     return this;
