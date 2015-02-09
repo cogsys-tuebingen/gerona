@@ -67,12 +67,14 @@ RobotController::ControlStatus RobotController::execute()
      */
 
     if (status != MoveCommandStatus::OKAY) {
+        stopMotion();
         return MCS2CS(status);
     } else {
         bool cmd_modified = path_driver_->callObstacleAvoider(&cmd);
 
         if (!cmd.isValid()) {
             ROS_ERROR("Invalid move command.");
+            stopMotion();
             return ControlStatus::ERROR;
         } else {
             publishMoveCommand(cmd);

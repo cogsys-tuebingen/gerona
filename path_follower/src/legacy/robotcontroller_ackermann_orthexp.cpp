@@ -167,7 +167,6 @@ void RobotController_Ackermann_OrthogonalExponential::findMinDistance()
 
     distance_to_obstacle_ = ranges[0];
 
-    //ROS_DEBUG_STREAM("minimum range is " << distance_to_obstacle_);
 }
 
 void RobotController_Ackermann_OrthogonalExponential::keepHeading()
@@ -352,8 +351,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     double theta_meas = current_pose[2];
     //***//
 
-    //ROS_DEBUG("Theta: %f", theta_meas*180.0/M_PI);
-
     //find the orthogonal projection to the curve and extract the corresponding index
 
     double dist = 0;
@@ -419,8 +416,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
         orth_proj = fabs(orth_proj);
     }
 
-    //ROS_DEBUG("Orthogonal distance: %f, theta_p: %f, theta_des: %f", orth_proj, theta_p*180.0/M_PI, theta_des*180.0/M_PI);
-
     //****//
 
 
@@ -459,15 +454,20 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     double look_ahead_cum_sum = 0;
     curv_sum_ = 1e-10;
 
+    int counter = 0;
+
     for (unsigned int i = ind + 1; i < N_; i++){
+
+        counter++;
 
         look_ahead_cum_sum += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
         curv_sum_ += fabs(curvature_[i]);
 
-        if(opt_.look_ahead_dist() - look_ahead_cum_sum >= 0){
+        if(look_ahead_cum_sum - opt_.look_ahead_dist() >= 0){
             break;
         }
     }
+    ROS_INFO("Counter: %d", counter);
 
     /*for (int i = ind; i < N; i++){
 
@@ -493,8 +493,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 
     //control
 
-    //ROS_DEBUG_STREAM("Distance to obstacle: " << distance_to_obstacle_);
-
     double exponent = opt_.k_curv()*fabs(curv_sum_)
             + opt_.k_w()*fabs(angular_vel)
             + opt_.k_o()/distance_to_obstacle_
@@ -504,27 +502,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 
     cmd_.direction_angle = atan(-opt_.k()*orth_proj) + theta_p - theta_meas;
 
-    cmd_.rotation = opt_.kp()*e_theta_curr_ + opt_.kd()*e_theta_prim;
-
-    if(cmd_.rotation > opt_.max_angular_velocity()) {
-        cmd_.rotation = opt_.max_angular_velocity();
-    } else if(cmd_.rotation < -opt_.max_angular_velocity()) {
-        cmd_.rotation = -opt_.max_angular_velocity();
-    }
-
     //***//
-
-
-    //ROS_INFO("C_curv: %f, curv_sum: %f, ind: %d, look_ahead_index: %d, vn: %f, v: %f",
-             //exp(-param_k_curv*1/curv_sum), curv_sum, ind, look_ahead_index, vn, cmd_.speed);
-
-    //ROS_INFO("Linear velocity: %f", cmd_.speed);
-
-
-
-//    ROS_DEBUG("alpha: %f, alpha_e: %f, e_theta_curr: %f",
-//              (atan(-param_k*orth_proj) + theta_p)*180.0/M_PI,
-//              atan(-param_k*orth_proj)*180.0/M_PI, e_theta_curr);
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
@@ -551,7 +529,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     if(distance_to_goal <= path_driver_->getOptions().goal_tolerance()) {
         return MoveCommandStatus::REACHED_GOAL;
     } else {
-        // Quickfix: simply convert omnidrive command to move command
+        // Quickfix: simply convert ackermann command to move command
         cmd->setDirection(cmd_.direction_angle);
         cmd->setVelocity(cmd_.speed);
 
@@ -562,9 +540,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 void RobotController_Ackermann_OrthogonalExponential::publishMoveCommand(const MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
-    //msg.linear.x  = speed * cos(angle);
-    //msg.linear.y  = speed * sin(angle);
-    //msg.angular.z = rotation;
     msg.linear.x  = cmd.getVelocity();
     msg.linear.y  = 0;
     msg.angular.z = cmd.getDirectionAngle();

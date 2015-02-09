@@ -86,7 +86,7 @@ void RobotController_Omnidrive_OrthogonalExponential::stopMotion()
     cmd_.direction_angle = 0;
     cmd_.rotation = 0;
 
-    MoveCommand mcmd;
+    MoveCommand mcmd(true);
     mcmd.setVelocity(0);
     publishMoveCommand(mcmd);
 }
@@ -466,7 +466,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
         look_ahead_cum_sum += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
         curv_sum_ += fabs(curvature_[i]);
 
-        if(opt_.look_ahead_dist() - look_ahead_cum_sum >= 0){
+        if(look_ahead_cum_sum - opt_.look_ahead_dist() >= 0){
             break;
         }
     }
@@ -568,10 +568,10 @@ void RobotController_Omnidrive_OrthogonalExponential::publishMoveCommand(const M
     //msg.linear.x  = speed * cos(angle);
     //msg.linear.y  = speed * sin(angle);
     //msg.angular.z = rotation;
+
     Vector2f v = cmd.getVelocityVector();
     msg.linear.x  = v[0];
     msg.linear.y  = v[1];
-    assert(cmd.hasRotation());
     msg.angular.z = cmd.getRotation();
 
     cmd_pub_.publish(msg);
