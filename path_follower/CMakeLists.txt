@@ -276,6 +276,15 @@ if(TARGET test_obstacletracker)
   target_link_libraries(test_obstacletracker ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
 endif()
 
+
+catkin_add_gtest(test_pidcontroller
+  test/test_pidcontroller.cpp
+  include/path_follower/utils/pidcontroller.hpp
+)
+if(TARGET test_pidcontroller)
+#  target_link_libraries(test_pidcontroller ${catkin_LIBRARIES})
+endif()
+
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
