@@ -47,7 +47,7 @@ void RobotController_Omnidrive_VirtualVehicle::stopMotion()
     cmd_.direction_angle = 0;
     cmd_.rotation = 0;
 
-    MoveCommand mcmd;
+    MoveCommand mcmd(true);
     mcmd.setVelocity(0);
     publishMoveCommand(mcmd);
 }
