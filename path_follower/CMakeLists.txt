@@ -206,15 +206,6 @@ target_link_libraries(path_follower_node
   ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES} ${PCL_LIBRARIES}
 )
 
-add_executable(test_obstacle_tracker
-  src/test_obstacletracker.cpp
-  src/supervisor/obstacletracker.cpp
-)
-target_link_libraries(test_obstacle_tracker
-  ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES}
-)
-add_dependencies(test_obstacle_tracker path_msgs_generate_messages_cpp)
-
 #############
 ## Install ##
 #############
@@ -254,6 +245,8 @@ add_dependencies(test_obstacle_tracker path_msgs_generate_messages_cpp)
 ## Testing ##
 #############
 
+if(CATKIN_ENABLE_TESTING)
+
 ## Add gtest based cpp test target and link libraries
 catkin_add_gtest(test_pathlookout
   test/test_pathlookout.cpp
@@ -268,5 +261,22 @@ if(TARGET test_pathlookout)
   target_link_libraries(test_pathlookout ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
 endif()
 
+find_package(rostest REQUIRED)
+add_rostest_gtest(test_obstacletracker
+  test/test_obstacletracker.test
+  test/test_obstacletracker.cpp
+  include/path_follower/supervisor/supervisor.h
+  src/utils/parameters.cpp
+  src/utils/visualizer.cpp
+  src/utils/path.cpp
+  src/supervisor/pathlookout.cpp
+  src/supervisor/obstacletracker.cpp
+)
+if(TARGET test_obstacletracker)
+  target_link_libraries(test_obstacletracker ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
+endif()
+
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+endif(CATKIN_ENABLE_TESTING)
