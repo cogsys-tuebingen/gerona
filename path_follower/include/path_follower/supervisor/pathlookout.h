@@ -121,9 +121,6 @@ private:
         P<float> scan_cluster_max_distance;
         P<int> min_number_of_points;
 
-        //! Stop robot, if the weight of an obstacle becomes higher than this value.
-        //P<float> obstacle_weight_limit;
-
         Options():
             scale_obstacle_distance(this, "~supervisor/path_lookout/obstacle_scale_distance",  1.0f, ""),
             scale_obstacle_lifetime(this, "~supervisor/path_lookout/obstacle_scale_lifetime",  10.0f, ""),

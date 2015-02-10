@@ -188,16 +188,15 @@ std::list<std::list<cv::Point2f> > PathLookout::clusterPoints(const std::list<cv
 
     auto get_x = [](const cv::Point2f &p) { return p.x; };
     auto get_y = [](const cv::Point2f &p) { return p.y; };
-    std::list<std::list<cv::Point2f> > clusters, x_clusters, y_clusters;
+    std::list<std::list<cv::Point2f> > clusters, x_clusters;
 
     // cluster along x-axis
-    x_clusters = clusterPointsAlongAxis(points, dist_threshold, get_x);
-
+    x_clusters = clusterPointsAlongAxis(points, dist_threshold, get_x); // O(n log n), n = |points|
 
     // cluster each cluster along y-axis and merge results together in `clusters`
     for (const auto &cluster: x_clusters) {
-        y_clusters = clusterPointsAlongAxis(cluster, dist_threshold, get_y);
-        clusters.splice(clusters.end(), y_clusters);
+        std::list<std::list<cv::Point2f> > y_clusters = clusterPointsAlongAxis(cluster, dist_threshold, get_y); // O(|c| log |c|)
+        clusters.splice(clusters.end(), std::move(y_clusters));    // O(1)
     }
 
     return clusters;
@@ -313,7 +312,7 @@ std::list<std::list<cv::Point2f> > PathLookout::clusterPointsAlongAxis(std::list
         return abs(get_value(a) - get_value(b));
     };
 
-    // sort points along axis
+    // sort points along axis   -> O(n log(n))
     points.sort([&get_value](const cv::Point2f &a, const cv::Point2f &b) {
         return get_value(a) < get_value(b);
     });
@@ -321,23 +320,22 @@ std::list<std::list<cv::Point2f> > PathLookout::clusterPointsAlongAxis(std::list
     list<list<cv::Point2f> > clusters;
     list<cv::Point2f> current_cluster;
 
-    //TODO: use list::splice
-
     // add first point to the current cluster
     auto p_it = points.cbegin();
     current_cluster.push_back(*p_it);
 
     // iterate over the remaining points
     for (++p_it; p_it != points.end(); ++p_it) {
-        if (dist(current_cluster.back(), *p_it) > dist_threshold) {
+        if (dist(current_cluster.back(), *p_it) > dist_threshold) {  // dist and `>` are O(1)
             // start new cluster
-            clusters.push_back(current_cluster);
-            current_cluster.clear(); //TODO: clear has linear complexity. is this possible in O(1)?
+            clusters.push_back(std::move(current_cluster));          // O(1)
+            current_cluster.clear(); // clear has linear complexity, but after moving the
+                                     // content, the list is empty --> O(1)
         }
 
-        current_cluster.push_back(*p_it);
-    }
-    clusters.push_back(current_cluster);
+        current_cluster.push_back(*p_it);                            // O(1)
+    } // loop: O(n)
+    clusters.push_back(std::move(current_cluster));                  // O(1)
 
     return clusters;
 }
