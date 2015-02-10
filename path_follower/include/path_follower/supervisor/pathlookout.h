@@ -54,6 +54,63 @@ public:
     //! Reset the obstacle tracker (should be called before starting a new path).
     void reset();
 
+    /**
+     * @brief Simple approximate clustering algorithm on 2d points.
+     *
+     * This is a simple approximate clustering algorithm to assign points of the obstacle cloud
+     * to different obstacles (which is required for obstacle tracking).
+     *
+     * Basic idea
+     * ----------
+     * The clustering is done axis-wise. First the points are clustered along
+     * the x-axis. Then each cluster is again clustered along the y-axis.
+     *
+     * More detailed:
+     * --------------
+     *  1) Order points along x-axis
+     *  2) Split, when distance between two neighbouring points is greater than `dist_threshold`
+     *  3) For each chunk:
+     *      4) Order points along y-axis
+     *      5) Split like in 2)
+     *
+     * The result is a set of clusters, where the distance between two clusters is greater than
+     * `dist_threshold` along each axis (i.e. `dy > dist_threshold and dx > dist_threshold`).
+     * There can be arbitrary many clusters and the clusters can be of arbitrary size.
+     *
+     * Approximation Error
+     * -------------------
+     * This is a kind of greedy algorithm that does not always resturn a correct result.
+     * See the following example where two clusters are wrongly combined into one cluster:
+     *
+     *                1 1 1 1
+     *                 1   1 1 1 11
+     *
+     * y     2 2 2                   3 33 3 3 3 3
+     * |      2 2 2 2 2           333 33 3 333
+     * +--x
+     *
+     * The points are first split along the x-axis. There is however no huge gap between the
+     * points along the x-axis and therefore no split is done.
+     * In the second step, the points are split along the y-axis resulting in two clusters: one
+     * with the 1-points and one with the 2- and 3- points (instead of 3 clusters as would be
+     * expected).
+     *
+     * This are, however, special cases that are should be very unusual when clustering
+     * obstacles on the path and even if such a situation occurs, the consequences are rather
+     * unproblematic (obstacle tracking might be imperfect but the robot will not crash or
+     * something like that).
+     * Therefore this approximate greedy algorithm is preferred to a more complicated clustering
+     * algorithm which would be computationally more expensive.
+     *
+     *
+     * @param points List of unclustered points.
+     * @param dist_threshold Minimum distance between clusters along each axis.
+     * @return Partition of the points where each subset is one cluster.
+     */
+    static std::list<std::list<cv::Point2f> > clusterPoints(const std::list<cv::Point2f> &points,
+                                                            const float dist_threshold);
+
+
 private:
     struct Options : public Parameters
     {
@@ -95,12 +152,30 @@ private:
 
     std::vector<Obstacle> lookForObstacles();
 
-    std::vector<std::vector<cv::Point2f> > clusterPoints(const std::vector<cv::Point2f> &points);
-
     //! Compute weight for the given obstacle, depending on its distance to the robot and its lifetime.
     float weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const;
 
-    std::vector<cv::Point2f> findObstaclesInCloud(const ObstacleCloud::ConstPtr &cloud);
+    std::list<cv::Point2f> findObstaclesInCloud(const ObstacleCloud::ConstPtr &cloud);
+
+    /**
+     * @brief Cluster the given points along one axis.
+     *
+     * The points are sorted w.r.t. the specified axis and then partiotioned into clusters,
+     * where a new cluster is started, if the distance between two neigbouring points exceeds
+     * `dist_threshold`.
+     *
+     * The axis is defined by the function `get_value` which maps an arbitrary point to its
+     * value on this axis. Example:
+     *     get_x = [](const cv::Point2f&) { return p.x; };
+     *
+     * @param points List of points. List must not be empty!
+     * @param dist_threshold
+     * @param get_value Function that maps a point to its value on the desired axis.
+     * @return
+     */
+    static std::list<std::list<cv::Point2f> > clusterPointsAlongAxis(std::list<cv::Point2f> points,
+            const float dist_threshold,
+            std::function<float(const cv::Point2f&)> get_value);
 };
 
 #endif // PATHLOOKOUT_H

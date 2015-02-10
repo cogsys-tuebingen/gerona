@@ -255,10 +255,18 @@ add_dependencies(test_obstacle_tracker path_msgs_generate_messages_cpp)
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_path_follower.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
+catkin_add_gtest(test_pathlookout
+  test/test_pathlookout.cpp
+  include/path_follower/supervisor/supervisor.h
+  src/utils/parameters.cpp
+  src/utils/visualizer.cpp
+  src/utils/path.cpp
+  src/supervisor/pathlookout.cpp
+  src/supervisor/obstacletracker.cpp
+)
+if(TARGET test_pathlookout)
+  target_link_libraries(test_pathlookout ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
+endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
