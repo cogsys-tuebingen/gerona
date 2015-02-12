@@ -19,8 +19,8 @@ void RobotController::setPath(Path::Ptr path)
     wp_pose.header.stamp = ros::Time::now();
     wp_pose.pose = path->getCurrentWaypoint();
     if ( !path_driver_->transformToLocal( wp_pose, next_wp_local_)) {
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
-        throw EmergencyBreakException("cannot transform path");
+        throw EmergencyBreakException("cannot transform path",
+                                      path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
 }
 
@@ -60,11 +60,6 @@ RobotController::ControlStatus RobotController::execute()
 {
     MoveCommand cmd;
     MoveCommandStatus status = computeMoveCommand(&cmd);
-
-    /*TODO: Evlt wäre es sinnvoll den REACHED_GOAL check nicht in computeMoveCommand zu machen,
-     * sondern in einer separaten Methode außerhalb, die einfach abstand zum ziel mit einer
-     * bestimmten toleranz misst?
-     */
 
     if (status != MoveCommandStatus::OKAY) {
         stopMotion();

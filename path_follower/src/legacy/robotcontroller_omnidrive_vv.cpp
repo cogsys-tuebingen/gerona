@@ -302,7 +302,7 @@ void RobotController_Omnidrive_VirtualVehicle::behaveOnLine()
     }
 
     // NULL PTR
-    setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
+    setStatus(path_msgs::FollowPathResult::RESULT_STATUS_MOVING);
 
 
     //publishCommand();

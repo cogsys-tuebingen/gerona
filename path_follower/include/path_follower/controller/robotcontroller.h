@@ -147,7 +147,7 @@ protected:
     Eigen:: Vector3d next_wp_local_;
 
 
-    void setStatus(int status);
+    ROS_DEPRECATED void setStatus(int status);
 
     //! Calculate the angle between the orientations of the waypoint and the robot.
     virtual double calculateAngleError();

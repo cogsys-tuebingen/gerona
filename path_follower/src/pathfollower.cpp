@@ -11,7 +11,6 @@
 #include <std_msgs/Int32MultiArray.h>
 
 /// PROJECT
-#include <std_msgs/Int32MultiArray.h>
 // Controller/Models
 #include <path_follower/legacy/robotcontroller_ackermann_pid.h>
 #include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
@@ -25,6 +24,8 @@
 #include <path_follower/obstacle_avoidance/noneavoider.hpp>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
 #include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
+// Utils
+#include <path_follower/utils/path_exceptions.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -143,7 +144,7 @@ void PathFollower::followPathGoalCB()
 void PathFollower::followPathPreemptCB()
 {
     controller_->stopMotion();
-    pending_error_ = FollowPathResult::MOTION_STATUS_SUCCESS;
+    pending_error_ = FollowPathResult::RESULT_STATUS_SUCCESS;
 }
 
 void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
@@ -255,9 +256,18 @@ void PathFollower::spin()
     ros::Rate rate(50);
 
     while(ros::ok()) {
-        ros::spinOnce();
-        update();
-        rate.sleep();
+        try {
+            ros::spinOnce();
+            update();
+            rate.sleep();
+        } catch (const EmergencyBreakException &e) {
+            ROS_ERROR("Emergency Break [status %d]: %s", e.status_code, e.what());
+            controller_->stopMotion();
+
+            FollowPathResult result;
+            result.status = e.status_code;
+            follow_path_server_.setAborted(result);
+        }
     }
 }
 
@@ -274,7 +284,7 @@ void PathFollower::update()
         if (!updateRobotPose()) {
             ROS_ERROR("do not known own pose");
             is_running_ = false;
-            result.status = FollowPathResult::MOTION_STATUS_SLAM_FAIL;
+            result.status = FollowPathResult::RESULT_STATUS_SLAM_FAIL;
         }
 
         // Ask supervisor whether path following can continue
@@ -287,7 +297,7 @@ void PathFollower::update()
         if (s_res.can_continue) {
             is_running_ = execute(feedback, result);
         } else {
-            ROS_ERROR("My supervisor told me to stop.");
+            ROS_WARN("My supervisor told me to stop.");
             is_running_ = false;
             result.status = s_res.status;
             controller_->stopMotion();
@@ -297,7 +307,7 @@ void PathFollower::update()
         if (is_running_) {
             follow_path_server_.publishFeedback(feedback);
         } else {
-            if (result.status == FollowPathResult::MOTION_STATUS_SUCCESS) {
+            if (result.status == FollowPathResult::RESULT_STATUS_SUCCESS) {
                 follow_path_server_.setSucceeded(result);
             } else {
                 follow_path_server_.setAborted(result);
@@ -404,7 +414,7 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
 
     if(path_->empty()) {
         controller_->reset();
-        result.status = FollowPathResult::MOTION_STATUS_SUCCESS;
+        result.status = FollowPathResult::RESULT_STATUS_SUCCESS;
         ROS_WARN("no path");
         return DONE;
     }
@@ -416,12 +426,12 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
     switch(status)
     {
     case RobotController::ControlStatus::REACHED_GOAL:
-        result.status = FollowPathResult::MOTION_STATUS_SUCCESS;
+        result.status = FollowPathResult::RESULT_STATUS_SUCCESS;
         return DONE;
 
     case RobotController::ControlStatus::OBSTACLE:
         if (opt_.abort_if_obstacle_ahead()) {
-            result.status = FollowPathResult::MOTION_STATUS_OBSTACLE;
+            result.status = FollowPathResult::RESULT_STATUS_OBSTACLE;
             return DONE;
         } else {
             feedback.status = FollowPathFeedback::MOTION_STATUS_OBSTACLE;
@@ -434,7 +444,7 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
 
     default:
         ROS_INFO_STREAM("aborting, status=" << static_cast<int>(status));
-        result.status = FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
+        result.status = FollowPathResult::RESULT_STATUS_INTERNAL_ERROR;
         return DONE;
     }
 }
@@ -446,7 +456,7 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
     if ( goal.path.poses.size() < 2 ) {
         ROS_ERROR("Got an invalid path with less than two poses.");
         stop();
-        pending_error_ = FollowPathResult::MOTION_STATUS_INTERNAL_ERROR;
+        pending_error_ = FollowPathResult::RESULT_STATUS_INTERNAL_ERROR;
         return;
     }
 

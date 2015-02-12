@@ -67,7 +67,7 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 
     double delta_f_raw = 0;
 
-    setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
+    setStatus(path_msgs::FollowPathResult::RESULT_STATUS_MOVING);
 
     if (!pid_.execute( error, delta_f_raw)) {
         // Nothing to do
@@ -171,7 +171,7 @@ void RobotController_Ackermann_Pid::behaveOnLine()
     }
 
     if(setCommand(e_combined, speed)) {
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
+        setStatus(path_msgs::FollowPathResult::RESULT_STATUS_MOVING);
     }
 }
 
@@ -312,8 +312,9 @@ double RobotController_Ackermann_Pid::calculateLineError()
     Line2d target_line;
     Vector3d followup_next_wp_local;
     if (!path_driver_->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_INTERNAL_ERROR);
-        throw new EmergencyBreakException("Cannot transform next waypoint");
+        setStatus(path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
+        throw EmergencyBreakException("Cannot transform next waypoint",
+                                      path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
     target_line = Line2d( next_wp_local_.head<2>(), followup_next_wp_local.head<2>());
     visualizer_->visualizeLine(target_line);
