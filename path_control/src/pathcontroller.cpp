@@ -58,7 +58,7 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
             }
 
             // if follower reports success, we are done. If not, replan
-            if (follow_path_result_->status == FollowPathResult::MOTION_STATUS_SUCCESS) {
+            if (follow_path_result_->status == FollowPathResult::RESULT_STATUS_SUCCESS) {
                 failed = false;
                 break;
             } else {
@@ -201,7 +201,7 @@ void PathController::handleFollowPathResult()
         nav_result.status = NavigateToGoalResult::STATUS_OTHER_ERROR;
         nav_result.reached_goal = false;
     } else {
-        nav_result.reached_goal = (follow_path_result_->status == FollowPathResult::MOTION_STATUS_SUCCESS);
+        nav_result.reached_goal = (follow_path_result_->status == FollowPathResult::RESULT_STATUS_SUCCESS);
 
         ROS_DEBUG("FollowPathResult status = %d", follow_path_result_->status);
 
@@ -210,15 +210,15 @@ void PathController::handleFollowPathResult()
         }
         else {
             switch (follow_path_result_->status) {
-            case FollowPathResult::MOTION_STATUS_OBSTACLE:
+            case FollowPathResult::RESULT_STATUS_OBSTACLE:
                 nav_result.status = NavigateToGoalResult::STATUS_COLLISION;
                 break;
 
-            case FollowPathResult::MOTION_STATUS_PATH_LOST:
+            case FollowPathResult::RESULT_STATUS_PATH_LOST:
                 nav_result.status = NavigateToGoalResult::STATUS_LOST_PATH;
                 break;
 
-            case FollowPathResult::MOTION_STATUS_TIMEOUT:
+            case FollowPathResult::RESULT_STATUS_TIMEOUT:
                 nav_result.status = NavigateToGoalResult::STATUS_TIMEOUT;
                 break;
 

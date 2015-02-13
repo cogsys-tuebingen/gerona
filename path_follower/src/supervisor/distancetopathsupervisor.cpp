@@ -27,7 +27,7 @@ void DistanceToPathSupervisor::supervise(Supervisor::State &state, Supervisor::R
                  dist, max_dist_);
 
         out->can_continue = false;
-        out->status = path_msgs::FollowPathResult::MOTION_STATUS_PATH_LOST;
+        out->status = path_msgs::FollowPathResult::RESULT_STATUS_PATH_LOST;
     }
 }
 

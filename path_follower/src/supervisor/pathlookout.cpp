@@ -131,7 +131,7 @@ void PathLookout::supervise(State &state, Supervisor::Result *out)
     ROS_DEBUG_NAMED(MODULE, "Max Obstacle Weight: %g, limit: %g", max_weight, limit);
     if (max_weight > limit) {
         out->can_continue = false;
-        out->status = path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE;
+        out->status = path_msgs::FollowPathResult::RESULT_STATUS_OBSTACLE;
     }
 }
 
@@ -142,14 +142,15 @@ void PathLookout::eventNewGoal()
 
 vector<Obstacle> PathLookout::lookForObstacles()
 {
-    vector<cv::Point2f> obs_front = findObstaclesInCloud(obstacle_cloud_);
+    list<cv::Point2f> obs_front = findObstaclesInCloud(obstacle_cloud_);
 
     // cluster
-    vector<vector<cv::Point2f> > obstacle_points = clusterPoints(obs_front);
+    list<list<cv::Point2f> > obstacle_points = clusterPoints(obs_front,
+                                                             opt_.scan_cluster_max_distance());
 
     vector<Obstacle> observed_obstacles;
     observed_obstacles.reserve(obstacle_points.size());
-    for (vector<vector<cv::Point2f> >::const_iterator it = obstacle_points.begin(); it != obstacle_points.end(); ++it) {
+    for (auto it = obstacle_points.cbegin(); it != obstacle_points.cend(); ++it) {
         // ignore clusters, that are too small
         if (it->size() < (size_t)opt_.min_number_of_points()) {
             continue;
@@ -158,7 +159,8 @@ vector<Obstacle> PathLookout::lookForObstacles()
         try {
             // get obstacle position and size from enclosing circle
             Obstacle obstacle;
-            cv::minEnclosingCircle(*it, obstacle.center, obstacle.radius);
+            vector<cv::Point2f> v_obs_points(it->begin(), it->end());
+            cv::minEnclosingCircle(v_obs_points, obstacle.center, obstacle.radius);
 
             observed_obstacles.push_back(obstacle);
         } catch (const tf::TransformException& ex) {
@@ -171,71 +173,33 @@ vector<Obstacle> PathLookout::lookForObstacles()
     return observed_obstacles;
 }
 
-vector<vector<cv::Point2f> > PathLookout::clusterPoints(const vector<cv::Point2f> &points)
-{
-//    // http://answers.opencv.org/question/8359/hierarchical-clustering-with-flann/
-//    cv::Mat in, centers(5, 2);
-//    for (vector<cv::Point2f>::iterator it = points.begin; it != points.end; ++it) {
-//        in.push_back(*it);
-//    }
-
-//    // create the kmeans parameters structure: branching factor = 32,
-//    // number of iterations = 100, choose initial centers by PP-algorithm
-//    cv::flann::KMeansIndexParams kmean_params(8, 10, cv::flann::FLANN_CENTERS_KMEANSPP);
-
-//    int num_clusters = cv::flann::hierarchicalClustering<cv::L2<float> >(in, centers, kmean_params);
-
-//    centers = centers.rowRange(cv::Range(0,true_number_clusters));
-
-
-    /* The clustering here is very simple and exploits the fact, that the points of the laser scan are already
-     * ordered by their scan angle.
-     * Consecutive points are put to the same cluster, until the distance between two neighbouring points exceeds
-     * the threshold defined by opt_.scan_cluster_max_distance(). In this case, the current cluster is closed and a
-     * new cluster is started.
-     *  --> clusters are in fact segments of the scan.
-     *
-     * FIXME: this is not guaranteed anymore using the obstacle cloud!
-     */
-
-    vector<vector<cv::Point2f> > result;
-
-    if (points.empty()) {
-        return result;
-    }
-
-    vector<cv::Point2f> cluster;
-    cluster.push_back(points[0]);
-    for (size_t i = 1; i < points.size(); ++i) {
-        float d = cv::norm(points[i-1] - points[i]);
-
-//        // Debug - show point index in rviz
-//        geometry_msgs::Point gp;
-//        gp.x = points[i].x;
-//        gp.y = points[i].y;
-//        gp.z = i*0.1;
-//        visualizer_->drawText(i, gp, boost::lexical_cast<std::string>(i), "obs_scan_index", 0,1,0);
-
-        if (d > opt_.scan_cluster_max_distance()) {
-            // end cluster
-            result.push_back(cluster);
-            cluster.clear();
-        }
-        cluster.push_back(points[i]);
-    }
-    // add last cluster
-    result.push_back(cluster);
-
-    ROS_DEBUG_NAMED(MODULE, "[PathLookout] #points: %zu, #clusters: %zu", points.size(), result.size());
-
-    return result;
-}
-
 void PathLookout::reset()
 {
     // important! path has to be reseted, otherwise obstacles will be readded immediately.
     path_.clear();
     tracker_.reset();
+}
+
+std::list<std::list<cv::Point2f> > PathLookout::clusterPoints(const std::list<cv::Point2f> &points,
+                                                              const float dist_threshold)
+{
+    if (points.empty())
+        return std::list<std::list<cv::Point2f> >();
+
+    auto get_x = [](const cv::Point2f &p) { return p.x; };
+    auto get_y = [](const cv::Point2f &p) { return p.y; };
+    std::list<std::list<cv::Point2f> > clusters, x_clusters;
+
+    // cluster along x-axis
+    x_clusters = clusterPointsAlongAxis(points, dist_threshold, get_x); // O(n log n), n = |points|
+
+    // cluster each cluster along y-axis and merge results together in `clusters`
+    for (const auto &cluster: x_clusters) {
+        std::list<std::list<cv::Point2f> > y_clusters = clusterPointsAlongAxis(cluster, dist_threshold, get_y); // O(|c| log |c|)
+        clusters.splice(clusters.end(), std::move(y_clusters));    // O(1)
+    }
+
+    return clusters;
 }
 
 float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const
@@ -256,11 +220,11 @@ float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::Tracke
     return w_dist + w_time;
 }
 
-std::vector<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::ConstPtr &cloud)
+std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::ConstPtr &cloud)
 {
     if (path_.size() < 2) {
         ROS_WARN_NAMED(MODULE, "Path has less than 2 waypoints. No obstacle lookout is done.");
-        return std::vector<cv::Point2f>(); // return empty cloud
+        return std::list<cv::Point2f>(); // return empty cloud
     }
 
     //TODO: are cloud and path in the same frame?
@@ -269,7 +233,7 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::
         pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, *tf_listener_);
     } catch (tf::TransformException& ex) {
         ROS_ERROR_NAMED(MODULE, "Failed to transform obstacle cloud: %s", ex.what());
-        return std::vector<cv::Point2f>(); // return empty cloud
+        return std::list<cv::Point2f>(); // return empty cloud
     }
 
     //! Contains an 'is obstacle' flag for each point in the cloud
@@ -329,7 +293,7 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::
         a = b;
     }
 
-    vector<cv::Point2f> obstacle_points;
+    list<cv::Point2f> obstacle_points;
     for (size_t i = 0; i < trans_cloud.size(); ++i) {
         if (is_point_obs[i]) {
             cv::Point2f p(trans_cloud.at(i).x, trans_cloud.at(i).y);
@@ -338,4 +302,40 @@ std::vector<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::
     }
 
     return obstacle_points;
+}
+
+std::list<std::list<cv::Point2f> > PathLookout::clusterPointsAlongAxis(std::list<cv::Point2f> points,
+                                                                       const float dist_threshold,
+                                                                       std::function<float (const cv::Point2f &)> get_value)
+{
+    auto dist = [&get_value](const cv::Point2f &a, const cv::Point2f &b) {
+        return abs(get_value(a) - get_value(b));
+    };
+
+    // sort points along axis   -> O(n log(n))
+    points.sort([&get_value](const cv::Point2f &a, const cv::Point2f &b) {
+        return get_value(a) < get_value(b);
+    });
+
+    list<list<cv::Point2f> > clusters;
+    list<cv::Point2f> current_cluster;
+
+    // add first point to the current cluster
+    auto p_it = points.cbegin();
+    current_cluster.push_back(*p_it);
+
+    // iterate over the remaining points
+    for (++p_it; p_it != points.end(); ++p_it) {
+        if (dist(current_cluster.back(), *p_it) > dist_threshold) {  // dist and `>` are O(1)
+            // start new cluster
+            clusters.push_back(std::move(current_cluster));          // O(1)
+            current_cluster.clear(); // clear has linear complexity, but after moving the
+                                     // content, the list is empty --> O(1)
+        }
+
+        current_cluster.push_back(*p_it);                            // O(1)
+    } // loop: O(n)
+    clusters.push_back(std::move(current_cluster));                  // O(1)
+
+    return clusters;
 }

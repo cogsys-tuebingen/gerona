@@ -21,13 +21,13 @@ void ObstacleTracker::update(std::vector<Obstacle> observed_obstacles)
      * distance matrix itself.
      */
 
-    //FIXME: exploit enclosing circle of obstacles for matching (match if center is within the circle or something like that)
+    // TODO: exploit enclosing circle of obstacles for matching (match if center is within the circle or something like that)
 
 
     // Delete "dead" obstacles, which could not be matched for more than the time, specified in lost_lifetime_.
     // Use ugly c++ version of functional "filter"...
-    // TODO: I think it's not the best solution to drop old entries before matching, as this will completely crush
-    // any tracking, if lost_lifetime ist set to 0 ("do not track obstacles that are out of sight"). Doing it after
+    // FIXME: I think it's not the best solution to drop old entries before matching, as this will completely crush
+    // any tracking, if lost_lifetime is set to 0 ("do not track obstacles that are out of sight"). Doing it after
     // matching will cause the same problem though, as there is a small amount of time passing between the two steps.
     // It has somehow to be guaranteed, that no obstacles are dropped, that could be matched in this iteration.
     size_t dead_count = obstacles_.size();
