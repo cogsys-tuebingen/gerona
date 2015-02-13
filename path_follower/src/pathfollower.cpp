@@ -17,6 +17,7 @@
 #include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_vv.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
+#include <path_follower/legacy/robotcontroller_differential_orthexp.h>
 // Supervisors
 #include <path_follower/supervisor/pathlookout.h>
 #include <path_follower/supervisor/waypointtimeout.h>
@@ -74,6 +75,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
         controller_ = new RobotController_Ackermann_OrthogonalExponential(this);
+    } else if (opt_.controller() == "differential_orthexp") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+        controller_ = new RobotController_Differential_OrthogonalExponential(this);
     } else {
         ROS_FATAL("Unknown robot controller. Shutdown.");
         exit(1);
