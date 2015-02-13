@@ -31,10 +31,10 @@ RobotController_Differential_OrthogonalExponential::RobotController_Differential
     N_(0),
     Ts_(0.02),
     e_theta_curr_(0),
+    alpha_e_(0),
     curv_sum_(0),
     distance_to_goal_(0),
-    distance_to_obstacle_(0),
-    alpha_e_(0)
+    distance_to_obstacle_(0)
 {
     visualizer_ = Visualizer::getInstance();
     interp_path_pub_ = nh_.advertise<nav_msgs::Path>("interp_path", 10);
@@ -324,7 +324,6 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
 
     if(N_ < 2) {
         ROS_ERROR("[Line] path is too short (N = %d)", N_);
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS);
 
         stopMotion();
         return MoveCommandStatus::REACHED_GOAL;
@@ -518,9 +517,6 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
     points_pub_.publish(robot_path_marker_);
     //***//
 
-
-    // NULL PTR
-    setStatus(path_msgs::FollowPathResult::MOTION_STATUS_MOVING);
 
     // check for end
     double distance_to_goal = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
