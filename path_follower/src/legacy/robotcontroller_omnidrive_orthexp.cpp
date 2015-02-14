@@ -290,9 +290,8 @@ void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
         p_prim_.push_back(x_s_prim);
         q_prim_.push_back(y_s_prim);
 
-        curvature_.push_back((x_s_prim*x_s_sek - x_s_sek*y_s_prim)/
-                            (sqrt((x_s_prim*x_s_prim + y_s_prim*y_s_prim)*(x_s_prim*x_s_prim + y_s_prim*y_s_prim)
-                                  *(x_s_prim*x_s_prim + y_s_prim*y_s_prim))));
+        curvature_.push_back((x_s_prim*y_s_sek - x_s_sek*y_s_prim)/
+                            (sqrt(pow((x_s_prim*x_s_prim + y_s_prim*y_s_prim), 3))));
     }
 
 }

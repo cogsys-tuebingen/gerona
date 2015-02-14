@@ -6,8 +6,8 @@ This is a complete setup and enought to actually navigate the robot.
 -->
 <launch>
 	<!-- laser filter to avoid that the robot scans itself -->
-    <include file="$(find navigation_launch)/launch/laser_filter.launch" />
-
+<!--    <include file="$(find navigation_launch)/launch/laser_filter.launch" />
+-->
 	<!-- mapping -->
     <!--node name="costmap" type="costmap_gradient_node" pkg="costmap"
                 output="log" respawn="true" /-->

@@ -24,7 +24,7 @@
   <arg name="odom_frame" default="odom"/>
   <arg name="pub_map_odom_transform" default="true"/>
   <arg name="scan_subscriber_queue_size" default="5"/>
-  <arg name="scan_topic" default="scan"/>
+  <arg name="scan_topic" default="scan/front/filtered"/>
   <arg name="map_size" default="2048"/>
   
   <node pkg="hector_mapping" type="hector_mapping" name="hector_mapping" output="screen" respawn="true">
@@ -51,7 +51,7 @@
     <param name="laser_z_max_value" value = "1.0" />
     
     <param name="advertise_map_service" value="true"/>
-    <param name="map_pub_period" value="5.0" />
+    <param name="map_pub_period" value="1.0" />
     <param name="scan_subscriber_queue_size" value="$(arg scan_subscriber_queue_size)"/>
     <param name="scan_topic" value="$(arg scan_topic)"/>
     

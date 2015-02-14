@@ -2,6 +2,6 @@
 <launch>
 <!--  <include file="$(find navigation_launch)/launch/karto_segmented.launch" /> -->
 	<include file="$(find navigation_launch)/launch/karto.launch" />
-<!--	<include file="$(find navigation_launch)/launch/hector.launch" />-->
+<!--	<include file="$(find navigation_launch)/launch/hector.launch" /> -->
 <!--  <include file="$(find navigation_launch)/launch/amcl.launch" /> -->
 </launch>
