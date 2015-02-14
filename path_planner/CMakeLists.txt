@@ -43,6 +43,14 @@ target_link_libraries(path_planner_node
   ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
 
+
+add_executable(static_path_node src/planner_node.cpp src/static_path_node.cpp)
+add_dependencies(static_path_node path_msgs_generate_messages_cpp)
+
+target_link_libraries(static_path_node
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+)
+
 if(${OMPL_FOUND})
     if(${OMPLAPP_LIBRARIES})
         include_directories(${OMPL_INCLUDE_DIRS})
