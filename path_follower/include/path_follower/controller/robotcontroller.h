@@ -19,12 +19,13 @@ class RobotController
     /* DATA */
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    enum ControlStatus
+
+    enum class ControlStatus
     {
-        OKAY,
-        OBSTACLE,
-        REACHED_GOAL,
-        ERROR
+        OKAY,          //!< Everything is okay, the robot is still driving.
+        OBSTACLE,      //!< The obstacle avoider is active and modified the move command.
+        REACHED_GOAL,  //!< Goal is reached. Path execution is finished.
+        ERROR          //!< Some error occured. Path execution is aborted.
     };
 
     /* ABSTRACT METHODS */
@@ -32,6 +33,7 @@ public:
     //! Immediatley stop any motion.
     virtual void stopMotion() = 0;
 
+    //! Return true, if the robot is capable of omnidirectional movement.
     virtual bool isOmnidirectional() const;
 
     virtual void start() {}
@@ -45,9 +47,9 @@ public:
 
 protected:
     //! This is a subset of ControlStatus. computeMoveCommand is not allowed to report obstacles
-    enum MoveCommandStatus
+    enum class MoveCommandStatus
     {
-        MC_OKAY, MC_REACHED_GOAL, MC_ERROR
+        OKAY, REACHED_GOAL, ERROR
     };
 
     /**
@@ -57,8 +59,31 @@ protected:
      */
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd) = 0;
 
-    //! Converts the move command to ros message and publishs it.
+    /**
+     * @brief Converts the move command to ros message and publishs it.
+     *
+     * The implementation has to convert the move command to the appropriate ROS message and
+     * publish it using `this->cmd_pub_`.
+     * Use initPublisher() to initialize `this->cmd_pub_`.
+     *
+     * @see cmd_pub_
+     * @see initPublisher
+     *
+     * @param cmd The move command.
+     */
     virtual void publishMoveCommand(const MoveCommand &cmd) const = 0;
+
+
+    /**
+     * @brief Initialize the command publisher
+     *
+     * Takes a pointer to a publisher instance and initializes it. The default behaviour is to
+     * set up an publisher that sends `geometry_msgs::Twist` messages to "/cmd_vel".
+     * Overwrite this method if you need an other message type and/or topic.
+     *
+     * @param pub Output parameter
+     */
+    virtual void initPublisher(ros::Publisher* pub) const;
 
 
     /* REGULAR METHODS */
@@ -94,6 +119,7 @@ public:
         velocity_ = v;
     }
 
+    //! Set +1 for forward movement and -1 if the robot is driving backward.
     virtual void setDirSign(float s)
     {
         dir_sign_ = s;
@@ -121,9 +147,7 @@ protected:
     Eigen:: Vector3d next_wp_local_;
 
 
-    virtual void initPublisher(ros::Publisher* pub) const;
-
-    void setStatus(int status);
+    ROS_DEPRECATED void setStatus(int status);
 
     //! Calculate the angle between the orientations of the waypoint and the robot.
     virtual double calculateAngleError();

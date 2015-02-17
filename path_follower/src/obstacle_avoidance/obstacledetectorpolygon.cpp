@@ -12,6 +12,11 @@
 
 using namespace std;
 
+namespace {
+//! Module name, that is used for ros console output
+const std::string MODULE = "obstacle_avoider";
+}
+
 bool ObstacleDetectorPolygon::checkOnCloud(ObstacleCloud::ConstPtr obstacles, float width, float length, float course_angle, float curve_enlarge_factor)
 {
     bool collision = false;
@@ -19,7 +24,7 @@ bool ObstacleDetectorPolygon::checkOnCloud(ObstacleCloud::ConstPtr obstacles, fl
 
 
     if (pwf.polygon.size() == 0) {
-        ROS_WARN("Obstacle polygon is empty -> no obstacle test is done!");
+        ROS_WARN_NAMED(MODULE, "Obstacle polygon is empty -> no obstacle test is done!");
         return false;
     }
 
@@ -31,7 +36,7 @@ bool ObstacleDetectorPolygon::checkOnCloud(ObstacleCloud::ConstPtr obstacles, fl
         //      whole point cloud
         pcl_ros::transformPointCloud(pwf.frame, *obstacles, cloud, *tf_listener_);
     } catch (tf::TransformException& ex) {
-        ROS_ERROR("Failed to transform obstacle cloud to polygon frame: %s", ex.what());
+        ROS_ERROR_NAMED(MODULE, "Failed to transform obstacle cloud to polygon frame: %s", ex.what());
         // can't check for obstacles, so better assume there is one.
         return true;
     }

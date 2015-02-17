@@ -1,5 +1,5 @@
 // HEADER
-#include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
+#include <path_follower/legacy/robotcontroller_differential_orthexp.h>
 
 // THIRD PARTY
 #include <nav_msgs/Path.h>
@@ -20,7 +20,7 @@
 using namespace Eigen;
 
 
-RobotController_Ackermann_OrthogonalExponential::RobotController_Ackermann_OrthogonalExponential(PathFollower *path_driver):
+RobotController_Differential_OrthogonalExponential::RobotController_Differential_OrthogonalExponential(PathFollower *path_driver):
     RobotController(path_driver),
     cmd_(this),
     nh_("~"),
@@ -31,6 +31,7 @@ RobotController_Ackermann_OrthogonalExponential::RobotController_Ackermann_Ortho
     N_(0),
     Ts_(0.02),
     e_theta_curr_(0),
+    alpha_e_(0),
     curv_sum_(0),
     distance_to_goal_(0),
     distance_to_obstacle_(0)
@@ -40,14 +41,14 @@ RobotController_Ackermann_OrthogonalExponential::RobotController_Ackermann_Ortho
     points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
 
     look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
-                                                       &RobotController_Ackermann_OrthogonalExponential::lookAtCommand, this);
+                                                       &RobotController_Differential_OrthogonalExponential::lookAtCommand, this);
     look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
-                                                              &RobotController_Ackermann_OrthogonalExponential::lookAt, this);
+                                                              &RobotController_Differential_OrthogonalExponential::lookAt, this);
 
     laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
-                                                             &RobotController_Ackermann_OrthogonalExponential::laserFront, this);
+                                                             &RobotController_Differential_OrthogonalExponential::laserFront, this);
     laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
-                                                            &RobotController_Ackermann_OrthogonalExponential::laserBack, this);
+                                                            &RobotController_Differential_OrthogonalExponential::laserBack, this);
 
     std::cout << "Value of K_O: " << opt_.k_o() << std::endl;
     // path marker
@@ -76,7 +77,7 @@ RobotController_Ackermann_OrthogonalExponential::RobotController_Ackermann_Ortho
 
 }
 
-void RobotController_Ackermann_OrthogonalExponential::stopMotion()
+void RobotController_Differential_OrthogonalExponential::stopMotion()
 {
     //FIXME: this method should be improved
 
@@ -84,12 +85,12 @@ void RobotController_Ackermann_OrthogonalExponential::stopMotion()
     cmd_.direction_angle = 0;
     cmd_.rotation = 0;
 
-    MoveCommand mcmd;
+    MoveCommand mcmd(true);
     mcmd.setVelocity(0);
     publishMoveCommand(mcmd);
 }
 
-void RobotController_Ackermann_OrthogonalExponential::lookAtCommand(const std_msgs::StringConstPtr &cmd)
+void RobotController_Differential_OrthogonalExponential::lookAtCommand(const std_msgs::StringConstPtr &cmd)
 {
     const std::string& command = cmd->data;
 
@@ -102,7 +103,7 @@ void RobotController_Ackermann_OrthogonalExponential::lookAtCommand(const std_ms
     }
 }
 
-void RobotController_Ackermann_OrthogonalExponential::setPath(Path::Ptr path)
+void RobotController_Differential_OrthogonalExponential::setPath(Path::Ptr path)
 {
     RobotController::setPath(path);
 
@@ -123,13 +124,13 @@ void RobotController_Ackermann_OrthogonalExponential::setPath(Path::Ptr path)
     initialize();
 }
 
-void RobotController_Ackermann_OrthogonalExponential::lookAt(const geometry_msgs::PointStampedConstPtr &look_at)
+void RobotController_Differential_OrthogonalExponential::lookAt(const geometry_msgs::PointStampedConstPtr &look_at)
 {
     look_at_ = look_at->point;
     view_direction_ = LookAtPoint;
 }
 
-void RobotController_Ackermann_OrthogonalExponential::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
+void RobotController_Differential_OrthogonalExponential::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
 {
     ranges_front_.clear();
     for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
@@ -141,7 +142,7 @@ void RobotController_Ackermann_OrthogonalExponential::laserFront(const sensor_ms
     findMinDistance();
 }
 
-void RobotController_Ackermann_OrthogonalExponential::laserBack(const sensor_msgs::LaserScanConstPtr &scan)
+void RobotController_Differential_OrthogonalExponential::laserBack(const sensor_msgs::LaserScanConstPtr &scan)
 {
     ranges_back_.clear();
     for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
@@ -153,7 +154,7 @@ void RobotController_Ackermann_OrthogonalExponential::laserBack(const sensor_msg
     findMinDistance();
 }
 
-void RobotController_Ackermann_OrthogonalExponential::findMinDistance()
+void RobotController_Differential_OrthogonalExponential::findMinDistance()
 {
     std::vector<float> ranges;
     ranges.insert(ranges.end(), ranges_front_.begin(), ranges_front_.end());
@@ -169,23 +170,23 @@ void RobotController_Ackermann_OrthogonalExponential::findMinDistance()
 
 }
 
-void RobotController_Ackermann_OrthogonalExponential::keepHeading()
+void RobotController_Differential_OrthogonalExponential::keepHeading()
 {
     view_direction_ = KeepHeading;
     theta_des_ = path_driver_->getRobotPose()[2];
 }
 
-void RobotController_Ackermann_OrthogonalExponential::rotate()
+void RobotController_Differential_OrthogonalExponential::rotate()
 {
     view_direction_ = Rotate;
 }
 
-void RobotController_Ackermann_OrthogonalExponential::lookInDrivingDirection()
+void RobotController_Differential_OrthogonalExponential::lookInDrivingDirection()
 {
     view_direction_ = LookInDrivingDirection;
 }
 
-void RobotController_Ackermann_OrthogonalExponential::initialize()
+void RobotController_Differential_OrthogonalExponential::initialize()
 {
     // initialize the desired angle and the angle error
     e_theta_curr_ = path_driver_->getRobotPose()[2];
@@ -196,7 +197,7 @@ void RobotController_Ackermann_OrthogonalExponential::initialize()
     initialized_ = true;
 }
 
-void RobotController_Ackermann_OrthogonalExponential::clearBuffers()
+void RobotController_Differential_OrthogonalExponential::clearBuffers()
 {
     p_.clear();
     q_.clear();
@@ -208,7 +209,7 @@ void RobotController_Ackermann_OrthogonalExponential::clearBuffers()
 
 }
 
-void RobotController_Ackermann_OrthogonalExponential::interpolatePath()
+void RobotController_Differential_OrthogonalExponential::interpolatePath()
 {
     std::deque<Waypoint> waypoints;
     waypoints.insert(waypoints.end(), path_->getCurrentSubPath().begin(), path_->getCurrentSubPath().end());
@@ -293,7 +294,7 @@ void RobotController_Ackermann_OrthogonalExponential::interpolatePath()
 
 }
 
-void RobotController_Ackermann_OrthogonalExponential::publishInterpolatedPath()
+void RobotController_Differential_OrthogonalExponential::publishInterpolatedPath()
 {
     if(N_ <= 2) {
         return;
@@ -311,19 +312,18 @@ void RobotController_Ackermann_OrthogonalExponential::publishInterpolatedPath()
 }
 
 
-void RobotController_Ackermann_OrthogonalExponential::start()
+void RobotController_Differential_OrthogonalExponential::start()
 {
     path_driver_->getCoursePredictor().reset();
 }
 
-RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponential::computeMoveCommand(MoveCommand *cmd)
+RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExponential::computeMoveCommand(MoveCommand *cmd)
 {
     // omni drive can rotate.
     *cmd = MoveCommand(true);
 
     if(N_ < 2) {
         ROS_ERROR("[Line] path is too short (N = %d)", N_);
-        setStatus(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
 
         stopMotion();
         return MoveCommandStatus::REACHED_GOAL;
@@ -453,11 +453,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     double look_ahead_cum_sum = 0;
     curv_sum_ = 1e-10;
 
-    int counter = 0;
 
     for (unsigned int i = ind + 1; i < N_; i++){
-
-        counter++;
 
         look_ahead_cum_sum += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
         curv_sum_ += fabs(curvature_[i]);
@@ -466,7 +463,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
             break;
         }
     }
-    ROS_INFO("Counter: %d", counter);
 
     /*for (int i = ind; i < N; i++){
 
@@ -499,7 +495,11 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 
     cmd_.speed = std::max(vn_*exp(-exponent),0.2);
 
-    cmd_.direction_angle = atan(-opt_.k()*orth_proj) + theta_p - theta_meas;
+    double last_alpha_e = alpha_e_;
+    alpha_e_ = atan(-opt_.k()*orth_proj);
+    cmd_.direction_angle = alpha_e_ + theta_p - theta_meas;
+
+    cmd_.rotation = (alpha_e_ - last_alpha_e) / Ts_ + cmd_.direction_angle;
 
     //***//
 
@@ -518,9 +518,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     //***//
 
 
-    // NULL PTR
-    setStatus(path_msgs::FollowPathResult::RESULT_STATUS_MOVING);
-
     // check for end
     double distance_to_goal = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
     ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal);
@@ -528,25 +525,24 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     if(distance_to_goal <= path_driver_->getOptions().goal_tolerance()) {
         return MoveCommandStatus::REACHED_GOAL;
     } else {
-        // Quickfix: simply convert ackermann command to move command
-        cmd->setDirection(cmd_.direction_angle);
         cmd->setVelocity(cmd_.speed);
+        cmd->setRotation(cmd_.rotation);
 
         return MoveCommandStatus::OKAY;
     }
 }
 
-void RobotController_Ackermann_OrthogonalExponential::publishMoveCommand(const MoveCommand &cmd) const
+void RobotController_Differential_OrthogonalExponential::publishMoveCommand(const MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
     msg.linear.x  = cmd.getVelocity();
     msg.linear.y  = 0;
-    msg.angular.z = cmd.getDirectionAngle();
+    msg.angular.z = cmd.getRotation();
 
     cmd_pub_.publish(msg);
 }
 
-void RobotController_Ackermann_OrthogonalExponential::reset()
+void RobotController_Differential_OrthogonalExponential::reset()
 {
     initialized_ = false;
 }

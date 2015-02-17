@@ -1,0 +1,5 @@
+<launch>
+  <test test-name="test_obstacletracker" pkg="path_follower" type="test_obstacletracker">
+    <param name="obstacle_tracker/lost_lifetime" value="1" />
+  </test>
+</launch>

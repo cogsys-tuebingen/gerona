@@ -43,7 +43,7 @@ public:
     PathFollower(ros::NodeHandle &nh);
     ~PathFollower();
 
-    bool getWorldPose(Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = NULL) const;
+    bool getWorldPose(Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = nullptr) const;
     geometry_msgs::Twist getVelocity() const;
     bool transformToLocal(const geometry_msgs::PoseStamped& global, geometry_msgs::PoseStamped& local );
     bool transformToLocal(const geometry_msgs::PoseStamped& global, Vector3d& local );
@@ -65,7 +65,7 @@ public:
 
     Path::Ptr getPath();
 
-    void setStatus(int status);
+    ROS_DEPRECATED void setStatus(int status);
 
     bool callObstacleAvoider(MoveCommand *cmd);
 
@@ -113,7 +113,7 @@ private:
     //! The last received odometry message.
     nav_msgs::Odometry odometry_;
 
-    //! The last received obstacle cloud (TODO: better store mesage directly as shared_ptr?)
+    //! The last received obstacle cloud
     ObstacleCloud::ConstPtr obstacle_cloud_;
 
     //! Current pose of the robot as Eigen vector (x,y,theta).

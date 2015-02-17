@@ -48,8 +48,8 @@ Eigen::Vector2d CoursePredictor::predictDirectionOfMovement()
 
         Vector3d last_position;
         if ( !path_driver_->transformToLocal(last_pos_msg, last_position) ) {
-            path_driver_->setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
-            throw EmergencyBreakException("cannot transform last known position");
+            throw EmergencyBreakException("cannot transform last known position",
+                                          path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
         }
 
         // calculate direction of movement (current_pos - last_pos, where current_pos = 0)
@@ -89,8 +89,8 @@ Eigen::Vector2d CoursePredictor::smoothedDirection()
 
         geometry_msgs::PoseStamped local_msg;
         if ( !path_driver_->transformToLocal(line_direction_as_pose_msg, local_msg) ) {
-            path_driver_->setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
-            throw EmergencyBreakException("cannot transform line");
+            throw EmergencyBreakException("cannot transform line",
+                                          path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
         }
 
         tf::Quaternion rot;

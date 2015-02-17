@@ -19,8 +19,8 @@ void RobotController::setPath(Path::Ptr path)
     wp_pose.header.stamp = ros::Time::now();
     wp_pose.pose = path->getCurrentWaypoint();
     if ( !path_driver_->transformToLocal( wp_pose, next_wp_local_)) {
-        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL);
-        throw EmergencyBreakException("cannot transform path");
+        throw EmergencyBreakException("cannot transform path",
+                                      path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
 }
 
@@ -40,14 +40,14 @@ double RobotController::calculateAngleError()
 RobotController::ControlStatus RobotController::MCS2CS(RobotController::MoveCommandStatus s)
 {
     switch (s) {
-    case MC_OKAY:
-        return OKAY;
-    case MC_REACHED_GOAL:
-        return REACHED_GOAL;
+    case MoveCommandStatus::OKAY:
+        return ControlStatus::OKAY;
+    case MoveCommandStatus::REACHED_GOAL:
+        return ControlStatus::REACHED_GOAL;
     default:
         ROS_ERROR("MoveCommandStatus %d is not handled by MCS2CS! Return ERROR instead.", s);
-    case MC_ERROR:
-        return ERROR;
+    case MoveCommandStatus::ERROR:
+        return ControlStatus::ERROR;
     }
 }
 
@@ -61,22 +61,19 @@ RobotController::ControlStatus RobotController::execute()
     MoveCommand cmd;
     MoveCommandStatus status = computeMoveCommand(&cmd);
 
-    /*TODO: Evlt wäre es sinnvoll den REACHED_GOAL check nicht in computeMoveCommand zu machen,
-     * sondern in einer separaten Methode außerhalb, die einfach abstand zum ziel mit einer
-     * bestimmten toleranz misst?
-     */
-
-    if (status != MC_OKAY) {
+    if (status != MoveCommandStatus::OKAY) {
+        stopMotion();
         return MCS2CS(status);
     } else {
         bool cmd_modified = path_driver_->callObstacleAvoider(&cmd);
 
         if (!cmd.isValid()) {
             ROS_ERROR("Invalid move command.");
-            return ERROR;
+            stopMotion();
+            return ControlStatus::ERROR;
         } else {
             publishMoveCommand(cmd);
-            return cmd_modified ? OBSTACLE : OKAY;
+            return cmd_modified ? ControlStatus::OBSTACLE : ControlStatus::OKAY;
         }
     }
 }

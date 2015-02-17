@@ -8,7 +8,7 @@ Launch the path follower with the "OrthExp" controller and omnidirectional kinem
     
     <!-- supervisors -->
     <param name="supervisor/use_path_lookout" value="true" />
-    <param name="supervisor/use_waypoint_timeout" value="true" />
+    <param name="supervisor/use_waypoint_timeout" value="false" />
     <param name="supervisor/use_distance_to_path" value="true" />
     
     <param name="supervisor/path_lookout/obstacle_scale_distance" value="1.0" />
@@ -33,18 +33,18 @@ Launch the path follower with the "OrthExp" controller and omnidirectional kinem
     <param name="min_velocity" value="0.1" />
     <param name="max_velocity" value="2.0" />
     <param name="waypoint_tolerance" value="2.0" />
-    <param name="goal_tolerance" value="0.4" />
+    <param name="goal_tolerance" value="0.1" />
     
     
     <!-- parameters, that are dependent of the controller or the robot model -->
-    <param name="kp" value="2.5" />
+    <param name="kp" value="1.5" />
     <param name="kd" value="1.0" />
     <param name="look_ahead_dist" value="2.0" />
     <param name="k" value="2.0" />
     <param name="k_o" value="0.2" />
     <param name="k_g" value="0.4" />
     <param name="k_w" value="0.75" />
-    <param name="k_curv" value="1.0" />
+    <param name="k_curv" value="0.2" />
 
 
     <remap from="scan" to="scan/front/filtered" />

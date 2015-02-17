@@ -56,7 +56,9 @@ struct NonHolonomicNeighborhoodPrecise :
 
 
         // euclidean distance
-        int delta = 4;
+        int delta = 5;
+        if(hypot(goal->x - reference->x, goal->y - reference->y) < 10.0) return true;
+
         if(std::abs(goal->x - reference->x) < delta &&
                 std::abs(goal->y - reference->y) < delta) {
             return true;
@@ -175,7 +177,7 @@ struct PathPlanner : public Planner
     //  TODO: make these two (or more?) selectable:
     //typedef AStarNoOrientationSearch<> AStar;
 //    typedef AStarSearch<NonHolonomicNeighborhood<40, 360, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/> > AStarAckermann; // Ackermann
-    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<60, 250, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD> > AStarAckermann; // Ackermann
+    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 500, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/> > AStarAckermann; // Ackermann
 //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
 //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
     typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD> > AStarPatsyForward;

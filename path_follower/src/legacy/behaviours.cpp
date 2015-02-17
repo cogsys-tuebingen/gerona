@@ -5,15 +5,6 @@
 
 using namespace Eigen;
 
-namespace {
-double sign(double value) {
-    if (value < 0) return -1;
-    if (value > 0) return 1;
-    return 0;
-}
-}
-
-
 //##### BEGIN Behaviour
 Behaviour::Behaviour(PathFollower &parent):
     parent_(parent),
@@ -110,7 +101,7 @@ Behaviour* BehaviourOnLine::selectNextWaypoint()
        // ROS_ERROR_STREAM("opt.wp_idx: " << opt.wp_idx << ", size: " << last_wp_idx);
         if(path->isLastWaypoint() || path->isSubPathDone()) {
             // if distance to wp == last_wp -> state = APPROACH_TURNING_POINT
-            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+            *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_MOVING;
             return new BehaviourApproachTurningPoint(parent_);
         }
         else {
@@ -126,8 +117,9 @@ Behaviour* BehaviourOnLine::selectNextWaypoint()
     next_wp_map_.header.stamp = ros::Time::now();
 
     if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
-        throw new EmergencyBreakException("cannot transform next waypoint");
+        *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL;
+        throw EmergencyBreakException("cannot transform next waypoint",
+                                      path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
 
     return this;
@@ -170,7 +162,7 @@ Behaviour* BehaviourApproachTurningPoint::handleDone()
        (std::abs(parent_.getVelocity().linear.y) > 0.01) ||
        (std::abs(parent_.getVelocity().angular.z) > 0.01)) {
         ROS_INFO_THROTTLE(1, "WAITING until no more motion");
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+        *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_MOVING;
 
     } else {
         ROS_INFO("Done at waypoint -> reset");
@@ -179,10 +171,10 @@ Behaviour* BehaviourApproachTurningPoint::handleDone()
         path->switchToNextSubPath();
 
         if(path->isDone()) {
-            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SUCCESS;
-            return NULL;
+            *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS;
+            return nullptr;
         } else {
-            *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_MOVING;
+            *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_MOVING;
             return new BehaviourOnLine(parent_);
         }
     }
@@ -203,8 +195,9 @@ Behaviour* BehaviourApproachTurningPoint::selectNextWaypoint()
     next_wp_map_.header.stamp = ros::Time::now();
 
     if ( !parent_.transformToLocal( next_wp_map_, next_wp_local_ )) {
-        *status_ptr_ = path_msgs::FollowPathResult::MOTION_STATUS_SLAM_FAIL;
-        throw new EmergencyBreakException("Cannot transform next waypoint");
+        *status_ptr_ = path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL;
+        throw EmergencyBreakException("Cannot transform next waypoint",
+                                      path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
 
     return this;
