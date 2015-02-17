@@ -33,6 +33,7 @@
     <param name="k_curv" value="1.0" />
 
     <remap from="scan" to="scan/filtered" />
+    <remap from="/obstacles" to="/obstacle_cloud" />
   </node>
   
 </launch>
