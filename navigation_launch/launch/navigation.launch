@@ -10,6 +10,7 @@ tasks and can be used instead of this file.
 -->
 <launch>
     <include file="$(find path_planner)/launch/planner.launch" />
+<!--    <include file="$(find path_planner)/launch/static_path.launch" />-->
     <include file="$(find path_control)/launch/path_control.launch" />
     <include file="$(find path_follower)/launch/follower.launch" />
 </launch>
