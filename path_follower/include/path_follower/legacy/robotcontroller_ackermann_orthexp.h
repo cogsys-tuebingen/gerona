@@ -106,9 +106,9 @@ private:
             float angle = direction_angle;
 
             geometry_msgs::Twist msg;
-            msg.linear.x  = speed * cos(angle);
-            msg.linear.y  = speed * sin(angle);
-            msg.angular.z = rotation;
+            msg.linear.x  = speed;
+            msg.linear.y  = 0;
+            msg.angular.z = angle;
             return msg;
         }
 

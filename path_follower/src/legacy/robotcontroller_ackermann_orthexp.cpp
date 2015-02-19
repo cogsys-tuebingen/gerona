@@ -453,11 +453,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     double look_ahead_cum_sum = 0;
     curv_sum_ = 1e-10;
 
-    int counter = 0;
-
     for (unsigned int i = ind + 1; i < N_; i++){
-
-        counter++;
 
         look_ahead_cum_sum += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
         curv_sum_ += fabs(curvature_[i]);
@@ -466,25 +462,19 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
             break;
         }
     }
-    ROS_INFO("Counter: %d", counter);
 
-    /*for (int i = ind; i < N; i++){
 
-        if(fabs(hypot(x_meas - p[i], y_meas - q[i]) - look_ahead_dist) < look_ahead_difference){
+    double cum_sum_to_goal = 0;
 
-            look_ahead_difference = fabs(hypot(x_meas - p[i], y_meas - q[i]) - look_ahead_dist);
-            look_ahead_index = i;
+    for (int i = ind; i < N_; i++){
 
-        }
+        cum_sum_to_goal += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
+
     }
+    distance_to_goal_ = cum_sum_to_goal;
 
-    curv_sum = 1e-10;
-    for (int i = ind; i <= look_ahead_index; i++){
 
-        curv_sum += fabs(curvature[i]);
-    }*/
-
-    distance_to_goal_ = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
+    //distance_to_goal_ = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
 
     double angular_vel = path_driver_->getVelocity().angular.z;
     //***//
