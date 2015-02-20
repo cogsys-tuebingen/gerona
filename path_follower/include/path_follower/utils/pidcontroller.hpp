@@ -1,40 +1,77 @@
 #ifndef PIDCONTROLLER_H
 #define PIDCONTROLLER_H
 
-#include <type_traits> // for std::conditional
 #include <Eigen/Core>
 #include <utils_general/Stopwatch.h>
 
 /**
- * @brief Multidimensional PID controller
+ * @brief Multidimensional PID controller.
+ *
+ * Implements a basic PID controller that is capable to work with multidimensional input (that
+ * is it can actually controll multiple variables at onces).
+ *
+ * The first template parameter defines the number of variables. Parameters, errors, etc are
+ * passed via Eigen::Vectors.
+ * For the special case of dim=1, there are overloaded methods, that take floats/doubles.
+ *
+ * The second template Parameter can be used to change precision from float to double.
+ *
+ * Usage
+ * -----
+ *
+ * One dimensional case:
+ *
+ *     PidController<1> pid_1d(1, 0.1, 0, 0.5); // P = 1, I = 0.1, D = 0, update interval = 0.5s
+ *     float u;
+ *     pid_1d.execute(error, &u);
+ *
+ * Multidimensional case:
+ *
+ *     typedef PidController<3>::Vector Vec3;
+ *
+ *     PidController<3> pid_3d(Vec3(1, 1,   0.5),
+ *                             Vec3(0, 0.1, 0.2),
+ *                             Vec3(0, 0,   0.1),
+ *                             0.5);
+ *     Vec3 u;
+ *     pid_3d.execute(error, &u);
+ *
+ *     // --> u[0] is controlled with P = 1, I,D = 0
+ *     //     u[1] is controlled with P = 1, I = 0.1, D = 0
+ *     //     u[2] is controlled with P = 0.5, I = 0.2, D = 0.1
  */
-template<unsigned int dim>
+template<unsigned int dim=1, typename real_t=float>
 class PidController
 {
 public:
-    // typedef for vector and matrix type enables easy switch to double precision if needed.
-    typedef float real_t;
-
-    // use C++11 magic to make Vector and Matrix simple scalars, if dim == 1 and use Eigen
-    // if dim > 1
-    typedef typename std::conditional<dim == 1,
-                                      real_t,
-                                      Eigen::Matrix<real_t, dim, 1> >::type Vector;
-    typedef typename std::conditional<dim == 1,
-                                      real_t,
-                                      Eigen::Matrix<real_t, dim, dim> >::type Matrix;
+    typedef Eigen::Matrix<real_t, dim, 1> Vector;
+    typedef Eigen::Matrix<real_t, dim, dim> Matrix;
 
     PidController():
         PidController(Vector::Zero(), Vector::Zero(), Vector::Zero(), 0)
     {}
 
     PidController(Vector K_p, Vector K_i, Vector K_d, real_t dt):
-        K_p_(Matrix::Identity() * K_p), //FIXME: this is not working with the conditional type
-        K_i_(Matrix::Identity() * K_i),
-        K_d_(Matrix::Identity() * K_d),
+        K_p_(K_p.asDiagonal()),
+        K_i_(K_i.asDiagonal()),
+        K_d_(K_d.asDiagonal()),
         dt_(dt)
     {
         reset();
+    }
+
+    PidController(real_t K_p, real_t K_i, real_t K_d, real_t dt):
+        PidController(Matrix(Matrix::Constant(K_p)),
+                      Matrix(Matrix::Constant(K_i)),
+                      Matrix(Matrix::Constant(K_d)),
+                      dt)
+    {
+        // This constructor could also be disabled by setting the type of `K_p` to
+        // `typename std::enable_if<dim == 1, real_t>::type`, but I found the error output of a
+        // static_assert more helpful.
+        static_assert(dim == 1,
+                      "The scalar constuctor can only be used for one-dimensional PID"
+                      " controllers");
     }
 
     void reset()
@@ -85,11 +122,22 @@ public:
         }
     }
 
+    bool execute(real_t error, real_t *u_out) {
+        static_assert(dim == 1,
+                      "The scalar execute() can only be used for one-dimensional PID"
+                      " controllers");
+
+        Vector vec_u;
+        bool res = execute(Vector::Constant(error), &vec_u);
+        *u_out = vec_u[0];
+        return res;
+    }
+
 private:
-    const Matrix K_p_;
-    const Matrix K_i_;
-    const Matrix K_d_;
-    const real_t dt_;
+    Matrix K_p_;
+    Matrix K_i_;
+    Matrix K_d_;
+    real_t dt_;
 
     Vector previous_error_;
     Vector integral_;
