@@ -8,7 +8,6 @@
 
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
-#include <path_follower/utils/multiplepidwrapper.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/pathfollower.h>
 

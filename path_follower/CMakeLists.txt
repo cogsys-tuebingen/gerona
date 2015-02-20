@@ -160,8 +160,6 @@ add_executable(path_follower_node
 
   src/utils/parameters.cpp
   src/utils/visualizer.cpp
-  src/utils/PidCtrl.cpp
-  src/utils/multiplepidwrapper.cpp
   src/utils/maptransformer.cpp
   src/utils/cubic_spline_interpolation.cpp
   src/utils/coursepredictor.cpp

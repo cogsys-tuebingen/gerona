@@ -23,7 +23,6 @@
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
 #include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
 #include <path_follower/controller/robotcontroller.h>
-#include <path_follower/utils/PidCtrl.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/coursepredictor.h>
