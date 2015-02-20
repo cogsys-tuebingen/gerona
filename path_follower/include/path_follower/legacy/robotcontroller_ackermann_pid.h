@@ -9,7 +9,7 @@
 
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
-#include <path_follower/utils/PidCtrl.h>
+#include <path_follower/utils/pidcontroller.hpp>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/parameters.h>
 
@@ -102,12 +102,11 @@ private:
     {
         P<double> dead_time;
         P<double> l;
-        P<double> pid_ta;
-        P<double> pid_kp;
-        P<double> pid_ki;
-        P<double> pid_i_max;
-        P<double> pid_delta_max;
-        P<double> pid_e_max;
+        P<float> pid_ta;
+        P<float> pid_kp;
+        P<float> pid_ki;
+        P<float> pid_kd;
+        //P<double> pid_i_max;
 
         ControllerParameters():
             dead_time(this, "~dead_time", 0.1, ""),
@@ -115,15 +114,14 @@ private:
             pid_ta(this, "~pid/ta", 0.03, "Update interval of the PID controller."),
             pid_kp(this, "~pid/kp", 1.0, "Proportional coefficient of the PID controller."),
             pid_ki(this, "~pid/ki", 0.001, "Integral coefficient of the PID controller."),
-            pid_i_max(this, "~pid/i_max", 0.0, "Limit to the integral part of the PID controller."),
-            pid_delta_max(this, "~pid/delta_max", 30.0, "Not used in current implementation..."),
-            pid_e_max(this, "~pid/e_max", 0.10, "Not used in current implementation...")
+            pid_kd(this, "~pid/kd", 0, "Derivative coefficient of the PID controller.")
+            //pid_i_max(this, "~pid/i_max", 0.0, "Limit to the integral part of the PID controller.") //TODO: not used
         {}
     } opt_;
 
     Behaviour* active_behaviour_;
 
-    PidCtrl pid_;
+    PidController<1> pid_;
     Command cmd_;
     Visualizer *visualizer_;
 
@@ -134,7 +132,7 @@ private:
 
     void configure();
 
-    bool setCommand(double error, float speed);
+    bool setCommand(float error, float speed);
 
     void predictPose(Eigen::Vector2d &front_pred, Eigen::Vector2d &rear_pred);
     double calculateCourse();

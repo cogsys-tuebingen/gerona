@@ -52,24 +52,18 @@ RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_
 
 void RobotController_Ackermann_Pid::configure()
 {
-    pid_.configure(opt_.pid_kp(),
-                   opt_.pid_ki(),
-                   opt_.pid_i_max(),
-                   opt_.pid_delta_max() * M_PI/180.0,
-                   opt_.pid_e_max(),
-                   0.5,
-                   opt_.pid_ta());
+    pid_ = PidController<1>(opt_.pid_kp(), opt_.pid_ki(), opt_.pid_kd(), opt_.pid_ta());
 }
 
-bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
+bool RobotController_Ackermann_Pid::setCommand(float error, float speed)
 {
     PathFollowerParameters path_driver_opt = path_driver_->getOptions();
 
-    double delta_f_raw = 0;
+    float delta_f_raw = 0;
 
     setStatus(path_msgs::FollowPathResult::RESULT_STATUS_MOVING);
 
-    if (!pid_.execute( error, delta_f_raw)) {
+    if (!pid_.execute(error, &delta_f_raw)) {
         // Nothing to do
         return false;
     }
@@ -77,11 +71,11 @@ bool RobotController_Ackermann_Pid::setCommand(double error, float speed)
 
     visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
 
-    double delta_f = std::max(-0.52, std::min(0.52, delta_f_raw));
+    float delta_f = std::max(-0.52f, std::min(0.52f, delta_f_raw));
 //    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f, 0.0, 1.0, 1.0);
 
 
-    double steer = std::abs(delta_f);
+    float steer = std::abs(delta_f);
     ROS_DEBUG_STREAM_NAMED(MODULE, "dir=" << dir_sign_ << ", steer=" << steer);
     if(steer > path_driver_opt.steer_slow_threshold()) {
         ROS_WARN_STREAM_THROTTLE(2, "slowing down");
