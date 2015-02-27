@@ -3,19 +3,16 @@
 ScanConverter::ScanConverter():node_("~"){
     // init parameter with a default value
     node_.param<std::string>("baseFrame",baseFrame_,"/base_link");
-    node_.param<std::string>("scanTopic_front",scanTopic_front_,"/scan/front/filtered");
-    node_.param<std::string>("scanTopic_back",scanTopic_back_,"/scan/back/filtered");
-    node_.param<std::string>("cloudTopic",cloudTopic_,"/cloud/total");
 
     node_.param<double>("cloudFilterMean",cloudFilterMean_,50.0);
     node_.param<double>("cloudFilterStdD",cloudFilterStdD_,1.0);
 
 
     scan_sub_front_ = node_.subscribe<sensor_msgs::LaserScan>(
-                scanTopic_front_, 1, boost::bind(&ScanConverter::scanCallback, this, _1, false));
+                "/scan/front/filtered", 1, boost::bind(&ScanConverter::scanCallback, this, _1, false));
     scan_sub_back_  = node_.subscribe<sensor_msgs::LaserScan>(
-                scanTopic_back_, 1, boost::bind(&ScanConverter::scanCallback, this ,_1, true));
-    point_cloud_publisher_ = node_.advertise<sensor_msgs::PointCloud2>(cloudTopic_, 1, false);
+                "/scan/back/filtered", 1, boost::bind(&ScanConverter::scanCallback, this ,_1, true));
+    point_cloud_publisher_ = node_.advertise<sensor_msgs::PointCloud2>("/cloud/total", 1, false);
 }
 
 void ScanConverter::scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan_in, bool is_back)
@@ -112,15 +109,3 @@ void ScanConverter::filter(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudIn,
 
 
 }
-
-void ScanConverter::updateParameter()
-{
-    node_.getParam("cloudTopic",cloudTopic_);
-    node_.getParam("baseFrame",baseFrame_);
-    node_.getParam("scanTopic_front",scanTopic_front_);
-    node_.getParam("scanTopic_back",scanTopic_back_);
-    node_.getParam("cloudFilterMean",cloudFilterMean_);
-    node_.getParam("cloudFilterStdD",cloudFilterStdD_);
-
-}
-

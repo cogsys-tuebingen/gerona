@@ -33,10 +33,6 @@ class ScanConverter {
 
          // ros params
         std::string baseFrame_;
-        std::string scanTopic_front_;
-        std::string scanTopic_back_;
-        std::string cloudTopic_;
-
         double cloudFilterMean_;
         double cloudFilterStdD_;
 
@@ -44,6 +40,4 @@ class ScanConverter {
         void mergeSensorMsgsPointCloud2();
         void filter(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudIn,
                     pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudOut);
-        void updateParameter();
-
 };
