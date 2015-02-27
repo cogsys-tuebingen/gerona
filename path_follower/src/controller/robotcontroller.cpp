@@ -26,7 +26,7 @@ void RobotController::setPath(Path::Ptr path)
 
 void RobotController::initPublisher(ros::Publisher *pub) const
 {
-    ros::NodeHandle nh; //TODO: does this work with only a local nh?
+    ros::NodeHandle nh;
     *pub = nh.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
 }
 

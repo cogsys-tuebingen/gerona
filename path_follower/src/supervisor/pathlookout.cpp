@@ -40,16 +40,14 @@ void PathLookout::setObstacleCloud(const ObstacleCloud::ConstPtr &cloud)
 void PathLookout::setPath(Path::ConstPtr path)
 {
     // only use path from the last waypoint on ("do not look behind")
-    SubPath path_ahead;
+    path_.clear();
     if (path->getWaypointIndex() == 0) {
-        path_ahead = path->getCurrentSubPath();
+        path_ = path->getCurrentSubPath();
     } else {
         SubPath::const_iterator start = path->getCurrentSubPath().begin();
         start += (path->getWaypointIndex()-1);
-        path_ahead.assign(start, (SubPath::const_iterator) path->getCurrentSubPath().end());
+        path_.assign(start, (SubPath::const_iterator) path->getCurrentSubPath().end());
     }
-
-    path_ = path_ahead; //TODO: is it possible to do this without copy?
 }
 
 void PathLookout::supervise(State &state, Supervisor::Result *out)

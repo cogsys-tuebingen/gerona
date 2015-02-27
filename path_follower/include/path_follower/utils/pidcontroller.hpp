@@ -74,6 +74,7 @@ public:
                       " controllers");
     }
 
+    //! Reset the controller.
     void reset()
     {
         previous_error_ = Vector::Zero();
@@ -122,6 +123,7 @@ public:
         }
     }
 
+    //! Overloaded method for the one-dimensional case
     bool execute(real_t error, real_t *u_out) {
         static_assert(dim == 1,
                       "The scalar execute() can only be used for one-dimensional PID"
