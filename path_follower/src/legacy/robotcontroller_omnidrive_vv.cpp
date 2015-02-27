@@ -41,14 +41,11 @@ RobotController_Omnidrive_VirtualVehicle::RobotController_Omnidrive_VirtualVehic
 
 void RobotController_Omnidrive_VirtualVehicle::stopMotion()
 {
-    //FIXME: this method should be improved (Command could implement cast to MoveCommand)
-
     cmd_.speed = 0;
     cmd_.direction_angle = 0;
     cmd_.rotation = 0;
 
-    MoveCommand mcmd(true);
-    mcmd.setVelocity(0);
+    MoveCommand mcmd = cmd_;
     publishMoveCommand(mcmd);
 }
 

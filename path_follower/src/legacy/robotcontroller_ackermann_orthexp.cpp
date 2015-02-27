@@ -78,14 +78,10 @@ RobotController_Ackermann_OrthogonalExponential::RobotController_Ackermann_Ortho
 
 void RobotController_Ackermann_OrthogonalExponential::stopMotion()
 {
-    //FIXME: this method should be improved
-
     cmd_.speed = 0;
     cmd_.direction_angle = 0;
-    cmd_.rotation = 0;
 
-    MoveCommand mcmd;
-    mcmd.setVelocity(0);
+    MoveCommand mcmd = cmd_;
     publishMoveCommand(mcmd);
 }
 
@@ -318,8 +314,7 @@ void RobotController_Ackermann_OrthogonalExponential::start()
 
 RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponential::computeMoveCommand(MoveCommand *cmd)
 {
-    // omni drive can rotate.
-    *cmd = MoveCommand(true);
+    *cmd = MoveCommand(false);
 
     if(N_ < 2) {
         ROS_ERROR("[Line] path is too short (N = %d)", N_);
@@ -519,8 +514,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
         return MoveCommandStatus::REACHED_GOAL;
     } else {
         // Quickfix: simply convert ackermann command to move command
-        cmd->setDirection(cmd_.direction_angle);
-        cmd->setVelocity(cmd_.speed);
+        *cmd = cmd_;
 
         return MoveCommandStatus::OKAY;
     }

@@ -42,7 +42,7 @@ private:
     {
         float velocity;
         float steer_front;
-        float steer_back;
+        float steer_back; // currently unused
 
         Command()
         {
@@ -68,12 +68,12 @@ private:
         }
         */
 
-        operator geometry_msgs::Twist()
+        operator MoveCommand()
         {
-            geometry_msgs::Twist msg;
-            msg.linear.x  = velocity;
-            msg.angular.z = steer_front;
-            return msg;
+            MoveCommand mcmd;
+            mcmd.setDirection(steer_front);
+            mcmd.setVelocity(velocity);
+            return mcmd;
         }
 
         bool isValid()

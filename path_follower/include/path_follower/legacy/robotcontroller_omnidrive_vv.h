@@ -61,17 +61,13 @@ private:
             speed(0.0f), direction_angle(0.0f), rotation(0.0f)
         {}
 
-        operator geometry_msgs::Twist()
+        operator MoveCommand()
         {
-            // direction_angle is relative to direction of movement;
-            // control angle, however, is relative to orientation of the robot.
-            float angle = direction_angle;
-
-            geometry_msgs::Twist msg;
-            msg.linear.x  = speed * cos(angle);
-            msg.linear.y  = speed * sin(angle);
-            msg.angular.z = rotation;
-            return msg;
+            MoveCommand mcmd(true);
+            mcmd.setDirection(direction_angle);
+            mcmd.setVelocity(speed);
+            mcmd.setRotationalVelocity(rotation);
+            return mcmd;
         }
 
         bool isValid()

@@ -101,14 +101,11 @@ bool RobotController_Ackermann_Pid::setCommand(float error, float speed)
 
 void RobotController_Ackermann_Pid::stopMotion()
 {
-    //FIXME: this method should be improved (Command could implement cast to MoveCommand)
-
     cmd_.velocity    = 0.0;
     cmd_.steer_front = 0.0;
     cmd_.steer_back  = 0.0;
 
-    MoveCommand mcmd;
-    mcmd.setVelocity(0);
+    MoveCommand mcmd = cmd_;
     publishMoveCommand(mcmd);
 }
 
@@ -227,8 +224,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCom
         }
 
         // Quickfix: simply convert ackermann command to move command
-        cmd->setDirection(cmd_.steer_front);
-        cmd->setVelocity(cmd_.velocity);
+        *cmd = cmd_;
 
         filtered_speed_ = cmd_.velocity;
 
@@ -269,7 +265,7 @@ void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &
     double beta = std::atan(0.5*(std::tan(deltaf)+std::tan(deltar)));
     double ds = v*dt;
     double dtheta = ds*std::cos(beta)*(std::tan(deltaf)-std::tan(deltar))/opt_.l();
-    double thetan = dtheta; //TODO <- why this ???
+    double thetan = dtheta; // <- why this ???
     double yn = ds*std::sin(dtheta*0.5+beta*0.5);
     double xn = ds*std::cos(dtheta*0.5+beta*0.5);
 

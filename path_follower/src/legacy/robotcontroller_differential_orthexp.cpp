@@ -79,14 +79,12 @@ RobotController_Differential_OrthogonalExponential::RobotController_Differential
 
 void RobotController_Differential_OrthogonalExponential::stopMotion()
 {
-    //FIXME: this method should be improved
 
     cmd_.speed = 0;
     cmd_.direction_angle = 0;
     cmd_.rotation = 0;
 
-    MoveCommand mcmd(true);
-    mcmd.setVelocity(0);
+    MoveCommand mcmd = cmd_;
     publishMoveCommand(mcmd);
 }
 
@@ -525,8 +523,7 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
     if(distance_to_goal <= path_driver_->getOptions().goal_tolerance()) {
         return MoveCommandStatus::REACHED_GOAL;
     } else {
-        cmd->setVelocity(cmd_.speed);
-        cmd->setRotation(cmd_.rotation);
+        *cmd = cmd_;
 
         return MoveCommandStatus::OKAY;
     }
@@ -537,7 +534,7 @@ void RobotController_Differential_OrthogonalExponential::publishMoveCommand(cons
     geometry_msgs::Twist msg;
     msg.linear.x  = cmd.getVelocity();
     msg.linear.y  = 0;
-    msg.angular.z = cmd.getRotation();
+    msg.angular.z = cmd.getRotationalVelocity();
 
     cmd_pub_.publish(msg);
 }
