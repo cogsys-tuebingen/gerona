@@ -11,51 +11,38 @@ ScanConverter::ScanConverter():node_("~"){
     node_.param<double>("cloudFilterStdD",cloudFilterStdD_,1.0);
 
 
-    scan_sub_front_ = node_.subscribe<sensor_msgs::LaserScan> (scanTopic_front_, 1, boost::bind(&ScanConverter::scanCallback_front, this,_1));
-    scan_sub_back_ = node_.subscribe<sensor_msgs::LaserScan> (scanTopic_back_, 1, boost::bind(&ScanConverter::scanCallback_back, this,_1));
-    point_cloud_publisher_ = node_.advertise<sensor_msgs::PointCloud2> (cloudTopic_, 1, false);
+    scan_sub_front_ = node_.subscribe<sensor_msgs::LaserScan>(
+                scanTopic_front_, 1, boost::bind(&ScanConverter::scanCallback, this, _1, false));
+    scan_sub_back_  = node_.subscribe<sensor_msgs::LaserScan>(
+                scanTopic_back_, 1, boost::bind(&ScanConverter::scanCallback, this ,_1, true));
+    point_cloud_publisher_ = node_.advertise<sensor_msgs::PointCloud2>(cloudTopic_, 1, false);
 }
 
-void ScanConverter::scanCallback_front(const sensor_msgs::LaserScan::ConstPtr& scan_in){
+void ScanConverter::scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan_in, bool is_back)
+{
+    ros::Duration wait_tf_timeout = is_back ? ros::Duration(0.0) : ros::Duration(0.1);
+
     try{
         if(!tfListener_.waitForTransform(
                     scan_in->header.frame_id,
                     "/base_link",
                     scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
-                    ros::Duration(0.1))){
+                    wait_tf_timeout)){
             ROS_INFO("ignore scan");
             return;
         }
         // as (at least in the simulation) there are end-of-range scans slightly below the
         // range_max value, move the cutof to 99% of the range.
         double range_cutoff = scan_in->range_max * 0.99;
-        projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_front_, tfListener_, range_cutoff);
-        cbScanfront_ = true;
-
-    }catch(...){
-
-    }
-
-}
-
-void ScanConverter::scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& scan_in){
-    //TODO: get rid of this code duplication by making on callback for front and back with and
-    // additional flag.
-    try{
-        if(!tfListener_.waitForTransform(
-                    scan_in->header.frame_id,
-                    "/base_link",
-                    scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
-                    ros::Duration(0.0))){
-            return;
+        if (is_back) {
+            projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_back_, tfListener_, range_cutoff);
+            cbScanback_ = true;
+        } else {
+            projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_front_, tfListener_, range_cutoff);
+            cbScanfront_ = true;
         }
-        // as (at least in the simulation) there are end-of-range scans slightly below the
-        // range_max value, move the cutof to 99% of the range.
-        double range_cutoff = scan_in->range_max * 0.99;
-        projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_back_, tfListener_, range_cutoff);
-        cbScanback_ = true;
-    }catch(...){
-
+    } catch(...) {
+        // do nothing
     }
 }
 

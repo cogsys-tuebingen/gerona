@@ -13,8 +13,7 @@
 class ScanConverter {
      public:
         ScanConverter();
-        void scanCallback_front(const sensor_msgs::LaserScan::ConstPtr& scan_in);
-        void scanCallback_back(const sensor_msgs::LaserScan::ConstPtr& scan_in);
+        void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in, bool is_back);
         void spin();
      private:
         ros::NodeHandle node_;
