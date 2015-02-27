@@ -30,7 +30,7 @@ public:
     }
 
     //! Predict direction of movement
-    Eigen::Vector2d predictDirectionOfMovement();
+    Eigen::Vector2d predictDirectionOfMovement() const;
 
     /**
      * @brief Predict and smooth direction of movement.
@@ -42,7 +42,7 @@ public:
      * @return Vector pointing in the direction of movement, relative to robot orientation. Zero, if no direction could
      *         be computed (e.g. at initialization, when there are less than 2 position samples).
      */
-    Eigen::Vector2d smoothedDirection();
+    Eigen::Vector2d smoothedDirection() const;
 
     ros::Duration getUpdateIntervall() const;
     void setUpdateIntervall(const ros::Duration &getUpdateIntervall);
