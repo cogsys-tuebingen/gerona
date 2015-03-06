@@ -1,4 +1,4 @@
-#include <path_follower/legacy/robotcontroller_ackermann_pid.h>
+#include <path_follower/legacy/robotcontroller_legacy_ackermann_pid.h>
 
 /// STL
 #include <sstream>
@@ -40,7 +40,7 @@ std::string name(Behaviour* b) {
 
 
 
-RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_driver):
+RobotController_Legacy_Ackermann_Pid::RobotController_Legacy_Ackermann_Pid(PathFollower *path_driver):
     RobotController(path_driver),
     active_behaviour_(nullptr),
     filtered_speed_(0.0f)
@@ -50,12 +50,12 @@ RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_
     visualizer_ = Visualizer::getInstance();
 }
 
-void RobotController_Ackermann_Pid::configure()
+void RobotController_Legacy_Ackermann_Pid::configure()
 {
     pid_ = PidController<1>(opt_.pid_kp(), opt_.pid_ki(), opt_.pid_kd(), opt_.pid_ta());
 }
 
-bool RobotController_Ackermann_Pid::setCommand(float error, float speed)
+bool RobotController_Legacy_Ackermann_Pid::setCommand(float error, float speed)
 {
     PathFollowerParameters path_driver_opt = path_driver_->getOptions();
 
@@ -71,6 +71,7 @@ bool RobotController_Ackermann_Pid::setCommand(float error, float speed)
 
     visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f_raw, 0.0, 1.0, 1.0);
 
+    //TODO: parameter for max angle (0.52)
     float delta_f = std::max(-0.52f, std::min(0.52f, delta_f_raw));
 //    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), delta_f, 0.0, 1.0, 1.0);
 
@@ -99,7 +100,7 @@ bool RobotController_Ackermann_Pid::setCommand(float error, float speed)
     return (std::abs(delta_f - delta_f_raw) > 0.05);
 }
 
-void RobotController_Ackermann_Pid::stopMotion()
+void RobotController_Legacy_Ackermann_Pid::stopMotion()
 {
     cmd_.velocity    = 0.0;
     cmd_.steer_front = 0.0;
@@ -109,7 +110,7 @@ void RobotController_Ackermann_Pid::stopMotion()
     publishMoveCommand(mcmd);
 }
 
-void RobotController_Ackermann_Pid::reset()
+void RobotController_Legacy_Ackermann_Pid::reset()
 {
     if(active_behaviour_ != nullptr) {
         delete active_behaviour_;
@@ -117,24 +118,24 @@ void RobotController_Ackermann_Pid::reset()
     active_behaviour_ = nullptr;
 }
 
-void RobotController_Ackermann_Pid::start()
+void RobotController_Legacy_Ackermann_Pid::start()
 {
     active_behaviour_ = new BehaviourOnLine(*path_driver_);
     ROS_INFO_STREAM_NAMED(MODULE, "init with " << name(active_behaviour_));
 }
 
-void RobotController_Ackermann_Pid::switchBehaviour(Behaviour* next_behaviour)
+void RobotController_Legacy_Ackermann_Pid::switchBehaviour(Behaviour* next_behaviour)
 {
     reset();
     active_behaviour_ = next_behaviour;
 }
 
-void RobotController_Ackermann_Pid::initOnLine()
+void RobotController_Legacy_Ackermann_Pid::initOnLine()
 {
     pid_.reset();
 }
 
-void RobotController_Ackermann_Pid::behaveOnLine()
+void RobotController_Legacy_Ackermann_Pid::behaveOnLine()
 {
     dir_sign_ = sign(next_wp_local_.x());
 
@@ -166,12 +167,12 @@ void RobotController_Ackermann_Pid::behaveOnLine()
     }
 }
 
-void RobotController_Ackermann_Pid::initApproachTurningPoint()
+void RobotController_Legacy_Ackermann_Pid::initApproachTurningPoint()
 {
     atp_step_ = 0;
 }
 
-bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
+bool RobotController_Legacy_Ackermann_Pid::behaveApproachTurningPoint()
 {
     // CHECK IF DONE
     float dir_sign = sign(next_wp_local_.x());
@@ -205,7 +206,7 @@ bool RobotController_Ackermann_Pid::behaveApproachTurningPoint()
     return false;
 }
 
-RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCommand(MoveCommand *cmd)
+RobotController::MoveCommandStatus RobotController_Legacy_Ackermann_Pid::computeMoveCommand(MoveCommand *cmd)
 {
     try {
 //        ROS_DEBUG_STREAM_NAMED(MODULE, "executing " << name(active_behaviour_));
@@ -242,7 +243,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCom
     }
 }
 
-void RobotController_Ackermann_Pid::publishMoveCommand(const MoveCommand &cmd) const
+void RobotController_Legacy_Ackermann_Pid::publishMoveCommand(const MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
     //msg.linear.x  = velocity;
@@ -253,7 +254,7 @@ void RobotController_Ackermann_Pid::publishMoveCommand(const MoveCommand &cmd) c
     cmd_pub_.publish(msg);
 }
 
-void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &rear_pred)
+void RobotController_Legacy_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &rear_pred)
 {
     //TODO: revise this code
 
@@ -283,12 +284,12 @@ void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &
     ROS_DEBUG_STREAM_NAMED(MODULE, "predict pose. front: " << front_pred << ", rear: " << rear_pred);
 }
 
-double RobotController_Ackermann_Pid::calculateCourse()
+double RobotController_Legacy_Ackermann_Pid::calculateCourse()
 {
     return cmd_.steer_front;
 }
 
-double RobotController_Ackermann_Pid::calculateLineError()
+double RobotController_Legacy_Ackermann_Pid::calculateLineError()
 {
     geometry_msgs::PoseStamped followup_next_wp_map;
     followup_next_wp_map.header.stamp = ros::Time::now();
@@ -327,7 +328,7 @@ double RobotController_Ackermann_Pid::calculateLineError()
     return -target_line.GetSignedDistance(main_carrot) - 0.25 * target_line.GetSignedDistance(alt_carrot);
 }
 
-double RobotController_Ackermann_Pid::calculateDistanceError()
+double RobotController_Legacy_Ackermann_Pid::calculateDistanceError()
 {
     Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
 
@@ -354,7 +355,7 @@ double RobotController_Ackermann_Pid::calculateDistanceError()
     return delta(1);
 }
 
-void RobotController_Ackermann_Pid::visualizeCarrot(const Vector2d &carrot, int id, float r, float g, float b)
+void RobotController_Legacy_Ackermann_Pid::visualizeCarrot(const Vector2d &carrot, int id, float r, float g, float b)
 {
     geometry_msgs::PoseStamped carrot_local;
     carrot_local.pose.position.x = carrot[0];

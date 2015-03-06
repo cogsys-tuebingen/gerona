@@ -172,7 +172,8 @@ add_executable(path_follower_node
   src/obstacle_avoidance/obstacledetectoromnidrive.cpp
 
   src/controller/robotcontroller.cpp
-  src/legacy/robotcontroller_ackermann_pid.cpp
+  src/controller/robotcontroller_ackermann_pid.cpp
+  src/legacy/robotcontroller_legacy_ackermann_pid.cpp
   src/legacy/robotcontroller_ackermann_orthexp.cpp
   src/legacy/robotcontroller_differential_orthexp.cpp
   src/legacy/robotcontroller_omnidrive_vv.cpp

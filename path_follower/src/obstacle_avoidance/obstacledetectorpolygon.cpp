@@ -61,17 +61,6 @@ bool ObstacleDetectorPolygon::checkOnCloud(ObstacleCloud::ConstPtr obstacles, fl
     return collision;
 }
 
-void ObstacleDetectorPolygon::transformPolygonToMap(PolygonWithTfFrame *polygon) const
-{
-    // transform each point
-//    vector<cv::Point2f>::iterator iter;
-//    for (iter = polygon->polygon.begin(); iter != polygon->polygon.end(); ++iter) {
-//        *iter = map_trans_.transformPointToMap(*iter, polygon->frame);
-//    }
-//    // set new frame
-//    polygon->frame = map_->header.frame_id;
-}
-
 void ObstacleDetectorPolygon::visualize(ObstacleDetectorPolygon::PolygonWithTfFrame polygon,
                                         bool hasObstacle) const
 {

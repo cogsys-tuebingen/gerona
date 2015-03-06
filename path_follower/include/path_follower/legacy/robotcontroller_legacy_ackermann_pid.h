@@ -15,10 +15,10 @@
 
 class Behaviour;
 
-class RobotController_Ackermann_Pid : public RobotController
+class RobotController_Legacy_Ackermann_Pid : public RobotController
 {
 public:
-    RobotController_Ackermann_Pid(PathFollower *path_driver);
+    RobotController_Legacy_Ackermann_Pid(PathFollower *path_driver);
 
     virtual void stopMotion();
 
