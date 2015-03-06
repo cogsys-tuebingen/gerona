@@ -27,11 +27,10 @@ public:
 
     virtual void initOnLine();
     virtual void initApproachTurningPoint();
-
-protected:
     virtual void behaveOnLine();
     virtual bool behaveApproachTurningPoint();
 
+protected:
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
 

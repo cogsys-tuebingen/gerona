@@ -8,7 +8,7 @@ using namespace Eigen;
 //##### BEGIN Behaviour
 Behaviour::Behaviour(PathFollower &parent):
     parent_(parent),
-    controller_(parent.getController())
+    controller_(dynamic_cast<RobotController_Legacy_Ackermann_Pid*>(parent.getController()))
 {
     visualizer_ = Visualizer::getInstance();
 }

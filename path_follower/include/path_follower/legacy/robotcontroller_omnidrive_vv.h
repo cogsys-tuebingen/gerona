@@ -19,8 +19,6 @@ public:
     //! Immediatley stop any motion.
     virtual void stopMotion();
 
-    virtual void initOnLine();
-
     virtual bool isOmnidirectional() const
     {
         return true;

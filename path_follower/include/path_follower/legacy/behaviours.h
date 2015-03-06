@@ -6,8 +6,9 @@
 #include <path_follower/pathfollower.h>
 #include <path_follower/utils/visualizer.h>
 #include <utils_general/Line2d.h>
+#include <path_follower/legacy/robotcontroller_legacy_ackermann_pid.h>
 
-class Behaviour
+class ROS_DEPRECATED Behaviour
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -20,7 +21,7 @@ public:
 
 protected:
     PathFollower& parent_;
-    RobotController* controller_;
+    RobotController_Legacy_Ackermann_Pid* controller_;
     int* status_ptr_;
 
     //! Pose of the next waypoint in map frame.

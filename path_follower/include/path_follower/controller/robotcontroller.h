@@ -42,13 +42,6 @@ public:
     //! Is called at several points, if new path is set or movement is aborted.
     virtual void reset() {}
 
-    ROS_DEPRECATED virtual void behaveOnLine() {}
-
-    /**
-     * @return True, when turning point is reached, otherwise false.
-     */
-    ROS_DEPRECATED virtual bool behaveApproachTurningPoint() { return false; }
-
 protected:
     //! This is a subset of ControlStatus. computeMoveCommand is not allowed to report obstacles
     enum class MoveCommandStatus
@@ -107,12 +100,6 @@ public:
 
 
     virtual void setPath(Path::Ptr path);
-
-    /* BEHAVIOURS */
-    //! Initialize the OnLine-Behaviour
-    ROS_DEPRECATED virtual void initOnLine() {}
-    //! Initialize the ApproachTurningPoint-Behaviour
-    ROS_DEPRECATED virtual void initApproachTurningPoint() {}
 
     virtual void setVelocity(float v)
     {

@@ -197,12 +197,6 @@ void RobotController_Omnidrive_VirtualVehicle::setPath(Path::Ptr path)
 
 }
 
-void RobotController_Omnidrive_VirtualVehicle::initOnLine()
-{
-
-
-}
-
 RobotController::MoveCommandStatus RobotController_Omnidrive_VirtualVehicle::computeMoveCommand(MoveCommand *cmd)
 {
     ROS_BREAK(); /*not implemented*/
