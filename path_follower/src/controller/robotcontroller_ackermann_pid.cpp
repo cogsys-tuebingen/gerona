@@ -44,7 +44,7 @@ void RobotController_Ackermann_Pid::reset()
 
 RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCommand(MoveCommand *cmd)
 {
-    /* This is a reimplemented, simplified version of the old behaviour based ackermann
+    /* This is a reimplemented, simplified version of the old behaviour based Ackermann
      * controller. There is still a internal state called "behaviour", but this is not a strict
      * state machine and there are no behaviour classes anymore.
      *
@@ -169,7 +169,7 @@ void RobotController_Ackermann_Pid::getControllerInputDriveOnLine(float *error, 
     double e_distance = calculateLineError();
     double e_angle = calculateAngleError();
 
-    // TODO: summing entitie with different units (metric and angular) is probably bad.
+    // TODO: summing entities with different units (metric and angular) is probably bad.
     *error = e_distance + e_angle;
     ROS_DEBUG_NAMED(MODULE, "OnLine: e_dist = %g, e_angle = %g  ==>  e_comb = %g", e_distance, e_angle, *error);
 
@@ -181,13 +181,6 @@ void RobotController_Ackermann_Pid::getControllerInputDriveOnLine(float *error, 
     }
 
     *velocity = velocity_;
-
-    // TODO: better speed control
-    //       - backwards not slower, but lower max speed
-    //       - slower when close to goal, similar to ApproachGoal
-    if(dir_sign_ < 0) {
-        //speed *= 0.5;
-    }
 }
 
 void RobotController_Ackermann_Pid::getControllerInputApproachSubpathEnd(float *error, float *velocity)
@@ -202,7 +195,7 @@ void RobotController_Ackermann_Pid::getControllerInputApproachSubpathEnd(float *
     double e_distance = calculateSidewaysDistanceToWaypoint();
     double e_angle = calculateAngleError();
 
-    // TODO: summing entitie with different units (metric and angular) is probably bad.
+    // TODO: summing entities with different units (metric and angular) is probably bad.
     *error = e_distance + e_angle;
     ROS_DEBUG_NAMED(MODULE, "Approach: e_dist = %g, e_angle = %g  ==>  e_comb = %g",
                     e_distance, e_angle, *error);
@@ -217,8 +210,9 @@ void RobotController_Ackermann_Pid::getControllerInputApproachSubpathEnd(float *
         visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), *error, 1.0, 0.2, 0.2);
     }
 
-    float distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
-    *velocity = std::max(0.1f + distance / 2.0f, path_driver_->getOptions().min_velocity());
+//    float distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
+//    *velocity = std::max(0.1f + distance / 2.0f, path_driver_->getOptions().min_velocity());
+    *velocity = velocity_;
 }
 
 
@@ -242,6 +236,23 @@ void RobotController_Ackermann_Pid::updateCommand(float error, float velocity)
         ROS_INFO_STREAM_THROTTLE_NAMED(2, MODULE, "slowing down");
         velocity *= 0.75;
     }
+
+    // Reduce maximal velocity, when driving backwards.
+    if(dir_sign_ < 0) {
+        velocity = min(velocity, 0.5f * path_driver_opt.max_velocity());
+    }
+
+    // linearly reduce velocity, if the goal is within 2s*velocity (e.g. when driving with
+    // 2 m/s, start to slow down 4m in front of the goal)
+    // TODO: better compute the length of the remaining path instead of the straight distance to
+    // the last waypoint (could be relevant on very winding paths).
+    float dist_to_path_end = distanceToWaypoint(path_->getLastWaypoint());
+    if (dist_to_path_end < 2*velocity) {
+        velocity = std::max(0.1f + dist_to_path_end / 2.0f, path_driver_->getOptions().min_velocity());
+    }
+//    ROS_INFO("dist: %f", dist_to_path_end);
+//    ROS_INFO("v: %f", velocity);
+
 
     // make sure, the velocity is in the allowed range
     if (velocity < path_driver_opt.min_velocity()) {
