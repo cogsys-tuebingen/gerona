@@ -99,16 +99,15 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCom
 
 
     float error;
-    float velocity;
     if (path_->isLastWaypoint()) {
         behaviour_ = APPROACH_SUBPATH_END;
-        getControllerInputApproachSubpathEnd(&error, &velocity);
+        error = getErrorApproachSubpathEnd();
     } else {
         behaviour_ = ON_PATH;
-        getControllerInputDriveOnLine(&error, &velocity);
+        error = getErrorOnPath();
     }
 
-    updateCommand(error, velocity);
+    updateCommand(error);
     *cmd = cmd_;
 
     return MoveCommandStatus::OKAY;
@@ -158,7 +157,7 @@ void RobotController_Ackermann_Pid::selectWaypoint()
     }
 }
 
-void RobotController_Ackermann_Pid::getControllerInputDriveOnLine(float *error, float *velocity)
+float RobotController_Ackermann_Pid::getErrorOnPath()
 {
     /* The error is the sum of the orientation angle error and the distance to the line that
      * goes through the next waypoints.
@@ -170,35 +169,35 @@ void RobotController_Ackermann_Pid::getControllerInputDriveOnLine(float *error, 
     double e_angle = calculateAngleError();
 
     // TODO: summing entities with different units (metric and angular) is probably bad.
-    *error = e_distance + e_angle;
-    ROS_DEBUG_NAMED(MODULE, "OnLine: e_dist = %g, e_angle = %g  ==>  e_comb = %g", e_distance, e_angle, *error);
+    float error = e_distance + e_angle;
+    ROS_DEBUG_NAMED(MODULE, "OnLine: e_dist = %g, e_angle = %g  ==>  e_comb = %g",
+                    e_distance, e_angle, error);
 
     // draw steer front
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
         visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), *error, 1.0, 0.2, 0.2);
+        visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
     }
 
-    *velocity = velocity_;
+    return error;
 }
 
-void RobotController_Ackermann_Pid::getControllerInputApproachSubpathEnd(float *error, float *velocity)
+float RobotController_Ackermann_Pid::getErrorApproachSubpathEnd()
 {
     /* The error is the sum of the orientation angle error and the sideways distance to the
      * waypoint (that is the distance on the y-axis in the robot frame)
      * The velocity is decreasing with the distance to the waypoint.
      */
 
-
     // Calculate target line from current to next waypoint (if there is any)
     double e_distance = calculateSidewaysDistanceToWaypoint();
     double e_angle = calculateAngleError();
 
     // TODO: summing entities with different units (metric and angular) is probably bad.
-    *error = e_distance + e_angle;
+    float error = e_distance + e_angle;
     ROS_DEBUG_NAMED(MODULE, "Approach: e_dist = %g, e_angle = %g  ==>  e_comb = %g",
-                    e_distance, e_angle, *error);
+                    e_distance, e_angle, error);
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_->getCurrentWaypoint()).position,
@@ -207,32 +206,40 @@ void RobotController_Ackermann_Pid::getControllerInputApproachSubpathEnd(float *
         // draw steer front
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
         visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), *error, 1.0, 0.2, 0.2);
+        visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
     }
 
-//    float distance = std::sqrt(next_wp_local_.dot(next_wp_local_));
-//    *velocity = std::max(0.1f + distance / 2.0f, path_driver_->getOptions().min_velocity());
-    *velocity = velocity_;
+    return error;
 }
 
 
-void RobotController_Ackermann_Pid::updateCommand(float error, float velocity)
+void RobotController_Ackermann_Pid::updateCommand(float error)
 {
+    // call PID controller for steering.
     float u = 0;
     if (!steer_pid_.execute(error, &u)) {
-        // Nothing to do
-        return;
+        return; // Nothing to do
     }
 
     ROS_DEBUG_NAMED(MODULE, "PID: error = %g, u = %g", error, u);
     visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), u, 0.0, 1.0, 1.0);
 
-    PathFollowerParameters path_driver_opt = path_driver_->getOptions();
-
     float steer = std::max(-opt_.max_steer(), std::min(u, opt_.max_steer()));
     ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
 
-    if(abs(steer) > path_driver_opt.steer_slow_threshold()) {
+    // Control velocity
+    float velocity = controlVelocity(steer);
+
+    cmd_.setDirection(dir_sign_ * steer);
+    cmd_.setVelocity(dir_sign_ * velocity);
+}
+
+float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
+{
+    PathFollowerParameters path_driver_opt = path_driver_->getOptions();
+    float velocity = velocity_;
+
+    if(abs(steer_angle) > path_driver_opt.steer_slow_threshold()) {
         ROS_INFO_STREAM_THROTTLE_NAMED(2, MODULE, "slowing down");
         velocity *= 0.75;
     }
@@ -263,10 +270,8 @@ void RobotController_Ackermann_Pid::updateCommand(float error, float velocity)
         ROS_WARN_THROTTLE_NAMED(5, MODULE, "Velocity is above maximum. Reduce to maximum velocity.");
     }
 
-    cmd_.setDirection(dir_sign_ * steer);
-    cmd_.setVelocity(dir_sign_ * velocity);
+    return velocity;
 }
-
 
 double RobotController_Ackermann_Pid::distanceToWaypoint(const Waypoint &wp) const
 {

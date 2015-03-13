@@ -82,7 +82,7 @@ private:
      * @param error Error of the current state to the desired state.
      * @param velocity Desired velocity.
      */
-    void getControllerInputDriveOnLine(float *error, float *velocity);
+    float getErrorOnPath();
 
     /**
      * @brief Compute controller inputs (error and velocity) for the APPROACH_SUBPATH_END behaviour.
@@ -90,12 +90,34 @@ private:
      * @param error Error of the current state to the desired state.
      * @param velocity Desired velocity.
      */
-    void getControllerInputApproachSubpathEnd(float *error, float *velocity);
+    float getErrorApproachSubpathEnd();
 
-    void updateCommand(float error, float speed);
+    /**
+     * @brief Calls the PID controller and updates `cmd_`
+     * @param error Error between actual and desired state. Used as input for the PID controller.
+     */
+    void updateCommand(float error);
 
+    /**
+     * @brief Determines the velocity for the next command.
+     *
+     * The actual velocity is based on the desired velocity, but can be influenced by several
+     * factors. It can be reduced in tight curves, when near the goal or when driving backward.
+     * Further, this method makes sure, the final velocity stays inside the interval of the
+     * defined minimum and maximum velocity.
+     *
+     * @param steer_angle The current steering angle. For high angles, the velocity is reduced.
+     * @return The final velocity that can be used for the move command. It is guaranteed to be
+     *         within the interval of the defined minimum and maximum velocity.
+     */
+    float controlVelocity(float steer_angle) const;
+
+    //! Distance of the robot to the Waypoint `wp`.
     double distanceToWaypoint(const Waypoint& wp) const;
+
+    //! Black Magic...
     void predictPose(Eigen::Vector2d &front_pred, Eigen::Vector2d &rear_pred) const;
+
     double calculateLineError() const;
 
     /**
