@@ -191,7 +191,7 @@ float RobotController_Ackermann_Pid::getErrorApproachSubpathEnd()
      */
 
     // Calculate target line from current to next waypoint (if there is any)
-    double e_distance = calculateSidewaysDistanceToWaypoint();
+    double e_distance = calculateSidewaysDistanceError();
     double e_angle = calculateAngleError();
 
     // TODO: summing entities with different units (metric and angular) is probably bad.
@@ -281,30 +281,32 @@ double RobotController_Ackermann_Pid::distanceToWaypoint(const Waypoint &wp) con
 
 void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &rear_pred) const
 {
-    //TODO: revise this code
-    //FIXME: what exactly is this method doing?
+    //NOTE: This is an ancient relict of the days of the `motion_control` package.
+    // I am not absolutely sure, what it is doing. I think it has the purpose to predict the
+    // positon of the robot (more exactly its front and rear axes) in the next time step.
+    // This is how it is used at least, though I do not know if this is what it really does...
+    // ~Felix
 
-    double dt = opt_.dead_time();
-//    double deltaf = cmd_.steer_front;
-//    double deltar = cmd_.steer_back;
+    double dt = opt_.dead_time(); //TODO: could opt_.pid_ta() be used instead?
     double deltaf = cmd_.getDirectionAngle();
     double deltar = 0.0; // currently not supported
-    double v = 2 * last_velocity_;
+    double v = 2 * last_velocity_; // why '2*'?
 
-    double beta = std::atan(0.5*(std::tan(deltaf)+std::tan(deltar)));
-    double ds = v*dt;
-    double dtheta = ds*std::cos(beta)*(std::tan(deltaf)-std::tan(deltar))/opt_.l();
+    double beta = std::atan(0.5 * (std::tan(deltaf) + std::tan(deltar)));
+    double ds = v * dt;
+    double dtheta = ds * std::cos(beta) * (std::tan(deltaf) - std::tan(deltar)) / opt_.l();
     double thetan = dtheta; // <- why this ???
-    double yn = ds*std::sin(dtheta*0.5+beta*0.5);
-    double xn = ds*std::cos(dtheta*0.5+beta*0.5);
+    double yn = ds * std::sin(dtheta * 0.5 + beta * 0.5);
+    double xn = ds * std::cos(dtheta * 0.5 + beta * 0.5);
 
-    //ROS_DEBUG_NAMED(MODULE, "predict pose: dt = %g, deltaf = %g, deltar = %g, v = %g, beta = %g, ds = %g, dtheta = %g, yn = %g, xn = %g",
-    //          dt, deltaf, deltar, v, beta, ds, dtheta, yn, xn);
+    //ROS_DEBUG_NAMED(MODULE, "predict pose: dt = %g, deltaf = %g, deltar = %g, v = %g, "
+    //                        "beta = %g, ds = %g, dtheta = %g, yn = %g, xn = %g",
+    //                dt, deltaf, deltar, v, beta, ds, dtheta, yn, xn);
 
-    front_pred[0] = xn+cos(thetan)*opt_.l()/2.0;
-    front_pred[1] = yn+sin(thetan)*opt_.l()/2.0;
-    rear_pred[0] = xn-cos(thetan)*opt_.l()/2.0;
-    rear_pred[1] = yn-sin(thetan)*opt_.l()/2.0;
+    front_pred[0] = xn + cos(thetan) * opt_.l()/2.0;
+    front_pred[1] = yn + sin(thetan) * opt_.l()/2.0;
+    rear_pred[0]  = xn - cos(thetan) * opt_.l()/2.0;
+    rear_pred[1]  = yn - sin(thetan) * opt_.l()/2.0;
 
     ROS_DEBUG_STREAM_NAMED(MODULE, "predict pose. front: " << front_pred << ", rear: " << rear_pred);
 }
@@ -339,39 +341,51 @@ double RobotController_Ackermann_Pid::calculateLineError() const
         alt_carrot = front_pred;
     }
 
-//    if (visualizer_->hasSubscriber()) {
-//        visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
-//        visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
-//    }
+    if (visualizer_->hasSubscriber()) {
+        visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
+        visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
+    }
 
     return -target_line.GetSignedDistance(main_carrot) - 0.25 * target_line.GetSignedDistance(alt_carrot);
 }
 
-double RobotController_Ackermann_Pid::calculateSidewaysDistanceToWaypoint() const
+double RobotController_Ackermann_Pid::calculateSidewaysDistanceError() const
 {
     const double tolerance = 0.1;
-    Vector2d main_carrot, front_pred, rear_pred;
+    Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
 
     predictPose(front_pred, rear_pred);
     if(dir_sign_ >= 0) {
         main_carrot = front_pred;
+        alt_carrot = rear_pred;
     } else {
         main_carrot = rear_pred;
+        alt_carrot = front_pred;
     }
 
-//    if (visualizer_->hasSubscriber()) {
-//        visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
-//        visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
-//    }
+    if (visualizer_->hasSubscriber()) {
+        visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
+        visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
+    }
 
-    Vector2d dist_to_wp = next_wp_local_.head<2>() - main_carrot;
-
-//    ROS_INFO_STREAM("dist_to_wp: " << dist_to_wp);
-//    ROS_INFO_STREAM(main_carrot);
-
-    if(std::abs(dist_to_wp(1)) < tolerance) {
+    double dist_on_y_axis = next_wp_local_[1] - main_carrot[1];
+    if(std::abs(dist_on_y_axis) < tolerance) {
         return 0;
+    } else {
+        return dist_on_y_axis;
     }
+}
 
-    return dist_to_wp(1);
+void RobotController_Ackermann_Pid::visualizeCarrot(const Vector2d &carrot,
+                                                    int id, float r, float g, float b) const
+{
+    geometry_msgs::PoseStamped carrot_local;
+    carrot_local.pose.position.x = carrot[0];
+    carrot_local.pose.position.y = carrot[1];
+
+    carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
+    geometry_msgs::PoseStamped carrot_map;
+    if (path_driver_->transformToGlobal(carrot_local, carrot_map)) {
+        visualizer_->drawMark(id, carrot_map.pose.position, "prediction", r,g,b);
+    }
 }

@@ -22,6 +22,7 @@ protected:
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
 private:
+    //! Specific parameters of this controller.
     struct ControllerParameters : public Parameters
     {
         P<double> dead_time;
@@ -33,8 +34,8 @@ private:
         P<float> max_steer;
 
         ControllerParameters():
-            dead_time(this, "~dead_time", 0.1, ""),
-            l(this, "~l", 0.38, "Not sure... distance between front and rear wheels?"),
+            dead_time(this, "~dead_time", 0.1, "Time step that is used by predictPose"),
+            l(this, "~l", 0.38, "Distance between front and rear axes of the robot."),
             pid_ta(this, "~pid/ta", 0.03, "Update interval of the PID controller."),
             pid_kp(this, "~pid/kp", 1.0, "Proportional coefficient of the PID controller."),
             pid_ki(this, "~pid/ki", 0.001, "Integral coefficient of the PID controller."),
@@ -115,15 +116,24 @@ private:
     //! Distance of the robot to the Waypoint `wp`.
     double distanceToWaypoint(const Waypoint& wp) const;
 
-    //! Black Magic...
+    //! Predict pose of the robot in the next time step(?)
     void predictPose(Eigen::Vector2d &front_pred, Eigen::Vector2d &rear_pred) const;
 
+    //! Calculate error in the robots positon to the desired position on the line of the current
+    //! path segment.
     double calculateLineError() const;
 
     /**
-     * @brief Calculates the sideways distance to the waypoint
+     * @brief Calculates the (signed) sideways distance to the waypoint.
+     *
+     * The sideways distance is the distance of the waypoint to the line that goes through the
+     * robot in the direction of its orientation.
+     * This is meant as an error measure and thus is signed, depending on if the waypoint lies
+     * left or right of the robot.
      */
-    double calculateSidewaysDistanceToWaypoint() const;
+    double calculateSidewaysDistanceError() const;
+
+    void visualizeCarrot(const Eigen::Vector2d &carrot, int id, float r, float g, float b) const;
 };
 
 #endif // ROBOTCONTROLLER_ACKERMANN_PID_H
