@@ -251,14 +251,15 @@ float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
 
     // linearly reduce velocity, if the goal is within 2s*velocity (e.g. when driving with
     // 2 m/s, start to slow down 4m in front of the goal)
-    // TODO: better compute the length of the remaining path instead of the straight distance to
-    // the last waypoint (could be relevant on very winding paths).
-    float dist_to_path_end = distanceToWaypoint(path_->getLastWaypoint());
+    // path_->getRemainingSubPathDistance() only returns the distance starting from the next
+    // waypoint, so add the distance of the robot to this waypoint to get a more precise result.
+    float distance_to_next_wp = std::sqrt(next_wp_local_.dot(next_wp_local_));
+    float dist_to_path_end = path_->getRemainingSubPathDistance() + distance_to_next_wp;
     if (dist_to_path_end < 2*velocity) {
         velocity = std::max(0.1f + dist_to_path_end / 2.0f, path_driver_->getOptions().min_velocity());
     }
-//    ROS_INFO("dist: %f", dist_to_path_end);
-//    ROS_INFO("v: %f", velocity);
+    //ROS_INFO("dist:      %f", dist_to_path_end);
+    //ROS_INFO("v: %f", velocity);
 
 
     // make sure, the velocity is in the allowed range

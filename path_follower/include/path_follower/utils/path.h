@@ -70,15 +70,14 @@ public:
 
 
     Path():
-        current_sub_path(path_.begin()),
+        current_sub_path_(path_.begin()),
         has_callback_(false)
     {}
 
     //! Clear path and reset current subpath/waypoint.
     void clear();
 
-    //! Set a new path. Current sub path and waypoint are set to the
-    //! beginning of the path
+    //! Set a new path. Current sub path and waypoint are set to the beginning of the path
     void setPath(const std::vector<SubPath> &path);
 
     /**
@@ -142,15 +141,36 @@ public:
     //! Get the index of the current waypoint.
     size_t getWaypointIndex() const;
 
+    //! Get distance from current waypoint to the end of the subpath, measured along the path.
+    float getRemainingSubPathDistance() const;
+
 private:
     std::vector<SubPath> path_;
-    std::vector<SubPath>::const_iterator current_sub_path;
-    size_t next_waypoint_idx_; //TODO: maybe use here iterator like for path?
+    //! Iterator on `path_` pointing to the current subpath.
+    std::vector<SubPath>::const_iterator current_sub_path_;
+    //! Index of the next waypoint in the current sub path.
+    size_t next_waypoint_idx_;
+    /**
+     * @brief Distance from each waypoint of the subpath to the last waypoint of the subpath
+     *
+     * wp_distance_to_end_[i] = distance from waypoint i to the last subpath.
+     */
+    std::vector<float> wp_distance_to_end_;
 
+    //! Callback function that is called everytime a new waypoint is reached.
+    //! Undefined if has_callback_ == false
     NextWaypointCallback_t next_wp_callback_;
     bool has_callback_;
 
     inline void fireNextWaypointCallback() const;
+
+    /**
+     * @brief Precompute the distance from each waypoint to the end of the subpath.
+     *
+     * The distance is measured along the path (i.e. following windings of the path) and is
+     * stored in wp_distance_to_end_.
+     */
+    void computeWaypointToEndDistances();
 };
 
 
