@@ -156,7 +156,6 @@ add_executable(path_follower_node
   ${INCLUDE_HEADERS}
   src/follower_node.cpp
   src/pathfollower.cpp
-  src/legacy/behaviours.cpp
 
   src/utils/parameters.cpp
   src/utils/visualizer.cpp
@@ -173,10 +172,8 @@ add_executable(path_follower_node
 
   src/controller/robotcontroller.cpp
   src/controller/robotcontroller_ackermann_pid.cpp
-  src/legacy/robotcontroller_legacy_ackermann_pid.cpp
   src/legacy/robotcontroller_ackermann_orthexp.cpp
   src/legacy/robotcontroller_differential_orthexp.cpp
-  src/legacy/robotcontroller_omnidrive_vv.cpp
   src/legacy/robotcontroller_omnidrive_orthexp.cpp
 
   src/supervisor/supervisorchain.cpp

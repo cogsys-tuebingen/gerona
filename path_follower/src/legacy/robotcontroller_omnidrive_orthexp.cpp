@@ -4,7 +4,6 @@
 
 // PROJECT
 #include <path_follower/pathfollower.h>
-#include <path_follower/legacy/behaviours.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include "../alglib/interpolation.h"
