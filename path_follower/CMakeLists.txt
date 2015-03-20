@@ -282,6 +282,15 @@ if(TARGET test_pidcontroller)
   target_link_libraries(test_pidcontroller ${catkin_LIBRARIES})
 endif()
 
+
+catkin_add_gtest(test_path
+  test/test_path.cpp
+  src/utils/path.cpp
+)
+if(TARGET test_path)
+  target_link_libraries(test_path ${catkin_LIBRARIES})
+endif()
+
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
