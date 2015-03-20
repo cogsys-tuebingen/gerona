@@ -101,7 +101,7 @@ protected:
 
 bool operator==(Waypoint wp1, Waypoint wp2)
 {
-    return (wp1.x == wp2.x) && (wp1.y == wp2.y) == (wp1.orientation == wp2.orientation);
+    return (wp1.x == wp2.x) && (wp1.y == wp2.y) && (wp1.orientation == wp2.orientation);
 }
 
 
