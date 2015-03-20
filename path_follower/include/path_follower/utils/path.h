@@ -105,11 +105,6 @@ public:
     //! Switch to the next waypoint in the current sub path
     void switchToNextWaypoint();
 
-    //! Switch immediately to the last waypoint in the current sub path
-    /** @todo  is there a cleaner way than such a method? */
-    void switchToLastWaypoint();
-
-
     //! Returns true, if the path is empty.
     bool empty() const;
 
