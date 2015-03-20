@@ -120,8 +120,10 @@ void Path::computeWaypointToEndDistances()
 
     //TODO: resize initializes every value. This is not necessary as they are overwritten anyway.
     //      Is there a more efficient way to do this?
-    wp_distance_to_end_.resize(current_sub_path_->size(), 0);
+    wp_distance_to_end_.resize(current_sub_path_->size());
 
+    // Distance form last waypoint to end is zero (last wp == end of path)
+    wp_distance_to_end_.back() = 0;
     // iterate subpath in reversed order starting with the penultimate waypoint
     for (int i = current_sub_path_->size()-2; i >= 0; --i) {
         float dist_to_next_waypoint = (*current_sub_path_)[i].distanceTo((*current_sub_path_)[i+1]);
