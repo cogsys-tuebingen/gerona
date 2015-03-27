@@ -245,10 +245,15 @@ std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::Co
 
     cv::Point2f a(path_[0].x, path_[0].y);
 
-    // iterate over second to last point, making steps of size opt_.segment_step_size() (i.e. 'step_size' many segments
-    // are approximated by one bigger segment).
-    //FIXME: the last waypoints are ignored, if step size does not fit.
-    for (size_t i = opt_.segment_step_size(); i < path_.size(); i += opt_.segment_step_size()) {
+    // iterate over second to last point, making steps of size opt_.segment_step_size() (i.e.
+    // 'step_size' many segments are approximated by one bigger segment).
+    // To assure, that every part of the path is checked, make the first step shorter, if the
+    // length of the path is not divisable by the step size.
+    size_t first_step = (path_.size() - 1) % opt_.segment_step_size();
+    if (first_step == 0) {
+        first_step = opt_.segment_step_size();
+    }
+    for (size_t i = min(first_step, path_.size()-1); i < path_.size(); i += opt_.segment_step_size()) {
         cv::Point2f b(path_[i].x, path_[i].y);
 
         /**
