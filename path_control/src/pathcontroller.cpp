@@ -203,7 +203,7 @@ void PathController::handleFollowPathResult()
         else {
             switch (follow_path_result_->status) {
             case FollowPathResult::RESULT_STATUS_OBSTACLE:
-                nav_result.status = NavigateToGoalResult::STATUS_COLLISION;
+                nav_result.status = NavigateToGoalResult::STATUS_OBSTACLE;
                 break;
 
             case FollowPathResult::RESULT_STATUS_PATH_LOST:
@@ -289,7 +289,7 @@ void PathController::followPathFeedbackCB(const path_msgs::FollowPathFeedbackCon
         break;
 
     case FollowPathFeedback::MOTION_STATUS_OBSTACLE:
-        nav_feedback.status = NavigateToGoalFeedback::STATUS_COLLISION;
+        nav_feedback.status = NavigateToGoalFeedback::STATUS_OBSTACLE;
         break;
 
     default:

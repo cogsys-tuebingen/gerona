@@ -106,7 +106,7 @@ private:
             ROS_INFO("Feedback: Path is ready.");
             break;
 
-        case NavigateToGoalFeedback::STATUS_COLLISION:
+        case NavigateToGoalFeedback::STATUS_OBSTACLE:
             ROS_WARN_THROTTLE(1, "Feedback: Collision.");
             break;
 
