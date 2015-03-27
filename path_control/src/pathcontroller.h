@@ -13,12 +13,14 @@
 
 
 /**
- * @brief The PathController class
+ * @brief This class is the interface to the user, who wants the robot to navigate.
+ *
+ * This class is the interface to the user. It receives the goal positon and manages path
+ * planning and exection. Thus the user has not to communicate directly with planner and
+ * follower.
  */
 class PathController
 {
-
-
 public:
     PathController(ros::NodeHandle &nh);
 
@@ -47,31 +49,11 @@ private:
     //! Action client to communicate with the path_follower package.
     FollowPathClient follow_path_client_;
 
-    //! Subscribes to a goal position
-    ros::Subscriber goal_sub_;
-
     //! Action client to communicate with the path_planner package
     PlanPathClient path_planner_client_;
 
-    //! Publishes system commands
-    ros::Publisher sys_pub_;
-
     //! Publisher for text to speech messages.
     ros::Publisher speech_pub_;
-
-    /**
-     * @brief Timestamp of the last goal that was send to path_planner
-     *
-     * Since the communication between path_control and path_planner is done via simple messages instead of an service
-     * (which is done because goals and paths can then easily be displayed in rviz), there is no nonambiguous
-     * association between the goal, sent to the planner, and the resulting path.
-     * To solve this, the planner sets the timestamp of the path to the one of the goal, so it can be used as a mostly
-     * unique id to associate path with goals. Thus the timestamp of the goal is saved here, so it can be compared with
-     * the timestamps of incomming paths.
-     *
-     * Set this member to Time(0), while there is no outstanding path.
-     */
-    ros::Time goal_timestamp_;
 
     nav_msgs::PathConstPtr requested_path_;
 
@@ -82,23 +64,30 @@ private:
     //! False if follow_path action is currently running, otherwise true.
     bool follow_path_done_;
 
-    //! True, if the currently executed path was unexpected.
-    bool unexpected_path_;
-
     //! The goal, that is currently executed.
     path_msgs::NavigateToGoalGoalConstPtr current_goal_;
 
 
 
 
+    //! Callback that receives the goal poses and initiates planning and following.
     void navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal);
 
+    /**
+     * @brief Handles the planning and path following
+     *
+     * This is the heart of the path controller. It sends the goal to the planner, waits for
+     * the path and forwards the path to the follower. During this, it sends status reports to
+     * the high level node who sent the goal.
+     * This method blocks until path execution is finished or aborted.
+     *
+     * @return True, if path execution finishes successfully, false if it is aborted for some
+     *         reason.
+     */
     bool processGoal();
 
+    //! Finishes the navigate_to_goal action and sends an appropriate result message.
     void handleFollowPathResult();
-
-    //! Callback for the paths published e.g. by path_planner.
-    void pathCallback(const nav_msgs::PathConstPtr &path);
 
     //! Callback for result of finished FollowPathAction.
     void followPathDoneCB(const actionlib::SimpleClientGoalState &state,
@@ -109,10 +98,6 @@ private:
 
     //! Callback for FollowPathAction feedback.
     void followPathFeedbackCB(const path_msgs::FollowPathFeedbackConstPtr &feedback);
-
-    //! Callback for result of finished FollowPathAction with an unexpected path.
-    void followUnexpectedPathDoneCB(const actionlib::SimpleClientGoalState &state,
-                                    const path_msgs::FollowPathResultConstPtr &result);
 
     void findPath(const geometry_msgs::PoseStamped &goal);
 
