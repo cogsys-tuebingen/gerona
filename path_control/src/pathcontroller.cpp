@@ -9,7 +9,6 @@ PathController::PathController(ros::NodeHandle &nh):
     follow_path_client_("follow_path"),
     path_planner_client_("plan_path")
 {
-    ros::param::param<float>("~nonaction_velocity", opt_.unexpected_path_velocity, 0.5);
     ros::param::param<int>("~num_replan_attempts", opt_.num_replan_attempts, 5);
 
     speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 5);
