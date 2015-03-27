@@ -225,12 +225,18 @@ std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::Co
         return std::list<cv::Point2f>(); // return empty cloud
     }
 
-    //TODO: are cloud and path in the same frame?
+    //TODO: ensure that obstacle_frame_ is the frame of the path.
     ObstacleCloud trans_cloud;
-    try {
-        pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, *tf_listener_);
-    } catch (tf::TransformException& ex) {
-        ROS_ERROR_NAMED(MODULE, "Failed to transform obstacle cloud: %s", ex.what());
+    bool has_tf = tf_listener_->waitForTransform(obstacle_frame_,
+                                                 cloud->header.frame_id,
+                                                 pcl_conversions::fromPCL(cloud->header.stamp),
+                                                 ros::Duration(0.01));
+    if (!has_tf) {
+        ROS_WARN_NAMED(MODULE, "Got no transfom for obstacle cloud. Skip this cloud.");
+        return std::list<cv::Point2f>(); // return empty cloud
+    }
+    if (!pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, *tf_listener_)) {
+        ROS_ERROR_NAMED(MODULE, "Failed to transform obstacle cloud");
         return std::list<cv::Point2f>(); // return empty cloud
     }
 
