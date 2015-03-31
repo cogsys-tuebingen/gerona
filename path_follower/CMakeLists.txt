@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(path_follower)
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # -std=gnu++0x
 
 ## Enforce that we use C++11
@@ -169,6 +169,7 @@ add_executable(path_follower_node
   src/obstacle_avoidance/obstacledetectorpolygon.cpp
   src/obstacle_avoidance/obstacledetectorackermann.cpp
   src/obstacle_avoidance/obstacledetectoromnidrive.cpp
+  src/obstacle_avoidance/obstacledetectorpatsy.cpp
 
   src/controller/robotcontroller.cpp
   src/controller/robotcontroller_ackermann_pid.cpp

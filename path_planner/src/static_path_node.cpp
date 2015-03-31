@@ -87,21 +87,36 @@ struct StaticPathPlanner : public Planner
         nh.param("resolution", resolution, 0.1);
     }
 
+
+    void execute(const path_msgs::PlanPathGoalConstPtr &goal)
+    {
+        nav_msgs::Path path_raw = nav_msgs::Path();
+
+        tf::poseMsgToTF(goal->goal.pose, pose);
+//        pose = tf::Transform(tf::createIdentityQuaternion(), tf::Vector3(0,0,0));
+
+        path_raw.header.frame_id = "map";
+        path_raw.header.stamp = ros::Time::now();
+
+        for(std::size_t i = 0, total = segments.size(); i < total; ++i) {
+            segments[i]->add(pose, path_raw);
+        }
+
+        path = postprocess(path_raw);
+        publish(path, path_raw);
+
+        feedback(path_msgs::PlanPathFeedback::STATUS_DONE);
+
+        path_msgs::PlanPathResult success;
+        success.path = path;
+        server_.setSucceeded(success);
+    }
+
     nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,
                          const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                          const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
 
-        path = nav_msgs::Path();
-        pose = tf::Transform(tf::createIdentityQuaternion(), tf::Vector3(0,0,0));
-
-        path.header.frame_id = "map";
-        path.header.stamp = ros::Time::now();
-
-        for(std::size_t i = 0, total = segments.size(); i < total; ++i) {
-            segments[i]->add(pose, path);
-        }
-
-        return path;
+        throw std::logic_error("should not be called");
     }
 
     void addCurve(double angle, double radius)

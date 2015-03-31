@@ -24,6 +24,7 @@
 #include <path_follower/obstacle_avoidance/noneavoider.hpp>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
 #include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
+#include <path_follower/obstacle_avoidance/obstacledetectorpatsy.h>
 // Utils
 #include <path_follower/utils/path_exceptions.h>
 
@@ -62,6 +63,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     if (opt_.controller() == "ackermann_pid") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+        controller_ = new RobotController_Ackermann_Pid(this);
+    } else if (opt_.controller() == "patsy_pid") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorPatsy(&pose_listener_);
         controller_ = new RobotController_Ackermann_Pid(this);
     } else if (opt_.controller() == "omnidrive_orthexp") {
         if (opt_.obstacle_avoider_use_collision_box())

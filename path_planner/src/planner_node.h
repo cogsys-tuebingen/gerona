@@ -56,7 +56,7 @@ protected:
      * @brief execute ActionLib interface
      * @param goal
      */
-    void execute(const path_msgs::PlanPathGoalConstPtr &goal);
+    virtual void execute(const path_msgs::PlanPathGoalConstPtr &goal);
 
     /**
      * @brief plan is the interface for implementation classes
@@ -104,15 +104,19 @@ protected:
      */
     void publish(const nav_msgs::Path& path, const nav_msgs::Path &path_raw);
 
+protected:
+    void preprocess(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
+    nav_msgs::Path postprocess(const nav_msgs::Path& path);
+
+    void preempt();
+    void feedback(int status);
+
 private:
     void laserCallback(const sensor_msgs::LaserScanConstPtr& scan, bool front);
     void integrateLaserScan(const sensor_msgs::LaserScan &scan);
 
     void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud);
     void integratePointCloud(const sensor_msgs::PointCloud2 &cloud);
-
-    void preempt();
-    void feedback(int status);
 
     geometry_msgs::PoseStamped lookupPose();
     tf::StampedTransform lookupTransform(const std::string& from, const std::string& to, const ros::Time& stamp);
@@ -123,10 +127,6 @@ private:
                       const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                       const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map);
     nav_msgs::Path doPlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
-
-
-    void preprocess(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
-    nav_msgs::Path postprocess(const nav_msgs::Path& path);
 
 
     nav_msgs::Path smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance);

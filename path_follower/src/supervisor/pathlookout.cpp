@@ -128,6 +128,7 @@ void PathLookout::supervise(State &state, Supervisor::Result *out)
     const float limit = 1.0f;
     ROS_DEBUG_NAMED(MODULE, "Max Obstacle Weight: %g, limit: %g", max_weight, limit);
     if (max_weight > limit) {
+        ROS_WARN_NAMED(MODULE, "Max Obstacle Weight: %g, limit: %g", max_weight, limit);
         out->can_continue = false;
         out->status = path_msgs::FollowPathResult::RESULT_STATUS_OBSTACLE;
     }
