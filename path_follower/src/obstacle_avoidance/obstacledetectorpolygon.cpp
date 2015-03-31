@@ -8,6 +8,7 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <pcl_ros/transforms.h>
+#include <pcl_conversions/pcl_conversions.h>
 #include <path_follower/utils/visualizer.h>
 
 using namespace std;
@@ -28,15 +29,21 @@ bool ObstacleDetectorPolygon::checkOnCloud(ObstacleCloud::ConstPtr obstacles, fl
         return false;
     }
 
-
-
-    ObstacleCloud cloud;
+    /// transform the polygon to the obstacle cloud frame
     try {
-        //TODO: it would be faster to transform the (comparatively small) polygon instead of the
-        //      whole point cloud
-        pcl_ros::transformPointCloud(pwf.frame, *obstacles, cloud, *tf_listener_);
+        geometry_msgs::PointStamped gm_p, gm_pt;
+        gm_p.header.frame_id = pwf.frame;
+        gm_p.header.stamp = pcl_conversions::fromPCL(obstacles->header.stamp);
+
+        for (cv::Point2f &p : pwf.polygon) {
+            gm_p.point.x = p.x;
+            gm_p.point.y = p.y;
+            tf_listener_->transformPoint(obstacles->header.frame_id, gm_p, gm_pt);
+            p.x = gm_pt.point.x;
+            p.y = gm_pt.point.y;
+        }
     } catch (tf::TransformException& ex) {
-        ROS_ERROR_NAMED(MODULE, "Failed to transform obstacle cloud to polygon frame: %s", ex.what());
+        ROS_ERROR_NAMED(MODULE, "Failed to transform polygon to obstacle cloud frame: %s", ex.what());
         // can't check for obstacles, so better assume there is one.
         return true;
     }
@@ -44,7 +51,7 @@ bool ObstacleDetectorPolygon::checkOnCloud(ObstacleCloud::ConstPtr obstacles, fl
 
     /// now check each point of the scan
     ObstacleCloud::const_iterator point_it;
-    for (point_it = cloud.begin(); point_it != cloud.end(); ++point_it) {
+    for (point_it = obstacles->begin(); point_it != obstacles->end(); ++point_it) {
         // check if this scan point is inside the polygon
         cv::Point2f point( point_it->x, point_it->y );
 

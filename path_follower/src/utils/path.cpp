@@ -43,12 +43,6 @@ void Path::switchToNextWaypoint()
     }
 }
 
-void Path::switchToLastWaypoint()
-{
-    next_waypoint_idx_ = current_sub_path_->size() - 1;
-    fireNextWaypointCallback();
-}
-
 bool Path::empty() const
 {
     return path_.empty();

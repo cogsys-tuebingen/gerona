@@ -128,24 +128,6 @@ TEST_F(TestPath, testSubPathCount)
     ASSERT_EQ(0, path_.subPathCount());
 }
 
-TEST_F(TestPath, testSwitchToLastWaypoint)
-{
-    ASSERT_EQ(Waypoint(0,0,0), path_.getCurrentWaypoint());
-    ASSERT_FALSE(path_.isLastWaypoint());
-    path_.switchToLastWaypoint();
-    ASSERT_EQ(Waypoint(5,3,0), path_.getCurrentWaypoint());
-    ASSERT_TRUE(path_.isLastWaypoint());
-
-    // make sure the behaviour is still the same for following sub path.
-    path_.switchToNextSubPath();
-
-    ASSERT_EQ(Waypoint(5,3,0), path_.getCurrentWaypoint());
-    ASSERT_FALSE(path_.isLastWaypoint());
-    path_.switchToLastWaypoint();
-    ASSERT_EQ(Waypoint(7,2,0), path_.getCurrentWaypoint());
-    ASSERT_TRUE(path_.isLastWaypoint());
-}
-
 TEST_F(TestPath, testGetCurrentSubPath)
 {
     // I am confident, that the returned sub path is correct, when lenght and first element fit

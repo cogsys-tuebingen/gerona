@@ -31,6 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   laser_geometry
   pcl_ros
+  pcl_conversions
 )
 
 find_package(OpenCV REQUIRED)
