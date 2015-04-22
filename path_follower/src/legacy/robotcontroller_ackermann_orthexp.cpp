@@ -7,7 +7,6 @@
 
 // PROJECT
 #include <path_follower/pathfollower.h>
-#include <path_follower/legacy/behaviours.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include "../alglib/interpolation.h"
 #include <utils_general/MathHelper.h>
@@ -78,14 +77,10 @@ RobotController_Ackermann_OrthogonalExponential::RobotController_Ackermann_Ortho
 
 void RobotController_Ackermann_OrthogonalExponential::stopMotion()
 {
-    //FIXME: this method should be improved
-
     cmd_.speed = 0;
     cmd_.direction_angle = 0;
-    cmd_.rotation = 0;
 
-    MoveCommand mcmd;
-    mcmd.setVelocity(0);
+    MoveCommand mcmd = cmd_;
     publishMoveCommand(mcmd);
 }
 
@@ -318,8 +313,7 @@ void RobotController_Ackermann_OrthogonalExponential::start()
 
 RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponential::computeMoveCommand(MoveCommand *cmd)
 {
-    // omni drive can rotate.
-    *cmd = MoveCommand(true);
+    *cmd = MoveCommand(false);
 
     if(N_ < 2) {
         ROS_ERROR("[Line] path is too short (N = %d)", N_);
@@ -453,11 +447,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     double look_ahead_cum_sum = 0;
     curv_sum_ = 1e-10;
 
-    int counter = 0;
-
     for (unsigned int i = ind + 1; i < N_; i++){
-
-        counter++;
 
         look_ahead_cum_sum += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
         curv_sum_ += fabs(curvature_[i]);
@@ -466,25 +456,19 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
             break;
         }
     }
-    ROS_INFO("Counter: %d", counter);
 
-    /*for (int i = ind; i < N; i++){
 
-        if(fabs(hypot(x_meas - p[i], y_meas - q[i]) - look_ahead_dist) < look_ahead_difference){
+    double cum_sum_to_goal = 0;
 
-            look_ahead_difference = fabs(hypot(x_meas - p[i], y_meas - q[i]) - look_ahead_dist);
-            look_ahead_index = i;
+    for (int i = ind; i < N_; i++){
 
-        }
+        cum_sum_to_goal += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
+
     }
+    distance_to_goal_ = cum_sum_to_goal;
 
-    curv_sum = 1e-10;
-    for (int i = ind; i <= look_ahead_index; i++){
 
-        curv_sum += fabs(curvature[i]);
-    }*/
-
-    distance_to_goal_ = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
+    //distance_to_goal_ = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
 
     double angular_vel = path_driver_->getVelocity().angular.z;
     //***//
@@ -529,8 +513,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
         return MoveCommandStatus::REACHED_GOAL;
     } else {
         // Quickfix: simply convert ackermann command to move command
-        cmd->setDirection(cmd_.direction_angle);
-        cmd->setVelocity(cmd_.speed);
+        *cmd = cmd_;
 
         return MoveCommandStatus::OKAY;
     }

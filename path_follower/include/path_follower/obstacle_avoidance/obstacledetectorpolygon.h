@@ -45,10 +45,6 @@ protected:
 private:
     const tf::TransformListener *tf_listener_;
 
-    //! Transform the given polygon to map coordinates.
-    /** @throws tf::TransformException */
-    ROS_DEPRECATED void transformPolygonToMap(PolygonWithTfFrame *polygon) const;
-
     void visualize(PolygonWithTfFrame polygon, bool hasObstacle) const;
 };
 

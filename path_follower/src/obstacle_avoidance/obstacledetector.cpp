@@ -9,7 +9,7 @@ bool ObstacleDetector::avoid(MoveCommand * const cmd,
                              ObstacleCloud::ConstPtr obstacles,
                              const ObstacleAvoider::State &state)
 {
-    float course = cmd->getDirectionAngle(); //FIXME: use course prediction!
+    float course = cmd->getDirectionAngle(); //TODO: use CoursePredictor instead of command?
 
     //! Factor which defines, how much the box is enlarged in curves.
     const float enlarge_factor = 0.5; // should this be a parameter?

@@ -36,14 +36,11 @@ public:
     //! Return true, if the robot is capable of omnidirectional movement.
     virtual bool isOmnidirectional() const;
 
+    //! Is called when the execution of a new path is started. Can be used for initialization stuff.
     virtual void start() {}
 
-    virtual void behaveOnLine() {}
-
-    /**
-     * @return True, when turning point is reached, otherwise false.
-     */
-    virtual bool behaveApproachTurningPoint() { return false; }
+    //! Is called at several points, if new path is set or movement is aborted.
+    virtual void reset() {}
 
 protected:
     //! This is a subset of ControlStatus. computeMoveCommand is not allowed to report obstacles
@@ -101,17 +98,8 @@ public:
     //! Execute one iteration of path following. This method should not be overwritten by subclasses!
     ControlStatus execute();
 
-    /* RESET FOR A NEW PATH */
-    virtual void reset() {}
-
 
     virtual void setPath(Path::Ptr path);
-
-    /* BEHAVIOURS */
-    //! Initialize the OnLine-Behaviour
-    virtual void initOnLine() {}
-    //! Initialize the ApproachTurningPoint-Behaviour
-    virtual void initApproachTurningPoint() {}
 
     virtual void setVelocity(float v)
     {

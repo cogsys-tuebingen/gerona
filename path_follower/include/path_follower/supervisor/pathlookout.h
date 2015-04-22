@@ -124,10 +124,14 @@ private:
         Options():
             scale_obstacle_distance(this, "~supervisor/path_lookout/obstacle_scale_distance",  1.0f, ""),
             scale_obstacle_lifetime(this, "~supervisor/path_lookout/obstacle_scale_lifetime",  10.0f, ""),
-            path_width(this, "~supervisor/path_lookout/path_width",  0.5f, "Width of the path in meters (should be at least the width of the robot)."),
-            segment_step_size(this, "~supervisor/path_lookout/segment_step_size",  5, "Number of segments that are merged together for speed up."),
-            scan_cluster_max_distance(this, "~supervisor/path_lookout/scan_cluster_max_distance",  0.5f, "Maximum distance of a scan point to it's neighbour (in terms of scan angle), to combine them to the same cluster."),
-            min_number_of_points(this, "~supervisor/path_lookout/min_number_of_points",  3, "Minimum number of points on one obstacle (smaller clusters are ignored).")
+            path_width(this, "~supervisor/path_lookout/path_width",  0.5f,
+                       "Width of the path in meters (should be at least the width of the robot)."),
+            segment_step_size(this, "~supervisor/path_lookout/segment_step_size",  5,
+                              "Number of path segments that are approximated by a line to speed up computation."),
+            scan_cluster_max_distance(this, "~supervisor/path_lookout/scan_cluster_max_distance",  0.5f,
+                                      "Maximum distance between two obstacle points, to combine them to one obstacle."),
+            min_number_of_points(this, "~supervisor/path_lookout/min_number_of_points",  3,
+                                 "Minimum number of points on one obstacle (smaller clusters are ignored).")
         {}
     } opt_;
 

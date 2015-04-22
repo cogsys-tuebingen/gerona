@@ -12,7 +12,7 @@ demonstrating the navigation framework.
     		output="screen" respawn="true">
         <param name="target_speed" value="1.0" />
         <param name="failure_mode" value="replan" />
-        <param name="goal_topic" value="/move_base_simple/goal"/>
+        <remap from="/rviz_goal" value="/move_base_simple/goal" />
     </node>
 
     <include file="$(find navigation_launch)/launch/full.launch" />
