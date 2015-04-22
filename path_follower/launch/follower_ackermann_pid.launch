@@ -6,7 +6,7 @@ Launch the path follower with the PID controller for a car-like (Ackermann) robo
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
     <param name="controller" value="ackermann_pid" />
     
-    <param name="pid/kp" value="1.0" />
+    <param name="pid/kp" value="0.6" />
     <param name="pid/ki" value="0.001" />
 
     <!-- supervisors -->
