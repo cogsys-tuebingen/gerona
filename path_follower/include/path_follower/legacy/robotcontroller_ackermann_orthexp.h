@@ -9,7 +9,6 @@
 
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
-#include <path_follower/utils/multiplepidwrapper.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/pathfollower.h>
@@ -89,43 +88,33 @@ private:
         float speed;
         //! Direction of movement as angle to the current robot orientation.
         float direction_angle;
-        //! rotational velocity.
-        float rotation;
 
 
         // initialize all values to zero
         Command(RobotController_Ackermann_OrthogonalExponential *parent):
             parent_(parent),
-            speed(0.0f), direction_angle(0.0f), rotation(0.0f)
+            speed(0.0f), direction_angle(0.0f)
         {}
 
-        operator geometry_msgs::Twist()
+        operator MoveCommand()
         {
-            // direction_angle is relative to direction of movement;
-            // control angle, however, is relative to orientation of the robot.
-            float angle = direction_angle;
-
-            geometry_msgs::Twist msg;
-            msg.linear.x  = speed * cos(angle);
-            msg.linear.y  = speed * sin(angle);
-            msg.angular.z = rotation;
-            return msg;
+            MoveCommand mcmd;
+            mcmd.setDirection(direction_angle);
+            mcmd.setVelocity(speed);
+            return mcmd;
         }
 
         bool isValid()
         {
             if ( isnan(speed) || isinf(speed)
-                 || isnan(direction_angle) || isinf(direction_angle)
-                 || isnan(rotation) || isinf(rotation) )
+                 || isnan(direction_angle) || isinf(direction_angle))
             {
-                ROS_FATAL("Non-numerical values in command: %d,%d,%d,%d,%d,%d",
+                ROS_FATAL("Non-numerical values in command: %d,%d,%d,%d",
                           isnan(speed), isinf(speed),
-                          isnan(direction_angle), isinf(direction_angle),
-                          isnan(rotation), isinf(rotation));
+                          isnan(direction_angle), isinf(direction_angle));
                 // fix this instantly, to avoid further problems.
                 speed = 0.0;
                 direction_angle = 0.0;
-                rotation = 0.0;
 
                 return false;
             } else {

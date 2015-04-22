@@ -33,7 +33,7 @@ void CoursePredictor::reset()
     last_positions_.clear();
 }
 
-Eigen::Vector2d CoursePredictor::predictDirectionOfMovement()
+Eigen::Vector2d CoursePredictor::predictDirectionOfMovement() const
 {
     // The direction of movement is predicted by computing the vector from the last saved position to the current one.
 
@@ -59,7 +59,7 @@ Eigen::Vector2d CoursePredictor::predictDirectionOfMovement()
     return direction;
 }
 
-Eigen::Vector2d CoursePredictor::smoothedDirection()
+Eigen::Vector2d CoursePredictor::smoothedDirection() const
 {
     if (last_positions_.size() < 2) {
         return Vector2d(0,0);

@@ -5,7 +5,7 @@
     <param name="use_vfh" value="false" />
     <param name="use_path_lookout" value="false" />
     
-    <param name="controller" value="ackermann_orthexp" />
+    <param name="controller" value="differential_orthexp" />
     
     <param name="waypoint_tolerance" value="2.0" />
     <param name="goal_tolerance" value="0.4" />

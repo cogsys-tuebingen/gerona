@@ -44,7 +44,7 @@ if __name__ == '__main__':
     rate = rospy.Rate(60.0)
     while not rospy.is_shutdown():
         try:
-            (trans,rot) = listener.lookupTransform('/odom', '/base_link', rospy.Time(0))
+            (trans,rot) = listener.lookupTransform('/map', '/base_link', rospy.Time(0))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             continue
         
@@ -52,8 +52,8 @@ if __name__ == '__main__':
         y.append(trans[1]);
         
         ax.clear()
-        ax.set_xlim(-10,10)
-        ax.set_ylim(-10,10)
+ #       ax.set_xlim(-10,10)
+ #       ax.set_ylim(-10,10)
         ax.plot(x, y)
         ax.plot(xpath, ypath)
         plt.draw()

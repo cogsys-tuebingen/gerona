@@ -39,11 +39,11 @@ public:
     float getDirectionAngle() const;
     //! Scalar velocity.
     float getVelocity() const;
+    //! Rotational velocity. Undefined if `canRotate() == false`
+    float getRotationalVelocity() const;
 
     //! True, iff the robot supports rotation commands.
-    bool hasRotation() const;
-    //! Desired rotation as angle. Undefined if hasOrientation() == false.
-    float getRotation() const;
+    bool canRotate() const;
 
     //! Set direction vector (length of the vector is ignored)
     void setDirection(const Eigen::Vector2f &dir);
@@ -51,8 +51,8 @@ public:
     void setDirection(float angle);
     //! Set scalar velocity.
     void setVelocity(float v);
-    //! Set rotation angle.
-    void setRotation(float o); //TODO: better name?
+    //! Set rotational velocity.
+    void setRotationalVelocity(float omega);
 
 private:
     //! Unit vector pointing in the direction of movement.
@@ -60,11 +60,10 @@ private:
     //! Scalar velocity
     float velocity_;
 
-    //! Angle of desired rotation.
-    float rotation_;
-    //! If false, rotation_ is undefined and must not be used.
+    //! Rotational velocity.
+    float rot_velocity_;
+    //! If false, rot_velocity_ is undefined and must not be used.
     bool use_rotation_;
-    //TODO: do we need rotational velocity?
 
     //! Check if the given value is neither NaN nor +/-infinity.
     bool isValid(float val) const;
