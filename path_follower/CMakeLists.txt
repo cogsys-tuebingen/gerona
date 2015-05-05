@@ -165,6 +165,7 @@ add_executable(path_follower_node
   src/utils/coursepredictor.cpp
   src/utils/path.cpp
   src/utils/movecommand.cpp
+  src/utils/path_interpolated.cpp
 
   src/obstacle_avoidance/obstacledetector.cpp
   src/obstacle_avoidance/obstacledetectorpolygon.cpp
@@ -175,6 +176,7 @@ add_executable(path_follower_node
   src/controller/robotcontroller.cpp
   src/controller/robotcontroller_ackermann_pid.cpp
   src/legacy/robotcontroller_ackermann_orthexp.cpp
+  src/legacy/robotcontroller_ackermann_purepursuit.cpp
   src/legacy/robotcontroller_differential_orthexp.cpp
   src/legacy/robotcontroller_omnidrive_orthexp.cpp
 
