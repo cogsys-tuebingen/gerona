@@ -243,10 +243,11 @@ float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
         ROS_INFO_STREAM_THROTTLE_NAMED(2, MODULE, "slowing down");
         velocity *= 0.75;
     }
+//***todo rewrite
 
     // Reduce maximal velocity, when driving backwards.
     if(dir_sign_ < 0) {
-        velocity = min(velocity, 0.5f * path_driver_opt.max_velocity());
+        velocity = min(velocity, 0.4f * path_driver_opt.max_velocity());
     }
 
     // linearly reduce velocity, if the goal is within 2s*velocity (e.g. when driving with
