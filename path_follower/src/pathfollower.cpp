@@ -13,6 +13,8 @@
 /// PROJECT
 // Controller/Models
 #include <path_follower/controller/robotcontroller_ackermann_pid.h>
+#include <path_follower/controller/robotcontrollertrailer.h>
+
 #include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/legacy/robotcontroller_differential_orthexp.h>
@@ -67,7 +69,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     } else if (opt_.controller() == "patsy_pid") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorPatsy(&pose_listener_);
-        controller_ = new RobotController_Ackermann_Pid(this);
+        controller_ = new RobotControllerTrailer(this);
     } else if (opt_.controller() == "omnidrive_orthexp") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
