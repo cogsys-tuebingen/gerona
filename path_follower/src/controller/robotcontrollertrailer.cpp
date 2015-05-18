@@ -253,9 +253,9 @@ float RobotControllerTrailer::controlVelocity(float steer_angle) const
 //***todo rewrite
 
     // Reduce maximal velocity, when driving backwards.
-    if(dir_sign_ < 0) {
+  /*  if(dir_sign_ < 0) {
         velocity = min(velocity, 0.4f * path_driver_opt.max_velocity());
-    }
+    }*/
 
     // linearly reduce velocity, if the goal is within 2s*velocity (e.g. when driving with
     // 2 m/s, start to slow down 4m in front of the goal)

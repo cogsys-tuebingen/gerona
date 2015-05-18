@@ -2,6 +2,7 @@
 #include "planner_node.h"
 
 /// SYSTEM
+#include <math.h>
 #include <nav_msgs/Path.h>
 #include <tf/tf.h>
 
@@ -58,25 +59,28 @@ struct Curve : public Segment
 
 struct Straight : public Segment
 {
-    double length;
-
+    double length_;
+    int dir_;
     Straight(double length, double resolution)
-        : Segment(resolution), length(length)
-    {}
+        : Segment(resolution), length_(fabs(length)),dir_(length>=0.0?1:-1)
+    {
+
+    }
 
     void add(tf::Transform& pose, nav_msgs::Path& path)
     {
+
         double distance = 0;
         do {
-            double step = std::min(length - distance, resolution);
-            tf::Transform delta(tf::createIdentityQuaternion(), tf::Vector3(step, 0, 0));
+            double step = std::min(length_ - distance, resolution);
+            tf::Transform delta(tf::createIdentityQuaternion(), tf::Vector3(dir_*step, 0, 0));
             distance += step;
 
             pose = pose * delta;
 
             path.poses.push_back(tf2pose(pose));
 
-        } while(distance < length);
+        } while(distance < length_);
     }
 };
 
