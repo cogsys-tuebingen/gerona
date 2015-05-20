@@ -51,6 +51,13 @@ target_link_libraries(static_path_node
   ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
 
+
+add_executable(pub_goal_pose src/pub_goal_pose.cpp)
+
+target_link_libraries(pub_goal_pose
+  ${catkin_LIBRARIES}
+)
+
 if(${OMPL_FOUND})
     if(${OMPLAPP_LIBRARIES})
         include_directories(${OMPL_INCLUDE_DIRS})

@@ -161,7 +161,7 @@ double RobotControllerTrailer::calcTotalError (double e_dist, double e_angle)
 {
     // should be scaled depending on velocity
     // 5 degrees angular error = 0.09
-    return e_dist + dir_sign_ * e_angle;
+    return dir_sign_*e_dist + dir_sign_ * e_angle;
 }
 
 
@@ -218,7 +218,7 @@ float RobotControllerTrailer::getErrorApproachSubpathEnd()
 
     return error;
 }
-
+static int g_dbg_count = 0;
 
 void RobotControllerTrailer::updateCommand(float error)
 {
@@ -233,7 +233,9 @@ void RobotControllerTrailer::updateCommand(float error)
 
     float steer = std::max(-opt_.max_steer(), std::min(u, opt_.max_steer()));
     ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
-
+    if (g_dbg_count++%4==0) {
+     ROS_INFO("error %f u %f steer %fdeg maxsteer %fdeg\n",error,u,steer*180.0/M_PI,opt_.max_steer()*180.0/M_PI);
+    }
     // Control velocity
     float velocity = controlVelocity(steer);
 
@@ -373,7 +375,7 @@ double RobotControllerTrailer::calculateSidewaysDistanceError() const
     }
 
     if (visualizer_->hasSubscriber()) {
-        visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
+        visualizeCarrot(main_carrot, 0, 1.0,0.0,1.0);
         visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
     }
 
