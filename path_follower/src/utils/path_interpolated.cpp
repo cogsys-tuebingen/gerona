@@ -21,6 +21,8 @@
 //#include <Eigen/Core>
 //#include <Eigen/Dense>
 
+#include <nav_msgs/Path.h>
+
 using namespace Eigen;
 
 PathInterpolated::PathInterpolated() {
@@ -38,7 +40,6 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
 			path->getCurrentSubPath().end());
 
 	// (messy) hack!!!!!
-	// TODO: why???
 	// remove waypoints that are closer than 0.1 meters to the starting point
 	Waypoint start = waypoints.front();
 	while (!waypoints.empty()) {

@@ -10,8 +10,13 @@
 #include <ros/ros.h>
 
 #include "../alglib/interpolation.h"
+#include <utils_general/MathHelper.h>
 
 #include <visualization_msgs/Marker.h>
+
+#include <deque>
+#include <Eigen/Core>
+#include <Eigen/Dense>
 
 #define DEBUG
 
@@ -74,10 +79,10 @@ void Robotcontroller_Ackermann_PurePursuit::setPath(Path::Ptr path) {
 		return;
 	}
 
-	//    clearBuffers();
+	ROS_INFO("Interpolating new path");
 
 	try {
-		path_interpol.interpolatePath(path);
+		path_interpol.interpolatePath(path_);
 		publishInterpolatedPath();
 
 	} catch (const alglib::ap_error& error) {
@@ -89,6 +94,12 @@ void Robotcontroller_Ackermann_PurePursuit::setPath(Path::Ptr path) {
 
 RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::computeMoveCommand(
 		MoveCommand* cmd) {
+
+	if(path_interpol.length() <= 2)
+		return RobotController::MoveCommandStatus::ERROR;
+
+
+
 	Eigen::Vector3d pose = path_driver_->getRobotPose();
 
 	if (reachedGoal(pose)) {
@@ -109,18 +120,17 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 	 * - lookahead_distance depending on the curvature
 	 * - remember current waypoint for faster alpha computation
 	 */
-
-	const double lookahead_distance = params.factor_lookahead_distance() * velocity_;
+	double lookahead_distance = params.factor_lookahead_distance() * velocity_;
 
 	// angle between vehicle theta and the connection between the rear axis and the look ahead point
 	const double alpha = computeAlpha(lookahead_distance, pose);
 
-	const double delta = atan((2. * params.vehicle_length() * sin(alpha)) / lookahead_distance);
+	const double delta = atan2(2. * params.vehicle_length() * sin(alpha), lookahead_distance);
 
-	//    const double delta = asin((VEHICLE_LENGTH * alpha) / lookahead_distance);
+//	 const double delta = asin((VEHICLE_LENGTH * alpha) / lookahead_distance);
 
-	move_cmd.setDirection((float) delta);
-	move_cmd.setVelocity((float) velocity_);
+	move_cmd.setDirection( delta);
+	move_cmd.setVelocity( velocity_);
 
 	ROS_INFO("Command: vel=%f, angle=%f", velocity_, delta);
 
@@ -153,6 +163,7 @@ void Robotcontroller_Ackermann_PurePursuit::publishInterpolatedPath() const {
 }
 
 void Robotcontroller_Ackermann_PurePursuit::initialize() {
+	initialized = true;
 }
 
 bool Robotcontroller_Ackermann_PurePursuit::reachedGoal(
@@ -163,15 +174,18 @@ bool Robotcontroller_Ackermann_PurePursuit::reachedGoal(
 }
 
 double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
-		const double lookahead_distance, const Eigen::Vector3d& pose) const {
+		double& lookahead_distance, const Eigen::Vector3d& pose) const {
 
 	// TODO: correct angle, when the goal is near
 
-	for (unsigned int i = path_interpol.length(); i >= 0; --i) {
-		const double angle_diff =  path_interpol.theta_p(i) - pose[2];
+	for (int j = path_interpol.length() - 1; j >= 0; --j) {
+		unsigned int i = j;
 
+		// TODO: test if this is necessary:
+//		const double angle_diff = MathHelper::AngleDelta(pose[2], path_interpol.theta_p(i));
 		// only take points into account that have approximately the same angle (difference <= 90°)
-		if (angle_diff <= M_PI_2 && angle_diff >= -M_PI_2) {
+		if (true) {//angle_diff <= M_PI_2 && angle_diff >= -M_PI_2) {
+
 
 			const double dx = path_interpol.p(i) - pose[0];
 			const double dy = path_interpol.q(i) - pose[1];
@@ -180,9 +194,11 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
 			if (distance <= lookahead_distance) {
 
 				// angle between the connection line and the vehicle orientation
-				const double alpha = atan2(dy, dx) - pose[2];
-#ifdef DEBUG
-				ROS_INFO("LookAheadPoint: index=%i, x=%f, y=%f", i, path_interpol.p(i), path_interpol.q(i));
+				const double alpha = MathHelper::AngleDelta(pose[2], atan2(dy, dx));
+
+				// set lookahead_distance to the actual distance
+				lookahead_distance = distance;
+
 
 				// line to lookahead point
 				geometry_msgs::Point from, to;
@@ -191,6 +207,8 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
 
 				visualizer->drawLine(12341234, from, to, "map", "geo", 1, 0, 0, 1, 0.01);
 
+#ifdef DEBUG
+				ROS_INFO("LookAheadPoint: index=%i, x=%f, y=%f", i, path_interpol.p(i), path_interpol.q(i));
 				ROS_INFO("Pose: x=%f, y=%f, theta=%f", pose[0], pose[1], pose[2]);
 				ROS_INFO("Alpha=%f", alpha);
 #endif
@@ -199,6 +217,10 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
 			}
 		}
 	}
+
+	ROS_WARN("No appropriate path point found");
+
+	return 0.;
 
 
 }

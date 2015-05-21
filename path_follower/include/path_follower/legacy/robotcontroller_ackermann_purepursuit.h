@@ -26,7 +26,7 @@ public:
 	virtual void reset();
 	virtual void setPath(Path::Ptr path);
 	virtual bool isOmnidirectional() const {
-		return false;
+		return true;
 	}
 
 protected:
@@ -52,7 +52,7 @@ private:
 	void initialize();
 
 	bool reachedGoal(const Eigen::Vector3d& pose) const;
-	double computeAlpha(const double lookahead_distance, const Eigen::Vector3d& pose) const;
+	double computeAlpha(double& lookahead_distance, const Eigen::Vector3d& pose) const;
 
 	bool initialized;
 

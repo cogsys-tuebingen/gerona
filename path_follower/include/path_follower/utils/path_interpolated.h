@@ -60,8 +60,7 @@ public:
 	}
 
 	inline double theta_p(const unsigned int s) const {
-		const int i = s;
-		return atan2(q_prim_[i], p_prim_[i]);
+		return atan2(q_prim_[s], p_prim_[s]);
 	}
 
 	inline unsigned int length() const {

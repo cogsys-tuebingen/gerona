@@ -292,9 +292,9 @@ void RobotController_Ackermann_OrthogonalExponential::publishInterpolatedPath()
 {
     if(N_ <= 2) {
         return;
-    }
+	 }
 
-    for(uint i = 0; i < N_; ++i) {
+	 for(uint i = 0; i < N_; ++i) {
         geometry_msgs::PoseStamped poza;
         poza.pose.position.x = p_[i];
         poza.pose.position.y = q_[i];
@@ -377,7 +377,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     marker.color.g = 0;
     marker.color.b = 0;
     marker.color.a = 1.0;
-    marker.scale.x = 0.1;
+	 marker.scale.x = 0.1;
     marker.scale.y = 0.1;
     marker.scale.z = 0.5;
     marker.type = visualization_msgs::Marker::ARROW;
