@@ -456,6 +456,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
             break;
         }
     }
+    ROS_INFO("Curvature: %f", curv_sum_);
 
 
     double cum_sum_to_goal = 0;
@@ -466,13 +467,17 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 
     }
     distance_to_goal_ = cum_sum_to_goal;
-
+    ROS_INFO("Distance to goal: %f", distance_to_goal_);
 
     //distance_to_goal_ = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
 
     double angular_vel = path_driver_->getVelocity().angular.z;
     //***//
-
+    
+   //make sure there are no nans in exponent
+   if(distance_to_obstacle_ == 0) {
+	distance_to_obstacle_ = 1;
+   }
 
     //control
 
@@ -481,9 +486,22 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
             + opt_.k_o()/distance_to_obstacle_
             + opt_.k_g()/distance_to_goal_;
 
-    cmd_.speed = std::max(vn_*exp(-exponent),0.2);
+    if(distance_to_goal_ <= 0.3){
+    	cmd_.speed = vn_*exp(-exponent); 
+     }
+    else	
+        cmd_.speed = std::max(vn_*exp(-exponent),0.5);
 
-    cmd_.direction_angle = atan(-opt_.k()*orth_proj) + theta_p - theta_meas;
+
+    /*double k_temp = 0;
+    if(fabs(curv_sum_) > 3.0){
+    	k_temp = opt_.k(); 
+    }
+   else
+	k_temp = 0.1;*/
+
+    cmd_.direction_angle = opt_.kp()*(atan(-opt_.k()*orth_proj) + theta_p - theta_meas);
+//    cmd_.direction_angle = atan(-k_temp*orth_proj) + theta_p - theta_meas;
 
     //***//
 
