@@ -4,7 +4,6 @@
 
 // PROJECT
 #include <path_follower/pathfollower.h>
-#include <path_follower/legacy/behaviours.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include "../alglib/interpolation.h"
@@ -80,14 +79,11 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
 
 void RobotController_Omnidrive_OrthogonalExponential::stopMotion()
 {
-    //FIXME: this method should be improved
-
     cmd_.speed = 0;
     cmd_.direction_angle = 0;
     cmd_.rotation = 0;
 
-    MoveCommand mcmd(true);
-    mcmd.setVelocity(0);
+    MoveCommand mcmd = cmd_;
     publishMoveCommand(mcmd);
 }
 
@@ -553,9 +549,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
         return MoveCommandStatus::REACHED_GOAL;
     } else {
         // Quickfix: simply convert omnidrive command to move command
-        cmd->setDirection(cmd_.direction_angle);
-        cmd->setVelocity(cmd_.speed);
-        cmd->setRotation(cmd_.rotation);
+        *cmd = cmd_;
 
         return MoveCommandStatus::OKAY;
     }
@@ -571,7 +565,7 @@ void RobotController_Omnidrive_OrthogonalExponential::publishMoveCommand(const M
     Vector2f v = cmd.getVelocityVector();
     msg.linear.x  = v[0];
     msg.linear.y  = v[1];
-    msg.angular.z = cmd.getRotation();
+    msg.angular.z = cmd.getRotationalVelocity();
 
     cmd_pub_.publish(msg);
 }

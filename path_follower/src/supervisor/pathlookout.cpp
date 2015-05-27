@@ -40,16 +40,14 @@ void PathLookout::setObstacleCloud(const ObstacleCloud::ConstPtr &cloud)
 void PathLookout::setPath(Path::ConstPtr path)
 {
     // only use path from the last waypoint on ("do not look behind")
-    SubPath path_ahead;
+    path_.clear();
     if (path->getWaypointIndex() == 0) {
-        path_ahead = path->getCurrentSubPath();
+        path_ = path->getCurrentSubPath();
     } else {
         SubPath::const_iterator start = path->getCurrentSubPath().begin();
         start += (path->getWaypointIndex()-1);
-        path_ahead.assign(start, (SubPath::const_iterator) path->getCurrentSubPath().end());
+        path_.assign(start, (SubPath::const_iterator) path->getCurrentSubPath().end());
     }
-
-    path_ = path_ahead; //TODO: is it possible to do this without copy?
 }
 
 void PathLookout::supervise(State &state, Supervisor::Result *out)
@@ -130,6 +128,7 @@ void PathLookout::supervise(State &state, Supervisor::Result *out)
     const float limit = 1.0f;
     ROS_DEBUG_NAMED(MODULE, "Max Obstacle Weight: %g, limit: %g", max_weight, limit);
     if (max_weight > limit) {
+        ROS_WARN_NAMED(MODULE, "Max Obstacle Weight: %g, limit: %g", max_weight, limit);
         out->can_continue = false;
         out->status = path_msgs::FollowPathResult::RESULT_STATUS_OBSTACLE;
     }
@@ -227,12 +226,18 @@ std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::Co
         return std::list<cv::Point2f>(); // return empty cloud
     }
 
-    //TODO: are cloud and path in the same frame?
+    //TODO: ensure that obstacle_frame_ is the frame of the path.
     ObstacleCloud trans_cloud;
-    try {
-        pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, *tf_listener_);
-    } catch (tf::TransformException& ex) {
-        ROS_ERROR_NAMED(MODULE, "Failed to transform obstacle cloud: %s", ex.what());
+    bool has_tf = tf_listener_->waitForTransform(obstacle_frame_,
+                                                 cloud->header.frame_id,
+                                                 pcl_conversions::fromPCL(cloud->header.stamp),
+                                                 ros::Duration(0.01));
+    if (!has_tf) {
+        ROS_WARN_NAMED(MODULE, "Got no transfom for obstacle cloud. Skip this cloud.");
+        return std::list<cv::Point2f>(); // return empty cloud
+    }
+    if (!pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, *tf_listener_)) {
+        ROS_ERROR_NAMED(MODULE, "Failed to transform obstacle cloud");
         return std::list<cv::Point2f>(); // return empty cloud
     }
 
@@ -241,10 +246,15 @@ std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::Co
 
     cv::Point2f a(path_[0].x, path_[0].y);
 
-    // iterate over second to last point, making steps of size opt_.segment_step_size() (i.e. 'step_size' many segments
-    // are approximated by one bigger segment).
-    //FIXME: the last waypoints are ignored, if step size does not fit.
-    for (size_t i = opt_.segment_step_size(); i < path_.size(); i += opt_.segment_step_size()) {
+    // iterate over second to last point, making steps of size opt_.segment_step_size() (i.e.
+    // 'step_size' many segments are approximated by one bigger segment).
+    // To assure, that every part of the path is checked, make the first step shorter, if the
+    // length of the path is not divisable by the step size.
+    size_t first_step = (path_.size() - 1) % opt_.segment_step_size();
+    if (first_step == 0) {
+        first_step = opt_.segment_step_size();
+    }
+    for (size_t i = min(first_step, path_.size()-1); i < path_.size(); i += opt_.segment_step_size()) {
         cv::Point2f b(path_[i].x, path_[i].y);
 
         /**

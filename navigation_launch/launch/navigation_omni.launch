@@ -24,7 +24,7 @@
     <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy" output="screen" respawn="true">
         <param name="target_speed" value="1.0" />
         <param name="failure_mode" value="replan" />
-        <param name="goal_topic" value="/goal"/>
+        <remap from="/rviz_goal" value="/goal" />
     </node>
 
     <include file="$(find path_follower)/launch/follower_omni.launch" />

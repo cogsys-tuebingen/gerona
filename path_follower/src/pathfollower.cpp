@@ -12,9 +12,10 @@
 
 /// PROJECT
 // Controller/Models
-#include <path_follower/legacy/robotcontroller_ackermann_pid.h>
+#include <path_follower/controller/robotcontroller_ackermann_pid.h>
+#include <path_follower/controller/robotcontrollertrailer.h>
+
 #include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
-#include <path_follower/legacy/robotcontroller_omnidrive_vv.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/legacy/robotcontroller_differential_orthexp.h>
 // Supervisors
@@ -25,6 +26,7 @@
 #include <path_follower/obstacle_avoidance/noneavoider.hpp>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
 #include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
+#include <path_follower/obstacle_avoidance/obstacledetectorpatsy.h>
 // Utils
 #include <path_follower/utils/path_exceptions.h>
 
@@ -64,10 +66,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
         controller_ = new RobotController_Ackermann_Pid(this);
-    } else if (opt_.controller() == "omnidrive_vv") {
+    } else if (opt_.controller() == "patsy_pid") {
         if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
-        controller_ = new RobotController_Omnidrive_VirtualVehicle(this);
+            obstacle_avoider_ = new ObstacleDetectorPatsy(&pose_listener_);
+        controller_ = new RobotControllerTrailer(this);
     } else if (opt_.controller() == "omnidrive_orthexp") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
@@ -86,7 +88,6 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     }
 
     obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
-//    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
                                                                 &PathFollower::obstacleCloudCB, this);
 
     visualizer_ = Visualizer::getInstance();
@@ -383,7 +384,7 @@ void PathFollower::start()
     controller_->reset();
 
     controller_->start();
-    controller_->setPath(getPath());
+    controller_->setPath(path_);
 
     is_running_ = true;
 }

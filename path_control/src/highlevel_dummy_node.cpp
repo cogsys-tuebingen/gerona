@@ -22,14 +22,10 @@ public:
         client_("navigate_to_goal", true)
     {
         srand(ros::Time::now().toNSec());
-
-        std::string goal_topic = "/rviz_goal";
-
-
         ros::NodeHandle pnh("~");
+
         // topic for goal position
-        pnh.param("goal_topic", goal_topic, goal_topic);
-        goal_sub_ = pnh.subscribe<geometry_msgs::PoseStamped>(goal_topic, 0, &HighDummy::goalCb, this);
+        goal_sub_ = pnh.subscribe<geometry_msgs::PoseStamped>("/rviz_goal", 0, &HighDummy::goalCb, this);
         client_.waitForServer();
 
         speech_pub_ = nh.advertise<std_msgs::String>("/speech", 0);
@@ -53,7 +49,8 @@ public:
         }
 
 
-        ROS_INFO_STREAM("listening for goal @ " << goal_topic);
+
+        ROS_INFO_STREAM("listening for goal @ " << goal_sub_.getTopic());
         ROS_INFO_STREAM("failure mode is " << failure_mode);
 
         ROS_INFO("Client is set up");
@@ -84,7 +81,7 @@ private:
             say("mission failed");
 
             ROS_WARN("Did not reach goal :(");
-            const char* status_names[] = {"OTHER_ERROR", "SUCCESS", "ABORTED", "COLLISION", "TIMEOUT", "LOST_PATH", "NO_PATH_FOUND"};
+            const char* status_names[] = {"OTHER_ERROR", "SUCCESS", "ABORTED", "OBSTACLE", "TIMEOUT", "LOST_PATH", "NO_PATH_FOUND"};
             ROS_INFO("Result code: %d %s", result->status, status_names[result->status]);
             ROS_INFO("Additional Text: %s", state.getText().c_str());
         }
@@ -109,7 +106,7 @@ private:
             ROS_INFO("Feedback: Path is ready.");
             break;
 
-        case NavigateToGoalFeedback::STATUS_COLLISION:
+        case NavigateToGoalFeedback::STATUS_OBSTACLE:
             ROS_WARN_THROTTLE(1, "Feedback: Collision.");
             break;
 

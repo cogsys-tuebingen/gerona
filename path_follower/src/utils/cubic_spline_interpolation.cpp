@@ -139,7 +139,8 @@ std::vector<double> band_matrix::lu_solve(const std::vector<double>& b,
 // -----------------------
 
 void spline::set_points(const std::vector<double>& x,
-                          const std::vector<double>& y, bool cubic_spline) {
+                        const std::vector<double>& y,
+                        bool cubic_spline) {
    assert(x.size()==y.size());
    m_x=x;
    m_y=y;

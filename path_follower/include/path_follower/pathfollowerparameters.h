@@ -6,7 +6,6 @@
 
 struct PathFollowerParameters : public Parameters
 {
-    //TODO: find a better structure for parameters related to submodules (supervisors, OAs)
     P<std::string> controller;
     P<std::string> world_frame;
     P<std::string> robot_frame;
@@ -19,7 +18,7 @@ struct PathFollowerParameters : public Parameters
 
     // obstacle avoider
     P<bool> obstacle_avoider_use_collision_box;
-    //P<bool> obstacle_avoider_vfh;  // not yet implemented
+    //P<bool> obstacle_avoider_use_vfh;  // not yet implemented
 
     // supervisors
     P<bool> supervisor_use_path_lookout;
@@ -36,7 +35,9 @@ struct PathFollowerParameters : public Parameters
         robot_frame(this, "~robot_frame",  "/base_link", "Name of the robot frame."),
         wp_tolerance(this,  "~waypoint_tolerance",  0.20 , ""),
         goal_tolerance(this,  "~goal_tolerance",  0.15 , ""),
-        steer_slow_threshold(this,  "~steer_slow_threshold",  0.25 , ""),
+        steer_slow_threshold(this,  "~steer_slow_threshold",  0.25 ,
+                             "Robot slows down, when steering angle exceeds this threshold."
+                             " May not be supported by all robot controllers."),
         min_velocity(this,  "~min_velocity",  0.4 ,
                      "Minimum speed of the robot (needed, as the outdoor buggys can't handle"
                      " velocities below about 0.3)."),

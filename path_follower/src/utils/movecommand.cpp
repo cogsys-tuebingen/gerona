@@ -3,7 +3,7 @@
 MoveCommand::MoveCommand(bool can_rotate):
     move_dir_(1,0),
     velocity_(0),
-    rotation_(0),
+    rot_velocity_(0),
     use_rotation_(can_rotate)
 {
 }
@@ -13,7 +13,7 @@ bool MoveCommand::isValid() const
     return isValid(move_dir_[0])
             && isValid(velocity_)
             && isValid(move_dir_[1])
-            && isValid(rotation_);
+            && isValid(rot_velocity_);
 }
 
 Eigen::Vector2f MoveCommand::getDirection() const
@@ -36,15 +36,15 @@ float MoveCommand::getVelocity() const
     return velocity_;
 }
 
-bool MoveCommand::hasRotation() const
+float MoveCommand::getRotationalVelocity() const
 {
-    return use_rotation_;
+    assert(canRotate());
+    return rot_velocity_;
 }
 
-float MoveCommand::getRotation() const
+bool MoveCommand::canRotate() const
 {
-    assert(hasRotation());
-    return rotation_;
+    return use_rotation_;
 }
 
 void MoveCommand::setDirection(const Eigen::Vector2f &dir)
@@ -63,10 +63,10 @@ void MoveCommand::setVelocity(float v)
     velocity_ = v;
 }
 
-void MoveCommand::setRotation(float o)
+void MoveCommand::setRotationalVelocity(float omega)
 {
-    assert(hasRotation());
-    rotation_ = o;
+    assert(canRotate());
+    rot_velocity_ = omega;
 }
 
 bool MoveCommand::isValid(float val) const

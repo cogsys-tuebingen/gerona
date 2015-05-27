@@ -82,7 +82,7 @@ Planner::Planner()
 
     nh.param("use_collision_gridmap", use_collision_gridmap_, false);
 
-    viz_pub = nh.advertise<visualization_msgs::Marker>("/marker", 0);
+    viz_pub = nh.advertise<visualization_msgs::Marker>("/viz_path_planner", 0);
     cost_pub = nh.advertise<nav_msgs::OccupancyGrid>("cost", 1, true);
 
     base_frame_ = "/base_link";
@@ -256,15 +256,15 @@ void Planner::visualizePath(const nav_msgs::Path &path)
     marker.scale.z = 0.01;
     marker.color.a = 0.5;
     marker.color.r = 0.0;
-    marker.color.g = 0.0;
-    marker.color.b = 0.0;
+    marker.color.g = 1.0;
+    marker.color.b = 1.0;
 
-    tf::Pose fl_base(tf::createIdentityQuaternion(), tf::Vector3(size_forward, size_width / 2.0, 0.0));
-    tf::Pose fr_base(tf::createIdentityQuaternion(), tf::Vector3(size_forward, -size_width / 2.0, 0.0));
+    tf::Pose fl_base(tf::createIdentityQuaternion(), tf::Vector3(size_forward, size_width / 4.0, 0.0));
+    tf::Pose fr_base(tf::createIdentityQuaternion(), tf::Vector3(size_forward, -size_width / 4.0, 0.0));
     tf::Pose bl_base(tf::createIdentityQuaternion(), tf::Vector3(size_backward, size_width / 2.0, 0.0));
     tf::Pose br_base(tf::createIdentityQuaternion(), tf::Vector3(size_backward, -size_width / 2.0, 0.0));
 
-    for(unsigned i = 0; i < path.poses.size(); ++i) {
+    for(unsigned i = 0; i < path.poses.size(); i+=4) {
         const geometry_msgs::Pose& pose = path.poses[i].pose;
         tf::Transform transform;
         tf::poseMsgToTF(pose, transform);
@@ -868,7 +868,7 @@ void Planner::publish(const nav_msgs::Path &path, const nav_msgs::Path &path_raw
     /// path
     raw_path_publisher.publish(path_raw);
     path_publisher.publish(path);
-
+    ROS_INFO("*************************\n********************\n*************vis path\n");
     visualizePath(path);
 }
 

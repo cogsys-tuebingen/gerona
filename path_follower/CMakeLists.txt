@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(path_follower)
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # -std=gnu++0x
 
 ## Enforce that we use C++11
@@ -31,6 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   laser_geometry
   pcl_ros
+  pcl_conversions
 )
 
 find_package(OpenCV REQUIRED)
@@ -156,12 +157,9 @@ add_executable(path_follower_node
   ${INCLUDE_HEADERS}
   src/follower_node.cpp
   src/pathfollower.cpp
-  src/legacy/behaviours.cpp
 
   src/utils/parameters.cpp
   src/utils/visualizer.cpp
-  src/utils/PidCtrl.cpp
-  src/utils/multiplepidwrapper.cpp
   src/utils/maptransformer.cpp
   src/utils/cubic_spline_interpolation.cpp
   src/utils/coursepredictor.cpp
@@ -172,12 +170,14 @@ add_executable(path_follower_node
   src/obstacle_avoidance/obstacledetectorpolygon.cpp
   src/obstacle_avoidance/obstacledetectorackermann.cpp
   src/obstacle_avoidance/obstacledetectoromnidrive.cpp
+  src/obstacle_avoidance/obstacledetectorpatsy.cpp
 
   src/controller/robotcontroller.cpp
-  src/legacy/robotcontroller_ackermann_pid.cpp
+  src/controller/robotcontroller_ackermann_pid.cpp
+  src/controller/robotcontrollertrailer.cpp
+
   src/legacy/robotcontroller_ackermann_orthexp.cpp
   src/legacy/robotcontroller_differential_orthexp.cpp
-  src/legacy/robotcontroller_omnidrive_vv.cpp
   src/legacy/robotcontroller_omnidrive_orthexp.cpp
 
   src/supervisor/supervisorchain.cpp
@@ -283,7 +283,16 @@ catkin_add_gtest(test_pidcontroller
   include/path_follower/utils/pidcontroller.hpp
 )
 if(TARGET test_pidcontroller)
-#  target_link_libraries(test_pidcontroller ${catkin_LIBRARIES})
+  target_link_libraries(test_pidcontroller ${catkin_LIBRARIES})
+endif()
+
+
+catkin_add_gtest(test_path
+  test/test_path.cpp
+  src/utils/path.cpp
+)
+if(TARGET test_path)
+  target_link_libraries(test_path ${catkin_LIBRARIES})
 endif()
 
 ## Add folders to be run by python nosetests
