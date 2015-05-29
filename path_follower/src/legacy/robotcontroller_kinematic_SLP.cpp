@@ -1,13 +1,16 @@
+// HEADER
+#include <path_follower/legacy/robotcontroller_kinematic_SLP.h>
+
 // THIRD PARTY
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
 
 // PROJECT
 #include <path_follower/pathfollower.h>
-#include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include "../alglib/interpolation.h"
 #include <utils_general/MathHelper.h>
+#include <cmath>
 
 // SYSTEM
 #include <deque>
@@ -16,41 +19,38 @@
 
 using namespace Eigen;
 
-namespace {
-//! Module name, that is used for ros console output
-const std::string MODULE = "controller";
-}
 
-RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_OrthogonalExponential(PathFollower *path_driver):
+RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_driver):
     RobotController(path_driver),
     cmd_(this),
     nh_("~"),
     view_direction_(LookInDrivingDirection),
     initialized_(false),
     vn_(0.0),
-    theta_des_(90.0*M_PI/180.0),
+    delta_(90.0*M_PI/180.0),
     N_(0),
     Ts_(0.02),
-    e_theta_curr_(0),
-    curv_sum_(0),
-    distance_to_goal_(0),
-    distance_to_obstacle_(0)
+    s_prim_(0),
+    xe(0),
+    ye(0),
+    curv_sum_(1e-3),
+    distance_to_goal_(1e-3),
+    distance_to_obstacle_(1e-3)
 {
     visualizer_ = Visualizer::getInstance();
     interp_path_pub_ = nh_.advertise<nav_msgs::Path>("interp_path", 10);
     points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
 
     look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
-                                                       &RobotController_Omnidrive_OrthogonalExponential::lookAtCommand, this);
+                                                       &RobotController_Kinematic_SLP::lookAtCommand, this);
     look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
-                                                              &RobotController_Omnidrive_OrthogonalExponential::lookAt, this);
+                                                              &RobotController_Kinematic_SLP::lookAt, this);
 
     laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
-                                                             &RobotController_Omnidrive_OrthogonalExponential::laserFront, this);
+                                                             &RobotController_Kinematic_SLP::laserFront, this);
     laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
-                                                            &RobotController_Omnidrive_OrthogonalExponential::laserBack, this);
+                                                            &RobotController_Kinematic_SLP::laserBack, this);
 
-    std::cout << "Value of K_O: " << opt_.k_o() << std::endl;
     // path marker
     robot_path_marker_.header.frame_id = "map";
     robot_path_marker_.header.stamp = ros::Time();
@@ -77,8 +77,9 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
 
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::stopMotion()
+void RobotController_Kinematic_SLP::stopMotion()
 {
+
     cmd_.speed = 0;
     cmd_.direction_angle = 0;
     cmd_.rotation = 0;
@@ -87,7 +88,7 @@ void RobotController_Omnidrive_OrthogonalExponential::stopMotion()
     publishMoveCommand(mcmd);
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::lookAtCommand(const std_msgs::StringConstPtr &cmd)
+void RobotController_Kinematic_SLP::lookAtCommand(const std_msgs::StringConstPtr &cmd)
 {
     const std::string& command = cmd->data;
 
@@ -100,7 +101,7 @@ void RobotController_Omnidrive_OrthogonalExponential::lookAtCommand(const std_ms
     }
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::setPath(Path::Ptr path)
+void RobotController_Kinematic_SLP::setPath(Path::Ptr path)
 {
     RobotController::setPath(path);
 
@@ -121,13 +122,13 @@ void RobotController_Omnidrive_OrthogonalExponential::setPath(Path::Ptr path)
     initialize();
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::lookAt(const geometry_msgs::PointStampedConstPtr &look_at)
+void RobotController_Kinematic_SLP::lookAt(const geometry_msgs::PointStampedConstPtr &look_at)
 {
     look_at_ = look_at->point;
     view_direction_ = LookAtPoint;
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
+void RobotController_Kinematic_SLP::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
 {
     ranges_front_.clear();
     for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
@@ -139,7 +140,7 @@ void RobotController_Omnidrive_OrthogonalExponential::laserFront(const sensor_ms
     findMinDistance();
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::laserBack(const sensor_msgs::LaserScanConstPtr &scan)
+void RobotController_Kinematic_SLP::laserBack(const sensor_msgs::LaserScanConstPtr &scan)
 {
     ranges_back_.clear();
     for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
@@ -151,7 +152,7 @@ void RobotController_Omnidrive_OrthogonalExponential::laserBack(const sensor_msg
     findMinDistance();
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::findMinDistance()
+void RobotController_Kinematic_SLP::findMinDistance()
 {
     std::vector<float> ranges;
     ranges.insert(ranges.end(), ranges_front_.begin(), ranges_front_.end());
@@ -165,49 +166,45 @@ void RobotController_Omnidrive_OrthogonalExponential::findMinDistance()
 
     distance_to_obstacle_ = ranges[0];
 
-    //ROS_DEBUG_STREAM_NAMED(MODULE, "minimum range is " << distance_to_obstacle_);
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::keepHeading()
+void RobotController_Kinematic_SLP::keepHeading()
 {
     view_direction_ = KeepHeading;
-    theta_des_ = path_driver_->getRobotPose()[2];
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::rotate()
+void RobotController_Kinematic_SLP::rotate()
 {
     view_direction_ = Rotate;
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::lookInDrivingDirection()
+void RobotController_Kinematic_SLP::lookInDrivingDirection()
 {
     view_direction_ = LookInDrivingDirection;
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::initialize()
+void RobotController_Kinematic_SLP::initialize()
 {
-    // initialize the desired angle and the angle error
-    e_theta_curr_ = path_driver_->getRobotPose()[2];
-
     // desired velocity
     vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
-    ROS_WARN_STREAM_NAMED(MODULE, "velocity_: " << velocity_ << ", vn: " << vn_);
+    ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
     initialized_ = true;
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::clearBuffers()
+void RobotController_Kinematic_SLP::clearBuffers()
 {
     p_.clear();
     q_.clear();
     p_prim_.clear();
     q_prim_.clear();
+    s_.clear();
     interp_path_.poses.clear();
     robot_path_marker_.points.clear();
     curvature_.clear();
 
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
+void RobotController_Kinematic_SLP::interpolatePath()
 {
     std::deque<Waypoint> waypoints;
     waypoints.insert(waypoints.end(), path_->getCurrentSubPath().begin(), path_->getCurrentSubPath().end());
@@ -239,25 +236,28 @@ void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
     }
 
     double X_arr[N_], Y_arr[N_], l_arr_unif[N_];
-    //double l_cum[N];
-    double L = 0;
-
-    //l_cum[0] = 0;
-    for(std::size_t i = 1; i < N_; i++){
-
-        L += hypot(X_arr[i] - X_arr[i-1], Y_arr[i] - Y_arr[i-1]);
-        //l_cum[i] = L;
-    }
-
-
-
-    double f = std::max(0.0001, L / (double) (N_-1));
+    double L = 0; 
 
     for(std::size_t i = 0; i < N_; ++i) {
         const Waypoint& waypoint = waypoints[i];
 
         X_arr[i] = waypoint.x;
         Y_arr[i] = waypoint.y;
+
+    }
+
+    for(std::size_t i = 1; i < N_; i++){
+
+        L += hypot(X_arr[i] - X_arr[i-1], Y_arr[i] - Y_arr[i-1]);
+
+    }
+    ROS_INFO("Length of the path: %lf m", L);
+
+
+    double f = std::max(0.0001, L / (double) (N_-1));
+
+    for(std::size_t i = 1; i < N_; i++){
+
         l_arr_unif[i] = i * f;
 
     }
@@ -275,6 +275,7 @@ void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
     alglib::spline1dbuildcubic(l_alg_unif,Y_alg,s_int2);
 
     //interpolate the path and find the derivatives, then publish the interpolated path
+    double test_cum_sum = 0;
     for(uint i = 0; i < N_; ++i) {
         double x_s = 0.0, y_s = 0.0, x_s_prim = 0.0, y_s_prim = 0.0, x_s_sek = 0.0, y_s_sek = 0.0;
         alglib::spline1ddiff(s_int1,l_alg_unif[i],x_s,x_s_prim,x_s_sek);
@@ -286,13 +287,23 @@ void RobotController_Omnidrive_OrthogonalExponential::interpolatePath()
         p_prim_.push_back(x_s_prim);
         q_prim_.push_back(y_s_prim);
 
+        s_.push_back(l_alg_unif[i]);
+
         curvature_.push_back((x_s_prim*y_s_sek - x_s_sek*y_s_prim)/
                             (sqrt(pow((x_s_prim*x_s_prim + y_s_prim*y_s_prim), 3))));
+
+        ///test
+        if(i>0)
+        test_cum_sum += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
+        ROS_INFO("cum_sum: %lf", test_cum_sum);
+        ROS_INFO("s: %lf", s_[i]);
+        ROS_INFO("x-difference: %lf, y-difference: %lf", fabs(p_[i]-X_arr[i]), fabs(q_[i]-Y_arr[i])); //WTF??
+
     }
 
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::publishInterpolatedPath()
+void RobotController_Kinematic_SLP::publishInterpolatedPath()
 {
     if(N_ <= 2) {
         return;
@@ -310,36 +321,22 @@ void RobotController_Omnidrive_OrthogonalExponential::publishInterpolatedPath()
 }
 
 
-void RobotController_Omnidrive_OrthogonalExponential::start()
+void RobotController_Kinematic_SLP::start()
 {
     path_driver_->getCoursePredictor().reset();
 }
 
-RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponential::computeMoveCommand(MoveCommand *cmd)
+RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCommand(MoveCommand *cmd)
 {
     // omni drive can rotate.
     *cmd = MoveCommand(true);
 
     if(N_ < 2) {
-        ROS_ERROR_NAMED(MODULE, "[Line] path is too short (N = %d)", N_);
-        setStatus(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
+        ROS_ERROR("[Line] path is too short (N = %d)", N_);
 
         stopMotion();
         return MoveCommandStatus::REACHED_GOAL;
     }
-
-//    Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
-//    if (!dir_of_mov.isZero() && path_driver_->isObstacleAhead(MathHelper::Angle(dir_of_mov))) {
-//        ROS_WARN_THROTTLE_NAMED(1, MODULE, "Collision!");
-//        //TODO: not so good to use result-constant if it is not finishing the action...
-//        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE);
-
-//        stopMotion();
-//        path_driver_->getCoursePredictor().freeze();
-
-//        return OBSTACLE;
-//    }
-//    path_driver_->getCoursePredictor().unfreeze();
 
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
     Eigen::Vector3d current_pose = path_driver_->getRobotPose();
@@ -348,8 +345,6 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     double y_meas = current_pose[1];
     double theta_meas = current_pose[2];
     //***//
-
-    //ROS_DEBUG_NAMED(MODULE, "Theta: %f", theta_meas*180.0/M_PI);
 
     //find the orthogonal projection to the curve and extract the corresponding index
 
@@ -368,26 +363,28 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
         }
 
     }
+    ////make sure there are no problems with vector range
+    if(ind == 0) ind = 1;
     //***//
 
-    //find the slope of the desired path, and plot a vector from the robot to the current point on the path
+    //find the slope of the desired path, and plot an orthogonal projection marker
 
     double theta_p = atan2(q_prim_[ind], p_prim_[ind]);
 
-    visualization_msgs::Marker marker;
-    marker.ns = "orthexp";
-    marker.header.frame_id = "/map";
-    marker.header.stamp = ros::Time();
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.id = 0;
-    marker.color.r = 1;
-    marker.color.g = 0;
-    marker.color.b = 0;
-    marker.color.a = 1.0;
-    marker.scale.x = 0.1;
-    marker.scale.y = 0.1;
-    marker.scale.z = 0.5;
-    marker.type = visualization_msgs::Marker::ARROW;
+    visualization_msgs::Marker orth_proj_marker;
+    orth_proj_marker.ns = "orth_proj";
+    orth_proj_marker.header.frame_id = "/map";
+    orth_proj_marker.header.stamp = ros::Time();
+    orth_proj_marker.action = visualization_msgs::Marker::ADD;
+    orth_proj_marker.id = 0;
+    orth_proj_marker.color.r = 1;
+    orth_proj_marker.color.g = 0;
+    orth_proj_marker.color.b = 0;
+    orth_proj_marker.color.a = 1.0;
+    orth_proj_marker.scale.x = 0.1;
+    orth_proj_marker.scale.y = 0.1;
+    orth_proj_marker.scale.z = 0.5;
+    orth_proj_marker.type = visualization_msgs::Marker::ARROW;
 
     geometry_msgs::Point from, to;
     from.x = x_meas;
@@ -395,56 +392,13 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     to.x = p_[ind];
     to.y = q_[ind];
 
-    marker.points.push_back(from);
-    marker.points.push_back(to);
+    orth_proj_marker.points.push_back(from);
+    orth_proj_marker.points.push_back(to);
 
-    visualizer_->getMarkerPublisher().publish(marker);
+    visualizer_->getMarkerPublisher().publish(orth_proj_marker);
 
     //***//
 
-    //determine the sign of the orthogonal distance
-    static const double epsilon = 1e-3;
-    if( ((theta_p > -M_PI/2) && (theta_p < M_PI/2) && (q_[ind] > y_meas))
-            || ((((theta_p > -M_PI) && (theta_p < -M_PI/2)) || ((theta_p > M_PI/2) && (theta_p < M_PI))
-                 || (std::abs(theta_p - M_PI) < epsilon)) && (q_[ind] < y_meas))
-            || ((std::abs(theta_p + M_PI/2) < epsilon) && (p_[ind] > x_meas))
-            || ((std::abs(theta_p - M_PI/2) < epsilon) && (p_[ind] < x_meas)) ){
-
-        orth_proj = -fabs(orth_proj);
-
-    }else{
-        orth_proj = fabs(orth_proj);
-    }
-
-    //ROS_DEBUG_NAMED(MODULE, "Orthogonal distance: %f, theta_p: %f, theta_des: %f", orth_proj, theta_p*180.0/M_PI, theta_des*180.0/M_PI);
-
-    //****//
-
-
-    //check the "look-at" point, and calculate the rotation control
-
-    switch(view_direction_) {
-    case LookAtPoint:
-        theta_des_ = std::atan2(look_at_.y - y_meas, look_at_.x - x_meas);
-        break;
-    case KeepHeading:
-        // do nothing
-        break;
-    case LookInDrivingDirection:
-        theta_des_ = cmd_.direction_angle + current_pose[2];//std::atan2(q[ind+1] - y_meas, p[ind+1] - x_meas);
-        break;
-    case Rotate:
-        theta_des_ += 0.01;
-        break;
-    default:
-        throw std::runtime_error("unknown view direction mode");
-        break;
-    }
-
-    double e_theta_new = MathHelper::NormalizeAngle(theta_des_ - theta_meas);
-    double e_theta_prim = (e_theta_new - e_theta_curr_)/Ts_;
-
-    e_theta_curr_ = e_theta_new;
 
     //***//
 
@@ -454,37 +408,28 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     double look_ahead_cum_sum = 0;
     curv_sum_ = 1e-10;
 
-    for (unsigned int i = ind; i < N_; i++){
+
+    for (unsigned int i = ind + 1; i < N_; i++){
 
         look_ahead_cum_sum += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
         curv_sum_ += fabs(curvature_[i]);
+
 
         if(look_ahead_cum_sum - opt_.look_ahead_dist() >= 0){
             break;
         }
     }
 
-    //calculate the index of the look-ahead distance (w.r.t. robot), and then the curvature
-    /*uint look_ahead_index;
-    double look_ahead_difference = std::numeric_limits<double>::max();
 
-    for (int i = ind; i < N; i++){
+    //calculate the distance from the orthogonal projection to the goal, w.r.t. path
 
-        if(fabs(hypot(x_meas - p[i], y_meas - q[i]) - look_ahead_dist) < look_ahead_difference){
+    distance_to_goal_ = 1e-3;
+    for (unsigned int i = ind + 1; i < N_; i++){
 
-            look_ahead_difference = fabs(hypot(x_meas - p[i], y_meas - q[i]) - look_ahead_dist);
-            look_ahead_index = i;
+        distance_to_goal_ += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
 
-        }
     }
 
-    curv_sum = 1e-10;
-    for (int i = ind; i <= look_ahead_index; i++){
-
-        curv_sum += fabs(curvature[i]);
-    }*/
-
-    distance_to_goal_ = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
 
     double angular_vel = path_driver_->getVelocity().angular.z;
     //***//
@@ -492,38 +437,23 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 
     //control
 
-    //ROS_DEBUG_STREAM_NAMED(MODULE, "Distance to obstacle: " << distance_to_obstacle_);
+    ////ensure valid values
+    if(distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-3;
+    if(distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e-3;
 
     double exponent = opt_.k_curv()*fabs(curv_sum_)
             + opt_.k_w()*fabs(angular_vel)
             + opt_.k_o()/distance_to_obstacle_
             + opt_.k_g()/distance_to_goal_;
 
-    cmd_.speed = std::max(vn_*exp(-exponent),0.2);
+    ////TODO: consider the minimum excitation speed
+    cmd_.speed = std::max(0.2,vn_*exp(-exponent));
 
-    cmd_.direction_angle = atan(-opt_.k()*orth_proj) + theta_p - theta_meas;
+    cmd_.direction_angle = 0;
 
-    cmd_.rotation = opt_.kp()*e_theta_curr_ + opt_.kd()*e_theta_prim;
-
-    if(cmd_.rotation > opt_.max_angular_velocity()) {
-        cmd_.rotation = opt_.max_angular_velocity();
-    } else if(cmd_.rotation < -opt_.max_angular_velocity()) {
-        cmd_.rotation = -opt_.max_angular_velocity();
-    }
+    cmd_.rotation = 0;
 
     //***//
-
-
-    //ROS_INFO_NAMED(MODULE, "C_curv: %f, curv_sum: %f, ind: %d, look_ahead_index: %d, vn: %f, v: %f",
-             //exp(-param_k_curv*1/curv_sum), curv_sum, ind, look_ahead_index, vn, cmd_.speed);
-
-    //ROS_INFO_NAMED(MODULE, "Linear velocity: %f", cmd_.speed);
-
-
-
-//    ROS_DEBUG_NAMED(MODULE, "alpha: %f, alpha_e: %f, e_theta_curr: %f",
-//              (atan(-param_k*orth_proj) + theta_p)*180.0/M_PI,
-//              atan(-param_k*orth_proj)*180.0/M_PI, e_theta_curr);
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
@@ -540,39 +470,30 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     //***//
 
 
-    // NULL PTR
-    setStatus(path_msgs::FollowPathResult::RESULT_STATUS_MOVING);
-
     // check for end
-    double distance_to_goal = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
-    ROS_WARN_THROTTLE_NAMED(1, MODULE, "distance to goal: %f", distance_to_goal);
+    double distance_to_goal_eucl = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
+    ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl);
 
-    if(distance_to_goal <= path_driver_->getOptions().goal_tolerance()) {
+    if(distance_to_goal_eucl <= path_driver_->getOptions().goal_tolerance()) {
         return MoveCommandStatus::REACHED_GOAL;
     } else {
-        // Quickfix: simply convert omnidrive command to move command
         *cmd = cmd_;
 
         return MoveCommandStatus::OKAY;
     }
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::publishMoveCommand(const MoveCommand &cmd) const
+void RobotController_Kinematic_SLP::publishMoveCommand(const MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
-    //msg.linear.x  = speed * cos(angle);
-    //msg.linear.y  = speed * sin(angle);
-    //msg.angular.z = rotation;
-
-    Vector2f v = cmd.getVelocityVector();
-    msg.linear.x  = v[0];
-    msg.linear.y  = v[1];
+    msg.linear.x  = cmd.getVelocity();
+    msg.linear.y  = 0;
     msg.angular.z = cmd.getRotationalVelocity();
 
     cmd_pub_.publish(msg);
 }
 
-void RobotController_Omnidrive_OrthogonalExponential::reset()
+void RobotController_Kinematic_SLP::reset()
 {
     initialized_ = false;
 }
