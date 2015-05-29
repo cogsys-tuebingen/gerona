@@ -15,6 +15,7 @@
 #include <path_follower/controller/robotcontroller_ackermann_pid.h>
 #include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
 #include <path_follower/legacy/robotcontroller_ackermann_purepursuit.h>
+#include <path_follower/legacy/robotcontroller_ackermann_kinematic.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/legacy/robotcontroller_differential_orthexp.h>
 // Supervisors
@@ -70,6 +71,11 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
 		  controller_ = new Robotcontroller_Ackermann_PurePursuit(this);
+
+	 } else if (opt_.controller() == "ackermann_kinematic") {
+		  if (opt_.obstacle_avoider_use_collision_box())
+				obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		  controller_ = new RobotController_Ackermann_Kinematic(this);
 
     } else if (opt_.controller() == "patsy_pid") {
         if (opt_.obstacle_avoider_use_collision_box())

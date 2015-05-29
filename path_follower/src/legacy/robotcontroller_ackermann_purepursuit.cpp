@@ -98,8 +98,6 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 	if(path_interpol.length() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-
-
 	Eigen::Vector3d pose = path_driver_->getRobotPose();
 
 	if (reachedGoal(pose)) {
@@ -127,7 +125,7 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 
 	const double delta = atan2(2. * params.vehicle_length() * sin(alpha), lookahead_distance);
 
-//	 const double delta = asin((VEHICLE_LENGTH * alpha) / lookahead_distance);
+	//	 const double delta = asin((VEHICLE_LENGTH * alpha) / lookahead_distance);
 
 	move_cmd.setDirection( delta);
 	move_cmd.setVelocity( velocity_);
@@ -182,7 +180,7 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
 		unsigned int i = j;
 
 		// TODO: test if this is necessary:
-//		const double angle_diff = MathHelper::AngleDelta(pose[2], path_interpol.theta_p(i));
+		//		const double angle_diff = MathHelper::AngleDelta(pose[2], path_interpol.theta_p(i));
 		// only take points into account that have approximately the same angle (difference <= 90°)
 		if (true) {//angle_diff <= M_PI_2 && angle_diff >= -M_PI_2) {
 
