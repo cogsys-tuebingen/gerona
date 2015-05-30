@@ -197,6 +197,8 @@ void RobotController_Kinematic_SLP::clearBuffers()
     q_.clear();
     p_prim_.clear();
     q_prim_.clear();
+    p_sek_.clear();
+    q_sek_.clear();
     s_.clear();
     interp_path_.poses.clear();
     robot_path_marker_.points.clear();
@@ -235,7 +237,7 @@ void RobotController_Kinematic_SLP::interpolatePath()
         return;
     }
 
-    double X_arr[N_], Y_arr[N_], l_arr_unif[N_];
+    double X_arr[N_], Y_arr[N_], l_arr[N_], l_arr_unif[N_];
     double L = 0; 
 
     for(std::size_t i = 0; i < N_; ++i) {
@@ -246,9 +248,12 @@ void RobotController_Kinematic_SLP::interpolatePath()
 
     }
 
+    l_arr[0] = 0;
+
     for(std::size_t i = 1; i < N_; i++){
 
         L += hypot(X_arr[i] - X_arr[i-1], Y_arr[i] - Y_arr[i-1]);
+        l_arr[i] = L;
 
     }
     ROS_INFO("Length of the path: %lf m", L);
@@ -263,41 +268,35 @@ void RobotController_Kinematic_SLP::interpolatePath()
     }
 
     //initialization before the interpolation
-    alglib::real_1d_array X_alg, Y_alg, l_alg_unif;
+    alglib::real_1d_array X_alg, Y_alg, l_alg, l_alg_unif;
+    alglib::real_1d_array x_s, y_s, x_s_prim, y_s_prim, x_s_sek, y_s_sek;
 
-    X_alg.setcontent(N_,X_arr);
-    Y_alg.setcontent(N_,Y_arr);
-    l_alg_unif.setcontent(N_,l_arr_unif);
+    X_alg.setcontent(N_, X_arr);
+    Y_alg.setcontent(N_, Y_arr);
+    l_alg.setcontent(N_, l_arr);
+    l_alg_unif.setcontent(N_, l_arr_unif);
 
-    alglib::spline1dinterpolant s_int1, s_int2;
 
-    alglib::spline1dbuildcubic(l_alg_unif,X_alg,s_int1);
-    alglib::spline1dbuildcubic(l_alg_unif,Y_alg,s_int2);
+    //interpolate the path and find the derivatives
+    alglib::spline1dconvdiff2cubic(l_alg, X_alg, l_alg_unif, x_s, x_s_prim, x_s_sek);
+    alglib::spline1dconvdiff2cubic(l_alg, Y_alg, l_alg_unif, y_s, y_s_prim, y_s_sek);
 
-    //interpolate the path and find the derivatives, then publish the interpolated path
-    double test_cum_sum = 0;
+    //define path components, its derivatives, and curvilinear abscissa, then calculate the path curvature
     for(uint i = 0; i < N_; ++i) {
-        double x_s = 0.0, y_s = 0.0, x_s_prim = 0.0, y_s_prim = 0.0, x_s_sek = 0.0, y_s_sek = 0.0;
-        alglib::spline1ddiff(s_int1,l_alg_unif[i],x_s,x_s_prim,x_s_sek);
-        alglib::spline1ddiff(s_int2,l_alg_unif[i],y_s,y_s_prim,y_s_sek);
 
-        p_.push_back(x_s);
-        q_.push_back(y_s);
+        p_.push_back(x_s[i]);
+        q_.push_back(y_s[i]);
 
-        p_prim_.push_back(x_s_prim);
-        q_prim_.push_back(y_s_prim);
+        p_prim_.push_back(x_s_prim[i]);
+        q_prim_.push_back(y_s_prim[i]);
+
+        p_sek_.push_back(x_s_sek[i]);
+        q_sek_.push_back(y_s_sek[i]);
 
         s_.push_back(l_alg_unif[i]);
 
-        curvature_.push_back((x_s_prim*y_s_sek - x_s_sek*y_s_prim)/
-                            (sqrt(pow((x_s_prim*x_s_prim + y_s_prim*y_s_prim), 3))));
-
-        ///test
-        if(i>0)
-        test_cum_sum += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
-        ROS_INFO("cum_sum: %lf", test_cum_sum);
-        ROS_INFO("s: %lf", s_[i]);
-        ROS_INFO("x-difference: %lf, y-difference: %lf", fabs(p_[i]-X_arr[i]), fabs(q_[i]-Y_arr[i])); //WTF??
+        curvature_.push_back((x_s_prim[i]*y_s_sek[i] - x_s_sek[i]*y_s_prim[i])/
+                            (sqrt(pow((x_s_prim[i]*x_s_prim[i] + y_s_prim[i]*y_s_prim[i]), 3))));
 
     }
 
@@ -363,8 +362,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
         }
 
     }
-    ////make sure there are no problems with vector range
-    if(ind == 0) ind = 1;
+
     //***//
 
     //find the slope of the desired path, and plot an orthogonal projection marker
@@ -405,32 +403,25 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     //Calculate the look-ahead curvature
 
     //calculate the curvature, and stop when the look-ahead distance is reached (w.r.t. orthogonal projection)
-    double look_ahead_cum_sum = 0;
+    double s_cum_sum = 0;
     curv_sum_ = 1e-10;
 
 
     for (unsigned int i = ind + 1; i < N_; i++){
 
-        look_ahead_cum_sum += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
+        s_cum_sum = s_[i] - s_[ind];
         curv_sum_ += fabs(curvature_[i]);
 
-
-        if(look_ahead_cum_sum - opt_.look_ahead_dist() >= 0){
+        if(s_cum_sum - opt_.look_ahead_dist() >= 0){
             break;
         }
     }
 
 
     //calculate the distance from the orthogonal projection to the goal, w.r.t. path
+    distance_to_goal_ = s_[N_-1] - s_[ind];
 
-    distance_to_goal_ = 1e-3;
-    for (unsigned int i = ind + 1; i < N_; i++){
-
-        distance_to_goal_ += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
-
-    }
-
-
+    //get the robot's current angular velocity
     double angular_vel = path_driver_->getVelocity().angular.z;
     //***//
 
@@ -438,8 +429,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     //control
 
     ////ensure valid values
-    if(distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-3;
-    if(distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e-3;
+    if(distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
+    if(distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e-10;
 
     double exponent = opt_.k_curv()*fabs(curv_sum_)
             + opt_.k_w()*fabs(angular_vel)

@@ -156,6 +156,10 @@ private:
     std::vector<double> p_prim_;
     //first derivation of the y component w.r.t. path
     std::vector<double> q_prim_;
+    //second derivation of the x component w.r.t. path
+    std::vector<double> p_sek_;
+    //second derivation of the y component w.r.t. path
+    std::vector<double> q_sek_;
     //curvature in path coordinates
     std::vector<double> curvature_;
 
