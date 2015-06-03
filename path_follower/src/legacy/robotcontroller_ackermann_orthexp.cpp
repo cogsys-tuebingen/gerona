@@ -154,8 +154,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 {
     *cmd = MoveCommand(false);
 
-    if(N_ < 2) {
-        ROS_ERROR("[Line] path is too short (N = %d)", N_);
+    if(path_interpol.n() < 2) {
+        ROS_ERROR("[Line] path is too short (N = %d)", path_interpol.n());
         setStatus(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
 
         stopMotion();
@@ -189,9 +189,9 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     int ind = 0;
     double orth_proj = std::numeric_limits<double>::max();
 
-    for (unsigned int i = 0; i < N_; i++){
+    for (unsigned int i = 0; i < path_interpol.n(); i++){
 
-        dist = hypot(x_meas - p_[i], y_meas - q_[i]);
+        dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
         if(dist < orth_proj){
 
             orth_proj = dist;
@@ -204,7 +204,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 
     //find the slope of the desired path, and plot a vector from the robot to the current point on the path
 
-    double theta_p = atan2(q_prim_[ind], p_prim_[ind]);
+    double theta_p = atan2(path_interpol.q_prim(ind), path_interpol.p_prim(ind));
 
     visualization_msgs::Marker marker;
     marker.ns = "orthexp";
@@ -224,8 +224,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     geometry_msgs::Point from, to;
     from.x = x_meas;
     from.y = y_meas;
-    to.x = p_[ind];
-    to.y = q_[ind];
+    to.x = path_interpol.p(ind);
+    to.y = path_interpol.q(ind);
 
     marker.points.push_back(from);
     marker.points.push_back(to);
@@ -236,11 +236,11 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 
     //determine the sign of the orthogonal distance
     static const double epsilon = 1e-3;
-    if( ((theta_p > -M_PI/2) && (theta_p < M_PI/2) && (q_[ind] > y_meas))
+    if( ((theta_p > -M_PI/2) && (theta_p < M_PI/2) && (path_interpol.q(ind) > y_meas))
             || ((((theta_p > -M_PI) && (theta_p < -M_PI/2)) || ((theta_p > M_PI/2) && (theta_p < M_PI))
-                 || (std::abs(theta_p - M_PI) < epsilon)) && (q_[ind] < y_meas))
-            || ((std::abs(theta_p + M_PI/2) < epsilon) && (p_[ind] > x_meas))
-            || ((std::abs(theta_p - M_PI/2) < epsilon) && (p_[ind] < x_meas)) ){
+                 || (std::abs(theta_p - M_PI) < epsilon)) && (path_interpol.q(ind) < y_meas))
+            || ((std::abs(theta_p + M_PI/2) < epsilon) && (path_interpol.p(ind) > x_meas))
+            || ((std::abs(theta_p - M_PI/2) < epsilon) && (path_interpol.p(ind) < x_meas)) ){
 
         orth_proj = -fabs(orth_proj);
 
@@ -286,10 +286,10 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     double look_ahead_cum_sum = 0;
     curv_sum_ = 1e-10;
 
-    for (unsigned int i = ind + 1; i < N_; i++){
+    for (unsigned int i = ind + 1; i < path_interpol.n(); i++){
 
-        look_ahead_cum_sum += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
-        curv_sum_ += fabs(curvature_[i]);
+        look_ahead_cum_sum += hypot(path_interpol.p(i) - path_interpol.p(i-1), path_interpol.q(i) - path_interpol.q(i-1));
+        curv_sum_ += fabs(path_interpol.curvature(i));
 
         if(look_ahead_cum_sum - opt_.look_ahead_dist() >= 0){
             break;
@@ -300,15 +300,15 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 
     double cum_sum_to_goal = 0;
 
-    for (int i = ind; i < N_; i++){
+    for(unsigned int i = ind + 1; i < path_interpol.n(); i++){
 
-        cum_sum_to_goal += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
+        cum_sum_to_goal += hypot(path_interpol.p(i) - path_interpol.p(i-1), path_interpol.q(i) - path_interpol.q(i-1));
 
     }
     distance_to_goal_ = cum_sum_to_goal;
     ROS_INFO("Distance to goal: %f", distance_to_goal_);
 
-    //distance_to_goal_ = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
+    //distance_to_goal_ = hypot(x_meas - path_interpol.p(path_interpol.n()-1), y_meas - path_interpol.q(path_interpol.n()-1));
 
     double angular_vel = path_driver_->getVelocity().angular.z;
     //***//
@@ -363,7 +363,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     setStatus(path_msgs::FollowPathResult::RESULT_STATUS_MOVING);
 
     // check for end
-    double distance_to_goal = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
+    double distance_to_goal = hypot(x_meas - path_interpol.p(path_interpol.n()-1), y_meas - path_interpol.q(path_interpol.n()-1));
     ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal);
 
     if(distance_to_goal <= path_driver_->getOptions().goal_tolerance()) {

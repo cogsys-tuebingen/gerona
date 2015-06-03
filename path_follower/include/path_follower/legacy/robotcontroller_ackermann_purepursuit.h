@@ -8,23 +8,21 @@
 #ifndef NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_CONTROLLER_ROBOTCONTROLLER_ACKERMANN_GEOMETRICAL_H_
 #define NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_CONTROLLER_ROBOTCONTROLLER_ACKERMANN_GEOMETRICAL_H_
 
-#include <path_follower/controller/robotcontroller.h>
-#include <path_follower/utils/path_interpolated.h>
+#include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
 
 #include <path_follower/utils/visualizer.h>
 #include <visualization_msgs/Marker.h>
 
 
-class Robotcontroller_Ackermann_PurePursuit: public RobotController {
+class Robotcontroller_Ackermann_PurePursuit: public RobotController_Interpolation
+{
 public:
 	Robotcontroller_Ackermann_PurePursuit(PathFollower* _path_follower);
 	virtual ~Robotcontroller_Ackermann_PurePursuit();
 
 	virtual void stopMotion();
 	virtual void start();
-	virtual void reset();
-	virtual void setPath(Path::Ptr path);
 	virtual bool isOmnidirectional() const {
 		return true;
 	}
@@ -48,21 +46,14 @@ private:
 
 	} params;
 
-	void publishInterpolatedPath() const;
-	void initialize();
-
 	bool reachedGoal(const Eigen::Vector3d& pose) const;
 	double computeAlpha(double& lookahead_distance, const Eigen::Vector3d& pose) const;
 
-	bool initialized;
-
-	Visualizer* visualizer;
-	visualization_msgs::Marker path_marker;
+    Visualizer* visualizer;
 
 	ros::NodeHandle node_handle;
 	ros::Publisher path_interpol_pub;
 
-	PathInterpolated path_interpol;
 	MoveCommand move_cmd;
 };
 

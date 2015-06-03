@@ -152,8 +152,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     // omni drive can rotate.
     *cmd = MoveCommand(true);
 
-    if(N_ < 2) {
-        ROS_ERROR("[Line] path is too short (N = %d)", N_);
+    if(path_interpol.n() < 2) {
+        ROS_ERROR("[Line] path is too short (N = %d)", path_interpol.n());
 
         stopMotion();
         return MoveCommandStatus::REACHED_GOAL;
@@ -173,9 +173,9 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     int ind = 0;
     double orth_proj = std::numeric_limits<double>::max();
 
-    for (unsigned int i = 0; i < N_; i++){
+    for (unsigned int i = 0; i < path_interpol.n(); i++){
 
-        dist = hypot(x_meas - p_[i], y_meas - q_[i]);
+        dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
         if(dist < orth_proj){
 
             orth_proj = dist;
@@ -189,7 +189,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     //find the slope of the desired path, and plot an orthogonal projection marker
 
-    double theta_p = atan2(q_prim_[ind], p_prim_[ind]);
+    double theta_p = atan2(path_interpol.q_prim(ind), path_interpol.p_prim(ind));
 
     visualization_msgs::Marker orth_proj_marker;
     orth_proj_marker.ns = "orth_proj";
@@ -209,8 +209,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     geometry_msgs::Point from, to;
     from.x = x_meas;
     from.y = y_meas;
-    to.x = p_[ind];
-    to.y = q_[ind];
+    to.x = path_interpol.p(ind);
+    to.y = path_interpol.q(ind);
 
     orth_proj_marker.points.push_back(from);
     orth_proj_marker.points.push_back(to);
@@ -229,10 +229,10 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     curv_sum_ = 1e-10;
 
 
-    for (unsigned int i = ind + 1; i < N_; i++){
+    for (unsigned int i = ind + 1; i < path_interpol.n(); i++){
 
-        s_cum_sum = s_[i] - s_[ind];
-        curv_sum_ += fabs(curvature_[i]);
+        s_cum_sum = path_interpol.s(i) - path_interpol.s(ind);
+        curv_sum_ += fabs(path_interpol.curvature(i));
 
         if(s_cum_sum - opt_.look_ahead_dist() >= 0){
             break;
@@ -241,7 +241,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
 
     //calculate the distance from the orthogonal projection to the goal, w.r.t. path
-    distance_to_goal_ = s_[N_-1] - s_[ind];
+    distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(ind);
 
     //get the robot's current angular velocity
     double angular_vel = path_driver_->getVelocity().angular.z;
@@ -276,7 +276,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
 
     // check for end
-    double distance_to_goal_eucl = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
+    double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1), y_meas - path_interpol.q(path_interpol.n()-1));
     ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl);
 
     if(distance_to_goal_eucl <= path_driver_->getOptions().goal_tolerance()) {

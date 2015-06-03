@@ -3,6 +3,7 @@
 
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
+#include <path_follower/utils/path_interpolated.h>
 
 /// SYSTEM
 #include <nav_msgs/Path.h>
@@ -32,34 +33,14 @@ protected:
 
     ros::Publisher interp_path_pub_;
 
+
+    PathInterpolated path_interpol;
+
     // is there an interpolated path?
     bool interpolated_;
 
-    //number of path elements
-    uint N_;
-
     //interpolated path
     nav_msgs::Path interp_path_;
-    //x component of the interpolated path
-    std::vector<double> p_;
-    //y componenet of the interpolated path
-    std::vector<double> q_;
-    //first derivation of the x component w.r.t. path
-    std::vector<double> p_prim_;
-    //first derivation of the y component w.r.t. path
-    std::vector<double> q_prim_;
-    //second derivation of the x component w.r.t. path
-    std::vector<double> p_sek_;
-    //second derivation of the y component w.r.t. path
-    std::vector<double> q_sek_;
-    //curvature in path coordinates
-    std::vector<double> curvature_;
-
-    //path variable
-    std::vector<double> s_;
-    //path variable derivative
-    double s_prim_;
-
 };
 
 #endif // ROBOTCONTROLLER_INTERPOLATION_H

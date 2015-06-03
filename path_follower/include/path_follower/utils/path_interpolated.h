@@ -18,46 +18,42 @@ public:
 
 	void interpolatePath(const Path::Ptr path);
 
-	inline double p(const double s) const {
-		return p_[(int) s];
-	}
-	inline double q(const double s) const {
-		return q_[(int) s];
-	}
-
-	inline double p_prim(const double s) const {
-		return p_prim_[(int) s];
-	}
-	inline double q_prim(const double s) const {
-		return q_prim_[(int) s];
-	}
-
-	inline double curvature(const double s) const {
-		return curvature_[(int) s];
-	}
-
-	inline double theta_p(const double s) const {
-		const int i = (int) s;
-		return atan2(q_prim_[i], p_prim_[i]);
-	}
-
 	inline double p(const unsigned int s) const {
 		return p_[s];
 	}
 	inline double q(const unsigned int s) const {
 		return q_[s];
-	}
+    }
 
-	inline double p_prim(const unsigned int s) const {
-		return p_prim_[s];
-	}
-	inline double q_prim(const unsigned int s) const {
-		return q_prim_[s];
-	}
+    inline double p_prim(const unsigned int s) const {
+        return p_prim_[s];
+    }
+    inline double q_prim(const unsigned int s) const {
+        return q_prim_[s];
+    }
+
+    inline double p_sek(const unsigned int s) const {
+        return p_sek_[s];
+    }
+    inline double q_sek(const unsigned int s) const {
+        return q_sek_[s];
+    }
+
+    inline double s(const unsigned int s) const {
+        return s_[s];
+    }
+
+    inline double s_prim() const {
+        return s_prim_;
+    }
 
 	inline double curvature(const unsigned int s) const {
 		return curvature_[s];
 	}
+
+    inline std::size_t n() const {
+        return N_;
+    }
 
 	double curvature_prim(const unsigned int s) const;
 	double curvature_sek(const unsigned int s) const;
@@ -75,12 +71,29 @@ public:
 private:
 	void clearBuffers();
 
+    //number of path elements
+    uint N_;
+
 	nav_msgs::Path interp_path;
+    //x component of the interpolated path
 	std::vector<double> p_;
-	std::vector<double> q_;
-	std::vector<double> p_prim_;
-	std::vector<double> q_prim_;
+    //y componenet of the interpolated path
+    std::vector<double> q_;
+    //first derivative of the x component w.r.t. path
+    std::vector<double> p_prim_;
+    //first derivative of the y component w.r.t. path
+    std::vector<double> q_prim_;
+    //second derivative of the x component w.r.t. path
+    std::vector<double> p_sek_;
+    //second derivative of the y component w.r.t. path
+    std::vector<double> q_sek_;
+    //curvature in path coordinates
 	std::vector<double> curvature_;
+
+    //path variable
+    std::vector<double> s_;
+    //path variable derivative
+    double s_prim_;
 };
 
 #endif /* NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_UTILS_PATH_INTERPOLATED_H_ */
