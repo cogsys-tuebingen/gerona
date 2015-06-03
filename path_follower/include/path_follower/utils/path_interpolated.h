@@ -59,6 +59,9 @@ public:
 		return curvature_[s];
 	}
 
+	double curvature_prim(const unsigned int s) const;
+	double curvature_sek(const unsigned int s) const;
+
 	inline double theta_p(const unsigned int s) const {
 		return atan2(q_prim_[s], p_prim_[s]);
 	}

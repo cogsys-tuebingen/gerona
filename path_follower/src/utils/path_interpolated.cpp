@@ -37,7 +37,7 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
 
 	std::deque<Waypoint> waypoints;
 	waypoints.insert(waypoints.end(), path->getCurrentSubPath().begin(),
-			path->getCurrentSubPath().end());
+						  path->getCurrentSubPath().end());
 
 	// (messy) hack!!!!!
 	// remove waypoints that are closer than 0.1 meters to the starting point
@@ -113,12 +113,33 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
 		q_prim_.push_back(y_s_prim);
 
 		curvature_.push_back(
-				(x_s_prim * y_s_sek - x_s_sek * y_s_prim)
-						/ (sqrt(
-								pow((x_s_prim * x_s_prim + y_s_prim * y_s_prim),
-										3))));
+					(x_s_prim * y_s_sek - x_s_sek * y_s_prim)
+					/ sqrt(pow(x_s_prim * x_s_prim + y_s_prim * y_s_prim, 3)));
 	}
 
+}
+
+double PathInterpolated::curvature_prim(const unsigned int s) const {
+	if(length() <= 1)
+		return 0.;
+
+	unsigned int x = s == length() - 1 ? s : s + 1;
+	unsigned int y = x - 1;
+
+	// differential quotient
+	return curvature(x) - curvature(y) / hypot(p(x) - p(y), q(x) - q(y));
+}
+
+
+double PathInterpolated::curvature_sek(const unsigned int s) const {
+	if(length() <= 1)
+		return 0.;
+
+	unsigned int x = s == length() - 1 ? s : s + 1;
+	unsigned int y = x - 1;
+
+	// differential quotient
+	return curvature_prim(x) - curvature_prim(y) / hypot(p(x) - p(y), q(x) - q(y));
 }
 
 PathInterpolated::operator nav_msgs::Path() const {
