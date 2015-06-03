@@ -9,7 +9,6 @@
 
 /// PROJECT
 #include <path_follower/controller/robotcontroller_interpolation.h>
-#include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/pathfollower.h>
 
@@ -48,7 +47,7 @@ private:
     void rotate();
 
 private:
-    struct ControllerParameters : public Parameters
+    struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters
     {
         P<double> k;
         P<double> kp;
@@ -72,6 +71,11 @@ private:
             k_curv(this, "~k_curv", 0.05, "")
         {}
     } opt_;
+
+    const RobotController_Interpolation::InterpolationParameters& getParameters() const
+    {
+        return opt_;
+    }
 
     struct Command
     {
@@ -115,8 +119,6 @@ private:
             }
         }
     };
-
-    Visualizer *visualizer_;
 
     Command cmd_;
 

@@ -51,8 +51,6 @@ private:
     //! PID controller for the steering angle
     PidController<1> steer_pid_;
 
-    Visualizer* visualizer_;
-
     /**
      * \brief The current behaviour of the controller.
      *

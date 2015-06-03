@@ -16,8 +16,6 @@
 RobotController_Ackermann_Kinematic::RobotController_Ackermann_Kinematic(PathFollower* _path_follower) :
     RobotController_Interpolation(_path_follower) {
 
-	visualizer = Visualizer::getInstance();
-
 	path_interpol_pub = node_handle.advertise<nav_msgs::Path>("interp_path", 10);
 
 	const double k = params.k();
@@ -89,7 +87,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	from.x = pose[0]; from.y = pose[1];
 	to.x = path_interpol.p(s); to.y = path_interpol.q(s);
 
-	visualizer->drawLine(12341234, from, to, "map", "kinematic", 1, 0, 0, 1, 0.01);
+    visualizer_->drawLine(12341234, from, to, "map", "kinematic", 1, 0, 0, 1, 0.01);
 
 
 	// distance to the path (path to the right -> positive)

@@ -23,7 +23,6 @@ template <typename T> int sign(T val) {
 
 RobotControllerTrailer::RobotControllerTrailer(PathFollower *path_driver):
     RobotController(path_driver),
-    visualizer_(Visualizer::getInstance()),
     behaviour_(ON_PATH),
     last_velocity_(0)
 {

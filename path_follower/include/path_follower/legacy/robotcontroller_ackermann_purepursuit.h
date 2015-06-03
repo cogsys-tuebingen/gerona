@@ -11,7 +11,6 @@
 #include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
 
-#include <path_follower/utils/visualizer.h>
 #include <visualization_msgs/Marker.h>
 
 
@@ -33,23 +32,23 @@ protected:
 
 private:
 
-	struct ControllerParameters : public Parameters {
+    struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
 		P<double> factor_lookahead_distance;
-		P<double> vehicle_length;
-		P<double> goal_tolerance;
+        P<double> vehicle_length;
 
 		ControllerParameters() :
 			factor_lookahead_distance(this, "~factor_lookahead_distance", 0.5, "lookahead distance factor"),
-			vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance"),
-			goal_tolerance(this, "~goal_tolerance", 0.3, "minimum distance at which the robot stops")
+            vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance")
 		{}
 
-	} params;
+    } params;
 
-	bool reachedGoal(const Eigen::Vector3d& pose) const;
+    const RobotController_Interpolation::InterpolationParameters& getParameters() const
+    {
+        return params;
+    }
+
 	double computeAlpha(double& lookahead_distance, const Eigen::Vector3d& pose) const;
-
-    Visualizer* visualizer;
 
 	ros::NodeHandle node_handle;
 	ros::Publisher path_interpol_pub;

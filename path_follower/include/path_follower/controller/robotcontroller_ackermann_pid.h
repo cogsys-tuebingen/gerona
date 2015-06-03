@@ -5,7 +5,6 @@
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/pidcontroller.hpp>
 #include <path_follower/utils/parameters.h>
-#include <path_follower/utils/visualizer.h>
 
 /**
  * @brief PID controller for robots with car-like/Ackermann drive.
@@ -50,8 +49,6 @@ private:
 
     //! PID controller for the steering angle
     PidController<1> steer_pid_;
-
-    Visualizer* visualizer_;
 
     /**
      * \brief The current behaviour of the controller.

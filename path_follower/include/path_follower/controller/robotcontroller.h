@@ -12,6 +12,8 @@
 #include <path_follower/utils/movecommand.h>
 #include <path_follower/obstacle_avoidance/obstacledetector.h>
 #include <path_follower/obstacle_avoidance/obstacleavoider.h>
+#include <path_follower/utils/visualizer.h>
+
 
 class PathFollower;
 
@@ -145,6 +147,8 @@ protected:
 
     //path driven by the robot
     visualization_msgs::Marker robot_path_marker_;
+
+    Visualizer *visualizer_;
 };
 
 #endif // ROBOTCONTROLLER_H

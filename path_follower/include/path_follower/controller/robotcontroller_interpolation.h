@@ -7,6 +7,7 @@
 
 /// SYSTEM
 #include <nav_msgs/Path.h>
+#include <Eigen/Core>
 
 /**
  * @brief The RobotController_Interpolation class is a base class for
@@ -22,7 +23,20 @@ protected:
     virtual void setPath(Path::Ptr path);
     virtual void reset();
 
-    virtual void initialize();
+    virtual void initialize();    
+
+    bool reachedGoal(const Eigen::Vector3d& pose) const;
+
+protected:
+    struct InterpolationParameters : public Parameters {
+        P<double> goal_tolerance;
+
+        InterpolationParameters() :
+            goal_tolerance(this, "~goal_tolerance", 0.3, "minimum distance at which the robot stops")
+        {}
+    };
+
+    virtual const InterpolationParameters& getParameters() const = 0;
 
 private:
     void interpolatePath();

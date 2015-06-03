@@ -52,18 +52,12 @@ void RobotController_Interpolation::interpolatePath()
 void RobotController_Interpolation::publishInterpolatedPath()
 {
     interp_path_pub_.publish((nav_msgs::Path) path_interpol);
-//    if(N_ <= 2) {
-//        return;
-//    }
-
-//    for(uint i = 0; i < N_; ++i) {
-//        geometry_msgs::PoseStamped poza;
-//        poza.pose.position.x = p_[i];
-//        poza.pose.position.y = q_[i];
-//        interp_path_.poses.push_back(poza);
-//    }
-
-//    interp_path_.header.frame_id = "map";
-//    interp_path_pub_.publish(interp_path_);
 }
 
+
+bool RobotController_Interpolation::reachedGoal(const Eigen::Vector3d& pose) const
+{
+    const unsigned int end = path_interpol.length() - 1;
+    return hypot(path_interpol.p(end) - pose[0], path_interpol.q(end) - pose[1])
+            <= getParameters().goal_tolerance();
+}

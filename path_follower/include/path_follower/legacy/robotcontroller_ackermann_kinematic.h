@@ -4,7 +4,6 @@
 #include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
 
-#include <path_follower/utils/visualizer.h>
 #include <visualization_msgs/Marker.h>
 
 #include <ros/ros.h>
@@ -26,18 +25,21 @@ protected:
 	virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
 private:
-	struct ControllerParameters : public Parameters {
-		P<double> vehicle_length;
-		P<double> goal_tolerance;
+    struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
+        P<double> vehicle_length;
 		P<double> k;
 
 		ControllerParameters() :
-			vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance"),
-			goal_tolerance(this, "~goal_tolerance", 0.3, "minimum distance at which the robot stops"),
+            vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance"),
 			k(this, "~k", 0.5, "Tuning factor")
 		{}
 
 	} params;
+
+    const RobotController_Interpolation::InterpolationParameters& getParameters() const
+    {
+        return params;
+    }
 
     void reset();
 
@@ -49,9 +51,7 @@ private:
 	double computeAlpha1(const double x2, const double errorRearAxis,
 								const double curvature, const double tanErrorTheta) const;
 
-    Visualizer* visualizer;
-
-	ros::NodeHandle node_handle;
+    ros::NodeHandle node_handle;
 	ros::Publisher path_interpol_pub;
 
 	MoveCommand move_cmd;

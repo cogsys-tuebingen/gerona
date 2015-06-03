@@ -36,6 +36,8 @@ RobotController::RobotController(PathFollower* path_driver)
     robot_path_marker_.color.r = 0.0;
     robot_path_marker_.color.g = 0.0;
     robot_path_marker_.color.b = 1.0;
+
+    visualizer_ = Visualizer::getInstance();
 }
 
 void RobotController::setStatus(int status)

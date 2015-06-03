@@ -32,8 +32,6 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_
     distance_to_goal_(1e-3),
     distance_to_obstacle_(1e-3)
 {
-    visualizer_ = Visualizer::getInstance();
-
     look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
                                                        &RobotController_Kinematic_SLP::lookAtCommand, this);
     look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
@@ -153,7 +151,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     *cmd = MoveCommand(true);
 
     if(path_interpol.n() < 2) {
-        ROS_ERROR("[Line] path is too short (N = %d)", path_interpol.n());
+        ROS_ERROR("[Line] path is too short (N = %d)", (int) path_interpol.n());
 
         stopMotion();
         return MoveCommandStatus::REACHED_GOAL;

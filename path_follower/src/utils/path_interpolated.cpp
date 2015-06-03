@@ -186,4 +186,6 @@ void PathInterpolated::clearBuffers() {
     s_prim_ = 0;
 
 	curvature_.clear();
+
+    interp_path.poses.clear();
 }

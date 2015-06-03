@@ -25,8 +25,6 @@ Robotcontroller_Ackermann_PurePursuit::Robotcontroller_Ackermann_PurePursuit(
 		PathFollower* _path_follower) :
     RobotController_Interpolation(_path_follower) {
 
-	visualizer = Visualizer::getInstance();
-
 	path_interpol_pub = node_handle.advertise<nav_msgs::Path>("interp_path", 10);
 
 
@@ -107,13 +105,6 @@ void Robotcontroller_Ackermann_PurePursuit::publishMoveCommand(
 	cmd_pub_.publish(msg);
 }
 
-bool Robotcontroller_Ackermann_PurePursuit::reachedGoal(
-		const Eigen::Vector3d& pose) const {
-	const unsigned int end = path_interpol.length() - 1;
-	return hypot(path_interpol.p(end) - pose[0], path_interpol.q(end) - pose[1])
-			<= params.goal_tolerance();
-}
-
 double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
 		double& lookahead_distance, const Eigen::Vector3d& pose) const {
 
@@ -146,7 +137,7 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
 				from.x = pose[0]; from.y = pose[1];
 				to.x = path_interpol.p(i); to.y = path_interpol.q(i);
 
-				visualizer->drawLine(12341234, from, to, "map", "geo", 1, 0, 0, 1, 0.01);
+                visualizer_->drawLine(12341234, from, to, "map", "geo", 1, 0, 0, 1, 0.01);
 
 #ifdef DEBUG
 				ROS_INFO("LookAheadPoint: index=%i, x=%f, y=%f", i, path_interpol.p(i), path_interpol.q(i));
