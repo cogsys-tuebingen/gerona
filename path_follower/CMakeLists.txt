@@ -173,6 +173,7 @@ add_executable(path_follower_node
   src/obstacle_avoidance/obstacledetectorpatsy.cpp
 
   src/controller/robotcontroller.cpp
+  src/controller/robotcontroller_interpolation.cpp
   src/controller/robotcontroller_ackermann_pid.cpp
   src/controller/robotcontrollertrailer.cpp
 

@@ -8,7 +8,6 @@
 // PROJECT
 #include <path_follower/pathfollower.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
-#include "../alglib/interpolation.h"
 #include <utils_general/MathHelper.h>
 #include <cmath>
 
@@ -21,16 +20,12 @@ using namespace Eigen;
 
 
 RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_driver):
-    RobotController(path_driver),
+    RobotController_Interpolation(path_driver),
     cmd_(this),
-    nh_("~"),
     view_direction_(LookInDrivingDirection),
-    initialized_(false),
     vn_(0.0),
     delta_(90.0*M_PI/180.0),
-    N_(0),
     Ts_(0.02),
-    s_prim_(0),
     xe(0),
     ye(0),
     curv_sum_(1e-3),
@@ -38,8 +33,6 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_
     distance_to_obstacle_(1e-3)
 {
     visualizer_ = Visualizer::getInstance();
-    interp_path_pub_ = nh_.advertise<nav_msgs::Path>("interp_path", 10);
-    points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
 
     look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
                                                        &RobotController_Kinematic_SLP::lookAtCommand, this);
@@ -50,28 +43,6 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_
                                                              &RobotController_Kinematic_SLP::laserFront, this);
     laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
                                                             &RobotController_Kinematic_SLP::laserBack, this);
-
-    // path marker
-    robot_path_marker_.header.frame_id = "map";
-    robot_path_marker_.header.stamp = ros::Time();
-    robot_path_marker_.ns = "my_namespace";
-    robot_path_marker_.id = 50;
-    robot_path_marker_.type = visualization_msgs::Marker::LINE_STRIP;
-    robot_path_marker_.action = visualization_msgs::Marker::ADD;
-    robot_path_marker_.pose.position.x = 0;
-    robot_path_marker_.pose.position.y = 0;
-    robot_path_marker_.pose.position.z = 0;
-    robot_path_marker_.pose.orientation.x = 0.0;
-    robot_path_marker_.pose.orientation.y = 0.0;
-    robot_path_marker_.pose.orientation.z = 0.0;
-    robot_path_marker_.pose.orientation.w = 1.0;
-    robot_path_marker_.scale.x = 0.1;
-    robot_path_marker_.scale.y = 0.0;
-    robot_path_marker_.scale.z = 0.0;
-    robot_path_marker_.color.a = 1.0;
-    robot_path_marker_.color.r = 0.0;
-    robot_path_marker_.color.g = 0.0;
-    robot_path_marker_.color.b = 1.0;
 
     lookInDrivingDirection();
 
@@ -101,25 +72,13 @@ void RobotController_Kinematic_SLP::lookAtCommand(const std_msgs::StringConstPtr
     }
 }
 
-void RobotController_Kinematic_SLP::setPath(Path::Ptr path)
+void RobotController_Kinematic_SLP::initialize()
 {
-    RobotController::setPath(path);
+    RobotController_Interpolation::initialize();
 
-    if(initialized_) {
-        return;
-    }
-
-    clearBuffers();
-
-    try {
-        interpolatePath();
-        publishInterpolatedPath();
-
-    } catch(const alglib::ap_error& error) {
-        throw std::runtime_error(error.msg);
-    }
-
-    initialize();
+    // desired velocity
+    vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
+    ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 }
 
 void RobotController_Kinematic_SLP::lookAt(const geometry_msgs::PointStampedConstPtr &look_at)
@@ -182,143 +141,6 @@ void RobotController_Kinematic_SLP::lookInDrivingDirection()
 {
     view_direction_ = LookInDrivingDirection;
 }
-
-void RobotController_Kinematic_SLP::initialize()
-{
-    // desired velocity
-    vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
-    ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
-    initialized_ = true;
-}
-
-void RobotController_Kinematic_SLP::clearBuffers()
-{
-    p_.clear();
-    q_.clear();
-    p_prim_.clear();
-    q_prim_.clear();
-    p_sek_.clear();
-    q_sek_.clear();
-    s_.clear();
-    interp_path_.poses.clear();
-    robot_path_marker_.points.clear();
-    curvature_.clear();
-
-}
-
-void RobotController_Kinematic_SLP::interpolatePath()
-{
-    std::deque<Waypoint> waypoints;
-    waypoints.insert(waypoints.end(), path_->getCurrentSubPath().begin(), path_->getCurrentSubPath().end());
-
-    // (messy) hack!!!!!
-    // remove waypoints that are closer than 0.1 meters to the starting point
-    Waypoint start = waypoints.front();
-    while(!waypoints.empty()) {
-        std::deque<Waypoint>::iterator it = waypoints.begin();
-        const Waypoint& wp = *it;
-
-        double dx = wp.x - start.x;
-        double dy = wp.y - start.y;
-        double distance = hypot(dx, dy);
-        if(distance < 0.1) {
-            waypoints.pop_front();
-        } else {
-            break;
-        }
-    }
-
-    //copy the waypoints to arrays X_arr and Y_arr, and introduce a new array l_arr_unif required for the interpolation
-    //as an intermediate step, calculate the arclength of the curve, and do the reparameterization with respect to arclength
-
-    N_ = waypoints.size();
-
-    if(N_ < 2) {
-        return;
-    }
-
-    double X_arr[N_], Y_arr[N_], l_arr[N_], l_arr_unif[N_];
-    double L = 0; 
-
-    for(std::size_t i = 0; i < N_; ++i) {
-        const Waypoint& waypoint = waypoints[i];
-
-        X_arr[i] = waypoint.x;
-        Y_arr[i] = waypoint.y;
-
-    }
-
-    l_arr[0] = 0;
-
-    for(std::size_t i = 1; i < N_; i++){
-
-        L += hypot(X_arr[i] - X_arr[i-1], Y_arr[i] - Y_arr[i-1]);
-        l_arr[i] = L;
-
-    }
-    ROS_INFO("Length of the path: %lf m", L);
-
-
-    double f = std::max(0.0001, L / (double) (N_-1));
-
-    for(std::size_t i = 1; i < N_; i++){
-
-        l_arr_unif[i] = i * f;
-
-    }
-
-    //initialization before the interpolation
-    alglib::real_1d_array X_alg, Y_alg, l_alg, l_alg_unif;
-    alglib::real_1d_array x_s, y_s, x_s_prim, y_s_prim, x_s_sek, y_s_sek;
-
-    X_alg.setcontent(N_, X_arr);
-    Y_alg.setcontent(N_, Y_arr);
-    l_alg.setcontent(N_, l_arr);
-    l_alg_unif.setcontent(N_, l_arr_unif);
-
-
-    //interpolate the path and find the derivatives
-    alglib::spline1dconvdiff2cubic(l_alg, X_alg, l_alg_unif, x_s, x_s_prim, x_s_sek);
-    alglib::spline1dconvdiff2cubic(l_alg, Y_alg, l_alg_unif, y_s, y_s_prim, y_s_sek);
-
-    //define path components, its derivatives, and curvilinear abscissa, then calculate the path curvature
-    for(uint i = 0; i < N_; ++i) {
-
-        p_.push_back(x_s[i]);
-        q_.push_back(y_s[i]);
-
-        p_prim_.push_back(x_s_prim[i]);
-        q_prim_.push_back(y_s_prim[i]);
-
-        p_sek_.push_back(x_s_sek[i]);
-        q_sek_.push_back(y_s_sek[i]);
-
-        s_.push_back(l_alg_unif[i]);
-
-        curvature_.push_back((x_s_prim[i]*y_s_sek[i] - x_s_sek[i]*y_s_prim[i])/
-                            (sqrt(pow((x_s_prim[i]*x_s_prim[i] + y_s_prim[i]*y_s_prim[i]), 3))));
-
-    }
-
-}
-
-void RobotController_Kinematic_SLP::publishInterpolatedPath()
-{
-    if(N_ <= 2) {
-        return;
-    }
-
-    for(uint i = 0; i < N_; ++i) {
-        geometry_msgs::PoseStamped poza;
-        poza.pose.position.x = p_[i];
-        poza.pose.position.y = q_[i];
-        interp_path_.poses.push_back(poza);
-    }
-
-    interp_path_.header.frame_id = "map";
-    interp_path_pub_.publish(interp_path_);
-}
-
 
 void RobotController_Kinematic_SLP::start()
 {
@@ -450,14 +272,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
-
-    //Vizualize the path driven by the robot
-    geometry_msgs::Point pt;
-    pt.x = x_meas;
-    pt.y = y_meas;
-    robot_path_marker_.points.push_back(pt);
-
-    points_pub_.publish(robot_path_marker_);
     //***//
 
 
@@ -483,9 +297,3 @@ void RobotController_Kinematic_SLP::publishMoveCommand(const MoveCommand &cmd) c
 
     cmd_pub_.publish(msg);
 }
-
-void RobotController_Kinematic_SLP::reset()
-{
-    initialized_ = false;
-}
-

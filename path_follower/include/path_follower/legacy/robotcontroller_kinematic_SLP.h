@@ -3,17 +3,15 @@
 
 /// THIRD PARTY
 #include <Eigen/Core>
-#include <nav_msgs/Path.h>
-#include <visualization_msgs/Marker.h>
 #include <geometry_msgs/PointStamped.h>
 
 /// PROJECT
-#include <path_follower/controller/robotcontroller.h>
+#include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/pathfollower.h>
 
-class RobotController_Kinematic_SLP : public RobotController
+class RobotController_Kinematic_SLP : public RobotController_Interpolation
 {
 public:
     RobotController_Kinematic_SLP(PathFollower *path_driver);
@@ -28,14 +26,12 @@ protected:
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
-    virtual void setPath(Path::Ptr path);
-
-    virtual void reset();
-
     virtual bool isOmnidirectional() const
     {
         return true;
     }
+
+    virtual void initialize();
 
     void lookAtCommand(const std_msgs::StringConstPtr& cmd);
     void lookAt(const geometry_msgs::PointStampedConstPtr& look_at);
@@ -43,11 +39,6 @@ protected:
     void laserFront(const sensor_msgs::LaserScanConstPtr& scan_front);
 
 private:
-    void initialize();
-    void clearBuffers();
-    void interpolatePath();
-    void publishInterpolatedPath();
-
     void findMinDistance();
 
     void keepHeading();
@@ -133,10 +124,6 @@ private:
 
     Command cmd_;
 
-    ros::NodeHandle nh_;
-    ros::Publisher interp_path_pub_;
-    ros::Publisher points_pub_;
-
     ros::Subscriber look_at_sub_;
     ros::Subscriber look_at_cmd_sub_;
 
@@ -145,23 +132,6 @@ private:
 
     std::vector<float> ranges_front_;
     std::vector<float> ranges_back_;
-
-    //interpolated path
-    nav_msgs::Path interp_path_;
-    //x component of the interpolated path
-    std::vector<double> p_;
-    //y componenet of the interpolated path
-    std::vector<double> q_;
-    //first derivation of the x component w.r.t. path
-    std::vector<double> p_prim_;
-    //first derivation of the y component w.r.t. path
-    std::vector<double> q_prim_;
-    //second derivation of the x component w.r.t. path
-    std::vector<double> p_sek_;
-    //second derivation of the y component w.r.t. path
-    std::vector<double> q_sek_;
-    //curvature in path coordinates
-    std::vector<double> curvature_;
 
 
     enum ViewDirection {
@@ -177,22 +147,14 @@ private:
     //applies only to omnidirectional robots
     geometry_msgs::Point look_at_;
 
-    bool initialized_;
-
 
     //nominal velocity
     double vn_;
     //function for transient maneuvers
     double delta_;
-    //number of path elements
-    uint N_;
     //sampling time
-    double Ts_;
+    double Ts_;    
 
-    //path variable
-    std::vector<double> s_;
-    //path variable derivative
-    double s_prim_;
     //x component of the following error in path coordinates
     double xe;
     //y component of the following error in path coordinates
@@ -204,9 +166,6 @@ private:
     double distance_to_goal_;
     //distance to the nearest obstacle
     double distance_to_obstacle_;
-
-    //path driven by the robot
-    visualization_msgs::Marker robot_path_marker_;
 };
 
 #endif // ROBOTCONTROLLER_KINEMATIC_SLP_H

@@ -5,6 +5,7 @@
 #include <ros/node_handle.h>
 #include <geometry_msgs/Twist.h>
 #include <Eigen/Core>
+#include <visualization_msgs/Marker.h>
 
 // PROJECT
 #include <path_follower/utils/path.h>
@@ -85,13 +86,7 @@ protected:
 
     /* REGULAR METHODS */
 public:
-    RobotController(PathFollower *path_driver) :
-        path_driver_(path_driver),
-        velocity_(0.0f),
-        dir_sign_(1.0f)
-    {
-        initPublisher(&cmd_pub_);
-    }
+    RobotController(PathFollower *path_driver);
 
     virtual ~RobotController() {}
 
@@ -118,8 +113,13 @@ public:
         return dir_sign_;
     }
 
+private:
+    //Vizualize the path driven by the robot
+    void publishPathMarker();
+
 protected:
     ros::Publisher cmd_pub_;
+    ros::Publisher points_pub_;
 
     PathFollower* path_driver_;
 
@@ -142,6 +142,9 @@ protected:
 
     //! Convert a MoveCommandStatus to its corresponding ControlStatus
     static ControlStatus MCS2CS(MoveCommandStatus s);
+
+    //path driven by the robot
+    visualization_msgs::Marker robot_path_marker_;
 };
 
 #endif // ROBOTCONTROLLER_H

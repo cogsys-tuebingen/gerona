@@ -8,12 +8,12 @@
 #include <geometry_msgs/PointStamped.h>
 
 /// PROJECT
-#include <path_follower/controller/robotcontroller.h>
+#include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/pathfollower.h>
 
-class RobotController_Ackermann_OrthogonalExponential : public RobotController
+class RobotController_Ackermann_OrthogonalExponential : public RobotController_Interpolation
 {
 public:
     RobotController_Ackermann_OrthogonalExponential(PathFollower *path_driver);
@@ -28,10 +28,6 @@ protected:
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
-    virtual void setPath(Path::Ptr path);
-
-    virtual void reset();
-
     virtual bool isOmnidirectional() const
     {
         return true;
@@ -44,9 +40,6 @@ protected:
 
 private:
     void initialize();
-    void clearBuffers();
-    void interpolatePath();
-    void publishInterpolatedPath();
 
     void findMinDistance();
 
@@ -128,8 +121,6 @@ private:
     Command cmd_;
 
     ros::NodeHandle nh_;
-    ros::Publisher interp_path_pub_;
-    ros::Publisher points_pub_;
 
     ros::Subscriber look_at_sub_;
     ros::Subscriber look_at_cmd_sub_;
@@ -139,14 +130,6 @@ private:
 
     std::vector<float> ranges_front_;
     std::vector<float> ranges_back_;
-
-    nav_msgs::Path interp_path_;
-    std::vector<double> p_;
-    std::vector<double> q_;
-    std::vector<double> p_prim_;
-    std::vector<double> q_prim_;
-    std::vector<double> curvature_;
-
 
     enum ViewDirection {
         KeepHeading,
@@ -158,19 +141,14 @@ private:
     ViewDirection view_direction_;
     geometry_msgs::Point look_at_;
 
-    bool initialized_;
-
     double vn_;
     double theta_des_;
-    uint N_;
     double Ts_;
     double e_theta_curr_;
 
     double curv_sum_;
     double distance_to_goal_;
     double distance_to_obstacle_;
-
-    visualization_msgs::Marker robot_path_marker_;
 };
 
 #endif // ROBOTCONTROLLER_ACKERMANN_ORTHEXP_H

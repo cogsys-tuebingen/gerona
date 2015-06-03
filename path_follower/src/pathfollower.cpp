@@ -382,6 +382,16 @@ Path::Ptr PathFollower::getPath()
     return path_;
 }
 
+const PathFollowerParameters& PathFollower::getOptions() const
+{
+    return opt_;
+}
+
+ros::NodeHandle& PathFollower::getNodeHandle()
+{
+    return node_handle_;
+}
+
 void PathFollower::start()
 {
     //path_idx_.reset();
