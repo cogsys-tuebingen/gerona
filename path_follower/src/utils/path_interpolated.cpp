@@ -126,58 +126,68 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
         s_.push_back(l_alg_unif[i]);
 
         curvature_.push_back((x_s_prim[i]*y_s_sek[i] - x_s_sek[i]*y_s_prim[i])/
-                            (sqrt(pow((x_s_prim[i]*x_s_prim[i] + y_s_prim[i]*y_s_prim[i]), 3))));
+                             (sqrt(pow((x_s_prim[i]*x_s_prim[i] + y_s_prim[i]*y_s_prim[i]), 3))));
 
     }
 
+    assert(p_prim_.size() == N_);
+    assert(q_prim_.size() == N_);
+    assert(p_.size() == N_);
+    assert(q_.size() == N_);
+    assert(p_sek_.size() == N_);
+    assert(q_sek_.size() == N_);
+    assert(length() == N_);
+    assert(n() == N_);
 }
 
 double PathInterpolated::curvature_prim(const unsigned int s) const {
-	if(length() <= 1)
-		return 0.;
+    if(length() <= 1)
+        return 0.;
 
-	unsigned int x = s == length() - 1 ? s : s + 1;
-	unsigned int y = x - 1;
+    unsigned int x = s == length() - 1 ? s : s + 1;
+    unsigned int y = x - 1;
 
-	// differential quotient
-	return curvature(x) - curvature(y) / hypot(p(x) - p(y), q(x) - q(y));
+    // differential quotient
+    return curvature(x) - curvature(y) / hypot(p(x) - p(y), q(x) - q(y));
 }
 
 
 double PathInterpolated::curvature_sek(const unsigned int s) const {
-	if(length() <= 1)
-		return 0.;
+    if(length() <= 1)
+        return 0.;
 
-	unsigned int x = s == length() - 1 ? s : s + 1;
-	unsigned int y = x - 1;
+    unsigned int x = s == length() - 1 ? s : s + 1;
+    unsigned int y = x - 1;
 
-	// differential quotient
-	return curvature_prim(x) - curvature_prim(y) / hypot(p(x) - p(y), q(x) - q(y));
+    // differential quotient
+    return curvature_prim(x) - curvature_prim(y) / hypot(p(x) - p(y), q(x) - q(y));
 }
 
 PathInterpolated::operator nav_msgs::Path() const {
 
-	nav_msgs::Path path;
-	const unsigned int length = p_.size();
+    nav_msgs::Path path;
+    const unsigned int length = p_.size();
 
-	for (uint i = 0; i < length; ++i) {
-		geometry_msgs::PoseStamped poza;
-		poza.pose.position.x = p_[i];
-		poza.pose.position.y = q_[i];
-		path.poses.push_back(poza);
-	}
+    for (uint i = 0; i < length; ++i) {
+        geometry_msgs::PoseStamped poza;
+        poza.pose.position.x = p_[i];
+        poza.pose.position.y = q_[i];
+        path.poses.push_back(poza);
+    }
 
-	path.header.frame_id = "map";
+    path.header.frame_id = "map";
 
-	return path;
+    return path;
 }
 
 void PathInterpolated::clearBuffers() {
-	p_.clear();
-	q_.clear();
+    N_ = 0;
 
-	p_prim_.clear();
-	p_prim_.clear();
+    p_.clear();
+    q_.clear();
+
+    p_prim_.clear();
+    q_prim_.clear();
 
     p_sek_.clear();
     q_sek_.clear();
@@ -185,7 +195,7 @@ void PathInterpolated::clearBuffers() {
     s_.clear();
     s_prim_ = 0;
 
-	curvature_.clear();
+    curvature_.clear();
 
     interp_path.poses.clear();
 }

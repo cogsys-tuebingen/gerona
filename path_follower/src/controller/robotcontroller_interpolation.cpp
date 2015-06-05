@@ -24,7 +24,7 @@ void RobotController_Interpolation::setPath(Path::Ptr path)
     }
 
     try {
-        path_interpol.interpolatePath(path_);
+        path_interpol.interpolatePath(path);
         publishInterpolatedPath();
 
     } catch(const alglib::ap_error& error) {
@@ -42,11 +42,6 @@ void RobotController_Interpolation::initialize()
 void RobotController_Interpolation::reset()
 {
     interpolated_ = false;
-}
-void RobotController_Interpolation::interpolatePath()
-{
-
-
 }
 
 void RobotController_Interpolation::publishInterpolatedPath()
