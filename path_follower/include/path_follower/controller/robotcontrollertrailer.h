@@ -1,6 +1,9 @@
 #ifndef RobotControllerTrailer_H
 #define RobotControllerTrailer_H
 
+/// SYSTEM
+#include <tf/transform_listener.h>
+
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/pidcontroller.hpp>
@@ -13,7 +16,7 @@
 class RobotControllerTrailer : public RobotController
 {
 public:
-    RobotControllerTrailer(PathFollower *path_driver);
+    RobotControllerTrailer(PathFollower *path_driver, ros::NodeHandle *nh);
     virtual void stopMotion();
     virtual void reset();
 
@@ -32,21 +35,36 @@ private:
         P<float> pid_ki;
         P<float> pid_kd;
         P<float> max_steer;
+        P<float> weight_dist;
+        P<float> weight_angle;
+        P<float> clip_angle_error;
+        P<float> clip_dist_error;
 
         ControllerParameters():
             dead_time(this, "~dead_time", 0.1, "Time step that is used by predictPose"),
-            l(this, "~l", 0.38, "Distance between front and rear axes of the robot."),
+            l(this, "~wheel_base", 0.98, "Distance between front and rear axes of the robot."),
             pid_ta(this, "~pid/ta", 0.03, "Update interval of the PID controller."),
             pid_kp(this, "~pid/kp", 1.0, "Proportional coefficient of the PID controller."),
             pid_ki(this, "~pid/ki", 0.001, "Integral coefficient of the PID controller."),
             pid_kd(this, "~pid/kd", 0, "Derivative coefficient of the PID controller."),
-            max_steer(this, "~max_steer", 0.52, "Maximal allowed steering angle. Higher angles are capped by this value.")
+            max_steer(this, "~max_steer", 1.3, "Maximal allowed steering angle. Higher angles are capped by this value."),
+            weight_dist(this, "~pc_weight_dist", 1.0, "Weight of distance error"),
+            weight_angle(this, "~pc_weight_angle", 1.0, "Weight of angle error"),
+            clip_angle_error(this,"~angle_error_cap",0.174, "Clipping for angle error"),
+            clip_dist_error(this,"~dist_error_clip",0.1, "Clipping for distance error")
+
+
         {}
     } opt_;
-
-
+    ros::NodeHandle *nh_;
+    ros::Subscriber agv_vel_sub_;
+    ros::Publisher agv_steer_is_pub_, agv_steer_set_pub_, agv_error_angle_pub_,agv_error_dist_pub_;
     //! The current move command.
     MoveCommand cmd_;
+
+    //! current velocity and trailer angle
+    geometry_msgs::Twist agv_vel_;
+
 
     //! PID controller for the steering angle
     PidController<1> steer_pid_;
@@ -135,7 +153,22 @@ private:
      */
     double calculateSidewaysDistanceError() const;
 
+
+    double calcAngleError (const Eigen::Vector2d &front_pred, const Eigen::Vector2d &rear_pred) const;
+
     void visualizeCarrot(const Eigen::Vector2d &carrot, int id, float r, float g, float b) const;
+
+
+
+    bool getTrailerAngle(const std::string& base_frame, const std::string& trailer_frame, double& angle) const;
+
+
+    void updateAgvCb(const geometry_msgs::TwistConstPtr &vel);
+
+
+    virtual double calculateAngleError();
+
+    tf::TransformListener trailer_listener_;
 };
 
 #endif // RobotControllerTrailer_H

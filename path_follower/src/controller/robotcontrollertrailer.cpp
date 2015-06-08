@@ -1,5 +1,8 @@
-#include <path_follower/controller/robotcontrollertrailer.h>
 #include <cmath>
+#include <utils_general/MathHelper.h>
+#include <std_msgs/Float32.h>
+#include <path_follower/controller/robotcontrollertrailer.h>
+
 #include <path_msgs/FollowPathResult.h>
 #include <path_follower/pathfollower.h>
 #include <path_follower/utils/path_exceptions.h>
@@ -21,15 +24,32 @@ template <typename T> int sign(T val) {
 }
 }
 
-RobotControllerTrailer::RobotControllerTrailer(PathFollower *path_driver):
-    RobotController(path_driver),
+RobotControllerTrailer::RobotControllerTrailer(PathFollower *path_driver, ros::NodeHandle *nh):
+    RobotController(path_driver),nh_(nh),
     visualizer_(Visualizer::getInstance()),
     behaviour_(ON_PATH),
     last_velocity_(0)
 {
     // initialize
     steer_pid_ = PidController<1>(opt_.pid_kp(), opt_.pid_ki(), opt_.pid_kd(), opt_.pid_ta());
+
+    std::string agv_vel_topic("/agv_vel");
+
+    agv_vel_sub_ = nh_->subscribe<geometry_msgs::Twist> (agv_vel_topic, 10, boost::bind(&RobotControllerTrailer::updateAgvCb, this, _1));
+
+    agv_steer_is_pub_ = nh_->advertise<std_msgs::Float32> ("/path_follower/steer_is",1);
+    agv_steer_set_pub_ = nh_->advertise<std_msgs::Float32> ("/path_follower/steer_set",1);
+
+
 }
+
+
+void RobotControllerTrailer::updateAgvCb(const geometry_msgs::TwistConstPtr &vel)
+{
+
+    agv_vel_ = *vel;
+}
+
 
 void RobotControllerTrailer::stopMotion()
 {
@@ -37,10 +57,12 @@ void RobotControllerTrailer::stopMotion()
     publishMoveCommand(cmd_);
 }
 
+
 void RobotControllerTrailer::reset()
 {
     behaviour_ = ON_PATH;
 }
+
 
 RobotController::MoveCommandStatus RobotControllerTrailer::computeMoveCommand(MoveCommand *cmd)
 {
@@ -157,11 +179,41 @@ void RobotControllerTrailer::selectWaypoint()
     }
 }
 
+
 double RobotControllerTrailer::calcTotalError (double e_dist, double e_angle)
 {
+
+
     // should be scaled depending on velocity
     // 5 degrees angular error = 0.09
-    return dir_sign_*e_dist + dir_sign_ * e_angle;
+    return ((opt_.weight_dist()*  e_dist +  opt_.weight_angle()*e_angle)/(opt_.weight_dist()+opt_.weight_angle()));
+
+}
+
+ double e_distance, e_angle;
+
+
+
+double RobotControllerTrailer::calculateAngleError()
+{
+
+    geometry_msgs::Pose waypoint   = path_->getCurrentWaypoint();
+    geometry_msgs::Pose robot_pose = path_driver_->getRobotPoseMsg();
+    double trailer_angle;
+    bool status=getTrailerAngle("/base_link","/trailer_link",trailer_angle);
+    if (!status) {
+        trailer_angle=0.0;
+    }
+
+    double angle_error = MathHelper::AngleClamp(tf::getYaw(waypoint.orientation) - tf::getYaw(robot_pose.orientation)+trailer_angle);
+    if (angle_error>opt_.clip_angle_error()) {
+        return opt_.clip_angle_error();
+    } else if (angle_error<-opt_.clip_angle_error()) {
+        return -opt_.clip_angle_error();
+    } else {
+        return angle_error;
+    }
+
 }
 
 
@@ -173,8 +225,8 @@ float RobotControllerTrailer::getErrorOnPath()
      */
 
     // Calculate target line from current to next waypoint (if there is any)
-    double e_distance = calculateLineError();
-    double e_angle = calculateAngleError();
+    e_distance = calculateLineError();
+    e_angle = calculateAngleError();
 
 
     float error = (float) calcTotalError(e_distance, e_angle);
@@ -218,29 +270,45 @@ float RobotControllerTrailer::getErrorApproachSubpathEnd()
 
     return error;
 }
+
+
+
 static int g_dbg_count = 0;
 
 void RobotControllerTrailer::updateCommand(float error)
 {
+
+    double v = fabs(agv_vel_.linear.x);
+    if (v>=1.0) {
+        // reduce error for high speeds
+        error = error / v;
+    }
     // call PID controller for steering.
     float u = 0;
     if (!steer_pid_.execute(error, &u)) {
         return; // Nothing to do
     }
-
     ROS_DEBUG_NAMED(MODULE, "PID: error = %g, u = %g", error, u);
     visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), u, 0.0, 1.0, 1.0);
 
-    float steer = std::max(-opt_.max_steer(), std::min(u, opt_.max_steer()));
+    float steer = dir_sign_* std::max(-opt_.max_steer(), std::min(u, opt_.max_steer()));
     ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
-    if (g_dbg_count++%4==0) {
-     ROS_INFO("error %f u %f steer %fdeg maxsteer %fdeg\n",error,u,steer*180.0/M_PI,opt_.max_steer()*180.0/M_PI);
-    }
+
     // Control velocity
     float velocity = controlVelocity(steer);
+    if (g_dbg_count++%4==0) {
+     ROS_INFO("error dist %f error steer %fdeg sum %f steer %fdeg\n",e_distance,e_angle*180.0/M_PI,error, steer*180.0/M_PI);
+    }
 
-    cmd_.setDirection(dir_sign_ * steer);
+    cmd_.setDirection(steer);
     cmd_.setVelocity(dir_sign_ * velocity);
+    std_msgs::Float32 msg;
+    msg.data = agv_vel_.angular.z;
+    agv_steer_is_pub_.publish(msg);
+
+    msg.data=dir_sign_ * steer;
+    agv_steer_set_pub_.publish(msg);
+
 }
 
 float RobotControllerTrailer::controlVelocity(float steer_angle) const
@@ -248,7 +316,7 @@ float RobotControllerTrailer::controlVelocity(float steer_angle) const
     PathFollowerParameters path_driver_opt = path_driver_->getOptions();
     float velocity = velocity_;
 
-    if(abs(steer_angle) > path_driver_opt.steer_slow_threshold()) {
+    if(fabsf(steer_angle) > path_driver_opt.steer_slow_threshold()) {
         ROS_INFO_STREAM_THROTTLE_NAMED(2, MODULE, "slowing down");
         velocity *= 0.75;
     }
@@ -292,32 +360,58 @@ double RobotControllerTrailer::distanceToWaypoint(const Waypoint &wp) const
 
 void RobotControllerTrailer::predictPose(Vector2d &front_pred, Vector2d &rear_pred) const
 {
-    //NOTE: This is an ancient relict of the days of the `motion_control` package.
-    // I am not absolutely sure, what it is doing. I think it has the purpose to predict the
-    // positon of the robot (more exactly its front and rear axes) in the next time step.
-    // This is how it is used at least, though I do not know if this is what it really does...
-    // ~Felix
 
-    double dt = opt_.dead_time(); //TODO: could opt_.pid_ta() be used instead?
-    double deltaf = cmd_.getDirectionAngle();
-    double deltar = 0.0; // currently not supported
-    double v = 2 * last_velocity_; // why '2*'?
 
-    double beta = std::atan(0.5 * (std::tan(deltaf) + std::tan(deltar)));
-    double ds = v * dt;
-    double dtheta = ds * std::cos(beta) * (std::tan(deltaf) - std::tan(deltar)) / opt_.l();
-    double thetan = dtheta; // <- why this ???
-    double yn = ds * std::sin(dtheta * 0.5 + beta * 0.5);
-    double xn = ds * std::cos(dtheta * 0.5 + beta * 0.5);
 
-    //ROS_DEBUG_NAMED(MODULE, "predict pose: dt = %g, deltaf = %g, deltar = %g, v = %g, "
-    //                        "beta = %g, ds = %g, dtheta = %g, yn = %g, xn = %g",
-    //                dt, deltaf, deltar, v, beta, ds, dtheta, yn, xn);
+    double trailer_angle;
+    bool status=getTrailerAngle("/base_link","/trailer_link",trailer_angle);
+    if (!status) {
+        trailer_angle = 0.0;
+        // ***todo error handling
+    }
+    double v_current = agv_vel_.linear.x;
+    double dt = opt_.dead_time();
 
-    front_pred[0] = xn + cos(thetan) * opt_.l()/2.0;
-    front_pred[1] = yn + sin(thetan) * opt_.l()/2.0;
-    rear_pred[0]  = xn - cos(thetan) * opt_.l()/2.0;
-    rear_pred[1]  = yn - sin(thetan) * opt_.l()/2.0;
+
+    if (fabsf(trailer_angle)<0.1*M_PI/180.0) {
+        // agv drives approx straight
+        front_pred[0] = v_current*dt;
+        front_pred[1] = 0;
+        rear_pred[0] = front_pred[0] - opt_.l();
+        rear_pred[1] = 0;
+
+    } else {
+        // radius desired turn circle
+
+
+
+
+        double r_f = fabs(opt_.l()/sin(trailer_angle));
+        double r_h = fabs(opt_.l()/tan(trailer_angle));
+
+        double ds = v_current*dt; // sign of velocity matters
+        double dtheta = ds/r_f;
+
+        front_pred[0] = r_f*sin(fabs(trailer_angle)+dtheta)-opt_.l();
+        rear_pred[0] = r_h*sin(dtheta)- opt_.l();
+        if (trailer_angle>=0) {
+            front_pred[1] = r_h-r_f*cos(fabs(trailer_angle)+dtheta);
+            rear_pred[1] = r_h*(1.0-cos(dtheta));
+        } else {
+            front_pred[1] = r_f*cos(fabs(trailer_angle)+dtheta)-r_h;
+            rear_pred[1] = r_h*(cos(dtheta)-1.0);
+        }
+        if (g_dbg_count%4==0) {
+            ROS_INFO("trailer angle %f r_f %f r_h %f dtheta %f\n",trailer_angle*180.0/M_PI,r_f,r_h,dtheta*180.0/M_PI);
+        }
+
+    }
+
+
+    if (g_dbg_count%4==0) {
+
+     ROS_INFO("v_current %f front %f %f rear %f %f wheel base %f\n",v_current, front_pred[0],front_pred[1],rear_pred[0],rear_pred[1],opt_.l());
+    }
 
     ROS_DEBUG_STREAM_NAMED(MODULE, "predict pose. front: " << front_pred << ", rear: " << rear_pred);
 }
@@ -353,8 +447,8 @@ double RobotControllerTrailer::calculateLineError() const
     }
 
     if (visualizer_->hasSubscriber()) {
-        visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
-        visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
+        visualizeCarrot(main_carrot, 100, 1.0,0.0,1.0);
+        visualizeCarrot(alt_carrot, 101, 0.0,1.0,1.0);
     }
 
     return -target_line.GetSignedDistance(main_carrot) - 0.25 * target_line.GetSignedDistance(alt_carrot);
@@ -375,8 +469,8 @@ double RobotControllerTrailer::calculateSidewaysDistanceError() const
     }
 
     if (visualizer_->hasSubscriber()) {
-        visualizeCarrot(main_carrot, 0, 1.0,0.0,1.0);
-        visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
+        visualizeCarrot(main_carrot, 100, 1.0,1.0,0.1);
+        visualizeCarrot(alt_carrot, 101, 0.1,1.0,1.0);
     }
 
     double dist_on_y_axis = next_wp_local_[1] - main_carrot[1];
@@ -397,6 +491,24 @@ void RobotControllerTrailer::visualizeCarrot(const Vector2d &carrot,
     carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
     geometry_msgs::PoseStamped carrot_map;
     if (path_driver_->transformToGlobal(carrot_local, carrot_map)) {
-        visualizer_->drawMark(id, carrot_map.pose.position, "prediction", r,g,b);
+        visualizer_->drawCircle(id, carrot_map.pose.position, 0.2, "/map","pred", r,g,b,1,5);
     }
+}
+
+
+bool RobotControllerTrailer::getTrailerAngle(const std::string& base_frame, const std::string& trailer_frame, double& angle) const
+{
+    tf::StampedTransform transform;
+    geometry_msgs::TransformStamped msg;
+
+    try {
+        trailer_listener_.lookupTransform(base_frame, trailer_frame, ros::Time(0), transform);
+
+    } catch (tf::TransformException& ex) {
+        ROS_ERROR("error with transform base link to trailer link : %s", ex.what());
+        return false;
+    }
+    tf::transformStampedTFToMsg(transform, msg);
+    angle = tf::getYaw(transform.getRotation());
+    return true;
 }

@@ -69,7 +69,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     } else if (opt_.controller() == "patsy_pid") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorPatsy(&pose_listener_);
-        controller_ = new RobotControllerTrailer(this);
+        controller_ = new RobotControllerTrailer(this,&this->node_handle_);
     } else if (opt_.controller() == "omnidrive_orthexp") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
