@@ -42,8 +42,6 @@ RobotController_Ackermann_OrthogonalExponential::RobotController_Ackermann_Ortho
     laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
                                                             &RobotController_Ackermann_OrthogonalExponential::laserBack, this);
 
-    std::cout << "Value of K_O: " << opt_.k_o() << std::endl;
-
     lookInDrivingDirection();
 }
 
@@ -205,7 +203,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     double theta_p = atan2(path_interpol.q_prim(ind), path_interpol.p_prim(ind));
 
     visualization_msgs::Marker marker;
-    marker.ns = "orthexp";
+    marker.ns = "orth_proj";
     marker.header.frame_id = "/map";
     marker.header.stamp = ros::Time();
     marker.action = visualization_msgs::Marker::ADD;
@@ -224,6 +222,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     from.y = y_meas;
     to.x = path_interpol.p(ind);
     to.y = path_interpol.q(ind);
+
 
     marker.points.push_back(from);
     marker.points.push_back(to);
@@ -293,7 +292,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
             break;
         }
     }
-    ROS_INFO("Curvature: %f", curv_sum_);
 
 
     double cum_sum_to_goal = 0;
@@ -304,7 +302,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 
     }
     distance_to_goal_ = cum_sum_to_goal;
-    ROS_INFO("Distance to goal: %f", distance_to_goal_);
 
     //distance_to_goal_ = hypot(x_meas - path_interpol.p(path_interpol.n()-1), y_meas - path_interpol.q(path_interpol.n()-1));
 
@@ -329,16 +326,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     else	
         cmd_.speed = std::max(vn_*exp(-exponent),0.5);
 
-
-    /*double k_temp = 0;
-    if(fabs(curv_sum_) > 3.0){
-    	k_temp = opt_.k(); 
-    }
-   else
-	k_temp = 0.1;*/
-
-    cmd_.direction_angle = opt_.kp()*(atan(-opt_.k()*orth_proj) + theta_p - theta_meas);
-//    cmd_.direction_angle = atan(-k_temp*orth_proj) + theta_p - theta_meas;
+    cmd_.direction_angle = atan(-opt_.k()*orth_proj) + theta_p - theta_meas;
 
     //***//
 

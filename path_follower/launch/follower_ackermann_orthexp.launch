@@ -29,7 +29,7 @@
     <param name="kd" value="1.0" />
 
     <param name="look_ahead_dist" value="1.0" />
-    <param name="k" value="3.0" />
+    <param name="k" value="2.0" />
     <param name="k_o" value="0.3" />
     <param name="k_g" value="0.3" />
     <param name="k_w" value="0.3" />
