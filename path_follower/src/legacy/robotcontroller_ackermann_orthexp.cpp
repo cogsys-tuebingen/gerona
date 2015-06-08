@@ -200,7 +200,9 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 
     //find the slope of the desired path, and plot a vector from the robot to the current point on the path
 
-    double theta_p = atan2(path_interpol.q_prim(ind), path_interpol.p_prim(ind));
+    double theta_p = path_interpol.theta_p(ind);
+
+    ROS_ERROR_STREAM("theta::: " <<theta_p << " : atan2(" << path_interpol.q_prim(ind) << ", " << path_interpol.p_prim(ind) << ") = " << atan2(path_interpol.q_prim(ind), path_interpol.p_prim(ind)));
 
     visualization_msgs::Marker marker;
     marker.ns = "orth_proj";
@@ -326,7 +328,21 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     else	
         cmd_.speed = std::max(vn_*exp(-exponent),0.5);
 
+<<<<<<< HEAD
     cmd_.direction_angle = atan(-opt_.k()*orth_proj) + theta_p - theta_meas;
+=======
+
+    /*double k_temp = 0;
+    if(fabs(curv_sum_) > 3.0){
+    	k_temp = opt_.k(); 
+    }
+   else
+	k_temp = 0.1;*/
+
+    ROS_ERROR_STREAM("params::: n: " << path_interpol.n() << ", kp: " << opt_.kp() << ", k: " << opt_.k() << ", orth_proj: " << orth_proj << ", theta_p: " << theta_p << " - " << theta_meas);
+    cmd_.direction_angle = opt_.kp()*(atan(-opt_.k()*orth_proj) + theta_p - theta_meas);
+//    cmd_.direction_angle = atan(-k_temp*orth_proj) + theta_p - theta_meas;
+>>>>>>> a98d2d28865c65e0ac9c84bae8171170ccd2bfd7
 
     //***//
 
