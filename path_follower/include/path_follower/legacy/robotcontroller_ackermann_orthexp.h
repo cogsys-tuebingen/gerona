@@ -50,8 +50,6 @@ private:
     struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters
     {
         P<double> k;
-        P<double> kp;
-        P<double> kd;
         P<double> max_angular_velocity;
         P<double> look_ahead_dist;
         P<double> k_o;
@@ -61,8 +59,6 @@ private:
 
         ControllerParameters():
             k(this, "~k", 1.5, ""),
-            kp(this, "~kp", 0.4, ""),
-            kd(this, "~kd", 0.2, ""),
             max_angular_velocity(this, "~max_angular_velocity", 2.0, ""),
             look_ahead_dist(this, "~look_ahead_dist", 0.5, ""),
             k_o(this, "~k_o", 0.3, ""),
@@ -146,7 +142,6 @@ private:
     double vn_;
     double theta_des_;
     double Ts_;
-    double e_theta_curr_;
 
     double curv_sum_;
     double distance_to_goal_;

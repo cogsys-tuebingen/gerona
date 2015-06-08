@@ -140,42 +140,24 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
     assert(n() == N_);
 }
 
-<<<<<<< HEAD
 double PathInterpolated::curvature_prim(const unsigned int i) const {
 	if(length() <= 1)
 		return 0.;
 
     unsigned int x = i == length() - 1 ? i : i + 1;
-	unsigned int y = x - 1;
-=======
-double PathInterpolated::curvature_prim(const unsigned int s) const {
-    if(length() <= 1)
-        return 0.;
-
-    unsigned int x = s == length() - 1 ? s : s + 1;
     unsigned int y = x - 1;
->>>>>>> a98d2d28865c65e0ac9c84bae8171170ccd2bfd7
 
     // differential quotient
     return curvature(x) - curvature(y) / hypot(p(x) - p(y), q(x) - q(y));
 }
 
 
-<<<<<<< HEAD
 double PathInterpolated::curvature_sek(const unsigned int i) const {
 	if(length() <= 1)
 		return 0.;
 
     unsigned int x = i == length() - 1 ? i : i + 1;
-	unsigned int y = x - 1;
-=======
-double PathInterpolated::curvature_sek(const unsigned int s) const {
-    if(length() <= 1)
-        return 0.;
-
-    unsigned int x = s == length() - 1 ? s : s + 1;
     unsigned int y = x - 1;
->>>>>>> a98d2d28865c65e0ac9c84bae8171170ccd2bfd7
 
     // differential quotient
     return curvature_prim(x) - curvature_prim(y) / hypot(p(x) - p(y), q(x) - q(y));
