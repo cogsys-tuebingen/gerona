@@ -35,7 +35,6 @@ RobotController_Differential_OrthogonalExponential::RobotController_Differential
     distance_to_goal_(0),
     distance_to_obstacle_(0)
 {
-    visualizer_ = Visualizer::getInstance();
     interp_path_pub_ = nh_.advertise<nav_msgs::Path>("interp_path", 10);
     points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
 

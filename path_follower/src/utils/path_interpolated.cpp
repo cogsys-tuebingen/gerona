@@ -25,7 +25,10 @@
 
 using namespace Eigen;
 
-PathInterpolated::PathInterpolated() {
+PathInterpolated::PathInterpolated()
+    : N_(0),
+      s_prim_(0)
+{
 }
 
 PathInterpolated::~PathInterpolated() {
@@ -33,138 +36,166 @@ PathInterpolated::~PathInterpolated() {
 
 void PathInterpolated::interpolatePath(const Path::Ptr path) {
 
-	clearBuffers();
+    clearBuffers();
 
-	std::deque<Waypoint> waypoints;
-	waypoints.insert(waypoints.end(), path->getCurrentSubPath().begin(),
-						  path->getCurrentSubPath().end());
+    std::deque<Waypoint> waypoints;
+    waypoints.insert(waypoints.end(), path->getCurrentSubPath().begin(), path->getCurrentSubPath().end());
 
-	// (messy) hack!!!!!
-	// remove waypoints that are closer than 0.1 meters to the starting point
-	Waypoint start = waypoints.front();
-	while (!waypoints.empty()) {
-		std::deque<Waypoint>::iterator it = waypoints.begin();
-		const Waypoint& wp = *it;
+    // (messy) hack!!!!!
+    // remove waypoints that are closer than 0.1 meters to the starting point
+    Waypoint start = waypoints.front();
+    while(!waypoints.empty()) {
+        std::deque<Waypoint>::iterator it = waypoints.begin();
+        const Waypoint& wp = *it;
 
-		double dx = wp.x - start.x;
-		double dy = wp.y - start.y;
-		double distance = hypot(dx, dy);
-		if (distance < 0.1) {
-			waypoints.pop_front();
-		} else {
-			break;
-		}
-	}
+        double dx = wp.x - start.x;
+        double dy = wp.y - start.y;
+        double distance = hypot(dx, dy);
+        if(distance < 0.1) {
+            waypoints.pop_front();
+        } else {
+            break;
+        }
+    }
 
-	//copy the waypoints to arrays X_arr and Y_arr, and introduce a new array l_arr_unif required for the interpolation
-	//as an intermediate step, calculate the arclength of the curve, and do the reparameterization with respect to arclength
+    //copy the waypoints to arrays X_arr and Y_arr, and introduce a new array l_arr_unif required for the interpolation
+    //as an intermediate step, calculate the arclength of the curve, and do the reparameterization with respect to arclength
 
-	unsigned int N_ = waypoints.size();
+    N_ = waypoints.size();
 
-	if (N_ < 2) {
-		return;
-	}
+    if(N_ < 2) {
+        return;
+    }
 
-	double X_arr[N_], Y_arr[N_], l_arr_unif[N_];
-	//double l_cum[N];
-	double L = 0;
+    double X_arr[N_], Y_arr[N_], l_arr[N_], l_arr_unif[N_];
+    double L = 0;
 
-	//l_cum[0] = 0;
-	for (std::size_t i = 1; i < N_; i++) {
+    for(std::size_t i = 0; i < N_; ++i) {
+        const Waypoint& waypoint = waypoints[i];
 
-		L += hypot(X_arr[i] - X_arr[i - 1], Y_arr[i] - Y_arr[i - 1]);
-		//l_cum[i] = L;
-	}
+        X_arr[i] = waypoint.x;
+        Y_arr[i] = waypoint.y;
 
-	double f = std::max(0.0001, L / (double) (N_ - 1));
+    }
 
-	for (std::size_t i = 0; i < N_; ++i) {
-		const Waypoint& waypoint = waypoints[i];
+    l_arr[0] = 0;
 
-		X_arr[i] = waypoint.x;
-		Y_arr[i] = waypoint.y;
-		l_arr_unif[i] = i * f;
+    for(std::size_t i = 1; i < N_; i++){
 
-	}
+        L += hypot(X_arr[i] - X_arr[i-1], Y_arr[i] - Y_arr[i-1]);
+        l_arr[i] = L;
 
-	//initialization before the interpolation
-	alglib::real_1d_array X_alg, Y_alg, l_alg_unif;
+    }
+    ROS_INFO("Length of the path: %lf m", L);
 
-	X_alg.setcontent(N_, X_arr);
-	Y_alg.setcontent(N_, Y_arr);
-	l_alg_unif.setcontent(N_, l_arr_unif);
 
-	alglib::spline1dinterpolant s_int1, s_int2;
+    double f = std::max(0.0001, L / (double) (N_-1));
 
-	alglib::spline1dbuildcubic(l_alg_unif, X_alg, s_int1);
-	alglib::spline1dbuildcubic(l_alg_unif, Y_alg, s_int2);
+    for(std::size_t i = 1; i < N_; i++){
 
-	//interpolate the path and find the derivatives, then publish the interpolated path
-	for (uint i = 0; i < N_; ++i) {
-		double x_s = 0.0, y_s = 0.0, x_s_prim = 0.0, y_s_prim = 0.0, x_s_sek =
-				0.0, y_s_sek = 0.0;
-		alglib::spline1ddiff(s_int1, l_alg_unif[i], x_s, x_s_prim, x_s_sek);
-		alglib::spline1ddiff(s_int2, l_alg_unif[i], y_s, y_s_prim, y_s_sek);
+        l_arr_unif[i] = i * f;
 
-		p_.push_back(x_s);
-		q_.push_back(y_s);
+    }
 
-		p_prim_.push_back(x_s_prim);
-		q_prim_.push_back(y_s_prim);
+    //initialization before the interpolation
+    alglib::real_1d_array X_alg, Y_alg, l_alg, l_alg_unif;
+    alglib::real_1d_array x_s, y_s, x_s_prim, y_s_prim, x_s_sek, y_s_sek;
 
-		curvature_.push_back(
-					(x_s_prim * y_s_sek - x_s_sek * y_s_prim)
-					/ sqrt(pow(x_s_prim * x_s_prim + y_s_prim * y_s_prim, 3)));
-	}
+    X_alg.setcontent(N_, X_arr);
+    Y_alg.setcontent(N_, Y_arr);
+    l_alg.setcontent(N_, l_arr);
+    l_alg_unif.setcontent(N_, l_arr_unif);
 
+
+    //interpolate the path and find the derivatives
+    alglib::spline1dconvdiff2cubic(l_alg, X_alg, l_alg_unif, x_s, x_s_prim, x_s_sek);
+    alglib::spline1dconvdiff2cubic(l_alg, Y_alg, l_alg_unif, y_s, y_s_prim, y_s_sek);
+
+    //define path components, its derivatives, and curvilinear abscissa, then calculate the path curvature
+    for(uint i = 0; i < N_; ++i) {
+
+        p_.push_back(x_s[i]);
+        q_.push_back(y_s[i]);
+
+        p_prim_.push_back(x_s_prim[i]);
+        q_prim_.push_back(y_s_prim[i]);
+
+        p_sek_.push_back(x_s_sek[i]);
+        q_sek_.push_back(y_s_sek[i]);
+
+        s_.push_back(l_alg_unif[i]);
+
+        curvature_.push_back((x_s_prim[i]*y_s_sek[i] - x_s_sek[i]*y_s_prim[i])/
+                             (sqrt(pow((x_s_prim[i]*x_s_prim[i] + y_s_prim[i]*y_s_prim[i]), 3))));
+
+    }
+
+    assert(p_prim_.size() == N_);
+    assert(q_prim_.size() == N_);
+    assert(p_.size() == N_);
+    assert(q_.size() == N_);
+    assert(p_sek_.size() == N_);
+    assert(q_sek_.size() == N_);
+    assert(length() == N_);
+    assert(n() == N_);
 }
 
 double PathInterpolated::curvature_prim(const unsigned int s) const {
-	if(length() <= 1)
-		return 0.;
+    if(length() <= 1)
+        return 0.;
 
-	unsigned int x = s == length() - 1 ? s : s + 1;
-	unsigned int y = x - 1;
+    unsigned int x = s == length() - 1 ? s : s + 1;
+    unsigned int y = x - 1;
 
-	// differential quotient
-	return curvature(x) - curvature(y) / hypot(p(x) - p(y), q(x) - q(y));
+    // differential quotient
+    return curvature(x) - curvature(y) / hypot(p(x) - p(y), q(x) - q(y));
 }
 
 
 double PathInterpolated::curvature_sek(const unsigned int s) const {
-	if(length() <= 1)
-		return 0.;
+    if(length() <= 1)
+        return 0.;
 
-	unsigned int x = s == length() - 1 ? s : s + 1;
-	unsigned int y = x - 1;
+    unsigned int x = s == length() - 1 ? s : s + 1;
+    unsigned int y = x - 1;
 
-	// differential quotient
-	return curvature_prim(x) - curvature_prim(y) / hypot(p(x) - p(y), q(x) - q(y));
+    // differential quotient
+    return curvature_prim(x) - curvature_prim(y) / hypot(p(x) - p(y), q(x) - q(y));
 }
 
 PathInterpolated::operator nav_msgs::Path() const {
 
-	nav_msgs::Path path;
-	const unsigned int length = p_.size();
+    nav_msgs::Path path;
+    const unsigned int length = p_.size();
 
-	for (uint i = 0; i < length; ++i) {
-		geometry_msgs::PoseStamped poza;
-		poza.pose.position.x = p_[i];
-		poza.pose.position.y = q_[i];
-		path.poses.push_back(poza);
-	}
+    for (uint i = 0; i < length; ++i) {
+        geometry_msgs::PoseStamped poza;
+        poza.pose.position.x = p_[i];
+        poza.pose.position.y = q_[i];
+        path.poses.push_back(poza);
+    }
 
-	path.header.frame_id = "map";
+    path.header.frame_id = "map";
 
-	return path;
+    return path;
 }
 
 void PathInterpolated::clearBuffers() {
-	p_.clear();
-	q_.clear();
+    N_ = 0;
 
-	p_prim_.clear();
-	p_prim_.clear();
+    p_.clear();
+    q_.clear();
 
-	curvature_.clear();
+    p_prim_.clear();
+    q_prim_.clear();
+
+    p_sek_.clear();
+    q_sek_.clear();
+
+    s_.clear();
+    s_prim_ = 0;
+
+    curvature_.clear();
+
+    interp_path.poses.clear();
 }

@@ -9,7 +9,6 @@
 
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
-#include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/pathfollower.h>
 
@@ -128,8 +127,6 @@ private:
             }
         }
     };
-
-    Visualizer *visualizer_;
 
     Command cmd_;
 

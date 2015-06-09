@@ -5,6 +5,40 @@
 #include <utils_general/MathHelper.h>
 #include <path_follower/utils/path_exceptions.h>
 
+RobotController::RobotController(PathFollower* path_driver)
+    : path_driver_(path_driver),
+      velocity_(0.0f),
+      dir_sign_(1.0f)
+{
+    initPublisher(&cmd_pub_);
+
+    ros::NodeHandle& nh = path_driver->getNodeHandle();
+    points_pub_ = nh.advertise<visualization_msgs::Marker>("path_points", 10);
+
+    // path marker
+    robot_path_marker_.header.frame_id = "map";
+    robot_path_marker_.header.stamp = ros::Time();
+    robot_path_marker_.ns = "robot path";
+    robot_path_marker_.id = 50;
+    robot_path_marker_.type = visualization_msgs::Marker::LINE_STRIP;
+    robot_path_marker_.action = visualization_msgs::Marker::ADD;
+    robot_path_marker_.pose.position.x = 0;
+    robot_path_marker_.pose.position.y = 0;
+    robot_path_marker_.pose.position.z = 0;
+    robot_path_marker_.pose.orientation.x = 0.0;
+    robot_path_marker_.pose.orientation.y = 0.0;
+    robot_path_marker_.pose.orientation.z = 0.0;
+    robot_path_marker_.pose.orientation.w = 1.0;
+    robot_path_marker_.scale.x = 0.1;
+    robot_path_marker_.scale.y = 0.0;
+    robot_path_marker_.scale.z = 0.0;
+    robot_path_marker_.color.a = 1.0;
+    robot_path_marker_.color.r = 0.0;
+    robot_path_marker_.color.g = 0.0;
+    robot_path_marker_.color.b = 1.0;
+
+    visualizer_ = Visualizer::getInstance();
+}
 
 void RobotController::setStatus(int status)
 {
@@ -14,6 +48,8 @@ void RobotController::setStatus(int status)
 void RobotController::setPath(Path::Ptr path)
 {
     path_ = path;
+
+    robot_path_marker_.points.clear();
 
     geometry_msgs::PoseStamped wp_pose;
     wp_pose.header.stamp = ros::Time::now();
@@ -56,8 +92,21 @@ bool RobotController::isOmnidirectional() const
     return false;
 }
 
+void RobotController::publishPathMarker()
+{
+    Eigen::Vector3d current_pose = path_driver_->getRobotPose();
+    geometry_msgs::Point pt;
+    pt.x = current_pose[0];
+    pt.y = current_pose[1];
+    robot_path_marker_.points.push_back(pt);
+
+    points_pub_.publish(robot_path_marker_);
+}
+
 RobotController::ControlStatus RobotController::execute()
 {
+    publishPathMarker();
+
     MoveCommand cmd;
     MoveCommandStatus status = computeMoveCommand(&cmd);
 

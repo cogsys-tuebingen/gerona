@@ -1,18 +1,19 @@
-#ifndef ROBOTCONTROLLER_ACKERMANN_PID_H
-#define ROBOTCONTROLLER_ACKERMANN_PID_H
+#ifndef RobotControllerTrailer_H
+#define RobotControllerTrailer_H
 
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/pidcontroller.hpp>
 #include <path_follower/utils/parameters.h>
+#include <path_follower/utils/visualizer.h>
 
 /**
  * @brief PID controller for robots with car-like/Ackermann drive.
  */
-class RobotController_Ackermann_Pid : public RobotController
+class RobotControllerTrailer : public RobotController
 {
 public:
-    RobotController_Ackermann_Pid(PathFollower *path_driver);
+    RobotControllerTrailer(PathFollower *path_driver);
     virtual void stopMotion();
     virtual void reset();
 
@@ -120,6 +121,8 @@ private:
     //! path segment.
     double calculateLineError() const;
 
+    double calcTotalError (double dist_err,double angle_err );
+
     /**
      * @brief Calculates the (signed) sideways distance to the waypoint.
      *
@@ -133,4 +136,4 @@ private:
     void visualizeCarrot(const Eigen::Vector2d &carrot, int id, float r, float g, float b) const;
 };
 
-#endif // ROBOTCONTROLLER_ACKERMANN_PID_H
+#endif // RobotControllerTrailer_H

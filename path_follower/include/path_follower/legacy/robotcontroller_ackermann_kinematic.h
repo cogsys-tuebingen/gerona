@@ -1,16 +1,14 @@
 #ifndef ROBOTCONTROLLER_ACKERMANN_KINEMATIC_H
 #define ROBOTCONTROLLER_ACKERMANN_KINEMATIC_H
 
-#include <path_follower/controller/robotcontroller.h>
-#include <path_follower/utils/path_interpolated.h>
+#include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
 
-#include <path_follower/utils/visualizer.h>
 #include <visualization_msgs/Marker.h>
 
 #include <ros/ros.h>
 
-class RobotController_Ackermann_Kinematic : public RobotController
+class RobotController_Ackermann_Kinematic : public RobotController_Interpolation
 {
 public:
 	RobotController_Ackermann_Kinematic(PathFollower* _path_follower);
@@ -18,8 +16,6 @@ public:
 
 	virtual void stopMotion();
 	virtual void start();
-	virtual void reset();
-	virtual void setPath(Path::Ptr path);
 	virtual bool isOmnidirectional() const {
 		return true;
 	}
@@ -29,21 +25,23 @@ protected:
 	virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
 private:
-	struct ControllerParameters : public Parameters {
+	struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
 		P<double> vehicle_length;
-		P<double> goal_tolerance;
 		P<double> k;
 
 		ControllerParameters() :
 			vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance"),
-			goal_tolerance(this, "~goal_tolerance", 0.3, "minimum distance at which the robot stops"),
 			k(this, "~k", 0.5, "Tuning factor")
 		{}
 
 	} params;
 
-	void publishInterpolatedPath() const;
-	void initialize();
+	const RobotController_Interpolation::InterpolationParameters& getParameters() const
+	{
+		return params;
+	}
+
+	void reset();
 
 	bool reachedGoal(const Eigen::Vector3d& pose) const;
 
@@ -53,15 +51,9 @@ private:
 	double computeAlpha1(const double x2, const double errorRearAxis,
 								const double curvature, const double tanErrorTheta) const;
 
-	bool initialized;
-
-	Visualizer* visualizer;
-	visualization_msgs::Marker path_marker;
-
 	ros::NodeHandle node_handle;
 	ros::Publisher path_interpol_pub;
 
-	PathInterpolated path_interpol;
 	MoveCommand move_cmd;
 
 	double k1, k2, k3;

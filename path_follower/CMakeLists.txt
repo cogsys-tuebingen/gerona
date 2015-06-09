@@ -174,12 +174,16 @@ add_executable(path_follower_node
   src/obstacle_avoidance/obstacledetectorpatsy.cpp
 
   src/controller/robotcontroller.cpp
+  src/controller/robotcontroller_interpolation.cpp
   src/controller/robotcontroller_ackermann_pid.cpp
+  src/controller/robotcontrollertrailer.cpp
+
   src/legacy/robotcontroller_ackermann_orthexp.cpp
   src/legacy/robotcontroller_ackermann_purepursuit.cpp
   src/legacy/robotcontroller_ackermann_kinematic.cpp
   src/legacy/robotcontroller_differential_orthexp.cpp
   src/legacy/robotcontroller_omnidrive_orthexp.cpp
+  src/legacy/robotcontroller_kinematic_SLP.cpp
 
   src/supervisor/supervisorchain.cpp
   src/supervisor/pathlookout.cpp

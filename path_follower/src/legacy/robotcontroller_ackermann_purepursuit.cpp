@@ -23,25 +23,7 @@
 
 Robotcontroller_Ackermann_PurePursuit::Robotcontroller_Ackermann_PurePursuit(
 		PathFollower* _path_follower) :
-	RobotController(_path_follower) {
-
-	initialized = false;
-
-	visualizer = Visualizer::getInstance();
-
-	path_marker.ns = "pure_pursuit";
-	path_marker.header.frame_id = "/map";
-	path_marker.header.stamp = ros::Time();
-	path_marker.action = visualization_msgs::Marker::ADD;
-	path_marker.id = 12341235;
-	path_marker.color.r = 0;
-	path_marker.color.g = 0;
-	path_marker.color.b = 1;
-	path_marker.color.a = 1.0;
-	path_marker.scale.x = 0.03;
-	path_marker.scale.y = 0.03;
-	path_marker.scale.z = 0.03;
-	path_marker.type = visualization_msgs::Marker::POINTS;
+    RobotController_Interpolation(_path_follower) {
 
 	path_interpol_pub = node_handle.advertise<nav_msgs::Path>("interp_path", 10);
 
@@ -65,31 +47,6 @@ void Robotcontroller_Ackermann_PurePursuit::stopMotion() {
 
 void Robotcontroller_Ackermann_PurePursuit::start() {
 	path_driver_->getCoursePredictor().reset();
-}
-
-void Robotcontroller_Ackermann_PurePursuit::reset() {
-	initialized = false;
-}
-
-void Robotcontroller_Ackermann_PurePursuit::setPath(Path::Ptr path) {
-
-	RobotController::setPath(path);
-
-	if (initialized) {
-		return;
-	}
-
-	ROS_INFO("Interpolating new path");
-
-	try {
-		path_interpol.interpolatePath(path_);
-		publishInterpolatedPath();
-
-	} catch (const alglib::ap_error& error) {
-		throw std::runtime_error(error.msg);
-	}
-
-	initialize();
 }
 
 RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::computeMoveCommand(
@@ -134,14 +91,6 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 
 	*cmd = move_cmd;
 
-	// visualize driven path
-	geometry_msgs::Point p;
-	p.x = pose[0];
-	p.y = pose[1];
-	path_marker.points.push_back(p);
-
-	visualizer->getMarkerPublisher().publish(path_marker);
-
 	return RobotController::MoveCommandStatus::OKAY;
 }
 
@@ -154,21 +103,6 @@ void Robotcontroller_Ackermann_PurePursuit::publishMoveCommand(
 	msg.angular.z = cmd.getDirectionAngle();
 
 	cmd_pub_.publish(msg);
-}
-
-void Robotcontroller_Ackermann_PurePursuit::publishInterpolatedPath() const {
-	path_interpol_pub.publish((nav_msgs::Path) path_interpol);
-}
-
-void Robotcontroller_Ackermann_PurePursuit::initialize() {
-	initialized = true;
-}
-
-bool Robotcontroller_Ackermann_PurePursuit::reachedGoal(
-		const Eigen::Vector3d& pose) const {
-	const unsigned int end = path_interpol.length() - 1;
-	return hypot(path_interpol.p(end) - pose[0], path_interpol.q(end) - pose[1])
-			<= params.goal_tolerance();
 }
 
 double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
@@ -203,7 +137,7 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
 				from.x = pose[0]; from.y = pose[1];
 				to.x = path_interpol.p(i); to.y = path_interpol.q(i);
 
-				visualizer->drawLine(12341234, from, to, "map", "geo", 1, 0, 0, 1, 0.01);
+                visualizer_->drawLine(12341234, from, to, "map", "geo", 1, 0, 0, 1, 0.01);
 
 #ifdef DEBUG
 				ROS_INFO("LookAheadPoint: index=%i, x=%f, y=%f", i, path_interpol.p(i), path_interpol.q(i));

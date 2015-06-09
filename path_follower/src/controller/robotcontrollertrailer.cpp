@@ -1,4 +1,4 @@
-#include <path_follower/controller/robotcontroller_ackermann_pid.h>
+#include <path_follower/controller/robotcontrollertrailer.h>
 #include <cmath>
 #include <path_msgs/FollowPathResult.h>
 #include <path_follower/pathfollower.h>
@@ -21,7 +21,7 @@ template <typename T> int sign(T val) {
 }
 }
 
-RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_driver):
+RobotControllerTrailer::RobotControllerTrailer(PathFollower *path_driver):
     RobotController(path_driver),
     behaviour_(ON_PATH),
     last_velocity_(0)
@@ -30,18 +30,18 @@ RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_
     steer_pid_ = PidController<1>(opt_.pid_kp(), opt_.pid_ki(), opt_.pid_kd(), opt_.pid_ta());
 }
 
-void RobotController_Ackermann_Pid::stopMotion()
+void RobotControllerTrailer::stopMotion()
 {
     cmd_.setVelocity(0);
     publishMoveCommand(cmd_);
 }
 
-void RobotController_Ackermann_Pid::reset()
+void RobotControllerTrailer::reset()
 {
     behaviour_ = ON_PATH;
 }
 
-RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCommand(MoveCommand *cmd)
+RobotController::MoveCommandStatus RobotControllerTrailer::computeMoveCommand(MoveCommand *cmd)
 {
     /* This is a reimplemented, simplified version of the old behaviour based Ackermann
      * controller. There is still a internal state called "behaviour", but this is not a strict
@@ -112,7 +112,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCom
     return MoveCommandStatus::OKAY;
 }
 
-void RobotController_Ackermann_Pid::publishMoveCommand(const MoveCommand &cmd) const
+void RobotControllerTrailer::publishMoveCommand(const MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
     if (cmd.isValid()) {
@@ -124,7 +124,7 @@ void RobotController_Ackermann_Pid::publishMoveCommand(const MoveCommand &cmd) c
     cmd_pub_.publish(msg);
 }
 
-void RobotController_Ackermann_Pid::selectWaypoint()
+void RobotControllerTrailer::selectWaypoint()
 {
     double tolerance = path_driver_->getOptions().wp_tolerance();
 
@@ -156,7 +156,15 @@ void RobotController_Ackermann_Pid::selectWaypoint()
     }
 }
 
-float RobotController_Ackermann_Pid::getErrorOnPath()
+double RobotControllerTrailer::calcTotalError (double e_dist, double e_angle)
+{
+    // should be scaled depending on velocity
+    // 5 degrees angular error = 0.09
+    return dir_sign_*e_dist + dir_sign_ * e_angle;
+}
+
+
+float RobotControllerTrailer::getErrorOnPath()
 {
     /* The error is the sum of the orientation angle error and the distance to the line that
      * goes through the next waypoints.
@@ -167,8 +175,8 @@ float RobotController_Ackermann_Pid::getErrorOnPath()
     double e_distance = calculateLineError();
     double e_angle = calculateAngleError();
 
-    // TODO: summing entities with different units (metric and angular) is probably bad.
-    float error = e_distance + e_angle;
+
+    float error = (float) calcTotalError(e_distance, e_angle);
     ROS_DEBUG_NAMED(MODULE, "OnLine: e_dist = %g, e_angle = %g  ==>  e_comb = %g",
                     e_distance, e_angle, error);
 
@@ -182,7 +190,7 @@ float RobotController_Ackermann_Pid::getErrorOnPath()
     return error;
 }
 
-float RobotController_Ackermann_Pid::getErrorApproachSubpathEnd()
+float RobotControllerTrailer::getErrorApproachSubpathEnd()
 {
     /* The error is the sum of the orientation angle error and the sideways distance to the
      * waypoint (that is the distance on the y-axis in the robot frame)
@@ -193,8 +201,7 @@ float RobotController_Ackermann_Pid::getErrorApproachSubpathEnd()
     double e_distance = calculateSidewaysDistanceError();
     double e_angle = calculateAngleError();
 
-    // TODO: summing entities with different units (metric and angular) is probably bad.
-    float error = e_distance + e_angle;
+    float error = (float) calcTotalError(e_distance, e_angle);
     ROS_DEBUG_NAMED(MODULE, "Approach: e_dist = %g, e_angle = %g  ==>  e_comb = %g",
                     e_distance, e_angle, error);
 
@@ -210,9 +217,9 @@ float RobotController_Ackermann_Pid::getErrorApproachSubpathEnd()
 
     return error;
 }
+static int g_dbg_count = 0;
 
-
-void RobotController_Ackermann_Pid::updateCommand(float error)
+void RobotControllerTrailer::updateCommand(float error)
 {
     // call PID controller for steering.
     float u = 0;
@@ -225,7 +232,9 @@ void RobotController_Ackermann_Pid::updateCommand(float error)
 
     float steer = std::max(-opt_.max_steer(), std::min(u, opt_.max_steer()));
     ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
-
+    if (g_dbg_count++%4==0) {
+     ROS_INFO("error %f u %f steer %fdeg maxsteer %fdeg\n",error,u,steer*180.0/M_PI,opt_.max_steer()*180.0/M_PI);
+    }
     // Control velocity
     float velocity = controlVelocity(steer);
 
@@ -233,7 +242,7 @@ void RobotController_Ackermann_Pid::updateCommand(float error)
     cmd_.setVelocity(dir_sign_ * velocity);
 }
 
-float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
+float RobotControllerTrailer::controlVelocity(float steer_angle) const
 {
     PathFollowerParameters path_driver_opt = path_driver_->getOptions();
     float velocity = velocity_;
@@ -245,9 +254,9 @@ float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
 //***todo rewrite
 
     // Reduce maximal velocity, when driving backwards.
-    if(dir_sign_ < 0) {
+  /*  if(dir_sign_ < 0) {
         velocity = min(velocity, 0.4f * path_driver_opt.max_velocity());
-    }
+    }*/
 
     // linearly reduce velocity, if the goal is within 2s*velocity (e.g. when driving with
     // 2 m/s, start to slow down 4m in front of the goal)
@@ -274,13 +283,13 @@ float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
     return velocity;
 }
 
-double RobotController_Ackermann_Pid::distanceToWaypoint(const Waypoint &wp) const
+double RobotControllerTrailer::distanceToWaypoint(const Waypoint &wp) const
 {
     Eigen::Vector3d pose = path_driver_->getRobotPose();
     return std::hypot(pose(0) - wp.x, pose(1) - wp.y);
 }
 
-void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &rear_pred) const
+void RobotControllerTrailer::predictPose(Vector2d &front_pred, Vector2d &rear_pred) const
 {
     //NOTE: This is an ancient relict of the days of the `motion_control` package.
     // I am not absolutely sure, what it is doing. I think it has the purpose to predict the
@@ -312,7 +321,7 @@ void RobotController_Ackermann_Pid::predictPose(Vector2d &front_pred, Vector2d &
     ROS_DEBUG_STREAM_NAMED(MODULE, "predict pose. front: " << front_pred << ", rear: " << rear_pred);
 }
 
-double RobotController_Ackermann_Pid::calculateLineError() const
+double RobotControllerTrailer::calculateLineError() const
 {
     geometry_msgs::PoseStamped followup_next_wp_map;
     followup_next_wp_map.header.stamp = ros::Time::now();
@@ -350,7 +359,7 @@ double RobotController_Ackermann_Pid::calculateLineError() const
     return -target_line.GetSignedDistance(main_carrot) - 0.25 * target_line.GetSignedDistance(alt_carrot);
 }
 
-double RobotController_Ackermann_Pid::calculateSidewaysDistanceError() const
+double RobotControllerTrailer::calculateSidewaysDistanceError() const
 {
     const double tolerance = 0.1;
     Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
@@ -365,7 +374,7 @@ double RobotController_Ackermann_Pid::calculateSidewaysDistanceError() const
     }
 
     if (visualizer_->hasSubscriber()) {
-        visualizeCarrot(main_carrot, 0, 1.0,0.0,0.0);
+        visualizeCarrot(main_carrot, 0, 1.0,0.0,1.0);
         visualizeCarrot(alt_carrot, 1, 0.0,0.0,0.0);
     }
 
@@ -377,7 +386,7 @@ double RobotController_Ackermann_Pid::calculateSidewaysDistanceError() const
     }
 }
 
-void RobotController_Ackermann_Pid::visualizeCarrot(const Vector2d &carrot,
+void RobotControllerTrailer::visualizeCarrot(const Vector2d &carrot,
                                                     int id, float r, float g, float b) const
 {
     geometry_msgs::PoseStamped carrot_local;

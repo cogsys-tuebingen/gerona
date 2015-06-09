@@ -68,10 +68,9 @@ public:
 
     bool callObstacleAvoider(MoveCommand *cmd);
 
-    const PathFollowerParameters &getOptions() const
-    {
-        return opt_;
-    }
+    const PathFollowerParameters &getOptions() const;
+
+    ros::NodeHandle& getNodeHandle();
 
 private:
     typedef actionlib::SimpleActionServer<path_msgs::FollowPathAction> FollowPathServer;

@@ -30,7 +30,7 @@ struct PathFollowerParameters : public Parameters
 
 
     PathFollowerParameters():
-        controller(this, "~controller", "ackermann_orthexp", "Defines, which controller is used."),
+        controller(this, "~controller", "ackermann_purepursuit", "Defines, which controller is used."),
         world_frame(this, "~world_frame",  "/map", "Name of the world frame."),
         robot_frame(this, "~robot_frame",  "/base_link", "Name of the robot frame."),
         wp_tolerance(this,  "~waypoint_tolerance",  0.20 , ""),
