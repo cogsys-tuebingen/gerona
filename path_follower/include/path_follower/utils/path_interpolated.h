@@ -18,37 +18,37 @@ public:
 
 	void interpolatePath(const Path::Ptr path);
 
-	inline double p(const unsigned int s) const {
-		return p_[s];
+    inline double p(const unsigned int i) const {
+        return p_[i];
 	}
-	inline double q(const unsigned int s) const {
-		return q_[s];
+    inline double q(const unsigned int i) const {
+        return q_[i];
     }
 
-    inline double p_prim(const unsigned int s) const {
-        return p_prim_[s];
+    inline double p_prim(const unsigned int i) const {
+        return p_prim_[i];
     }
-    inline double q_prim(const unsigned int s) const {
-        return q_prim_[s];
-    }
-
-    inline double p_sek(const unsigned int s) const {
-        return p_sek_[s];
-    }
-    inline double q_sek(const unsigned int s) const {
-        return q_sek_[s];
+    inline double q_prim(const unsigned int i) const {
+        return q_prim_[i];
     }
 
-    inline double s(const unsigned int s) const {
-        return s_[s];
+    inline double p_sek(const unsigned int i) const {
+        return p_sek_[i];
+    }
+    inline double q_sek(const unsigned int i) const {
+        return q_sek_[i];
+    }
+
+    inline double s(const unsigned int i) const {
+        return s_[i];
     }
 
     inline double s_prim() const {
         return s_prim_;
     }
 
-	inline double curvature(const unsigned int s) const {
-		return curvature_[s];
+    inline double curvature(const unsigned int i) const {
+        return curvature_[i];
 	}
 
     inline std::size_t n() const {

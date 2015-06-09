@@ -415,6 +415,7 @@ void PathFollower::start()
     controller_->reset();
 
     controller_->start();
+
     controller_->setPath(path_);
 
     is_running_ = true;
