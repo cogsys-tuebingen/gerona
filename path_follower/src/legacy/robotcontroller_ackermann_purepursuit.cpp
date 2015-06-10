@@ -65,16 +65,29 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 
 	// TODO: theta should also be considered in goal test
 	if (reachedGoal(pose)) {
-		move_cmd.setDirection(0.);
-		move_cmd.setVelocity(0.);
+		path_->switchToNextSubPath();
+		if (path_->isDone()) {
+			move_cmd.setDirection(0.);
+			move_cmd.setVelocity(0.);
 
-		*cmd = move_cmd;
+			*cmd = move_cmd;
 
 #ifdef DEBUG
-		ROS_INFO("Reached goal.");
+			ROS_INFO("Reached goal.");
 #endif
 
-		return RobotController::MoveCommandStatus::REACHED_GOAL;
+			return RobotController::MoveCommandStatus::REACHED_GOAL;
+
+		} else {
+
+			try {
+				 path_interpol.interpolatePath(path_);
+//				 publishInterpolatedPath();
+
+			} catch(const alglib::ap_error& error) {
+				 throw std::runtime_error(error.msg);
+			}
+		}
 	}
 
 	/*

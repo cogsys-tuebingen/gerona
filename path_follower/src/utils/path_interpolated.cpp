@@ -39,23 +39,31 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
 	clearBuffers();
 
 	std::deque<Waypoint> waypoints;
-	waypoints.insert(waypoints.end(), path->getCurrentSubPath().begin(), path->getCurrentSubPath().end());
+	while (true) {
+		waypoints.insert(waypoints.end(), path->getCurrentSubPath().begin(), path->getCurrentSubPath().end());
 
-	// (messy) hack!!!!!
-	// remove waypoints that are closer than 0.1 meters to the starting point
-	Waypoint start = waypoints.front();
-	while(!waypoints.empty()) {
-		std::deque<Waypoint>::iterator it = waypoints.begin();
-		const Waypoint& wp = *it;
+		// (messy) hack!!!!!
+		// remove waypoints that are closer than 0.1 meters to the starting point
+		Waypoint start = waypoints.front();
+		while(!waypoints.empty()) {
+			std::deque<Waypoint>::iterator it = waypoints.begin();
+			const Waypoint& wp = *it;
 
-		double dx = wp.x - start.x;
-		double dy = wp.y - start.y;
-		double distance = hypot(dx, dy);
-		if(distance < 0.1) {
-			waypoints.pop_front();
-		} else {
-			break;
+			double dx = wp.x - start.x;
+			double dy = wp.y - start.y;
+			double distance = hypot(dx, dy);
+			if(distance < 0.1) {
+				waypoints.pop_front();
+			} else {
+				break;
+			}
 		}
+
+		// eliminate subpaths containing only the same points
+		if(waypoints.size() > 0)
+			break;
+
+		path->switchToNextSubPath();
 	}
 
 	//copy the waypoints to arrays X_arr and Y_arr, and introduce a new array l_arr_unif required for the interpolation
