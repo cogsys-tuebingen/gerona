@@ -15,7 +15,7 @@ public:
 	virtual ~RobotController_Ackermann_Kinematic(){}
 
 	virtual void stopMotion();
-    virtual void start();
+	virtual void start();
 	virtual bool isOmnidirectional() const {
 		return true;
 	}
@@ -25,23 +25,23 @@ protected:
 	virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
 private:
-    struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
-        P<double> vehicle_length;
+	struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
+		P<double> vehicle_length;
 		P<double> k;
 
 		ControllerParameters() :
-            vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance"),
+			vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance"),
 			k(this, "~k", 0.5, "Tuning factor")
 		{}
 
 	} params;
 
-    const RobotController_Interpolation::InterpolationParameters& getParameters() const
-    {
-        return params;
-    }
+	const RobotController_Interpolation::InterpolationParameters& getParameters() const
+	{
+		return params;
+	}
 
-    void reset();
+	void reset();
 
 	bool reachedGoal(const Eigen::Vector3d& pose) const;
 
@@ -51,7 +51,7 @@ private:
 	double computeAlpha1(const double x2, const double errorRearAxis,
 								const double curvature, const double tanErrorTheta) const;
 
-    ros::NodeHandle node_handle;
+	ros::NodeHandle node_handle;
 	ros::Publisher path_interpol_pub;
 
 	MoveCommand move_cmd;

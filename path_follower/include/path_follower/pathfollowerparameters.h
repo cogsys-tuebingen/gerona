@@ -54,13 +54,13 @@ struct PathFollowerParameters : public Parameters
         //obstacle_avoider_vfh(this, "~obstacle_avoider/use_vfh",  false,
         //                     "If set to true, vector field histogram is used for collision avoidance."),
 
-        supervisor_use_path_lookout(this, "~supervisor/use_path_lookout",  true,
+		  supervisor_use_path_lookout(this, "~supervisor/use_path_lookout",  false,
                                     "Set to `true` to activate supervisor _path lookout_ (check"
                                     " if there are obstacles somewhere on the path ahead of the"
                                     " robot)."),
-        supervisor_use_waypoint_timeout(this, "~supervisor/use_waypoint_timeout", true,
+		  supervisor_use_waypoint_timeout(this, "~supervisor/use_waypoint_timeout", false,
                                         "Set to `true` to activate supervisor _waypoint timeout_."),
-        supervisor_use_distance_to_path(this, "~supervisor/use_distance_to_path", true,
+		  supervisor_use_distance_to_path(this, "~supervisor/use_distance_to_path", false,
                                         "Set to `true` to activate supervisor _distance to path_."),
 
         supervisor_distance_to_path_max_dist(this,  "~supervisor/distance_to_path/max_dist",  0.3,

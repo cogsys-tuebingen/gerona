@@ -143,7 +143,7 @@ struct LinearExpansion
         typedef typename PathT::value_type NodeT;
         NodeT node;
         NodeT::init(node, goal_.x, goal_.y);
-        out->push_back(node);
+		  out->push_back(node);
     }
 
     template <class PathT>
@@ -177,7 +177,7 @@ struct PathPlanner : public Planner
     //  TODO: make these two (or more?) selectable:
     //typedef AStarNoOrientationSearch<> AStar;
 //    typedef AStarSearch<NonHolonomicNeighborhood<40, 360, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/> > AStarAckermann; // Ackermann
-    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/> > AStarAckermann; // Ackermann
+	 typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/> > AStarAckermann; // Ackermann
 //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
 //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
     typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD> > AStarPatsyForward;
