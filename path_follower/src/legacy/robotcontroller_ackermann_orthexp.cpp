@@ -27,7 +27,6 @@ RobotController_Ackermann_OrthogonalExponential::RobotController_Ackermann_Ortho
     vn_(0.0),
     theta_des_(90.0*M_PI/180.0),
     Ts_(0.02),
-    e_theta_curr_(0),
     curv_sum_(0),
     distance_to_goal_(0),
     distance_to_obstacle_(0)
@@ -133,9 +132,6 @@ void RobotController_Ackermann_OrthogonalExponential::initialize()
 {
     RobotController_Interpolation::initialize();
 
-    // initialize the desired angle and the angle error
-    e_theta_curr_ = path_driver_->getRobotPose()[2];
-
     // desired velocity
     vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
@@ -201,8 +197,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     //find the slope of the desired path, and plot a vector from the robot to the current point on the path
 
     double theta_p = path_interpol.theta_p(ind);
-
-    ROS_ERROR_STREAM("theta::: " <<theta_p << " : atan2(" << path_interpol.q_prim(ind) << ", " << path_interpol.p_prim(ind) << ") = " << atan2(path_interpol.q_prim(ind), path_interpol.p_prim(ind)));
 
     visualization_msgs::Marker marker;
     marker.ns = "orth_proj";
@@ -270,11 +264,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
         break;
     }
 
-    double e_theta_new = MathHelper::NormalizeAngle(theta_des_ - theta_meas);
-    double e_theta_prim = (e_theta_new - e_theta_curr_)/Ts_;
-
-    e_theta_curr_ = e_theta_new;
-
     //***//
 
     //Calculate the look-ahead curvature
@@ -328,21 +317,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     else	
         cmd_.speed = std::max(vn_*exp(-exponent),0.5);
 
-<<<<<<< HEAD
     cmd_.direction_angle = atan(-opt_.k()*orth_proj) + theta_p - theta_meas;
-=======
 
-    /*double k_temp = 0;
-    if(fabs(curv_sum_) > 3.0){
-    	k_temp = opt_.k(); 
-    }
-   else
-	k_temp = 0.1;*/
-
-    ROS_ERROR_STREAM("params::: n: " << path_interpol.n() << ", kp: " << opt_.kp() << ", k: " << opt_.k() << ", orth_proj: " << orth_proj << ", theta_p: " << theta_p << " - " << theta_meas);
-    cmd_.direction_angle = opt_.kp()*(atan(-opt_.k()*orth_proj) + theta_p - theta_meas);
-//    cmd_.direction_angle = atan(-k_temp*orth_proj) + theta_p - theta_meas;
->>>>>>> a98d2d28865c65e0ac9c84bae8171170ccd2bfd7
 
     //***//
 

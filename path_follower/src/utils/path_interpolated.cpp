@@ -27,6 +27,7 @@ using namespace Eigen;
 
 PathInterpolated::PathInterpolated()
     : N_(0),
+      s_new_(0),
       s_prim_(0)
 {
 }
@@ -114,6 +115,8 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
     //define path components, its derivatives, and curvilinear abscissa, then calculate the path curvature
     for(uint i = 0; i < N_; ++i) {
 
+        s_.push_back(l_arr_unif[i]);
+
         p_.push_back(x_s[i]);
         q_.push_back(y_s[i]);
 
@@ -122,8 +125,6 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
 
         p_sek_.push_back(x_s_sek[i]);
         q_sek_.push_back(y_s_sek[i]);
-
-        s_.push_back(l_alg_unif[i]);
 
         curvature_.push_back((x_s_prim[i]*y_s_sek[i] - x_s_sek[i]*y_s_prim[i])/
                              (sqrt(pow((x_s_prim[i]*x_s_prim[i] + y_s_prim[i]*y_s_prim[i]), 3))));
@@ -136,46 +137,28 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
     assert(q_.size() == N_);
     assert(p_sek_.size() == N_);
     assert(q_sek_.size() == N_);
-    assert(length() == N_);
     assert(n() == N_);
 }
 
-<<<<<<< HEAD
 double PathInterpolated::curvature_prim(const unsigned int i) const {
-	if(length() <= 1)
+    if(n() <= 1)
 		return 0.;
 
-    unsigned int x = i == length() - 1 ? i : i + 1;
+    unsigned int x = i == n() - 1 ? i : i + 1;
 	unsigned int y = x - 1;
-=======
-double PathInterpolated::curvature_prim(const unsigned int s) const {
-    if(length() <= 1)
-        return 0.;
 
-    unsigned int x = s == length() - 1 ? s : s + 1;
-    unsigned int y = x - 1;
->>>>>>> a98d2d28865c65e0ac9c84bae8171170ccd2bfd7
 
     // differential quotient
     return curvature(x) - curvature(y) / hypot(p(x) - p(y), q(x) - q(y));
 }
 
-
-<<<<<<< HEAD
 double PathInterpolated::curvature_sek(const unsigned int i) const {
-	if(length() <= 1)
+    if(n() <= 1)
 		return 0.;
 
-    unsigned int x = i == length() - 1 ? i : i + 1;
+    unsigned int x = i == n() - 1 ? i : i + 1;
 	unsigned int y = x - 1;
-=======
-double PathInterpolated::curvature_sek(const unsigned int s) const {
-    if(length() <= 1)
-        return 0.;
 
-    unsigned int x = s == length() - 1 ? s : s + 1;
-    unsigned int y = x - 1;
->>>>>>> a98d2d28865c65e0ac9c84bae8171170ccd2bfd7
 
     // differential quotient
     return curvature_prim(x) - curvature_prim(y) / hypot(p(x) - p(y), q(x) - q(y));
@@ -201,6 +184,8 @@ PathInterpolated::operator nav_msgs::Path() const {
 void PathInterpolated::clearBuffers() {
     N_ = 0;
 
+    s_.clear();
+
     p_.clear();
     q_.clear();
 
@@ -210,7 +195,7 @@ void PathInterpolated::clearBuffers() {
     p_sek_.clear();
     q_sek_.clear();
 
-    s_.clear();
+    s_new_ = 0;
     s_prim_ = 0;
 
     curvature_.clear();

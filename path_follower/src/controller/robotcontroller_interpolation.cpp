@@ -55,7 +55,7 @@ void RobotController_Interpolation::publishInterpolatedPath()
 bool RobotController_Interpolation::reachedGoal(const Eigen::Vector3d& pose) const
 {
 
-    const unsigned int end = path_interpol.length() - 1;
+    const unsigned int end = path_interpol.n() - 1;
     return hypot(path_interpol.p(end) - pose[0], path_interpol.q(end) - pose[1])
             <= getParameters().goal_tolerance();
 }

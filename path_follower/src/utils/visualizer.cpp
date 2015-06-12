@@ -1,5 +1,6 @@
 #include <path_follower/utils/visualizer.h>
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <tf/tf.h>
 
 using namespace Eigen;
@@ -8,6 +9,7 @@ Visualizer::Visualizer() :
     private_nh_("~")
 {
     vis_pub_ = private_nh_.advertise<visualization_msgs::Marker>("/marker", 100);
+    marray_vis_pub_ = private_nh_.advertise<visualization_msgs::MarkerArray>("/path_coord_array", 100);
 }
 
 Visualizer *Visualizer::getInstance()
@@ -20,6 +22,11 @@ Visualizer *Visualizer::getInstance()
 bool Visualizer::hasSubscriber()
 {
     return vis_pub_.getNumSubscribers() > 0;
+}
+
+bool Visualizer::MarrayhasSubscriber()
+{
+    return marray_vis_pub_.getNumSubscribers() > 0;
 }
 
 void Visualizer::drawArrow(int id, const geometry_msgs::Pose &pose, const std::string &ns, float r, float g, float b, double live) const
@@ -171,4 +178,9 @@ void Visualizer::visualizeLine(const Line2d &line)
 ros::Publisher Visualizer::getMarkerPublisher()
 {
     return vis_pub_;
+}
+
+ros::Publisher Visualizer::getMarkerArrayPublisher()
+{
+    return marray_vis_pub_;
 }

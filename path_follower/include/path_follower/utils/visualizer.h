@@ -40,6 +40,7 @@ public:
      * @return true if there is at least one subscriber.
      */
     bool hasSubscriber();
+    bool MarrayhasSubscriber();
 
     /**
      * @brief Publish an arrow marker.
@@ -135,10 +136,12 @@ public:
     void visualizeLine(const Line2d &line);
 
     ros::Publisher getMarkerPublisher();
+    ros::Publisher getMarkerArrayPublisher();
 
 private:
     ros::NodeHandle private_nh_;
     ros::Publisher vis_pub_;
+    ros::Publisher marray_vis_pub_;
 
     Visualizer();
 };
