@@ -67,9 +67,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
             obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
         controller_ = new RobotController_Ackermann_Pid(this);
     } else if (opt_.controller() == "patsy_pid") {
+        RobotControllerTrailer *ctrl = new RobotControllerTrailer(this,&this->node_handle_);
         if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorPatsy(&pose_listener_);
-        controller_ = new RobotControllerTrailer(this,&this->node_handle_);
+            obstacle_avoider_ = new ObstacleDetectorPatsy(&pose_listener_,ctrl);
+        controller_ = ctrl;
     } else if (opt_.controller() == "omnidrive_orthexp") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);

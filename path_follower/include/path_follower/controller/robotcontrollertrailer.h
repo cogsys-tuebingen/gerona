@@ -19,6 +19,8 @@ public:
     RobotControllerTrailer(PathFollower *path_driver, ros::NodeHandle *nh);
     virtual void stopMotion();
     virtual void reset();
+    virtual void setPath(Path::Ptr path);
+    virtual void precomputeSteerCommand(Waypoint& wp_now,  Waypoint& wp_next );
 
 protected:
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
@@ -31,26 +33,37 @@ private:
         P<double> dead_time;
         P<double> l;
         P<float> pid_ta;
-        P<float> pid_kp;
-        P<float> pid_ki;
-        P<float> pid_kd;
+        P<float> fwd_pid_kp;
+        P<float> fwd_pid_ki;
+        P<float> fwd_pid_kd;
+        P<float> fwd_cap_steer_deg;
+        P<float> bwd_pid_kp;
+        P<float> bwd_pid_ki;
+        P<float> bwd_pid_kd;
+        P<float> bwd_cap_steer_deg;
         P<float> max_steer;
         P<float> weight_dist;
         P<float> weight_angle;
         P<float> clip_angle_error;
         P<float> clip_dist_error;
 
+
         ControllerParameters():
             dead_time(this, "~dead_time", 0.1, "Time step that is used by predictPose"),
             l(this, "~wheel_base", 0.98, "Distance between front and rear axes of the robot."),
             pid_ta(this, "~pid/ta", 0.03, "Update interval of the PID controller."),
-            pid_kp(this, "~pid/kp", 1.0, "Proportional coefficient of the PID controller."),
-            pid_ki(this, "~pid/ki", 0.001, "Integral coefficient of the PID controller."),
-            pid_kd(this, "~pid/kd", 0, "Derivative coefficient of the PID controller."),
+            fwd_pid_kp(this, "~fwd/pid/kp", 1.0, "Proportional coefficient of the PID controller."),
+            fwd_pid_ki(this, "~fwd/pid/ki", 0.001, "Integral coefficient of the PID controller."),
+            fwd_pid_kd(this, "~fwd/pid/kd", 0, "Derivative coefficient of the PID controller."),
+            fwd_cap_steer_deg(this, "~fwd/cap_steer_deg", 5.0, "Maxiimum allowed deviation from precomputed angle."),
+            bwd_pid_kp(this, "~bwd/pid/kp", 1.0, "Proportional coefficient of the PID controller."),
+            bwd_pid_ki(this, "~bwd/pid/ki", 0.001, "Integral coefficient of the PID controller."),
+            bwd_pid_kd(this, "~bwd/pid/kd", 0, "Derivative coefficient of the PID controller."),
+            bwd_cap_steer_deg(this, "~bwd/cap_steer_deg", 5.0, "Maxiimum allowed deviation from precomputed angle."),
             max_steer(this, "~max_steer", 1.3, "Maximal allowed steering angle. Higher angles are capped by this value."),
             weight_dist(this, "~pc_weight_dist", 1.0, "Weight of distance error"),
             weight_angle(this, "~pc_weight_angle", 1.0, "Weight of angle error"),
-            clip_angle_error(this,"~angle_error_cap",0.174, "Clipping for angle error"),
+            clip_angle_error(this,"~angle_error_clip",1.0, "Clipping for angle error"),
             clip_dist_error(this,"~dist_error_clip",0.1, "Clipping for distance error")
 
 
@@ -66,9 +79,12 @@ private:
     geometry_msgs::Twist agv_vel_;
 
 
-    //! PID controller for the steering angle
-    PidController<1> steer_pid_;
+    // current precomputed steering angles
+    double steer_des_fwd_,steer_des_bwd_;
 
+    //! PID controller for the steering angle
+    PidController<1> fwd_steer_pid_;
+    PidController<1> bwd_steer_pid_;
     Visualizer* visualizer_;
 
     /**
@@ -160,7 +176,7 @@ private:
 
 
 
-    bool getTrailerAngle(const std::string& base_frame, const std::string& trailer_frame, double& angle) const;
+    bool getTrailerAngle(double& angle) const;
 
 
     void updateAgvCb(const geometry_msgs::TwistConstPtr &vel);
@@ -169,6 +185,8 @@ private:
     virtual double calculateAngleError();
 
     tf::TransformListener trailer_listener_;
+
+
 };
 
 #endif // RobotControllerTrailer_H

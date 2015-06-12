@@ -31,8 +31,8 @@ RobotControllerTrailer::RobotControllerTrailer(PathFollower *path_driver, ros::N
     last_velocity_(0)
 {
     // initialize
-    steer_pid_ = PidController<1>(opt_.pid_kp(), opt_.pid_ki(), opt_.pid_kd(), opt_.pid_ta());
-
+    fwd_steer_pid_ = PidController<1>(opt_.fwd_pid_kp(), opt_.fwd_pid_ki(), opt_.fwd_pid_kd(), opt_.pid_ta());
+    bwd_steer_pid_ = PidController<1>(opt_.bwd_pid_kp(), opt_.bwd_pid_ki(), opt_.bwd_pid_kd(), opt_.pid_ta());
     std::string agv_vel_topic("/agv_vel");
 
     agv_vel_sub_ = nh_->subscribe<geometry_msgs::Twist> (agv_vel_topic, 10, boost::bind(&RobotControllerTrailer::updateAgvCb, this, _1));
@@ -170,6 +170,14 @@ void RobotControllerTrailer::selectWaypoint()
     // convert waypoint to local frame. NOTE: This has to be done, even if the waypoint did not
     // change, as its position in the local frame changes while the robot moves.
     geometry_msgs::PoseStamped wp_map;
+
+    const Waypoint& wp = path_->getCurrentWaypoint();
+    if (wp.actuator_cmds_.size()>=2) {
+        steer_des_fwd_ = wp.actuator_cmds_[0];
+        steer_des_bwd_ = wp.actuator_cmds_[1];
+    } else {
+        steer_des_fwd_ = steer_des_bwd_ =0.0;
+    }
     wp_map.pose = path_->getCurrentWaypoint();
     wp_map.header.stamp = ros::Time::now();
 
@@ -177,6 +185,7 @@ void RobotControllerTrailer::selectWaypoint()
         throw EmergencyBreakException("cannot transform next waypoint",
                                       path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
+
 }
 
 
@@ -200,11 +209,13 @@ double RobotControllerTrailer::calculateAngleError()
     geometry_msgs::Pose waypoint   = path_->getCurrentWaypoint();
     geometry_msgs::Pose robot_pose = path_driver_->getRobotPoseMsg();
     double trailer_angle;
+
+/*
     bool status=getTrailerAngle("/base_link","/trailer_link",trailer_angle);
     if (!status) {
         trailer_angle=0.0;
-    }
-
+    }*/
+    trailer_angle =  agv_vel_.angular.z;
     double angle_error = MathHelper::AngleClamp(tf::getYaw(waypoint.orientation) - tf::getYaw(robot_pose.orientation)+trailer_angle);
     if (angle_error>opt_.clip_angle_error()) {
         return opt_.clip_angle_error();
@@ -285,7 +296,14 @@ void RobotControllerTrailer::updateCommand(float error)
     }
     // call PID controller for steering.
     float u = 0;
-    if (!steer_pid_.execute(error, &u)) {
+
+    bool do_control;
+    if (dir_sign_>0) {
+        do_control = fwd_steer_pid_.execute(error, &u);
+    } else {
+        do_control = bwd_steer_pid_.execute(error, &u);
+    }
+    if (!do_control) {
         return; // Nothing to do
     }
     ROS_DEBUG_NAMED(MODULE, "PID: error = %g, u = %g", error, u);
@@ -296,9 +314,25 @@ void RobotControllerTrailer::updateCommand(float error)
 
     // Control velocity
     float velocity = controlVelocity(steer);
-    if (g_dbg_count++%4==0) {
+    if (g_dbg_count++%8==0) {
      ROS_INFO("error dist %f error steer %fdeg sum %f steer %fdeg\n",e_distance,e_angle*180.0/M_PI,error, steer*180.0/M_PI);
     }
+    double steer_des, steer_tol;
+    if (dir_sign_>0) {
+        steer_des = steer_des_fwd_;
+        steer_tol = opt_.fwd_cap_steer_deg()*M_PI/180.0;
+    } else {
+        steer_des = steer_des_bwd_;
+        steer_tol = opt_.bwd_cap_steer_deg()*M_PI/180.0;
+    }
+    if (steer>steer_des && fabs(steer-steer_des)>steer_tol) {
+        steer=steer_des+steer_tol;
+    }
+    if (steer<steer_des && fabs(steer-steer_des)>steer_tol) {
+        steer=steer_des-steer_tol;
+    }
+
+
 
     cmd_.setDirection(steer);
     cmd_.setVelocity(dir_sign_ * velocity);
@@ -363,12 +397,12 @@ void RobotControllerTrailer::predictPose(Vector2d &front_pred, Vector2d &rear_pr
 
 
 
-    double trailer_angle;
-    bool status=getTrailerAngle("/base_link","/trailer_link",trailer_angle);
+    double trailer_angle = agv_vel_.angular.z;
+   /* bool status=getTrailerAngle("/trailer_link","/base_link",trailer_angle);
     if (!status) {
         trailer_angle = 0.0;
         // ***todo error handling
-    }
+    }*/
     double v_current = agv_vel_.linear.x;
     double dt = opt_.dead_time();
 
@@ -384,34 +418,23 @@ void RobotControllerTrailer::predictPose(Vector2d &front_pred, Vector2d &rear_pr
         // radius desired turn circle
 
 
-
-
         double r_f = fabs(opt_.l()/sin(trailer_angle));
         double r_h = fabs(opt_.l()/tan(trailer_angle));
-
         double ds = v_current*dt; // sign of velocity matters
         double dtheta = ds/r_f;
-
-        front_pred[0] = r_f*sin(fabs(trailer_angle)+dtheta)-opt_.l();
-        rear_pred[0] = r_h*sin(dtheta)- opt_.l();
+        front_pred[0] = r_f*sin(dtheta);
+        rear_pred[0]= -r_h*sin(fabs(trailer_angle)-dtheta);
         if (trailer_angle>=0) {
-            front_pred[1] = r_h-r_f*cos(fabs(trailer_angle)+dtheta);
-            rear_pred[1] = r_h*(1.0-cos(dtheta));
+            front_pred[1] = r_f*(1.0-cos(dtheta));
+            rear_pred[1] = r_f-r_h*cos(fabs(trailer_angle)-dtheta);
         } else {
-            front_pred[1] = r_f*cos(fabs(trailer_angle)+dtheta)-r_h;
-            rear_pred[1] = r_h*(cos(dtheta)-1.0);
-        }
-        if (g_dbg_count%4==0) {
-            ROS_INFO("trailer angle %f r_f %f r_h %f dtheta %f\n",trailer_angle*180.0/M_PI,r_f,r_h,dtheta*180.0/M_PI);
+            front_pred[1] = r_f*(cos(dtheta)-1.0);
+            rear_pred[1] = -r_f+r_h*cos(fabs(trailer_angle)-dtheta);
         }
 
     }
 
 
-    if (g_dbg_count%4==0) {
-
-     ROS_INFO("v_current %f front %f %f rear %f %f wheel base %f\n",v_current, front_pred[0],front_pred[1],rear_pred[0],rear_pred[1],opt_.l());
-    }
 
     ROS_DEBUG_STREAM_NAMED(MODULE, "predict pose. front: " << front_pred << ", rear: " << rear_pred);
 }
@@ -496,19 +519,54 @@ void RobotControllerTrailer::visualizeCarrot(const Vector2d &carrot,
 }
 
 
-bool RobotControllerTrailer::getTrailerAngle(const std::string& base_frame, const std::string& trailer_frame, double& angle) const
+bool RobotControllerTrailer::getTrailerAngle( double& angle) const
 {
-    tf::StampedTransform transform;
-    geometry_msgs::TransformStamped msg;
-
-    try {
-        trailer_listener_.lookupTransform(base_frame, trailer_frame, ros::Time(0), transform);
-
-    } catch (tf::TransformException& ex) {
-        ROS_ERROR("error with transform base link to trailer link : %s", ex.what());
-        return false;
-    }
-    tf::transformStampedTFToMsg(transform, msg);
-    angle = tf::getYaw(transform.getRotation());
+    angle = agv_vel_.angular.z;
     return true;
+}
+
+
+void RobotControllerTrailer::setPath(Path::Ptr path)
+{
+    RobotController::setPath(path);
+
+    path->precomputeSteerCommands(this);
+
+
+}
+
+void RobotControllerTrailer::precomputeSteerCommand(Waypoint &wp_now,  Waypoint &wp_next)
+{
+    double dist = wp_now.distanceTo(wp_next);
+    // we don't know yet if the path is driven fwd orr bwd, thus both directions are computed
+    wp_next.actuator_cmds_.resize(2);
+    double dtheta =wp_next.orientation-wp_now.orientation;
+    dtheta = MathHelper::NormalizeAngle(dtheta);
+
+    if (fabs(dtheta)<0.5*M_PI/180.0) {
+        // movement straight
+        wp_next.actuator_cmds_[0]=wp_next.actuator_cmds_[1]=0.0;
+    } else {
+        double l=opt_.l(); // wheelbase
+        double radius = dist/(2*sin(fabs(dtheta)/2.0));
+        if (l>fabs(radius)) {
+            std::cout << "radius too small "<< radius << " dtheta is "<<dtheta*180.0/M_PI << std::endl;
+            wp_next.actuator_cmds_[0] = 0.0;
+            wp_next.actuator_cmds_[1] = 0.0;
+
+        } else {
+            double steer_fwd = asin(l/radius);
+            double steer_bwd = atan(l/radius);
+            if (dtheta<0) {
+                steer_fwd = -1.0*steer_fwd;
+            } else {
+                steer_bwd = -1.0*steer_bwd;
+            }
+            wp_next.actuator_cmds_[0] = steer_fwd;
+            wp_next.actuator_cmds_[1] = steer_bwd;
+        }
+    }
+    std::cout << "wp steer fwd "<<wp_next.actuator_cmds_[0]*180.0/M_PI
+              << " steer bwd "<<wp_next.actuator_cmds_[1]*180.0/M_PI << std::endl;
+
 }
