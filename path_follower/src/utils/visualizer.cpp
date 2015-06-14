@@ -175,6 +175,131 @@ void Visualizer::visualizeLine(const Line2d &line)
     drawLine(2, f, t, "/base_link", "line", 0.7, 0.2, 1.0, 1, 0.1);
 }
 
+void Visualizer::drawFrenetSerretFrame(int id, Eigen::Vector3d robot_pose, double xe, double ye, double p_ind,
+                                       double q_ind, double theta_p)
+{
+    visualization_msgs::MarkerArray path_coord_marray;
+
+
+    visualization_msgs::Marker path_robot_marker;
+    path_robot_marker.ns = "path_robot_vector";
+    path_robot_marker.header.frame_id = "/map";
+    path_robot_marker.header.stamp = ros::Time();
+    path_robot_marker.action = visualization_msgs::Marker::ADD;
+    path_robot_marker.id = id;
+    path_robot_marker.color.r = 1;
+    path_robot_marker.color.g = 1;
+    path_robot_marker.color.b = 0;
+    path_robot_marker.color.a = 1.0;
+    path_robot_marker.scale.x = 0.05;
+    path_robot_marker.scale.y = 0.02;
+    path_robot_marker.scale.z = 0.02;
+    path_robot_marker.type = visualization_msgs::Marker::ARROW;
+
+    geometry_msgs::Point from, to;
+    from.x = robot_pose[0];
+    from.y = robot_pose[1];
+    to.x = p_ind;
+    to.y = q_ind;
+
+    path_robot_marker.points.push_back(to);
+    path_robot_marker.points.push_back(from);
+
+
+    visualization_msgs::Marker path_abscissa_marker;
+    path_abscissa_marker.ns = "path_coord_abscissa";
+    path_abscissa_marker.header.frame_id = "/map";
+    path_abscissa_marker.header.stamp = ros::Time();
+    path_abscissa_marker.action = visualization_msgs::Marker::ADD;
+    path_abscissa_marker.id = id;
+    path_abscissa_marker.color.r = 1;
+    path_abscissa_marker.color.g = 0;
+    path_abscissa_marker.color.b = 0;
+    path_abscissa_marker.color.a = 1.0;
+    path_abscissa_marker.scale.x = 0.3;
+    path_abscissa_marker.scale.y = 0.05;
+    path_abscissa_marker.scale.z = 0.05;
+    path_abscissa_marker.type = visualization_msgs::Marker::ARROW;
+
+    path_abscissa_marker.pose.position.x = p_ind;
+    path_abscissa_marker.pose.position.y = q_ind;
+    path_abscissa_marker.pose.position.z = 0.0;
+    path_abscissa_marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta_p);
+
+
+    visualization_msgs::Marker abscissa_distance_marker;
+    abscissa_distance_marker.ns = "abscissa_distance";
+    abscissa_distance_marker.header.frame_id = "/map";
+    abscissa_distance_marker.header.stamp = ros::Time();
+    abscissa_distance_marker.action = visualization_msgs::Marker::ADD;
+    abscissa_distance_marker.id = id;
+    abscissa_distance_marker.color.r = 0;
+    abscissa_distance_marker.color.g = 1;
+    abscissa_distance_marker.color.b = 1;
+    abscissa_distance_marker.color.a = 1.0;
+    abscissa_distance_marker.scale.x = xe;
+    abscissa_distance_marker.scale.y = 0.02;
+    abscissa_distance_marker.scale.z = 0.02;
+    abscissa_distance_marker.type = visualization_msgs::Marker::ARROW;
+
+    abscissa_distance_marker.pose.position.x = p_ind;
+    abscissa_distance_marker.pose.position.y = q_ind;
+    abscissa_distance_marker.pose.position.z = 0.0;
+    abscissa_distance_marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta_p);
+
+
+    visualization_msgs::Marker path_ordinate_marker;
+    path_ordinate_marker.ns = "path_coord_ordinate";
+    path_ordinate_marker.header.frame_id = "/map";
+    path_ordinate_marker.header.stamp = ros::Time();
+    path_ordinate_marker.action = visualization_msgs::Marker::ADD;
+    path_ordinate_marker.id = id;
+    path_ordinate_marker.color.r = 0;
+    path_ordinate_marker.color.g = 1;
+    path_ordinate_marker.color.b = 0;
+    path_ordinate_marker.color.a = 1.0;
+    path_ordinate_marker.scale.x = 0.3;
+    path_ordinate_marker.scale.y = 0.05;
+    path_ordinate_marker.scale.z = 0.05;
+    path_ordinate_marker.type = visualization_msgs::Marker::ARROW;
+
+    path_ordinate_marker.pose.position.x = p_ind;
+    path_ordinate_marker.pose.position.y = q_ind;
+    path_ordinate_marker.pose.position.z = 0.0;
+    path_ordinate_marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta_p + M_PI/2.0);
+
+
+    visualization_msgs::Marker ordinate_distance_marker;
+    ordinate_distance_marker.ns = "ordinate_distance";
+    ordinate_distance_marker.header.frame_id = "/map";
+    ordinate_distance_marker.header.stamp = ros::Time();
+    ordinate_distance_marker.action = visualization_msgs::Marker::ADD;
+    ordinate_distance_marker.id = id;
+    ordinate_distance_marker.color.r = 0;
+    ordinate_distance_marker.color.g = 1;
+    ordinate_distance_marker.color.b = 1;
+    ordinate_distance_marker.color.a = 1.0;
+    ordinate_distance_marker.scale.x = ye;
+    ordinate_distance_marker.scale.y = 0.02;
+    ordinate_distance_marker.scale.z = 0.02;
+    ordinate_distance_marker.type = visualization_msgs::Marker::ARROW;
+
+    ordinate_distance_marker.pose.position.x = p_ind;
+    ordinate_distance_marker.pose.position.y = q_ind;
+    ordinate_distance_marker.pose.position.z = 0.0;
+    ordinate_distance_marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta_p + M_PI/2.0);
+
+
+
+    path_coord_marray.markers.push_back(visualization_msgs::Marker(path_robot_marker));
+    path_coord_marray.markers.push_back(visualization_msgs::Marker(path_abscissa_marker));
+    path_coord_marray.markers.push_back(visualization_msgs::Marker(abscissa_distance_marker));
+    path_coord_marray.markers.push_back(visualization_msgs::Marker(path_ordinate_marker));
+    path_coord_marray.markers.push_back(visualization_msgs::Marker(ordinate_distance_marker));
+
+    marray_vis_pub_.publish(path_coord_marray);
+}
+
 ros::Publisher Visualizer::getMarkerPublisher()
 {
     return vis_pub_;

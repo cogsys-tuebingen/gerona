@@ -185,74 +185,11 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double theta_r = atan2(y_meas - path_interpol.q(ind_), x_meas - path_interpol.p(ind_));
 
     //robot position vector angle in path coordinates
-    double delta_theta = theta_r - path_interpol.theta_p(ind_);
+    double delta_theta = MathHelper::AngleClamp(theta_r - path_interpol.theta_p(ind_));
 
-    /////////////////////////////////////////////////////////////////////////////////////
-    ROS_INFO("delta_theta not normalized: %lf", delta_theta*180.0/M_PI);
-    /////////////////////////////////////////////////////////////////////////////////////
-
-    int sign_xe = 1;
-    int sign_ye = 1;
-
-    //normalize delta_theta and determine the sign of path coordinates
-    if((delta_theta > M_PI/2.0) & (delta_theta < M_PI))
-    {
-        delta_theta = M_PI - delta_theta;
-        sign_xe = -1;
-        sign_ye = 1;
-    }
-    
-    else if((delta_theta > M_PI) & (delta_theta <= 3.0*M_PI/2.0))
-    {
-        delta_theta = delta_theta - M_PI;
-        sign_xe = -1;
-        sign_ye = -1;
-    }
-
-    else if((delta_theta > 3.0*M_PI/2.0) & (delta_theta <= 2.0*M_PI))
-    {
-        delta_theta = 2.0*M_PI - delta_theta;
-        sign_xe = 1;
-        sign_ye = -1;
-    }
-
-    else if((delta_theta < 0) & (delta_theta >= -M_PI/2.0))
-    {
-        delta_theta = std::abs(delta_theta);
-        sign_xe = 1;
-        sign_ye = -1;
-    }
-    
-    else if((delta_theta < -M_PI/2.0) & (delta_theta >= -M_PI))
-    {
-        delta_theta = delta_theta + M_PI;
-        sign_xe = -1;
-        sign_ye = -1;
-    }
-
-    else if((delta_theta < -M_PI) & (delta_theta >= -3.0*M_PI/2.0))
-    {
-        delta_theta += M_PI;
-        delta_theta = std::abs(delta_theta);
-        sign_xe = -1;
-        sign_ye = 1;
-    }
-
-    else if((delta_theta < -3.0*M_PI/2.0) & (delta_theta > -2.0*M_PI))
-    {
-        delta_theta = delta_theta + 2.0*M_PI;
-        sign_xe = 1;
-        sign_ye = 1;
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////
-    ROS_INFO("delta_theta normalized: %lf", delta_theta*180.0/M_PI);
-    /////////////////////////////////////////////////////////////////////////////////////
-    
-    
     //current robot position in path coordinates
-    xe_ = sign_xe*r * cos(delta_theta);
-    ye_ = sign_ye*r * sin(delta_theta);
+    xe_ = r * cos(delta_theta);
+    ye_ = r * sin(delta_theta);
 
     ///***///
 
@@ -307,7 +244,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     cmd_.direction_angle = 0;
 
-    cmd_.rotation = delta_prim - opt_.gamma()*ye_*v*(sin(theta) - sin(delta_))/(theta - delta_) - opt_.k2()*(theta - delta_);
+    cmd_.rotation = delta_prim - opt_.gamma()*ye_*v*(sin(theta) - sin(delta_))
+                    /(theta - delta_) - opt_.k2()*(theta - delta_);
 
     ///***///
 
@@ -320,143 +258,15 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///***///
 
 
-    ///plot the robot position vector in path coordinates
+    ///plot the moving reference frame together with position vector and error components
 
-    visualization_msgs::MarkerArray path_coord_marray;
-
-
-    visualization_msgs::Marker path_robot_marker;
-    path_robot_marker.ns = "path_robot_vector";
-    path_robot_marker.header.frame_id = "/map";
-    path_robot_marker.header.stamp = ros::Time();
-    path_robot_marker.action = visualization_msgs::Marker::ADD;
-    path_robot_marker.id = 0;
-    path_robot_marker.color.r = 1;
-    path_robot_marker.color.g = 1;
-    path_robot_marker.color.b = 0;
-    path_robot_marker.color.a = 1.0;
-    path_robot_marker.scale.x = 0.05;
-    path_robot_marker.scale.y = 0.02;
-    path_robot_marker.scale.z = 0.02;
-    path_robot_marker.type = visualization_msgs::Marker::ARROW;
-
-    geometry_msgs::Point from, to;
-    from.x = x_meas;
-    from.y = y_meas;
-    to.x = path_interpol.p(ind_);
-    to.y = path_interpol.q(ind_);
-
-    path_robot_marker.points.push_back(to);
-    path_robot_marker.points.push_back(from);
-
-
-    visualization_msgs::Marker path_abscissa_marker;
-    path_abscissa_marker.ns = "path_coord_abscissa";
-    path_abscissa_marker.header.frame_id = "/map";
-    path_abscissa_marker.header.stamp = ros::Time();
-    path_abscissa_marker.action = visualization_msgs::Marker::ADD;
-    path_abscissa_marker.id = 0;
-    path_abscissa_marker.color.r = 1;
-    path_abscissa_marker.color.g = 0;
-    path_abscissa_marker.color.b = 0;
-    path_abscissa_marker.color.a = 1.0;
-    path_abscissa_marker.scale.x = 0.3;
-    path_abscissa_marker.scale.y = 0.05;
-    path_abscissa_marker.scale.z = 0.05;
-    path_abscissa_marker.type = visualization_msgs::Marker::ARROW;
-
-    path_abscissa_marker.pose.position.x = path_interpol.p(ind_);
-    path_abscissa_marker.pose.position.y = path_interpol.q(ind_);
-    path_abscissa_marker.pose.position.z = 0.0;
-    path_abscissa_marker.pose.orientation = tf::createQuaternionMsgFromYaw(path_interpol.theta_p(ind_));
-
-
-    visualization_msgs::Marker abscissa_distance_marker;
-    abscissa_distance_marker.ns = "abscissa_distance";
-    abscissa_distance_marker.header.frame_id = "/map";
-    abscissa_distance_marker.header.stamp = ros::Time();
-    abscissa_distance_marker.action = visualization_msgs::Marker::ADD;
-    abscissa_distance_marker.id = 0;
-    abscissa_distance_marker.color.r = 0;
-    abscissa_distance_marker.color.g = 1;
-    abscissa_distance_marker.color.b = 1;
-    abscissa_distance_marker.color.a = 1.0;
-    abscissa_distance_marker.scale.x = xe_;
-    abscissa_distance_marker.scale.y = 0.02;
-    abscissa_distance_marker.scale.z = 0.02;
-    abscissa_distance_marker.type = visualization_msgs::Marker::ARROW;
-
-    abscissa_distance_marker.pose.position.x = path_interpol.p(ind_);
-    abscissa_distance_marker.pose.position.y = path_interpol.q(ind_);
-    abscissa_distance_marker.pose.position.z = 0.0;
-    abscissa_distance_marker.pose.orientation = tf::createQuaternionMsgFromYaw(path_interpol.theta_p(ind_));
-
-
-    visualization_msgs::Marker path_ordinate_marker;
-    path_ordinate_marker.ns = "path_coord_ordinate";
-    path_ordinate_marker.header.frame_id = "/map";
-    path_ordinate_marker.header.stamp = ros::Time();
-    path_ordinate_marker.action = visualization_msgs::Marker::ADD;
-    path_ordinate_marker.id = 0;
-    path_ordinate_marker.color.r = 0;
-    path_ordinate_marker.color.g = 1;
-    path_ordinate_marker.color.b = 0;
-    path_ordinate_marker.color.a = 1.0;
-    path_ordinate_marker.scale.x = 0.3;
-    path_ordinate_marker.scale.y = 0.05;
-    path_ordinate_marker.scale.z = 0.05;
-    path_ordinate_marker.type = visualization_msgs::Marker::ARROW;
-
-    path_ordinate_marker.pose.position.x = path_interpol.p(ind_);
-    path_ordinate_marker.pose.position.y = path_interpol.q(ind_);
-    path_ordinate_marker.pose.position.z = 0.0;
-    path_ordinate_marker.pose.orientation = tf::createQuaternionMsgFromYaw(path_interpol.theta_p(ind_) + M_PI/2.0);
-
-
-    visualization_msgs::Marker ordinate_distance_marker;
-    ordinate_distance_marker.ns = "ordinate_distance";
-    ordinate_distance_marker.header.frame_id = "/map";
-    ordinate_distance_marker.header.stamp = ros::Time();
-    ordinate_distance_marker.action = visualization_msgs::Marker::ADD;
-    ordinate_distance_marker.id = 0;
-    ordinate_distance_marker.color.r = 0;
-    ordinate_distance_marker.color.g = 1;
-    ordinate_distance_marker.color.b = 1;
-    ordinate_distance_marker.color.a = 1.0;
-    ordinate_distance_marker.scale.x = ye_;
-    ordinate_distance_marker.scale.y = 0.02;
-    ordinate_distance_marker.scale.z = 0.02;
-    ordinate_distance_marker.type = visualization_msgs::Marker::ARROW;
-
-    ordinate_distance_marker.pose.position.x = path_interpol.p(ind_);
-    ordinate_distance_marker.pose.position.y = path_interpol.q(ind_);
-    ordinate_distance_marker.pose.position.z = 0.0;
-    ordinate_distance_marker.pose.orientation = tf::createQuaternionMsgFromYaw(path_interpol.theta_p(ind_) + M_PI/2.0);
-
-
-
-    path_coord_marray.markers.push_back(visualization_msgs::Marker(path_robot_marker));
-    path_coord_marray.markers.push_back(visualization_msgs::Marker(path_abscissa_marker));
-    path_coord_marray.markers.push_back(visualization_msgs::Marker(abscissa_distance_marker));
-    path_coord_marray.markers.push_back(visualization_msgs::Marker(path_ordinate_marker));
-    path_coord_marray.markers.push_back(visualization_msgs::Marker(ordinate_distance_marker));
-
-    visualizer_->getMarkerArrayPublisher().publish(path_coord_marray);
+    if (visualizer_->hasSubscriber()) {
+        visualizer_->drawFrenetSerretFrame(0, current_pose, xe_, ye_, path_interpol.p(ind_),
+                                           path_interpol.q(ind_), path_interpol.theta_p(ind_));
+    }
 
     ///***///
 
-    ///////////////////////////////////////////////////////////////
-    ROS_INFO("Index: %d", ind_);
-    ROS_INFO("Theta_r: %lf", theta_r*180.0/M_PI);
-    ROS_INFO("Theta_p: %lf", path_interpol.theta_p(ind_)*180.0/M_PI);
-    ROS_INFO("Delta_theta: %lf", delta_theta*180.0/M_PI);
-    ROS_INFO("Theta_meas: %lf", theta_meas*180.0/M_PI);
-    ROS_INFO("Theta: %lf", theta*180.0/M_PI);
-    ROS_INFO("Speed: %lf", v);
-    ROS_INFO("r: %lf", r);
-    ROS_INFO("xe: %lf, ye: %lf", xe_, ye_);
-    ROS_INFO("s_new: %lf", path_interpol.s_new());
-    ///////////////////////////////////////////////////////////////
 
     ///Calculate the next point on the path
 
@@ -490,12 +300,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     }
 
-    ///////////////////////////////////////////////////////////////
-    ROS_INFO("Index: %d", ind_);
-    ROS_INFO("s_new: %lf", path_interpol.s_new());
-    ROS_INFO("s_prim: %lf", path_interpol.s_prim());
-    ///////////////////////////////////////////////////////////////
-
     ///***///
 
 
@@ -507,7 +311,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
 
     // check for end
-    double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1), y_meas - path_interpol.q(path_interpol.n()-1));
+    double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
+                                         y_meas - path_interpol.q(path_interpol.n()-1));
     ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl);
 
     if(distance_to_goal_eucl <= path_driver_->getOptions().goal_tolerance()) {

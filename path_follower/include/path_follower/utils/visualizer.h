@@ -135,6 +135,19 @@ public:
      */
     void visualizeLine(const Line2d &line);
 
+    /**
+     * @brief Draw a moving Frenet-Serret frame with the distance vector.
+     * @param id        ID of the marker.
+     * @param robot_pose  Pose of the robot.
+     * @param xe        Error in F-S frame, x component.
+     * @param ye        Error in F-S frame, y component.
+     * @param p_ind     Current point on the path, x component.
+     * @param q_ind     Current point on the path, y component.
+     * @param theta_p   Slope of the path in the current point.
+     */
+    void drawFrenetSerretFrame(int id, Eigen::Vector3d robot_pose, double xe, double ye, double p_ind,
+                                           double q_ind, double theta_p);
+
     ros::Publisher getMarkerPublisher();
     ros::Publisher getMarkerArrayPublisher();
 
