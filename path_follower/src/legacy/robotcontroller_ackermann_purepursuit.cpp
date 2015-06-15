@@ -52,7 +52,7 @@ void Robotcontroller_Ackermann_PurePursuit::start() {
 RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::computeMoveCommand(
 		MoveCommand* cmd) {
 
-	if(path_interpol.length() <= 2)
+    if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
 	Eigen::Vector3d pose = path_driver_->getRobotPose();
@@ -110,7 +110,7 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
 
 	// TODO: correct angle, when the goal is near
 
-	for (int j = path_interpol.length() - 1; j >= 0; --j) {
+    for (int j = path_interpol.n() - 1; j >= 0; --j) {
 		unsigned int i = j;
 
 		// TODO: test if this is necessary:

@@ -50,7 +50,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 		MoveCommand* cmd) {
 
 	ROS_INFO("===============================");
-	if(path_interpol.length() <= 2)
+    if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
 	Eigen::Vector3d pose = path_driver_->getRobotPose();
@@ -71,7 +71,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 	double minDist = std::numeric_limits<double>::max();
 	unsigned int s = 0;
-	for (unsigned int i = 0; i < path_interpol.length(); ++i) {
+    for (unsigned int i = 0; i < path_interpol.n(); ++i) {
 		const double dx = path_interpol.p(i) - pose[0];
 		const double dy = path_interpol.q(i) - pose[1];
 
@@ -219,7 +219,7 @@ void RobotController_Ackermann_Kinematic::publishMoveCommand(
 
 bool RobotController_Ackermann_Kinematic::reachedGoal(
 		const Eigen::Vector3d& pose) const {
-	const unsigned int end = path_interpol.length() - 1;
+    const unsigned int end = path_interpol.n() - 1;
 	return hypot(path_interpol.p(end) - pose[0], path_interpol.q(end) - pose[1])
 			<= params.goal_tolerance();
 }

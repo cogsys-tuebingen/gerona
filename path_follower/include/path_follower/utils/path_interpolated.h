@@ -18,6 +18,10 @@ public:
 
 	void interpolatePath(const Path::Ptr path);
 
+    inline double s(const unsigned int i) const {
+        return s_[i];
+    }
+
     inline double p(const unsigned int i) const {
         return p_[i];
 	}
@@ -39,12 +43,20 @@ public:
         return q_sek_[i];
     }
 
-    inline double s(const unsigned int i) const {
-        return s_[i];
+    inline double s_new() const {
+        return s_new_;
+    }
+
+    inline void set_s_new(double s_new) {
+        s_new_ = s_new;
     }
 
     inline double s_prim() const {
         return s_prim_;
+    }
+
+    inline void set_s_prim(double s_prim) {
+        s_prim_ = s_prim;
     }
 
     inline double curvature(const unsigned int i) const {
@@ -62,10 +74,6 @@ public:
         return atan2(q_prim_[i], p_prim_[i]);
 	}
 
-	inline unsigned int length() const {
-		return p_.size();
-	}
-
 	operator nav_msgs::Path() const;
 
 private:
@@ -75,6 +83,8 @@ private:
     uint N_;
 
 	nav_msgs::Path interp_path;
+    //curvilinear abscissa
+    std::vector<double> s_;
     //x component of the interpolated path
 	std::vector<double> p_;
     //y componenet of the interpolated path
@@ -90,8 +100,8 @@ private:
     //curvature in path coordinates
 	std::vector<double> curvature_;
 
-    //path variable
-    std::vector<double> s_;
+    //next point
+    double s_new_;
     //path variable derivative
     double s_prim_;
 };

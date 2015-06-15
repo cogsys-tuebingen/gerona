@@ -63,13 +63,26 @@ struct PathFollowerParameters : public Parameters
         supervisor_use_distance_to_path(this, "~supervisor/use_distance_to_path", true,
                                         "Set to `true` to activate supervisor _distance to path_."),
 
-        supervisor_distance_to_path_max_dist(this,  "~supervisor/distance_to_path/max_dist",  0.3,
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//        supervisor_distance_to_path_max_dist(this,  "~supervisor/distance_to_path/max_dist",  0.3,
+//                                             "Maximum distance the robot is allowed to depart from the path."
+//                                             " If this threshold is exceeded, the distance_to_path superv will abort."),
+
+//        supervisor_waypoint_timeout_time(this, "~supervisor/waypoint_timeout/time", 10.0,
+//                                         "If the robot needs more than this time (in seconds), supervisor"
+//                                         " WaypointTimeout will stop the path execution.")
+
+
+        supervisor_distance_to_path_max_dist(this,  "~supervisor/distance_to_path/max_dist",  10.0,
                                              "Maximum distance the robot is allowed to depart from the path."
                                              " If this threshold is exceeded, the distance_to_path superv will abort."),
 
-        supervisor_waypoint_timeout_time(this, "~supervisor/waypoint_timeout/time", 10.0,
+        supervisor_waypoint_timeout_time(this, "~supervisor/waypoint_timeout/time", 30.0,
                                          "If the robot needs more than this time (in seconds), supervisor"
                                          " WaypointTimeout will stop the path execution.")
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     {
         if(max_velocity() < min_velocity()) {
             ROS_ERROR("min velocity larger than max velocity!");

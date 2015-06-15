@@ -230,8 +230,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     //determine the sign of the orthogonal distance
     static const double epsilon = 1e-3;
     if( ((theta_p > -M_PI/2) && (theta_p < M_PI/2) && (path_interpol.q(ind) > y_meas))
-            || ((((theta_p > -M_PI) && (theta_p < -M_PI/2)) || ((theta_p > M_PI/2) && (theta_p < M_PI))
-                 || (std::abs(theta_p - M_PI) < epsilon)) && (path_interpol.q(ind) < y_meas))
+            || ((((theta_p >= -M_PI) && (theta_p < -M_PI/2)) || ((theta_p > M_PI/2) && (theta_p <= M_PI)))
+            && (path_interpol.q(ind) < y_meas))
             || ((std::abs(theta_p + M_PI/2) < epsilon) && (path_interpol.p(ind) > x_meas))
             || ((std::abs(theta_p - M_PI/2) < epsilon) && (path_interpol.p(ind) < x_meas)) ){
 

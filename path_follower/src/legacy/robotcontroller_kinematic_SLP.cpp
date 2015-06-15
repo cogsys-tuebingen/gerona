@@ -4,6 +4,7 @@
 // THIRD PARTY
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 // PROJECT
 #include <path_follower/pathfollower.h>
@@ -23,11 +24,13 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_
     RobotController_Interpolation(path_driver),
     cmd_(this),
     view_direction_(LookInDrivingDirection),
-    vn_(0.0),
-    delta_(90.0*M_PI/180.0),
+    vn_(0),
+    delta_(0),
     Ts_(0.02),
-    xe(0),
-    ye(0),
+    ind_(0),
+    sign_v_(0),
+    xe_(0),
+    ye_(0),
     curv_sum_(1e-3),
     distance_to_goal_(1e-3),
     distance_to_obstacle_(1e-3)
@@ -73,6 +76,9 @@ void RobotController_Kinematic_SLP::lookAtCommand(const std_msgs::StringConstPtr
 void RobotController_Kinematic_SLP::initialize()
 {
     RobotController_Interpolation::initialize();
+
+    //reset the index of the current point on the path
+    ind_ = 0;
 
     // desired velocity
     vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
@@ -157,79 +163,46 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
         return MoveCommandStatus::REACHED_GOAL;
     }
 
-    // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
+
+    /// get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
     Eigen::Vector3d current_pose = path_driver_->getRobotPose();
 
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
     double theta_meas = current_pose[2];
-    //***//
-
-    //find the orthogonal projection to the curve and extract the corresponding index
-
-    double dist = 0;
-    int ind = 0;
-    double orth_proj = std::numeric_limits<double>::max();
-
-    for (unsigned int i = 0; i < path_interpol.n(); i++){
-
-        dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
-        if(dist < orth_proj){
-
-            orth_proj = dist;
-            ind = i;
-
-        }
-
-    }
-
-    //***//
-
-    //find the slope of the desired path, and plot an orthogonal projection marker
-
-    double theta_p = atan2(path_interpol.q_prim(ind), path_interpol.p_prim(ind));
-
-    visualization_msgs::Marker orth_proj_marker;
-    orth_proj_marker.ns = "orth_proj";
-    orth_proj_marker.header.frame_id = "/map";
-    orth_proj_marker.header.stamp = ros::Time();
-    orth_proj_marker.action = visualization_msgs::Marker::ADD;
-    orth_proj_marker.id = 0;
-    orth_proj_marker.color.r = 1;
-    orth_proj_marker.color.g = 0;
-    orth_proj_marker.color.b = 0;
-    orth_proj_marker.color.a = 1.0;
-    orth_proj_marker.scale.x = 0.1;
-    orth_proj_marker.scale.y = 0.1;
-    orth_proj_marker.scale.z = 0.5;
-    orth_proj_marker.type = visualization_msgs::Marker::ARROW;
-
-    geometry_msgs::Point from, to;
-    from.x = x_meas;
-    from.y = y_meas;
-    to.x = path_interpol.p(ind);
-    to.y = path_interpol.q(ind);
-
-    orth_proj_marker.points.push_back(from);
-    orth_proj_marker.points.push_back(to);
-
-    visualizer_->getMarkerPublisher().publish(orth_proj_marker);
-
-    //***//
+    ///***///
 
 
-    //***//
+    ///calculate the control for the current point on the path
 
-    //Calculate the look-ahead curvature
+    //robot direction angle in path coordinates
+    double theta = theta_meas - path_interpol.theta_p(ind_);
+
+    //robot position vector module
+    double r = hypot(x_meas - path_interpol.p(ind_), y_meas - path_interpol.q(ind_));
+
+    //robot position vector angle in world coordinates
+    double theta_r = atan2(y_meas - path_interpol.q(ind_), x_meas - path_interpol.p(ind_));
+
+    //robot position vector angle in path coordinates
+    double delta_theta = MathHelper::AngleClamp(theta_r - path_interpol.theta_p(ind_));
+
+    //current robot position in path coordinates
+    xe_ = r * cos(delta_theta);
+    ye_ = r * sin(delta_theta);
+
+    ///***///
+
+
+    ///Calculate the parameters for exponential speed control
 
     //calculate the curvature, and stop when the look-ahead distance is reached (w.r.t. orthogonal projection)
     double s_cum_sum = 0;
     curv_sum_ = 1e-10;
 
+    for (unsigned int i = ind_ + 1; i < path_interpol.n(); i++){
 
-    for (unsigned int i = ind + 1; i < path_interpol.n(); i++){
-
-        s_cum_sum = path_interpol.s(i) - path_interpol.s(ind);
+        s_cum_sum = path_interpol.s(i) - path_interpol.s(ind_);
         curv_sum_ += fabs(path_interpol.curvature(i));
 
         if(s_cum_sum - opt_.look_ahead_dist() >= 0){
@@ -237,18 +210,26 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
         }
     }
 
-
     //calculate the distance from the orthogonal projection to the goal, w.r.t. path
-    distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(ind);
+    distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(ind_);
 
     //get the robot's current angular velocity
     double angular_vel = path_driver_->getVelocity().angular.z;
-    //***//
+    ///***///
+
+    ///Calculate the delta_ and its derivative
+
+    double delta_old = delta_;
+
+    delta_ = -sign_v_*opt_.theta_a()*tanh(ye_);
+
+    double delta_prim = (delta_ - delta_old)/Ts_;
+    ///***///
 
 
-    //control
+    ///Control
 
-    ////ensure valid values
+    //ensure valid values
     if(distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
     if(distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e-10;
 
@@ -257,14 +238,70 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
             + opt_.k_o()/distance_to_obstacle_
             + opt_.k_g()/distance_to_goal_;
 
-    ////TODO: consider the minimum excitation speed
-    cmd_.speed = std::max(0.2,vn_*exp(-exponent));
+    //TODO: consider the minimum excitation speed
+    double v = std::max(0.2,vn_*exp(-exponent));
+    cmd_.speed = v;
 
     cmd_.direction_angle = 0;
 
-    cmd_.rotation = 0;
+    cmd_.rotation = delta_prim - opt_.gamma()*ye_*v*(sin(theta) - sin(delta_))
+                    /(theta - delta_) - opt_.k2()*(theta - delta_);
 
-    //***//
+    ///***///
+
+    ///Get the velocity sign
+
+    if(v > 0) sign_v_ = 1;
+    else if (v < 0) sign_v_ = -1;
+    else sign_v_ = 0;
+
+    ///***///
+
+
+    ///plot the moving reference frame together with position vector and error components
+
+    if (visualizer_->hasSubscriber()) {
+        visualizer_->drawFrenetSerretFrame(0, current_pose, xe_, ye_, path_interpol.p(ind_),
+                                           path_interpol.q(ind_), path_interpol.theta_p(ind_));
+    }
+
+    ///***///
+
+
+    ///Calculate the next point on the path
+
+    double s_old = path_interpol.s_new();
+
+    //calculate the speed of the "virtual vehicle"
+    path_interpol.set_s_prim(v * cos(theta) + opt_.k1() * xe_);
+
+    //approximate the first derivative and calculate the next point
+    double s_temp = Ts_*path_interpol.s_prim() + s_old;
+    path_interpol.set_s_new(s_temp > 0 ? s_temp : 0);
+
+    ///***///
+
+
+    ///Calculate the index of the new point
+
+    double s_diff = std::numeric_limits<double>::max();
+    uint old_ind = ind_;
+
+    for (unsigned int i = old_ind; i < path_interpol.n(); i++){
+
+        double s_diff_curr = std::abs(path_interpol.s_new() - path_interpol.s(i));
+
+        if(s_diff_curr < s_diff){
+
+            s_diff = s_diff_curr;
+            ind_ = i;
+
+        }
+
+    }
+
+    ///***///
+
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
@@ -274,7 +311,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
 
     // check for end
-    double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1), y_meas - path_interpol.q(path_interpol.n()-1));
+    double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
+                                         y_meas - path_interpol.q(path_interpol.n()-1));
     ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl);
 
     if(distance_to_goal_eucl <= path_driver_->getOptions().goal_tolerance()) {
