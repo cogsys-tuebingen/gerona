@@ -226,8 +226,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double delta_prim = (delta_ - delta_old)/Ts_;
     ///***///
 
-
-    ///Control
+    ///Speed control
 
     //ensure valid values
     if(distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
@@ -242,10 +241,30 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double v = std::max(0.2,vn_*exp(-exponent));
     cmd_.speed = v;
 
+    ///***///
+
+
+    ///Calculate the next point on the path
+
+    double s_old = path_interpol.s_new();
+
+    //calculate the speed of the "virtual vehicle"
+    path_interpol.set_s_prim(v * cos(theta) + opt_.k1() * xe_);
+
+    //approximate the first derivative and calculate the next point
+    double s_temp = Ts_*path_interpol.s_prim() + s_old;
+    path_interpol.set_s_new(s_temp > 0 ? s_temp : 0);
+
+    ///***///
+
+
+    ///Direction control
+
     cmd_.direction_angle = 0;
 
+    //omega_m = theta_prim + curv*s_prim
     cmd_.rotation = delta_prim - opt_.gamma()*ye_*v*(sin(theta) - sin(delta_))
-                    /(theta - delta_) - opt_.k2()*(theta - delta_);
+                    /(theta - delta_) - opt_.k2()*(theta - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
 
     ///***///
 
@@ -264,20 +283,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
         visualizer_->drawFrenetSerretFrame(0, current_pose, xe_, ye_, path_interpol.p(ind_),
                                            path_interpol.q(ind_), path_interpol.theta_p(ind_));
     }
-
-    ///***///
-
-
-    ///Calculate the next point on the path
-
-    double s_old = path_interpol.s_new();
-
-    //calculate the speed of the "virtual vehicle"
-    path_interpol.set_s_prim(v * cos(theta) + opt_.k1() * xe_);
-
-    //approximate the first derivative and calculate the next point
-    double s_temp = Ts_*path_interpol.s_prim() + s_old;
-    path_interpol.set_s_new(s_temp > 0 ? s_temp : 0);
 
     ///***///
 
