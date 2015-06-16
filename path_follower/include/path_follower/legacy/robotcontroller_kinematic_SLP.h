@@ -51,6 +51,8 @@ private:
         P<double> k2;
         P<double> gamma;
         P<double> theta_a;
+        P<double> epsilon;
+        P<double> b;
         P<double> max_angular_velocity;
         P<double> look_ahead_dist;
         P<double> k_o;
@@ -63,6 +65,8 @@ private:
             k2(this, "~k2", 1.0, ""),
             gamma(this, "~gamma", 1.0, ""),
             theta_a(this, "~theta_a", M_PI/4.0, ""),
+            epsilon(this, "~epsilon", 0.5, ""),
+            b(this, "~b", 0.2, ""),
             max_angular_velocity(this, "~max_angular_velocity", 2.0, ""),
             look_ahead_dist(this, "~look_ahead_dist", 0.5, ""),
             k_o(this, "~k_o", 0.3, ""),

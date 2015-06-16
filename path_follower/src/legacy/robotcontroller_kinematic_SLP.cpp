@@ -176,7 +176,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///calculate the control for the current point on the path
 
     //robot direction angle in path coordinates
-    double theta = theta_meas - path_interpol.theta_p(ind_);
+    double theta_e = theta_meas - path_interpol.theta_p(ind_);
 
     //robot position vector module
     double r = hypot(x_meas - path_interpol.p(ind_), y_meas - path_interpol.q(ind_));
@@ -226,7 +226,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double delta_prim = (delta_ - delta_old)/Ts_;
     ///***///
 
-    ///Speed control
+
+    ///Exponential speed control
 
     //ensure valid values
     if(distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
@@ -238,7 +239,22 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
             + opt_.k_g()/distance_to_goal_;
 
     //TODO: consider the minimum excitation speed
-    double v = std::max(0.2,vn_*exp(-exponent));
+    double v = std::max(0.4,vn_*exp(-exponent));
+
+    ///***///
+
+
+    ///Lyapunov-curvature speed control
+
+    //Lyapunov function as a measure of the path following error
+    double V1 = 0.5*(std::pow(xe_,2) + std::pow(ye_,2)) + (0.5/opt_.gamma())*std::pow((theta_e - delta_),2);
+
+    //use v/2 as the minimum speed, and allow larger values when the error is small
+    if(V1 >= opt_.epsilon()) v = 0.5*v;
+
+    else if(V1 < opt_.epsilon()) v = v/(1 + opt_.b()*std::abs(path_interpol.curvature(ind_)));
+
+
     cmd_.speed = v;
 
     ///***///
@@ -249,7 +265,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double s_old = path_interpol.s_new();
 
     //calculate the speed of the "virtual vehicle"
-    path_interpol.set_s_prim(v * cos(theta) + opt_.k1() * xe_);
+    path_interpol.set_s_prim(v * cos(theta_e) + opt_.k1() * xe_);
 
     //approximate the first derivative and calculate the next point
     double s_temp = Ts_*path_interpol.s_prim() + s_old;
@@ -263,8 +279,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     cmd_.direction_angle = 0;
 
     //omega_m = theta_prim + curv*s_prim
-    cmd_.rotation = delta_prim - opt_.gamma()*ye_*v*(sin(theta) - sin(delta_))
-                    /(theta - delta_) - opt_.k2()*(theta - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
+    cmd_.rotation = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
+                    /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
 
     ///***///
 

@@ -26,6 +26,8 @@
     <param name="k2" value="1.0" />
     <param name="gamma" value="1.0" />
     <param name="theta_a" value="0.78539816339" />
+    <param name="epsilon" value="0.5" />
+    <param name="b" value="0.2" />
 
     <param name="look_ahead_dist" value="0.5" />
     <param name="k_o" value="0.1" />
