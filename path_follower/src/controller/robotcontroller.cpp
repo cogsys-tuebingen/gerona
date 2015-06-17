@@ -29,7 +29,7 @@ RobotController::RobotController(PathFollower* path_driver)
     robot_path_marker_.pose.orientation.y = 0.0;
     robot_path_marker_.pose.orientation.z = 0.0;
     robot_path_marker_.pose.orientation.w = 1.0;
-    robot_path_marker_.scale.x = 0.1;
+    robot_path_marker_.scale.x = 0.01;
     robot_path_marker_.scale.y = 0.0;
     robot_path_marker_.scale.z = 0.0;
     robot_path_marker_.color.a = 1.0;

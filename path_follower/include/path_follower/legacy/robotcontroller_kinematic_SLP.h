@@ -50,6 +50,9 @@ private:
         P<double> k1;
         P<double> k2;
         P<double> gamma;
+        P<double> theta_a;
+        P<double> epsilon;
+        P<double> b;
         P<double> max_angular_velocity;
         P<double> look_ahead_dist;
         P<double> k_o;
@@ -58,9 +61,12 @@ private:
         P<double> k_curv;
         
         ControllerParameters():
-            k1(this, "~k1", 1.5, ""),
-            k2(this, "~k2", 0.4, ""),
-            gamma(this, "~gamma", 0.2, ""),
+            k1(this, "~k1", 1.0, ""),
+            k2(this, "~k2", 1.0, ""),
+            gamma(this, "~gamma", 1.0, ""),
+            theta_a(this, "~theta_a", M_PI/4.0, ""),
+            epsilon(this, "~epsilon", 0.5, ""),
+            b(this, "~b", 0.2, ""),
             max_angular_velocity(this, "~max_angular_velocity", 2.0, ""),
             look_ahead_dist(this, "~look_ahead_dist", 0.5, ""),
             k_o(this, "~k_o", 0.3, ""),
@@ -156,11 +162,16 @@ private:
     double delta_;
     //sampling time
     double Ts_;
+
+    //index of the current point on the path
+    uint ind_;
+    //velocity sign
+    int sign_v_;
     
     //x component of the following error in path coordinates
-    double xe;
+    double xe_;
     //y component of the following error in path coordinates
-    double ye;
+    double ye_;
     
     //cumulative curvature sum w.r.t. path
     double curv_sum_;

@@ -27,11 +27,13 @@ void RobotController_Interpolation::setPath(Path::Ptr path)
         path_interpol.interpolatePath(path);
         publishInterpolatedPath();
 
+
     } catch(const alglib::ap_error& error) {
         throw std::runtime_error(error.msg);
     }
 
     initialize();
+
 }
 
 void RobotController_Interpolation::initialize()
@@ -52,7 +54,8 @@ void RobotController_Interpolation::publishInterpolatedPath()
 
 bool RobotController_Interpolation::reachedGoal(const Eigen::Vector3d& pose) const
 {
-    const unsigned int end = path_interpol.length() - 1;
+
+    const unsigned int end = path_interpol.n() - 1;
     return hypot(path_interpol.p(end) - pose[0], path_interpol.q(end) - pose[1])
             <= getParameters().goal_tolerance();
 }

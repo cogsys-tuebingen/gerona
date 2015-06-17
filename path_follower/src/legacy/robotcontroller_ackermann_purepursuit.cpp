@@ -58,7 +58,7 @@ void Robotcontroller_Ackermann_PurePursuit::start() {
 RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::computeMoveCommand(
 		MoveCommand* cmd) {
 
-	if(path_interpol.length() <= 2)
+    if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
 	Eigen::Vector3d pose = path_driver_->getRobotPose();
@@ -73,7 +73,7 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 			*cmd = move_cmd;
 
 #ifdef DEBUG
-			ROS_INFO("Reached goal.");
+		ROS_INFO("Reached goal.");
 #endif
 
 			return RobotController::MoveCommandStatus::REACHED_GOAL;
@@ -134,7 +134,7 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
 	// TODO: correct angle, when the goal is near
 
 	double distance, dx, dy;
-	for (unsigned int i = waypoint_; i < path_interpol.length(); ++i) {
+	for (unsigned int i = waypoint_; i < path_interpol.n(); ++i) {
 			dx = path_interpol.p(i) - pose[0];
 			dy = path_interpol.q(i) - pose[1];
 
@@ -154,7 +154,6 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
 	geometry_msgs::Point from, to;
 	from.x = pose[0]; from.y = pose[1];
 	to.x = path_interpol.p(waypoint_); to.y = path_interpol.q(waypoint_);
-
 	visualizer_->drawLine(12341234, from, to, "map", "geo", 1, 0, 0, 1, 0.01);
 
 #ifdef DEBUG
