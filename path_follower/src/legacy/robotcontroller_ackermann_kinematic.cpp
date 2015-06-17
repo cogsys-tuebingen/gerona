@@ -44,13 +44,15 @@ void RobotController_Ackermann_Kinematic::start() {
 
 void RobotController_Ackermann_Kinematic::reset() {
 	oldTime = ros::Time::now();
+	RobotController_Interpolation::reset();
 }
 
 RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeMoveCommand(
 		MoveCommand* cmd) {
 
 	ROS_INFO("===============================");
-    if(path_interpol.n() <= 2)
+
+	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
 	const Eigen::Vector3d pose = path_driver_->getRobotPose();
@@ -71,7 +73,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 	double minDist = std::numeric_limits<double>::max();
 	unsigned int s = 0;
-    for (unsigned int i = 0; i < path_interpol.n(); ++i) {
+	for (unsigned int i = 0; i < path_interpol.n(); ++i) {
 		const double dx = path_interpol.p(i) - pose[0];
 		const double dy = path_interpol.q(i) - pose[1];
 
@@ -99,16 +101,17 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 				minDist : -minDist;
 
 
-	// TODO: must be != M_PI2 or -M_PI2
+	// TODO: must be != M_PI_2 or -M_PI_2
 	const double thetaP = MathHelper::AngleDelta(path_interpol.theta_p(s), pose[2]);
 
 	const double c = path_interpol.curvature(s);
 	const double c_prim = path_interpol.curvature_prim(s);
 	const double c_sek = path_interpol.curvature_sek(s);
 
-	ROS_INFO("e_ra=%f, e_theta=%f, c=%f, c'=%f, c''=%f", d, thetaP, c, c_prim, c_sek);
+	ROS_INFO("d=%f, thetaP=%f, c=%f, c'=%f, c''=%f", d, thetaP, c, c_prim, c_sek);
 
-	//	const unsigned int sPlus1 = s == path_interpol.length() - 1 ? s : s + 1;
+	//	const unsigned int sPlus1 = s == path_interpol.n() - 1 ? s : s + 1;
+	//	// TODO: sign of d(sPlus1)
 	//	const double d_prim = hypot(pose[0] - path_interpol.p(sPlus1),
 	//			pose[1] - path_interpol.q(sPlus1)) - d;
 	//	const double thetaP_prim =
@@ -168,16 +171,13 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 			+ 3. * pow(curvatureError, 2) * tan(delta) * tanThetaP / (params.vehicle_length()
 																						 * cosThetaP3);
 
-	const double dx2ds = c_sek * thetaP * tanThetaP
-			+ curvatureError * thetaP * c
-			* (pow(c_prim, 2) * (1. + sinThetaP2) / cosThetaP2
-				- 2. * tan(delta) / (params.vehicle_length() * cosThetaP3));
-
-
+	const double dx2ds = c_sek * d * tanThetaP
+			+ curvatureError * d * c * (pow(c_prim, 2) * (1. + sinThetaP2) / cosThetaP2
+												 - 2. * tan(delta) / (params.vehicle_length() * cosThetaP3));
 
 	//	const double dx2ds =
 	//			tanThetaP * (c_sek * d + c_prim * d_prim)
-	//			+ c_prim * d * thetaP_prim * (tanThetaP2 + 1)
+	//			+ c_prim * d * thetaP_prim * (tanThetaP2 + 1.)
 	//			- curvatureError * (c_prim * (1. + sinThetaP2) / cosThetaP2
 	//									  + 2. * c * thetaP_prim * tanThetaP / cosThetaP2)
 	//			- c * (d_prim * c + d * c_prim) * (1. + sinThetaP2) / cosThetaP2
@@ -233,7 +233,7 @@ void RobotController_Ackermann_Kinematic::publishMoveCommand(
 
 bool RobotController_Ackermann_Kinematic::reachedGoal(
 		const Eigen::Vector3d& pose) const {
-    const unsigned int end = path_interpol.n() - 1;
+	const unsigned int end = path_interpol.n() - 1;
 	return hypot(path_interpol.p(end) - pose[0], path_interpol.q(end) - pose[1])
 			<= params.goal_tolerance();
 }

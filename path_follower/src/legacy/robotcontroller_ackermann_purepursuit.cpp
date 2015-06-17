@@ -20,7 +20,6 @@
 
 #define DEBUG
 
-
 Robotcontroller_Ackermann_PurePursuit::Robotcontroller_Ackermann_PurePursuit (PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower),
 	waypoint_(0) {
@@ -58,7 +57,7 @@ void Robotcontroller_Ackermann_PurePursuit::start() {
 RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::computeMoveCommand(
 		MoveCommand* cmd) {
 
-    if(path_interpol.n() <= 2)
+	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
 	Eigen::Vector3d pose = path_driver_->getRobotPose();
@@ -73,20 +72,24 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 			*cmd = move_cmd;
 
 #ifdef DEBUG
-		ROS_INFO("Reached goal.");
+			ROS_INFO("Reached goal.");
 #endif
 
 			return RobotController::MoveCommandStatus::REACHED_GOAL;
 
 		} else {
 
+			ROS_INFO("Next subpath...");
+
 			try {
-				 path_interpol.interpolatePath(path_);
-//				 publishInterpolatedPath();
+				path_interpol.interpolatePath(path_);
+				//				 publishInterpolatedPath();
 
 			} catch(const alglib::ap_error& error) {
-				 throw std::runtime_error(error.msg);
+				throw std::runtime_error(error.msg);
 			}
+
+			waypoint_ = 0;
 		}
 	}
 
@@ -102,13 +105,9 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 	const double delta = atan2(2. * params.vehicle_length() * sin(alpha), lookahead_distance);
 
 	//	 const double delta = asin((VEHICLE_LENGTH * alpha) / lookahead_distance);
-	if (dir_sign_ >= 0.) {
-		move_cmd.setDirection((float) delta);
-		move_cmd.setVelocity((float) velocity_);
-	} else {
-		move_cmd.setDirection((float) -delta);
-		move_cmd.setVelocity((float) -velocity_);
-	}
+//	float dir_sign = MathHelper::sign<double>(next_wp_local_.x());
+	move_cmd.setDirection((float) delta);
+	move_cmd.setVelocity(dir_sign_ * (float) velocity_);
 
 	ROS_INFO("Command: vel=%f, angle=%f", velocity_, delta);
 
@@ -135,16 +134,25 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
 
 	double distance, dx, dy;
 	for (unsigned int i = waypoint_; i < path_interpol.n(); ++i) {
-			dx = path_interpol.p(i) - pose[0];
-			dy = path_interpol.q(i) - pose[1];
+		dx = path_interpol.p(i) - pose[0];
+		dy = path_interpol.q(i) - pose[1];
 
-			distance = hypot(dx, dy);
-			waypoint_ = i;
-			if (distance >= lookahead_distance)
-				break;
+		distance = hypot(dx, dy);
+		waypoint_ = i;
+		if (distance >= lookahead_distance)
+			break;
 	}
 	// angle between the connection line and the vehicle orientation
-	const double alpha = MathHelper::AngleDelta(pose[2], atan2(dy, dx));
+	double alpha = MathHelper::AngleDelta(pose[2], atan2(dy, dx));
+
+	if (alpha > M_PI_2) {
+		setDirSign(-1.f);
+		alpha = M_PI - alpha;
+	} else if (alpha < -M_PI_2) {
+		setDirSign(-1.f);
+		alpha = -M_PI - alpha;
+	} else
+		setDirSign(1.f);
 
 	// set lookahead_distance to the actual distance
 	lookahead_distance = distance;
@@ -160,7 +168,7 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
 	ROS_INFO("LookAheadPoint: index=%i, x=%f, y=%f", waypoint_, path_interpol.p(waypoint_)
 				, path_interpol.q(waypoint_));
 	ROS_INFO("Pose: x=%f, y=%f, theta=%f", pose[0], pose[1], pose[2]);
-	ROS_INFO("Alpha=%f", alpha);
+	ROS_INFO("Alpha=%f, dir_sign=%f", alpha, dir_sign_);
 #endif
 
 	return alpha;
