@@ -27,8 +27,10 @@ Robotcontroller_Ackermann_PurePursuit::Robotcontroller_Ackermann_PurePursuit (Pa
 	path_interpol_pub = node_handle.advertise<nav_msgs::Path>("interp_path", 10);
 
 
-	ROS_INFO("Parameters: factor_lookahead_distance=%f\nvehicle_length=%f\nfactor_steering_angle=%f",
-				params.factor_lookahead_distance(), params.vehicle_length(), params.factor_steering_angle());
+	ROS_INFO("Parameters: factor_lookahead_distance=%f\nvehicle_length=%f\nfactor_steering_angle=%f"
+				"\ngoal_tolerance=%f",
+				params.factor_lookahead_distance(), params.vehicle_length(), params.factor_steering_angle(),
+				params.goal_tolerance());
 
 }
 
@@ -59,6 +61,8 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
+
+	ROS_INFO("======================");
 
 	Eigen::Vector3d pose = path_driver_->getRobotPose();
 

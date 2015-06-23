@@ -33,7 +33,7 @@ Launch the path follower with the pure pursuit controller for a car-like (Ackerm
     <param name="min_velocity" value="0.5" />
     <param name="max_velocity" value="0.7" />
     <param name="waypoint_tolerance" value="0.8" />
-	 <param name="goal_tolerance" value="0.2" />
+	 <param name="goal_tolerance" value="0.25" />
     
     
     <!-- parameters, that are dependent of the controller or the robot model -->
