@@ -176,7 +176,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///calculate the control for the current point on the path
 
     //robot direction angle in path coordinates
-    double theta_e = theta_meas - path_interpol.theta_p(ind_);
+    double theta_e = MathHelper::AngleClamp(theta_meas - path_interpol.theta_p(ind_));
 
     //robot position vector module
     double r = hypot(x_meas - path_interpol.p(ind_), y_meas - path_interpol.q(ind_));
@@ -221,7 +221,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     double delta_old = delta_;
 
-    delta_ = -sign_v_*opt_.theta_a()*tanh(ye_);
+    delta_ = MathHelper::AngleClamp(-sign_v_*opt_.theta_a()*tanh(ye_));
 
     double delta_prim = (delta_ - delta_old)/Ts_;
     ///***///
@@ -279,8 +279,12 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     cmd_.direction_angle = 0;
 
     //omega_m = theta_prim + curv*s_prim
-    cmd_.rotation = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
+    double omega_m = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
                     /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
+
+    if(omega_m > 0.7) omega_m = 0.7;
+    if(omega_m < -0.7) omega_m = -0.7;
+    cmd_.rotation = omega_m;
 
     ///***///
 
