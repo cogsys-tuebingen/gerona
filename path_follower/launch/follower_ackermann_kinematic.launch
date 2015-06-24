@@ -37,7 +37,7 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
     
     <!-- parameters, that are dependent of the controller or the robot model -->
 	 <param name="vehicle_length" value="0.34" />
-	 <param name="k" value="5.0" />
+	 <param name="k" value="6.0" />
 
 
     <remap from="scan" to="scan/filtered" />

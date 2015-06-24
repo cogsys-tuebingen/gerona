@@ -20,8 +20,8 @@ RobotController_Ackermann_Kinematic::RobotController_Ackermann_Kinematic(PathFol
 	path_interpol_pub = node_handle.advertise<nav_msgs::Path>("interp_path", 10);
 
 	const double k = params.k();
-//	k1 = k * k * k;
-	k1 = 10. * k * k;
+	k1 = k * k * k;
+	//	k1 = 10. * k * k;
 	k2 = 3. * k * k;
 	k3 = 3. * k;
 
@@ -144,35 +144,34 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// u1 is taken from "Feedback control for a path following robotic car" by Mellodge,
 	// p. 108 (u1_actual)
 	const double u1 = velocity_ * cosThetaP / curvatureError; // OK
-//	const double u2 = -k1 * abs(u1) * x2 - k2 * u1 * x3 - k3 * abs(u1) * x4;
+	//	const double u2 = -k1 * abs(u1) * x2 - k2 * u1 * x3 - k3 * abs(u1) * x4;
 	const double u2 = -k1 * u1 * x4 - k2 * u1 * x3 - k3 * u1 * x2; // OK
 
 	//alpha1: also from Mellodge
-	const double dx2dd =
-			c * c * (1 + sinThetaP2) / cosThetaP2
-			- 2. * curvatureError * c * tan(delta) / (params.vehicle_length() * cosThetaP3); // OK
+	//	const double dx2dd =
+	//			c * c * (1 + sinThetaP2) / cosThetaP2
+	//			- 2. * curvatureError * c * tan(delta) / (params.vehicle_length() * cosThetaP3); // OK
 
-	const	double dx2dthetaP =
-			-c * curvatureError * 4. * tanThetaP / cosThetaP2
-			+ 3. * pow(curvatureError, 2) * tan(delta) * tanThetaP / (params.vehicle_length() * cosThetaP3); // OK
+	//	const	double dx2dthetaP =
+	//			-c * curvatureError * 4. * tanThetaP / cosThetaP2
+	//			+ 3. * pow(curvatureError, 2) * tan(delta) * tanThetaP / (params.vehicle_length() * cosThetaP3); // OK
 
 	//	this slightly differs from de Luca: dx2/ds is missing
-	const double dx2ds = 0.; // OK
+	//	const double dx2ds = 0.; // OK
 
 	// my version
-//	const double dx2dd = c_prim * tanThetaP
-//			- c * c * (1 + sinThetaP2) / cosThetaP2
-//			- 2. * curvatureError * c * tan(delta) / (params.vehicle_length() * cosThetaP3);
+	const double dx2dd = c_prim * tanThetaP
+			- c * c * (1 + sinThetaP2) / cosThetaP2
+			- 2. * curvatureError * c * tan(delta) / (params.vehicle_length() * cosThetaP3);
 
-	// (why 4????)
-//	const double dx2dthetaP = c_prim * (tanThetaP2 + 1.)
-//			- 2. * c * curvatureError * tanThetaP / cosThetaP2
-//			+ 3. * pow(curvatureError, 2) * tan(delta) * tanThetaP / (params.vehicle_length()
-//																						 * cosThetaP3);
+	const double dx2dthetaP = c_prim * (tanThetaP2 + 1.)
+			- 4. * c * curvatureError * tanThetaP / cosThetaP2
+			+ 3. * pow(curvatureError, 2) * tan(delta) * tanThetaP / (params.vehicle_length()
+																						 * cosThetaP3);
 
-//	const double dx2ds = c_sek * d * tanThetaP
-//			+ curvatureError * d * c * (pow(c_prim, 2) * (1. + sinThetaP2) / cosThetaP2
-//												 - 2. * tan(delta) / (params.vehicle_length() * cosThetaP3));
+	const double dx2ds = c_sek * d * tanThetaP
+			+ curvatureError * d * c * (pow(c_prim, 2) * (1. + sinThetaP2) / cosThetaP2
+												 - 2. * tan(delta) / (params.vehicle_length() * cosThetaP3));
 
 	//	const double dx2ds =
 	//			tanThetaP * (c_sek * d + c_prim * d_prim)
@@ -197,8 +196,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	ROS_INFO("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);
 
 	// longitudinal velocity
-//	double v1 = curvatureError * u1 / cosThetaP; // OK
-	double v1 = curvatureError * 1. / cosThetaP; // OK
+	double v1 = curvatureError * u1 / cosThetaP; // OK
 	if (v1 > velocity_)
 		v1 = velocity_;
 
