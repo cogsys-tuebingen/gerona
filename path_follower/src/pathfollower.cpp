@@ -34,6 +34,10 @@ using namespace path_msgs;
 using namespace std;
 using namespace Eigen;
 
+// toelrances which define when two waypoints are assumed as identical
+const double WAYPOINT_POS_DIFF_TOL = 0.001;
+const double WAYPOINT_ANGLE_DIFF_TOL = 0.01*M_PI/180.0;
+
 
 namespace beep {
 static std::vector<int> OBSTACLE_IN_PATH = boost::assign::list_of(25)(25)(25);
@@ -501,6 +505,14 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
     for(unsigned i = 1; i < n; ++i){
         const Waypoint current_point(path.poses[i]);
 
+        double diff_last_x = current_point.x - last_point.x;
+        double diff_last_y = current_point.y - last_point.y;
+        double diff_last_angle = MathHelper::AngleClamp(current_point.orientation - last_point.orientation);
+        if (diff_last_x*diff_last_x+diff_last_y*diff_last_y<WAYPOINT_POS_DIFF_TOL*WAYPOINT_POS_DIFF_TOL
+                && fabs(diff_last_angle)<WAYPOINT_ANGLE_DIFF_TOL) {
+           // duplicate waypoint -> ignroe current one and proceed
+            continue;
+        }
         // append to current segment
         current_segment.push_back(current_point);
 
@@ -515,8 +527,7 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
             const Waypoint next_point(path.poses[i+1]);
 
             // if angle between last direction and next direction to large -> segment ends
-            double diff_last_x = current_point.x - last_point.x;
-            double diff_last_y = current_point.y - last_point.y;
+
             double last_angle = std::atan2(diff_last_y, diff_last_x);
 
             double diff_next_x = next_point.x - current_point.x;
