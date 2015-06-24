@@ -72,7 +72,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 
 	double minDist = std::numeric_limits<double>::max();
-	unsigned int s = 0;
+	unsigned int j = 0;
 	for (unsigned int i = 0; i < path_interpol.n(); ++i) {
 		const double dx = path_interpol.p(i) - pose[0];
 		const double dy = path_interpol.q(i) - pose[1];
@@ -80,33 +80,33 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 		const double dist = hypot(dx, dy);
 		if (dist < minDist) {
 			minDist = dist;
-			s = i;
+			j = i;
 		}
 	}
 
 	// line to nearest waypoint
 	geometry_msgs::Point from, to;
 	from.x = pose[0]; from.y = pose[1];
-	to.x = path_interpol.p(s); to.y = path_interpol.q(s);
+	to.x = path_interpol.p(j); to.y = path_interpol.q(j);
 
 	visualizer_->drawLine(12341234, from, to, "map", "kinematic", 1, 0, 0, 1, 0.01);
 
 
 	// distance to the path (path to the right -> positive)
-	Eigen::Vector2d pathVehicle(pose[0] - path_interpol.p(s),
-			pose[1] - path_interpol.q(s));
+	Eigen::Vector2d pathVehicle(pose[0] - path_interpol.p(j),
+			pose[1] - path_interpol.q(j));
 
 	const double d =
-			MathHelper::AngleDelta(MathHelper::Angle(pathVehicle), path_interpol.theta_p(s)) < 0. ?
+			MathHelper::AngleDelta(MathHelper::Angle(pathVehicle), path_interpol.theta_p(j)) < 0. ?
 				minDist : -minDist;
 
 
 	// TODO: must be != M_PI_2 or -M_PI_2
-	const double thetaP = MathHelper::AngleDelta(path_interpol.theta_p(s), pose[2]);
+	const double thetaP = MathHelper::AngleDelta(path_interpol.theta_p(j), pose[2]);
 
-	const double c = path_interpol.curvature(s);
-	const double c_prim = path_interpol.curvature_prim(s);
-	const double c_sek = path_interpol.curvature_sek(s);
+	const double c = path_interpol.curvature(j);
+	const double c_prim = path_interpol.curvature_prim(j);
+	const double c_sek = path_interpol.curvature_sek(j);
 
 	ROS_INFO("d=%f, thetaP=%f, c=%f, c'=%f, c''=%f", d, thetaP, c, c_prim, c_sek);
 

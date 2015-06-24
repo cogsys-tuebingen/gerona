@@ -152,23 +152,23 @@ double PathInterpolated::curvature_prim(const unsigned int i) const {
 	if(n() <= 1)
 		return 0.;
 
-	unsigned int x = i == n() - 1 ? i : i + 1;
-	unsigned int y = x - 1;
+	unsigned int i_1 = i == n() - 1 ? i : i + 1;
+	unsigned int i_0 = i_1 - 1;
 
 	// differential quotient
-	return curvature(x) - curvature(y) / hypot(p(x) - p(y), q(x) - q(y));
+	return (curvature(i_1) - curvature(i_0)) / (s(i_1) - s(i_0));
 }
 
 
 double PathInterpolated::curvature_sek(const unsigned int i) const {
-	if(n() <= 1)
+	if(n() <= 2)
 		return 0.;
 
-	unsigned int x = i == n() - 1 ? i : i + 1;
-	unsigned int y = x - 1;
+	unsigned int i_1 = i == n() - 1 ? i : i + 1;
+	unsigned int i_0 = i_1 - 1;
 
 	// differential quotient
-	return curvature_prim(x) - curvature_prim(y) / hypot(p(x) - p(y), q(x) - q(y));
+	return (curvature_prim(i_1) - curvature_prim(i_0)) / (s(i_1) - s(i_0));
 }
 
 PathInterpolated::operator nav_msgs::Path() const {
