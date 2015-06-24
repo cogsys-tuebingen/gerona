@@ -28,10 +28,15 @@ private:
 	struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
 		P<double> vehicle_length;
 		P<double> k;
+		P<double> factor_steering_angle;
+		P<double> max_steering_angle;
 
 		ControllerParameters() :
 			vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance"),
-			k(this, "~k", 0.5, "Tuning factor")
+			k(this, "~k", 0.5, "Tuning factor"),
+			factor_steering_angle(this, "~factor_steering_angle", 1.0,
+										 "Set 1.0 for one axis steering, 0.5 for two axis steering"),
+			max_steering_angle(this, "~max_steering_angle", M_PI / 3, "Maximum steering angle")
 		{}
 
 	} params;

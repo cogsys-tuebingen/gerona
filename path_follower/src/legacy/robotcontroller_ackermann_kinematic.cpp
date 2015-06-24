@@ -27,7 +27,10 @@ RobotController_Ackermann_Kinematic::RobotController_Ackermann_Kinematic(PathFol
 
 	delta = 0.;
 
-	ROS_INFO("Parameters: vehicle_length=%f, k=%f", params.vehicle_length(), params.k());
+	ROS_INFO("Parameters: k=%f\nvehicle_length=%f\nfactor_steering_angle=%f"
+				"\ngoal_tolerance=%f\nmax_steering_angle=%f",
+				params.k(), params.vehicle_length(), params.factor_steering_angle(),
+				params.goal_tolerance(), params.max_steering_angle());
 
 }
 
@@ -235,11 +238,11 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	delta += v2 * timePassed.toSec();
 	oldTime = ros::Time::now();
 
-	delta = boost::algorithm::clamp(delta, -M_PI_4, M_PI_4);
+	delta = boost::algorithm::clamp(delta, -params.max_steering_angle(), params.max_steering_angle());
 
 	ROS_INFO("Time passed: %fs, command: v1=%f, v2=%f, delta=%f",
 				timePassed.toSec(), v1, v2, delta);
-	move_cmd.setDirection((float) delta);
+	move_cmd.setDirection(params.factor_steering_angle() * (float) delta);
 	move_cmd.setVelocity(getDirSign() * (float) v1);
 
 
