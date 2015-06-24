@@ -17,7 +17,7 @@ public:
 	virtual void stopMotion();
 	virtual void start();
 	virtual bool isOmnidirectional() const {
-		return true;
+		return false;
 	}
 
 protected:

@@ -59,17 +59,33 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 	const Eigen::Vector3d pose = path_driver_->getRobotPose();
 
+	// TODO: theta should also be considered in goal test
 	if (reachedGoal(pose)) {
-		move_cmd.setDirection(0.);
-		move_cmd.setVelocity(0.);
+		path_->switchToNextSubPath();
+		if (path_->isDone()) {
+			move_cmd.setDirection(0.);
+			move_cmd.setVelocity(0.);
 
-		*cmd = move_cmd;
+			*cmd = move_cmd;
 
 #ifdef DEBUG
-		ROS_INFO("Reached goal.");
+			ROS_INFO("Reached goal.");
 #endif
 
-		return RobotController::MoveCommandStatus::REACHED_GOAL;
+			return RobotController::MoveCommandStatus::REACHED_GOAL;
+
+		} else {
+
+			ROS_INFO("Next subpath...");
+
+			try {
+				path_interpol.interpolatePath(path_);
+				//				 publishInterpolatedPath();
+
+			} catch(const alglib::ap_error& error) {
+				throw std::runtime_error(error.msg);
+			}
+		}
 	}
 
 
@@ -97,13 +113,24 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// distance to the path (path to the right -> positive)
 	Eigen::Vector2d pathVehicle(pose[0] - path_interpol.p(j), pose[1] - path_interpol.q(j));
 
-	const double d =
-			MathHelper::AngleDelta(MathHelper::Angle(pathVehicle), path_interpol.theta_p(j)) < 0. ?
+	double d = MathHelper::AngleDelta(MathHelper::Angle(pathVehicle), path_interpol.theta_p(j)) < 0. ?
 				minDist : -minDist;
 
 
 	// TODO: must be != M_PI_2 or -M_PI_2
-	const double thetaP = MathHelper::AngleDelta(path_interpol.theta_p(j), pose[2]);
+	double thetaP = MathHelper::AngleDelta(path_interpol.theta_p(j), pose[2]);
+
+	// decide whether to drive forward or backward
+	if (thetaP > M_PI_2) {
+		setDirSign(-1.f);
+		d = -d;
+		thetaP = M_PI - thetaP;
+	} else if (thetaP < -M_PI_2) {
+		setDirSign(-1.f);
+		d = -d;
+		thetaP = -M_PI - thetaP;
+	} else
+		setDirSign(1.f);
 
 	const double c = path_interpol.curvature(j);
 	const double c_prim = path_interpol.curvature_prim(j);
@@ -213,7 +240,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	ROS_INFO("Time passed: %fs, command: v1=%f, v2=%f, delta=%f",
 				timePassed.toSec(), v1, v2, delta);
 	move_cmd.setDirection((float) delta);
-	move_cmd.setVelocity((float) v1);
+	move_cmd.setVelocity(getDirSign() * (float) v1);
 
 
 	*cmd = move_cmd;
