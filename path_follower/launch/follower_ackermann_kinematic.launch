@@ -33,11 +33,11 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
     <param name="min_velocity" value="0.5" />
     <param name="max_velocity" value="0.7" />
     <param name="waypoint_tolerance" value="0.8" />
-    
+	 <param name="goal_tolerance" value="0.4" />
     
     <!-- parameters, that are dependent of the controller or the robot model -->
-	 <param name="vehicle_length" value="0.3" />
-	 <param name="k" value="0.5" />
+	 <param name="vehicle_length" value="0.34" />
+	 <param name="k" value="5.0" />
 
 
     <remap from="scan" to="scan/filtered" />

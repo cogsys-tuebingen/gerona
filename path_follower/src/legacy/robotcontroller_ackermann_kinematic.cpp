@@ -12,6 +12,7 @@
 #include <Eigen/Dense>
 
 #include <limits>
+#include <boost/algorithm/clamp.hpp>
 
 RobotController_Ackermann_Kinematic::RobotController_Ackermann_Kinematic(PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower) {
@@ -93,8 +94,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 
 	// distance to the path (path to the right -> positive)
-	Eigen::Vector2d pathVehicle(pose[0] - path_interpol.p(j),
-			pose[1] - path_interpol.q(j));
+	Eigen::Vector2d pathVehicle(pose[0] - path_interpol.p(j), pose[1] - path_interpol.q(j));
 
 	const double d =
 			MathHelper::AngleDelta(MathHelper::Angle(pathVehicle), path_interpol.theta_p(j)) < 0. ?
@@ -195,6 +195,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	const double alpha2 =
 			params.vehicle_length() * cosThetaP3 * pow(cos(delta), 2) / pow(curvatureError, 2);
 
+	ROS_INFO("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);
+
 	// longitudinal velocity
 	double v1 = (curvatureError / cosThetaP) * u1;
 	if (v1 > velocity_)
@@ -202,12 +204,13 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 	// steering angle velocity
 	const double v2 = alpha2 * (u2 - alpha1 * u1);
-	ROS_INFO("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);
 
 	// update delta according to the time that has passed since the last update
 	ros::Duration timePassed = ros::Time::now() - oldTime;
 	delta += v2 * timePassed.toSec();
 	oldTime = ros::Time::now();
+
+	delta = boost::algorithm::clamp(delta, -M_PI_4, M_PI_4);
 
 	ROS_INFO("Time passed: %fs, command: v1=%f, v2=%f, delta=%f",
 				timePassed.toSec(), v1, v2, delta);
