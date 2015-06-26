@@ -23,7 +23,6 @@ using namespace Eigen;
 RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_driver):
     RobotController_Interpolation(path_driver),
     cmd_(this),
-    view_direction_(LookInDrivingDirection),
     vn_(0),
     delta_(0),
     Ts_(0.02),
@@ -35,18 +34,10 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_
     distance_to_goal_(1e-3),
     distance_to_obstacle_(1e-3)
 {
-    look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
-                                                       &RobotController_Kinematic_SLP::lookAtCommand, this);
-    look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
-                                                              &RobotController_Kinematic_SLP::lookAt, this);
-
     laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
                                                              &RobotController_Kinematic_SLP::laserFront, this);
     laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
                                                             &RobotController_Kinematic_SLP::laserBack, this);
-
-    lookInDrivingDirection();
-
 }
 
 void RobotController_Kinematic_SLP::stopMotion()
@@ -60,19 +51,6 @@ void RobotController_Kinematic_SLP::stopMotion()
     publishMoveCommand(mcmd);
 }
 
-void RobotController_Kinematic_SLP::lookAtCommand(const std_msgs::StringConstPtr &cmd)
-{
-    const std::string& command = cmd->data;
-
-    if(command == "reset" || command == "view") {
-        lookInDrivingDirection();
-    } else if(command == "keep") {
-        keepHeading();
-    } else if(command == "rotate") {
-        rotate();
-    }
-}
-
 void RobotController_Kinematic_SLP::initialize()
 {
     RobotController_Interpolation::initialize();
@@ -83,12 +61,6 @@ void RobotController_Kinematic_SLP::initialize()
     // desired velocity
     vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
-}
-
-void RobotController_Kinematic_SLP::lookAt(const geometry_msgs::PointStampedConstPtr &look_at)
-{
-    look_at_ = look_at->point;
-    view_direction_ = LookAtPoint;
 }
 
 void RobotController_Kinematic_SLP::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
@@ -131,21 +103,6 @@ void RobotController_Kinematic_SLP::findMinDistance()
 
 }
 
-void RobotController_Kinematic_SLP::keepHeading()
-{
-    view_direction_ = KeepHeading;
-}
-
-void RobotController_Kinematic_SLP::rotate()
-{
-    view_direction_ = Rotate;
-}
-
-void RobotController_Kinematic_SLP::lookInDrivingDirection()
-{
-    view_direction_ = LookInDrivingDirection;
-}
-
 void RobotController_Kinematic_SLP::start()
 {
     path_driver_->getCoursePredictor().reset();
@@ -176,7 +133,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///calculate the control for the current point on the path
 
     //robot direction angle in path coordinates
-    double theta_e = theta_meas - path_interpol.theta_p(ind_);
+    double theta_e = MathHelper::AngleClamp(theta_meas - path_interpol.theta_p(ind_));
 
     //robot position vector module
     double r = hypot(x_meas - path_interpol.p(ind_), y_meas - path_interpol.q(ind_));
@@ -221,7 +178,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     double delta_old = delta_;
 
-    delta_ = -sign_v_*opt_.theta_a()*tanh(ye_);
+    delta_ = MathHelper::AngleClamp(-sign_v_*opt_.theta_a()*tanh(ye_));
 
     double delta_prim = (delta_ - delta_old)/Ts_;
     ///***///
@@ -254,7 +211,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     else if(V1 < opt_.epsilon()) v = v/(1 + opt_.b()*std::abs(path_interpol.curvature(ind_)));
 
-
     cmd_.speed = v;
 
     ///***///
@@ -279,8 +235,12 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     cmd_.direction_angle = 0;
 
     //omega_m = theta_prim + curv*s_prim
-    cmd_.rotation = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
+    double omega_m = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
                     /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
+
+    if(omega_m > 0.7) omega_m = 0.7;
+    if(omega_m < -0.7) omega_m = -0.7;
+    cmd_.rotation = omega_m;
 
     ///***///
 
