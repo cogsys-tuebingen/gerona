@@ -37,7 +37,8 @@ Launch the path follower with the pure pursuit controller for a car-like (Ackerm
     
     
     <!-- parameters, that are dependent of the controller or the robot model -->
-	 <param name="factor_lookahead_distance" value="0.8" />
+	 <param name="factor_lookahead_distance_forward" value="0.8" />
+	 <param name="factor_lookahead_distance_backward" value="0.4" />
 	 <param name="vehicle_length" value="0.34" />
 	 <param name="factor_steering_angle" value="1.0" />
 

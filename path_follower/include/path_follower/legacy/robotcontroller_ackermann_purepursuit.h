@@ -23,6 +23,7 @@ public:
 	virtual void stopMotion();
 	virtual void start();
 	void reset();
+	void setPath(Path::Ptr path);
 	virtual bool isOmnidirectional() const {
 		return false;
 	}
@@ -34,12 +35,16 @@ protected:
 private:
 
 	struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
-		P<double> factor_lookahead_distance;
+		P<double> factor_lookahead_distance_forward;
+		P<double> factor_lookahead_distance_backward;
 		P<double> vehicle_length;
 		P<double> factor_steering_angle;
 
 		ControllerParameters() :
-			factor_lookahead_distance(this, "~factor_lookahead_distance", 0.8, "lookahead distance factor"),
+			factor_lookahead_distance_forward(this, "~factor_lookahead_distance_forward", 0.8,
+														 "lookahead distance factor while driving forwards"),
+			factor_lookahead_distance_backward(this, "~factor_lookahead_distance_forward", 0.8,
+														 "lookahead distance factor while driving backwards"),
 			vehicle_length(this, "~vehicle_length", 0.34, "axis-centre distance"),
 			factor_steering_angle(this, "~factor_steering_angle", 1.0,
 										 "Set 1.0 for one axis steering, 0.5 for two axis steering")

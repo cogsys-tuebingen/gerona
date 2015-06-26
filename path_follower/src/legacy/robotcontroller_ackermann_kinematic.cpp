@@ -19,19 +19,24 @@ RobotController_Ackermann_Kinematic::RobotController_Ackermann_Kinematic(PathFol
 
 	path_interpol_pub = node_handle.advertise<nav_msgs::Path>("interp_path", 10);
 
-	const double k = params.k();
+	const double k = params.k_forward();
+	setTuningParameters(k);
+
+	delta = 0.;
+
+	ROS_INFO("Parameters: k_forward=%f, k_backward=%f\nvehicle_length=%f\nfactor_steering_angle=%f"
+				"\ngoal_tolerance=%f\nmax_steering_angle=%f",
+				params.k_forward(), params.k_backward(),
+				params.vehicle_length(), params.factor_steering_angle(),
+				params.goal_tolerance(), params.max_steering_angle());
+
+}
+
+void RobotController_Ackermann_Kinematic::setTuningParameters(const double k) {
 	k1 = k * k * k;
 	//	k1 = 10. * k * k;
 	k2 = 3. * k * k;
 	k3 = 3. * k;
-
-	delta = 0.;
-
-	ROS_INFO("Parameters: k=%f\nvehicle_length=%f\nfactor_steering_angle=%f"
-				"\ngoal_tolerance=%f\nmax_steering_angle=%f",
-				params.k(), params.vehicle_length(), params.factor_steering_angle(),
-				params.goal_tolerance(), params.max_steering_angle());
-
 }
 
 void RobotController_Ackermann_Kinematic::stopMotion() {
@@ -123,18 +128,21 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// TODO: must be != M_PI_2 or -M_PI_2
 	double thetaP = MathHelper::AngleDelta(path_interpol.theta_p(j), pose[2]);
 
-	// decide whether to drive forward or backward
+	// TODO: decide whether to drive forward or backward
 	if (thetaP > M_PI_2) {
 		setDirSign(-1.f);
 		d = -d;
 		thetaP = M_PI - thetaP;
+		setTuningParameters(params.k_backward());
 	} else if (thetaP < -M_PI_2) {
 		setDirSign(-1.f);
 		d = -d;
 		thetaP = -M_PI - thetaP;
-	} else
+		setTuningParameters(params.k_backward());
+	} else {
+		setTuningParameters(params.k_forward());
 		setDirSign(1.f);
-
+	}
 	const double c = path_interpol.curvature(j);
 	const double c_prim = path_interpol.curvature_prim(j);
 	const double c_sek = path_interpol.curvature_sek(j);
@@ -260,13 +268,6 @@ void RobotController_Ackermann_Kinematic::publishMoveCommand(
 	msg.angular.z = cmd.getDirectionAngle();
 
 	cmd_pub_.publish(msg);
-}
-
-bool RobotController_Ackermann_Kinematic::reachedGoal(
-		const Eigen::Vector3d& pose) const {
-	const unsigned int end = path_interpol.n() - 1;
-	return hypot(path_interpol.p(end) - pose[0], path_interpol.q(end) - pose[1])
-			<= params.goal_tolerance();
 }
 
 

@@ -27,13 +27,15 @@ protected:
 private:
 	struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
 		P<double> vehicle_length;
-		P<double> k;
+		P<double> k_forward;
+		P<double> k_backward;
 		P<double> factor_steering_angle;
 		P<double> max_steering_angle;
 
 		ControllerParameters() :
 			vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance"),
-			k(this, "~k", 0.5, "Tuning factor"),
+			k_forward(this, "~k_forward", 7.0, "Tuning factor for forward driving"),
+			k_backward(this, "~k_backward", 7.0, "Tuning factor for backward driving"),
 			factor_steering_angle(this, "~factor_steering_angle", 1.0,
 										 "Set 1.0 for one axis steering, 0.5 for two axis steering"),
 			max_steering_angle(this, "~max_steering_angle", M_PI / 3, "Maximum steering angle")
@@ -47,14 +49,7 @@ private:
 	}
 
 	void reset();
-
-	bool reachedGoal(const Eigen::Vector3d& pose) const;
-
-	//double computeErrorRearAxis(const Eigen::Vector3d& pose, Eigen::Vector3d& wayPoint) const;
-	//double computeErrorTheta() const;
-	void computeErrors(const Eigen::Vector3d& pose, double& errorRearAxis,double& errorTheta) const;
-	double computeAlpha1(const double x2, const double errorRearAxis,
-								const double curvature, const double tanErrorTheta) const;
+	void setTuningParameters(const double k);
 
 	ros::NodeHandle node_handle;
 	ros::Publisher path_interpol_pub;

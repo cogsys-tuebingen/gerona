@@ -27,10 +27,10 @@ Robotcontroller_Ackermann_PurePursuit::Robotcontroller_Ackermann_PurePursuit (Pa
 	path_interpol_pub = node_handle.advertise<nav_msgs::Path>("interp_path", 10);
 
 
-	ROS_INFO("Parameters: factor_lookahead_distance=%f\nvehicle_length=%f\nfactor_steering_angle=%f"
-				"\ngoal_tolerance=%f",
-				params.factor_lookahead_distance(), params.vehicle_length(), params.factor_steering_angle(),
-				params.goal_tolerance());
+	ROS_INFO("Parameters: factor_lookahead_distance_forward=%f, factor_lookahead_distance_backward=%f"
+				"\nvehicle_length=%f\nfactor_steering_angle=%f\ngoal_tolerance=%f",
+				params.factor_lookahead_distance_forward(), params.factor_lookahead_distance_backward(),
+				params.vehicle_length(), params.factor_steering_angle(), params.goal_tolerance());
 
 }
 
@@ -40,6 +40,19 @@ Robotcontroller_Ackermann_PurePursuit::~Robotcontroller_Ackermann_PurePursuit() 
 void Robotcontroller_Ackermann_PurePursuit::reset() {
 	waypoint_ = 0;
 	RobotController_Interpolation::reset();
+}
+
+void Robotcontroller_Ackermann_PurePursuit::setPath(Path::Ptr path) {
+	RobotController_Interpolation::setPath(path);
+
+	Eigen::Vector3d pose = path_driver_->getRobotPose();
+	const double theta_diff = MathHelper::AngleDelta(path_interpol.theta_p(0), pose[2]);
+
+	// decide whether to drive forward or backward
+	if (theta_diff > M_PI_2 || theta_diff < -M_PI_2)
+		setDirSign(-1.f);
+	else
+		setDirSign(1.f);
 }
 
 
@@ -87,13 +100,14 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 
 			try {
 				path_interpol.interpolatePath(path_);
-				//				 publishInterpolatedPath();
+				// publishInterpolatedPath();
 
 			} catch(const alglib::ap_error& error) {
 				throw std::runtime_error(error.msg);
 			}
 
 			waypoint_ = 0;
+			setDirSign(-getDirSign());
 		}
 	}
 
@@ -101,7 +115,11 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 	 * IDEAS:
 	 * - lookahead_distance depending on the curvature
 	 */
-	double lookahead_distance = params.factor_lookahead_distance() * velocity_;
+	double lookahead_distance = velocity_;
+	if(getDirSign() >= 0.)
+		lookahead_distance *= params.factor_lookahead_distance_forward();
+	else
+		lookahead_distance *= params.factor_lookahead_distance_backward();
 
 	// angle between vehicle theta and the connection between the rear axis and the look ahead point
 	const double alpha = computeAlpha(lookahead_distance, pose);
@@ -109,9 +127,8 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 	const double delta = atan2(2. * params.vehicle_length() * sin(alpha), lookahead_distance);
 
 	//	 const double delta = asin((VEHICLE_LENGTH * alpha) / lookahead_distance);
-//	float dir_sign = MathHelper::sign<double>(next_wp_local_.x());
 	move_cmd.setDirection((float) delta);
-	move_cmd.setVelocity(dir_sign_ * (float) velocity_);
+	move_cmd.setVelocity(getDirSign() * (float) velocity_);
 
 	ROS_INFO("Command: vel=%f, angle=%f", velocity_, delta);
 
@@ -149,14 +166,11 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
 	// angle between the connection line and the vehicle orientation
 	double alpha = MathHelper::AngleDelta(pose[2], atan2(dy, dx));
 
-	if (alpha > M_PI_2) {
-		setDirSign(-1.f);
+	// TODO this is not consistent with dir_sign!!!
+	if (alpha > M_PI_2)
 		alpha = M_PI - alpha;
-	} else if (alpha < -M_PI_2) {
-		setDirSign(-1.f);
+	else if (alpha < -M_PI_2)
 		alpha = -M_PI - alpha;
-	} else
-		setDirSign(1.f);
 
 	// set lookahead_distance to the actual distance
 	lookahead_distance = distance;
