@@ -216,12 +216,12 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// my version
 	const double dx2dd = c_prim * tanThetaP
 			- c * c * (1 + sinThetaP2) / cosThetaP2
-			- 2. * curvatureError * c * tan(delta) / (params.vehicle_length() * cosThetaP3);
+			- 2. * curvatureError * c * tan(delta) / (params.vehicle_length() * cosThetaP3); // OK
 
 	const double dx2dthetaP = c_prim * (tanThetaP2 + 1.)
 			- 4. * c * curvatureError * tanThetaP / cosThetaP2
 			+ 3. * pow(curvatureError, 2) * tan(delta) * tanThetaP / (params.vehicle_length()
-																						 * cosThetaP3);
+																						 * cosThetaP3); // OK
 
 //	const double dx2ds = c_sek * d * tanThetaP
 //			+ curvatureError * d * c * (pow(c_prim, 2) * (1. + sinThetaP2) / cosThetaP2
@@ -245,8 +245,9 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 			- 4. * c * curvatureError * tanThetaP / cosThetaP2
 			+ (curvatureError * tan(delta) / params.vehicle_length())
 			* (-2. * (d_prim * c + d * c_prim)
-				+ thetaP_prim * curvatureError + sinThetaP)
-			/ pow(cosThetaP2, 2);
+				+ thetaP_prim * curvatureError + sinThetaP) / pow(cosThetaP2, 2); // OK
+
+	ROS_INFO("dx2dd=%f, dx2dthetaP=%f, dx2ds=%f", dx2dd, dx2dthetaP, dx2ds);
 
 	const double alpha1 =
 			dx2ds
@@ -265,7 +266,9 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 		v1 = velocity_;
 
 	// steering angle velocity
-	const double v2 = alpha2 * (u2 - alpha1 * u1); // OK
+	double v2 = alpha2 * (u2 - alpha1 * u1); // OK
+
+	v2 = boost::algorithm::clamp(v2, -params.max_steering_angle_speed(), params.max_steering_angle_speed());
 
 	// update delta according to the time that has passed since the last update
 	ros::Duration timePassed = ros::Time::now() - oldTime;
