@@ -10,6 +10,9 @@
 #include <path_follower/utils/parameters.h>
 #include <path_follower/utils/visualizer.h>
 
+/// FORWARD CLASS DEFINITIONS
+class PathController;
+
 /**
  * @brief PID controller for robots with car-like/Ackermann drive.
  */
@@ -44,14 +47,14 @@ private:
         P<float> max_steer;
         P<float> weight_dist;
         P<float> weight_angle;
-        P<float> clip_angle_error;
-        P<float> clip_dist_error;
 
+        P<std::string> controller_type;
 
         ControllerParameters():
             dead_time(this, "~dead_time", 0.1, "Time step that is used by predictPose"),
             l(this, "~wheel_base", 0.98, "Distance between front and rear axes of the robot."),
             pid_ta(this, "~pid/ta", 0.03, "Update interval of the PID controller."),
+
             fwd_pid_kp(this, "~fwd/pid/kp", 1.0, "Proportional coefficient of the PID controller."),
             fwd_pid_ki(this, "~fwd/pid/ki", 0.001, "Integral coefficient of the PID controller."),
             fwd_pid_kd(this, "~fwd/pid/kd", 0, "Derivative coefficient of the PID controller."),
@@ -63,13 +66,13 @@ private:
             max_steer(this, "~max_steer", 1.3, "Maximal allowed steering angle. Higher angles are capped by this value."),
             weight_dist(this, "~pc_weight_dist", 1.0, "Weight of distance error"),
             weight_angle(this, "~pc_weight_angle", 1.0, "Weight of angle error"),
-            clip_angle_error(this,"~angle_error_clip",1.0, "Clipping for angle error"),
-            clip_dist_error(this,"~dist_error_clip",0.1, "Clipping for distance error")
+            controller_type(this,"~controller_type","simple","simple or cascade controller")
 
 
         {}
     } opt_;
     ros::NodeHandle *nh_;
+    PathController *path_ctrl_;
     ros::Subscriber agv_vel_sub_;
     ros::Publisher agv_steer_is_pub_, agv_steer_set_pub_, agv_error_angle_pub_,agv_error_dist_pub_;
     //! The current move command.
@@ -83,8 +86,7 @@ private:
     double steer_des_fwd_,steer_des_bwd_;
 
     //! PID controller for the steering angle
-    PidController<1> fwd_steer_pid_;
-    PidController<1> bwd_steer_pid_;
+
     Visualizer* visualizer_;
 
     /**
@@ -131,7 +133,7 @@ private:
      * @brief Calls the PID controller and updates `cmd_`
      * @param error Error between actual and desired state. Used as input for the PID controller.
      */
-    void updateCommand(float error);
+    void updateCommand(float dist_error, float angle_error);
 
     /**
      * @brief Determines the velocity for the next command.

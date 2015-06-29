@@ -7,6 +7,10 @@
 #include <path_follower/pathfollower.h>
 #include <path_follower/utils/path_exceptions.h>
 
+#include "path_controller.h"
+#include "path_simple_pid.h"
+#include "path_cascade_pid.h"
+
 using namespace std;
 
 namespace {
@@ -30,16 +34,22 @@ RobotControllerTrailer::RobotControllerTrailer(PathFollower *path_driver, ros::N
     behaviour_(ON_PATH),
     last_velocity_(0)
 {
+
+
+
     // initialize
-    fwd_steer_pid_ = PidController<1>(opt_.fwd_pid_kp(), opt_.fwd_pid_ki(), opt_.fwd_pid_kd(), opt_.pid_ta());
-    bwd_steer_pid_ = PidController<1>(opt_.bwd_pid_kp(), opt_.bwd_pid_ki(), opt_.bwd_pid_kd(), opt_.pid_ta());
-    std::string agv_vel_topic("/agv_vel");
+   std::string agv_vel_topic("/agv_vel");
 
     agv_vel_sub_ = nh_->subscribe<geometry_msgs::Twist> (agv_vel_topic, 10, boost::bind(&RobotControllerTrailer::updateAgvCb, this, _1));
 
     agv_steer_is_pub_ = nh_->advertise<std_msgs::Float32> ("/path_follower/steer_is",1);
     agv_steer_set_pub_ = nh_->advertise<std_msgs::Float32> ("/path_follower/steer_set",1);
 
+    if (!opt_.controller_type().compare("cascade")) {
+        path_ctrl_= new PathCascadePid();
+    } else {
+        path_ctrl_= new PathSimplePid();
+    }
 
 }
 
@@ -120,16 +130,17 @@ RobotController::MoveCommandStatus RobotControllerTrailer::computeMoveCommand(Mo
     setDirSign(dir_sign);
 
 
-    float error;
+    float e_dist;
     if (path_->isLastWaypoint()) {
         behaviour_ = APPROACH_SUBPATH_END;
-        error = getErrorApproachSubpathEnd();
+        e_dist = getErrorApproachSubpathEnd();
     } else {
         behaviour_ = ON_PATH;
-        error = getErrorOnPath();
+        e_dist = getErrorOnPath();
     }
+    float e_angle = calculateAngleError();
 
-    updateCommand(error);
+    updateCommand(e_dist, e_angle);
     *cmd = cmd_;
 
     return MoveCommandStatus::OKAY;
@@ -189,17 +200,6 @@ void RobotControllerTrailer::selectWaypoint()
 }
 
 
-double RobotControllerTrailer::calcTotalError (double e_dist, double e_angle)
-{
-
-
-    // should be scaled depending on velocity
-    // 5 degrees angular error = 0.09
-    return ((opt_.weight_dist()*  e_dist +  opt_.weight_angle()*e_angle)/(opt_.weight_dist()+opt_.weight_angle()));
-
-}
-
- double e_distance, e_angle;
 
 
 
@@ -216,14 +216,7 @@ double RobotControllerTrailer::calculateAngleError()
         trailer_angle=0.0;
     }*/
     trailer_angle =  agv_vel_.angular.z;
-    double angle_error = MathHelper::AngleClamp(tf::getYaw(waypoint.orientation) - tf::getYaw(robot_pose.orientation)+trailer_angle);
-    if (angle_error>opt_.clip_angle_error()) {
-        return opt_.clip_angle_error();
-    } else if (angle_error<-opt_.clip_angle_error()) {
-        return -opt_.clip_angle_error();
-    } else {
-        return angle_error;
-    }
+    return  MathHelper::AngleClamp(tf::getYaw(waypoint.orientation) - tf::getYaw(robot_pose.orientation)+trailer_angle);
 
 }
 
@@ -236,20 +229,10 @@ float RobotControllerTrailer::getErrorOnPath()
      */
 
     // Calculate target line from current to next waypoint (if there is any)
-    e_distance = calculateLineError();
-    e_angle = calculateAngleError();
+    float error = calculateLineError();
 
 
-    float error = (float) calcTotalError(e_distance, e_angle);
-    ROS_DEBUG_NAMED(MODULE, "OnLine: e_dist = %g, e_angle = %g  ==>  e_comb = %g",
-                    e_distance, e_angle, error);
 
-    // draw steer front
-    if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
-    }
 
     return error;
 }
@@ -262,21 +245,12 @@ float RobotControllerTrailer::getErrorApproachSubpathEnd()
      */
 
     // Calculate target line from current to next waypoint (if there is any)
-    double e_distance = calculateSidewaysDistanceError();
-    double e_angle = calculateAngleError();
-
-    float error = (float) calcTotalError(e_distance, e_angle);
-    ROS_DEBUG_NAMED(MODULE, "Approach: e_dist = %g, e_angle = %g  ==>  e_comb = %g",
-                    e_distance, e_angle, error);
+    double error = calculateSidewaysDistanceError();
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_->getCurrentWaypoint()).position,
                                 0.5, "/map", "turning point", 1, 1, 1);
 
-        // draw steer front
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
     }
 
     return error;
@@ -286,36 +260,35 @@ float RobotControllerTrailer::getErrorApproachSubpathEnd()
 
 static int g_dbg_count = 0;
 
-void RobotControllerTrailer::updateCommand(float error)
+void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
 {
+    // draw steer front
+    if (visualizer_->hasSubscriber()) {
+        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), angle_error, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), dist_error, 0.2, 0.2, 1.0);
+    }
+
 
     double v = fabs(agv_vel_.linear.x);
-    if (v>=1.0) {
-        // reduce error for high speeds
-        error = error / v;
-    }
-    // call PID controller for steering.
-    float u = 0;
 
-    bool do_control;
-    if (dir_sign_>0) {
-        do_control = fwd_steer_pid_.execute(error, &u);
-    } else {
-        do_control = bwd_steer_pid_.execute(error, &u);
-    }
+    // call PID controller for steering.
+
+    std::vector<double> u(1), target_u(1);
+    bool do_control = path_ctrl_->execute(dist_error,angle_error,v*dir_sign_,target_u,u);
     if (!do_control) {
         return; // Nothing to do
     }
-    ROS_DEBUG_NAMED(MODULE, "PID: error = %g, u = %g", error, u);
-    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), u, 0.0, 1.0, 1.0);
+    float u_val = u[0];
 
-    float steer = dir_sign_* std::max(-opt_.max_steer(), std::min(u, opt_.max_steer()));
+    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), u_val, 0.0, 1.0, 1.0);
+
+    float steer = dir_sign_* std::max(-opt_.max_steer(), std::min(u_val, opt_.max_steer()));
     ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
 
     // Control velocity
     float velocity = controlVelocity(steer);
     if (g_dbg_count++%8==0) {
-     ROS_INFO("error dist %f error steer %fdeg sum %f steer %fdeg\n",e_distance,e_angle*180.0/M_PI,error, steer*180.0/M_PI);
+     ROS_INFO("error dist %f error steer %fdeg  steer %fdeg\n",dist_error,angle_error*180.0/M_PI, steer*180.0/M_PI);
     }
     double steer_des, steer_tol;
     if (dir_sign_>0) {
