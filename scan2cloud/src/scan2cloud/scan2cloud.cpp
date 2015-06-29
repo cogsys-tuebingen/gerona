@@ -25,7 +25,7 @@ void ScanConverter::scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan_in
                     "/base_link",
                     scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
                     wait_tf_timeout)){
-            ROS_INFO_THROTTLE(0.2, "ignore scan");
+            ROS_DEBUG_THROTTLE(60.0, "ignore scan");
             return;
         }
         // as (at least in the simulation) there are end-of-range scans slightly below the
