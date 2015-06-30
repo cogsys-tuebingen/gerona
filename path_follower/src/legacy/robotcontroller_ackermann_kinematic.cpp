@@ -128,7 +128,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// TODO: must be != M_PI_2 or -M_PI_2
 	double thetaP = MathHelper::AngleDelta(path_interpol.theta_p(j), pose[2]);
 
-	// TODO: decide whether to drive forward or backward
 	if (thetaP > M_PI_2) {
 		setDirSign(-1.f);
 		d = -d;
@@ -144,6 +143,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 		setDirSign(1.f);
 	}
 
+
 	const double c = path_interpol.curvature(j);
 	const double c_prim = path_interpol.curvature_prim(j);
 	const double c_sek = path_interpol.curvature_sek(j);
@@ -155,21 +155,28 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	const double delta_s = path_interpol.s(j_1) - path_interpol.s(j_0);
 
 	// d'
-	double d_prim = hypot(pose[0] - path_interpol.p(j_1),	pose[1] - path_interpol.q(j_1));
-	Eigen::Vector2d pathVehiclePlus1(pose[0] - path_interpol.p(j_1),
-			pose[1] - path_interpol.q(j_1));
+	Eigen::Vector2d pathVehicle_1(pose[0] - path_interpol.p(j_1), pose[1] - path_interpol.q(j_1));
+	double d_prim = pathVehicle_1.norm();
 
 	d_prim =
-			MathHelper::AngleDelta(MathHelper::Angle(pathVehiclePlus1), path_interpol.theta_p(j_1)) < 0. ?
+			MathHelper::AngleDelta(MathHelper::Angle(pathVehicle_1), path_interpol.theta_p(j_1)) < 0. ?
 				d_prim : -d_prim;
+
+	if (thetaP > M_PI_2 || thetaP < -M_PI_2)
+		d_prim = -d_prim;
 
 	d_prim = (d_prim - d) / delta_s;
 
 	// thetaP'
-	const double thetaP_prim =
-			MathHelper::AngleDelta(thetaP,
-										  MathHelper::AngleDelta(path_interpol.theta_p(j_1), pose[2]))
-			/ delta_s;
+	double thetaP_1 = MathHelper::AngleDelta(path_interpol.theta_p(j_1), pose[2]);
+
+	// TODO: decide whether to drive forward or backward
+	if (thetaP > M_PI_2)
+		thetaP_1 = M_PI - thetaP_1;
+	else if (thetaP < -M_PI_2)
+		thetaP_1 = -M_PI - thetaP_1;
+
+	double thetaP_prim = MathHelper::AngleDelta(thetaP, thetaP_1) / delta_s;
 
 	ROS_INFO("d'=%f, thetaP'=%f", d_prim, thetaP_prim);
 
