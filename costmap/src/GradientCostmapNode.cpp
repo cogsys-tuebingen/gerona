@@ -78,15 +78,18 @@ public:
         cv::Mat distance;
         cv::distanceTransform(working, distance, CV_DIST_L2, CV_DIST_MASK_PRECISE);
 
+        distance *= 3.0;
+
         distance.convertTo(working, CV_8UC1, (scale_ * map.info.resolution / max_distance_meters_));
 
-        cv::threshold(working, working, 98, 98, CV_THRESH_TRUNC);
-        working = 100 - working;
-        working.setTo(50, unknown_mask);
+        cv::threshold(working, working, 254, 254, CV_THRESH_TRUNC);
+        working = 254 - working;
+        working.setTo(255, unknown_mask);
 
 
         current_map_.data = map_data_;
         current_map_.info = map.info;
+        current_map_.header = map.header;
 
         double diff =  timer.elapsed() * 1000;
         running_avg_ticks_++;
