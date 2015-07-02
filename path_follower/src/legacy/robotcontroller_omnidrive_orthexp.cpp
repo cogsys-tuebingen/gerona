@@ -36,7 +36,6 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     distance_to_goal_(0),
     distance_to_obstacle_(0)
 {
-    visualizer_ = Visualizer::getInstance();
     interp_path_pub_ = nh_.advertise<nav_msgs::Path>("interp_path", 10);
     points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
 
@@ -450,13 +449,11 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 
     //Calculate the look-ahead curvature
 
-    /*uint look_ahead_index;
-    double look_ahead_difference = std::numeric_limits<double>::max();*/
-
+    //calculate the curvature, and stop when the look-ahead distance is reached (w.r.t. orthogonal projection)
     double look_ahead_cum_sum = 0;
     curv_sum_ = 1e-10;
 
-    for (unsigned int i = ind + 1; i < N_; i++){
+    for (unsigned int i = ind; i < N_; i++){
 
         look_ahead_cum_sum += hypot(p_[i] - p_[i-1], q_[i] - q_[i-1]);
         curv_sum_ += fabs(curvature_[i]);
@@ -466,7 +463,11 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
         }
     }
 
-    /*for (int i = ind; i < N; i++){
+    //calculate the index of the look-ahead distance (w.r.t. robot), and then the curvature
+    /*uint look_ahead_index;
+    double look_ahead_difference = std::numeric_limits<double>::max();
+
+    for (int i = ind; i < N; i++){
 
         if(fabs(hypot(x_meas - p[i], y_meas - q[i]) - look_ahead_dist) < look_ahead_difference){
 

@@ -16,8 +16,11 @@
 #include <path_follower/controller/robotcontrollertrailer.h>
 
 #include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
+#include <path_follower/legacy/robotcontroller_ackermann_purepursuit.h>
+#include <path_follower/legacy/robotcontroller_ackermann_kinematic.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/legacy/robotcontroller_differential_orthexp.h>
+#include <path_follower/legacy/robotcontroller_kinematic_SLP.h>
 // Supervisors
 #include <path_follower/supervisor/pathlookout.h>
 #include <path_follower/supervisor/waypointtimeout.h>
@@ -70,6 +73,17 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
         controller_ = new RobotController_Ackermann_Pid(this);
+
+	 } else if (opt_.controller() == "ackermann_purepursuit") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		  controller_ = new Robotcontroller_Ackermann_PurePursuit(this);
+
+	 } else if (opt_.controller() == "ackermann_kinematic") {
+		  if (opt_.obstacle_avoider_use_collision_box())
+				obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		  controller_ = new RobotController_Ackermann_Kinematic(this);
+
     } else if (opt_.controller() == "patsy_pid") {
         RobotControllerTrailer *ctrl = new RobotControllerTrailer(this,&this->node_handle_);
         if (opt_.obstacle_avoider_use_collision_box())
@@ -79,14 +93,20 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
         controller_ = new RobotController_Omnidrive_OrthogonalExponential(this);
+
     } else if (opt_.controller() == "ackermann_orthexp") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
         controller_ = new RobotController_Ackermann_OrthogonalExponential(this);
+
     } else if (opt_.controller() == "differential_orthexp") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
         controller_ = new RobotController_Differential_OrthogonalExponential(this);
+    } else if (opt_.controller() == "kinematic_SLP") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+        controller_ = new RobotController_Kinematic_SLP(this);
     } else {
         ROS_FATAL("Unknown robot controller. Shutdown.");
         exit(1);
@@ -382,6 +402,16 @@ Path::Ptr PathFollower::getPath()
     return path_;
 }
 
+const PathFollowerParameters& PathFollower::getOptions() const
+{
+    return opt_;
+}
+
+ros::NodeHandle& PathFollower::getNodeHandle()
+{
+    return node_handle_;
+}
+
 void PathFollower::start()
 {
     //path_idx_.reset();
@@ -389,6 +419,7 @@ void PathFollower::start()
     controller_->reset();
 
     controller_->start();
+
     controller_->setPath(path_);
 
     is_running_ = true;

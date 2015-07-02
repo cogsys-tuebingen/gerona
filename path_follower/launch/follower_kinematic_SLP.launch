@@ -1,19 +1,16 @@
-<?xml version="0.0"?>
+<?xml version="1.0"?>
 <launch>
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
     <param name="use_obstacle_map" value="false" />
     <param name="use_vfh" value="false" />
     <param name="use_path_lookout" value="false" />
     
-    <param name="controller" value="ackermann_orthexp" />
-
-    <param name="supervisor/use_waypoint_timeout" value="false" />
-    <param name="supervisor/use_distance_to_path" value="false" />
+    <param name="controller" value="kinematic_SLP" />
     
     <param name="waypoint_tolerance" value="2.0" />
-    <param name="goal_tolerance" value="0.25" />
+    <param name="goal_tolerance" value="0.4" />
     <param name="max_distance_to_path" value="2.0" />
-    <param name="min_velocity" value="0.5" />
+    <param name="min_velocity" value="0.1" />
     <param name="max_velocity" value="2.0" />
     <param name="collision_box_width" value="0.4" />
     <param name="collision_box_crit_length" value="0.6" />
@@ -25,18 +22,20 @@
     <param name="obstacle_scale_lifetime" value="5.0" />
     <param name="path_width" value="0.5" />
  
-    <param name="kp" value="1.0" />
-    <param name="kd" value="1.0" />
+    <param name="k1" value="1.0" />
+    <param name="k2" value="1.0" />
+    <param name="gamma" value="1.0" />
+    <param name="theta_a" value="0.78539816339" />
+    <param name="epsilon" value="0.5" />
+    <param name="b" value="0.2" />
 
-    <param name="look_ahead_dist" value="1.0" />
-    <param name="k" value="2.0" />
-    <param name="k_o" value="0.3" />
-    <param name="k_g" value="0.3" />
-    <param name="k_w" value="0.3" />
-    <param name="k_curv" value="0.3" />
+    <param name="look_ahead_dist" value="0.5" />
+    <param name="k_o" value="0.1" />
+    <param name="k_g" value="0.1" />
+    <param name="k_w" value="0.1" />
+    <param name="k_curv" value="0.1" />
 
     <remap from="scan" to="scan/filtered" />
-    <remap from="/obstacles" to="/obstacle_cloud" />
   </node>
   
 </launch>
