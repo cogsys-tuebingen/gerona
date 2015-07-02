@@ -32,17 +32,11 @@ protected:
     
     virtual void initialize();
     
-    void lookAtCommand(const std_msgs::StringConstPtr& cmd);
-    void lookAt(const geometry_msgs::PointStampedConstPtr& look_at);
     void laserBack(const sensor_msgs::LaserScanConstPtr& scan_back);
     void laserFront(const sensor_msgs::LaserScanConstPtr& scan_front);
     
 private:
     void findMinDistance();
-    
-    void keepHeading();
-    void lookInDrivingDirection();
-    void rotate();
     
 private:
     struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters
@@ -140,21 +134,6 @@ private:
     
     std::vector<float> ranges_front_;
     std::vector<float> ranges_back_;
-    
-    
-    enum ViewDirection {
-        KeepHeading,
-        LookAtPoint,
-        LookInDrivingDirection,
-        Rotate
-    };
-    
-    //current orientation of the robot
-    ViewDirection view_direction_;
-    //point to which the robot should change its orientation, but not the driving direction
-    //applies only to omnidirectional robots
-    geometry_msgs::Point look_at_;
-    
     
     //nominal velocity
     double vn_;
