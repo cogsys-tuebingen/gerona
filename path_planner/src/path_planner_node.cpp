@@ -40,10 +40,10 @@ struct NonHolonomicNeighborhoodNoEndOrientation :
 
 
 // MORE PRECISE END POSITION
-template <int n, int distance, int moves = NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD>
+template <int n, int distance, int moves = NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, bool reversed = false>
 struct NonHolonomicNeighborhoodPrecise :
-        public NonHolonomicNeighborhood<n, distance, moves> {
-    typedef NonHolonomicNeighborhood<n, distance, moves> Parent;
+        public NonHolonomicNeighborhood<n, distance, moves, reversed> {
+    typedef NonHolonomicNeighborhood<n, distance, moves, reversed> Parent;
 
     using Parent::distance_step_pixel;
 
@@ -182,6 +182,8 @@ struct PathPlanner : public Planner
     //    typedef AStarSearch<NonHolonomicNeighborhood<40, 360, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/> > AStarAckermann; // Ackermann
     typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/>,
                         NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermann; // Ackermann
+    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/, true>,
+                        NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermannReversed; // Ackermann
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
     typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD> > AStarPatsyForward;
@@ -189,13 +191,18 @@ struct PathPlanner : public Planner
     ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
     //    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStarOmnidrive; // Omnidrive
 
-    typedef AStarAckermann AStar;
+    typedef AStarAckermannReversed AStar;
 
     typedef AStar::PathT PathT;
 
     PathPlanner()
+        : render_open_cells_(false)
     {
-        cell_publisher_ = nh.advertise<nav_msgs::GridCells>("cells", 1, true);
+        render_open_cells_ = nh.param("render_open_cells", false);
+
+        if(render_open_cells_) {
+            cell_publisher_ = nh.advertise<nav_msgs::GridCells>("cells", 1, true);
+        }
     }
 
     nav_msgs::Path path2msg(const PathT& path, const ros::Time &goal_timestamp)
@@ -247,7 +254,15 @@ struct PathPlanner : public Planner
             ROS_INFO_STREAM("planning from " << from_map.theta <<
                             "\nto " << to_map.theta);
 
-            path = algo.findPath(from_map, to_map, boost::bind(&PathPlanner::renderCells, this));
+            if(render_open_cells_) {
+                path = algo.findPath(from_map, to_map, boost::bind(&PathPlanner::renderCells, this));
+
+                // render cells once more -> remove the last ones
+                renderCells();
+            } else {
+                path = algo.findPath(from_map, to_map);
+            }
+
             ROS_INFO_STREAM("path with " << path.size() << " nodes found");
         }
         catch(const std::logic_error& e) {
@@ -260,7 +275,7 @@ struct PathPlanner : public Planner
 
     void renderCells()
     {
-        if(use_cost_map_) {
+        if(use_cost_map_ && render_open_cells_) {
             //auto& map = algo.getMapManager();
             auto& open = algo.getOpenList();
 
@@ -287,6 +302,7 @@ struct PathPlanner : public Planner
 private:
     AStar algo;
 
+    bool render_open_cells_;
     nav_msgs::GridCells cells;
     ros::Publisher cell_publisher_;
 };
