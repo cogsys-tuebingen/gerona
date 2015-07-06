@@ -501,7 +501,7 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
     current_segment.push_back(last_point);
 
     int id = 0;
-
+    bool is_duplicate_wp ;
     for(unsigned i = 1; i < n; ++i){
         const Waypoint current_point(path.poses[i]);
 
@@ -510,8 +510,10 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
         double diff_last_angle = MathHelper::AngleClamp(current_point.orientation - last_point.orientation);
         if (diff_last_x*diff_last_x+diff_last_y*diff_last_y<WAYPOINT_POS_DIFF_TOL*WAYPOINT_POS_DIFF_TOL
                 && fabs(diff_last_angle)<WAYPOINT_ANGLE_DIFF_TOL) {
-           // duplicate waypoint -> ignroe current one and proceed
-            continue;
+           // duplicate waypoint
+            is_duplicate_wp = true;
+        } else {
+            is_duplicate_wp = false;
         }
         // append to current segment
         current_segment.push_back(current_point);
@@ -537,7 +539,7 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
             double angle = MathHelper::AngleClamp(last_angle - next_angle);
 
             bool split_segment = std::abs(angle) > M_PI / 3.0;
-            if(!only_one_segment && split_segment) {
+            if(!only_one_segment && split_segment && !is_duplicate_wp) {
                 // new segment!
                 // current node is the last one of the old segment
                 segment_ends_with_this_node = true;
@@ -565,6 +567,7 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
 
     path_->setPath(subpaths);
 }
+
 
 void PathFollower::beep(const std::vector<int> &beeps)
 {
