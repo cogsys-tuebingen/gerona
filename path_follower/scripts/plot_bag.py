@@ -41,8 +41,8 @@ def linedist(x1,y1, x2,y2, x3,y3): # x3,y3 is the point
     dist = math.sqrt(dx*dx + dy*dy)
 
     return dist
-real_start_time = 0
-real_end_time = 0
+real_start_time = 12.6
+real_end_time = 40.3
 xpath = []
 ypath = []
 
@@ -86,79 +86,6 @@ if __name__ == '__main__':
     for topic, msg, t in bag.read_messages(topics=['/path']):
         path_callback(msg)
             
-    
-    
-    
-    v = []
-    vt = []
-    start = False
-    start_time = 0
-    v_sum = 0
-    v_counter = 0
-    hasDriven = False
-    hasEnded = False
-    flag = False
-    i_begin = 0
-    i_end = 0
-    counter = 0
-    for topic, msg, t in bag.read_messages(topics=['/odom']):        
-        if not start:
-            start_time = msg.header.stamp.to_nsec()
-            start = True
-       
-        counter += 1
-        
-        vx = msg.twist.twist.linear.x
-        vy = msg.twist.twist.linear.y
-        
-        current_time = (msg.header.stamp.to_nsec() - start_time) / 1e9
-        
-        if((math.hypot(vx, vy) > 0) and (hasDriven == False)):
-            real_start_time = current_time
-            i_begin = counter
-            hasDriven = True
-
-        if((math.hypot(vx, vy) < 0.2) and (math.hypot(vx, vy) > 0.001) and (hasDriven == True)):
-            real_end_time = current_time
-            i_end = counter
-#            hasEnded = True
-            
-       
-        v.append(math.hypot(vx, vy))
-        vt.append(current_time)
-        
-    
-    print "Real start time: ", real_start_time
-    print "Real end time: ", real_end_time
-        
-    has_look_at = False
-    look_at_x = 0
-    look_at_y = 0   
-    for topic, msg, t in bag.read_messages(topics=['/look_at']):                 
-        has_look_at = True
-        look_at_x = msg.point.x
-        look_at_y = msg.point.y
-#####
-    v_c = []
-    vt_c = []
-    start = False
-    start_time = 0
-    time = 0
-    for topic, msg, t in bag.read_messages(topics=['/cmd_vel', '/odom']): 
-        if topic == '/odom':           
-            time = msg.header.stamp.to_nsec()
-            if not start:
-                start_time = time
-                start = True
-
-        if topic == '/cmd_vel' and start:               
-            vx_c = msg.linear.x
-            vy_c = msg.linear.y
-            v_c.append(math.hypot(vx_c, vy_c))
-            vt_c.append((time - start_time) / 1e9)    
-    
-    
-    
     iters = 0
     renders = 1000
     start = False
@@ -170,8 +97,7 @@ if __name__ == '__main__':
     t_map2odom = (0.,0.,0.)    
     r_map2odom = (0.,0.,0.,0.)    
     t_odom2base = (0.,0.,0.)    
-    r_odom2base = (0.,0.,0.,0.)
-    
+    r_odom2base = (0.,0.,0.,0.)    
     
 #    odom_2_base = tf.msg.TransformStamped()
     diff_sum = 0    
@@ -231,11 +157,9 @@ if __name__ == '__main__':
             d1 = linedist(xpath[closest_idx], ypath[closest_idx], xpath[closest_idx + 1], ypath[closest_idx + 1], px, py)
             d2 = linedist(xpath[closest_idx], ypath[closest_idx], xpath[closest_idx - 1], ypath[closest_idx - 1], px, py)
             diffs.append(min(d1, d2))
-            
             if (t.to_nsec() - start_time) / 1e9 < real_end_time:
                diff_sum += min(d1, d2)
                diff_counter += 1
-               
             iters += 1
     
             if iters > renders:                
@@ -243,61 +167,58 @@ if __name__ == '__main__':
                 ax_preview.plot(x, y)
                 ax_preview.plot(xpath, ypath)
                 plt.draw()
-                iters = 0 
-                
-                
-    if (diff_counter > 0):
-        print "Average error: ", diff_sum/diff_counter    
+                iters = 0            
+    print "Average error: ", diff_sum/diff_counter    
     print "Maximum error: ", max(diffs)
     print "Maximum time: ", max(times)
             
-#    v = []
-#    vt = []
-#    start = False
-#    start_time = 0
-#    v_sum = 0
-#    v_counter = 0
-#    for topic, msg, t in bag.read_messages(topics=['/odom']):        
-#        if not start:
-#            start_time = msg.header.stamp.to_nsec()
-#            start = True
-#        if ((msg.header.stamp.to_nsec() - start_time) / 1e9 > real_start_time):   
-#            vx = msg.twist.twist.linear.x
-#            vy = msg.twist.twist.linear.y
-#            v.append(math.hypot(vx, vy))
-##            if ((msg.header.stamp.to_nsec() - start_time) / 1e9 < real_end_time): 
-##                v_sum += math.hypot(vx, vy)
-##                v_counter += 1
-#            vt.append((msg.header.stamp.to_nsec() - start_time) / 1e9)
-#            
-##    print "Average speed: ", v_sum/v_counter
-##    print "Maximum speed: ", max(v)
-#        
-#    has_look_at = False
-#    look_at_x = 0
-#    look_at_y = 0   
-#    for topic, msg, t in bag.read_messages(topics=['/look_at']):                 
-#        has_look_at = True
-#        look_at_x = msg.point.x
-#        look_at_y = msg.point.y
-######
-#    v_c = []
-#    vt_c = []
-#    start = False
-#    start_time = 0
-#    time = 0
-#    for topic, msg, t in bag.read_messages(topics=['/cmd_vel', '/odom']): 
-#        if topic == '/odom':           
-#            time = msg.header.stamp.to_nsec()
-#            if not start:
-#                start_time = time
-#                start = True
-#
-#        if topic == '/cmd_vel' and start:               
-#            vx_c = msg.linear.x
-#            vy_c = msg.linear.y
-#            v_c.append(math.hypot(vx_c, vy_c))
-#            vt_c.append((time - start_time) / 1e9)
+    v = []
+    vt = []
+    start = False
+    start_time = 0
+    v_sum = 0
+    v_counter = 0
+    for topic, msg, t in bag.read_messages(topics=['/odom']):        
+        if not start:
+            start_time = msg.header.stamp.to_nsec()
+            start = True
+        if ((msg.header.stamp.to_nsec() - start_time) / 1e9 > real_start_time):   
+            vx = msg.twist.twist.linear.x
+            vy = msg.twist.twist.linear.y
+            v.append(math.hypot(vx, vy))
+            if ((msg.header.stamp.to_nsec() - start_time) / 1e9 < real_end_time): 
+                v_sum += math.hypot(vx, vy)
+                v_counter += 1
+            vt.append((msg.header.stamp.to_nsec() - start_time) / 1e9)
+            
+    print "Average speed: ", v_sum/v_counter
+    print "Maximum speed: ", max(v)
+        
+    has_look_at = False
+    look_at_x = 0
+    look_at_y = 0   
+    for topic, msg, t in bag.read_messages(topics=['/look_at']):                 
+        has_look_at = True
+        look_at_x = msg.point.x
+        look_at_y = msg.point.y
+#####
+    v_c = []
+    vt_c = []
+    start = False
+    start_time = 0
+    time = 0
+    for topic, msg, t in bag.read_messages(topics=['/cmd_vel', '/odom']): 
+        if topic == '/odom':           
+            time = msg.header.stamp.to_nsec()
+            if not start:
+                start_time = time
+                start = True
+
+        if topic == '/cmd_vel' and start:               
+            vx_c = msg.linear.x
+            vy_c = msg.linear.y
+            v_c.append(math.hypot(vx_c, vy_c))
+            vt_c.append((time - start_time) / 1e9)
         
     bag.close()    
 #####
@@ -327,16 +248,6 @@ if __name__ == '__main__':
     for i in range(len(v) - 1):
         v_filt[i+1] = Ts*v[i] + (1 - Ts)*v_filt[i]
     #
-        if (i >= i_begin and i <= i_end): 
-            v_sum += v_filt[i]
-            v_counter += 1
-    v_sum += v_filt[len(v)-1]
-    v_counter += 1
-   
-    if v_counter > 0:        
-        print "Average speed: ", v_sum/v_counter
-    print "Maximum speed: ", max(v_filt)
-         
     fig_velocity = plt.figure(in_file + " Velocity")        
     fig_velocity.suptitle('Linear velocity over time')    
     ax = fig_velocity.add_subplot(111)                
@@ -344,9 +255,9 @@ if __name__ == '__main__':
     ax.plot(vt, v_filt)
     ax.set_xlabel('time [s]')
     ax.set_ylabel('velocity [m/s]')
-#    ax.set_xlim(real_start_time,max(max(vt),max(times)))
+    #ax.set_xlim(real_start_time,max(max(vt),max(times)))
     ax.set_xlim(real_start_time,real_end_time)
-#    ax.set_ylim(0,0.7)
+    ax.set_ylim(0,0.7)
     
     fig_cmd_velocity = plt.figure(in_file + " Command Velocity")        
     fig_cmd_velocity.suptitle('Command velocity over time')    
@@ -364,8 +275,8 @@ if __name__ == '__main__':
     ax.plot(times, diffs)
     ax.set_xlabel('time [s]')
     ax.set_ylabel('error [m]')        
-#    ax.set_xlim(real_start_time,max(max(vt),max(times)))
+    #ax.set_xlim(real_start_time,max(max(vt),max(times)))
     ax.set_xlim(real_start_time,real_end_time)     
-#    ax.set_ylim(0,0.3)
+    ax.set_ylim(0,0.3)
      
     plt.show()    

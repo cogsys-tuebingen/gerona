@@ -49,8 +49,7 @@ protected:
      * @brief updateMap hook for when the map changes
      * @param map
      */
-    virtual void updateMap(const nav_msgs::OccupancyGrid &map);
-
+    virtual void updateMap(const nav_msgs::OccupancyGrid &map, bool is_cost_map);
 
     /**
      * @brief execute ActionLib interface

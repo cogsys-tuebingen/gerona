@@ -70,7 +70,7 @@ Planner::Planner()
 
     if(use_cloud_) {
         sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("/obstacles", 0, boost::bind(&Planner::cloudCallback, this, _1));
-//        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("/obstacle_cloud", 0, boost::bind(&Planner::cloudCallback, this, _1));
+        //        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("/obstacle_cloud", 0, boost::bind(&Planner::cloudCallback, this, _1));
     }
     if(use_scan_front_) {
         sub_front = nh.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, true));
@@ -131,9 +131,10 @@ void Planner::feedback(int status)
 }
 
 void Planner::updateMapCallback (const nav_msgs::OccupancyGridConstPtr &map) {
-    updateMap(*map);
+    updateMap(*map, false);
 }
-void Planner::updateMap (const nav_msgs::OccupancyGrid &map) {
+
+void Planner::updateMap (const nav_msgs::OccupancyGrid &map, bool is_cost_map) {
     unsigned w = map.info.width;
     unsigned h = map.info.height;
 
@@ -146,6 +147,7 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map) {
             delete map_info;
         }
 
+
         if(use_collision_gridmap_) {
             map_info = new lib_path::CollisionGridMap2d(map.info.width, map.info.height, map.info.resolution, size_forward, size_backward, size_width);
         } else {
@@ -153,34 +155,48 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map) {
         }
     }
 
-    bool use_unknown;
-    nh.param("use_unknown_cells", use_unknown, true);
-
     std::vector<uint8_t> data(w*h);
-
     int i = 0;
-    if(use_unknown) {
-        /// Map data
-        /// -1: unknown -> 0
-        /// 0:100 probabilities -> 1 - 100
+
+    if(is_cost_map) {
+        map_info->setLowerThreshold(250);
+        map_info->setUpperThreshold(251);
+        map_info->setNoInformationValue(255);
+
         for(std::vector<int8_t>::const_iterator it = map.data.begin(); it != map.data.end(); ++it) {
-            data[i++] = std::min(100, *it + 1);
+            uint8_t val = *it;
+            data[i++] = val;
         }
+
 
     } else {
-        /// Map data
-        /// -1: unknown -> -1
-        /// 0:100 probabilities -> 0 - 100
-        for(std::vector<int8_t>::const_iterator it = map.data.begin(); it != map.data.end(); ++it) {
-            data[i++] = *it;
+        bool use_unknown;
+        nh.param("use_unknown_cells", use_unknown, true);
+
+        if(use_unknown) {
+            /// Map data
+            /// -1: unknown -> 0
+            /// 0:100 probabilities -> 1 - 100
+            for(std::vector<int8_t>::const_iterator it = map.data.begin(); it != map.data.end(); ++it) {
+                data[i++] = std::min(100, *it + 1);
+            }
+
+        } else {
+            /// Map data
+            /// -1: unknown -> -1
+            /// 0:100 probabilities -> 0 - 100
+            for(std::vector<int8_t>::const_iterator it = map.data.begin(); it != map.data.end(); ++it) {
+                data[i++] = *it;
+            }
         }
+
+        map_info->setLowerThreshold(50);
+        map_info->setUpperThreshold(70);
+        map_info->setNoInformationValue(-1);
     }
 
     map_info->set(data, w, h);
     map_info->setOrigin(Point2d(map.info.origin.position.x, map.info.origin.position.y));
-    map_info->setLowerThreshold(50);
-    map_info->setUpperThreshold(70);
-
 
     cost_map.header = map.header;
     cost_map.info = map.info;
@@ -345,11 +361,20 @@ nav_msgs::Path Planner::findPath(const geometry_msgs::PoseStamped &start, const 
 {
     Stopwatch sw;
 
-    if(use_map_service_) {
+    if(use_cost_map_service_) {
+        sw.reset();
+        nav_msgs::GetMap map_service;
+        if(cost_map_service_client.call(map_service)) {
+            cost_map = map_service.response.map;
+            updateMap(map_service.response.map, true);
+        }
+        ROS_INFO_STREAM("cost map service lookup took " << sw.msElapsed() << "ms");
+
+    } else if(use_map_service_) {
         sw.reset();
         nav_msgs::GetMap map_service;
         if(map_service_client.call(map_service)) {
-            updateMap(map_service.response.map);
+            updateMap(map_service.response.map, false);
         } else {
             ROS_ERROR("map service lookup failed");
             return nav_msgs::Path();
@@ -361,9 +386,9 @@ nav_msgs::Path Planner::findPath(const geometry_msgs::PoseStamped &start, const 
         ROS_ERROR("request for path planning, but no map there yet...");
         return nav_msgs::Path();
     }
-//    cv::Mat map_raw(map_info->getHeight(), map_info->getWidth(), CV_8UC1, map_info->getData());
-//    cv::imshow("map_raw", map_raw);
-//    cv::waitKey(100);
+    //    cv::Mat map_raw(map_info->getHeight(), map_info->getWidth(), CV_8UC1, map_info->getData());
+    //    cv::imshow("map_raw", map_raw);
+    //    cv::waitKey(100);
 
     if(use_cloud_ && !cloud_.data.empty()) {
         integratePointCloud(cloud_);
@@ -375,27 +400,18 @@ nav_msgs::Path Planner::findPath(const geometry_msgs::PoseStamped &start, const 
         integrateLaserScan(scan_back);
     }
 
-    if(use_cost_map_service_) {
-        sw.reset();
-        nav_msgs::GetMap map_service;
-        if(cost_map_service_client.call(map_service)) {
-            cost_map = map_service.response.map;
-        }
-        ROS_INFO_STREAM("cost map service lookup took " << sw.msElapsed() << "ms");
-    }
-
     if(pre_process_) {
         sw.reset();
         preprocess(start, goal);
         ROS_INFO_STREAM("preprocessing took " << sw.msElapsed() << "ms");
     }
 
-//    cv::Mat map(map_info->getHeight(), map_info->getWidth(), CV_8UC1, map_info->getData());
-////    cv::Mat colored(map_info->getHeight(), map_info->getWidth(), CV_8UC3);
-////    map.convertTo(colored, CV_8UC3);
+    //    cv::Mat map(map_info->getHeight(), map_info->getWidth(), CV_8UC1, map_info->getData());
+    ////    cv::Mat colored(map_info->getHeight(), map_info->getWidth(), CV_8UC3);
+    ////    map.convertTo(colored, CV_8UC3);
 
-//    cv::imshow("map", map);
-//    cv::waitKey(100);
+    //    cv::imshow("map", map);
+    //    cv::waitKey(100);
 
     sw.reset();
     nav_msgs::Path path_raw = doPlan(start, goal);
@@ -456,10 +472,10 @@ void Planner::preprocess(const geometry_msgs::PoseStamped &start, const geometry
     cv::Mat costmap(h, w, CV_8UC1, cost_map.data.data());
     map.copyTo(costmap);
 
-//    cv::Mat unknown_mask;
-//    cv::inRange(map, 0, 0, unknown_mask);
-//    costmap.setTo(0, unknown_mask);
-//    cv::threshold(costmap, costmap, 50, 255, cv::THRESH_BINARY);
+    //    cv::Mat unknown_mask;
+    //    cv::inRange(map, 0, 0, unknown_mask);
+    //    costmap.setTo(0, unknown_mask);
+    //    cv::threshold(costmap, costmap, 50, 255, cv::THRESH_BINARY);
 
     costmap = 100 - costmap;
 
@@ -471,9 +487,9 @@ void Planner::preprocess(const geometry_msgs::PoseStamped &start, const geometry
     double factor = (scale_ * map_info->getResolution() / max_distance_meters_);
     distance.convertTo(costmap, CV_8UC1, factor);
 
-//    cv::threshold(costmap, costmap, 98, 98, CV_THRESH_TRUNC);
+    //    cv::threshold(costmap, costmap, 98, 98, CV_THRESH_TRUNC);
     costmap = cv::max(0, 98 - costmap);
-//    costmap.setTo(50, unknown_mask);
+    //    costmap.setTo(50, unknown_mask);
 
     cv::imwrite("costmap.png", costmap);
 
@@ -487,7 +503,7 @@ nav_msgs::Path Planner::postprocess(const nav_msgs::Path& path)
     ROS_INFO("postprocessing");
 
     sw.restart();
-//    nav_msgs::Path simplified_path = simplifyPath(path);
+    //    nav_msgs::Path simplified_path = simplifyPath(path);
     ROS_INFO_STREAM("simplifying took " << sw.msElapsed() << "ms");
 
     //    nav_msgs::Path pre_smooted_path = smoothPath(simplified_path, 0.9, 0.3);
