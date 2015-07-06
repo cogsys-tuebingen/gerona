@@ -258,7 +258,6 @@ float RobotControllerTrailer::getErrorApproachSubpathEnd()
 
 
 
-static int g_dbg_count = 0;
 
 void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
 {
@@ -287,9 +286,7 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
 
     // Control velocity
     float velocity = controlVelocity(steer);
-    if (g_dbg_count++%8==0) {
-     ROS_INFO("error dist %f error steer %fdeg  steer %fdeg\n",dist_error,angle_error*180.0/M_PI, steer*180.0/M_PI);
-    }
+
     double steer_des, steer_tol;
     if (dir_sign_>0) {
         steer_des = steer_des_fwd_;
