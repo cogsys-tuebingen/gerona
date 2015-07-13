@@ -43,24 +43,24 @@ private:
 			max_steering_angle_speed(this, "~max_steering_angle_speed", 1.7, "Maximum steering angle speed")
 		{}
 
-	} params;
+	} params_;
 
 	const RobotController_Interpolation::InterpolationParameters& getParameters() const
 	{
-		return params;
+		return params_;
 	}
 
 	void reset();
 	void setTuningParameters(const double k);
 
-	ros::NodeHandle node_handle;
-	ros::Publisher path_interpol_pub;
+	ros::NodeHandle node_handle_;
+	ros::Publisher path_interpol_pub_;
 
-	MoveCommand move_cmd;
+	MoveCommand move_cmd_;
 
-	double k1, k2, k3;
-	double delta;
-	ros::Time oldTime;
+	double k1_, k2_, k3_;
+	double delta_;
+	ros::Time old_time_;
 };
 
 #endif // ROBOTCONTROLLER_ACKERMANN_KINEMATIC_H
