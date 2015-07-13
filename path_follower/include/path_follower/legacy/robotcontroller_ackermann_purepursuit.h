@@ -50,19 +50,19 @@ private:
 										 "Set 1.0 for one axis steering, 0.5 for two axis steering")
 		{}
 
-	} params;
+	} params_;
 
 	const RobotController_Interpolation::InterpolationParameters& getParameters() const {
-		return params;
+		return params_;
 	}
 
 	double computeAlpha(double& lookahead_distance, const Eigen::Vector3d& pose);
 
-	ros::NodeHandle node_handle;
-	ros::Publisher path_interpol_pub;
+	ros::NodeHandle node_handle_;
+	ros::Publisher path_interpol_pub_;
 
 	unsigned int waypoint_;
-	MoveCommand move_cmd;
+	MoveCommand move_cmd_;
 };
 
 #endif /* NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_CONTROLLER_ROBOTCONTROLLER_ACKERMANN_GEOMETRICAL_H_ */

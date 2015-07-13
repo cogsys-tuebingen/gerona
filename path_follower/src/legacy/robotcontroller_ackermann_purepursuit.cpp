@@ -24,13 +24,13 @@ Robotcontroller_Ackermann_PurePursuit::Robotcontroller_Ackermann_PurePursuit (Pa
 	RobotController_Interpolation(_path_follower),
 	waypoint_(0) {
 
-	path_interpol_pub = node_handle.advertise<nav_msgs::Path>("interp_path", 10);
+	path_interpol_pub_ = node_handle_.advertise<nav_msgs::Path>("interp_path", 10);
 
 
 	ROS_INFO("Parameters: factor_lookahead_distance_forward=%f, factor_lookahead_distance_backward=%f"
 				"\nvehicle_length=%f\nfactor_steering_angle=%f\ngoal_tolerance=%f",
-				params.factor_lookahead_distance_forward(), params.factor_lookahead_distance_backward(),
-				params.vehicle_length(), params.factor_steering_angle(), params.goal_tolerance());
+				params_.factor_lookahead_distance_forward(), params_.factor_lookahead_distance_backward(),
+				params_.vehicle_length(), params_.factor_steering_angle(), params_.goal_tolerance());
 
 }
 
@@ -58,10 +58,10 @@ void Robotcontroller_Ackermann_PurePursuit::setPath(Path::Ptr path) {
 
 void Robotcontroller_Ackermann_PurePursuit::stopMotion() {
 
-	move_cmd.setVelocity(0.f);
-	move_cmd.setDirection(0.f);
+	move_cmd_.setVelocity(0.f);
+	move_cmd_.setDirection(0.f);
 
-	MoveCommand cmd = move_cmd;
+	MoveCommand cmd = move_cmd_;
 	publishMoveCommand(cmd);
 }
 
@@ -83,10 +83,10 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 	if (reachedGoal(pose)) {
 		path_->switchToNextSubPath();
 		if (path_->isDone()) {
-			move_cmd.setDirection(0.);
-			move_cmd.setVelocity(0.);
+			move_cmd_.setDirection(0.);
+			move_cmd_.setVelocity(0.);
 
-			*cmd = move_cmd;
+			*cmd = move_cmd_;
 
 #ifdef DEBUG
 			ROS_INFO("Reached goal.");
@@ -117,22 +117,22 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 	 */
 	double lookahead_distance = velocity_;
 	if(getDirSign() >= 0.)
-		lookahead_distance *= params.factor_lookahead_distance_forward();
+		lookahead_distance *= params_.factor_lookahead_distance_forward();
 	else
-		lookahead_distance *= params.factor_lookahead_distance_backward();
+		lookahead_distance *= params_.factor_lookahead_distance_backward();
 
 	// angle between vehicle theta and the connection between the rear axis and the look ahead point
 	const double alpha = computeAlpha(lookahead_distance, pose);
 
-	const double delta = atan2(2. * params.vehicle_length() * sin(alpha), lookahead_distance);
+	const double delta = atan2(2. * params_.vehicle_length() * sin(alpha), lookahead_distance);
 
 	//	 const double delta = asin((VEHICLE_LENGTH * alpha) / lookahead_distance);
-	move_cmd.setDirection(params.factor_steering_angle() * (float) delta);
-	move_cmd.setVelocity(getDirSign() * (float) velocity_);
+	move_cmd_.setDirection(params_.factor_steering_angle() * (float) delta);
+	move_cmd_.setVelocity(getDirSign() * (float) velocity_);
 
 	ROS_INFO("Command: vel=%f, angle=%f", velocity_, delta);
 
-	*cmd = move_cmd;
+	*cmd = move_cmd_;
 
 	return RobotController::MoveCommandStatus::OKAY;
 }
