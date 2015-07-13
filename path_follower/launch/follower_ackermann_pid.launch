@@ -45,6 +45,7 @@ Launch the path follower with the PID controller for a car-like (Ackermann) robo
 
 
     <remap from="scan" to="scan/front/filtered" />
+    <remap from="/obstacles" to="/obstacle_cloud" />
   </node>
   
 </launch>

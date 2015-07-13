@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+   <node name="path_planner" type="path_planner_node" pkg="path_planner"
+    		output="screen" respawn="true">
+        <param name="use_map_topic" value="false" />
+        <param name="map_service" value="/dynamic_map/cost" />
+        <param name="use_cost_map" value="true" />
+        <param name="use_collision_gridmap" value="false" />
+
+        <param name="preprocess" value="false" />
+        <param name="postprocess" value="true" />
+
+        <param name="use_cloud" value="true" />
+        <param name="use_scan_front" value="true" />
+        <param name="use_scan_back" value="false" />
+
+        <param name="size/forward" value="0.3" />
+        <param name="size/backward" value="-0.5" />
+        <param name="size/width" value="0.55" />
+    </node>
+</launch>
