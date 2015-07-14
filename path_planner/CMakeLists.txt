@@ -54,7 +54,14 @@ add_dependencies(path_planner_node path_msgs_generate_messages_cpp)
 target_link_libraries(path_planner_node
   ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
+##D-Star
+add_executable(dyn_path_planner_node src/planner_node.cpp src/dyn_path_planner_node.cpp)
+add_dependencies(dyn_path_planner_node path_msgs_generate_messages_cpp)
 
+target_link_libraries(dyn_path_planner_node
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+)
+##
 
 add_executable(static_path_node src/planner_node.cpp src/static_path_node.cpp)
 add_dependencies(static_path_node path_msgs_generate_messages_cpp)
@@ -62,7 +69,6 @@ add_dependencies(static_path_node path_msgs_generate_messages_cpp)
 target_link_libraries(static_path_node
   ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
-
 
 add_executable(pub_goal_pose src/pub_goal_pose.cpp)
 
