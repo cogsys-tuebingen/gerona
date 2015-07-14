@@ -24,10 +24,12 @@ RobotController_Ackermann_Kinematic::RobotController_Ackermann_Kinematic(PathFol
 
 	delta_ = 0.;
 
-	ROS_INFO("Parameters: k_forward=%f, k_backward=%f\nvehicle_length=%f\nfactor_steering_angle=%f"
+	ROS_INFO("Parameters: k_forward=%f, k_backward=%f\nvehicle_length=%f\n"
+				"factor_steering_angle_forward=%f, factor_steering_angle_backward=%f"
 				"\ngoal_tolerance=%f\nmax_steering_angle=%f",
 				params_.k_forward(), params_.k_backward(),
-				params_.vehicle_length(), params_.factor_steering_angle(),
+				params_.vehicle_length(), params_.factor_steering_angle_forward(),
+				params_.factor_steering_angle_backward(),
 				params_.goal_tolerance(), params_.max_steering_angle());
 
 }
@@ -183,6 +185,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// 1 - dc(s)
 	const double _1_dc = 1. - d * c; // OK
 
+	ROS_INFO("1 - dc(s)=%f", _1_dc);
+
 	// cos, sin, tan of theta error
 	const double cos_theta_p = cos(theta_p);  // OK
 	const double cos_theta_p_2 = cos_theta_p * cos_theta_p; // OK
@@ -286,7 +290,10 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 	ROS_INFO("Time passed: %fs, command: v1=%f, v2=%f, delta_=%f",
 				time_passed.toSec(), v1, v2, delta_);
-	move_cmd_.setDirection(params_.factor_steering_angle() * (float) delta_);
+	if (getDirSign() > 0.)
+		move_cmd_.setDirection(params_.factor_steering_angle_forward() * (float) delta_);
+	else
+		move_cmd_.setDirection(params_.factor_steering_angle_backward() * (float) delta_);
 	move_cmd_.setVelocity(getDirSign() * (float) v1);
 
 

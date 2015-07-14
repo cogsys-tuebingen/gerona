@@ -29,7 +29,8 @@ private:
 		P<double> vehicle_length;
 		P<double> k_forward;
 		P<double> k_backward;
-		P<double> factor_steering_angle;
+		P<double> factor_steering_angle_forward;
+		P<double> factor_steering_angle_backward;
 		P<double> max_steering_angle;
 		P<double> max_steering_angle_speed;
 
@@ -37,7 +38,9 @@ private:
 			vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance"),
 			k_forward(this, "~k_forward", 7.0, "Tuning factor for forward driving"),
 			k_backward(this, "~k_backward", 7.0, "Tuning factor for backward driving"),
-			factor_steering_angle(this, "~factor_steering_angle", 1.0,
+			factor_steering_angle_forward(this, "~factor_steering_angle_forward", 1.0,
+										 "Set 1.0 for one axis steering, 0.5 for two axis steering"),
+			factor_steering_angle_backward(this, "~factor_steering_angle_backward", 1.0,
 										 "Set 1.0 for one axis steering, 0.5 for two axis steering"),
 			max_steering_angle(this, "~max_steering_angle", M_PI / 3, "Maximum steering angle"),
 			max_steering_angle_speed(this, "~max_steering_angle_speed", 1.7, "Maximum steering angle speed")
