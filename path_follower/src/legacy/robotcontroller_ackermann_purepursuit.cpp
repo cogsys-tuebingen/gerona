@@ -163,6 +163,7 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(double& lookahead_dis
 		if (distance >= lookahead_distance)
 			break;
 	}
+
 	// angle between the connection line and the vehicle orientation
 	double alpha = MathHelper::AngleDelta(pose[2], atan2(dy, dx));
 

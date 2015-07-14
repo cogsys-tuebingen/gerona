@@ -59,7 +59,7 @@ struct NonHolonomicNeighborhoodPrecise :
 
 
         // euclidean distance
-        int delta = 5;
+		  int delta = 2;
         if(dist < 2.0) return true;
 
         if(std::abs(goal->x - reference->x) < delta &&
