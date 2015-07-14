@@ -148,8 +148,8 @@ void Robotcontroller_Ackermann_PurePursuit::publishMoveCommand(
 	cmd_pub_.publish(msg);
 }
 
-double Robotcontroller_Ackermann_PurePursuit::computeAlpha(
-		double& lookahead_distance, const Eigen::Vector3d& pose) {
+double Robotcontroller_Ackermann_PurePursuit::computeAlpha(double& lookahead_distance,
+																			  const Eigen::Vector3d& pose) {
 
 	// TODO: correct angle, when the goal is near
 
