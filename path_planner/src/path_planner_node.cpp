@@ -198,7 +198,7 @@ struct PathPlanner : public Planner
     PathPlanner()
         : render_open_cells_(false)
     {
-        render_open_cells_ = nh.param("render_open_cells", false);
+        nh.param("render_open_cells", render_open_cells_, false);
 
         if(render_open_cells_) {
             cell_publisher_ = nh.advertise<nav_msgs::GridCells>("cells", 1, true);
