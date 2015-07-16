@@ -364,9 +364,14 @@ nav_msgs::Path Planner::findPath(const geometry_msgs::PoseStamped &start, const 
     if(use_cost_map_service_) {
         sw.reset();
         nav_msgs::GetMap map_service;
+        if(!cost_map_service_client.exists()) {
+            cost_map_service_client.waitForExistence();
+        }
         if(cost_map_service_client.call(map_service)) {
             cost_map = map_service.response.map;
             updateMap(map_service.response.map, true);
+        } else {
+            ROS_ERROR("call to costmap service failed");
         }
         ROS_INFO_STREAM("cost map service lookup took " << sw.msElapsed() << "ms");
 
@@ -567,7 +572,7 @@ nav_msgs::Path Planner::doPlan(const geometry_msgs::PoseStamped &start, const ge
     from_world.y = start.pose.position.y;
     from_world.theta = tf::getYaw(start.pose.orientation);
 
-    ROS_WARN_STREAM("theta=" << from_world.theta);
+    ROS_WARN_STREAM("world: x=" << from_world.x << ", y=" << from_world.y << ", theta=" << from_world.theta);
 
     to_world.x = goal.pose.position.x;
     to_world.y = goal.pose.position.y;
@@ -595,6 +600,7 @@ nav_msgs::Path Planner::doPlan(const geometry_msgs::PoseStamped &start, const ge
         to_map.y = ty;
         to_map.theta = to_world.theta;
     }
+    ROS_WARN_STREAM("map: x=" << from_map.x << ", y=" << from_map.y << ", theta=" << from_map.theta);
 
 
     feedback(path_msgs::PlanPathFeedback::STATUS_POST_PROCESSING);
