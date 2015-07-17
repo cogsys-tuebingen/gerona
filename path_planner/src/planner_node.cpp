@@ -3,6 +3,7 @@
 
 /// PROJECT
 #include <utils_path/common/CollisionGridMap2d.h>
+#include <utils_path/common/RotatedGridMap2d.h>
 #include <utils_path/common/Bresenham2d.h>
 #include <utils_general/Stopwatch.h>
 
@@ -16,44 +17,44 @@
 using namespace lib_path;
 
 Planner::Planner()
-    : nh("~"),
-      server_(nh, "/plan_path", boost::bind(&Planner::execute, this, _1), false),
-      map_info(NULL)
+    : nh_priv("~"),
+      server_(nh, "plan_path", boost::bind(&Planner::execute, this, _1), false),
+      map_info(NULL), map_rotation_yaw_(0.0)
 {
     std::string target_topic = "/goal";
-    nh.param("target_topic", target_topic, target_topic);
+    nh_priv.param("target_topic", target_topic, target_topic);
 
     //    goal_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>
     //            (target_topic, 2, boost::bind(&Planner::updateGoalCallback, this, _1));
 
-    nh.param("use_map_topic", use_map_topic_, false);
+    nh_priv.param("use_map_topic", use_map_topic_, false);
     use_map_service_ = !use_map_topic_;
 
     if(use_map_topic_) {
         std::string map_topic = "/map";
-        nh.param("map_topic",map_topic, map_topic);
-        map_sub = nh.subscribe<nav_msgs::OccupancyGrid>
+        nh_priv.param("map_topic",map_topic, map_topic);
+        map_sub = nh_priv.subscribe<nav_msgs::OccupancyGrid>
                 (map_topic, 1, boost::bind(&Planner::updateMapCallback, this, _1));
 
         std::cout << "using map topic " << map_topic << std::endl;
 
     } else {
         std::string map_service = "/static_map";
-        nh.param("map_service",map_service, map_service);
-        map_service_client = nh.serviceClient<nav_msgs::GetMap> (map_service);
+        nh_priv.param("map_service",map_service, map_service);
+        map_service_client = nh_priv.serviceClient<nav_msgs::GetMap> (map_service);
 
         std::cout << "using map service " << map_service << std::endl;
     }
 
-    nh.param("preprocess", pre_process_, true);
-    nh.param("postprocess", post_process_, true);
+    nh_priv.param("preprocess", pre_process_, true);
+    nh_priv.param("postprocess", post_process_, true);
 
-    nh.param("use_cost_map", use_cost_map_, false);
+    nh_priv.param("use_cost_map", use_cost_map_, false);
     if(use_cost_map_ && !pre_process_) {
         use_cost_map_service_ = true;
         std::string costmap_service = "/dynamic_map/cost";
-        nh.param("cost_map_service",costmap_service, costmap_service);
-        cost_map_service_client = nh.serviceClient<nav_msgs::GetMap> (costmap_service);
+        nh_priv.param("cost_map_service",costmap_service, costmap_service);
+        cost_map_service_client = nh_priv.serviceClient<nav_msgs::GetMap> (costmap_service);
 
         std::cout << "using cost map service " << costmap_service << std::endl;
 
@@ -64,37 +65,37 @@ Planner::Planner()
         }
     }
 
-    nh.param("use_cloud", use_cloud_, false);
-    nh.param("use_scan_front", use_scan_front_, true);
-    nh.param("use_scan_back", use_scan_back_, true);
+    nh_priv.param("use_cloud", use_cloud_, false);
+    nh_priv.param("use_scan_front", use_scan_front_, true);
+    nh_priv.param("use_scan_back", use_scan_back_, true);
 
     if(use_cloud_) {
-        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("/obstacles", 0, boost::bind(&Planner::cloudCallback, this, _1));
+        sub_cloud = nh_priv.subscribe<sensor_msgs::PointCloud2>("/obstacles", 0, boost::bind(&Planner::cloudCallback, this, _1));
         //        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("/obstacle_cloud", 0, boost::bind(&Planner::cloudCallback, this, _1));
     }
     if(use_scan_front_) {
-        sub_front = nh.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, true));
+        sub_front = nh_priv.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, true));
     }
     if(use_scan_back_) {
-        sub_back = nh.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, false));
+        sub_back = nh_priv.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, false));
     }
 
 
-    nh.param("use_collision_gridmap", use_collision_gridmap_, false);
+    nh_priv.param("use_collision_gridmap", use_collision_gridmap_, false);
 
-    viz_pub = nh.advertise<visualization_msgs::Marker>("/viz_path_planner", 0);
-    cost_pub = nh.advertise<nav_msgs::OccupancyGrid>("cost", 1, true);
+    viz_pub = nh_priv.advertise<visualization_msgs::Marker>("/viz_path_planner", 0);
+    cost_pub = nh_priv.advertise<nav_msgs::OccupancyGrid>("cost", 1, true);
 
     base_frame_ = "/base_link";
-    nh.param("base_frame", base_frame_, base_frame_);
+    nh_priv.param("base_frame", base_frame_, base_frame_);
 
 
-    nh.param("size/forward", size_forward, 0.4);
-    nh.param("size/backward", size_backward, -0.6);
-    nh.param("size/width", size_width, 0.5);
+    nh_priv.param("size/forward", size_forward, 0.4);
+    nh_priv.param("size/backward", size_backward, -0.6);
+    nh_priv.param("size/width", size_width, 0.5);
 
-    path_publisher = nh.advertise<nav_msgs::Path> ("/path", 10);
-    raw_path_publisher = nh.advertise<nav_msgs::Path> ("/path_raw", 10);
+    path_publisher = nh_priv.advertise<nav_msgs::Path> ("/path", 10);
+    raw_path_publisher = nh_priv.advertise<nav_msgs::Path> ("/path_raw", 10);
 
     server_.registerPreemptCallback(boost::bind(&Planner::preempt, this));
     server_.start();
@@ -151,7 +152,14 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map, bool is_cost_map) {
         if(use_collision_gridmap_) {
             map_info = new lib_path::CollisionGridMap2d(map.info.width, map.info.height, map.info.resolution, size_forward, size_backward, size_width);
         } else {
-            map_info = new lib_path::SimpleGridMap2d(map.info.width, map.info.height, map.info.resolution);
+            tf::Quaternion orientation;
+            tf::quaternionMsgToTF(map.info.origin.orientation, orientation);
+            if(orientation != tf::Quaternion(0., 0., 0., 1.0)) {
+                map_rotation_yaw_ = tf::getYaw(orientation);
+                map_info = new lib_path::RotatedGridMap2d(map.info.width, map.info.height, map_rotation_yaw_, map.info.resolution);
+            } else {
+                map_info = new lib_path::SimpleGridMap2d(map.info.width, map.info.height, map.info.resolution);
+            }
         }
     }
 
@@ -171,7 +179,7 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map, bool is_cost_map) {
 
     } else {
         bool use_unknown;
-        nh.param("use_unknown_cells", use_unknown, true);
+        nh_priv.param("use_unknown_cells", use_unknown, true);
 
         if(use_unknown) {
             /// Map data
@@ -589,7 +597,7 @@ nav_msgs::Path Planner::doPlan(const geometry_msgs::PoseStamped &start, const ge
         map_info->point2cell(from_world.x, from_world.y, fx, fy);
         from_map.x = fx;
         from_map.y = fy;
-        from_map.theta = from_world.theta;
+        from_map.theta = from_world.theta - map_rotation_yaw_;
     }
 
     ROS_WARN_STREAM("res=" << map_info->getResolution());
@@ -598,7 +606,7 @@ nav_msgs::Path Planner::doPlan(const geometry_msgs::PoseStamped &start, const ge
         map_info->point2cell(to_world.x, to_world.y, tx, ty);
         to_map.x = tx;
         to_map.y = ty;
-        to_map.theta = to_world.theta;
+        to_map.theta = to_world.theta - map_rotation_yaw_;
     }
     ROS_WARN_STREAM("map: x=" << from_map.x << ", y=" << from_map.y << ", theta=" << from_map.theta);
 

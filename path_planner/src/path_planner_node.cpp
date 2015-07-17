@@ -181,9 +181,11 @@ struct PathPlanner : public Planner
     //typedef AStarNoOrientationSearch<> AStar;
     //    typedef AStarSearch<NonHolonomicNeighborhood<40, 360, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/> > AStarAckermann; // Ackermann
     typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/>,
-                        NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermann; // Ackermann
+                        NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermannForward; // Ackermann
     typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/, true>,
                         NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermannReversed; // Ackermann
+    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<30, 400, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/, true>,
+                        NoExpansion, Pose2d, GridMap2d, 1000> AStarSummitReversed; // Summit
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
     typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD> > AStarPatsyForward;
@@ -191,17 +193,35 @@ struct PathPlanner : public Planner
     ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
     //    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStarOmnidrive; // Omnidrive
 
-    typedef AStarAckermannReversed AStar;
+    typedef AStarAckermannReversed AStarAckermann;
+    typedef AStarSummitReversed AStarSummit;
+    //    typedef AStarOmnidrive AStar;
 
-    typedef AStar::PathT PathT;
+    typedef AStarAckermann::PathT PathT;
 
     PathPlanner()
-        : render_open_cells_(false)
     {
-        render_open_cells_ = nh.param("render_open_cells", false);
+        nh_priv.param("render_open_cells", render_open_cells_, false);
+
+        std::string algo = "ackermann";
+        nh_priv.param("algorithm", algo, algo);
+
+        std::transform(algo.begin(), algo.end(), algo.begin(), ::tolower);
+
+        if(algo == "ackermann") {
+            algo_to_use = Algo::ACKERMANN;
+
+        } else if(algo == "summit") {
+            algo_to_use = Algo::SUMMIT;
+
+        } else {
+            throw std::runtime_error(std::string("unknown algorithm ") + algo);
+        }
+
+        ROS_INFO_STREAM("planner uses algorithm: " << algo);
 
         if(render_open_cells_) {
-            cell_publisher_ = nh.advertise<nav_msgs::GridCells>("cells", 1, true);
+            cell_publisher_ = nh_priv.advertise<nav_msgs::GridCells>("cells", 1, true);
         }
     }
 
@@ -237,10 +257,15 @@ struct PathPlanner : public Planner
     //        return cost;
     //    }
 
-    nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,
-                         const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-                         const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
+
+    template <typename Algorithm>
+    nav_msgs::Path planInstance (Algorithm& algo,
+                                 const geometry_msgs::PoseStamped &goal,
+                                 const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
+                                 const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
+
         algo.setMap(map_info);
+
         if(use_cost_map_) {
             cells.header = cost_map.header;
             cells.cell_width = cells.cell_height = cost_map.info.resolution;
@@ -271,12 +296,28 @@ struct PathPlanner : public Planner
         }
 
         return path2msg(path, goal.header.stamp);
+
     }
 
-    void renderCells()
+    nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,
+                         const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
+                         const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
+        switch(algo_to_use) {
+        case Algo::ACKERMANN:
+            return planInstance(algo_ackermann, goal, from_world, to_world, from_map, to_map);
+        case Algo::SUMMIT:
+            return planInstance(algo_summit, goal, from_world, to_world, from_map, to_map);
+
+        default:
+            throw std::runtime_error("unknown algorithm selected");
+        }
+
+    }
+
+    template <class Algorithm>
+    void renderCellsInstance(Algorithm& algo)
     {
         if(use_cost_map_ && render_open_cells_) {
-            //auto& map = algo.getMapManager();
             auto& open = algo.getOpenList();
 
             double res = cost_map.info.resolution;
@@ -298,9 +339,30 @@ struct PathPlanner : public Planner
         }
     }
 
+    void renderCells()
+    {
+        switch(algo_to_use) {
+        case Algo::ACKERMANN:
+            return renderCellsInstance(algo_ackermann);
+        case Algo::SUMMIT:
+            return renderCellsInstance(algo_summit);
+
+        default:
+            throw std::runtime_error("unknown algorithm selected");
+        }
+    }
+
 
 private:
-    AStar algo;
+    AStarAckermann algo_ackermann;
+    AStarSummit algo_summit;
+
+    enum class Algo {
+        ACKERMANN = 0,
+        SUMMIT = 1
+    };
+
+    Algo algo_to_use;
 
     bool render_open_cells_;
     nav_msgs::GridCells cells;

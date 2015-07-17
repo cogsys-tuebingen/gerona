@@ -25,4 +25,6 @@
             </group>
           </group>
         </group>
+
+	<param name="/path_planner/algorithm" value="ackermann" />
 </launch>
