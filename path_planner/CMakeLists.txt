@@ -18,7 +18,7 @@ endif()
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS nav_msgs path_msgs utils_path roscpp std_msgs tf roslib cmake_modules pcl_ros)
 
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -64,6 +64,16 @@ target_link_libraries(static_path_node
 )
 
 
+add_executable(course_planner_node
+src/course_planner_node.cpp
+src/course_planner.cpp
+src/planner_node.cpp
+)
+add_dependencies(course_planner_node path_msgs_generate_messages_cpp)
+
+target_link_libraries(course_planner_node
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+)
 add_executable(pub_goal_pose src/pub_goal_pose.cpp)
 
 target_link_libraries(pub_goal_pose
