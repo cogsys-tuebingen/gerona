@@ -137,6 +137,7 @@ private:
 
 protected:
     ros::NodeHandle nh;
+    ros::NodeHandle nh_priv;
 
     bool use_map_topic_;
     bool use_cost_map_;
@@ -174,6 +175,8 @@ protected:
     std::string base_frame_;
 
     lib_path::SimpleGridMap2d * map_info;
+    double map_rotation_yaw_;
+
     nav_msgs::OccupancyGrid cost_map;
     std::vector<double> gradient_x;
     std::vector<double> gradient_y;

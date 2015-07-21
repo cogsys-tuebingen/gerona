@@ -224,27 +224,16 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// my version
 	const double dx2_dd = c_prim * tan_theta_p
 			- c * c * (1 + sin_theta_p_2) / cos_theta_p_2
-			- 2. * _1_dc * c * tan(delta_) / (params_.vehicle_length() * cos_theta_p_3);
+			- 2. * _1_dc * c * tan(delta_) / (params_.vehicle_length() * cos_theta_p_3); // OK
 
 	const double dx2_dtheta_p = c_prim * (tan_theta_p_2 + 1.)
 			- 4. * c * _1_dc * tan_theta_p / cos_theta_p_2
 			+ 3. * pow(_1_dc, 2) * tan(delta_) * tan_theta_p / (params_.vehicle_length()
-																						 * cos_theta_p_3);
+																						 * cos_theta_p_3); // OK
 
 //	const double dx2ds = c_sek * d * tanThetaP
 //			+ curvatureError * d * c * (pow(c_prim, 2) * (1. + sinThetaP2) / cosThetaP2
 //												 - 2. * tan(delta_) / (params_.vehicle_length() * cosThetaP3));
-
-	//	const double dx2ds =
-	//			tanThetaP * (c_sek * d + c_prim * d_prim)
-	//			+ c_prim * d * thetaP_prim * (tanThetaP2 + 1.)
-	//			- curvatureError * (c_prim * (1. + sinThetaP2) / cosThetaP2
-	//									  + 2. * c * thetaP_prim * tanThetaP / cosThetaP2)
-	//			- c * (d_prim * c + d * c_prim) * (1. + sinThetaP2) / cosThetaP2
-	//			+ (tan(delta_) * curvatureError / params_.vehicle_length())
-	//			* (2. * (d_prim * c + d * c_prim) * cosThetaP2
-	//				+ 3. * thetaP_prim * curvatureError * sinThetaP)
-	//			/ (cosThetaP2 * cosThetaP3);
 
 	const double dx2_ds =
 			tan_theta_p * (c_sek * d + c_prim * d_prim)
@@ -253,7 +242,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 			- 4. * c * _1_dc * tan_theta_p / cos_theta_p_2
 			+ (_1_dc * tan(delta_) / params_.vehicle_length())
 			* (-2. * (d_prim * c + d * c_prim)
-				+ theta_p_prim * _1_dc + sin_theta_p) / pow(cos_theta_p_2, 2);
+				+ theta_p_prim * _1_dc + sin_theta_p) / pow(cos_theta_p_2, 2); // OK
 
 
 	const double alpha1 =

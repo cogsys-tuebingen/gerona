@@ -91,8 +91,8 @@ struct StaticPathPlanner : public Planner
 {
     StaticPathPlanner()
     {
-        posearray_pub_ = nh.advertise<geometry_msgs::PoseArray>("static_poses",1000);
-        nh.param("resolution", resolution_, 0.1);
+        posearray_pub_ = nh_priv.advertise<geometry_msgs::PoseArray>("static_poses",1000);
+        nh_priv.param("resolution", resolution_, 0.1);
     }
 
 

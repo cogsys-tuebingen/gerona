@@ -1,7 +1,28 @@
-<?xml version="1.0"?>
+<?xml version="1.0" ?>
 <launch>
-<!--  <include file="$(find navigation_launch)/launch/karto_segmented.launch" /> -->
-	<include file="$(find navigation_launch)/launch/karto.launch" />
-	<!--include file="$(find navigation_launch)/launch/hector.launch" /-->
-<!--  <include file="$(find navigation_launch)/launch/amcl.launch" /> -->
+	<!--
+	Arguments select the mapping / SLAM algorithm to use.
+	Only one launch file can be included, even if all paramters are set to true.
+	-->
+	<arg name="use_karto" default="false" />
+	<arg name="use_karto_segmented" default="false" />
+	<arg name="use_amcl" default="false" />
+	
+	<!-- default: must be checked last -->
+	<arg name="use_hector" default="true" />
+
+
+	<include file="$(find navigation_launch)/launch/karto_segmented.launch" if="$(arg use_karto_segmented)" />
+	<group unless="$(arg use_karto_segmented)">
+
+	  <include file="$(find navigation_launch)/launch/karto.launch" if="$(arg use_karto)" />
+	  <group unless="$(arg use_karto)">
+
+	    <include file="$(find navigation_launch)/launch/amcl.launch" if="$(arg use_amcl)" />
+	    <group unless="$(arg use_amcl)">
+
+	      <include file="$(find navigation_launch)/launch/hector.launch" if="$(arg use_hector)" />
+	    </group>
+	  </group>
+	</group>
 </launch>

@@ -5,13 +5,24 @@ and obstacle detection (based on 2d laser).
 This is a complete setup and enought to actually navigate the robot.
 -->
 <launch>
-	<!-- laser filter to avoid that the robot scans itself -->
-<!--    <include file="$(find navigation_launch)/launch/laser_filter.launch" />
--->
-	<!-- mapping -->
-    <!--node name="costmap" type="costmap_gradient_node" pkg="costmap"
-                output="log" respawn="true" /-->
-    <include file="$(find navigation_launch)/launch/mapping.launch" />
+    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER ackermann_orthexp)" />
+
+    <arg name="use_planner_cost" default="false" />
+    <arg name="use_planner_dynamic" default="false" />
+    <arg name="use_planner_static" default="false" />
+    <arg name="use_planner_default" default="true" />
+
+    <arg name="use_karto" default="false" />
+    <arg name="use_karto_segmented" default="false" />
+    <arg name="use_amcl" default="false" />
+    <arg name="use_hector" default="true" />
+
+    <include file="$(find navigation_launch)/launch/mapping.launch">
+        <arg name="use_karto" value="$(arg use_karto)" />
+        <arg name="use_karto_segmented" value="$(arg use_karto_segmented)" />
+        <arg name="use_amcl" value="$(arg use_amcl)" />
+        <arg name="use_hector" value="$(arg use_hector)" />  
+    </include>
     
     <!-- obstacle cloud (simply converting laser scans to cloud) -->
     <node name="obstacle_cloud" type="scan2cloud_node" pkg="scan2cloud" output="screen">
@@ -19,5 +30,12 @@ This is a complete setup and enought to actually navigate the robot.
         <remap from="/cloud/total" to="/obstacle_cloud" />
     </node>
     
-    <include file="$(find navigation_launch)/launch/navigation.launch" />
+    <include file="$(find navigation_launch)/launch/navigation.launch">
+      <arg name="robot_controller" value="$(arg robot_controller)" />
+
+      <arg name="use_planner_cost" value="$(arg use_planner_cost)" />
+      <arg name="use_planner_dynamic" value="$(arg use_planner_dynamic)" />
+      <arg name="use_planner_static" value="$(arg use_planner_static)" />
+      <arg name="use_planner_default" value="$(arg use_planner_default)" />
+    </include>
 </launch>
