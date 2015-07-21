@@ -12,13 +12,13 @@
 		<!-- typical turning maneuver -->
 		<!--rosparam param="segments">[[1.57079632679, -1.2], [-1.57079632679, 1.2]]</rosparam-->
 		<!-- straight line forward -->
-		<rosparam param="segments">[[5.0]]</rosparam>
+		<!--rosparam param="segments">[[5.0]]</rosparam-->
 		<!-- straight line backward -->
 		<!--rosparam param="segments">[[-5.0]]</rosparam-->
 		<!-- figure eight course -->
 		<!-- rosparam param="segments">[[6.28318530718, 1.0], [-6.28318530718, 1.0]]</rosparam-->
 		<!-- circle forward -->
-		<!--rosparam param="segments">[[5.0, 1.0]]</rosparam-->
+		<rosparam param="segments">[[3.14, 0.8]]</rosparam>
 		<!-- circle backward -->
 		<!--rosparam param="segments">[[5.0, -1.0]]</rosparam-->
 	</node>

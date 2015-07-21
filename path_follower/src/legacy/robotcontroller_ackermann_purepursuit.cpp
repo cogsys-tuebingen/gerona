@@ -127,6 +127,11 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 	const double delta = atan2(2. * params_.vehicle_length() * sin(alpha), lookahead_distance);
 
 	//	 const double delta = asin((VEHICLE_LENGTH * alpha) / lookahead_distance);
+
+	// TODO: this is more accurate
+	//	delta = asin(params_.factor_steering_angle() * sin(delta));
+	//	move_cmd_.setDirection((float) delta);
+
 	move_cmd_.setDirection(params_.factor_steering_angle() * (float) delta);
 	move_cmd_.setVelocity(getDirSign() * (float) velocity_);
 
