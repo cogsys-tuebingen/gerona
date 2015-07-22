@@ -9,7 +9,7 @@ The alternative launchfile `full.launch` contains nodes for all those
 tasks and can be used instead of this file.
 -->
 <launch>
-    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER ackermann_orthexp)" />
+    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER ackermann_kinematic)" />
     
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />

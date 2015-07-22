@@ -278,6 +278,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// This is the accurate steering angle for 4 wheel steering
 	const float delta = (float) asin(params_.factor_steering_angle() * sin(delta_));
 
+	ROS_INFO("delta=%f, delta_=%f", delta, delta_);
+
 	move_cmd_.setDirection(delta);
 
 	// also limit the steering angle

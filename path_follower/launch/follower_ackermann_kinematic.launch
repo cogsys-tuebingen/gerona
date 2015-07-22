@@ -39,20 +39,20 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
 
 
 	 <!-- simulation -->
-	 <param name="k_forward" value="7.0" />
+	 <!--param name="k_forward" value="7.0" />
 	 <param name="k_backward" value="10.0" />
 	 <param name="factor_k1" value="1.0" />
 	 <param name="factor_k2" value="3.0" />
 	 <param name="factor_k3" value="3.0" />
-	 <param name="factor_steering_angle" value="1.0" />
+	 <param name="factor_steering_angle" value="1.0" /-->
 
 	 <!-- robot -->
-	 <!--param name="k_forward" value="4.5" />
+	 <param name="k_forward" value="4.5" />
 	 <param name="k_backward" value="7.0" />
 	 <param name="factor_k1" value="1.0" />
-	 <param name="factor_k1" value="3.0" />
-	 <param name="factor_k1" value="3.0" />
-	 <param name="factor_steering_angle" value="0.5" /-->
+	 <param name="factor_k2" value="3.0" />
+	 <param name="factor_k3" value="3.0" />
+	 <param name="factor_steering_angle" value="0.5" />
 
 
 	 <param name="vehicle_length" value="0.34" />
