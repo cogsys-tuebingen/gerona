@@ -32,8 +32,7 @@ private:
 		P<double> factor_k1;
 		P<double> factor_k2;
 		P<double> factor_k3;
-		P<double> factor_steering_angle_forward;
-		P<double> factor_steering_angle_backward;
+		P<double> factor_steering_angle;
 		P<double> max_steering_angle;
 		P<double> max_steering_angle_speed;
 
@@ -44,9 +43,7 @@ private:
 			factor_k1(this, "~factor_k1", 1.0, "Factor for k1"),
 			factor_k2(this, "~factor_k2", 3.0, "Factor for k2"),
 			factor_k3(this, "~factor_k3", 3.0, "Factor for k3"),
-			factor_steering_angle_forward(this, "~factor_steering_angle_forward", 1.0,
-										 "Set 1.0 for one axis steering, 0.5 for two axis steering"),
-			factor_steering_angle_backward(this, "~factor_steering_angle_backward", 1.0,
+			factor_steering_angle(this, "~factor_steering_angle", 1.0,
 										 "Set 1.0 for one axis steering, 0.5 for two axis steering"),
 			max_steering_angle(this, "~max_steering_angle", M_PI / 3, "Maximum steering angle"),
 			max_steering_angle_speed(this, "~max_steering_angle_speed", 1.7, "Maximum steering angle speed")

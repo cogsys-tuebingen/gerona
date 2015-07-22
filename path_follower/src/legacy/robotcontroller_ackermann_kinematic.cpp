@@ -25,13 +25,12 @@ RobotController_Ackermann_Kinematic::RobotController_Ackermann_Kinematic(PathFol
 	ROS_INFO("Parameters: k_forward=%f, k_backward=%f\n"
 				"factor_k1=%f, k2=%f, k3=%f\n"
 				"vehicle_length=%f\n"
-				"factor_steering_angle_forward=%f, factor_steering_angle_backward=%f\n"
+				"factor_steering_angle=%f\n"
 				"goal_tolerance=%f\nmax_steering_angle=%f",
 				params_.k_forward(), params_.k_backward(),
 				params_.factor_k1(), params_.factor_k2(), params_.factor_k3(),
 				params_.vehicle_length(),
-				params_.factor_steering_angle_forward(),
-				params_.factor_steering_angle_backward(),
+				params_.factor_steering_angle(),
 				params_.goal_tolerance(), params_.max_steering_angle());
 
 }
@@ -268,14 +267,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	delta_ += v2 * time_passed.toSec();
 	old_time_ = ros::Time::now();
 
-	// TODO: this is more accurate
-	//	const float delta = (float) asin(params_.factor_steering_angle() * sin(delta_));
-	//	move_cmd_.setDirection(delta);
-
-	// also limit the steering angle
-	delta_ = boost::algorithm::clamp(delta_, -params_.max_steering_angle(), params_.max_steering_angle());
-
-
 	ROS_DEBUG("d=%f, thetaP=%f, c=%f, c'=%f, c''=%f", d, theta_p, c, c_prim, c_sek);
 	ROS_DEBUG("d'=%f, thetaP'=%f", d_prim, theta_p_prim);
 	ROS_DEBUG("1 - dc(s)=%f", _1_dc);
@@ -284,11 +275,14 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	ROS_DEBUG("Time passed: %fs, command: v1=%f, v2=%f, delta_=%f",
 				 time_passed.toSec(), v1, v2, delta_);
 
-	// different steering angle factors for forward and backwards driving
-	if (getDirSign() > 0.)
-		move_cmd_.setDirection(params_.factor_steering_angle_forward() * (float) delta_);
-	else
-		move_cmd_.setDirection(params_.factor_steering_angle_backward() * (float) delta_);
+	// This is the accurate steering angle for 4 wheel steering
+	const float delta = (float) asin(params_.factor_steering_angle() * sin(delta_));
+
+	move_cmd_.setDirection(delta);
+
+	// also limit the steering angle
+	delta_ = boost::algorithm::clamp(delta_, -params_.max_steering_angle(), params_.max_steering_angle());
+
 	move_cmd_.setVelocity(getDirSign() * (float) v1);
 
 	*cmd = move_cmd_;
