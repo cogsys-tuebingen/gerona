@@ -60,15 +60,18 @@ private:
 	}
 
 	void reset();
+
+	//! Sets the tuning parameters k1, k2, k3 according to k
 	void setTuningParameters(const double k);
 
-	ros::NodeHandle node_handle_;
-	ros::Publisher path_interpol_pub_;
-
+	//! The MoveCommand that is beeing published
 	MoveCommand move_cmd_;
 
+	//! Tuning parameters
 	double k1_, k2_, k3_;
+	//! Current steering angle
 	double delta_;
+	//! The time of the last update (to compute the time that has passed since then)
 	ros::Time old_time_;
 };
 
