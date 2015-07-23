@@ -282,7 +282,7 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
     visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), u_val, 0.0, 1.0, 1.0);
 
     float steer = dir_sign_* std::max(-opt_.max_steer(), std::min(u_val, opt_.max_steer()));
-    ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
+//    ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
 
     // Control velocity
     float velocity = controlVelocity(steer);
@@ -406,7 +406,7 @@ void RobotControllerTrailer::predictPose(Vector2d &front_pred, Vector2d &rear_pr
 
 
 
-    ROS_DEBUG_STREAM_NAMED(MODULE, "predict pose. front: " << front_pred << ", rear: " << rear_pred);
+  //  ROS_DEBUG_STREAM_NAMED(MODULE, "predict pose. front: " << front_pred << ", rear: " << rear_pred);
 }
 
 double RobotControllerTrailer::calculateLineError() const
@@ -536,7 +536,7 @@ void RobotControllerTrailer::precomputeSteerCommand(Waypoint &wp_now,  Waypoint 
             wp_next.actuator_cmds_[1] = steer_bwd;
         }
     }
-    std::cout << "wp steer fwd "<<wp_next.actuator_cmds_[0]*180.0/M_PI
+ /*   std::cout << "wp steer fwd "<<wp_next.actuator_cmds_[0]*180.0/M_PI
               << " steer bwd "<<wp_next.actuator_cmds_[1]*180.0/M_PI << std::endl;
-
+*/
 }
