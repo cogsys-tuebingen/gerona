@@ -17,9 +17,13 @@
 RobotController_Ackermann_Kinematic::RobotController_Ackermann_Kinematic(PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower),
 	old_waypoint_(0),
-	phi_(0.),
+	old_phi_(0.),
+	old_old_phi_(0.),
 	old_d_(0.),
-	old_theta_e_(0) {
+	old_theta_e_(0),
+	d_prim_(0.),
+	theta_e_prim_(0.),
+	phi_prim_(0.) {
 
 	const double k = params_.k_forward();
 	setTuningParameters(k);
@@ -58,6 +62,18 @@ void RobotController_Ackermann_Kinematic::start() {
 
 void RobotController_Ackermann_Kinematic::reset() {
 	old_time_ = ros::Time::now();
+
+	old_waypoint_ = 0;
+
+	old_phi_ = 0.;
+	old_old_phi_ = 0.;
+	old_d_ = 0.;
+	old_theta_e_ = 0;
+
+	d_prim_ = 0.;
+	theta_e_prim_ = 0.;
+	phi_prim_ = 0.;
+
 	RobotController_Interpolation::reset();
 }
 
@@ -164,7 +180,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 //	else if (theta_p_1 < -M_PI_2)
 //		theta_p_1 = -M_PI - theta_p_1;
 
-//	double theta_e_prim = MathHelper::AngleDelta(theta_e, theta_p_1) / phi_s;
+//	double theta_e_prim = MathHelper::AngleDelta(theta_e, theta_p_1) / delta_s;
 
 //	// d'
 //	Eigen::Vector2d path_vehicle_1(pose[0] - path_interpol.p(j_1), pose[1] - path_interpol.q(j_1));
@@ -177,7 +193,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 //	if (theta_p_1 > M_PI_2 || theta_p_1 < -M_PI_2)
 //		d_prim = -d_prim;
 
-//	d_prim = (d_prim - d) / phi_s;
+//	d_prim = (d_prim - d) / delta_s;
 
 	// compute new d', theta_e', phi' only when the waypoints are distinct
 	if (ind > old_waypoint_) {
@@ -185,18 +201,23 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 		d_prim_ = (d - old_d_) * delta_s_inverse;
 		theta_e_prim_ = (theta_e - old_theta_e_) * delta_s_inverse;
-		// phi_prim_ = (phi)
+
+		phi_prim_ = (old_phi_ - old_old_phi_) * delta_s_inverse;
 
 		old_waypoint_ = ind;
 		old_d_ = d;
 		old_theta_e_ = theta_e;
+
+		old_old_phi_ = old_phi_;
+		old_phi_ = phi_;
 	}
 
 	// 1 - dc(s)
 	const double _1_dc = 1. - d * c;
+	const double _1_dc_2 = _1_dc * _1_dc;
 
 
-	// cos, sin, tan of theta_e
+	// cos, sin, tan of theta_e and phi
 	const double cos_theta_p = cos(theta_e);
 	const double cos_theta_p_2 = cos_theta_p * cos_theta_p;
 	const double cos_theta_p_3 = cos_theta_p_2 * cos_theta_p;
@@ -207,7 +228,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	const double tan_theta_p = tan(theta_e);
 	const double tan_theta_p_2 = tan_theta_p * tan_theta_p;
 
-
+	const double tan_phi = tan(phi_);
+	const double tan_phi_2 = tan_phi * tan_phi;
 
 	//
 	// actual controller formulas begin here
@@ -217,7 +239,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	//	const double x1 = s;
 	const double x2 = -c_prim * d * tan_theta_p
 			- c * _1_dc * (1. + sin_theta_p_2) / cos_theta_p_2
-			+ pow(_1_dc, 2) * tan(phi_) / (params_.vehicle_length() * cos_theta_p_3);
+			+ _1_dc_2 * tan_phi / (params_.vehicle_length() * cos_theta_p_3);
 
 	const double x3 = _1_dc * tan_theta_p;
 	const double x4 = d;
@@ -234,35 +256,45 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// derivations of x2 (for alpha1)
 	const double dx2_dd = -c_prim * tan_theta_p
 			+ c * c * (1 + sin_theta_p_2) / cos_theta_p_2
-			- 2. * _1_dc * c * tan(phi_) / (params_.vehicle_length() * cos_theta_p_3);
+			- 2. * _1_dc * c * tan_phi / (params_.vehicle_length() * cos_theta_p_3);
 
 	const double dx2_dtheta_p = -c_prim * (tan_theta_p_2 + 1.)
 			- 4. * c * _1_dc * tan_theta_p / cos_theta_p_2
-			+ 3. * pow(_1_dc, 2) * tan(phi_) * tan_theta_p / (params_.vehicle_length()
+			+ 3. * _1_dc_2 * tan_phi * tan_theta_p / (params_.vehicle_length()
 																				 * cos_theta_p_3);
+//	const double dx2_ds =
+//			-tan_theta_p * (c_sek * d + c_prim * d_prim_)
+//			- c_prim * d * theta_e_prim_ * (1. + tan_theta_p_2)
+//			+ ((1. + sin_theta_p_2) / cos_theta_p_2) * (c_prim * _1_dc + c * (d_prim_ * c + d * c_prim))
+//			- 4. * c * _1_dc * tan_theta_p / cos_theta_p_2
+//			+ (_1_dc * tan_phi / params_.vehicle_length())
+//			* (-2. * (d_prim_ * c + d * c_prim)
+//				+ theta_e_prim_ * _1_dc + sin_theta_p) / pow(cos_theta_p_2, 2);
+
 	const double dx2_ds =
 			-tan_theta_p * (c_sek * d + c_prim * d_prim_)
 			- c_prim * d * theta_e_prim_ * (1. + tan_theta_p_2)
 			+ ((1. + sin_theta_p_2) / cos_theta_p_2) * (c_prim * _1_dc + c * (d_prim_ * c + d * c_prim))
 			- 4. * c * _1_dc * tan_theta_p / cos_theta_p_2
-			+ (_1_dc * tan(phi_) / params_.vehicle_length())
-			* (-2. * (d_prim_ * c + d * c_prim)
-				+ theta_e_prim_ * _1_dc + sin_theta_p) / pow(cos_theta_p_2, 2);
+			+ (cos_theta_p * (-2. * (d_prim_ * c + d * c_prim) * tan_phi
+									+ _1_dc_2 * (1. + tan_phi_2) * phi_prim_)
+				- 3. * theta_e_prim_ * sin_theta_p * _1_dc_2 * tan_phi)
+			/ (params_.vehicle_length() * pow(cos_theta_p_2, 2));
 
 	// simple version where theta_p and d are considered independent of s
 	//	const double dx2_ds = c_sek * d * tan_theta_p
 	//			+ _1_dc * d * c * (pow(c_prim, 2) * (1. + sin_theta_p_2) / cos_theta_p_2
-	//												 - 2. * tan(phi_) / (params_.vehicle_length() * cos_theta_p_3));
+	//												 - 2. * tan_phi / (params_.vehicle_length() * cos_theta_p_3));
 
 	// alpha1
 	const double alpha1 =
 			dx2_ds
 			+ dx2_dd * _1_dc * tan_theta_p
-			+ dx2_dtheta_p * (tan(phi_) * _1_dc / (params_.vehicle_length() * cos_theta_p) - c);
+			+ dx2_dtheta_p * (tan_phi * _1_dc / (params_.vehicle_length() * cos_theta_p) - c);
 
 	// alpha2
 	const double alpha2 =
-			params_.vehicle_length() * cos_theta_p_3 * pow(cos(phi_), 2) / pow(_1_dc, 2);
+			params_.vehicle_length() * cos_theta_p_3 * pow(cos(phi_), 2) / _1_dc_2;
 
 
 	// longitudinal velocity

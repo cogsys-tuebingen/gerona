@@ -70,6 +70,8 @@ private:
 	double phi_;
 	//! Last waypoint index
 	unsigned int old_waypoint_;
+	//! Last and before last steering angle
+	double old_phi_, old_old_phi_;
 	//! Last values of d and theta_e, used to compute derivations
 	double old_d_, old_theta_e_;
 	//! Derivations of d, theta_e, phi_prim, are only updated every few frames
