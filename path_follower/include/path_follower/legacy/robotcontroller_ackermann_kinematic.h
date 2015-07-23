@@ -68,6 +68,12 @@ private:
 	double k1_, k2_, k3_;
 	//! Current steering angle
 	double phi_;
+	//! Last waypoint index
+	unsigned int old_waypoint_;
+	//! Last values of d and theta_e, used to compute derivations
+	double old_d_, old_theta_e_;
+	//! Derivations of d, theta_e, phi_prim, are only updated every few frames
+	double d_prim_, theta_e_prim_, phi_prim_;
 	//! The time of the last update (to compute the time that has passed since then)
 	ros::Time old_time_;
 };
