@@ -17,7 +17,10 @@
 #include <memory>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <path_msgs/PlanAvoidanceAction.h>
+
 #include <nav_msgs/Path.h>
+#include <tf/transform_listener.h>
 
 #include <utils_path/geometry/shape.h>
 #include <utils_path/geometry/circle.h>
@@ -45,11 +48,14 @@ public:
 
 
 
-
+    void planAvoidanceCb (const path_msgs::PlanAvoidanceGoalConstPtr &goal);
 
     void findCircleOnCourse(const Circle& obstacle, const vector<shared_ptr<Shape>>& course, vector<int>& indices );
 private:
-    double resolution_;
+    double resolution_ = 0.1;
+    double avoidance_radius_ = 1.5;
+    double obstacle_radius_ = 1.5;
+
     XmlRpc::XmlRpcValue segment_array_;
 
     vector<shared_ptr<Shape>> segments_;
@@ -62,6 +68,17 @@ private:
     ros::Publisher avoidance_pub_;
     ros::Subscriber start_pose_sub_;
     ros::Subscriber obstacle_pose_sub_;
+
+    typedef actionlib::SimpleActionServer<path_msgs::PlanAvoidanceAction> PlanAvoidanceServer;
+
+    //! Action server that communicates with the guidance control
+    PlanAvoidanceServer plan_avoidance_server_;
+
+    void processPlanAvoidance(const path_geom::PathPose& obstacle,
+                              const path_geom::PathPose& robot,
+                              nav_msgs::Path& path);
+
+
     /**
      * @brief creates a course/static path from geometry input
      * @param segment_array
@@ -69,7 +86,7 @@ private:
      * @param path
      */
     void createCourse(XmlRpc::XmlRpcValue& segment_array, const geometry_msgs::Pose& pose,
-                      nav_msgs::Path& path);
+                      vector<shared_ptr<Shape>>& segments, nav_msgs::Path& path);
 
     path_geom::PathPose pose2PathPose(const geometry_msgs::Pose& pose) {
         return path_geom::PathPose(pose.position.x,pose.position.y,
@@ -86,6 +103,14 @@ private:
         return pose;
     }
     void addGeomPoses(const std::vector<path_geom::PathPose>& gposes, nav_msgs::Path& path);
+
+
+    /**
+      evil hack should be provided by feedback of follower
+      */
+    bool getWorldPose(const std::string& world_frame, const std::string& robot_frame,geometry_msgs::PoseStamped& result) const;
+    tf::TransformListener pose_listener_;
+
 
 };
 

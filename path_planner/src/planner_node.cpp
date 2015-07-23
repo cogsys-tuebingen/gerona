@@ -93,8 +93,8 @@ Planner::Planner()
     nh.param("size/backward", size_backward, -0.6);
     nh.param("size/width", size_width, 0.5);
 
-    path_publisher = nh.advertise<nav_msgs::Path> ("/path", 10);
-    raw_path_publisher = nh.advertise<nav_msgs::Path> ("/path_raw", 10);
+    path_publisher_ = nh.advertise<nav_msgs::Path> ("/path", 10);
+    raw_path_publisher_ = nh.advertise<nav_msgs::Path> ("/path_raw", 10);
 
     server_.registerPreemptCallback(boost::bind(&Planner::preempt, this));
     server_.start();
@@ -882,8 +882,8 @@ void Planner::integratePointCloud(const sensor_msgs::PointCloud2 &cloud)
 void Planner::publish(const nav_msgs::Path &path, const nav_msgs::Path &path_raw)
 {
     /// path
-    raw_path_publisher.publish(path_raw);
-    path_publisher.publish(path);
+    raw_path_publisher_.publish(path_raw);
+    path_publisher_.publish(path);
     ROS_INFO("*************************\n********************\n*************vis path\n");
     visualizePath(path);
 }

@@ -188,9 +188,9 @@ protected:
     boost::thread* thread_;
     boost::mutex thread_mutex;
 
-private:
-    ros::Publisher path_publisher;
-    ros::Publisher raw_path_publisher;
+protected:
+    ros::Publisher path_publisher_;
+    ros::Publisher raw_path_publisher_;
 };
 
 #endif // PLANNER_NODE_H

@@ -55,6 +55,7 @@ add_action_files(
     NavigateToGoal.action
     FollowPath.action
     PlanPath.action
+    PlanAvoidance.action
 )
 
 # Generate added messages and services with any dependencies listed here
