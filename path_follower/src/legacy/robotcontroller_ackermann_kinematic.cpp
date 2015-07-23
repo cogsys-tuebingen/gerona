@@ -218,18 +218,18 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 			- k3_ * u1 * x2;
 
 	// derivations of x2 (for alpha1)
-	const double dx2_dd = c_prim * tan_theta_p
-			- c * c * (1 + sin_theta_p_2) / cos_theta_p_2
+	const double dx2_dd = -c_prim * tan_theta_p
+			+ c * c * (1 + sin_theta_p_2) / cos_theta_p_2
 			- 2. * _1_dc * c * tan(delta_) / (params_.vehicle_length() * cos_theta_p_3);
 
-	const double dx2_dtheta_p = c_prim * (tan_theta_p_2 + 1.)
+	const double dx2_dtheta_p = -c_prim * (tan_theta_p_2 + 1.)
 			- 4. * c * _1_dc * tan_theta_p / cos_theta_p_2
 			+ 3. * pow(_1_dc, 2) * tan(delta_) * tan_theta_p / (params_.vehicle_length()
 																				 * cos_theta_p_3);
 	const double dx2_ds =
-			tan_theta_p * (c_sek * d + c_prim * d_prim)
-			+ c_prim * d * theta_p_prim * (1. + tan_theta_p_2)
-			- ((1. + sin_theta_p_2) / cos_theta_p_2) * (c_prim * _1_dc + c * (d_prim * c + d * c_prim))
+			-tan_theta_p * (c_sek * d + c_prim * d_prim)
+			- c_prim * d * theta_p_prim * (1. + tan_theta_p_2)
+			+ ((1. + sin_theta_p_2) / cos_theta_p_2) * (c_prim * _1_dc + c * (d_prim * c + d * c_prim))
 			- 4. * c * _1_dc * tan_theta_p / cos_theta_p_2
 			+ (_1_dc * tan(delta_) / params_.vehicle_length())
 			* (-2. * (d_prim * c + d * c_prim)
