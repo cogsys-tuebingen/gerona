@@ -20,7 +20,7 @@ RobotController_Ackermann_Kinematic::RobotController_Ackermann_Kinematic(PathFol
 	const double k = params_.k_forward();
 	setTuningParameters(k);
 
-	delta_ = 0.;
+	phi_ = 0.;
 
 	ROS_INFO("Parameters: k_forward=%f, k_backward=%f\n"
 				"factor_k1=%f, k2=%f, k3=%f\n"
@@ -125,18 +125,18 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 	// theta_p = theta_vehicle - theta_path (orientation error)
 	// TODO: must be != M_PI_2 or -M_PI_2
-	double theta_p = MathHelper::AngleDelta(path_interpol.theta_p(ind), pose[2]);
+	double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind), pose[2]);
 
 	// if |theta_p| > 90° we drive backwards and set theta_p to the complementary angle
-	if (theta_p > M_PI_2) {
+	if (theta_e > M_PI_2) {
 		setDirSign(-1.f);
 		d = -d;
-		theta_p = M_PI - theta_p;
+		theta_e = M_PI - theta_e;
 		setTuningParameters(params_.k_backward());
-	} else if (theta_p < -M_PI_2) {
+	} else if (theta_e < -M_PI_2) {
 		setDirSign(-1.f);
 		d = -d;
-		theta_p = -M_PI - theta_p;
+		theta_e = -M_PI - theta_e;
 		setTuningParameters(params_.k_backward());
 	} else {
 		setTuningParameters(params_.k_forward());
@@ -152,7 +152,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// indices to compute differential quotients for theta_p' and d'
 	const unsigned int j_1 = ind == path_interpol.n() - 1 ? ind : ind + 1;
 	const unsigned int j_0 = j_1 - 1;
-	const double delta_s = path_interpol.s(j_1) - path_interpol.s(j_0);
+	const double phi_s = path_interpol.s(j_1) - path_interpol.s(j_0);
 
 	// theta_P'
 	double theta_p_1 = MathHelper::AngleDelta(path_interpol.theta_p(j_1), pose[2]);
@@ -162,7 +162,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	else if (theta_p_1 < -M_PI_2)
 		theta_p_1 = -M_PI - theta_p_1;
 
-	double theta_p_prim = MathHelper::AngleDelta(theta_p, theta_p_1) / delta_s;
+	double theta_p_prim = MathHelper::AngleDelta(theta_e, theta_p_1) / phi_s;
 
 	// d'
 	Eigen::Vector2d path_vehicle_1(pose[0] - path_interpol.p(j_1), pose[1] - path_interpol.q(j_1));
@@ -175,7 +175,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	if (theta_p_1 > M_PI_2 || theta_p_1 < -M_PI_2)
 		d_prim = -d_prim;
 
-	d_prim = (d_prim - d) / delta_s;
+	d_prim = (d_prim - d) / phi_s;
 
 
 	// 1 - dc(s)
@@ -183,14 +183,14 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 
 	// cos, sin, tan of theta_p
-	const double cos_theta_p = cos(theta_p);
+	const double cos_theta_p = cos(theta_e);
 	const double cos_theta_p_2 = cos_theta_p * cos_theta_p;
 	const double cos_theta_p_3 = cos_theta_p_2 * cos_theta_p;
 
-	const double sin_theta_p = sin(theta_p);
+	const double sin_theta_p = sin(theta_e);
 	const double sin_theta_p_2 = sin_theta_p * sin_theta_p;
 
-	const double tan_theta_p = tan(theta_p);
+	const double tan_theta_p = tan(theta_e);
 	const double tan_theta_p_2 = tan_theta_p * tan_theta_p;
 
 
@@ -203,7 +203,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	//	const double x1 = s;
 	const double x2 = -c_prim * d * tan_theta_p
 			- c * _1_dc * (1. + sin_theta_p_2) / cos_theta_p_2
-			+ pow(_1_dc, 2) * tan(delta_) / (params_.vehicle_length() * cos_theta_p_3);
+			+ pow(_1_dc, 2) * tan(phi_) / (params_.vehicle_length() * cos_theta_p_3);
 
 	const double x3 = _1_dc * tan_theta_p;
 	const double x4 = d;
@@ -220,41 +220,41 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// derivations of x2 (for alpha1)
 	const double dx2_dd = -c_prim * tan_theta_p
 			+ c * c * (1 + sin_theta_p_2) / cos_theta_p_2
-			- 2. * _1_dc * c * tan(delta_) / (params_.vehicle_length() * cos_theta_p_3);
+			- 2. * _1_dc * c * tan(phi_) / (params_.vehicle_length() * cos_theta_p_3);
 
 	const double dx2_dtheta_p = -c_prim * (tan_theta_p_2 + 1.)
 			- 4. * c * _1_dc * tan_theta_p / cos_theta_p_2
-			+ 3. * pow(_1_dc, 2) * tan(delta_) * tan_theta_p / (params_.vehicle_length()
+			+ 3. * pow(_1_dc, 2) * tan(phi_) * tan_theta_p / (params_.vehicle_length()
 																				 * cos_theta_p_3);
 	const double dx2_ds =
 			-tan_theta_p * (c_sek * d + c_prim * d_prim)
 			- c_prim * d * theta_p_prim * (1. + tan_theta_p_2)
 			+ ((1. + sin_theta_p_2) / cos_theta_p_2) * (c_prim * _1_dc + c * (d_prim * c + d * c_prim))
 			- 4. * c * _1_dc * tan_theta_p / cos_theta_p_2
-			+ (_1_dc * tan(delta_) / params_.vehicle_length())
+			+ (_1_dc * tan(phi_) / params_.vehicle_length())
 			* (-2. * (d_prim * c + d * c_prim)
 				+ theta_p_prim * _1_dc + sin_theta_p) / pow(cos_theta_p_2, 2);
 
 	// simple version where theta_p and d are considered independent of s
 	//	const double dx2_ds = c_sek * d * tan_theta_p
 	//			+ _1_dc * d * c * (pow(c_prim, 2) * (1. + sin_theta_p_2) / cos_theta_p_2
-	//												 - 2. * tan(delta_) / (params_.vehicle_length() * cos_theta_p_3));
+	//												 - 2. * tan(phi_) / (params_.vehicle_length() * cos_theta_p_3));
 
 	// alpha1
 	const double alpha1 =
 			dx2_ds
 			+ dx2_dd * _1_dc * tan_theta_p
-			+ dx2_dtheta_p * (tan(delta_) * _1_dc / (params_.vehicle_length() * cos_theta_p) - c);
+			+ dx2_dtheta_p * (tan(phi_) * _1_dc / (params_.vehicle_length() * cos_theta_p) - c);
 
 	// alpha2
 	const double alpha2 =
-			params_.vehicle_length() * cos_theta_p_3 * pow(cos(delta_), 2) / pow(_1_dc, 2);
+			params_.vehicle_length() * cos_theta_p_3 * pow(cos(phi_), 2) / pow(_1_dc, 2);
 
 
 	// longitudinal velocity
-	double v1 = _1_dc * u1 / cos_theta_p;
+	double /*v1 = _1_dc * u1 / cos_theta_p;
 	if (v1 > velocity_)
-		v1 = velocity_;
+		*/ v1 = velocity_;
 
 	// steering angle velocity
 	double v2 = alpha2 * (u2 - alpha1 * u1);
@@ -264,26 +264,26 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 	// update delta according to the time that has passed since the last update
 	ros::Duration time_passed = ros::Time::now() - old_time_;
-	delta_ += v2 * time_passed.toSec();
+	phi_ += v2 * time_passed.toSec();
 	old_time_ = ros::Time::now();
 
-	ROS_DEBUG("d=%f, thetaP=%f, c=%f, c'=%f, c''=%f", d, theta_p, c, c_prim, c_sek);
+	ROS_DEBUG("d=%f, thetaP=%f, c=%f, c'=%f, c''=%f", d, theta_e, c, c_prim, c_sek);
 	ROS_DEBUG("d'=%f, thetaP'=%f", d_prim, theta_p_prim);
 	ROS_DEBUG("1 - dc(s)=%f", _1_dc);
 	ROS_DEBUG("dx2dd=%f, dx2dthetaP=%f, dx2ds=%f", dx2_dd, dx2_dtheta_p, dx2_ds);
 	ROS_DEBUG("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);
-	ROS_DEBUG("Time passed: %fs, command: v1=%f, v2=%f, delta_=%f",
-				 time_passed.toSec(), v1, v2, delta_);
+	ROS_DEBUG("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
+				 time_passed.toSec(), v1, v2, phi_);
 
 	// This is the accurate steering angle for 4 wheel steering
-	const float delta = (float) asin(params_.factor_steering_angle() * sin(delta_));
+	const float delta = (float) asin(params_.factor_steering_angle() * sin(phi_));
 
-	ROS_INFO("delta=%f, delta_=%f", delta, delta_);
+	ROS_INFO("delta=%f, phi_=%f", delta, phi_);
 
 	move_cmd_.setDirection(delta);
 
 	// also limit the steering angle
-	delta_ = boost::algorithm::clamp(delta_, -params_.max_steering_angle(), params_.max_steering_angle());
+	phi_ = boost::algorithm::clamp(phi_, -params_.max_steering_angle(), params_.max_steering_angle());
 
 	move_cmd_.setVelocity(getDirSign() * (float) v1);
 

@@ -67,7 +67,7 @@ private:
 	//! Tuning parameters
 	double k1_, k2_, k3_;
 	//! Current steering angle
-	double delta_;
+	double phi_;
 	//! The time of the last update (to compute the time that has passed since then)
 	ros::Time old_time_;
 };
