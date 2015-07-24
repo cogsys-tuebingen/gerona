@@ -80,7 +80,7 @@ void RobotController_Ackermann_Kinematic::reset() {
 RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeMoveCommand(
 		MoveCommand* cmd) {
 
-	ROS_DEBUG("===============================");
+	ROS_INFO("===============================");
 
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
@@ -141,9 +141,14 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 				min_dist : -min_dist;
 
 
-	// theta_p = theta_vehicle - theta_path (orientation error)
-	// TODO: must be != M_PI_2 or -M_PI_2
+	// theta_e = theta_vehicle - theta_path (orientation error)
 	double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind), pose[2]);
+
+	// Singularity at M_PI_2 or -M_PI_2
+	if (theta_e == M_PI_2 || theta_e == -M_PI_2) {
+		stopMotion();
+		return RobotController::MoveCommandStatus::ERROR;
+	}
 
 	// if |theta_p| > 90° we drive backwards and set theta_p to the complementary angle
 	if (theta_e > M_PI_2) {
@@ -217,21 +222,23 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 		old_phi_ = phi_;
 	}
 
+	ROS_INFO("phi=%f", phi_);
+
 	// 1 - dc(s)
 	const double _1_dc = 1. - d * c;
 	const double _1_dc_2 = _1_dc * _1_dc;
 
 
 	// cos, sin, tan of theta_e and phi
-	const double cos_theta_p = cos(theta_e);
-	const double cos_theta_p_2 = cos_theta_p * cos_theta_p;
-	const double cos_theta_p_3 = cos_theta_p_2 * cos_theta_p;
+	const double cos_theta_e = cos(theta_e);
+	const double cos_theta_e_2 = cos_theta_e * cos_theta_e;
+	const double cos_theta_e_3 = cos_theta_e_2 * cos_theta_e;
 
-	const double sin_theta_p = sin(theta_e);
-	const double sin_theta_p_2 = sin_theta_p * sin_theta_p;
+	const double sin_theta_e = sin(theta_e);
+	const double sin_theta_e_2 = sin_theta_e * sin_theta_e;
 
-	const double tan_theta_p = tan(theta_e);
-	const double tan_theta_p_2 = tan_theta_p * tan_theta_p;
+	const double tan_theta_e = tan(theta_e);
+	const double tan_theta_e_2 = tan_theta_e * tan_theta_e;
 
 	const double tan_phi = tan(phi_);
 	const double tan_phi_2 = tan_phi * tan_phi;
@@ -242,31 +249,31 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 	// x1 - x4
 	//	const double x1 = s;
-	const double x2 = -c_prim * d * tan_theta_p
-			- c * _1_dc * (1. + sin_theta_p_2) / cos_theta_p_2
-			+ _1_dc_2 * tan_phi / (params_.vehicle_length() * cos_theta_p_3);
+	const double x2 = -c_prim * d * tan_theta_e
+			- c * _1_dc * (1. + sin_theta_e_2) / cos_theta_e_2
+			+ _1_dc_2 * tan_phi / (params_.vehicle_length() * cos_theta_e_3);
 
-	const double x3 = _1_dc * tan_theta_p;
+	const double x3 = _1_dc * tan_theta_e;
 	const double x4 = d;
 
 	// u1, u2
 	// u1 is taken from "Feedback control for a path following robotic car" by Mellodge,
 	// p. 108 (u1_actual)
-	const double u1 = velocity_ * cos_theta_p / _1_dc;
+	const double u1 = velocity_ * cos_theta_e / _1_dc;
 	const double u2 =
 			- k1_ * u1 * x4
 			- k2_ * u1 * x3
 			- k3_ * u1 * x2;
 
 	// derivations of x2 (for alpha1)
-	const double dx2_dd = -c_prim * tan_theta_p
-			+ c * c * (1 + sin_theta_p_2) / cos_theta_p_2
-			- 2. * _1_dc * c * tan_phi / (params_.vehicle_length() * cos_theta_p_3);
+	const double dx2_dd = -c_prim * tan_theta_e
+			+ c * c * (1 + sin_theta_e_2) / cos_theta_e_2
+			- 2. * _1_dc * c * tan_phi / (params_.vehicle_length() * cos_theta_e_3);
 
-	const double dx2_dtheta_p = -c_prim * (tan_theta_p_2 + 1.)
-			- 4. * c * _1_dc * tan_theta_p / cos_theta_p_2
-			+ 3. * _1_dc_2 * tan_phi * tan_theta_p / (params_.vehicle_length()
-																				 * cos_theta_p_3);
+	const double dx2_dtheta_p = -c_prim * (tan_theta_e_2 + 1.)
+			- 4. * c * _1_dc * tan_theta_e / cos_theta_e_2
+			+ 3. * _1_dc_2 * tan_phi * tan_theta_e / (params_.vehicle_length()
+																				 * cos_theta_e_3);
 //	const double dx2_ds =
 //			-tan_theta_p * (c_sek * d + c_prim * d_prim_)
 //			- c_prim * d * theta_e_prim_ * (1. + tan_theta_p_2)
@@ -277,16 +284,16 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 //				+ theta_e_prim_ * _1_dc + sin_theta_p) / pow(cos_theta_p_2, 2);
 
 	const double dx2_ds =
-			-tan_theta_p * (c_sek * d + c_prim * d_prim_)
-			- c_prim * d * theta_e_prim_ * (1. + tan_theta_p_2)
-			+ ((1. + sin_theta_p_2) / cos_theta_p_2) * (c_prim * _1_dc + c * (d_prim_ * c + d * c_prim))
-			- 4. * c * _1_dc * tan_theta_p / cos_theta_p_2
-			+ (cos_theta_p * (-2. * (d_prim_ * c + d * c_prim) * tan_phi
-									+ _1_dc_2 * (1. + tan_phi_2) * phi_prim_)
-				- 3. * theta_e_prim_ * sin_theta_p * _1_dc_2 * tan_phi)
-			/ (params_.vehicle_length() * pow(cos_theta_p_2, 2));
+			-tan_theta_e * (c_sek * d + c_prim * d_prim_)
+			- c_prim * d * theta_e_prim_ * (1. + tan_theta_e_2)
+			+ ((1. + sin_theta_e_2) / cos_theta_e_2) * (c_prim * _1_dc + c * (d_prim_ * c + d * c_prim))
+			- 4. * c * _1_dc * tan_theta_e / cos_theta_e_2
+			+ (cos_theta_e * _1_dc * (-2. * (d_prim_ * c + d * c_prim) * tan_phi
+											  +_1_dc * (1. + tan_phi_2) * phi_prim_)
+				- 3. * theta_e_prim_ * sin_theta_e * _1_dc_2 * tan_phi)
+			/ (params_.vehicle_length() * pow(cos_theta_e_2, 2)); // OK
 
-	// simple version where theta_p and d are considered independent of s
+	// simple version where theta_e, d and phi are considered independent of s
 	//	const double dx2_ds = c_sek * d * tan_theta_p
 	//			+ _1_dc * d * c * (pow(c_prim, 2) * (1. + sin_theta_p_2) / cos_theta_p_2
 	//												 - 2. * tan_phi / (params_.vehicle_length() * cos_theta_p_3));
@@ -294,12 +301,12 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// alpha1
 	const double alpha1 =
 			dx2_ds
-			+ dx2_dd * _1_dc * tan_theta_p
-			+ dx2_dtheta_p * (tan_phi * _1_dc / (params_.vehicle_length() * cos_theta_p) - c);
+			+ dx2_dd * _1_dc * tan_theta_e
+			+ dx2_dtheta_p * (tan_phi * _1_dc / (params_.vehicle_length() * cos_theta_e) - c);
 
 	// alpha2
 	const double alpha2 =
-			params_.vehicle_length() * cos_theta_p_3 * pow(cos(phi_), 2) / _1_dc_2;
+			params_.vehicle_length() * cos_theta_e_3 * pow(cos(phi_), 2) / _1_dc_2;
 
 
 	// longitudinal velocity
