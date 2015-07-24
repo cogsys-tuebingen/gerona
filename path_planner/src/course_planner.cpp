@@ -110,6 +110,7 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
     std::vector<Circle> first_tangent_arcs;
 
     if (first_line) {
+        ROS_INFO_STREAM("first segment "<<*first_line);
         Tangentor::tangentPath(*first_line,obstacle,avoidance_radius_, avoidance_path1);
 
     } else if (first_circle) {
@@ -313,11 +314,14 @@ void CoursePlanner::findCircleOnCourse(const Circle &obstacle, const vector<shar
     geometry_msgs::PoseStamped here;
     bool has_pose = getWorldPose("/map","/base_link",here);
     if (!has_pose) {
+        ROS_ERROR("no pose for robot found");
         return;
     }
     double search_radius = 0.7;
     Eigen::Vector2d search_center(here.pose.position.x, here.pose.position.y);
+
     Circle agv_search(search_center,search_radius);
+
     size_t start_idx = 0;
     while (start_idx<course.size()) {
         auto& segment = course[start_idx];
@@ -334,7 +338,7 @@ void CoursePlanner::findCircleOnCourse(const Circle &obstacle, const vector<shar
         }
         ++start_idx;
     }
-
+    ROS_INFO_STREAM("agv pos "<<agv_search.center() << " on segment "<<start_idx);
 
     unsigned ipoint_count = 0;
     size_t idx = start_idx;
@@ -346,7 +350,7 @@ void CoursePlanner::findCircleOnCourse(const Circle &obstacle, const vector<shar
         auto& segment = course[idx];
 
         vector<Vector2d> ipoints;
-
+        ipoints.clear();
         auto line = dynamic_pointer_cast<Line>(segment);
         auto circle = dynamic_pointer_cast<Circle>(segment);
         if (line) {
@@ -356,7 +360,7 @@ void CoursePlanner::findCircleOnCourse(const Circle &obstacle, const vector<shar
         } // no final else ..all other cases produce no interscetion points
 
         if (ipoints.size()>0) {
-            indices.push_back((int)i);
+            indices.push_back((int)idx);
             ipoint_count+=ipoints.size();
         }
         if (ipoint_count>=2) {
