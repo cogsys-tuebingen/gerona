@@ -204,6 +204,11 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 		phi_prim_ = (old_phi_ - old_old_phi_) * delta_s_inverse;
 
+		ROS_INFO("d'=%f, theta_e'=%f, phi'=%f", d_prim_, theta_e_prim_, phi_prim_);
+		ROS_INFO("old_d=%f, d=%f", old_d_, d);
+		ROS_INFO("old_theta_e=%f, theta_e=%f", old_theta_e_, theta_e);
+		ROS_INFO("old_old_phi=%f, old_phi=%f, phi=%f", old_old_phi_, old_phi_, phi_);
+
 		old_waypoint_ = ind;
 		old_d_ = d;
 		old_theta_e_ = theta_e;
@@ -313,6 +318,9 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	phi_ += v2 * time_passed.toSec();
 	old_time_ = ros::Time::now();
 
+	// also limit the steering angle
+	phi_ = boost::algorithm::clamp(phi_, -params_.max_steering_angle(), params_.max_steering_angle());
+
 	ROS_DEBUG("d=%f, thetaP=%f, c=%f, c'=%f, c''=%f", d, theta_e, c, c_prim, c_sek);
 	ROS_DEBUG("d'=%f, thetaP'=%f", d_prim_, theta_e_prim_);
 	ROS_DEBUG("1 - dc(s)=%f", _1_dc);
@@ -325,10 +333,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	const float delta = (float) asin(params_.factor_steering_angle() * sin(phi_));
 
 	move_cmd_.setDirection(delta);
-
-	// also limit the steering angle
-	phi_ = boost::algorithm::clamp(phi_, -params_.max_steering_angle(), params_.max_steering_angle());
-
 	move_cmd_.setVelocity(getDirSign() * (float) v1);
 
 	*cmd = move_cmd_;
