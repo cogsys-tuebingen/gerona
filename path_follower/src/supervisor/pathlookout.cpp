@@ -254,9 +254,17 @@ std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::Co
     if (first_step == 0) {
         first_step = opt_.segment_step_size();
     }
+    size_t first_idx = min(first_step, path_.size()-1);
+    float dist = 0.0;
+    cv::Point2f prev(path_[first_idx].x,path_[first_idx].y);
+
     for (size_t i = min(first_step, path_.size()-1); i < path_.size(); i += opt_.segment_step_size()) {
         cv::Point2f b(path_[i].x, path_[i].y);
-
+        dist += cv::norm(b-prev);
+        prev = b;
+        if (dist>8.0) {
+            break;
+        }
         /**
          * For each point, compute the distance of this point to the current path segment. If the distance is too small,
          * the corresponding field in is_point_obs is set to true (= this point is assumed to be an obstacle).
