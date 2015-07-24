@@ -17,6 +17,7 @@
 RobotController_Ackermann_Kinematic::RobotController_Ackermann_Kinematic(PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower),
 	old_waypoint_(0),
+	phi_(0.),
 	old_phi_(0.),
 	old_old_phi_(0.),
 	old_d_(0.),
@@ -52,6 +53,8 @@ void RobotController_Ackermann_Kinematic::stopMotion() {
 	move_cmd_.setVelocity(0.f);
 	move_cmd_.setDirection(0.f);
 
+	phi_ = 0.;
+
 	MoveCommand cmd = move_cmd_;
 	publishMoveCommand(cmd);
 }
@@ -64,6 +67,7 @@ void RobotController_Ackermann_Kinematic::reset() {
 	old_time_ = ros::Time::now();
 
 	old_waypoint_ = 0;
+	s_prim_ = 0.001; // TODO: good starting value
 
 	old_phi_ = 0.;
 	old_old_phi_ = 0.;
@@ -200,30 +204,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 //	d_prim = (d_prim - d) / delta_s;
 
-	// compute new d', theta_e', phi' only when the waypoints are distinct
-	if (ind > old_waypoint_) {
-		const double delta_s_inverse = 1. / (path_interpol.s(old_waypoint_) - path_interpol.s(ind));
-
-		d_prim_ = (d - old_d_) * delta_s_inverse;
-		theta_e_prim_ = (theta_e - old_theta_e_) * delta_s_inverse;
-
-		phi_prim_ = (old_phi_ - old_old_phi_) * delta_s_inverse;
-
-		ROS_INFO("d'=%f, theta_e'=%f, phi'=%f", d_prim_, theta_e_prim_, phi_prim_);
-		ROS_INFO("old_d=%f, d=%f", old_d_, d);
-		ROS_INFO("old_theta_e=%f, theta_e=%f", old_theta_e_, theta_e);
-		ROS_INFO("old_old_phi=%f, old_phi=%f, phi=%f", old_old_phi_, old_phi_, phi_);
-
-		old_waypoint_ = ind;
-		old_d_ = d;
-		old_theta_e_ = theta_e;
-
-		old_old_phi_ = old_phi_;
-		old_phi_ = phi_;
-	}
-
-	ROS_INFO("phi=%f", phi_);
-
 	// 1 - dc(s)
 	const double _1_dc = 1. - d * c;
 	const double _1_dc_2 = _1_dc * _1_dc;
@@ -242,6 +222,40 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 	const double tan_phi = tan(phi_);
 	const double tan_phi_2 = tan_phi * tan_phi;
+
+	// compute new d', theta_e', phi' only when the waypoints are distinct
+//	if (ind > old_waypoint_) {
+//		const double delta_s_inverse = 1. / (path_interpol.s(old_waypoint_) - path_interpol.s(ind));
+
+	const double time_passed = (ros::Time::now() - old_time_).toSec();
+	old_time_ = ros::Time::now();
+
+	const double delta_s_inverse = 1. / (s_prim_ * time_passed);
+
+	if (delta_s_inverse != NAN && delta_s_inverse != INFINITY) {
+		s_prim_ = cos_theta_e / _1_dc;
+
+		d_prim_ = (d - old_d_) * delta_s_inverse;
+		theta_e_prim_ = (theta_e - old_theta_e_) * delta_s_inverse;
+
+		phi_prim_ = (old_phi_ - old_old_phi_) * delta_s_inverse;
+	}
+
+	ROS_INFO("d'=%f, theta_e'=%f, phi'=%f", d_prim_, theta_e_prim_, phi_prim_);
+	ROS_INFO("old_d=%f, d=%f", old_d_, d);
+	ROS_INFO("old_theta_e=%f, theta_e=%f", old_theta_e_, theta_e);
+	ROS_INFO("old_old_phi=%f, old_phi=%f, phi=%f", old_old_phi_, old_phi_, phi_);
+
+//	old_waypoint_ = ind;
+	old_d_ = d;
+	old_theta_e_ = theta_e;
+
+	old_old_phi_ = old_phi_;
+	old_phi_ = phi_;
+//	}
+
+	ROS_INFO("phi=%f", phi_);
+
 
 	//
 	// actual controller formulas begin here
@@ -321,9 +335,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	v2 = boost::algorithm::clamp(v2, -params_.max_steering_angle_speed(), params_.max_steering_angle_speed());
 
 	// update delta according to the time that has passed since the last update
-	ros::Duration time_passed = ros::Time::now() - old_time_;
-	phi_ += v2 * time_passed.toSec();
-	old_time_ = ros::Time::now();
+	phi_ += v2 * time_passed;
 
 	// also limit the steering angle
 	phi_ = boost::algorithm::clamp(phi_, -params_.max_steering_angle(), params_.max_steering_angle());
@@ -334,7 +346,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	ROS_DEBUG("dx2dd=%f, dx2dthetaP=%f, dx2ds=%f", dx2_dd, dx2_dtheta_p, dx2_ds);
 	ROS_DEBUG("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);
 	ROS_DEBUG("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
-				 time_passed.toSec(), v1, v2, phi_);
+				 time_passed, v1, v2, phi_);
 
 	// This is the accurate steering angle for 4 wheel steering
 	const float delta = (float) asin(params_.factor_steering_angle() * sin(phi_));

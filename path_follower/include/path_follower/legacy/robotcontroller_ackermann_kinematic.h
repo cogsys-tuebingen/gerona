@@ -66,10 +66,12 @@ private:
 
 	//! Tuning parameters
 	double k1_, k2_, k3_;
-	//! Current steering angle
-	double phi_;
 	//! Last waypoint index
 	unsigned int old_waypoint_;
+	//! Current steering angle
+	double phi_;
+	//! ds/dt (path velocity of the last frame)
+	double s_prim_;
 	//! Last and before last steering angle
 	double old_phi_, old_old_phi_;
 	//! Last values of d and theta_e, used to compute derivations
