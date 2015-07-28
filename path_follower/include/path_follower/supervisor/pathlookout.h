@@ -120,7 +120,7 @@ private:
         P<int> segment_step_size;
         P<float> scan_cluster_max_distance;
         P<int> min_number_of_points;
-
+        P<float> lookout_distance;
         Options():
             scale_obstacle_distance(this, "~supervisor/path_lookout/obstacle_scale_distance",  1.0f, ""),
             scale_obstacle_lifetime(this, "~supervisor/path_lookout/obstacle_scale_lifetime",  10.0f, ""),
@@ -131,7 +131,9 @@ private:
             scan_cluster_max_distance(this, "~supervisor/path_lookout/scan_cluster_max_distance",  0.5f,
                                       "Maximum distance between two obstacle points, to combine them to one obstacle."),
             min_number_of_points(this, "~supervisor/path_lookout/min_number_of_points",  3,
-                                 "Minimum number of points on one obstacle (smaller clusters are ignored).")
+                                 "Minimum number of points on one obstacle (smaller clusters are ignored)."),
+            lookout_distance(this,"~supervisor/path_lookout/lookout_distance", 99.0,
+            "Maximum distance to lookout on path")
         {}
     } opt_;
 

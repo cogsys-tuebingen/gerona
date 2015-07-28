@@ -262,7 +262,7 @@ std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::Co
         cv::Point2f b(path_[i].x, path_[i].y);
         dist += cv::norm(b-prev);
         prev = b;
-        if (dist>8.0) {
+        if (dist>opt_.lookout_distance()) {
             break;
         }
         /**
