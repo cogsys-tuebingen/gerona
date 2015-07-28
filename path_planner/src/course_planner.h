@@ -51,6 +51,9 @@ public:
     void planAvoidanceCb (const path_msgs::PlanAvoidanceGoalConstPtr &goal);
 
     void findCircleOnCourse(const Circle& obstacle, const vector<shared_ptr<Shape>>& course, vector<int>& indices );
+
+    void findPosOnCourse(const path_geom::PathPose& gp, const vector<shared_ptr<Shape>>& course,
+                        int& nearest_idx,Eigen::Vector2d& nearest);
 private:
     double resolution_ = 0.1;
     double avoidance_radius_ = 1.5;
@@ -58,8 +61,8 @@ private:
 
     XmlRpc::XmlRpcValue segment_array_;
 
-    vector<shared_ptr<Shape>> segments_;
-
+    vector<shared_ptr<Shape>> course_segments_;
+    vector<shared_ptr<Shape>> active_segments_;
     nav_msgs::Path avoidance_path_;
 
     nav_msgs::Path path_;

@@ -321,7 +321,7 @@ float RobotControllerTrailer::controlVelocity(float steer_angle) const
     float velocity = velocity_;
 
     if(fabsf(steer_angle) > path_driver_opt.steer_slow_threshold()) {
-        ROS_INFO_STREAM_THROTTLE_NAMED(2, MODULE, "slowing down");
+        //ROS_INFO_STREAM_THROTTLE_NAMED(2, MODULE, "slowing down");
         velocity *= 0.75;
     }
 //***todo rewrite

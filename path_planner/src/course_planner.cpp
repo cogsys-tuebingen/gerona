@@ -24,7 +24,7 @@ CoursePlanner::CoursePlanner()
 
     avoidance_pub_ = nh.advertise<nav_msgs::Path>("avoidance_path",1000);
 
-    start_pose_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal", 0, &CoursePlanner::startPoseCb, this);
+    start_pose_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal2", 0, &CoursePlanner::startPoseCb, this);
 
     obstacle_pose_sub_ = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/obst_pose", 0, &CoursePlanner::obstaclePoseCb, this);
 
@@ -76,13 +76,26 @@ void CoursePlanner::planAvoidanceCb(const path_msgs::PlanAvoidanceGoalConstPtr &
     path_geom::PathPose obstacle_gp;
     obstacle_gp.pos_.x()=obstacle.position.x;
     obstacle_gp.pos_.y()=obstacle.position.y;
-    path_geom::PathPose robot_gp=pose2PathPose(current.pose);
+    //path_geom::PathPose robot_gp=pose2PathPose(current.pose);
+    geometry_msgs::PoseStamped robot_pose;
+    bool has_pose = getWorldPose("/map","/base_link",robot_pose);
+    if (!has_pose) {
+        ROS_ERROR("cannot find robot pose with TF");
+        return;
+    }
+
+    PathPose robot_gp=pose2PathPose(robot_pose.pose);
+
+
+
     nav_msgs::Path path;
     processPlanAvoidance(obstacle_gp, robot_gp, path);
     path_msgs::PlanAvoidanceResult success;
     success.path = path;
     plan_avoidance_server_.setSucceeded(success);
-    path_publisher_.publish(path);
+    //path_publisher_.publish(path);
+    avoidance_pub_.publish(path);
+
 }
 
 
@@ -93,30 +106,30 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
     Circle obstacle(obstacle_gp.pos_,obstacle_radius_);
     Circle ext_obstacle(obstacle_gp.pos_,obstacle_radius_+avoidance_radius_);
     vector<int> indices;
-    findCircleOnCourse(ext_obstacle,segments_,indices);
-
+    findCircleOnCourse(ext_obstacle,active_segments_,indices);
+    int robot_idx;
+    Eigen::Vector2d nearest;
+    findPosOnCourse(robot_gp,active_segments_, robot_idx, nearest);
     if (indices.empty()) {
         // obstacle not relevant
         return;
     }
 
-    std::vector<std::shared_ptr<path_geom::Shape>> avoidance_path1, avoidance_path2;
+    std::vector<std::shared_ptr<path_geom::Shape>> avoidance_path1, avoidance_path2, avoidance_path;
 
     ROS_INFO("NEW Obstacle center %f %f",obstacle_gp.pos_.x(),obstacle_gp.pos_.y());
     // first and second segment might be the same
-    auto& first_segment = segments_[indices.front()];
-    auto first_line = std::dynamic_pointer_cast<Line>(first_segment);
-    auto first_circle = std::dynamic_pointer_cast<Circle>(first_segment);
-    std::vector<Circle> first_tangent_arcs;
-
-    if (first_line) {
-        ROS_INFO_STREAM("first segment "<<*first_line);
-        Tangentor::tangentPath(*first_line,obstacle,avoidance_radius_, avoidance_path1);
-
-    } else if (first_circle) {
-        ROS_INFO("first segment circle center %f %f", first_circle->center().x(),first_circle->center().y());
-        Tangentor::tangentPath(obstacle,*first_circle,avoidance_radius_,false,
-                                    avoidance_path1);
+    int first_idx = indices.front();
+    for (int i=0;i<2;++i) {
+        if (first_idx<0) {
+            first_idx = active_segments_.size()-1;
+        }
+        auto& first_segment = active_segments_[first_idx];
+        Tangentor::tangentPath(first_segment,obstacle,avoidance_radius_,true,avoidance_path1);
+        if (avoidance_path1.size()==3) {
+            break;
+        }
+        --first_idx;
     }
 
     std::cout <<" found "<< avoidance_path1.size() << " tangent arcs"<<std::endl;
@@ -130,31 +143,62 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
         return;
     }
     obstacle_circle->setArcAngle(2*M_PI);
-
-    auto& second_segment = segments_[indices.back()];
-    auto second_line = std::dynamic_pointer_cast<Line>(second_segment);
-    auto second_circle = std::dynamic_pointer_cast<Circle>(second_segment);
-    std::vector<Circle> second_tangent_arcs;
-    if (second_line) {
-
-        Tangentor::tangentPath(*obstacle_circle,*second_line,avoidance_radius_, avoidance_path2);
-    } else if (second_circle) {
-        ROS_INFO("second segment circle center %f %f", second_circle->center().x(),second_circle->center().y());
-        Tangentor::tangentPath(*obstacle_circle,*second_circle,avoidance_radius_,true,
-                                    avoidance_path2);
+    int second_idx = indices.back();
+    for (int i=0;i<2;++i) {
+        if (second_idx<0) {
+            second_idx = active_segments_.size()-1;
+        }
+        auto& second_segment = active_segments_[second_idx];
+        Tangentor::tangentPath(second_segment,*obstacle_circle,avoidance_radius_,false,avoidance_path2);
+        if (avoidance_path2.size()==3) {
+            break;
+        }
+        ++second_idx;
+    }
+    if (avoidance_path2.size()!=3) {
+        ROS_INFO("failed to find adequate avoidance course");
+        return;
     }
     ROS_INFO(" path size found %ld ",avoidance_path2.size());
     nav_msgs::Path path_raw;
     // remove last elememnt from first path part as it is contained in second path
     avoidance_path1.pop_back();
-    avoidance_path1.insert(avoidance_path1.end(),avoidance_path2.begin(), avoidance_path2.end());
 
-    // add remaining parts of original course
-    for (unsigned idx=indices.back()+1;idx<segments_.size();++idx) {
-        avoidance_path1.push_back(segments_[idx]);
+    // cerate the complete path from robot to finish
+
+
+    int idx = robot_idx;
+    int cnt = active_segments_.size();
+    while (idx!=first_idx && idx<(int)active_segments_.size()) {
+        avoidance_path.push_back(active_segments_[idx]);
+        ++idx;
+        --cnt;
     }
 
-    for (auto &s: avoidance_path1) {
+    avoidance_path.insert(avoidance_path.end(),avoidance_path1.begin(), avoidance_path1.end());
+    avoidance_path.insert(avoidance_path.end(),avoidance_path2.begin(), avoidance_path2.end());
+
+    bool success =avoidance_path.front()->selectStartPoint(nearest);
+    ROS_INFO_STREAM("ronot pos is "<<robot_gp.pos_);
+
+    ROS_INFO_STREAM("original line is "<<avoidance_path.front()->startPoint().x()<< " "
+                    <<avoidance_path.front()->startPoint().y());
+    if (!success) {
+        ROS_INFO_STREAM("failed tos et start point "<<nearest.x()<< " "<< nearest.y());
+
+    } else {
+        ROS_INFO_STREAM("set start point "<<nearest.x()<< " "<< nearest.y());
+    }
+    // add remaining parts of original course
+
+    for (int idx=second_idx+1;idx<(int)active_segments_.size();++idx) {
+        ROS_INFO("adding segment %u",idx);
+        avoidance_path.push_back(active_segments_[idx]);
+    }
+
+    active_segments_ = avoidance_path;
+
+    for (auto &s: avoidance_path) {
         std::vector<path_geom::PathPose> gposes;
         s->toPoses(resolution_,gposes,path_geom::FORWARD,false);
         addGeomPoses(gposes, path_raw);
@@ -163,8 +207,6 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
     path_raw.header.frame_id = "map";
     path_raw.header.stamp = ros::Time::now();
     path = postprocess(path_raw);
-
-
 
 }
 
@@ -252,8 +294,8 @@ void CoursePlanner::startPoseCb(const geometry_msgs::PoseStampedConstPtr &pose_s
     geometry_msgs::PoseArray poses;
     geometry_msgs::Pose pose;
     pose=pose_stamped->pose;
-    createCourse(segment_array_,pose,segments_, path_raw);
-
+    createCourse(segment_array_,pose,course_segments_, path_raw);
+    active_segments_ = course_segments_;
     path_ = postprocess(path_raw);
     publish(path_, path_raw);
     for (vector<geometry_msgs::PoseStamped>::iterator pose_it=path_.poses.begin();pose_it!=path_.poses.end();++pose_it) {
@@ -282,8 +324,8 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
     path_raw.header.frame_id = "map";
     path_raw.header.stamp = ros::Time::now();
     geometry_msgs::PoseArray poses;
-    createCourse(segment_array_,goal->goal.pose, segments_,path_raw);
-
+    createCourse(segment_array_,goal->goal.pose, course_segments_,path_raw);
+    active_segments_ = course_segments_;
 
 
     path_ = postprocess(path_raw);
@@ -304,6 +346,22 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
     server_.setSucceeded(success);
 }
 
+
+
+void CoursePlanner::findPosOnCourse(const PathPose &gp, const vector<shared_ptr<Shape> > &course, int &nearest_idx,
+                                    Eigen::Vector2d &nearest)
+{
+    std::vector<double> distances;
+    distances.reserve(course.size());
+    for (auto& segment : course) {
+        distances.push_back(segment->distanceTo(gp.pos_));
+    }
+    auto dist_it = min_element(begin(distances),end(distances));
+
+    nearest_idx = dist_it-distances.begin();
+    nearest = course[nearest_idx]->nearestPointTo(gp.pos_);
+
+}
 
 void CoursePlanner::findCircleOnCourse(const Circle &obstacle, const vector<shared_ptr<Shape> > &course,
                                        vector<int> &indices)
