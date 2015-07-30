@@ -147,8 +147,9 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
     obstacle_circle->setArcAngle(2*M_PI);
     int second_idx = indices.back();
     for (int i=0;i<3;++i) {
-        if (second_idx<0) {
-            second_idx = active_segments_.size()-1;
+
+        if (second_idx>=active_segments_.size()) {
+            second_idx = 0;
         }
         auto& second_segment = active_segments_[second_idx];
         Tangentor::tangentPath(second_segment,*obstacle_circle,avoidance_radius_,false,avoidance_path2);
@@ -349,7 +350,7 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
     if ((nearest_idx>=0) && (goal_gp.pos_-nearest).norm()<0.5) {
             active_segments_.clear();
             shared_ptr<Shape> nearest_cpy=Shape::deepCopy(course_segments_[nearest_idx]);
-            active_segments_.front()->selectStartPoint(nearest);
+            nearest_cpy->selectStartPoint(nearest);
 
             active_segments_.push_back(nearest_cpy);
             int idx=nearest_idx+1;
