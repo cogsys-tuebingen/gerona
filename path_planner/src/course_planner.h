@@ -89,7 +89,10 @@ private:
      * @param path
      */
     void createCourse(XmlRpc::XmlRpcValue& segment_array, const geometry_msgs::Pose& pose,
-                      vector<shared_ptr<Shape>>& segments, nav_msgs::Path& path);
+                      vector<shared_ptr<Shape>>& segments,nav_msgs::Path &path);
+
+    void segments2Path(const vector<shared_ptr<Shape>>& segments,double angle_offset, int direction ,
+                       nav_msgs::Path& path );
 
     path_geom::PathPose pose2PathPose(const geometry_msgs::Pose& pose) {
         return path_geom::PathPose(pose.position.x,pose.position.y,
@@ -105,7 +108,7 @@ private:
         pose.header.frame_id="/map";
         return pose;
     }
-    void addGeomPoses(const std::vector<path_geom::PathPose>& gposes, nav_msgs::Path& path);
+    void addGeomPoses(const PathPoseVec& gposes, nav_msgs::Path& path);
 
 
     /**

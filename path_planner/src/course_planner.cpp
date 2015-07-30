@@ -9,7 +9,9 @@
 
 
 */
+
 #include <utils_path/geometry/circle.h>
+
 #include <utils_path/geometry/line.h>
 #include <utils_path/geometry/intersector.h>
 #include <utils_path/geometry/tangentor.h>
@@ -38,7 +40,7 @@ CoursePlanner::CoursePlanner()
 }
 
 
-void CoursePlanner::addGeomPoses(const std::vector<path_geom::PathPose> &gposes, nav_msgs::Path &path)
+void CoursePlanner::addGeomPoses(const PathPoseVec &gposes, nav_msgs::Path &path)
 {
     for (auto& gp : gposes) {
         path.poses.push_back(pathPose2Pose(gp));
@@ -144,7 +146,7 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
     }
     obstacle_circle->setArcAngle(2*M_PI);
     int second_idx = indices.back();
-    for (int i=0;i<2;++i) {
+    for (int i=0;i<3;++i) {
         if (second_idx<0) {
             second_idx = active_segments_.size()-1;
         }
@@ -156,7 +158,7 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
         ++second_idx;
     }
     if (avoidance_path2.size()!=3) {
-        ROS_INFO("failed to find adequate avoidance course");
+        ROS_INFO("failed to find adequate avoidance course from obstacle back to course");
         return;
     }
     ROS_INFO(" path size found %ld ",avoidance_path2.size());
@@ -199,11 +201,11 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
     active_segments_ = avoidance_path;
 
     for (auto &s: avoidance_path) {
-        std::vector<path_geom::PathPose> gposes;
+        PathPoseVec gposes;
         s->toPoses(resolution_,gposes,path_geom::FORWARD,false);
         addGeomPoses(gposes, path_raw);
     }
-    ROS_INFO("generated path has %ld poses",path_raw.poses.size());
+    ROS_INFO("generated path has %lu poses",path_raw.poses.size());
     path_raw.header.frame_id = "map";
     path_raw.header.stamp = ros::Time::now();
     path = postprocess(path_raw);
@@ -225,7 +227,7 @@ void CoursePlanner::createCourse(XmlRpc::XmlRpcValue &segment_array, const geome
 
     path_geom::PathPose gp=pose2PathPose(start_pose);
     for(int i =0; i < segment_array.size(); i++) {
-        std::vector<path_geom::PathPose> gposes;
+        PathPoseVec gposes;
 
         XmlRpc::XmlRpcValue& segment = segment_array[i];
         if(segment.getType() != XmlRpc::XmlRpcValue::TypeArray) {
@@ -241,7 +243,8 @@ void CoursePlanner::createCourse(XmlRpc::XmlRpcValue &segment_array, const geome
                 direction = path_geom::BACKWARD;
             }
             path_geom::Line line(gp,segment[1],direction);
-            segments.push_back(std::make_shared<path_geom::Line>(line));
+            //segments.push_back(std::make_shared<path_geom::Line>(line));
+            segments.push_back(std::allocate_shared<path_geom::Line>(Eigen::aligned_allocator<Line>(),line));
             line.toPoses(resolution_,gposes,direction,false);
             addGeomPoses(gposes,path);
             gp = gposes.back();
@@ -264,14 +267,18 @@ void CoursePlanner::createCourse(XmlRpc::XmlRpcValue &segment_array, const geome
                 path_geom::Circle arc= path_geom::Circle::createArcFrom(gp,radius,arc_angle,arc_direction);
 
                 arc.toPoses(resolution_,gposes,move_direction);
-                segments.push_back(std::make_shared<path_geom::Circle>(arc));
-                ROS_INFO("ARC FORWARD circle radius %f angle %f number of points %ld",radius, arc_angle,gposes.size());
+                //segments.push_back(std::make_shared<path_geom::Circle>(arc));
+                segments.push_back(std::allocate_shared<path_geom::Circle>(Eigen::aligned_allocator<Circle>(),arc));
+
+                ROS_INFO("ARC FORWARD circle radius %f angle %f number of points %lu",radius, arc_angle,gposes.size());
                 ROS_INFO("circle center is %f %f",arc.center().x(),arc.center().y());
             } else {
                 path_geom::Circle arc= path_geom::Circle::createArcTo(gp,radius,arc_angle,arc_direction);
                 arc.toPoses(resolution_,gposes,move_direction);
-                segments.push_back(std::make_shared<path_geom::Circle>(arc));
-                ROS_INFO("circle radius %f angle %f number of points %ld",radius, arc_angle,gposes.size());
+                //segments.push_back(std::make_shared<path_geom::Circle>(arc));
+                segments.push_back(std::allocate_shared<path_geom::Circle>(Eigen::aligned_allocator<Circle>(),arc));
+
+                ROS_INFO("circle radius %f angle %f number of points %lu",radius, arc_angle,gposes.size());
                 ROS_INFO("circle center is %f %f",arc.center().x(),arc.center().y());
             }
             addGeomPoses(gposes,path);
@@ -281,6 +288,16 @@ void CoursePlanner::createCourse(XmlRpc::XmlRpcValue &segment_array, const geome
 
 }
 
+
+void CoursePlanner::segments2Path(const vector<shared_ptr<Shape> > &segments,
+                                  double angle_offset, int direction,nav_msgs::Path &path)
+{
+   PathPoseVec gposes;
+   for (auto& segment : segments) {
+       segment->toPoses(resolution_,gposes, direction);
+       addGeomPoses(gposes, path);
+   }
+}
 
 
 void CoursePlanner::startPoseCb(const geometry_msgs::PoseStampedConstPtr &pose_stamped)
@@ -324,9 +341,40 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
     path_raw.header.frame_id = "map";
     path_raw.header.stamp = ros::Time::now();
     geometry_msgs::PoseArray poses;
-    createCourse(segment_array_,goal->goal.pose, course_segments_,path_raw);
-    active_segments_ = course_segments_;
 
+    path_geom::PathPose goal_gp = pose2PathPose(goal->goal.pose);
+    int nearest_idx;
+    Eigen::Vector2d nearest;
+    findPosOnCourse(goal_gp,course_segments_,nearest_idx,nearest);
+    if ((nearest_idx>=0) && (goal_gp.pos_-nearest).norm()<0.5) {
+            active_segments_.clear();
+            shared_ptr<Shape> nearest_cpy=Shape::deepCopy(course_segments_[nearest_idx]);
+            active_segments_.front()->selectStartPoint(nearest);
+
+            active_segments_.push_back(nearest_cpy);
+            int idx=nearest_idx+1;
+
+            int cnt = (int)course_segments_.size();
+            while (idx!=nearest_idx && cnt) {
+                if (idx>=course_segments_.size()) {
+                    idx=0;
+                }
+                active_segments_.push_back(course_segments_[idx]);
+                idx+=1;
+                --cnt;
+            }
+            /*
+            active_segments_.push_back(course_segments_[nearest_idx]);
+
+            active_segments_.back()->selectEndPoint(nearest);*/
+            segments2Path(active_segments_,0.0,path_geom::FORWARD,path_raw);
+            ROS_INFO_STREAM("resuning course with "<<active_segments_.size()<< " segments");
+     } else {
+
+       ROS_INFO("creating course");
+       createCourse(segment_array_,goal->goal.pose, course_segments_,path_raw);
+       active_segments_ = course_segments_;
+    }
 
     path_ = postprocess(path_raw);
     publish(path_, path_raw);
@@ -351,6 +399,10 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
 void CoursePlanner::findPosOnCourse(const PathPose &gp, const vector<shared_ptr<Shape> > &course, int &nearest_idx,
                                     Eigen::Vector2d &nearest)
 {
+    if (course.empty()) {
+        nearest_idx = -1;
+        return;
+    }
     std::vector<double> distances;
     distances.reserve(course.size());
     for (auto& segment : course) {
@@ -383,6 +435,7 @@ void CoursePlanner::findCircleOnCourse(const Circle &obstacle, const vector<shar
     size_t start_idx = 0;
     while (start_idx<course.size()) {
         auto& segment = course[start_idx];
+
         vector<Vector2d> ipoints;
         auto line = dynamic_pointer_cast<Line>(segment);
         auto circle = dynamic_pointer_cast<Circle>(segment);
