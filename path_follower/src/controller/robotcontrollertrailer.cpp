@@ -146,6 +146,7 @@ RobotController::MoveCommandStatus RobotControllerTrailer::computeMoveCommand(Mo
     return MoveCommandStatus::OKAY;
 }
 
+
 void RobotControllerTrailer::publishMoveCommand(const MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
@@ -155,8 +156,10 @@ void RobotControllerTrailer::publishMoveCommand(const MoveCommand &cmd) const
         last_velocity_ = cmd.getVelocity();
     }
     // else (=not valid): dont modify msg --> all set to zero, that is robot will stop.
+   // ROS_INFO_STREAM_THROTTLE(0.3,"desired steer angle "<<msg.angular.z*180.0/M_PI);
     cmd_pub_.publish(msg);
 }
+
 
 void RobotControllerTrailer::selectWaypoint()
 {
@@ -273,6 +276,7 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
     // call PID controller for steering.
 
     std::vector<double> u(1), target_u(1);
+
     bool do_control = path_ctrl_->execute(dist_error,angle_error,v*dir_sign_,target_u,u);
     if (!do_control) {
         return; // Nothing to do
@@ -282,6 +286,10 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
     visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), u_val, 0.0, 1.0, 1.0);
 
     float steer = dir_sign_* std::max(-opt_.max_steer(), std::min(u_val, opt_.max_steer()));
+
+  //  ROS_INFO_STREAM_THROTTLE(0.3,"max steer "<<opt_.max_steer()*180.0/M_PI<<" direction "<<dir_sign_);
+  //  ROS_INFO_STREAM_THROTTLE(0.3,"updateval steer angle "<<steer*180.0/M_PI<< " u "<<u_val*180.0/M_PI);
+
 //    ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
 
     // Control velocity

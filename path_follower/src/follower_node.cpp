@@ -3,7 +3,7 @@
 #include <path_follower/utils/parameters.h>
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "path_follower_node");
+    ros::init(argc, argv, "path_follower_node", ros::init_options::NoSigintHandler);
     ros::NodeHandle nh;
 
     PathFollower pf(nh);

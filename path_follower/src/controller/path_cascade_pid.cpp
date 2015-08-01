@@ -21,7 +21,7 @@ PathCascadePid::PathCascadePid()
     bwd_angle_pid_ = PidController<1>(opt_.bwd_csca_kp(), opt_.bwd_csca_ki(), opt_.bwd_csca_kd(), opt_.pid_ta());
     bwd_dist_pid_ = PidController<1>(opt_.bwd_cscd_kp(), opt_.bwd_cscd_ki(), opt_.bwd_cscd_kd(), opt_.pid_ta());
 
-
+    ROS_INFO_STREAM("fwd k_angle "<<opt_.fwd_csca_kp());
 
 }
 
@@ -45,8 +45,8 @@ bool PathCascadePid::execute(double dist_error, double angle_error, double veloc
          bwd_dist_pid_.execute(dist_error, &u_dist);
 
     }
-   // ROS_INFO_STREAM_THROTTLE(0.2, std::setprecision(2) << "e_angle "<<angle_error*180.0/M_PI <<"deg e_dist "
-     //                         << dist_error <<"u_angle "<< u_angle*180.0/M_PI << "u_dist"<<u_dist);
+ // ROS_INFO_STREAM_THROTTLE(0.3, std::setprecision(2) << "e_angle "<<angle_error*180.0/M_PI <<"deg e_dist "
+  //                       << dist_error <<"u_angle "<< u_angle << "u_dist"<<u_dist);
 
 
     u.resize(1);
