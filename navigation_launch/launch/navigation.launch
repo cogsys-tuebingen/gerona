@@ -13,8 +13,8 @@ tasks and can be used instead of this file.
     
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
-    <arg name="use_planner_static" default="false" />
-    <arg name="use_planner_default" default="true" />
+	 <arg name="use_planner_static" default="false" />
+	 <arg name="use_planner_default" default="true" />
 
     <include file="$(find path_planner)/launch/path_planner.launch">
         <arg name="use_planner_cost" value="$(arg use_planner_cost)" />

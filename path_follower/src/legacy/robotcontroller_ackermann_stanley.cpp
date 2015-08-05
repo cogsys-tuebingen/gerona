@@ -124,7 +124,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Stanley::computeMov
 
 	const double k = getDirSign() > 0. ? params_.k_forward() : params_.k_backward();
 
-	const double phi = theta_e + atan(k * d / velocity_);
+	const double phi = theta_e + atan2(k * d, velocity_);
 
 	// This is the accurate steering angle for 4 wheel steering
 	const float phi_actual = (float) asin(params_.factor_steering_angle() * sin(phi));

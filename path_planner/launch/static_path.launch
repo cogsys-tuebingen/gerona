@@ -11,6 +11,10 @@
 		<!-- rosparam param="segments">[[4.5], [3.14, 1.0], [4.0]]</rosparam-->
 		<!-- typical turning maneuver -->
 		<!--rosparam param="segments">[[1.57079632679, -1.2], [-1.57079632679, 1.2]]</rosparam-->
+		<!-- forward-backward-forward -->
+		<!--rosparam param="segments">[[1.57079632679, 1.2],[-1.57079632679, -1.2], [1.57079632679, -1.2], [-1.57079632679, 1.2]]</rosparam-->
+		<!-- left-right-left -->
+		<rosparam param="segments">[[2.0], [1.57079632679, 1.2],[-3.141592, 1.2], [3.141592], [3.141592, 1.2], [-1.57079632679, 1.2], [2.0]]</rosparam>
 		<!-- straight line forward -->
 		<!--rosparam param="segments">[[5.0]]</rosparam-->
 		<!-- straight line backward -->
@@ -18,7 +22,7 @@
 		<!-- figure eight course -->
 		<!-- rosparam param="segments">[[6.28318530718, 1.0], [-6.28318530718, 1.0]]</rosparam-->
 		<!-- circle forward -->
-		<rosparam param="segments">[[3.14, 0.8]]</rosparam>
+		<!--rosparam param="segments">[[3.14, 0.8]]</rosparam-->
 		<!-- circle backward -->
 		<!--rosparam param="segments">[[5.0, -1.0]]</rosparam-->
 	</node>

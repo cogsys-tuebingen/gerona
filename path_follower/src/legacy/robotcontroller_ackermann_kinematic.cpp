@@ -238,7 +238,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 		d_prim_ = (d - old_d_) * delta_s_inverse;
 		theta_e_prim_ = (theta_e - old_theta_e_) * delta_s_inverse;
 
-		phi_prim_ = (old_phi_ - old_old_phi_) * delta_s_inverse;
+		phi_prim_ = (phi_ - old_phi_ /*- old_old_phi_*/) * delta_s_inverse;
 	}
 
 	ROS_INFO("s_prim=%f, delta_s=%f", s_prim_, s_prim_ * time_passed);
@@ -251,7 +251,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	old_d_ = d;
 	old_theta_e_ = theta_e;
 
-	old_old_phi_ = old_phi_;
+//	old_old_phi_ = old_phi_;
 	old_phi_ = phi_;
 //	}
 
