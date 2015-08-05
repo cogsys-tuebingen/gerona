@@ -41,7 +41,6 @@
     <param name="k_curv" value="0.1" />
 
     <remap from="scan" to="scan/front" />
-    <remap from="/cmd_vel" to="summit_xl_controller/command" />
     <remap from="/obstacles" to="/obstacle_cloud" />
   </node>
   

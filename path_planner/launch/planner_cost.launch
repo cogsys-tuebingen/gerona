@@ -14,8 +14,8 @@
         <param name="use_scan_front" value="true" />
         <param name="use_scan_back" value="false" />
 
-        <param name="size/forward" value="0.3" />
-        <param name="size/backward" value="-0.5" />
-        <param name="size/width" value="0.55" />
+        <param name="size/forward" value="0.2" />
+        <param name="size/backward" value="-0.2" />
+        <param name="size/width" value="0.25" />
     </node>
 </launch>

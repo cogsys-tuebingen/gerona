@@ -150,7 +150,7 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map, bool is_cost_map) {
 
 
         if(use_collision_gridmap_) {
-            map_info = new lib_path::CollisionGridMap2d(map.info.width, map.info.height, map.info.resolution, size_forward, size_backward, size_width);
+            map_info = new lib_path::CollisionGridMap2d(map.info.width, map.info.height, tf::getYaw(map.info.origin.orientation), map.info.resolution, size_forward, size_backward, size_width);
         } else {
             tf::Quaternion orientation;
             tf::quaternionMsgToTF(map.info.origin.orientation, orientation);
