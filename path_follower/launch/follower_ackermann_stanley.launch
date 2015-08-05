@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<!--
+Launch the path follower with the stanley controller for a car-like (Ackermann) robot.
+-->
+<launch>
+  <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
+	 <param name="controller" value="ackermann_stanley" />
+
+    <!-- supervisors -->
+    <param name="use_obstacle_map" value="false" />
+    <param name="use_vfh" value="false" />
+
+    <param name="supervisor/use_path_lookout" value="false" />
+    <param name="supervisor/use_waypoint_timeout" value="false" />
+    <param name="supervisor/use_distance_to_path" value="false" />
+    
+    <param name="waypoint_tolerance" value="2.0" />
+    <param name="goal_tolerance" value="0.25" />
+    <param name="max_distance_to_path" value="2.0" />
+    <param name="collision_box_width" value="0.4" />
+    <param name="collision_box_crit_length" value="0.6" />
+    <param name="collision_box_min_length" value="1.0" />
+    <param name="collision_box_max_length" value="1.5" />
+    <param name="collision_box_velocity_factor" value="1.0" />
+    <param name="collision_box_velocity_saturation" value="1.0" />
+    <param name="obstacle_scale_distance" value="1.0" />
+    <param name="obstacle_scale_lifetime" value="5.0" />
+    <param name="path_width" value="0.5" />    
+    
+    <!-- general parameters of the follower -->
+    <param name="min_velocity" value="0.5" />
+    <param name="max_velocity" value="0.7" />
+    <param name="waypoint_tolerance" value="0.8" />
+	 <param name="goal_tolerance" value="0.3" />
+    
+    <!-- parameters, that are dependent of the controller or the robot model -->
+
+
+	 <!-- simulation -->
+	 <param name="k_forward" value="1.0" />
+	 <param name="k_backward" value="3.0" />
+	 <param name="factor_steering_angle" value="1.0" />
+
+	 <!-- robot -->
+	 <!--param name="k_forward" value="4.5" />
+	 <param name="k_backward" value="7.0" />
+	 <param name="factor_k1" value="1.0" />
+	 <param name="factor_k2" value="3.0" />
+	 <param name="factor_k3" value="3.0" />
+	 <param name="factor_steering_angle" value="0.5" /-->
+
+
+	 <param name="vehicle_length" value="0.34" />
+
+    <remap from="scan" to="scan/filtered" />
+    <remap from="/obstacles" to="/obstacle_cloud" />
+  </node>
+  
+</launch>

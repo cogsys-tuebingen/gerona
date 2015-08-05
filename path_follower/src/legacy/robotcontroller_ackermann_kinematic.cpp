@@ -154,7 +154,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 		return RobotController::MoveCommandStatus::ERROR;
 	}
 
-	// if |theta_p| > 90° we drive backwards and set theta_p to the complementary angle
+	// if |theta_e| > 90° we drive backwards and set theta_e to the complementary angle
 	if (theta_e > M_PI_2) {
 		setDirSign(-1.f);
 		d = -d;
