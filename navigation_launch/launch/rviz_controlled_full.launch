@@ -8,7 +8,7 @@ path_control using the action interface. It is thus good for testing and
 demonstrating the navigation framework.
 -->
 <launch>
-    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER ackermann_kinematic)" />
+    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER ackermann_stanley)" />
 
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
@@ -22,7 +22,7 @@ demonstrating the navigation framework.
 
     <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy"
     		output="screen" respawn="true">
-        <param name="target_speed" value="0.5" />
+        <param name="target_speed" value="0.7" />
         <param name="failure_mode" value="replan" />
         <remap from="/rviz_goal" to="/move_base_simple/goal" />
     </node>
