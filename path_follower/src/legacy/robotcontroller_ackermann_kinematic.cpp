@@ -233,13 +233,17 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	const double delta_s_inverse = 1. / (s_prim_ * time_passed);
 
 	if (delta_s_inverse != NAN && delta_s_inverse != INFINITY) {
-		s_prim_ = cos_theta_e / _1_dc;
-
 		d_prim_ = (d - old_d_) * delta_s_inverse;
 		theta_e_prim_ = (theta_e - old_theta_e_) * delta_s_inverse;
 
-		phi_prim_ = (phi_ - old_phi_ /*- old_old_phi_*/) * delta_s_inverse;
+		// follows from: phi_prim = phi / t, s_prim = s / t, v2 = phi / t
+		phi_prim_ = v2_ / s_prim_;
+//		phi_prim_ = (phi_ - old_phi_ /*- old_old_phi_*/) * delta_s_inverse;
+
+
+		s_prim_ = cos_theta_e / _1_dc;
 	}
+	ROS_INFO("phi' (alternative)=%f", (phi_ - old_phi_ /*- old_old_phi_*/) * delta_s_inverse);
 
 	ROS_INFO("s_prim=%f, delta_s=%f", s_prim_, s_prim_ * time_passed);
 	ROS_INFO("d'=%f, theta_e'=%f, phi'=%f", d_prim_, theta_e_prim_, phi_prim_);
@@ -332,6 +336,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 	// limit steering angle velocity
 	v2 = boost::algorithm::clamp(v2, -params_.max_steering_angle_speed(), params_.max_steering_angle_speed());
+
+	v2_ = v2;
 
 	// update delta according to the time that has passed since the last update
 	phi_ += v2 * time_passed;
