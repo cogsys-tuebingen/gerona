@@ -148,12 +148,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// theta_e = theta_vehicle - theta_path (orientation error)
 	double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind), pose[2]);
 
-	// Singularity at M_PI_2 or -M_PI_2
-	if (theta_e == M_PI_2 || theta_e == -M_PI_2) {
-		stopMotion();
-		return RobotController::MoveCommandStatus::ERROR;
-	}
-
 	// if |theta_e| > 90° we drive backwards and set theta_e to the complementary angle
 	if (theta_e > M_PI_2) {
 		setDirSign(-1.f);
