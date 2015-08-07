@@ -70,8 +70,8 @@ private:
 	unsigned int old_waypoint_;
 	//! Current steering angle
 	double phi_;
-	//! v2 (steering angle speed)
-	double v2_;
+	//! v1 longitudinal velocity, v2 (steering angle speed)
+	double v1_, v2_;
 	//! ds/dt (path velocity of the last frame)
 	double s_prim_;
 	//! Last and before last steering angle

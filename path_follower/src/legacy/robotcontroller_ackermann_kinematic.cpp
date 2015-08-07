@@ -14,6 +14,8 @@
 #include <limits>
 #include <boost/algorithm/clamp.hpp>
 
+#include <time.h>
+
 RobotController_Ackermann_Kinematic::RobotController_Ackermann_Kinematic(PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower),
 	old_waypoint_(0),
@@ -85,6 +87,9 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 		MoveCommand* cmd) {
 
 	ROS_INFO("===============================");
+
+	std::clock_t begin = std::clock();
+	ROS_INFO("begin=%ld", begin);
 
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
@@ -227,8 +232,11 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	const double delta_s_inverse = 1. / (s_prim_ * time_passed);
 
 	if (delta_s_inverse != NAN && delta_s_inverse != INFINITY) {
-		d_prim_ = (d - old_d_) * delta_s_inverse;
-		theta_e_prim_ = (theta_e - old_theta_e_) * delta_s_inverse;
+		//d_prim_ = (d - old_d_) * delta_s_inverse;
+		d_prim_ = sin(theta_e) * v1_;
+
+		//theta_e_prim_ = (theta_e - old_theta_e_) * delta_s_inverse;
+		theta_e_prim_ = (tan_phi / params_.vehicle_length() - c * cos_theta_e / _1_dc) * v1_;
 
 		// follows from: phi_prim = phi / t, s_prim = s / t, v2 = phi / t
 		phi_prim_ = v2_ / s_prim_;
@@ -354,6 +362,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	move_cmd_.setVelocity(getDirSign() * (float) v1);
 
 	*cmd = move_cmd_;
+
+	ROS_INFO("frame time = %f", (((float) (std::clock() - begin)) / CLOCKS_PER_SEC));
 
 	return RobotController::MoveCommandStatus::OKAY;
 }
