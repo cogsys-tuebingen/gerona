@@ -20,6 +20,7 @@ RobotController_Ackermann_Kinematic::RobotController_Ackermann_Kinematic(PathFol
 	RobotController_Interpolation(_path_follower),
 	old_waypoint_(0),
 	phi_(0.),
+	v1_(0.), v2_(0.),
 	old_phi_(0.),
 	old_old_phi_(0.),
 	old_d_(0.),
@@ -67,6 +68,8 @@ void RobotController_Ackermann_Kinematic::start() {
 
 void RobotController_Ackermann_Kinematic::reset() {
 	old_time_ = ros::Time::now();
+
+	v1_ = v2_ = 0.;
 
 	old_waypoint_ = 0;
 	s_prim_ = 0.001; // TODO: good starting value
@@ -229,9 +232,9 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	const double time_passed = (ros::Time::now() - old_time_).toSec();
 	old_time_ = ros::Time::now();
 
-	const double delta_s_inverse = 1. / (s_prim_ * time_passed);
+//	const double delta_s_inverse = 1. / (s_prim_ * time_passed);
 
-	if (delta_s_inverse != NAN && delta_s_inverse != INFINITY) {
+//	if (delta_s_inverse != NAN && delta_s_inverse != INFINITY) {
 		//d_prim_ = (d - old_d_) * delta_s_inverse;
 		d_prim_ = sin(theta_e) * v1_;
 
@@ -244,8 +247,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 
 		s_prim_ = cos_theta_e / _1_dc;
-	}
-	ROS_INFO("phi' (alternative)=%f", (phi_ - old_phi_ /*- old_old_phi_*/) * delta_s_inverse);
+//	}
+//	ROS_INFO("phi' (alternative)=%f", (phi_ - old_phi_ /*- old_old_phi_*/) * delta_s_inverse);
 
 	ROS_INFO("s_prim=%f, delta_s=%f", s_prim_, s_prim_ * time_passed);
 	ROS_INFO("d'=%f, theta_e'=%f, phi'=%f", d_prim_, theta_e_prim_, phi_prim_);
@@ -329,20 +332,21 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 
 
 	// longitudinal velocity
-	double /*v1 = _1_dc * u1 / cos_theta_p;
-	if (v1 > velocity_)
-		*/ v1 = velocity_;
+	/*v1_ = _1_dc * u1 / cos_theta_p;
+	if (v1_ > velocity_)
+		*/ v1_ = velocity_;
 
 	// steering angle velocity
-	double v2 = alpha2 * (u2 - alpha1 * u1);
+	v2_ = alpha2 * (u2 - alpha1 * u1);
 
 	// limit steering angle velocity
-	v2 = boost::algorithm::clamp(v2, -params_.max_steering_angle_speed(), params_.max_steering_angle_speed());
+	v2_ = boost::algorithm::clamp(v2_, -params_.max_steering_angle_speed(), params_.max_steering_angle_speed());
 
-	v2_ = v2;
+//	v1_ = v1;
+//	v2_ = v2;
 
 	// update delta according to the time that has passed since the last update
-	phi_ += v2 * time_passed;
+	phi_ += v2_ * time_passed;
 
 	// also limit the steering angle
 	phi_ = boost::algorithm::clamp(phi_, -params_.max_steering_angle(), params_.max_steering_angle());
@@ -353,14 +357,13 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	ROS_DEBUG("dx2dd=%f, dx2dthetaP=%f, dx2ds=%f", dx2_dd, dx2_dtheta_p, dx2_ds);
 	ROS_DEBUG("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);
 	ROS_DEBUG("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
-				 time_passed, v1, v2, phi_);
+				 time_passed, v1_, v2_, phi_);
 
 	// This is the accurate steering angle for 4 wheel steering
 	const float delta = (float) asin(params_.factor_steering_angle() * sin(phi_));
 
 	move_cmd_.setDirection(delta);
-	move_cmd_.setVelocity(getDirSign() * (float) v1);
-
+	move_cmd_.setVelocity(getDirSign() * (float) v1_);
 	*cmd = move_cmd_;
 
 	ROS_INFO("frame time = %f", (((float) (std::clock() - begin)) / CLOCKS_PER_SEC));
