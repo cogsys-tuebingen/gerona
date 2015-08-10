@@ -1,6 +1,7 @@
 #include <path_follower/legacy/robotcontroller_ackermann_kinematic.h>
 #include <path_follower/pathfollower.h>
 #include <ros/ros.h>
+#include <geometry_msgs/Twist.h>
 
 #include "../alglib/interpolation.h"
 #include <utils_general/MathHelper.h>
@@ -92,12 +93,15 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	ROS_INFO("===============================");
 
 	std::clock_t begin = std::clock();
-	ROS_INFO("begin=%ld", begin);
 
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
 	const Eigen::Vector3d pose = path_driver_->getRobotPose();
+	const geometry_msgs::Twist velocity_measured = path_driver_->getVelocity();
+
+	ROS_INFO("velocity_measured: x=%f, y=%f, z=%f", velocity_measured.linear.x,
+				velocity_measured.linear.y, velocity_measured.linear.z);
 
 	// TODO: theta should also be considered in goal test
 	// goal test
@@ -232,6 +236,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	const double time_passed = (ros::Time::now() - old_time_).toSec();
 	old_time_ = ros::Time::now();
 
+	v1_ = velocity_measured.linear.x;
+
 //	const double delta_s_inverse = 1. / (s_prim_ * time_passed);
 
 //	if (delta_s_inverse != NAN && delta_s_inverse != INFINITY) {
@@ -281,6 +287,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	// u1, u2
 	// u1 is taken from "Feedback control for a path following robotic car" by Mellodge,
 	// p. 108 (u1_actual)
+
+	// TODO: use measured velocity
 	const double u1 = velocity_ * cos_theta_e / _1_dc;
 	const double u2 =
 			- k1_ * u1 * x4
@@ -356,7 +364,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	ROS_DEBUG("1 - dc(s)=%f", _1_dc);
 	ROS_DEBUG("dx2dd=%f, dx2dthetaP=%f, dx2ds=%f", dx2_dd, dx2_dtheta_p, dx2_ds);
 	ROS_DEBUG("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);
-	ROS_DEBUG("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
+	ROS_INFO("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
 				 time_passed, v1_, v2_, phi_);
 
 	// This is the accurate steering angle for 4 wheel steering
@@ -381,30 +389,3 @@ void RobotController_Ackermann_Kinematic::publishMoveCommand(
 
 	cmd_pub_.publish(msg);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
