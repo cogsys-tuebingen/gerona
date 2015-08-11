@@ -213,6 +213,14 @@ target_link_libraries(path_follower_node
   ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES} ${PCL_LIBRARIES}
 )
 
+add_executable(pose_goal_remapper
+  src/utils/PoseGoalRemapper.cpp
+)
+
+target_link_libraries(pose_goal_remapper
+  ${catkin_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############
