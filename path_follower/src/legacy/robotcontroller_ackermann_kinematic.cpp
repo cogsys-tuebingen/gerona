@@ -236,6 +236,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	const double time_passed = (ros::Time::now() - old_time_).toSec();
 	old_time_ = ros::Time::now();
 
+	// TODO: negative velocity????
 	v1_ = velocity_measured.linear.x;
 
 //	const double delta_s_inverse = 1. / (s_prim_ * time_passed);

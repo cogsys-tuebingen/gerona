@@ -183,6 +183,7 @@ add_executable(path_follower_node
   src/legacy/robotcontroller_ackermann_kinematic.cpp
   src/legacy/robotcontroller_ackermann_stanley.cpp
   src/legacy/robotcontroller_4ws_purepursuit.cpp
+  src/legacy/robotcontroller_4ws_stanley.cpp
   src/legacy/robotcontroller_differential_orthexp.cpp
   src/legacy/robotcontroller_omnidrive_orthexp.cpp
   src/legacy/robotcontroller_kinematic_SLP.cpp
