@@ -64,7 +64,6 @@ RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveComma
 	const Eigen::Vector3d pose = path_driver_->getRobotPose();
 	const geometry_msgs::Twist velocity_measured = path_driver_->getVelocity();
 
-	// TODO: theta should also be considered in goal test
 	// goal test
 	if (reachedGoal(pose)) {
 		path_->switchToNextSubPath();
@@ -122,18 +121,7 @@ RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveComma
 	// theta_e = theta_vehicle - theta_path (orientation error)
 	double theta_e = MathHelper::AngleDelta(pose[2], path_interpol.theta_p(ind));
 
-	// if |theta_e| > 90° we drive backwards
-//	if (theta_e > M_PI_2) {
-//		setDirSign(-1.f);
-//		d = -d;
-//		theta_e = M_PI - theta_e;
-//	} else if (theta_e < -M_PI_2) {
-//		setDirSign(-1.f);
-//		d = -d;
-//		theta_e = -M_PI - theta_e;
-//	} else {
-//		setDirSign(1.f);
-//	}
+	// if we drive backwards invert d and set theta_e to the complementary angle
 	if (getDirSign() < 0.) {
 		d = -d;
 		if (theta_e > 0.)
@@ -149,8 +137,6 @@ RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveComma
 	const double kd_v = k * d / v;
 
 	const double phi = asin((kd_v + tan_theta_e) / (2. + 2. * kd_v * tan_theta_e));
-
-	ROS_INFO("lslslsk=%f, v=%f, kd_v=%f, phi=%f", k, v, kd_v, phi);
 
 	move_cmd_.setDirection((float) phi);
 	move_cmd_.setVelocity(getDirSign() * (float) velocity_);

@@ -161,6 +161,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Kinematic::computeM
 	double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind), pose[2]);
 
 	// if |theta_e| > 90° we drive backwards and set theta_e to the complementary angle
+	// TODO: other version is more stable
 	if (theta_e > M_PI_2) {
 		setDirSign(-1.f);
 		d = -d;
