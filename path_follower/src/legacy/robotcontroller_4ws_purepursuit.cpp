@@ -153,12 +153,8 @@ double RobotController_4WS_PurePursuit::computeAlpha(double& lookahead_distance,
 	double alpha = MathHelper::AngleDelta(pose[2], atan2(dy, dx));
 
 	// when we drive backwards, set alpha to the complementary angle
-	if (getDirSign() < 0.) {
-		if (alpha > 0.)
-			alpha = M_PI - alpha;
-		else
-			alpha = -M_PI - alpha;
-	}
+	if (getDirSign() < 0.)
+		alpha = alpha > 0.? M_PI - alpha : -M_PI - alpha;
 
 	// set lookahead_distance to the actual distance
 	lookahead_distance = distance;

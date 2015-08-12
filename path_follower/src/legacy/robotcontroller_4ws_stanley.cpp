@@ -124,10 +124,7 @@ RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveComma
 	// if we drive backwards invert d and set theta_e to the complementary angle
 	if (getDirSign() < 0.) {
 		d = -d;
-		if (theta_e > 0.)
-			theta_e = M_PI - theta_e;
-		else
-			theta_e = -M_PI - theta_e;
+		theta_e = theta_e > 0.? M_PI - theta_e : -M_PI - theta_e;
 	}
 
 	const double k = getDirSign() > 0. ? params_.k_forward() : params_.k_backward();
@@ -137,6 +134,14 @@ RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveComma
 	const double kd_v = k * d / v;
 
 	const double phi = asin((kd_v + tan_theta_e) / (2. + 2. * kd_v * tan_theta_e));
+
+	if (phi == NAN) {
+		ROS_ERROR("Got NAN phi");
+		return RobotController::MoveCommandStatus::ERROR;
+	}
+
+	ROS_INFO("d=%f, theta_e=%f\ndir=%f, v=%f, kd_v=%f, phi=%f",
+				d, theta_e, getDirSign(), v, kd_v, phi);
 
 	move_cmd_.setDirection((float) phi);
 	move_cmd_.setVelocity(getDirSign() * (float) velocity_);
