@@ -71,7 +71,8 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 
 	ROS_INFO("======================");
 
-	Eigen::Vector3d pose = path_driver_->getRobotPose();
+	const Eigen::Vector3d pose = path_driver_->getRobotPose();
+	const geometry_msgs::Twist velocity_measured = path_driver_->getVelocity();
 
 	if (reachedGoal(pose)) {
 		path_->switchToNextSubPath();
@@ -100,7 +101,7 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 		}
 	}
 
-	double lookahead_distance = velocity_;
+	double lookahead_distance = velocity_measured.linear.x;
 	if(getDirSign() >= 0.)
 		lookahead_distance *= params_.factor_lookahead_distance_forward();
 	else
@@ -151,12 +152,14 @@ double RobotController_4WS_PurePursuit::computeAlpha(double& lookahead_distance,
 	// angle between the connection line and the vehicle orientation
 	double alpha = MathHelper::AngleDelta(pose[2], atan2(dy, dx));
 
+	// when we drive backwards, set alpha to the complementary angle
 	if (getDirSign() < 0.) {
 		if (alpha > 0.)
 			alpha = M_PI - alpha;
 		else
 			alpha = -M_PI - alpha;
 	}
+
 	// set lookahead_distance to the actual distance
 	lookahead_distance = distance;
 
