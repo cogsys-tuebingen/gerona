@@ -1,22 +1,14 @@
-/*
- * RobotcontrollerAckermannGeometrical.h
- *
- *  Created on: Apr 25, 2015
- *      Author: holly
- */
-
-#ifndef NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_CONTROLLER_ROBOTCONTROLLER_ACKERMANN_GEOMETRICAL_H_
-#define NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_CONTROLLER_ROBOTCONTROLLER_ACKERMANN_GEOMETRICAL_H_
+#ifndef ROBOTCONTROLLER_4WS_PUREPURSUIT_H
+#define ROBOTCONTROLLER_4WS_PUREPURSUIT_H
 
 #include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
 
-
-class Robotcontroller_Ackermann_PurePursuit: public RobotController_Interpolation
+class RobotController_4WS_PurePursuit: public RobotController_Interpolation
 {
 public:
-	Robotcontroller_Ackermann_PurePursuit(PathFollower* _path_follower);
-	virtual ~Robotcontroller_Ackermann_PurePursuit();
+	RobotController_4WS_PurePursuit(PathFollower* _path_follower);
+	virtual ~RobotController_4WS_PurePursuit(){}
 
 	virtual void stopMotion();
 	virtual void start();
@@ -36,16 +28,13 @@ private:
 		P<double> factor_lookahead_distance_forward;
 		P<double> factor_lookahead_distance_backward;
 		P<double> vehicle_length;
-		P<double> factor_steering_angle;
 
 		ControllerParameters() :
 			factor_lookahead_distance_forward(this, "~factor_lookahead_distance_forward", 0.8,
 														 "lookahead distance factor while driving forwards"),
 			factor_lookahead_distance_backward(this, "~factor_lookahead_distance_forward", 0.8,
 														 "lookahead distance factor while driving backwards"),
-			vehicle_length(this, "~vehicle_length", 0.34, "axis-centre distance"),
-			factor_steering_angle(this, "~factor_steering_angle", 1.0,
-										 "Set 1.0 for one axis steering, 0.5 for two axis steering")
+			vehicle_length(this, "~vehicle_length", 0.34, "axis-centre distance")
 		{}
 
 	} params_;
@@ -63,4 +52,4 @@ private:
 	MoveCommand move_cmd_;
 };
 
-#endif /* NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_CONTROLLER_ROBOTCONTROLLER_ACKERMANN_GEOMETRICAL_H_ */
+#endif // ROBOTCONTROLLER_4WS_PUREPURSUIT_H

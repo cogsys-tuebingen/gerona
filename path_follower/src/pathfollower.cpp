@@ -19,6 +19,7 @@
 #include <path_follower/legacy/robotcontroller_ackermann_purepursuit.h>
 #include <path_follower/legacy/robotcontroller_ackermann_kinematic.h>
 #include <path_follower/legacy/robotcontroller_ackermann_stanley.h>
+#include <path_follower/legacy/robotcontroller_4ws_purepursuit.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/legacy/robotcontroller_differential_orthexp.h>
 #include <path_follower/legacy/robotcontroller_kinematic_SLP.h>
@@ -86,7 +87,13 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
 		controller_ = new RobotController_Ackermann_Stanley(this);
 
-	} else if (opt_.controller() == "patsy_pid") {
+	} else if (opt_.controller() == "4ws_purepursuit") {
+	if (opt_.obstacle_avoider_use_collision_box())
+		obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+	controller_ = new RobotController_4WS_PurePursuit(this);
+
+	}
+	else if (opt_.controller() == "patsy_pid") {
 		if (opt_.obstacle_avoider_use_collision_box())
 			obstacle_avoider_ = new ObstacleDetectorPatsy(&pose_listener_);
 		controller_ = new RobotController_Ackermann_Pid(this);

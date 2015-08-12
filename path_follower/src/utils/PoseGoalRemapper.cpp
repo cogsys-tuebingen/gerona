@@ -1,7 +1,5 @@
 #include <ros/ros.h>
-//#include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
-//#include <nav_msgs/Odometry.h>
 
 geometry_msgs::PoseStamped curPose;
 ros::Publisher pub;
@@ -17,23 +15,23 @@ void goalCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 }
 
 int main(int argc, char **argv) {
-	 ros::init(argc, argv, "pose_goal_remapper");
-    
-    ros::NodeHandle n;
-    
-	 pub = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1);
-    
-	 auto s1 = n.subscribe("/slam_out_pose", 10, poseCallback);
+	ros::init(argc, argv, "pose_goal_remapper");
 
-	 auto s2 = n.subscribe("/rviz_goal", 1, goalCallback);
-    
-	 ROS_INFO("Started remapping. Waiting for goals...");
+	ros::NodeHandle n;
 
-    ros::Rate loop_rate(10);
-    while (n.ok()) {
-        ros::spinOnce();
-        loop_rate.sleep();
-    }
-    return 0;
+	pub = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1);
+
+	auto s1 = n.subscribe("/slam_out_pose", 10, poseCallback);
+
+	auto s2 = n.subscribe("/rviz_goal", 1, goalCallback);
+
+	ROS_INFO("Started remapping. Waiting for goals...");
+
+	ros::Rate loop_rate(10);
+	while (n.ok()) {
+		ros::spinOnce();
+		loop_rate.sleep();
+	}
+	return 0;
 }
 
