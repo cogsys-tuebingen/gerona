@@ -17,6 +17,10 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
+#ifdef TEST_OUTPUT
+#include <std_msgs/Float64MultiArray.h>
+#endif
+
 RobotController_4WS_PurePursuit::RobotController_4WS_PurePursuit (PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower),
 	waypoint_(0) {
@@ -29,6 +33,9 @@ RobotController_4WS_PurePursuit::RobotController_4WS_PurePursuit (PathFollower* 
 				params_.factor_lookahead_distance_forward(), params_.factor_lookahead_distance_backward(),
 				params_.vehicle_length(), params_.goal_tolerance());
 
+#ifdef TEST_OUTPUT
+	test_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/test_output", 100);
+#endif
 }
 
 void RobotController_4WS_PurePursuit::reset() {
@@ -110,14 +117,50 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 	// angle between vehicle theta and the connection between the rear axis and the look ahead point
 	const double alpha = computeAlpha(lookahead_distance, pose);
 
-	const double delta = asin(params_.vehicle_length() * sin(alpha) / lookahead_distance);
+	const double phi = asin(params_.vehicle_length() * sin(alpha) / lookahead_distance);
 
-	move_cmd_.setDirection((float) delta);
+	if (phi == NAN) {
+		ROS_ERROR("Got NAN phi");
+		return RobotController::MoveCommandStatus::ERROR;
+	}
+
+	move_cmd_.setDirection((float) phi);
 	move_cmd_.setVelocity(getDirSign() * (float) velocity_);
 
-	ROS_INFO("Command: vel=%f, angle=%f", velocity_, delta);
+	ROS_INFO("Command: vel=%f, angle=%f", velocity_, phi);
 
 	*cmd = move_cmd_;
+
+#ifdef TEST_OUTPUT
+	double min_dist = std::numeric_limits<double>::max();
+	unsigned int ind = 0;
+	for (unsigned int i = 0; i < path_interpol.n(); ++i) {
+		const double dx = path_interpol.p(i) - pose[0];
+		const double dy = path_interpol.q(i) - pose[1];
+
+		const double dist = hypot(dx, dy);
+		if (dist < min_dist) {
+			min_dist = dist;
+			ind = i;
+		}
+	}
+
+	Eigen::Vector2d path_vehicle(pose[0] - path_interpol.p(ind), pose[1] - path_interpol.q(ind));
+	double d =
+			MathHelper::AngleDelta(MathHelper::Angle(path_vehicle), path_interpol.theta_p(ind)) < 0. ?
+				-min_dist : min_dist;
+
+	double theta_e = MathHelper::AngleDelta(pose[2], path_interpol.theta_p(ind));
+
+	if (getDirSign() < 0.) {
+		d = -d;
+		theta_e = theta_e > 0.? M_PI - theta_e : -M_PI - theta_e;
+	}
+
+	const double v = velocity_measured.linear.x;
+
+	publishTestOutput(ind, d, theta_e, phi, v);
+#endif
 
 	return RobotController::MoveCommandStatus::OKAY;
 }
@@ -174,3 +217,19 @@ double RobotController_4WS_PurePursuit::computeAlpha(double& lookahead_distance,
 
 	return alpha;
 }
+
+#ifdef TEST_OUTPUT
+void RobotController_4WS_PurePursuit::publishTestOutput(const unsigned int waypoint, const double d,
+																	 const double theta_e,
+																	 const double phi, const double v) const {
+	std_msgs::Float64MultiArray msg;
+
+	msg.data.push_back((double) waypoint);
+	msg.data.push_back(d);
+	msg.data.push_back(theta_e);
+	msg.data.push_back(phi);
+	msg.data.push_back(v);
+
+	test_pub_.publish(msg);
+}
+#endif

@@ -4,6 +4,12 @@
 #include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
 
+
+#define TEST_OUTPUT
+
+#ifdef TEST_OUTPUT
+#include <ros/ros.h>
+#endif
 class RobotController_4WS_Stanley : public RobotController_Interpolation
 {
 public:
@@ -41,6 +47,12 @@ private:
 
 	//! The MoveCommand that is beeing published
 	MoveCommand move_cmd_;
+
+#ifdef TEST_OUTPUT
+	ros::Publisher test_pub_;
+	void publishTestOutput(const unsigned int waypoint, const double d, const double theta_e,
+								  const double phi, const double v) const;
+#endif
 };
 
 #endif // ROBOTCONTROLLER_4WS_STANLEY_H

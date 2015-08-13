@@ -15,6 +15,11 @@
 #include <limits>
 #include <boost/algorithm/clamp.hpp>
 
+
+#ifdef TEST_OUTPUT
+#include <std_msgs/Float64MultiArray.h>
+#endif
+
 RobotController_4WS_Stanley::RobotController_4WS_Stanley(PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower) {
 
@@ -24,6 +29,10 @@ RobotController_4WS_Stanley::RobotController_4WS_Stanley(PathFollower* _path_fol
 				params_.k_forward(), params_.k_backward(),
 				params_.vehicle_length(),
 				params_.goal_tolerance());
+
+#ifdef TEST_OUTPUT
+	test_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/test_output", 100);
+#endif
 
 }
 
@@ -143,6 +152,10 @@ RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveComma
 	ROS_INFO("d=%f, theta_e=%f\ndir=%f, v=%f, kd_v=%f, phi=%f",
 				d, theta_e, getDirSign(), v, kd_v, phi);
 
+#ifdef TEST_OUTPUT
+	publishTestOutput(ind, d, theta_e, phi, v);
+#endif
+
 	move_cmd_.setDirection((float) phi);
 	move_cmd_.setVelocity(getDirSign() * (float) velocity_);
 
@@ -161,3 +174,19 @@ void RobotController_4WS_Stanley::publishMoveCommand(
 
 	cmd_pub_.publish(msg);
 }
+
+#ifdef TEST_OUTPUT
+void RobotController_4WS_Stanley::publishTestOutput(const unsigned int waypoint, const double d,
+																	 const double theta_e,
+																	 const double phi, const double v) const {
+	std_msgs::Float64MultiArray msg;
+
+	msg.data.push_back((double) waypoint);
+	msg.data.push_back(d);
+	msg.data.push_back(theta_e);
+	msg.data.push_back(phi);
+	msg.data.push_back(v);
+
+	test_pub_.publish(msg);
+}
+#endif
