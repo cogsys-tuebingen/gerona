@@ -108,16 +108,16 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 		}
 	}
 
-	double lookahead_distance = velocity_measured.linear.x;
-	if(getDirSign() >= 0.)
-		lookahead_distance *= params_.factor_lookahead_distance_forward();
-	else
-		lookahead_distance *= params_.factor_lookahead_distance_backward();
+
+	const double v = velocity_measured.linear.x;
+	double l_ah = v * (getDirSign() > 0.? params_.factor_lookahead_distance_forward() :
+															  params_.factor_lookahead_distance_backward());
+	l_ah = max(l_ah, 0.25);
 
 	// angle between vehicle theta and the connection between the rear axis and the look ahead point
-	const double alpha = computeAlpha(lookahead_distance, pose);
+	const double alpha = computeAlpha(l_ah, pose);
 
-	const double phi = asin(params_.vehicle_length() * sin(alpha) / lookahead_distance);
+	const double phi = asin(params_.vehicle_length() * sin(alpha) / l_ah);
 
 	if (phi == NAN) {
 		ROS_ERROR("Got NAN phi");
@@ -157,8 +157,6 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 		theta_e = theta_e > 0.? M_PI - theta_e : -M_PI - theta_e;
 	}
 
-	const double v = velocity_measured.linear.x;
-
 	publishTestOutput(ind, d, theta_e, phi, v);
 #endif
 
@@ -176,8 +174,7 @@ void RobotController_4WS_PurePursuit::publishMoveCommand(
 	cmd_pub_.publish(msg);
 }
 
-double RobotController_4WS_PurePursuit::computeAlpha(double& lookahead_distance,
-																			  const Eigen::Vector3d& pose) {
+double RobotController_4WS_PurePursuit::computeAlpha(double& l_ah, const Eigen::Vector3d& pose) {
 
 	// TODO: correct angle, when the goal is near
 
@@ -188,7 +185,7 @@ double RobotController_4WS_PurePursuit::computeAlpha(double& lookahead_distance,
 
 		distance = hypot(dx, dy);
 		waypoint_ = i;
-		if (distance >= lookahead_distance)
+		if (distance >= l_ah)
 			break;
 	}
 
@@ -200,7 +197,7 @@ double RobotController_4WS_PurePursuit::computeAlpha(double& lookahead_distance,
 		alpha = alpha > 0.? M_PI - alpha : -M_PI - alpha;
 
 	// set lookahead_distance to the actual distance
-	lookahead_distance = distance;
+	l_ah = distance;
 
 	// line to lookahead point
 	geometry_msgs::Point from, to;
@@ -208,9 +205,10 @@ double RobotController_4WS_PurePursuit::computeAlpha(double& lookahead_distance,
 	to.x = path_interpol.p(waypoint_); to.y = path_interpol.q(waypoint_);
 	visualizer_->drawLine(12341234, from, to, "map", "geo", 1, 0, 0, 1, 0.01);
 
+#define DEBUG
 #ifdef DEBUG
-	ROS_INFO("LookAheadPoint: index=%i, x=%f, y=%f", waypoint_, path_interpol.p(waypoint_)
-				, path_interpol.q(waypoint_));
+	ROS_INFO("LookAheadPoint: index=%i, x=%f, y=%f, l_ah=%f", waypoint_, path_interpol.p(waypoint_)
+				, path_interpol.q(waypoint_), l_ah);
 	ROS_INFO("Pose: x=%f, y=%f, theta=%f", pose[0], pose[1], pose[2]);
 	ROS_INFO("Alpha=%f, dir_sign=%f", alpha, dir_sign_);
 #endif
