@@ -223,6 +223,13 @@ target_link_libraries(pose_goal_remapper
   ${catkin_LIBRARIES}
 )
 
+add_executable(test_output_2_csv
+  src/utils/test_output_2_csv.cpp
+)
+
+target_link_libraries(test_output_2_csv
+  ${catkin_LIBRARIES}
+)
 #############
 ## Install ##
 #############
