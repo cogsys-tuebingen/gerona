@@ -112,7 +112,7 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 	const double v = velocity_measured.linear.x;
 	double l_ah = v * (getDirSign() > 0.? params_.factor_lookahead_distance_forward() :
 															  params_.factor_lookahead_distance_backward());
-	l_ah = max(l_ah, 0.25);
+	l_ah = max(l_ah, 0.4);
 
 	// angle between vehicle theta and the connection between the rear axis and the look ahead point
 	const double alpha = computeAlpha(l_ah, pose);

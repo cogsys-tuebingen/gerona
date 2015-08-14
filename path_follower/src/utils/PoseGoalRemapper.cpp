@@ -4,7 +4,7 @@
 geometry_msgs::PoseStamped curPose;
 ros::Publisher pub;
 
-void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
+void callback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 	curPose = *msg;
 }
 
@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
 
 	pub = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1);
 
-	auto s1 = n.subscribe("/slam_out_pose", 10, poseCallback);
+	auto s1 = n.subscribe("/slam_out_pose", 10, callback);
 
 	auto s2 = n.subscribe("/rviz_goal", 1, goalCallback);
 
