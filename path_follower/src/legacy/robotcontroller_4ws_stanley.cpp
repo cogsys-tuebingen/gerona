@@ -137,27 +137,29 @@ RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveComma
 	}
 
 	const double k = getDirSign() > 0. ? params_.k_forward() : params_.k_backward();
-	const double v = max(abs(velocity_measured.linear.x), 0.2);
+	const double v = max(abs(velocity_measured.linear.x), 0.3);
 
 	const double tan_theta_e = tan(theta_e);
 	const double kd_v = k * d / v;
 
-	const double phi = asin((kd_v + tan_theta_e) / (2. + 2. * kd_v * tan_theta_e));
+	double phi = asin((kd_v + tan_theta_e) / (2. + 2. * kd_v * tan_theta_e));
 
 	if (phi == NAN) {
-		ROS_ERROR("Got NAN phi");
-		return RobotController::MoveCommandStatus::ERROR;
+		phi = 0.;
+//		ROS_ERROR("Got NAN phi");
+//		return RobotController::MoveCommandStatus::ERROR;
 	}
 
 	ROS_INFO("d=%f, theta_e=%f\ndir=%f, v=%f, kd_v=%f, phi=%f",
 				d, theta_e, getDirSign(), v, kd_v, phi);
 
-#ifdef TEST_OUTPUT
-	publishTestOutput(ind, d, theta_e, phi, v);
-#endif
 
 	move_cmd_.setDirection((float) phi);
 	move_cmd_.setVelocity(getDirSign() * (float) velocity_);
+
+#ifdef TEST_OUTPUT
+	publishTestOutput(ind, d, theta_e, phi, v);
+#endif
 
 	*cmd = move_cmd_;
 
