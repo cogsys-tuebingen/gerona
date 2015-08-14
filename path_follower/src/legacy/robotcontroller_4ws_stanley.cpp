@@ -12,6 +12,8 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
+#include <boost/algorithm/clamp.hpp>
+
 #include <limits>
 #include <boost/algorithm/clamp.hpp>
 
@@ -149,6 +151,8 @@ RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveComma
 //		ROS_ERROR("Got NAN phi");
 //		return RobotController::MoveCommandStatus::ERROR;
 	}
+
+	phi = boost::algorithm::clamp(phi, -params_.max_steering_angle(), params_.max_steering_angle());
 
 	ROS_INFO("d=%f, theta_e=%f\ndir=%f, v=%f, kd_v=%f, phi=%f",
 				d, theta_e, getDirSign(), v, kd_v, phi);
