@@ -8,12 +8,12 @@ path_control using the action interface. It is thus good for testing and
 demonstrating the navigation framework.
 -->
 <launch>
-    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER ackermann_stanley)" />
+    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER 4ws_stanley)" />
 
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
-    <arg name="use_planner_static" default="false" />
-    <arg name="use_planner_default" default="true" />
+    <arg name="use_planner_static" default="true" />
+    <arg name="use_planner_default" default="false" />
     
     <arg name="use_karto" default="false" />
     <arg name="use_karto_segmented" default="false" />
