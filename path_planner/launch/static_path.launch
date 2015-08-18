@@ -19,7 +19,7 @@
 		<!-- circles -->
 		<!--rosparam param="segments">[[-4.71238898038, 1.0], [4.71238898038, 1.0]]</rosparam-->
 
-		<!-- line change -->
+		<!-- lane change -->
 		<rosparam param="segments">[[2.5], [1.0471975512, 1.0], [-1.0471975512, 1.0], [2.5]]</rosparam>
 
 		<!-- left-right-left -->

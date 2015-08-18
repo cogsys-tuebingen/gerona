@@ -14,7 +14,7 @@ void callback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
 	std::vector<double> data = msg->data;
 	unsigned int waypoint = (unsigned int) data[0];
 
-	if (waypoint <= waypoint_counter)
+	if (waypoint == waypoint_counter)
 		return;
 
 	waypoint_counter = waypoint;

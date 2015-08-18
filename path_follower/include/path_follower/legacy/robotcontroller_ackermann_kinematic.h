@@ -57,6 +57,7 @@ private:
 	}
 
 	void reset();
+	void setPath(Path::Ptr path);
 
 	//! Sets the tuning parameters k1, k2, k3 according to k
 	void setTuningParameters(const double k);
@@ -67,19 +68,20 @@ private:
 	//! Tuning parameters
 	double k1_, k2_, k3_;
 	//! Last waypoint index
-	unsigned int old_waypoint_;
+//	unsigned int old_waypoint_;
+	unsigned int ind_;
 	//! Current steering angle
 	double phi_;
 	//! v1 longitudinal velocity, v2 (steering angle speed)
 	double v1_, v2_;
 	//! ds/dt (path velocity of the last frame)
-	double s_prim_;
+	double /*s_,*/ s_prim_;
 	//! Last and before last steering angle
-	double old_phi_, old_old_phi_;
-	//! Last values of d and theta_e, used to compute derivations
-	double old_d_, old_theta_e_;
-	//! Derivations of d, theta_e, phi_prim, are only updated every few frames
-	double d_prim_, theta_e_prim_, phi_prim_;
+//	double old_phi_, old_old_phi_;
+//	//! Last values of d and theta_e, used to compute derivations
+//	double old_d_, old_theta_e_;
+//	//! Derivations of d, theta_e, phi_prim, are only updated every few frames
+//	double d_prim_, theta_e_prim_, phi_prim_;
 	//! The time of the last update (to compute the time that has passed since then)
 	ros::Time old_time_;
 };
