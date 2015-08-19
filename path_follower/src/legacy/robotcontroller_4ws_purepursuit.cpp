@@ -114,10 +114,11 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 															  params_.factor_lookahead_distance_backward());
 	l_ah = max(l_ah, 0.4);
 
-	// angle between vehicle theta and the connection between the rear axis and the look ahead point
+	// angle between vehicle theta and the connection between the reference point and the look ahead point
 	const double alpha = computeAlpha(l_ah, pose);
 
-	const double phi = asin(params_.vehicle_length() * sin(alpha) / l_ah);
+//	const double phi = asin(params_.vehicle_length() * sin(alpha) / l_ah);
+	const double phi = atan2(params_.vehicle_length() * sin(alpha), l_ah);
 
 	if (phi == NAN) {
 		ROS_ERROR("Got NAN phi");

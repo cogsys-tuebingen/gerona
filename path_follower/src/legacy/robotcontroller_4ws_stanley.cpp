@@ -67,7 +67,7 @@ void RobotController_4WS_Stanley::setPath(Path::Ptr path) {
 RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveCommand(
 		MoveCommand* cmd) {
 
-	ROS_INFO("===============================");
+//	ROS_INFO("===============================");
 
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
@@ -141,21 +141,20 @@ RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveComma
 	const double k = getDirSign() > 0. ? params_.k_forward() : params_.k_backward();
 	const double v = max(abs(velocity_measured.linear.x), 0.3);
 
-	const double tan_theta_e = tan(theta_e);
-	const double kd_v = k * d / v;
+//	const double tan_theta_e = tan(theta_e);
+//	const double kd_v = k * d / v;
 
-	double phi = asin((kd_v + tan_theta_e) / (2. + 2. * kd_v * tan_theta_e));
+//	double phi = asin((kd_v + tan_theta_e) / (2. + 2. * kd_v * tan_theta_e));
+	double phi = asin(sin(theta_e + atan2(k * d, v)) / 2.);
 
-	if (phi == NAN) {
+
+	if (phi == NAN)
 		phi = 0.;
-//		ROS_ERROR("Got NAN phi");
-//		return RobotController::MoveCommandStatus::ERROR;
-	}
 
 	phi = boost::algorithm::clamp(phi, -params_.max_steering_angle(), params_.max_steering_angle());
 
-	ROS_INFO("d=%f, theta_e=%f\ndir=%f, v=%f, kd_v=%f, phi=%f",
-				d, theta_e, getDirSign(), v, kd_v, phi);
+//	ROS_INFO("d=%f, theta_e=%f\ndir=%f, v=%f, kd_v=%f, phi=%f",
+//				d, theta_e, getDirSign(), v, kd_v, phi);
 
 
 	move_cmd_.setDirection((float) phi);
