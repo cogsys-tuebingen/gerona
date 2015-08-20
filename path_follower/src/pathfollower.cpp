@@ -21,6 +21,7 @@
 #include <path_follower/legacy/robotcontroller_ackermann_stanley.h>
 #include <path_follower/legacy/robotcontroller_4ws_purepursuit.h>
 #include <path_follower/legacy/robotcontroller_4ws_stanley.h>
+#include <path_follower/legacy/robotcontroller_4ws_inputscaling.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/legacy/robotcontroller_differential_orthexp.h>
 #include <path_follower/legacy/robotcontroller_kinematic_SLP.h>
@@ -97,6 +98,11 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 		if (opt_.obstacle_avoider_use_collision_box())
 			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
 		controller_ = new RobotController_4WS_Stanley(this);
+
+	} else if (opt_.controller() == "4ws_inputscaling") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		controller_ = new RobotController_4WS_InputScaling(this);
 
 	}
 	else if (opt_.controller() == "patsy_pid") {
