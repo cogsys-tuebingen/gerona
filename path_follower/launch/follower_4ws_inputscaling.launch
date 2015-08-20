@@ -4,7 +4,7 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
 -->
 <launch>
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
-	 <param name="controller" value="ackermann_kinematic" />
+	 <param name="controller" value="4ws_inputscaling" />
 
     <!-- supervisors -->
     <param name="use_obstacle_map" value="false" />

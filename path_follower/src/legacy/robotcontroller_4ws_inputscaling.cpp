@@ -104,8 +104,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	const Eigen::Vector3d pose = path_driver_->getRobotPose();
 	const geometry_msgs::Twist velocity_measured = path_driver_->getVelocity();
 
-	ROS_DEBUG("velocity_measured: x=%f, y=%f, z=%f", velocity_measured.linear.x,
-				velocity_measured.linear.y, velocity_measured.linear.z);
+	ROS_DEBUG("velocity_measured=%f", velocity_measured.linear.x);
 
 	// goal test
 	if (reachedGoal(pose)) {
@@ -206,7 +205,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	old_time_ = ros::Time::now();
 
 	// absolute measured velocity
-	v1_ = abs(velocity_measured.linear.x);
+	v1_ = max(abs(velocity_measured.linear.x), 0.2);
 
 	s_prim_ = cos_theta_e / _1_dc;
 
@@ -300,11 +299,11 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	ROS_DEBUG("1 - dc(s)=%f", _1_dc);
 	ROS_DEBUG("dx2dd=%f, dx2dthetaP=%f, dx2ds=%f", dx2_dd, dx2_dtheta_p, dx2_ds);
 	ROS_DEBUG("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);
-	ROS_DEBUG("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
+	ROS_INFO("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
 				 time_passed, v1_, v2_, phi_);
 
 	// This is the accurate steering angle for 4 wheel steering
-	const float delta = (float) asin(.5 * tan_phi);
+	const float delta = (float) phi_;//(float) asin(.5 * tan_phi);
 
 	move_cmd_.setDirection(delta);
 	move_cmd_.setVelocity(getDirSign() * (float) v1_);
