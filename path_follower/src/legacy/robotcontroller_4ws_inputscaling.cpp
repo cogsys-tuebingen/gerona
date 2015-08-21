@@ -34,11 +34,13 @@ RobotController_4WS_InputScaling::RobotController_4WS_InputScaling(PathFollower*
 	ROS_INFO("Parameters: k_forward=%f, k_backward=%f\n"
 				"factor_k1=%f, k2=%f, k3=%f\n"
 				"vehicle_length=%f\n"
-				"goal_tolerance=%f\nmax_steering_angle=%f",
+				"goal_tolerance=%f\nmax_steering_angle=%f\n"
+				"factor_velocity=%f",
 				params_.k_forward(), params_.k_backward(),
 				params_.factor_k1(), params_.factor_k2(), params_.factor_k3(),
 				params_.vehicle_length(),
-				params_.goal_tolerance(), params_.max_steering_angle());
+				params_.goal_tolerance(), params_.max_steering_angle(),
+				params_.factor_velocity());
 
 #ifdef TEST_OUTPUT
 	test_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/test_output", 100);
@@ -205,7 +207,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	old_time_ = ros::Time::now();
 
 	// absolute measured velocity
-	v1_ = max(abs(velocity_measured.linear.x), (double) velocity_);
+	v1_ = max(params_.factor_velocity() * abs(velocity_measured.linear.x), (double) velocity_);
 
 	s_prim_ = cos_theta_e / _1_dc;
 

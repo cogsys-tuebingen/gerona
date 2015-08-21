@@ -36,6 +36,7 @@ private:
 		P<double> factor_k3;
 		P<double> max_steering_angle;
 		P<double> max_steering_angle_speed;
+		P<double> factor_velocity;
 
 		ControllerParameters() :
 			vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance"),
@@ -45,7 +46,8 @@ private:
 			factor_k2(this, "~factor_k2", 3.0, "Factor for k2"),
 			factor_k3(this, "~factor_k3", 3.0, "Factor for k3"),
 			max_steering_angle(this, "~max_steering_angle", M_PI / 3, "Maximum steering angle"),
-			max_steering_angle_speed(this, "~max_steering_angle_speed", 1.7, "Maximum steering angle speed")
+			max_steering_angle_speed(this, "~max_steering_angle_speed", 1.7, "Maximum steering angle speed"),
+			factor_velocity(this, "~factor_velocity", 5.0, "Factor that will be multiplied with the measured velocity")
 		{}
 
 	} params_;
