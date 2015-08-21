@@ -303,7 +303,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 				 time_passed, v1_, v2_, phi_);
 
 	// This is the accurate steering angle for 4 wheel steering
-	const float delta = (float) phi_;//asin(.5 * tan_phi);
+	const float delta = (float) asin(.5 * tan_phi);
 
 	move_cmd_.setDirection(delta);
 	move_cmd_.setVelocity(getDirSign() * (float) v1_);
