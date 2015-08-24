@@ -34,17 +34,11 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
 	 <param name="goal_tolerance" value="0.3" />
     
     <!-- parameters, that are dependent of the controller or the robot model -->
+	 <param name="vehicle_length" value="0.34" />
 	 <param name="k_forward" value="4.5" />
 	 <param name="k_backward" value="7.0" />
-	 <param name="factor_k1" value="1.0" />
-	 <param name="factor_k2" value="3.0" />
-	 <param name="factor_k3" value="3.0" />
-
-
-	 <param name="vehicle_length" value="0.34" />
-	 <param name="max_steering_angle" value="1.047197551" /> <!-- 30° = 0.52359877559 -->
-	 <param name="max_steering_angle_speed" value="2.0" />
-	 <param name="factor_velocity" value="5.0" />
+	 <param name="max_steering_angle" value="1.047197551" /> <!-- 60°, 30° = 0.52359877559 -->
+	 <param name="max_steering_angle_speed" value="1.8" />
 
     <remap from="scan" to="scan/filtered" />
     <remap from="/obstacles" to="/obstacle_cloud" />

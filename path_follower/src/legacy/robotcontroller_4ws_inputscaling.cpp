@@ -32,15 +32,13 @@ RobotController_4WS_InputScaling::RobotController_4WS_InputScaling(PathFollower*
 	setTuningParameters(k);
 
 	ROS_INFO("Parameters: k_forward=%f, k_backward=%f\n"
-				"factor_k1=%f, k2=%f, k3=%f\n"
 				"vehicle_length=%f\n"
-				"goal_tolerance=%f\nmax_steering_angle=%f\n"
-				"factor_velocity=%f",
+				"goal_tolerance=%f\n"
+				"max_steering_angle=%f\nmax_steering_angle_speed=%f",
 				params_.k_forward(), params_.k_backward(),
-				params_.factor_k1(), params_.factor_k2(), params_.factor_k3(),
 				params_.vehicle_length(),
-				params_.goal_tolerance(), params_.max_steering_angle(),
-				params_.factor_velocity());
+				params_.goal_tolerance(),
+				params_.max_steering_angle(), params_.max_steering_angle_speed());
 
 #ifdef TEST_OUTPUT
 	test_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/test_output", 100);
@@ -48,9 +46,9 @@ RobotController_4WS_InputScaling::RobotController_4WS_InputScaling(PathFollower*
 }
 
 void RobotController_4WS_InputScaling::setTuningParameters(const double k) {
-	k1_ = params_.factor_k1() * k * k * k;
-	k2_ = params_.factor_k2() * k * k;
-	k3_ = params_.factor_k3() * k;
+	k1_ = 1. * k * k * k;
+	k2_ = 3. * k * k;
+	k3_ = 3. * k;
 }
 
 void RobotController_4WS_InputScaling::stopMotion() {
@@ -253,8 +251,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 			+ dx2_dtheta_e * (2. * sin_phi * _1_dc / (params_.vehicle_length() * cos_theta_e) - c); // OK
 
 	// alpha2
-	const double alpha2 =
-			params_.vehicle_length() * cos_theta_e_3 * pow(cos(phi_), 2) / _1_dc_2; // OK
+	const double alpha2 = params_.vehicle_length() * cos_theta_e_3 / (2. * _1_dc_2 * cos(phi_)); // OK
 
 
 
@@ -262,7 +259,8 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	v2_ = alpha2 * (u2 - alpha1 * u1);
 
 	// limit steering angle velocity
-	v2_ = boost::algorithm::clamp(v2_, -params_.max_steering_angle_speed(), params_.max_steering_angle_speed());
+	v2_ = boost::algorithm::clamp(v2_, -params_.max_steering_angle_speed(),
+											params_.max_steering_angle_speed());
 
 	// update delta according to the time that has passed since the last update
 	phi_ += v2_ * time_passed;
