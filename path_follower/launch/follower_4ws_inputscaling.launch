@@ -43,7 +43,7 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
 
 	 <param name="vehicle_length" value="0.34" />
 	 <param name="max_steering_angle" value="1.047197551" /> <!-- 30° = 0.52359877559 -->
-	 <param name="max_steering_angle_speed" value="100.0" />
+	 <param name="max_steering_angle_speed" value="2.0" />
 	 <param name="factor_velocity" value="5.0" />
 
     <remap from="scan" to="scan/filtered" />
