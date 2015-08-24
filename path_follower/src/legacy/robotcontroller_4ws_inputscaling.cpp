@@ -72,7 +72,6 @@ void RobotController_4WS_InputScaling::reset() {
 	old_time_ = ros::Time::now();
 
 	v1_ = v2_ = 0.;
-//	s_prim_ = 0.001; // TODO: good starting value
 
 	RobotController_Interpolation::reset();
 }
@@ -209,18 +208,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	old_time_ = ros::Time::now();
 
 	// absolute measured velocity
-	v1_ = velocity_;//max((params_.factor_velocity() * abs(velocity_measured.linear.x)), ((double) velocity_));
-
-//	s_prim_ = cos_theta_e / _1_dc;
-
-	// d', theta_e' and phi'
-//	const double dd_ds = sin_theta_e * v1_ / s_prim_;
-//	const double dtheta_e_ds = ((tan_phi / params_.vehicle_length() - c * cos_theta_e / _1_dc) * v1_)
-//			/ s_prim_;
-//	const double dphi_ds = v2_ / s_prim_;
-
-//	ROS_DEBUG("s_prim=%f, delta_s=%f", s_prim_, s_prim_ * time_passed);
-//	ROS_DEBUG("d'=%f, theta_e'=%f, phi'=%f", dd_ds, dtheta_e_ds, dphi_ds);
+	v1_ = max(abs(velocity_measured.linear.x), 0.2);
 
 	//
 	// actual controller formulas begin here
@@ -285,7 +273,6 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	phi_ = boost::algorithm::clamp(phi_, -params_.max_steering_angle(), params_.max_steering_angle());
 
 	ROS_DEBUG("d=%f, theta_e=%f, c=%f, c'=%f, c''=%f", d, theta_e, c, dc_ds, dc_ds_2);
-//	ROS_DEBUG("d'=%f, theta_e'=%f", dd_ds, dtheta_e_ds);
 	ROS_DEBUG("1 - dc(s)=%f", _1_dc);
 	ROS_DEBUG("dx2dd=%f, dx2dtheta_e=%f, dx2ds=%f", dx2_dd, dx2_dtheta_e, dx2_ds);
 	ROS_DEBUG("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);

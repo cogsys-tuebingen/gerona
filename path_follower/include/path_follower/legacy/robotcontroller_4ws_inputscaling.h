@@ -78,8 +78,6 @@ private:
 	double phi_;
 	//! v1 longitudinal velocity, v2 (steering angle speed)
 	double v1_, v2_;
-	//! ds/dt (path velocity of the last frame)
-//	double s_prim_;
 	//! The time of the last update (to compute the time that has passed since then)
 	ros::Time old_time_;
 };
