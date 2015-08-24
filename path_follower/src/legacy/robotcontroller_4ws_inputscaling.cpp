@@ -207,9 +207,6 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	const double time_passed = (ros::Time::now() - old_time_).toSec();
 	old_time_ = ros::Time::now();
 
-	// absolute measured velocity
-	v1_ = max(abs(velocity_measured.linear.x), 0.2);
-
 	//
 	// actual controller formulas begin here
 	//
@@ -222,6 +219,9 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 
 	const double x3 = _1_dc * tan_theta_e; // OK
 	const double x4 = d; // OK
+
+	// longitudinal velocity
+	v1_ = velocity_;
 
 	// u1, u2
 	// u1 is taken from "Feedback control for a path following robotic car" by Mellodge,
@@ -257,8 +257,6 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 			params_.vehicle_length() * cos_theta_e_3 * pow(cos(phi_), 2) / _1_dc_2; // OK
 
 
-	// longitudinal velocity
-	v1_ = velocity_; // u1 * _1_dc / cos_theta_e; // TODO: does this work?
 
 	// steering angle velocity
 	v2_ = alpha2 * (u2 - alpha1 * u1);
