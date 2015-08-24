@@ -181,7 +181,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	// curvature and first two derivations
 	const double c = path_interpol.curvature(ind);
 	const double dc_ds = path_interpol.curvature_prim(ind);
-	const double c_sek = path_interpol.curvature_sek(ind);
+	const double dc_ds_2 = path_interpol.curvature_sek(ind);
 
 	// 1 - dc(s)
 	const double _1_dc = 1. - d * c;
@@ -199,23 +199,25 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	const double tan_theta_e = tan(theta_e);
 	const double tan_theta_e_2 = tan_theta_e * tan_theta_e;
 
-	const double tan_phi = tan(phi_);
-	const double tan_phi_2 = tan_phi * tan_phi;
+	const double sin_phi = sin(phi_);
+
+//	const double tan_phi = tan(phi_);
+//	const double tan_phi_2 = tan_phi * tan_phi;
 
 	// time
 	const double time_passed = (ros::Time::now() - old_time_).toSec();
 	old_time_ = ros::Time::now();
 
 	// absolute measured velocity
-	v1_ = max(params_.factor_velocity() * abs(velocity_measured.linear.x), (double) velocity_);
+	v1_ = velocity_;//max((params_.factor_velocity() * abs(velocity_measured.linear.x)), ((double) velocity_));
 
-	s_prim_ = cos_theta_e / _1_dc;
+//	s_prim_ = cos_theta_e / _1_dc;
 
 	// d', theta_e' and phi'
-	const double dd_ds = sin_theta_e * v1_ / s_prim_;
-	const double dtheta_e_ds = ((tan_phi / params_.vehicle_length() - c * cos_theta_e / _1_dc) * v1_)
-			/ s_prim_;
-	const double dphi_ds = v2_ / s_prim_;
+//	const double dd_ds = sin_theta_e * v1_ / s_prim_;
+//	const double dtheta_e_ds = ((tan_phi / params_.vehicle_length() - c * cos_theta_e / _1_dc) * v1_)
+//			/ s_prim_;
+//	const double dphi_ds = v2_ / s_prim_;
 
 	ROS_DEBUG("s_prim=%f, delta_s=%f", s_prim_, s_prim_ * time_passed);
 	ROS_DEBUG("d'=%f, theta_e'=%f, phi'=%f", dd_ds, dtheta_e_ds, dphi_ds);
@@ -228,10 +230,10 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	//	const double x1 = s;
 	const double x2 = -dc_ds * d * tan_theta_e
 			- c * _1_dc * (1. + sin_theta_e_2) / cos_theta_e_2
-			+ _1_dc_2 * tan_phi / (params_.vehicle_length() * cos_theta_e_3);
+			+ 2. * _1_dc_2 * sin_phi / (params_.vehicle_length() * cos_theta_e_3); // OK
 
-	const double x3 = _1_dc * tan_theta_e;
-	const double x4 = d;
+	const double x3 = _1_dc * tan_theta_e; // OK
+	const double x4 = d; // OK
 
 	// u1, u2
 	// u1 is taken from "Feedback control for a path following robotic car" by Mellodge,
@@ -245,40 +247,26 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	// derivations of x2 (for alpha1)
 	const double dx2_dd = -dc_ds * tan_theta_e
 			+ c * c * (1. + sin_theta_e_2) / cos_theta_e_2
-			- 2. * _1_dc * c * tan_phi / (params_.vehicle_length() * cos_theta_e_3); // OK
+			- 4. * _1_dc * c * sin_phi / (params_.vehicle_length() * cos_theta_e_3); // OK
 
 	const double dx2_dtheta_e = -dc_ds * d * (1. + tan_theta_e_2)
 			- 4. * c * _1_dc * tan_theta_e / cos_theta_e_2
-			+ 3. * _1_dc_2 * tan_phi * tan_theta_e / (params_.vehicle_length()
+			+ 6. * _1_dc_2 * sin_phi * tan_theta_e / (params_.vehicle_length()
 																				 * cos_theta_e_3); // OK
-//	const double dx2_ds =
-//			-tan_theta_e * (c_sek * d + dc_ds * dd_ds)
-//			- dc_ds * d * dtheta_e_ds * (1. + tan_theta_e_2)
-//			- (dc_ds * _1_dc - c * (dd_ds * c + d * dc_ds)) * ((1. + sin_theta_e_2) / cos_theta_e_2)
-//			- 4. * c * _1_dc * dtheta_e_ds * tan_theta_e / cos_theta_e_2
-//			+ (_1_dc * tan_phi / params_.vehicle_length())
-//			* (-2. * (dd_ds * c + d * dc_ds) * cos_theta_e
-//				+ 3. * dtheta_e_ds * _1_dc * sin_theta_e) / pow(cos_theta_e_2, 2); // OK
-
 	const double dx2_ds =
-			-tan_theta_e * (c_sek * d + dc_ds * dd_ds)
-			- dc_ds * d * dtheta_e_ds * (1. + tan_theta_e_2)
-			- (dc_ds * _1_dc - c * (dd_ds * c + d * dc_ds)) * ((1. + sin_theta_e_2) / cos_theta_e_2)
-			- 4. * c * _1_dc * dtheta_e_ds * tan_theta_e / cos_theta_e_2
-			+ (cos_theta_e * _1_dc * (-2. * (dd_ds * c + d * dc_ds) * tan_phi
-											  +_1_dc * (1. + tan_phi_2) * dphi_ds)
-				- 3. * dtheta_e_ds * sin_theta_e * _1_dc_2 * tan_phi)
-			/ (params_.vehicle_length() * pow(cos_theta_e_2, 2)); // OK
+			- dc_ds_2 * d * tan_theta_e
+			- (dc_ds * _1_dc - d * dc_ds * c) * (1. + sin_theta_e_2) / cos_theta_e_2
+			- 4. * _1_dc * dc_ds * d * sin_phi / (params_.vehicle_length() * cos_theta_e_3); // OK
 
 	// alpha1
 	const double alpha1 =
 			dx2_ds
 			+ dx2_dd * _1_dc * tan_theta_e
-			+ dx2_dtheta_e * (tan_phi * _1_dc / (params_.vehicle_length() * cos_theta_e) - c);
+			+ dx2_dtheta_e * (2. * sin_phi * _1_dc / (params_.vehicle_length() * cos_theta_e) - c); // OK
 
 	// alpha2
 	const double alpha2 =
-			params_.vehicle_length() * cos_theta_e_3 * pow(cos(phi_), 2) / _1_dc_2;
+			params_.vehicle_length() * cos_theta_e_3 * pow(cos(phi_), 2) / _1_dc_2; // OK
 
 
 	// longitudinal velocity
@@ -296,7 +284,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	// also limit the steering angle
 	phi_ = boost::algorithm::clamp(phi_, -params_.max_steering_angle(), params_.max_steering_angle());
 
-	ROS_DEBUG("d=%f, thetaP=%f, c=%f, c'=%f, c''=%f", d, theta_e, c, dc_ds, c_sek);
+	ROS_DEBUG("d=%f, thetaP=%f, c=%f, c'=%f, c''=%f", d, theta_e, c, dc_ds, dc_ds_2);
 	ROS_DEBUG("d'=%f, thetaP'=%f", dd_ds, dtheta_e_ds);
 	ROS_DEBUG("1 - dc(s)=%f", _1_dc);
 	ROS_DEBUG("dx2dd=%f, dx2dthetaP=%f, dx2ds=%f", dx2_dd, dx2_dtheta_e, dx2_ds);
@@ -304,10 +292,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	ROS_DEBUG("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
 				 time_passed, v1_, v2_, phi_);
 
-	// This is the accurate steering angle for 4 wheel steering
-	const float delta = (float) asin(.5 * tan_phi);
-
-	move_cmd_.setDirection(delta);
+	move_cmd_.setDirection(phi_);
 	move_cmd_.setVelocity(getDirSign() * (float) v1_);
 	*cmd = move_cmd_;
 
