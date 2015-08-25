@@ -125,7 +125,7 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 		return RobotController::MoveCommandStatus::ERROR;
 	}
 
-	move_cmd_.setDirection((float) phi);
+	move_cmd_.setDirection(getDirSign() * (float) phi);
 	move_cmd_.setVelocity(getDirSign() * (float) velocity_);
 
 	ROS_INFO("Command: vel=%f, angle=%f", velocity_, phi);
@@ -195,7 +195,7 @@ double RobotController_4WS_PurePursuit::computeAlpha(double& l_ah, const Eigen::
 
 	// when we drive backwards, set alpha to the complementary angle
 	if (getDirSign() < 0.)
-		alpha = alpha > 0.? M_PI - alpha : -M_PI - alpha;
+		alpha = alpha > 0.? -M_PI + alpha : M_PI + alpha;
 
 	// set lookahead_distance to the actual distance
 	l_ah = distance;

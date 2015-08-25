@@ -168,9 +168,9 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 
 	// if dir_sign is negative we drive backwards and set theta_e to the complementary angle
 	if (getDirSign() < 0.) {
-		d = -d;
+//		d = -d;
 		setTuningParameters(params_.k_backward());
-		theta_e = theta_e > 0.? M_PI - theta_e : -M_PI - theta_e;
+		theta_e = theta_e > 0.? -M_PI + theta_e : M_PI + theta_e;
 	} else {
 		setTuningParameters(params_.k_forward());
 	}
@@ -272,7 +272,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	ROS_DEBUG("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
 				 time_passed, v1_, v2_, phi_);
 
-	move_cmd_.setDirection(phi_);
+	move_cmd_.setDirection(getDirSign() * (float) phi_);
 	move_cmd_.setVelocity(getDirSign() * (float) v1_);
 	*cmd = move_cmd_;
 

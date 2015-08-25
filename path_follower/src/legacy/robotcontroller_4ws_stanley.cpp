@@ -133,31 +133,20 @@ RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveComma
 	double theta_e = MathHelper::AngleDelta(pose[2], path_interpol.theta_p(ind));
 
 	// if we drive backwards invert d and set theta_e to the complementary angle
-	if (getDirSign() < 0.) {
-		d = -d;
-		theta_e = theta_e > 0.? M_PI - theta_e : -M_PI - theta_e;
-	}
+	if (getDirSign() < 0.)
+		theta_e = theta_e > 0.? -M_PI + theta_e : M_PI + theta_e;
 
 	const double k = getDirSign() > 0. ? params_.k_forward() : params_.k_backward();
 	const double v = max(abs(velocity_measured.linear.x), 0.3);
 
-//	const double tan_theta_e = tan(theta_e);
-//	const double kd_v = k * d / v;
-
-//	double phi = asin((kd_v + tan_theta_e) / (2. + 2. * kd_v * tan_theta_e));
-	double phi = asin(sin(theta_e + atan2(k * d, v)) / 2.);
-
+	double phi = theta_e + atan2(k * d, v);
 
 	if (phi == NAN)
 		phi = 0.;
 
 	phi = boost::algorithm::clamp(phi, -params_.max_steering_angle(), params_.max_steering_angle());
 
-//	ROS_INFO("d=%f, theta_e=%f\ndir=%f, v=%f, kd_v=%f, phi=%f",
-//				d, theta_e, getDirSign(), v, kd_v, phi);
-
-
-	move_cmd_.setDirection((float) phi);
+	move_cmd_.setDirection(getDirSign() * (float) phi);
 	move_cmd_.setVelocity(getDirSign() * (float) velocity_);
 
 #ifdef TEST_OUTPUT
