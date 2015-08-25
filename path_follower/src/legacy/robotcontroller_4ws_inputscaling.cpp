@@ -198,9 +198,6 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 
 	const double sin_phi = sin(phi_);
 
-//	const double tan_phi = tan(phi_);
-//	const double tan_phi_2 = tan_phi * tan_phi;
-
 	// time
 	const double time_passed = (ros::Time::now() - old_time_).toSec();
 	old_time_ = ros::Time::now();
@@ -224,11 +221,11 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	// u1, u2
 	// u1 is taken from "Feedback control for a path following robotic car" by Mellodge,
 	// p. 108 (u1_actual)
-	const double u1 = v1_ * cos_theta_e / _1_dc;
+	const double u1 = v1_ * cos_theta_e / _1_dc; // OK
 	const double u2 =
-			- k1_ * u1 * x4
+			- k1_ * fabs(u1) * x4
 			- k2_ * u1 * x3
-			- k3_ * u1 * x2;
+			- k3_ * fabs(u1) * x2; // OK
 
 	// derivations of x2 (for alpha1)
 	const double dx2_dd = -dc_ds * tan_theta_e
