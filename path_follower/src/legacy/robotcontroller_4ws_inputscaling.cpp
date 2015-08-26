@@ -158,8 +158,8 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	// distance to the path (path to the right -> positive)
 	Eigen::Vector2d path_vehicle(pose[0] - path_interpol.p(ind), pose[1] - path_interpol.q(ind));
 
-	double d =
-			MathHelper::AngleDelta(MathHelper::Angle(path_vehicle), path_interpol.theta_p(ind)) < 0. ?
+	const double d =
+			MathHelper::AngleDelta(path_interpol.theta_p(ind), MathHelper::Angle(path_vehicle)) > 0. ?
 				min_dist : -min_dist;
 
 
@@ -167,13 +167,8 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind), pose[2]);
 
 	// if dir_sign is negative we drive backwards and set theta_e to the complementary angle
-	if (getDirSign() < 0.) {
-//		d = -d;
-		setTuningParameters(params_.k_backward());
+	if (getDirSign() < 0.)
 		theta_e = theta_e > 0.? -M_PI + theta_e : M_PI + theta_e;
-	} else {
-		setTuningParameters(params_.k_forward());
-	}
 
 	// curvature and first two derivations
 	const double c = path_interpol.curvature(ind);
@@ -198,10 +193,6 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 
 	const double sin_phi = sin(phi_);
 
-	// time
-	const double time_passed = (ros::Time::now() - old_time_).toSec();
-	old_time_ = ros::Time::now();
-
 	//
 	// actual controller formulas begin here
 	//
@@ -215,13 +206,11 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	const double x3 = _1_dc * tan_theta_e; // OK
 	const double x4 = d; // OK
 
-	// longitudinal velocity
-	v1_ = velocity_;
 
 	// u1, u2
 	// u1 is taken from "Feedback control for a path following robotic car" by Mellodge,
 	// p. 108 (u1_actual)
-	const double u1 = v1_ * cos_theta_e / _1_dc; // OK
+	const double u1 = velocity_ * cos_theta_e / _1_dc; // OK
 	const double u2 =
 			- k1_ * fabs(u1) * x4
 			- k2_ * u1 * x3
@@ -250,7 +239,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	// alpha2
 	const double alpha2 = params_.vehicle_length() * cos_theta_e_3 / (2. * _1_dc_2 * cos(phi_)); // OK
 
-
+	v1_ = velocity_;
 
 	// steering angle velocity
 	v2_ = alpha2 * (u2 - alpha1 * u1);
@@ -258,6 +247,10 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	// limit steering angle velocity
 	v2_ = boost::algorithm::clamp(v2_, -params_.max_steering_angle_speed(),
 											params_.max_steering_angle_speed());
+
+	// time
+	const double time_passed = (ros::Time::now() - old_time_).toSec();
+	old_time_ = ros::Time::now();
 
 	// update delta according to the time that has passed since the last update
 	phi_ += v2_ * time_passed;
@@ -269,7 +262,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	ROS_DEBUG("1 - dc(s)=%f", _1_dc);
 	ROS_DEBUG("dx2dd=%f, dx2dtheta_e=%f, dx2ds=%f", dx2_dd, dx2_dtheta_e, dx2_ds);
 	ROS_DEBUG("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);
-	ROS_DEBUG("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
+	ROS_INFO("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
 				 time_passed, v1_, v2_, phi_);
 
 	move_cmd_.setDirection(getDirSign() * (float) phi_);
@@ -280,7 +273,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	publishTestOutput(ind, d, theta_e, phi_, velocity_measured.linear.x);
 #endif
 
-	ROS_DEBUG("frame time = %f", (((float) (std::clock() - begin)) / CLOCKS_PER_SEC));
+	ROS_INFO("frame time = %f", (((float) (std::clock() - begin)) / CLOCKS_PER_SEC));
 
 	return RobotController::MoveCommandStatus::OKAY;
 }
