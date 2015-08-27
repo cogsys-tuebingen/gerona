@@ -170,9 +170,6 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	if (getDirSign() < 0.)
 		theta_e = theta_e > 0.? -M_PI + theta_e : M_PI + theta_e;
 
-	// adjust phi_ to compensate errors of the robot
-	phi_ = lookUpAngle(phi_);
-
 	// curvature and first two derivations
 	const double c = path_interpol.curvature(ind);
 	const double dc_ds = path_interpol.curvature_prim(ind);
@@ -213,8 +210,8 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	// u1, u2
 	// u1 is taken from "Feedback control for a path following robotic car" by Mellodge,
 	// p. 108 (u1_actual)
-	const double v = max(abs(velocity_measured.linear.x), (double) velocity_);
-	const double u1 = v * cos_theta_e / _1_dc; // OK
+//	const double v = max(abs(velocity_measured.linear.x), (double) velocity_);
+	const double u1 = velocity_ * cos_theta_e / _1_dc; // OK
 	const double u2 =
 			- k1_ * fabs(u1) * x4
 			- k2_ * u1 * x3
@@ -269,7 +266,11 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	ROS_INFO("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
 				time_passed, v1_, v2_, phi_);
 
-	move_cmd_.setDirection(getDirSign() * (float) phi_);
+	// adjust phi_ to compensate errors of the robot
+	 const float delta = (float) lookUpAngle(phi_);
+
+
+	move_cmd_.setDirection(getDirSign() * delta);
 	move_cmd_.setVelocity(getDirSign() * (float) v1_);
 	*cmd = move_cmd_;
 
@@ -295,28 +296,28 @@ void RobotController_4WS_InputScaling::publishMoveCommand(
 
 double RobotController_4WS_InputScaling::lookUpAngle(const double angle) const {
 
-	const double keys[11] = {0.,
-									 0.0523598776,
-									 0.1047197551,
-									 0.1570796327,
-									 0.2094395102,
-									 0.2617993878,
-									 0.3141592654,
-									 0.3665191429,
-									 0.4188790205,
-									 0.471238898,
-									 0.5235987756};
 	const double values[11] = {0.,
-										0.0872664626,
-										0.1221730476,
+										0.0523598776,
+										0.1047197551,
+										0.1570796327,
 										0.2094395102,
-										0.2967059728,
-										0.3839724354,
-										0.436332313,
-										0.4537856055,
-										0.4537856055,
-										0.4537856055,
-										0.4537856055};
+										0.2617993878,
+										0.3141592654,
+										0.3665191429,
+										0.4188790205,
+										0.471238898,
+										0.5235987756};
+	const double keys[11] = {0.,
+									 0.0872664626,
+									 0.1221730476,
+									 0.2094395102,
+									 0.2967059728,
+									 0.3839724354,
+									 0.436332313,
+									 0.4537856055,
+									 0.4537856055,
+									 0.4537856055,
+									 0.4537856055};
 
 	const double abs_angle = fabs(angle);
 
