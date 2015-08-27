@@ -210,7 +210,8 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	// u1, u2
 	// u1 is taken from "Feedback control for a path following robotic car" by Mellodge,
 	// p. 108 (u1_actual)
-	const double u1 = velocity_ * cos_theta_e / _1_dc; // OK
+	const double v = max(abs(velocity_measured.linear.x), 0.15);
+	const double u1 = v * cos_theta_e / _1_dc; // OK
 	const double u2 =
 			- k1_ * fabs(u1) * x4
 			- k2_ * u1 * x3
