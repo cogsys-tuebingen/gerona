@@ -215,17 +215,17 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	// p. 108 (u1_actual)
 //	const double v = max(abs(velocity_measured.linear.x), (double) velocity_);
 
-	if (ind > last_waypoint_) {
-		const double delta_s = path_interpol.s(ind) - path_interpol.s(last_waypoint_);
+//	if (ind > last_waypoint_) {
+//		const double delta_s = path_interpol.s(ind) - path_interpol.s(last_waypoint_);
 
-		const double delta_t = (ros::Time::now() - time_last_waypoint_).toSec();
+//		const double delta_t = (ros::Time::now() - time_last_waypoint_).toSec();
 
-		s_prim_ = delta_s / delta_t;
-	}
+//		s_prim_ = delta_s / delta_t;
+//	}
 
-	ROS_INFO("s_prim=%f", s_prim_);
+//	ROS_INFO("s_prim=%f", s_prim_);
 
-	const double u1 = s_prim_;//velocity_ * cos_theta_e / _1_dc; // OK
+	const double u1 = /*s_prim_;//*/velocity_ * cos_theta_e / _1_dc; // OK
 	const double u2 =
 			- k1_ * fabs(u1) * x4
 			- k2_ * u1 * x3
