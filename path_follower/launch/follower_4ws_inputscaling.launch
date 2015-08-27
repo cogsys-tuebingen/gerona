@@ -39,7 +39,6 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
 	 <param name="k_backward" value="7.0" />
 	 <param name="max_steering_angle" value="0.52359877559" /> <!-- 30° = 0.52359877559 -->
 	 <param name="max_steering_angle_speed" value="4.0" /> <!-- ~4.0 should be realistic -->
-	 <param name="angle" value="0.0" />
 
     <remap from="scan" to="scan/filtered" />
     <remap from="/obstacles" to="/obstacle_cloud" />

@@ -33,15 +33,13 @@ private:
 		P<double> k_backward;
 		P<double> max_steering_angle;
 		P<double> max_steering_angle_speed;
-		P<double> angle;
 
 		ControllerParameters() :
 			vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance"),
 			k_forward(this, "~k_forward", 7.0, "Tuning factor for forward driving"),
 			k_backward(this, "~k_backward", 7.0, "Tuning factor for backward driving"),
 			max_steering_angle(this, "~max_steering_angle", M_PI / 3, "Maximum steering angle"),
-			max_steering_angle_speed(this, "~max_steering_angle_speed", 1.7, "Maximum steering angle speed"),
-			angle(this, "~angle", 0., "lalal")
+			max_steering_angle_speed(this, "~max_steering_angle_speed", 1.7, "Maximum steering angle speed")
 		{}
 
 	} params_;
@@ -62,6 +60,8 @@ private:
 
 	//! Sets the tuning parameters k1, k2, k3 according to k
 	void setTuningParameters(const double k);
+
+	double lookUpAngle(const double angle) const;
 
 	//! The MoveCommand that is beeing published
 	MoveCommand move_cmd_;

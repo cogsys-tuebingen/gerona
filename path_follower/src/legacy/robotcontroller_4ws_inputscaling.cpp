@@ -93,7 +93,7 @@ void RobotController_4WS_InputScaling::setPath(Path::Ptr path) {
 RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMoveCommand(
 		MoveCommand* cmd) {
 
-	ROS_DEBUG("===============================");
+	ROS_INFO("===============================");
 
 	std::clock_t begin = std::clock();
 
@@ -170,6 +170,9 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	if (getDirSign() < 0.)
 		theta_e = theta_e > 0.? -M_PI + theta_e : M_PI + theta_e;
 
+	// adjust phi_ to compensate errors of the robot
+	phi_ = lookUpAngle(phi_);
+
 	// curvature and first two derivations
 	const double c = path_interpol.curvature(ind);
 	const double dc_ds = path_interpol.curvature_prim(ind);
@@ -210,7 +213,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	// u1, u2
 	// u1 is taken from "Feedback control for a path following robotic car" by Mellodge,
 	// p. 108 (u1_actual)
-	const double v = max(abs(velocity_measured.linear.x), 0.15);
+	const double v = max(abs(velocity_measured.linear.x), (double) velocity_);
 	const double u1 = v * cos_theta_e / _1_dc; // OK
 	const double u2 =
 			- k1_ * fabs(u1) * x4
@@ -225,7 +228,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	const double dx2_dtheta_e = -dc_ds * d * (1. + tan_theta_e_2)
 			- 4. * c * _1_dc * tan_theta_e / cos_theta_e_2
 			+ 6. * _1_dc_2 * sin_phi * tan_theta_e / (params_.vehicle_length()
-																				 * cos_theta_e_3); // OK
+																	* cos_theta_e_3); // OK
 	const double dx2_ds =
 			- dc_ds_2 * d * tan_theta_e
 			- (dc_ds * _1_dc - d * dc_ds * c) * (1. + sin_theta_e_2) / cos_theta_e_2
@@ -264,7 +267,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	ROS_DEBUG("dx2dd=%f, dx2dtheta_e=%f, dx2ds=%f", dx2_dd, dx2_dtheta_e, dx2_ds);
 	ROS_DEBUG("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);
 	ROS_INFO("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
-				 time_passed, v1_, v2_, phi_);
+				time_passed, v1_, v2_, phi_);
 
 	move_cmd_.setDirection(getDirSign() * (float) phi_);
 	move_cmd_.setVelocity(getDirSign() * (float) v1_);
@@ -283,17 +286,64 @@ void RobotController_4WS_InputScaling::publishMoveCommand(
 		const MoveCommand& cmd) const {
 
 	geometry_msgs::Twist msg;
-	msg.linear.x  = 0.;//cmd.getVelocity();
+	msg.linear.x  = cmd.getVelocity();
 	msg.linear.y  = 0;
-	msg.angular.z = params_.angle();//cmd.getDirectionAngle();
+	msg.angular.z = cmd.getDirectionAngle();
 
 	cmd_pub_.publish(msg);
 }
 
+double RobotController_4WS_InputScaling::lookUpAngle(const double angle) const {
+
+	const double keys[11] = {0.,
+									 0.0523598776,
+									 0.1047197551,
+									 0.1570796327,
+									 0.2094395102,
+									 0.2617993878,
+									 0.3141592654,
+									 0.3665191429,
+									 0.4188790205,
+									 0.471238898,
+									 0.5235987756};
+	const double values[11] = {0.,
+										0.0872664626,
+										0.1221730476,
+										0.2094395102,
+										0.2967059728,
+										0.3839724354,
+										0.436332313,
+										0.4537856055,
+										0.4537856055,
+										0.4537856055,
+										0.4537856055};
+
+	const double abs_angle = fabs(angle);
+
+	unsigned int i;
+	for (i = 1; i < 11; ++i) {
+		if (abs_angle <= keys[i])
+			break;
+	}
+
+	unsigned int smaller = i - 1;
+	unsigned int greater = i;
+
+	const double ratio = (abs_angle - keys[smaller]) / (keys[greater] - keys[smaller]);
+
+	const double interpolated = (1. - ratio) * values[smaller] + ratio * values[greater];
+
+	ROS_INFO("angle=%f, abs_angle=%f, smaller=%d, ratio=%f, interpolated=%f",
+				angle, abs_angle, smaller, ratio, interpolated);
+
+	return angle > 0. ? interpolated : -interpolated;
+
+}
+
 #ifdef TEST_OUTPUT
 void RobotController_4WS_InputScaling::publishTestOutput(const unsigned int waypoint, const double d,
-																	 const double theta_e,
-																	 const double phi, const double v) const {
+																			const double theta_e,
+																			const double phi, const double v) const {
 	std_msgs::Float64MultiArray msg;
 
 	msg.data.push_back((double) waypoint);
