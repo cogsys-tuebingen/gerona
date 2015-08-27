@@ -71,6 +71,9 @@ void RobotController_4WS_InputScaling::reset() {
 
 	v1_ = v2_ = 0.;
 
+	last_waypoint_ = 0;
+	time_last_waypoint_ = ros::Time::now();
+
 	RobotController_Interpolation::reset();
 }
 
@@ -211,7 +214,18 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	// u1 is taken from "Feedback control for a path following robotic car" by Mellodge,
 	// p. 108 (u1_actual)
 //	const double v = max(abs(velocity_measured.linear.x), (double) velocity_);
-	const double u1 = velocity_ * cos_theta_e / _1_dc; // OK
+
+	if (ind > last_waypoint_) {
+		const double delta_s = path_interpol.s(ind) - path_interpol.s(last_waypoint_);
+
+		const double delta_t = (ros::Time::now() - time_last_waypoint_).toSec();
+
+		s_prim_ = delta_s / delta_t;
+	}
+
+	ROS_INFO("s_prim=%f", s_prim_);
+
+	const double u1 = s_prim_;//velocity_ * cos_theta_e / _1_dc; // OK
 	const double u2 =
 			- k1_ * fabs(u1) * x4
 			- k2_ * u1 * x3

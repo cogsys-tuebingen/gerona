@@ -66,6 +66,10 @@ private:
 	//! The MoveCommand that is beeing published
 	MoveCommand move_cmd_;
 
+	ros::Time time_last_waypoint_;
+	unsigned int last_waypoint_;
+	double s_prim_;
+
 	//! Tuning parameters
 	double k1_, k2_, k3_;
 	//! Current steering angle
