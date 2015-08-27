@@ -283,9 +283,9 @@ void RobotController_4WS_InputScaling::publishMoveCommand(
 		const MoveCommand& cmd) const {
 
 	geometry_msgs::Twist msg;
-	msg.linear.x  = cmd.getVelocity();
+	msg.linear.x  = 0.;//cmd.getVelocity();
 	msg.linear.y  = 0;
-	msg.angular.z = cmd.getDirectionAngle();
+	msg.angular.z = params_.angle();//cmd.getDirectionAngle();
 
 	cmd_pub_.publish(msg);
 }
