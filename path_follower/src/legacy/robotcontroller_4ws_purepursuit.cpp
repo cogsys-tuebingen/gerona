@@ -25,12 +25,9 @@ RobotController_4WS_PurePursuit::RobotController_4WS_PurePursuit (PathFollower* 
 	RobotController_Interpolation(_path_follower),
 	waypoint_(0) {
 
-	path_interpol_pub_ = node_handle_.advertise<nav_msgs::Path>("interp_path", 10);
-
-
-	ROS_INFO("Parameters: factor_lookahead_distance_forward=%f, factor_lookahead_distance_backward=%f"
+	ROS_INFO("Parameters: k_forward=%f, k_backward=%f"
 				"\nvehicle_length=%f\ngoal_tolerance=%f",
-				params_.factor_lookahead_distance_forward(), params_.factor_lookahead_distance_backward(),
+				params_.k_forward(), params_.k_backward(),
 				params_.vehicle_length(), params_.goal_tolerance());
 
 #ifdef TEST_OUTPUT
@@ -76,8 +73,6 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	ROS_INFO("======================");
-
 	const Eigen::Vector3d pose = path_driver_->getRobotPose();
 	const geometry_msgs::Twist velocity_measured = path_driver_->getVelocity();
 
@@ -103,6 +98,7 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 				throw std::runtime_error(error.msg);
 			}
 
+			// invert the driving direction and reset the waypoint
 			waypoint_ = 0;
 			setDirSign(-getDirSign());
 		}
@@ -110,14 +106,12 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 
 
 	const double v = velocity_measured.linear.x;
-	double l_ah = v * (getDirSign() > 0.? params_.factor_lookahead_distance_forward() :
-															  params_.factor_lookahead_distance_backward());
+	double l_ah = v * (getDirSign() > 0.? params_.k_forward() : params_.k_backward());
 	l_ah = max(l_ah, 0.4);
 
 	// angle between vehicle theta and the connection between the reference point and the look ahead point
 	const double alpha = computeAlpha(l_ah, pose);
 
-//	const double phi = asin(params_.vehicle_length() * sin(alpha) / l_ah);
 	const double phi = atan2(params_.vehicle_length() * sin(alpha), l_ah);
 
 	if (phi == NAN) {
@@ -177,8 +171,6 @@ void RobotController_4WS_PurePursuit::publishMoveCommand(
 
 double RobotController_4WS_PurePursuit::computeAlpha(double& l_ah, const Eigen::Vector3d& pose) {
 
-	// TODO: correct angle, when the goal is near
-
 	double distance, dx, dy;
 	for (unsigned int i = waypoint_; i < path_interpol.n(); ++i) {
 		dx = path_interpol.p(i) - pose[0];
@@ -205,14 +197,6 @@ double RobotController_4WS_PurePursuit::computeAlpha(double& l_ah, const Eigen::
 	from.x = pose[0]; from.y = pose[1];
 	to.x = path_interpol.p(waypoint_); to.y = path_interpol.q(waypoint_);
 	visualizer_->drawLine(12341234, from, to, "map", "geo", 1, 0, 0, 1, 0.01);
-
-#define DEBUG
-#ifdef DEBUG
-	ROS_INFO("LookAheadPoint: index=%i, x=%f, y=%f, l_ah=%f", waypoint_, path_interpol.p(waypoint_)
-				, path_interpol.q(waypoint_), l_ah);
-	ROS_INFO("Pose: x=%f, y=%f, theta=%f", pose[0], pose[1], pose[2]);
-	ROS_INFO("Alpha=%f, dir_sign=%f", alpha, dir_sign_);
-#endif
 
 	return alpha;
 }

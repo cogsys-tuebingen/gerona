@@ -35,9 +35,9 @@ private:
 		P<double> max_steering_angle;
 
 		ControllerParameters() :
-			vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance"),
-			k_forward(this, "~k_forward", 7.0, "Tuning factor for forward driving"),
-			k_backward(this, "~k_backward", 7.0, "Tuning factor for backward driving"),
+			vehicle_length(this, "~vehicle_length", 0.34, "axis-centre distance"),
+			k_forward(this, "~k_forward", 0.6, "Tuning factor for forward driving"),
+			k_backward(this, "~k_backward", 0.6, "Tuning factor for backward driving"),
 			max_steering_angle(this, "~max_steering_angle", 0.52359877559, "Maximum steering angle")
 		{}
 
@@ -51,7 +51,9 @@ private:
 	MoveCommand move_cmd_;
 
 #ifdef TEST_OUTPUT
+	//! A publisher to publish on "/test_output"
 	ros::Publisher test_pub_;
+	//! Publishes waypoint, d, theta_e, phi and v on "/test_ouput"
 	void publishTestOutput(const unsigned int waypoint, const double d, const double theta_e,
 								  const double phi, const double v) const;
 #endif

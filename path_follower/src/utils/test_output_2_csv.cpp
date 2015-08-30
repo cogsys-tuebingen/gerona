@@ -27,10 +27,6 @@ void callback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
 		file_stream << (phi_sum / (double) number_measurements) << "\t";
 		file_stream << (v_sum / (double) number_measurements) << "\t";
 
-		//	for (int i = 1; i < 5; ++i) {
-		//		file_stream << data[i] << "\t";
-		//	}
-
 		file_stream << "\n";
 
 		last_waypoint = waypoint;
@@ -43,7 +39,6 @@ void callback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
 	phi_sum += data[3];
 	v_sum += data[4];
 	++number_measurements;
-	//		ROS_INFO("number_measurements=%d", number_measurements);
 }
 
 int main(int argc, char **argv) {
@@ -57,7 +52,7 @@ int main(int argc, char **argv) {
 	file_stream.open(file_name, std::ios::out);
 
 	if(!file_stream.is_open()) {
-		std::cerr << "Could not open file " << file_name << std::endl;
+		ROS_ERROR_STREAM("Could not open file " << file_name << "\n");
 		return 0;
 	}
 

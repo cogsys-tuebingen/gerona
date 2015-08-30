@@ -32,15 +32,13 @@ protected:
 private:
 
 	struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
-		P<double> factor_lookahead_distance_forward;
-		P<double> factor_lookahead_distance_backward;
+		P<double> k_forward;
+		P<double> k_backward;
 		P<double> vehicle_length;
 
 		ControllerParameters() :
-			factor_lookahead_distance_forward(this, "~factor_lookahead_distance_forward", 0.8,
-														 "lookahead distance factor while driving forwards"),
-			factor_lookahead_distance_backward(this, "~factor_lookahead_distance_forward", 0.8,
-														 "lookahead distance factor while driving backwards"),
+			k_forward(this, "~k_forward", 1.2, "lookahead distance factor while driving forwards"),
+			k_backward(this, "~k_forward", 1.2, "lookahead distance factor while driving backwards"),
 			vehicle_length(this, "~vehicle_length", 0.34, "axis-centre distance")
 		{}
 
@@ -50,17 +48,20 @@ private:
 		return params_;
 	}
 
+	//! Computes alpha for a specific lookahead distance and sets the lookahead distance to the
+	//! closest possible value
 	double computeAlpha(double& lookahead_distance, const Eigen::Vector3d& pose);
 
-	ros::NodeHandle node_handle_;
-	ros::Publisher path_interpol_pub_;
-
+	//! Last waypoint
 	unsigned int waypoint_;
+	//! The move command published
 	MoveCommand move_cmd_;
 
 
 #ifdef TEST_OUTPUT
+	//! A publisher to publish on "/test_output"
 	ros::Publisher test_pub_;
+	//! Publishes waypoint, d, theta_e, phi and v on "/test_ouput"
 	void publishTestOutput(const unsigned int waypoint, const double d, const double theta_e,
 								  const double phi, const double v) const;
 #endif

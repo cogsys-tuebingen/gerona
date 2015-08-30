@@ -217,7 +217,7 @@ target_link_libraries(path_follower_node
 )
 
 add_executable(pose_goal_remapper
-  src/utils/PoseGoalRemapper.cpp
+  src/utils/pose_goal_remapper.cpp
 )
 
 target_link_libraries(pose_goal_remapper

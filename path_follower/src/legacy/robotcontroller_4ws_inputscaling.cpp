@@ -23,9 +23,7 @@
 
 RobotController_4WS_InputScaling::RobotController_4WS_InputScaling(PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower),
-	phi_(0.),
-	v1_(0.),
-	v2_(0.)
+	phi_(0.)
 {
 
 	const double k = params_.k_forward();
@@ -69,11 +67,6 @@ void RobotController_4WS_InputScaling::start() {
 void RobotController_4WS_InputScaling::reset() {
 	old_time_ = ros::Time::now();
 
-	v1_ = v2_ = 0.;
-
-	last_waypoint_ = 0;
-	time_last_waypoint_ = ros::Time::now();
-
 	RobotController_Interpolation::reset();
 }
 
@@ -95,8 +88,6 @@ void RobotController_4WS_InputScaling::setPath(Path::Ptr path) {
 
 RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMoveCommand(
 		MoveCommand* cmd) {
-
-	ROS_INFO("===============================");
 
 	std::clock_t begin = std::clock();
 
@@ -129,6 +120,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 			} catch(const alglib::ap_error& error) {
 				throw std::runtime_error(error.msg);
 			}
+			// invert driving direction and set tuning parameters accordingly
 			setDirSign(-getDirSign());
 			if (getDirSign() < 0.)
 				setTuningParameters(params_.k_backward());
@@ -204,63 +196,51 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	//	const double x1 = s;
 	const double x2 = -dc_ds * d * tan_theta_e
 			- c * _1_dc * (1. + sin_theta_e_2) / cos_theta_e_2
-			+ 2. * _1_dc_2 * sin_phi / (params_.vehicle_length() * cos_theta_e_3); // OK
+			+ 2. * _1_dc_2 * sin_phi / (params_.vehicle_length() * cos_theta_e_3);
 
-	const double x3 = _1_dc * tan_theta_e; // OK
-	const double x4 = d; // OK
+	const double x3 = _1_dc * tan_theta_e;
+	const double x4 = d;
 
 
 	// u1, u2
-	// u1 is taken from "Feedback control for a path following robotic car" by Mellodge,
-	// p. 108 (u1_actual)
-//	const double v = max(abs(velocity_measured.linear.x), (double) velocity_);
 
-//	if (ind > last_waypoint_) {
-//		const double delta_s = path_interpol.s(ind) - path_interpol.s(last_waypoint_);
-
-//		const double delta_t = (ros::Time::now() - time_last_waypoint_).toSec();
-
-//		s_prim_ = delta_s / delta_t;
-//	}
-
-//	ROS_INFO("s_prim=%f", s_prim_);
-
-	const double u1 = /*s_prim_;//*/velocity_ * cos_theta_e / _1_dc; // OK
+	const double u1 = velocity_ * cos_theta_e / _1_dc;
 	const double u2 =
 			- k1_ * fabs(u1) * x4
 			- k2_ * u1 * x3
-			- k3_ * fabs(u1) * x2; // OK
+			- k3_ * fabs(u1) * x2;
 
 	// derivations of x2 (for alpha1)
 	const double dx2_dd = -dc_ds * tan_theta_e
 			+ c * c * (1. + sin_theta_e_2) / cos_theta_e_2
-			- 4. * _1_dc * c * sin_phi / (params_.vehicle_length() * cos_theta_e_3); // OK
+			- 4. * _1_dc * c * sin_phi / (params_.vehicle_length() * cos_theta_e_3);
 
 	const double dx2_dtheta_e = -dc_ds * d * (1. + tan_theta_e_2)
 			- 4. * c * _1_dc * tan_theta_e / cos_theta_e_2
 			+ 6. * _1_dc_2 * sin_phi * tan_theta_e / (params_.vehicle_length()
-																	* cos_theta_e_3); // OK
+																	* cos_theta_e_3);
 	const double dx2_ds =
 			- dc_ds_2 * d * tan_theta_e
 			- (dc_ds * _1_dc - d * dc_ds * c) * (1. + sin_theta_e_2) / cos_theta_e_2
-			- 4. * _1_dc * dc_ds * d * sin_phi / (params_.vehicle_length() * cos_theta_e_3); // OK
+			- 4. * _1_dc * dc_ds * d * sin_phi / (params_.vehicle_length() * cos_theta_e_3);
 
 	// alpha1
 	const double alpha1 =
 			dx2_ds
 			+ dx2_dd * _1_dc * tan_theta_e
-			+ dx2_dtheta_e * (2. * sin_phi * _1_dc / (params_.vehicle_length() * cos_theta_e) - c); // OK
+			+ dx2_dtheta_e * (2. * sin_phi * _1_dc / (params_.vehicle_length() * cos_theta_e) - c);
 
 	// alpha2
-	const double alpha2 = params_.vehicle_length() * cos_theta_e_3 / (2. * _1_dc_2 * cos(phi_)); // OK
+	const double alpha2 = params_.vehicle_length() * cos_theta_e_3 / (2. * _1_dc_2 * cos(phi_));
 
-	v1_ = velocity_;
+	// longitudinal velocity
+	const double v1 = velocity_;
 
 	// steering angle velocity
-	v2_ = alpha2 * (u2 - alpha1 * u1);
+	double v2 = alpha2 * (u2 - alpha1 * u1);
 
 	// limit steering angle velocity
-	v2_ = boost::algorithm::clamp(v2_, -params_.max_steering_angle_speed(),
+	v2 = boost::algorithm::clamp(v2, -params_.max_steering_angle_speed(),
 											params_.max_steering_angle_speed());
 
 	// time
@@ -268,31 +248,27 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	old_time_ = ros::Time::now();
 
 	// update delta according to the time that has passed since the last update
-	phi_ += v2_ * time_passed;
+	phi_ += v2 * time_passed;
 
 	// also limit the steering angle
 	phi_ = boost::algorithm::clamp(phi_, -params_.max_steering_angle(), params_.max_steering_angle());
 
-	ROS_DEBUG("d=%f, theta_e=%f, c=%f, c'=%f, c''=%f", d, theta_e, c, dc_ds, dc_ds_2);
-	ROS_DEBUG("1 - dc(s)=%f", _1_dc);
-	ROS_DEBUG("dx2dd=%f, dx2dtheta_e=%f, dx2ds=%f", dx2_dd, dx2_dtheta_e, dx2_ds);
-	ROS_DEBUG("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);
-	ROS_INFO("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
-				time_passed, v1_, v2_, phi_);
-
-	// adjust phi_ to compensate errors of the robot
-	 const float delta = (float) lookUpAngle(phi_);
-
-
-	move_cmd_.setDirection(getDirSign() * delta);
-	move_cmd_.setVelocity(getDirSign() * (float) v1_);
+	move_cmd_.setDirection(getDirSign() * (float) phi_);
+	move_cmd_.setVelocity(getDirSign() * (float) v1);
 	*cmd = move_cmd_;
+
 
 #ifdef TEST_OUTPUT
 	publishTestOutput(ind, d, theta_e, phi_, velocity_measured.linear.x);
 #endif
 
-	ROS_INFO("frame time = %f", (((float) (std::clock() - begin)) / CLOCKS_PER_SEC));
+	ROS_DEBUG("d=%f, theta_e=%f, c=%f, c'=%f, c''=%f", d, theta_e, c, dc_ds, dc_ds_2);
+	ROS_DEBUG("1 - dc(s)=%f", _1_dc);
+	ROS_DEBUG("dx2dd=%f, dx2dtheta_e=%f, dx2ds=%f", dx2_dd, dx2_dtheta_e, dx2_ds);
+	ROS_DEBUG("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);
+	ROS_DEBUG("frame time = %f", (((float) (std::clock() - begin)) / CLOCKS_PER_SEC));
+	ROS_INFO("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
+				time_passed, v1, v2, phi_);
 
 	return RobotController::MoveCommandStatus::OKAY;
 }
@@ -310,17 +286,6 @@ void RobotController_4WS_InputScaling::publishMoveCommand(
 
 double RobotController_4WS_InputScaling::lookUpAngle(const double angle) const {
 
-	const double values[11] = {0.,
-										0.0523598776,
-										0.1047197551,
-										0.1570796327,
-										0.2094395102,
-										0.2617993878,
-										0.3141592654,
-										0.3665191429,
-										0.4188790205,
-										0.471238898,
-										0.5235987756};
 	const double keys[11] = {0.,
 									 0.0872664626,
 									 0.1221730476,
@@ -332,6 +297,18 @@ double RobotController_4WS_InputScaling::lookUpAngle(const double angle) const {
 									 0.4537856055,
 									 0.4537856055,
 									 0.4537856055};
+
+	const double values[11] = {0.,
+										0.0523598776,
+										0.1047197551,
+										0.1570796327,
+										0.2094395102,
+										0.2617993878,
+										0.3141592654,
+										0.3665191429,
+										0.4188790205,
+										0.471238898,
+										0.5235987756};
 
 	const double abs_angle = fabs(angle);
 

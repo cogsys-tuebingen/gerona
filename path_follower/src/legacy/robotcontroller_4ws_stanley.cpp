@@ -12,8 +12,6 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-#include <boost/algorithm/clamp.hpp>
-
 #include <limits>
 #include <boost/algorithm/clamp.hpp>
 
@@ -67,8 +65,6 @@ void RobotController_4WS_Stanley::setPath(Path::Ptr path) {
 RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveCommand(
 		MoveCommand* cmd) {
 
-//	ROS_INFO("===============================");
-
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
@@ -96,6 +92,7 @@ RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveComma
 			} catch(const alglib::ap_error& error) {
 				throw std::runtime_error(error.msg);
 			}
+			// invert driving direction
 			setDirSign(-getDirSign());
 		}
 	}
@@ -139,6 +136,7 @@ RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveComma
 	const double k = getDirSign() > 0. ? params_.k_forward() : params_.k_backward();
 	const double v = max(abs(velocity_measured.linear.x), 0.3);
 
+	// steering angle
 	double phi = theta_e + atan2(k * d, v);
 
 	if (phi == NAN)

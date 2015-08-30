@@ -4,8 +4,6 @@
 #include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
 
-#include <visualization_msgs/Marker.h>
-
 #include <ros/ros.h>
 
 #define TEST_OUTPUT
@@ -44,8 +42,7 @@ private:
 
 	} params_;
 
-	const RobotController_Interpolation::InterpolationParameters& getParameters() const
-	{
+	const RobotController_Interpolation::InterpolationParameters& getParameters() const {
 		return params_;
 	}
 
@@ -53,7 +50,9 @@ private:
 	void setPath(Path::Ptr path);
 
 #ifdef TEST_OUTPUT
+	//! A publisher to publish on "/test_output"
 	ros::Publisher test_pub_;
+	//! Publishes waypoint, d, theta_e, phi and v on "/test_ouput"
 	void publishTestOutput(const unsigned int waypoint, const double d, const double theta_e,
 								  const double phi, const double v) const;
 #endif
@@ -61,21 +60,16 @@ private:
 	//! Sets the tuning parameters k1, k2, k3 according to k
 	void setTuningParameters(const double k);
 
+	//! Converts the steering angle to compensate the errors of the robot
 	double lookUpAngle(const double angle) const;
 
 	//! The MoveCommand that is beeing published
 	MoveCommand move_cmd_;
 
-	ros::Time time_last_waypoint_;
-	unsigned int last_waypoint_;
-	double s_prim_;
-
 	//! Tuning parameters
 	double k1_, k2_, k3_;
 	//! Current steering angle
 	double phi_;
-	//! v1 longitudinal velocity, v2 (steering angle speed)
-	double v1_, v2_;
 	//! The time of the last update (to compute the time that has passed since then)
 	ros::Time old_time_;
 };
