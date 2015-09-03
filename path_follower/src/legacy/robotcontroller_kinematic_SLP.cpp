@@ -201,6 +201,22 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///***///
 
 
+    ///Get the velocity sign
+
+    if(v > 0) sign_v_ = 1;
+
+    else if (v < 0){
+
+        sign_v_ = -1;
+        theta_e = theta_e + M_PI;
+
+    }
+
+    else sign_v_ = 0;
+
+    ///***///
+
+
     ///Lyapunov-curvature speed control
 
     //Lyapunov function as a measure of the path following error
@@ -234,21 +250,13 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     cmd_.direction_angle = 0;
 
-    //omega_m = theta_prim + curv*s_prim
+    //omega_m = theta_e_prim + curv*s_prim
     double omega_m = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
                     /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
 
     if(omega_m > 0.7) omega_m = 0.7;
     if(omega_m < -0.7) omega_m = -0.7;
     cmd_.rotation = omega_m;
-
-    ///***///
-
-    ///Get the velocity sign
-
-    if(v > 0) sign_v_ = 1;
-    else if (v < 0) sign_v_ = -1;
-    else sign_v_ = 0;
 
     ///***///
 
