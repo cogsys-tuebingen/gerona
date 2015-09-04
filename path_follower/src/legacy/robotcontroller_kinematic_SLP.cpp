@@ -151,6 +151,22 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///***///
 
 
+    ///Get the velocity sign
+
+    if(v > 0) sign_v_ = 1;
+
+    else if (v < 0){
+
+        sign_v_ = -1;
+        theta_e = theta_e + M_PI;
+
+    }
+
+    else sign_v_ = 0;
+
+    ///***///
+
+
     ///Calculate the parameters for exponential speed control
 
     //calculate the curvature, and stop when the look-ahead distance is reached (w.r.t. orthogonal projection)
@@ -196,23 +212,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
             + opt_.k_g()/distance_to_goal_;
 
     //TODO: consider the minimum excitation speed
-    double v = std::max(0.4,vn_*exp(-exponent));
-
-    ///***///
-
-
-    ///Get the velocity sign
-
-    if(v > 0) sign_v_ = 1;
-
-    else if (v < 0){
-
-        sign_v_ = -1;
-        theta_e = theta_e + M_PI;
-
-    }
-
-    else sign_v_ = 0;
+    double v = sign_v_*std::max(0.4,fabs(vn_*exp(-exponent)));
 
     ///***///
 
@@ -256,7 +256,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     if(omega_m > 0.7) omega_m = 0.7;
     if(omega_m < -0.7) omega_m = -0.7;
-    cmd_.rotation = omega_m;
+    cmd_.rotation = sign_v_*omega_m;
 
     ///***///
 
