@@ -15,6 +15,6 @@ demonstrating the navigation framework.
         <remap from="/rviz_goal" to="/move_base_simple/goal" />
     </node>
 
-    <include file="$(find navigation_launch)/launch/laser_filter.launch" />
-    <include file="$(find navigation_launch)/launch/full.launch" />
+	 <include file="$(find navigation_launch)/launch/laser_filter.launch" />
+	 <include file="$(find navigation_launch)/launch/full.launch" />
 </launch>

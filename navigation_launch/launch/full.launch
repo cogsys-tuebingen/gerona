@@ -5,17 +5,17 @@ and obstacle detection (based on 2d laser).
 This is a complete setup and enought to actually navigate the robot.
 -->
 <launch>
-    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER ackermann_orthexp)" />
+	 <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER 4ws_purepursuit)" />
 
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
-    <arg name="use_planner_static" default="false" />
-    <arg name="use_planner_default" default="true" />
+	 <arg name="use_planner_static" default="false" />
+	 <arg name="use_planner_default" default="true" />
 
-    <arg name="use_karto" default="false" />
+	 <arg name="use_karto" default="true" />
     <arg name="use_karto_segmented" default="false" />
     <arg name="use_amcl" default="false" />
-    <arg name="use_hector" default="true" />
+	 <arg name="use_hector" default="false" />
 
     <include file="$(find navigation_launch)/launch/mapping.launch">
         <arg name="use_karto" value="$(arg use_karto)" />

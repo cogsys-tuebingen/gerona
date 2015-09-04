@@ -59,7 +59,7 @@ struct NonHolonomicNeighborhoodPrecise :
 
 
         // euclidean distance
-        int delta = 5;
+		  int delta = 2;
         if(dist < 2.0) return true;
 
         if(std::abs(goal->x - reference->x) < delta &&
@@ -180,9 +180,9 @@ struct PathPlanner : public Planner
     //  TODO: make these two (or more?) selectable:
     //typedef AStarNoOrientationSearch<> AStar;
     //    typedef AStarSearch<NonHolonomicNeighborhood<40, 360, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/> > AStarAckermann; // Ackermann
-    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/>,
-                        NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermannForward; // Ackermann
-    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/, true>,
+	 //typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD>,
+	 //                    NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermann; // Ackermann
+    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
                         NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermannReversed; // Ackermann
     typedef AStarSearch<NonHolonomicNeighborhoodPrecise<30, 400, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/, true>,
                         NoExpansion, Pose2d, GridMap2d, 1000> AStarSummitReversed; // Summit
@@ -200,6 +200,7 @@ struct PathPlanner : public Planner
     typedef AStarAckermann::PathT PathT;
 
     PathPlanner()
+        : render_open_cells_(false)
     {
         nh_priv.param("render_open_cells", render_open_cells_, false);
 
