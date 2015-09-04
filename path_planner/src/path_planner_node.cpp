@@ -184,8 +184,8 @@ struct PathPlanner : public Planner
 	 //                    NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermann; // Ackermann
     typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
                         NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermannReversed; // Ackermann
-    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<30, 400, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/, true>,
-                        NoExpansion, Pose2d, GridMap2d, 1000> AStarSummitReversed; // Summit
+    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 400, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
+                        NoExpansion, Pose2d, GridMap2d, 100> AStarSummitReversed; // Summit
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
     typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD> > AStarPatsyForward;
@@ -328,10 +328,20 @@ struct PathPlanner : public Planner
             for(auto it = open.begin(); it != open.end(); ++it) {
                 const auto* node = *it;
                 geometry_msgs::Point pt;
-                pt.x = node->x * res + ox;
-                pt.y = node->y * res + oy;
+                map_info->cell2point(node->x, node->y, pt.x, pt.y);
                 cells.cells.push_back(pt);
             }
+
+
+            const auto* node_start = algo.getStart();
+            const auto* node_goal = algo.getGoal();
+
+            geometry_msgs::Point pt_start, pt_goal;
+            map_info->cell2point(node_start->x, node_start->y, pt_start.x, pt_start.y);
+            map_info->cell2point(node_goal->x, node_goal->y, pt_goal.x, pt_goal.y);
+
+            cells.cells.push_back(pt_start);
+            cells.cells.push_back(pt_goal);
 
             std::cerr << "publish cells" << std::endl;
 

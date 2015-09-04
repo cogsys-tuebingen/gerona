@@ -167,8 +167,8 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map, bool is_cost_map) {
     int i = 0;
 
     if(is_cost_map) {
-        map_info->setLowerThreshold(250);
-        map_info->setUpperThreshold(251);
+        map_info->setLowerThreshold(253);
+        map_info->setUpperThreshold(254);
         map_info->setNoInformationValue(255);
 
         for(std::vector<int8_t>::const_iterator it = map.data.begin(); it != map.data.end(); ++it) {
