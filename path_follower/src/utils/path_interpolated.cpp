@@ -1,10 +1,3 @@
-/*
- * path_interpolated.cpp
- *
- *  Created on: Apr 25, 2015
- *      Author: holly
- */
-
 // HEADER
 #include <path_follower/utils/path_interpolated.h>
 

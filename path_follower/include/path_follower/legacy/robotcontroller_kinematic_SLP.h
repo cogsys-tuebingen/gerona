@@ -144,6 +144,8 @@ private:
 
     //index of the current point on the path
     uint ind_;
+    //driving direction sign
+    int driving_dir_;
     //velocity sign
     int sign_v_;
     

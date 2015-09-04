@@ -27,6 +27,7 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_
     delta_(0),
     Ts_(0.02),
     ind_(0),
+    driving_dir_(0),
     sign_v_(0),
     xe_(0),
     ye_(0),
@@ -151,6 +152,19 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///***///
 
 
+    ///Determine the driving direction, and set the complementary angle in path coordinates, if driving backwards
+
+    if (theta_e > M_PI/2.0 || theta_e < -M_PI/2.0) {
+
+        driving_dir_ = -1;
+        theta_e = theta_e + M_PI;
+    }
+
+    else driving_dir_ = 1;
+
+    ///***///
+
+
     ///Calculate the parameters for exponential speed control
 
     //calculate the curvature, and stop when the look-ahead distance is reached (w.r.t. orthogonal projection)
@@ -187,8 +201,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///Exponential speed control
 
     //ensure valid values
-    if(distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
-    if(distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e-10;
+    if (distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
+    if (distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e-10;
 
     double exponent = opt_.k_curv()*fabs(curv_sum_)
             + opt_.k_w()*fabs(angular_vel)
@@ -196,7 +210,18 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
             + opt_.k_g()/distance_to_goal_;
 
     //TODO: consider the minimum excitation speed
-    double v = std::max(0.4,vn_*exp(-exponent));
+    double v = driving_dir_*std::max(0.4,fabs(vn_*exp(-exponent)));
+
+    ///***///
+
+
+    ///Get the velocity sign (necessary for the calculation of delta)
+
+    if (v > 0) sign_v_ = 1;
+
+    else if (v < 0) sign_v_ = -1;
+
+    else sign_v_ = 0;
 
     ///***///
 
@@ -207,9 +232,9 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double V1 = 0.5*(std::pow(xe_,2) + std::pow(ye_,2)) + (0.5/opt_.gamma())*std::pow((theta_e - delta_),2);
 
     //use v/2 as the minimum speed, and allow larger values when the error is small
-    if(V1 >= opt_.epsilon()) v = 0.5*v;
+    if (V1 >= opt_.epsilon()) v = 0.5*v;
 
-    else if(V1 < opt_.epsilon()) v = v/(1 + opt_.b()*std::abs(path_interpol.curvature(ind_)));
+    else if (V1 < opt_.epsilon()) v = v/(1 + opt_.b()*std::abs(path_interpol.curvature(ind_)));
 
     cmd_.speed = v;
 
@@ -234,21 +259,13 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     cmd_.direction_angle = 0;
 
-    //omega_m = theta_prim + curv*s_prim
+    //omega_m = theta_e_prim + curv*s_prim
     double omega_m = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
                     /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
 
-    if(omega_m > 0.7) omega_m = 0.7;
-    if(omega_m < -0.7) omega_m = -0.7;
-    cmd_.rotation = omega_m;
-
-    ///***///
-
-    ///Get the velocity sign
-
-    if(v > 0) sign_v_ = 1;
-    else if (v < 0) sign_v_ = -1;
-    else sign_v_ = 0;
+    if (omega_m > 0.7) omega_m = 0.7;
+    if (omega_m < -0.7) omega_m = -0.7;
+    cmd_.rotation = driving_dir_*omega_m;
 
     ///***///
 
