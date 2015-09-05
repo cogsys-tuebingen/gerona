@@ -60,7 +60,7 @@ struct NonHolonomicNeighborhoodPrecise :
 
         // euclidean distance
 		  int delta = 2;
-        if(dist < 2.0) return true;
+        if(dist < 5.0) return true;
 
         if(std::abs(goal->x - reference->x) < delta &&
                 std::abs(goal->y - reference->y) < delta) {
@@ -184,7 +184,7 @@ struct PathPlanner : public Planner
 	 //                    NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermann; // Ackermann
     typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
                         NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermannReversed; // Ackermann
-    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 400, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
+    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<30, 500, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
                         NoExpansion, Pose2d, GridMap2d, 100> AStarSummitReversed; // Summit
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
