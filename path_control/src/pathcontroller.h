@@ -96,7 +96,7 @@ private:
     //! Callback for FollowPathAction feedback.
     void followPathFeedbackCB(const path_msgs::FollowPathFeedbackConstPtr &feedback);
 
-    void findPath(const geometry_msgs::PoseStamped &goal);
+    void findPath();
 
     /**
      * @brief Blocks execution until current follow_path goal is finished or timeout expires

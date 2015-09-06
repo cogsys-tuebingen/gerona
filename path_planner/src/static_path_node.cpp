@@ -130,7 +130,7 @@ struct StaticPathPlanner : public Planner
         server_.setSucceeded(success);
     }
 
-    nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,
+    nav_msgs::Path plan (const path_msgs::PlanPathGoal &goal,
                          const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                          const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
 

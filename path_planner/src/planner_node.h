@@ -65,7 +65,7 @@ protected:
      * @param from_map start pose in map coordinates
      * @param to_map goal pose in map coordinates
      */
-    virtual nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,
+    virtual nav_msgs::Path plan (const path_msgs::PlanPathGoal &goal,
                        const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                        const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) = 0;
 
@@ -120,12 +120,14 @@ private:
     geometry_msgs::PoseStamped lookupPose();
     tf::StampedTransform lookupTransform(const std::string& from, const std::string& to, const ros::Time& stamp);
 
-    nav_msgs::Path findPath(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
+    nav_msgs::Path findPath(const path_msgs::PlanPathGoal &request,
+                            const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
 
-    void planThreaded(const geometry_msgs::PoseStamped &goal,
+    void planThreaded(const path_msgs::PlanPathGoal &goal,
                       const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                       const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map);
-    nav_msgs::Path doPlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
+    nav_msgs::Path doPlan(const path_msgs::PlanPathGoal& request,
+                          const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
 
 
     nav_msgs::Path smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance);

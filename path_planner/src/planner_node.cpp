@@ -326,7 +326,12 @@ void Planner::updateGoalCallback(const geometry_msgs::PoseStampedConstPtr &goal)
 {
     ROS_INFO("planner: got goal");
 
-    findPath(lookupPose(), *goal);
+    path_msgs::PlanPathGoal request;
+    request.use_start = false;
+    request.start = lookupPose();
+    request.goal = *goal;
+
+    findPath(request, request.start, request.goal);
 }
 
 void Planner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
@@ -346,7 +351,7 @@ void Planner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
     ROS_INFO_STREAM("start pose lookup took " << sw.msElapsed() << "ms");
 
     sw.reset();
-    nav_msgs::Path path = findPath(s, goal->goal);
+    nav_msgs::Path path = findPath(*goal, s, goal->goal);
     ROS_INFO_STREAM("findPath took " << sw.msElapsed() << "ms");
 
     if(path.poses.empty()) {
@@ -365,7 +370,8 @@ void Planner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
     ROS_INFO_STREAM("execution took " << sw_global.msElapsed() << "ms");
 }
 
-nav_msgs::Path Planner::findPath(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal)
+nav_msgs::Path Planner::findPath(const path_msgs::PlanPathGoal& request,
+                                 const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal)
 {
     Stopwatch sw;
 
@@ -427,7 +433,7 @@ nav_msgs::Path Planner::findPath(const geometry_msgs::PoseStamped &start, const 
     //    cv::waitKey(100);
 
     sw.reset();
-    nav_msgs::Path path_raw = doPlan(start, goal);
+    nav_msgs::Path path_raw = doPlan(request, start, goal);
     ROS_INFO_STREAM("planning took " << sw.msElapsed() << "ms");
 
     nav_msgs::Path path;
@@ -568,7 +574,8 @@ tf::StampedTransform Planner::lookupTransform(const std::string& from, const std
 }
 
 
-nav_msgs::Path Planner::doPlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal)
+nav_msgs::Path Planner::doPlan(const path_msgs::PlanPathGoal &request,
+                               const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal)
 {
     feedback(path_msgs::PlanPathFeedback::STATUS_PLANNING);
 
@@ -615,7 +622,7 @@ nav_msgs::Path Planner::doPlan(const geometry_msgs::PoseStamped &start, const ge
 
     //nav_msgs::Path path = plan(goal, from_world, to_world, from_map, to_map);
 
-    boost::thread worker(boost::bind(&Planner::planThreaded, this, goal, from_world, to_world, from_map, to_map));
+    boost::thread worker(boost::bind(&Planner::planThreaded, this, request, from_world, to_world, from_map, to_map));
     ros::Rate spin(10);
     ros::Time start_time = ros::Time::now();
     ros::Duration max_search_time(40);
@@ -653,7 +660,7 @@ nav_msgs::Path Planner::doPlan(const geometry_msgs::PoseStamped &start, const ge
     return path;
 }
 
-void Planner::planThreaded(const geometry_msgs::PoseStamped &goal, const Pose2d &from_world, const Pose2d &to_world, const Pose2d &from_map, const Pose2d &to_map)
+void Planner::planThreaded(const path_msgs::PlanPathGoal &goal, const Pose2d &from_world, const Pose2d &to_world, const Pose2d &from_map, const Pose2d &to_map)
 {
     thread_mutex.lock();
     thread_running = true;
