@@ -199,6 +199,11 @@ struct PathPlanner : public Planner
 
     typedef AStarAckermann::PathT PathT;
 
+    enum class Algo {
+        ACKERMANN = 0,
+        SUMMIT = 1
+    };
+
     PathPlanner()
         : render_open_cells_(false)
     {
@@ -209,21 +214,24 @@ struct PathPlanner : public Planner
 
         std::transform(algo.begin(), algo.end(), algo.begin(), ::tolower);
 
-        if(algo == "ackermann") {
-            algo_to_use = Algo::ACKERMANN;
-
-        } else if(algo == "summit") {
-            algo_to_use = Algo::SUMMIT;
-
-        } else {
-            throw std::runtime_error(std::string("unknown algorithm ") + algo);
-        }
+        algo_to_use = stringToAlgorithm(algo);
 
         ROS_INFO_STREAM("planner uses algorithm: " << algo);
 
         if(render_open_cells_) {
             cell_publisher_ = nh_priv.advertise<nav_msgs::GridCells>("cells", 1, true);
         }
+    }
+
+    Algo stringToAlgorithm(const std::string& algo) const
+    {
+        if(algo == "ackermann") {
+            return Algo::ACKERMANN;
+        } else if(algo == "summit") {
+            return Algo::SUMMIT;
+        }
+
+        throw std::runtime_error(std::string("unknown algorithm ") + algo);
     }
 
     nav_msgs::Path path2msg(const PathT& path, const ros::Time &goal_timestamp)
@@ -261,7 +269,7 @@ struct PathPlanner : public Planner
 
     template <typename Algorithm>
     nav_msgs::Path planInstance (Algorithm& algo,
-                                 const geometry_msgs::PoseStamped &goal,
+                                 const path_msgs::PlanPathGoal &goal,
                                  const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                                  const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
 
@@ -296,14 +304,21 @@ struct PathPlanner : public Planner
             path = algo.empty();
         }
 
-        return path2msg(path, goal.header.stamp);
+        return path2msg(path, goal.goal.header.stamp);
 
     }
 
-    nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,
+    nav_msgs::Path plan (const path_msgs::PlanPathGoal &goal,
                          const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                          const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
-        switch(algo_to_use) {
+
+        Algo algorithm = algo_to_use;
+
+        if(!goal.algorithm.data.empty()) {
+            algorithm = stringToAlgorithm(goal.algorithm.data);
+        }
+
+        switch(algorithm) {
         case Algo::ACKERMANN:
             return planInstance(algo_ackermann, goal, from_world, to_world, from_map, to_map);
         case Algo::SUMMIT:
@@ -367,11 +382,6 @@ struct PathPlanner : public Planner
 private:
     AStarAckermann algo_ackermann;
     AStarSummit algo_summit;
-
-    enum class Algo {
-        ACKERMANN = 0,
-        SUMMIT = 1
-    };
 
     Algo algo_to_use;
 

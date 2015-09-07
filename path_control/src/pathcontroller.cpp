@@ -98,7 +98,7 @@ bool PathController::processGoal()
 //    follow_path_client_.cancelAllGoals();
 
     // send goal pose to planner and wait for the result
-    findPath(current_goal_->goal_pose);
+    findPath();
 
     ros::spinOnce();
 
@@ -302,7 +302,7 @@ void PathController::followPathFeedbackCB(const path_msgs::FollowPathFeedbackCon
     navigate_to_goal_server_.publishFeedback(nav_feedback);
 }
 
-void PathController::findPath(const geometry_msgs::PoseStamped& goal)
+void PathController::findPath()
 {
     {
         // pause all activity that can be paused:
@@ -311,9 +311,12 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
         //sys_pub_.publish(pause);
     }
 
+    const geometry_msgs::PoseStamped& goal = current_goal_->goal_pose;
+
     PlanPathGoal goal_msg;
     goal_msg.use_start = false;
     goal_msg.goal = goal;
+    goal_msg.algorithm = current_goal_->planning_algorithm;
 
     ros::Duration timeout(20.0);
     ros::Time start = ros::Time::now();

@@ -66,7 +66,7 @@ struct DynPathPlanner : public Planner
         return cost;
     }
 
-    nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,
+    nav_msgs::Path plan (const path_msgs::PlanPathGoal &goal,
                          const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                          const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
         algo.setMap(map_info);
@@ -83,7 +83,7 @@ struct DynPathPlanner : public Planner
             path = algo.empty();
         }
 
-        return path2msg(path, goal.header.stamp);
+        return path2msg(path, goal.goal.header.stamp);
 
 
 //        nav_msgs::Path p;
