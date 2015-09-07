@@ -62,6 +62,8 @@ void RobotController_Kinematic_SLP::initialize()
     // desired velocity
     vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
+
+
 }
 
 void RobotController_Kinematic_SLP::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
@@ -134,7 +136,10 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///calculate the control for the current point on the path
 
     //robot direction angle in path coordinates
-    double theta_e = MathHelper::AngleClamp(theta_meas - path_interpol.theta_p(ind_));
+    double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), theta_meas);
+
+    //////////////////////////
+    ROS_INFO("Original theta_e: %f", theta_e*180.0/M_PI);
 
     //robot position vector module
     double r = hypot(x_meas - path_interpol.p(ind_), y_meas - path_interpol.q(ind_));
@@ -143,7 +148,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double theta_r = atan2(y_meas - path_interpol.q(ind_), x_meas - path_interpol.p(ind_));
 
     //robot position vector angle in path coordinates
-    double delta_theta = MathHelper::AngleClamp(theta_r - path_interpol.theta_p(ind_));
+    double delta_theta = MathHelper::AngleDelta(path_interpol.theta_p(ind_), theta_r);
 
     //current robot position in path coordinates
     xe_ = r * cos(delta_theta);
@@ -154,10 +159,14 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     ///Determine the driving direction, and set the complementary angle in path coordinates, if driving backwards
 
-    if (theta_e > M_PI/2.0 || theta_e < -M_PI/2.0) {
+    if (theta_e > M_PI_2 || theta_e < -M_PI_2) {
 
         driving_dir_ = -1;
-        theta_e = theta_e + M_PI;
+
+        theta_e = theta_e > 0 ? MathHelper::AngleClamp(M_PI + theta_e) : MathHelper::AngleClamp(-M_PI + theta_e);
+
+        /////////////////////////////////
+        ROS_INFO("Complementary theta_e: %f", theta_e*180.0/M_PI);
     }
 
     else driving_dir_ = 1;
@@ -188,15 +197,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double angular_vel = path_driver_->getVelocity().angular.z;
     ///***///
 
-    ///Calculate the delta_ and its derivative
-
-    double delta_old = delta_;
-
-    delta_ = MathHelper::AngleClamp(-sign_v_*opt_.theta_a()*tanh(ye_));
-
-    double delta_prim = (delta_ - delta_old)/Ts_;
-    ///***///
-
 
     ///Exponential speed control
 
@@ -210,7 +210,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
             + opt_.k_g()/distance_to_goal_;
 
     //TODO: consider the minimum excitation speed
-    double v = driving_dir_*std::max(0.4,fabs(vn_*exp(-exponent)));
+    //double v = driving_dir_*std::max(0.1,fabs(vn_*exp(-exponent)));
+    double v = driving_dir_*vn_*exp(-exponent);
 
     ///***///
 
@@ -226,6 +227,16 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///***///
 
 
+    ///Calculate the delta_ and its derivative
+
+    double delta_old = delta_;
+
+    delta_ = MathHelper::AngleClamp(-sign_v_*opt_.theta_a()*tanh(ye_));
+
+    double delta_prim = (delta_ - delta_old)/Ts_;
+    ///***///
+
+
     ///Lyapunov-curvature speed control
 
     //Lyapunov function as a measure of the path following error
@@ -236,7 +247,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     else if (V1 < opt_.epsilon()) v = v/(1 + opt_.b()*std::abs(path_interpol.curvature(ind_)));
 
-    cmd_.speed = v;
+    cmd_.speed = driving_dir_*std::max(0.1, fabs(v));
 
     ///***///
 
@@ -263,11 +274,26 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double omega_m = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
                     /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
 
-    if (omega_m > 0.7) omega_m = 0.7;
-    if (omega_m < -0.7) omega_m = -0.7;
+    ////////////////////////////////////////////
+    ROS_INFO("Omega_m: %f", omega_m);
+    ROS_INFO("Delta_prim: %f", delta_prim);
+    ROS_INFO("A: %f", opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))/(theta_e - delta_));
+    ROS_INFO("B: %f",opt_.k2()*(theta_e - delta_));
+    ROS_INFO("C: %f", path_interpol.curvature(ind_)*path_interpol.s_prim());
+
+    if (omega_m > 0.8) omega_m = 0.8;
+    if (omega_m < -0.8) omega_m = -0.8;
     cmd_.rotation = driving_dir_*omega_m;
 
     ///***///
+
+    /////////////////////////////////////////////
+    ROS_INFO("Driving direction: %d", driving_dir_);
+    ROS_INFO("Linear velocity: %f", cmd_.speed);
+    ROS_INFO("Omega_m_limited: %f", omega_m);
+    ROS_INFO("Angular velocity: %f", cmd_.rotation);
+    ROS_INFO("Delta: %f", delta_old*180.0/M_PI);
+    ROS_INFO("Theta: %f", theta_meas*180.0/M_PI);
 
 
     ///plot the moving reference frame together with position vector and error components
