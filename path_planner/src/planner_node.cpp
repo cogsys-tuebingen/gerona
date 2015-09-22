@@ -257,6 +257,39 @@ void Planner::visualizeOutline(const geometry_msgs::Pose& at, int id, const std:
     viz_pub.publish(marker);
 }
 
+
+void Planner::visualizePathLine(const nav_msgs::Path &path)
+{
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "/map";
+    marker.header.stamp = ros::Time();
+    marker.ns = "planning/line";
+    marker.id = 0;
+    marker.type = visualization_msgs::Marker::LINE_STRIP;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = 0.05;
+    marker.scale.y = 0.01;
+    marker.scale.z = 0.01;
+    marker.color.a = 0.5;
+    marker.color.r = 0.0;
+    marker.color.g = 0.5;
+    marker.color.b = 1.0;
+
+    for(unsigned i = 0; i < path.poses.size(); ++i) {
+        const geometry_msgs::Pose& pose = path.poses[i].pose;
+
+         geometry_msgs::Point p= pose.position;
+
+
+        marker.points.push_back(p);
+    }
+    // close path
+    viz_pub.publish(marker);
+
+}
+
+
 void Planner::visualizePath(const nav_msgs::Path &path)
 {
     visualization_msgs::Marker marker;
@@ -879,13 +912,15 @@ void Planner::integratePointCloud(const sensor_msgs::PointCloud2 &cloud)
     }
 }
 
+
 void Planner::publish(const nav_msgs::Path &path, const nav_msgs::Path &path_raw)
 {
     /// path
     raw_path_publisher_.publish(path_raw);
     path_publisher_.publish(path);
-    visualizePath(path);
+    visualizePathLine(path);
 }
+
 
 nav_msgs::Path Planner::smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance) {
     nav_msgs::Path new_path(path);

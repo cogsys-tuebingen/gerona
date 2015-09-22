@@ -134,7 +134,7 @@ private:
 
     void visualizeOutline(const geometry_msgs::Pose &at, int id, const std::string &frame);
     void visualizePath(const nav_msgs::Path& path);
-
+    void visualizePathLine(const nav_msgs::Path &path);
 protected:
     ros::NodeHandle nh;
 
