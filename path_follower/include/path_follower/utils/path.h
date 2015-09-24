@@ -10,6 +10,11 @@
 #include <tf/tf.h>
 #include <Eigen/Core>
 
+// forward declaration
+
+class RobotController;
+
+
 //! Waypoints define the path
 struct Waypoint
 {
@@ -53,6 +58,8 @@ struct Waypoint
     double y;
     //! Orientation of the waypoint, represented as an angle ("theta")
     double orientation;
+
+    std::vector<double> actuator_cmds_;
 };
 
 
@@ -180,10 +187,12 @@ public:
      */
     float getRemainingSubPathDistance() const;
 
+    void precomputeSteerCommands(RobotController *controller);
+
 private:
     std::vector<SubPath> path_;
     //! Iterator on `path_` pointing to the current subpath.
-    std::vector<SubPath>::const_iterator current_sub_path_;
+    std::vector<SubPath>::iterator current_sub_path_;
     //! Index of the next waypoint in the current sub path.
     size_t next_waypoint_idx_;
     /**

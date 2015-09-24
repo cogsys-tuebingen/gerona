@@ -45,6 +45,9 @@ public:
     //! Is called at several points, if new path is set or movement is aborted.
     virtual void reset() {}
 
+
+    virtual void precomputeSteerCommand(Waypoint& wp_now,  Waypoint& wp_next ) {}
+
 protected:
     //! This is a subset of ControlStatus. computeMoveCommand is not allowed to report obstacles
     enum class MoveCommandStatus

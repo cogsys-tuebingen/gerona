@@ -1,6 +1,7 @@
 #include <path_follower/utils/path.h>
 
 //TODO: add unit test for this class
+#include <path_follower/controller/robotcontroller.h>
 
 void Path::clear()
 {
@@ -122,5 +123,13 @@ void Path::computeWaypointToEndDistances()
     for (int i = current_sub_path_->size()-2; i >= 0; --i) {
         float dist_to_next_waypoint = (*current_sub_path_)[i].distanceTo((*current_sub_path_)[i+1]);
         wp_distance_to_end_[i] = dist_to_next_waypoint + wp_distance_to_end_[i+1];
+    }
+}
+
+void Path::precomputeSteerCommands(RobotController *controller)
+{
+    for (int i=0;i<(int)current_sub_path_->size()-1;++i) {
+
+        controller->precomputeSteerCommand((*current_sub_path_)[i],(*current_sub_path_)[i+1]);
     }
 }
