@@ -12,6 +12,7 @@ PathController::PathController(ros::NodeHandle &nh):
     ros::param::param<int>("~num_replan_attempts", opt_.num_replan_attempts, 5);
 
     speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 5);
+    goal_pub_ = node_handle_.advertise<geometry_msgs::PoseStamped>("/move_base_simple/accepted_goal", 5);
 
     navigate_to_goal_server_.start();
     ROS_INFO("Initialisation done.");
@@ -96,6 +97,13 @@ bool PathController::processGoal()
     ROS_INFO("Wait for follow_path action server...");
     follow_path_client_.waitForServer();
 //    follow_path_client_.cancelAllGoals();
+
+    geometry_msgs::PoseStamped goal_msg = current_goal_->goal_pose;
+    if(goal_msg.header.frame_id.empty()) {
+        goal_msg.header.frame_id = "/map";
+    }
+    goal_msg.header.stamp = ros::Time::now();
+    goal_pub_.publish(goal_msg);
 
     // send goal pose to planner and wait for the result
     findPath();

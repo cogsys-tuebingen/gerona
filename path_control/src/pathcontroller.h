@@ -51,6 +51,8 @@ private:
 
     //! Publisher for text to speech messages.
     ros::Publisher speech_pub_;
+    //! Publisher for visualizing the current goal
+    ros::Publisher goal_pub_;
 
     nav_msgs::PathConstPtr requested_path_;
 
