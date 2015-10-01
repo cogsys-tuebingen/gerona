@@ -15,15 +15,13 @@
 #include <limits>
 #include <boost/algorithm/clamp.hpp>
 
-#include <time.h>
-
 #ifdef TEST_OUTPUT
 #include <std_msgs/Float64MultiArray.h>
 #endif
 
 RobotController_Unicycle_InputScaling::RobotController_Unicycle_InputScaling(PathFollower* _path_follower) :
     RobotController_Interpolation(_path_follower),
-    phi_(0.)
+    ind_(0)
 {
 
     const double k = params_.k();
@@ -52,8 +50,7 @@ void RobotController_Unicycle_InputScaling::stopMotion() {
 
     move_cmd_.setVelocity(0.f);
     move_cmd_.setDirection(0.f);
-
-    phi_ = 0.;
+    move_cmd_.setRotationalVelocity(0.f);
 
     MoveCommand cmd = move_cmd_;
     publishMoveCommand(cmd);
@@ -64,13 +61,15 @@ void RobotController_Unicycle_InputScaling::start() {
 }
 
 void RobotController_Unicycle_InputScaling::reset() {
-    old_time_ = ros::Time::now();
 
     RobotController_Interpolation::reset();
 }
 
 void RobotController_Unicycle_InputScaling::setPath(Path::Ptr path) {
     RobotController_Interpolation::setPath(path);
+
+    //reset the index of the current point
+    ind_ = 0;
 
     Eigen::Vector3d pose = path_driver_->getRobotPose();
     const double theta_diff = MathHelper::AngleDelta(path_interpol.theta_p(0), pose[2]);
@@ -96,7 +95,9 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
     double velocity_measured = dir_sign_ * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
             + v_meas_twist.linear.y * v_meas_twist.linear.y);
 
-    ROS_DEBUG("velocity_measured=%f", velocity_measured);
+    ROS_INFO("desired velocity = %f, measured velocity = %f", velocity_, velocity_measured);
+    ROS_INFO("measured.linear.x = %f, measured.linear.y = %f, measured.linear.z = %f", v_meas_twist.linear.x,
+             v_meas_twist.linear.y, v_meas_twist.linear.z);
 
     // goal test
     if (reachedGoal(pose)) {
@@ -105,6 +106,7 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
         if (path_->isDone()) {
             move_cmd_.setDirection(0.);
             move_cmd_.setVelocity(0.);
+            move_cmd_.setRotationalVelocity(0.);
 
             *cmd = move_cmd_;
 
@@ -126,43 +128,43 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
 
     // compute the length of the orthogonal projection and the according path index
     double min_dist = std::numeric_limits<double>::max();
-    unsigned int ind = 0;
-    for (unsigned int i = 0; i < path_interpol.n(); ++i) {
+    unsigned int old_ind = ind_;
+    for (unsigned int i = old_ind; i < path_interpol.n(); ++i) {
         const double dx = path_interpol.p(i) - pose[0];
         const double dy = path_interpol.q(i) - pose[1];
 
         const double dist = hypot(dx, dy);
         if (dist < min_dist) {
             min_dist = dist;
-            ind = i;
+            ind_ = i;
         }
     }
 
     // draw a line to the orthogonal projection
     geometry_msgs::Point from, to;
     from.x = pose[0]; from.y = pose[1];
-    to.x = path_interpol.p(ind); to.y = path_interpol.q(ind);
+    to.x = path_interpol.p(ind_); to.y = path_interpol.q(ind_);
     visualizer_->drawLine(12341234, from, to, "map", "kinematic", 1, 0, 0, 1, 0.01);
 
 
     // distance to the path (path to the right -> positive)
-    Eigen::Vector2d path_vehicle(pose[0] - path_interpol.p(ind), pose[1] - path_interpol.q(ind));
+    Eigen::Vector2d path_vehicle(pose[0] - path_interpol.p(ind_), pose[1] - path_interpol.q(ind_));
 
     const double d =
-            MathHelper::AngleDelta(path_interpol.theta_p(ind), MathHelper::Angle(path_vehicle)) > 0. ?
+            MathHelper::AngleDelta(path_interpol.theta_p(ind_), MathHelper::Angle(path_vehicle)) > 0. ?
                 min_dist : -min_dist;
 
 
     // theta_e = theta_vehicle - theta_path (orientation error)
-    double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind), pose[2]);
+    double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), pose[2]);
 
     // if dir_sign is negative, we drive backwards and set theta_e to the complementary angle
     if (getDirSign() < 0.)
         theta_e = MathHelper::NormalizeAngle(M_PI + theta_e);
 
     // curvature and first two derivations
-    const double c = path_interpol.curvature(ind);
-    const double dc_ds = path_interpol.curvature_prim(ind);
+    const double c = path_interpol.curvature(ind_);
+    const double dc_ds = path_interpol.curvature_prim(ind_);
 
     // 1 - dc(s)
     const double _1_dc = 1. - d * c;
@@ -208,12 +210,12 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
 
 
     move_cmd_.setRotationalVelocity(v2);
-    move_cmd_.setVelocity(getDirSign() * (float) v1);
+    move_cmd_.setVelocity(getDirSign() * v1);
     *cmd = move_cmd_;
 
 
 #ifdef TEST_OUTPUT
-    publishTestOutput(ind, d, theta_e, phi_, velocity_measured);
+    publishTestOutput(ind_, d, theta_e, velocity_measured);
 #endif
 
 
@@ -235,13 +237,12 @@ void RobotController_Unicycle_InputScaling::publishMoveCommand(
 #ifdef TEST_OUTPUT
 void RobotController_Unicycle_InputScaling::publishTestOutput(const unsigned int waypoint, const double d,
                                                                             const double theta_e,
-                                                                            const double phi, const double v) const {
+                                                                            const double v) const {
     std_msgs::Float64MultiArray msg;
 
     msg.data.push_back((double) waypoint);
     msg.data.push_back(d);
     msg.data.push_back(theta_e);
-    msg.data.push_back(phi);
     msg.data.push_back(v);
 
     test_pub_.publish(msg);

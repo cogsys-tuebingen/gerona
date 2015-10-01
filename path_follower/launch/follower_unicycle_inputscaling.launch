@@ -35,7 +35,7 @@ Launch the path follower with the kinematic controller for a unicycle robot.
     
     <!-- parameters, that are dependent of the controller or the robot model -->
 	 <param name="vehicle_length" value="0.5" />
-	 <param name="k" value="1.5" />
+	 <param name="k" value="1.0" />
 	 <param name="max_steering_angle_speed" value="4.0" /> <!-- ~4.0 should be realistic -->
 
     <remap from="scan" to="scan/filtered" />

@@ -49,8 +49,7 @@ private:
     //! A publisher to publish on "/test_output"
     ros::Publisher test_pub_;
     //! Publishes waypoint, d, theta_e, phi and v on "/test_ouput"
-    void publishTestOutput(const unsigned int waypoint, const double d, const double theta_e,
-                                  const double phi, const double v) const;
+    void publishTestOutput(const unsigned int waypoint, const double d, const double theta_e, const double v) const;
 #endif
 
     //! Sets the tuning parameters k1, k2, k3 according to k
@@ -60,14 +59,14 @@ private:
     double lookUpAngle(const double angle) const;
 
     //! The MoveCommand that is beeing published
-    MoveCommand move_cmd_;
+    MoveCommand move_cmd_ = true;
 
     //! Tuning parameters
     double k1_, k2_;
-    //! Current steering angle
-    double phi_;
-    //! The time of the last update (to compute the time that has passed since then)
-    ros::Time old_time_;
+
+    //! Index of the current point
+    unsigned int ind_;
+
 };
 
 #endif // ROBOTCONTROLLER_UNICYCLE_INPUTSCALING_H
