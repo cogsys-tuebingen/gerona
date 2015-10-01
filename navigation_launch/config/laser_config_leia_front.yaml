@@ -1,0 +1,16 @@
+scan_filter_chain:
+- name: shadows
+  type: ScanShadowsFilter
+  params:
+    min_angle: 20
+    max_angle: 180
+    neighbors: 5
+    window: 1
+#- name: ray_filter
+#  type: laser_filters/RayLaserFilter
+#  params:
+#    calibrate: 0                  # bool if filter should be calibrated first 
+#    calib_file_path: "/home/robot/.ray_filter_leia_front_calibration.yaml"
+#    calibration_cycles: 300      # the number of scans used for callibration
+#    calibration_radius: 0.8       # all rays with range below this value are beeing filtered out
+#    extra_rays: 2                 # the number of valid rays around the invalid rays that are beeing filtered to be shure
