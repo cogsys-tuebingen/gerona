@@ -95,9 +95,14 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 		return RobotController::MoveCommandStatus::ERROR;
 
 	const Eigen::Vector3d pose = path_driver_->getRobotPose();
-	const geometry_msgs::Twist velocity_measured = path_driver_->getVelocity();
+    const geometry_msgs::Twist v_meas_twist = path_driver_->getVelocity();
 
-	ROS_DEBUG("velocity_measured=%f", velocity_measured.linear.x);
+    double velocity_measured = dir_sign_ * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
+            + v_meas_twist.linear.y * v_meas_twist.linear.y);
+
+    ROS_INFO("desired velocity = %f, measured velocity = %f", velocity_, velocity_measured);
+    ROS_INFO("measured.linear.x = %f, measured.linear.y = %f, measured.linear.z = %f", v_meas_twist.linear.x,
+             v_meas_twist.linear.y, v_meas_twist.linear.z);
 
 	// goal test
 	if (reachedGoal(pose)) {
@@ -259,7 +264,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 
 
 #ifdef TEST_OUTPUT
-	publishTestOutput(ind, d, theta_e, phi_, velocity_measured.linear.x);
+    publishTestOutput(ind, d, theta_e, phi_, velocity_measured);
 #endif
 
 	ROS_DEBUG("d=%f, theta_e=%f, c=%f, c'=%f, c''=%f", d, theta_e, c, dc_ds, dc_ds_2);

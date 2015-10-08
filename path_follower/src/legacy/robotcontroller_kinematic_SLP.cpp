@@ -138,9 +138,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     //robot direction angle in path coordinates
     double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), theta_meas);
 
-    //////////////////////////
-    ROS_INFO("Original theta_e: %f", theta_e*180.0/M_PI);
-
     //robot position vector module
     double r = hypot(x_meas - path_interpol.p(ind_), y_meas - path_interpol.q(ind_));
 
@@ -163,10 +160,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
         driving_dir_ = -1;
 
-        theta_e = theta_e > 0 ? MathHelper::AngleClamp(M_PI + theta_e) : MathHelper::AngleClamp(-M_PI + theta_e);
+        theta_e = MathHelper::NormalizeAngle(M_PI + theta_e);
 
-        /////////////////////////////////
-        ROS_INFO("Complementary theta_e: %f", theta_e*180.0/M_PI);
     }
 
     else driving_dir_ = 1;
@@ -216,22 +211,11 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///***///
 
 
-    ///Get the velocity sign (necessary for the calculation of delta)
-
-    if (v > 0) sign_v_ = 1;
-
-    else if (v < 0) sign_v_ = -1;
-
-    else sign_v_ = 0;
-
-    ///***///
-
-
     ///Calculate the delta_ and its derivative
 
     double delta_old = delta_;
 
-    delta_ = MathHelper::AngleClamp(-sign_v_*opt_.theta_a()*tanh(ye_));
+    delta_ = MathHelper::AngleClamp(-driving_dir_*opt_.theta_a()*tanh(ye_));
 
     double delta_prim = (delta_ - delta_old)/Ts_;
     ///***///
@@ -274,26 +258,12 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double omega_m = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
                     /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
 
-    ////////////////////////////////////////////
-    ROS_INFO("Omega_m: %f", omega_m);
-    ROS_INFO("Delta_prim: %f", delta_prim);
-    ROS_INFO("A: %f", opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))/(theta_e - delta_));
-    ROS_INFO("B: %f",opt_.k2()*(theta_e - delta_));
-    ROS_INFO("C: %f", path_interpol.curvature(ind_)*path_interpol.s_prim());
 
     if (omega_m > 0.8) omega_m = 0.8;
     if (omega_m < -0.8) omega_m = -0.8;
-    cmd_.rotation = driving_dir_*omega_m;
+    cmd_.rotation = omega_m;
 
     ///***///
-
-    /////////////////////////////////////////////
-    ROS_INFO("Driving direction: %d", driving_dir_);
-    ROS_INFO("Linear velocity: %f", cmd_.speed);
-    ROS_INFO("Omega_m_limited: %f", omega_m);
-    ROS_INFO("Angular velocity: %f", cmd_.rotation);
-    ROS_INFO("Delta: %f", delta_old*180.0/M_PI);
-    ROS_INFO("Theta: %f", theta_meas*180.0/M_PI);
 
 
     ///plot the moving reference frame together with position vector and error components

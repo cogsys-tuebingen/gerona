@@ -22,6 +22,7 @@
 #include <path_follower/legacy/robotcontroller_4ws_purepursuit.h>
 #include <path_follower/legacy/robotcontroller_4ws_stanley.h>
 #include <path_follower/legacy/robotcontroller_4ws_inputscaling.h>
+#include <path_follower/legacy/robotcontroller_unicycle_inputscaling.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/legacy/robotcontroller_differential_orthexp.h>
 #include <path_follower/legacy/robotcontroller_kinematic_SLP.h>
@@ -62,117 +63,124 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     beep_pause_(2.0),
     is_running_(false)
 {
-    // Init. action server
-    follow_path_server_.registerGoalCallback([this]() { followPathGoalCB(); });
-    follow_path_server_.registerPreemptCallback([this]() {followPathPreemptCB(); });
 
-    speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
-    beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
+	// Init. action server
+	follow_path_server_.registerGoalCallback([this]() { followPathGoalCB(); });
+	follow_path_server_.registerPreemptCallback([this]() {followPathPreemptCB(); });
 
-    odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
+	speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
+	beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
 
-    // Choose robot controller
-    // FIXME: implement factory for this...
-    ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
-    if (opt_.controller() == "ackermann_pid") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-        controller_ = new RobotController_Ackermann_Pid(this);
+	odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
-    } else if (opt_.controller() == "ackermann_purepursuit") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-        controller_ = new Robotcontroller_Ackermann_PurePursuit(this);
+	// Choose robot controller
+	ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
+	if (opt_.controller() == "ackermann_pid") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		controller_ = new RobotController_Ackermann_Pid(this);
 
-    } else if (opt_.controller() == "ackermann_kinematic") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-        controller_ = new RobotController_Ackermann_Kinematic(this);
+	} else if (opt_.controller() == "ackermann_purepursuit") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		controller_ = new Robotcontroller_Ackermann_PurePursuit(this);
 
-    } else if (opt_.controller() == "ackermann_stanley") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-        controller_ = new RobotController_Ackermann_Stanley(this);
+	} else if (opt_.controller() == "ackermann_kinematic") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		controller_ = new RobotController_Ackermann_Kinematic(this);
 
-    } else if (opt_.controller() == "4ws_purepursuit") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-        controller_ = new RobotController_4WS_PurePursuit(this);
+	} else if (opt_.controller() == "ackermann_stanley") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		controller_ = new RobotController_Ackermann_Stanley(this);
 
-    } else if (opt_.controller() == "4ws_stanley") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-        controller_ = new RobotController_4WS_Stanley(this);
+	} else if (opt_.controller() == "4ws_purepursuit") {
+	if (opt_.obstacle_avoider_use_collision_box())
+		obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+	controller_ = new RobotController_4WS_PurePursuit(this);
 
-    } else if (opt_.controller() == "4ws_inputscaling") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-        controller_ = new RobotController_4WS_InputScaling(this);
+	} else if (opt_.controller() == "4ws_stanley") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		controller_ = new RobotController_4WS_Stanley(this);
+
+	} else if (opt_.controller() == "4ws_inputscaling") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		controller_ = new RobotController_4WS_InputScaling(this);
+
+    } else if (opt_.controller() == "unicycle_inputscaling") {
+            if (opt_.obstacle_avoider_use_collision_box())
+                obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+            controller_ = new RobotController_Unicycle_InputScaling(this);
 
     } else if (opt_.controller() == "patsy_pid") {
         RobotControllerTrailer *ctrl = new RobotControllerTrailer(this,&this->node_handle_);
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorPatsy(&pose_listener_,ctrl);
         controller_ = ctrl;
-    } else if (opt_.controller() == "omnidrive_orthexp") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
-        controller_ = new RobotController_Omnidrive_OrthogonalExponential(this);
 
-    } else if (opt_.controller() == "ackermann_orthexp") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
-        controller_ = new RobotController_Ackermann_OrthogonalExponential(this);
+	} else if (opt_.controller() == "omnidrive_orthexp") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+		controller_ = new RobotController_Omnidrive_OrthogonalExponential(this);
 
-    } else if (opt_.controller() == "differential_orthexp") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
-        controller_ = new RobotController_Differential_OrthogonalExponential(this);
-    } else if (opt_.controller() == "kinematic_SLP") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
-        controller_ = new RobotController_Kinematic_SLP(this);
-    } else {
-        ROS_FATAL("Unknown robot controller. Shutdown.");
-        exit(1);
-    }
+	} else if (opt_.controller() == "ackermann_orthexp") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+		controller_ = new RobotController_Ackermann_OrthogonalExponential(this);
 
-    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
-                                                                &PathFollower::obstacleCloudCB, this);
+	} else if (opt_.controller() == "differential_orthexp") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+		controller_ = new RobotController_Differential_OrthogonalExponential(this);
+	} else if (opt_.controller() == "kinematic_SLP") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+		controller_ = new RobotController_Kinematic_SLP(this);
+	} else {
+		ROS_FATAL("Unknown robot controller. Shutdown.");
+		exit(1);
+	}
 
-    visualizer_ = Visualizer::getInstance();
+	obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
+																					&PathFollower::obstacleCloudCB, this);
 
-
-    /*** Initialize supervisors ***/
-
-    // register callback for new waypoint event.
-    path_->registerNextWaypointCallback([this]() { supervisors_.notifyNewWaypoint(); });
-
-    if (opt_.supervisor_use_path_lookout()) {
-        supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );
-    }
-
-    // Waypoint timeout
-    if (opt_.supervisor_use_waypoint_timeout()) {
-        Supervisor::Ptr waypoint_timeout(
-                    new WaypointTimeout(ros::Duration( opt_.supervisor_waypoint_timeout_time())));
-        supervisors_.addSupervisor(waypoint_timeout);
-    }
-
-    // Distance to path
-    if (opt_.supervisor_use_distance_to_path()) {
-        supervisors_.addSupervisor(Supervisor::Ptr(
-                                       new DistanceToPathSupervisor(opt_.supervisor_distance_to_path_max_dist())));
-    }
+	visualizer_ = Visualizer::getInstance();
 
 
-    //  if no obstacle avoider was set, use the none-avoider
-    if (obstacle_avoider_ == nullptr) {
-        obstacle_avoider_ = new NoneAvoider();
-    }
+	/*** Initialize supervisors ***/
 
-    follow_path_server_.start();
-    ROS_INFO("Initialisation done.");
+	// register callback for new waypoint event.
+	path_->registerNextWaypointCallback([this]() { supervisors_.notifyNewWaypoint(); });
+
+	if (opt_.supervisor_use_path_lookout()) {
+		supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );
+	}
+
+	// Waypoint timeout
+	if (opt_.supervisor_use_waypoint_timeout()) {
+		Supervisor::Ptr waypoint_timeout(
+					new WaypointTimeout(ros::Duration( opt_.supervisor_waypoint_timeout_time())));
+		supervisors_.addSupervisor(waypoint_timeout);
+	}
+
+	// Distance to path
+	if (opt_.supervisor_use_distance_to_path()) {
+		supervisors_.addSupervisor(Supervisor::Ptr(
+												new DistanceToPathSupervisor(opt_.supervisor_distance_to_path_max_dist())));
+	}
+
+
+	//  if no obstacle avoider was set, use the none-avoider
+	if (obstacle_avoider_ == nullptr) {
+		obstacle_avoider_ = new NoneAvoider();
+	}
+
+	follow_path_server_.start();
+	ROS_INFO("Initialisation done.");
+
 }
 
 
