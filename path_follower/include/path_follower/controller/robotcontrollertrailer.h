@@ -1,11 +1,17 @@
 #ifndef RobotControllerTrailer_H
 #define RobotControllerTrailer_H
 
+/// SYSTEM
+#include <tf/transform_listener.h>
+#include <string>
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/pidcontroller.hpp>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/utils/visualizer.h>
+
+/// FORWARD CLASS DEFINITIONS
+class PathController;
 
 /**
  * @brief PID controller for robots with car-like/Ackermann drive.
@@ -13,9 +19,11 @@
 class RobotControllerTrailer : public RobotController
 {
 public:
-    RobotControllerTrailer(PathFollower *path_driver);
+    RobotControllerTrailer(PathFollower *path_driver, ros::NodeHandle *nh);
     virtual void stopMotion();
     virtual void reset();
+    virtual void setPath(Path::Ptr path);
+    virtual void precomputeSteerCommand(Waypoint& wp_now,  Waypoint& wp_next );
 
 protected:
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
@@ -28,28 +36,47 @@ private:
         P<double> dead_time;
         P<double> l;
         P<float> pid_ta;
-        P<float> pid_kp;
-        P<float> pid_ki;
-        P<float> pid_kd;
+        P<float> fwd_cap_steer_deg;
+
+        P<float> bwd_cap_steer_deg;
         P<float> max_steer;
+        P<float> weight_dist;
+        P<float> weight_angle;
+
+        P<std::string> controller_type;
 
         ControllerParameters():
             dead_time(this, "~dead_time", 0.1, "Time step that is used by predictPose"),
-            l(this, "~l", 0.38, "Distance between front and rear axes of the robot."),
+            l(this, "~wheel_base", 0.98, "Distance between front and rear axes of the robot."),
             pid_ta(this, "~pid/ta", 0.03, "Update interval of the PID controller."),
-            pid_kp(this, "~pid/kp", 1.0, "Proportional coefficient of the PID controller."),
-            pid_ki(this, "~pid/ki", 0.001, "Integral coefficient of the PID controller."),
-            pid_kd(this, "~pid/kd", 0, "Derivative coefficient of the PID controller."),
-            max_steer(this, "~max_steer", 0.52, "Maximal allowed steering angle. Higher angles are capped by this value.")
+
+            fwd_cap_steer_deg(this, "~fwd/cap_steer_deg", 5.0, "Maxiimum allowed deviation from precomputed angle."),
+            bwd_cap_steer_deg(this, "~bwd/cap_steer_deg", 5.0, "Maxiimum allowed deviation from precomputed angle."),
+            max_steer(this, "~max_steer", 1.3, "Maximal allowed steering angle. Higher angles are capped by this value."),
+            weight_dist(this, "~pc_weight_dist", 1.0, "Weight of distance error"),
+            weight_angle(this, "~pc_weight_angle", 1.0, "Weight of angle error"),
+            controller_type(this,"~controller_type","simple","simple or cascade controller")
+
+
         {}
     } opt_;
-
-
+    ros::NodeHandle *nh_;
+    PathController *path_ctrl_;
+    ros::Subscriber agv_vel_sub_;
+    ros::Publisher agv_steer_is_pub_, agv_steer_set_pub_, agv_error_angle_pub_,agv_error_dist_pub_;
     //! The current move command.
     MoveCommand cmd_;
 
+    //! current velocity and trailer angle
+    geometry_msgs::Twist agv_vel_;
+
+
+    // current precomputed steering angles
+    double steer_des_fwd_,steer_des_bwd_;
+
     //! PID controller for the steering angle
-    PidController<1> steer_pid_;
+
+    Visualizer* visualizer_;
 
     /**
      * \brief The current behaviour of the controller.
@@ -95,7 +122,7 @@ private:
      * @brief Calls the PID controller and updates `cmd_`
      * @param error Error between actual and desired state. Used as input for the PID controller.
      */
-    void updateCommand(float error);
+    void updateCommand(float dist_error, float angle_error);
 
     /**
      * @brief Determines the velocity for the next command.
@@ -133,7 +160,24 @@ private:
      */
     double calculateSidewaysDistanceError() const;
 
+
+    double calcAngleError (const Eigen::Vector2d &front_pred, const Eigen::Vector2d &rear_pred) const;
+
     void visualizeCarrot(const Eigen::Vector2d &carrot, int id, float r, float g, float b) const;
+
+
+
+    bool getTrailerAngle(double& angle) const;
+
+
+    void updateAgvCb(const geometry_msgs::TwistConstPtr &vel);
+
+
+    virtual double calculateAngleError();
+
+    tf::TransformListener trailer_listener_;
+
+
 };
 
 #endif // RobotControllerTrailer_H

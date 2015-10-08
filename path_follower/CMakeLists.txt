@@ -177,6 +177,8 @@ add_executable(path_follower_node
   src/controller/robotcontroller_interpolation.cpp
   src/controller/robotcontroller_ackermann_pid.cpp
   src/controller/robotcontrollertrailer.cpp
+  src/controller/path_simple_pid.cpp
+  src/controller/path_cascade_pid.cpp
 
   src/legacy/robotcontroller_ackermann_orthexp.cpp
   src/legacy/robotcontroller_ackermann_purepursuit.cpp
