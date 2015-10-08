@@ -61,7 +61,7 @@ private:
             theta_a(this, "~theta_a", M_PI/4.0, ""),
             epsilon(this, "~epsilon", 0.5, ""),
             b(this, "~b", 0.2, ""),
-            max_angular_velocity(this, "~max_angular_velocity", 2.0, ""),
+            max_angular_velocity(this, "~max_angular_velocity", 0.8, ""),
             look_ahead_dist(this, "~look_ahead_dist", 0.5, ""),
             k_o(this, "~k_o", 0.3, ""),
             k_g(this, "~k_g", 0.4, ""),
@@ -146,8 +146,6 @@ private:
     uint ind_;
     //driving direction sign
     int driving_dir_;
-    //velocity sign
-    int sign_v_;
     
     //x component of the following error in path coordinates
     double xe_;
@@ -160,6 +158,8 @@ private:
     double distance_to_goal_;
     //distance to the nearest obstacle
     double distance_to_obstacle_;
+    //Euclidian distance to the goal
+    double distance_to_goal_eucl_;
 };
 
 #endif // ROBOTCONTROLLER_KINEMATIC_SLP_H
