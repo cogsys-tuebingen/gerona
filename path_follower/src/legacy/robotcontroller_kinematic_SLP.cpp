@@ -27,6 +27,7 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_
     delta_(0),
     Ts_(0.02),
     ind_(0),
+    proj_ind_(0),
     driving_dir_(0),
     xe_(0),
     ye_(0),
@@ -58,6 +59,9 @@ void RobotController_Kinematic_SLP::initialize()
 
     //reset the index of the current point on the path
     ind_ = 0;
+
+    //reset the index of the orthogonal projection
+    proj_ind_ = 0;
 
     //reset the distance to the goal
     distance_to_goal_eucl_ = 1e6;
@@ -137,6 +141,25 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///***///
 
 
+    //find the orthogonal projection to the curve and extract the corresponding index
+
+    double dist = 0;
+    double orth_proj = std::numeric_limits<double>::max();
+
+    for (unsigned int i = proj_ind_; i < path_interpol.n(); i++){
+
+        dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
+        if(dist < orth_proj){
+
+            orth_proj = dist;
+            proj_ind_ = i;
+
+        }
+
+    }
+    //***//
+
+
     ///calculate the control for the current point on the path
 
     //robot direction angle in path coordinates
@@ -190,9 +213,9 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     }
 
     //calculate the distance from the orthogonal projection to the goal, w.r.t. path
-    distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(ind_);
+    distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(proj_ind_);
     ROS_INFO("Path length: %f", path_interpol.s(path_interpol.n()-1));
-    ROS_INFO("Driven length: %f", path_interpol.s(ind_));
+    ROS_INFO("Driven length: %f", path_interpol.s(proj_ind_));
     ROS_INFO("Distance to goal: %f", distance_to_goal_);
 
     //get the robot's current angular velocity

@@ -142,8 +142,10 @@ private:
     //sampling time
     double Ts_;
 
-    //index of the current point on the path
+    //index of the current point on the path (origin of the F-S frame)
     uint ind_;
+    //index of the orthogonal projection to the path
+    uint proj_ind_;
     //driving direction sign
     int driving_dir_;
     
