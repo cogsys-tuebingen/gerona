@@ -160,8 +160,6 @@ private:
     double distance_to_goal_;
     //distance to the nearest obstacle
     double distance_to_obstacle_;
-    //Euclidian distance to the goal
-    double distance_to_goal_eucl_;
 };
 
 #endif // ROBOTCONTROLLER_KINEMATIC_SLP_H

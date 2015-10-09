@@ -33,8 +33,7 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_
     ye_(0),
     curv_sum_(1e-3),
     distance_to_goal_(1e6),
-    distance_to_obstacle_(1),
-    distance_to_goal_eucl_(1e6)
+    distance_to_obstacle_(1)
 {
     laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
                                                              &RobotController_Kinematic_SLP::laserFront, this);
@@ -62,9 +61,6 @@ void RobotController_Kinematic_SLP::initialize()
 
     //reset the index of the orthogonal projection
     proj_ind_ = 0;
-
-    //reset the distance to the goal
-    distance_to_goal_eucl_ = 1e6;
 
     // desired velocity
     vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
@@ -214,9 +210,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     //calculate the distance from the orthogonal projection to the goal, w.r.t. path
     distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(proj_ind_);
-    ROS_INFO("Path length: %f", path_interpol.s(path_interpol.n()-1));
-    ROS_INFO("Driven length: %f", path_interpol.s(proj_ind_));
-    ROS_INFO("Distance to goal: %f", distance_to_goal_);
 
     //get the robot's current angular velocity
     double angular_vel = path_driver_->getVelocity().angular.z;
@@ -335,25 +328,20 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     //***//
 
+    double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
+                                  y_meas - path_interpol.q(path_interpol.n()-1));
+
+    ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl);
 
     // check for end
-    double distance_to_goal_eucl_now = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
-                                      y_meas - path_interpol.q(path_interpol.n()-1));
-    double distance_to_goal_eucl_diff = distance_to_goal_eucl_now -
-                                        distance_to_goal_eucl_;
-    if(distance_to_goal_eucl_diff > 1e-3 & distance_to_goal_ < 1e-5 & distance_to_goal_eucl_ < 5e-2){
-    ROS_INFO("Dist_to_goal_eucl_now: %f, dist_to_goal_eucl_next: %f", distance_to_goal_eucl_now,
-      distance_to_goal_eucl_);
-    ROS_INFO("Dist_to_goal_eucl_diff: %f", distance_to_goal_eucl_diff);
-    ROS_INFO("Distance to goal: %f", distance_to_goal_);
-    return MoveCommandStatus::REACHED_GOAL;
-    }
-    distance_to_goal_eucl_ = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
-                                         y_meas - path_interpol.q(path_interpol.n()-1));
-    ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl_);
-    if(distance_to_goal_eucl_ <= path_driver_->getOptions().goal_tolerance()) {
+    if((ind_ == path_interpol.n()-1) & (xe_ > 0.0)){
+
+        ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl);
+
         return MoveCommandStatus::REACHED_GOAL;
+
     } else {
+
         *cmd = cmd_;
 
         return MoveCommandStatus::OKAY;
