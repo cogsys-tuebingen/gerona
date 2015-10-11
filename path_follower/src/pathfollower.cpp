@@ -386,7 +386,7 @@ bool PathFollower::callObstacleAvoider(MoveCommand *cmd)
     }
 
     if (obstacle_cloud_ == nullptr) {
-        ROS_ERROR("No obstacle cloud received. Obstacle avoidace is skipped!");
+        ROS_ERROR_THROTTLE(1, "No obstacle cloud received. Obstacle avoidace is skipped!");
         return false;
     }
 
