@@ -4,8 +4,9 @@
     		output="screen" respawn="true">
         <param name="use_map_topic" value="false" />
         <param name="map_service" value="/dynamic_map/cost" />
+        <param name="cost_map_service" value="/dynamic_map/cost" />
         <param name="use_cost_map" value="true" />
-        <param name="use_collision_gridmap" value="false" />
+        <param name="use_collision_gridmap" value="true" />
         <param name="use_unknown_cells" value="true" />
 
         <param name="preprocess" value="false" />

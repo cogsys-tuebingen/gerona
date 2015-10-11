@@ -14,6 +14,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <opencv2/core/core.hpp>
 
 /**
  * @brief The Planner class is a base class for other planning algorithms
@@ -90,6 +91,15 @@ protected:
      */
     nav_msgs::Path smoothPath(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
 
+    nav_msgs::Path optimizePathCost(const nav_msgs::Path& path);
+
+    /**
+     * @brief segmentPath splits a path into its constituent parts
+     * @param path
+     * @return
+     */
+    std::vector<nav_msgs::Path> segmentPath(const nav_msgs::Path& path);
+
     /**
      * @brief convert convert a ros pose to a lib_path::Pose
      * @param rhs ros pose
@@ -116,6 +126,9 @@ private:
 
     void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud);
     void integratePointCloud(const sensor_msgs::PointCloud2 &cloud);
+
+    void calculateGradient(cv::Mat& gx, cv::Mat& gy);
+    void publishGradient(const cv::Mat &gx, const cv::Mat &gy);
 
     geometry_msgs::PoseStamped lookupPose();
     tf::StampedTransform lookupTransform(const std::string& from, const std::string& to, const ros::Time& stamp);
@@ -170,6 +183,7 @@ protected:
     actionlib::SimpleActionServer<path_msgs::PlanPathAction> server_;
 
     ros::Publisher viz_pub;
+    ros::Publisher viz_array_pub;
     ros::Publisher cost_pub;
 
     tf::TransformListener tfl;
