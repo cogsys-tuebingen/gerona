@@ -2,8 +2,7 @@
 uint8 FAILURE_MODE_ABORT = 0
 uint8 FAILURE_MODE_REPLAN = 1
 
-geometry_msgs/PoseStamped goal_pose
-std_msgs/String planning_algorithm
+path_msgs/Goal goal
 
 uint8 failure_mode
 float32 velocity

@@ -95,12 +95,16 @@ struct StaticPathPlanner : public Planner
         nh_priv.param("resolution", resolution_, 0.1);
     }
 
+    virtual bool supportsGoalType(int /*type*/) const override
+    {
+        return true;
+    }
 
     void execute(const path_msgs::PlanPathGoalConstPtr &goal)
     {
         nav_msgs::Path path_raw = nav_msgs::Path();
 
-        tf::poseMsgToTF(goal->goal.pose, pose_);
+        tf::poseMsgToTF(goal->goal.pose.pose, pose_);
 //        pose = tf::Transform(tf::createIdentityQuaternion(), tf::Vector3(0,0,0));
 
         path_raw.header.frame_id = "map";

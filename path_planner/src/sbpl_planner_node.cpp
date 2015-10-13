@@ -41,6 +41,11 @@ struct SBPLPathPlanner : public Planner
         createFootprint();
     }
 
+    virtual bool supportsGoalType(int type) const override
+    {
+        return type == path_msgs::PlanPathGoal::GOAL_TYPE_POSE;
+    }
+
     void initEnvironment(EnvironmentNAVXYTHETALAT& env) {
 
         int width = map_info->getWidth();

@@ -49,6 +49,11 @@ struct OMPLPlanner : public Planner
         //setup.setPlanner(base::PlannerPtr(new control::PDST(setup.getSpaceInformation())));
     }
 
+    virtual bool supportsGoalType(int type) const override
+    {
+        return type == path_msgs::PlanPathGoal::GOAL_TYPE_POSE;
+    }
+
 private:
 
     bool isStateValid(const ob::State *state) const

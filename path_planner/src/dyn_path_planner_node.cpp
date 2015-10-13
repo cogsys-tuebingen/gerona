@@ -34,6 +34,11 @@ struct DynPathPlanner : public Planner
     DynPathPlanner()
     {}
 
+    virtual bool supportsGoalType(int type) const override
+    {
+        return type == path_msgs::Goal::GOAL_TYPE_POSE;
+    }
+
     nav_msgs::Path path2msg(const PathT& path, const ros::Time &goal_timestamp)
     {
         nav_msgs::Path path_out;
@@ -83,7 +88,7 @@ struct DynPathPlanner : public Planner
             path = algo.empty();
         }
 
-        return path2msg(path, goal.goal.header.stamp);
+        return path2msg(path, goal.goal.pose.header.stamp);
 
 
 //        nav_msgs::Path p;

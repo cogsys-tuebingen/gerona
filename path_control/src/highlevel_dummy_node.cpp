@@ -129,7 +129,7 @@ private:
         ROS_INFO("Send goal...");
 
         path_msgs::NavigateToGoalGoal goal;
-        goal.goal_pose = *pose;
+        goal.goal.pose = *pose;
         goal.failure_mode = failure_mode_;
         goal.velocity = target_speed_;
 
