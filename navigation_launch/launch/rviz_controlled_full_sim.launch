@@ -41,4 +41,6 @@ demonstrating the navigation framework.
       <arg name="use_planner_static" value="$(arg use_planner_static)" />
       <arg name="use_planner_default" value="$(arg use_planner_default)" />
     </include>
+
+    <param name="/path_planner/render_open_cells" value="false" />
 </launch>

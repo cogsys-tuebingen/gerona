@@ -32,7 +32,7 @@ struct NonHolonomicNeighborhoodNoEndOrientation :
     using Parent::distance_step_pixel;
 
     template <class NodeType>
-    static bool isNearEnough(NodeType* goal, NodeType* reference) {
+    static bool isGoal(NodeType* goal, NodeType* reference) {
         return std::abs(goal->x - reference->x) <= distance_step_pixel / 2 &&
                 std::abs(goal->y - reference->y) <= distance_step_pixel / 2;
     }
@@ -48,7 +48,7 @@ struct NonHolonomicNeighborhoodPrecise :
     using Parent::distance_step_pixel;
 
     template <class NodeType>
-    static bool isNearEnough(NodeType* goal, NodeType* reference) {
+    static bool isGoal(NodeType* goal, NodeType* reference) {
         double angle_dist_ref = MathHelper::AngleClamp(goal->theta - reference->theta);
         static const double angle_threshold = M_PI / 8;
         if(std::abs(angle_dist_ref) > angle_threshold) {
@@ -212,6 +212,8 @@ struct PathPlanner : public Planner
         std::string algo = "ackermann";
         nh_priv.param("algorithm", algo, algo);
 
+        nh_priv.param("oversearch_distance", oversearch_distance_, 2.0);
+
         std::transform(algo.begin(), algo.end(), algo.begin(), ::tolower);
 
         algo_to_use = stringToAlgorithm(algo);
@@ -278,10 +280,15 @@ struct PathPlanner : public Planner
         if(use_cost_map_) {
             cells.header = cost_map.header;
             cells.cell_width = cells.cell_height = cost_map.info.resolution;
-            cells.cells.clear();
 
             algo.setCostFunction(true);
+
+        } else {
+            cells.header = goal.goal.header;
+            cells.cell_width = cells.cell_height = 0.05;
         }
+
+        cells.cells.clear();
 
         PathT path;
         try {
@@ -289,12 +296,13 @@ struct PathPlanner : public Planner
                             "\nto " << to_map.theta);
 
             if(render_open_cells_) {
-                path = algo.findPath(from_map, to_map, boost::bind(&PathPlanner::renderCells, this));
+                path = algo.findPath(from_map, to_map,
+                                     boost::bind(&PathPlanner::renderCells, this), oversearch_distance_);
 
                 // render cells once more -> remove the last ones
                 renderCells();
             } else {
-                path = algo.findPath(from_map, to_map);
+                path = algo.findPath(from_map, to_map, oversearch_distance_);
             }
 
             ROS_INFO_STREAM("path with " << path.size() << " nodes found");
@@ -333,12 +341,12 @@ struct PathPlanner : public Planner
     template <class Algorithm>
     void renderCellsInstance(Algorithm& algo)
     {
-        if(use_cost_map_ && render_open_cells_) {
+        if(render_open_cells_) {
             auto& open = algo.getOpenList();
 
-            double res = cost_map.info.resolution;
-            double ox = cost_map.info.origin.position.x;
-            double oy = cost_map.info.origin.position.y;
+//            double res = cost_map.info.resolution;
+//            double ox = cost_map.info.origin.position.x;
+//            double oy = cost_map.info.origin.position.y;
 
             for(auto it = open.begin(); it != open.end(); ++it) {
                 const auto* node = *it;
@@ -383,7 +391,8 @@ private:
     AStarAckermann algo_ackermann;
     AStarSummit algo_summit;
 
-    Algo algo_to_use;
+    Algo algo_to_use;    
+    double oversearch_distance_;
 
     bool render_open_cells_;
     nav_msgs::GridCells cells;
