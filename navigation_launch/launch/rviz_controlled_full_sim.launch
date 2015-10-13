@@ -8,6 +8,18 @@ path_control using the action interface. It is thus good for testing and
 demonstrating the navigation framework.
 -->
 <launch>
+    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER 4ws_stanley)" />
+
+    <arg name="use_planner_cost" default="false" />
+    <arg name="use_planner_dynamic" default="false" />
+    <arg name="use_planner_static" default="false" />
+    <arg name="use_planner_default" default="true" />
+    
+    <arg name="use_karto" default="true" />
+    <arg name="use_karto_segmented" default="false" />
+    <arg name="use_amcl" default="false" />
+    <arg name="use_hector" default="false" />
+
     <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy"
     		output="screen" respawn="true">
         <param name="target_speed" value="0.7" />
@@ -17,7 +29,16 @@ demonstrating the navigation framework.
 
     <include file="$(find navigation_launch)/launch/laser_filter.launch" />
     <include file="$(find navigation_launch)/launch/full.launch">
-        <arg name="use_hector" value="false" />
-        <arg name="use_karto" value="true" />
+      <arg name="robot_controller" value="$(arg robot_controller)" />
+
+      <arg name="use_karto" value="$(arg use_karto)" />
+      <arg name="use_karto_segmented" value="$(arg use_karto_segmented)" />
+      <arg name="use_amcl" value="$(arg use_amcl)" />
+      <arg name="use_hector" value="$(arg use_hector)" />
+
+      <arg name="use_planner_cost" value="$(arg use_planner_cost)" />
+      <arg name="use_planner_dynamic" value="$(arg use_planner_dynamic)" />
+      <arg name="use_planner_static" value="$(arg use_planner_static)" />
+      <arg name="use_planner_default" value="$(arg use_planner_default)" />
     </include>
 </launch>

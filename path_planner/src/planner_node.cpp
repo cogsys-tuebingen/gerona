@@ -522,16 +522,19 @@ nav_msgs::Path Planner::postprocess(const nav_msgs::Path& path)
 
     ROS_INFO("postprocessing");
 
+    nav_msgs::Path working_copy = path;
+
     //    nav_msgs::Path simplified_path = simplifyPath(path);
     //    ROS_INFO_STREAM("simplifying took " << sw.msElapsed() << "ms");
 
-    sw.restart();
-    nav_msgs::Path pre_smooted_path = optimizePathCost(path);
-    ROS_INFO_STREAM("optimizing cost took " << sw.msElapsed() << "ms");
+    if(use_cost_map_) {
+        sw.restart();
+        working_copy = optimizePathCost(working_copy);
+        ROS_INFO_STREAM("optimizing cost took " << sw.msElapsed() << "ms");
+    }
 
-
     sw.restart();
-    nav_msgs::Path interpolated_path = interpolatePath(pre_smooted_path, 0.5);
+    nav_msgs::Path interpolated_path = interpolatePath(working_copy, 0.5);
     ROS_INFO_STREAM("interpolation took " << sw.msElapsed() << "ms");
 
 
@@ -920,7 +923,7 @@ void Planner::calculateGradient(cv::Mat &gx, cv::Mat &gy)
     cv::Mat cost_mat(cost.info.height, cost.info.width, CV_8UC1, (uint8_t*)(cost.data.data()));
 
     /// Sobel Version
-//    double s = 1e-2;
+    //    double s = 1e-2;
     //    cv::Sobel(cost_mat, gx, CV_32F, 1, 0, 5, s);
     //    cv::Sobel(cost_mat, gy, CV_32F, 0, 1, 5, s);
 
@@ -997,7 +1000,7 @@ nav_msgs::Path Planner::optimizePathCost(const nav_msgs::Path& path) {
     cv::Mat gx, gy;
     calculateGradient(gx, gy);
 
-//    publishGradient(gx, gy);
+    //    publishGradient(gx, gy);
 
     double last_change = -2 * tolerance;
     double change = 0;
