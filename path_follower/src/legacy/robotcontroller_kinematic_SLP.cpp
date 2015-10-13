@@ -27,13 +27,13 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_
     delta_(0),
     Ts_(0.02),
     ind_(0),
+    proj_ind_(0),
     driving_dir_(0),
-    sign_v_(0),
     xe_(0),
     ye_(0),
     curv_sum_(1e-3),
-    distance_to_goal_(1e-3),
-    distance_to_obstacle_(1e-3)
+    distance_to_goal_(1e6),
+    distance_to_obstacle_(1)
 {
     laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
                                                              &RobotController_Kinematic_SLP::laserFront, this);
@@ -58,6 +58,9 @@ void RobotController_Kinematic_SLP::initialize()
 
     //reset the index of the current point on the path
     ind_ = 0;
+
+    //reset the index of the orthogonal projection
+    proj_ind_ = 0;
 
     // desired velocity
     vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
@@ -90,6 +93,7 @@ void RobotController_Kinematic_SLP::laserBack(const sensor_msgs::LaserScanConstP
     findMinDistance();
 }
 
+//TODO: work with the obstacle map!!!
 void RobotController_Kinematic_SLP::findMinDistance()
 {
     std::vector<float> ranges;
@@ -131,6 +135,25 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double y_meas = current_pose[1];
     double theta_meas = current_pose[2];
     ///***///
+
+
+    //find the orthogonal projection to the curve and extract the corresponding index
+
+    double dist = 0;
+    double orth_proj = std::numeric_limits<double>::max();
+
+    for (unsigned int i = proj_ind_; i < path_interpol.n(); i++){
+
+        dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
+        if(dist < orth_proj){
+
+            orth_proj = dist;
+            proj_ind_ = i;
+
+        }
+
+    }
+    //***//
 
 
     ///calculate the control for the current point on the path
@@ -186,28 +209,10 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     }
 
     //calculate the distance from the orthogonal projection to the goal, w.r.t. path
-    distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(ind_);
+    distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(proj_ind_);
 
     //get the robot's current angular velocity
     double angular_vel = path_driver_->getVelocity().angular.z;
-    ///***///
-
-
-    ///Exponential speed control
-
-    //ensure valid values
-    if (distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
-    if (distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e-10;
-
-    double exponent = opt_.k_curv()*fabs(curv_sum_)
-            + opt_.k_w()*fabs(angular_vel)
-            + opt_.k_o()/distance_to_obstacle_
-            + opt_.k_g()/distance_to_goal_;
-
-    //TODO: consider the minimum excitation speed
-    //double v = driving_dir_*std::max(0.1,fabs(vn_*exp(-exponent)));
-    double v = driving_dir_*vn_*exp(-exponent);
-
     ///***///
 
 
@@ -224,14 +229,13 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///Lyapunov-curvature speed control
 
     //Lyapunov function as a measure of the path following error
+    double v = vn_;
     double V1 = 0.5*(std::pow(xe_,2) + std::pow(ye_,2)) + (0.5/opt_.gamma())*std::pow((theta_e - delta_),2);
 
     //use v/2 as the minimum speed, and allow larger values when the error is small
     if (V1 >= opt_.epsilon()) v = 0.5*v;
 
     else if (V1 < opt_.epsilon()) v = v/(1 + opt_.b()*std::abs(path_interpol.curvature(ind_)));
-
-    cmd_.speed = driving_dir_*std::max(0.1, fabs(v));
 
     ///***///
 
@@ -241,7 +245,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double s_old = path_interpol.s_new();
 
     //calculate the speed of the "virtual vehicle"
-    path_interpol.set_s_prim(v * cos(theta_e) + opt_.k1() * xe_);
+    double s_prim_tmp = v * cos(theta_e) + opt_.k1() * xe_;
+    path_interpol.set_s_prim(s_prim_tmp > 0 ? s_prim_tmp : 0);
 
     //approximate the first derivative and calculate the next point
     double s_temp = Ts_*path_interpol.s_prim() + s_old;
@@ -259,11 +264,31 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
                     /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
 
 
-    if (omega_m > 0.8) omega_m = 0.8;
-    if (omega_m < -0.8) omega_m = -0.8;
+    if (omega_m > opt_.max_angular_velocity()) omega_m = opt_.max_angular_velocity();
+    if (omega_m < -opt_.max_angular_velocity()) omega_m = -opt_.max_angular_velocity();
     cmd_.rotation = omega_m;
 
     ///***///
+
+
+    ///Exponential speed control
+
+    //ensure valid values
+    if (distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
+    if (distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e-10;
+
+    double exponent = opt_.k_curv()*fabs(curv_sum_)
+            + opt_.k_w()*fabs(angular_vel)
+            + opt_.k_o()/distance_to_obstacle_
+            + opt_.k_g()/distance_to_goal_;
+
+    //TODO: consider the minimum excitation speed
+    v = v * exp(-exponent);
+
+    cmd_.speed = driving_dir_*std::max((double)path_driver_->getOptions().min_velocity(), fabs(v));
+
+    ///***///
+
 
 
     ///plot the moving reference frame together with position vector and error components
@@ -303,15 +328,20 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     //***//
 
-
-    // check for end
     double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
-                                         y_meas - path_interpol.q(path_interpol.n()-1));
+                                  y_meas - path_interpol.q(path_interpol.n()-1));
+
     ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl);
 
-    if(distance_to_goal_eucl <= path_driver_->getOptions().goal_tolerance()) {
+    // check for end
+    if((ind_ == path_interpol.n()-1) & (xe_ > 0.0)){
+
+        ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl);
+
         return MoveCommandStatus::REACHED_GOAL;
+
     } else {
+
         *cmd = cmd_;
 
         return MoveCommandStatus::OKAY;

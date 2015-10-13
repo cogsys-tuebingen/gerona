@@ -61,7 +61,7 @@ private:
             theta_a(this, "~theta_a", M_PI/4.0, ""),
             epsilon(this, "~epsilon", 0.5, ""),
             b(this, "~b", 0.2, ""),
-            max_angular_velocity(this, "~max_angular_velocity", 2.0, ""),
+            max_angular_velocity(this, "~max_angular_velocity", 0.8, ""),
             look_ahead_dist(this, "~look_ahead_dist", 0.5, ""),
             k_o(this, "~k_o", 0.3, ""),
             k_g(this, "~k_g", 0.4, ""),
@@ -142,12 +142,12 @@ private:
     //sampling time
     double Ts_;
 
-    //index of the current point on the path
+    //index of the current point on the path (origin of the F-S frame)
     uint ind_;
+    //index of the orthogonal projection to the path
+    uint proj_ind_;
     //driving direction sign
     int driving_dir_;
-    //velocity sign
-    int sign_v_;
     
     //x component of the following error in path coordinates
     double xe_;
