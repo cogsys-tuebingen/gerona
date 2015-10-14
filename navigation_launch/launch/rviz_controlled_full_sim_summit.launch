@@ -15,9 +15,9 @@ demonstrating the navigation framework.
         <remap from="/rviz_goal" to="/move_base_simple/goal" />
     </node>
 
+    <remap from="/cmd_vel" to="/summit_xl/robot_control/command" />
+
+
     <include file="$(find navigation_launch)/launch/laser_filter.launch" />
-    <include file="$(find navigation_launch)/launch/full.launch">
-        <arg name="use_hector" value="false" />
-        <arg name="use_karto" value="true" />
-    </include>
+    <include file="$(find navigation_launch)/launch/full.launch" />
 </launch>

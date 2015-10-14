@@ -18,6 +18,10 @@
 #include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
 #include <path_follower/legacy/robotcontroller_ackermann_purepursuit.h>
 #include <path_follower/legacy/robotcontroller_ackermann_kinematic.h>
+#include <path_follower/legacy/robotcontroller_ackermann_stanley.h>
+#include <path_follower/legacy/robotcontroller_4ws_purepursuit.h>
+#include <path_follower/legacy/robotcontroller_4ws_stanley.h>
+#include <path_follower/legacy/robotcontroller_4ws_inputscaling.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/legacy/robotcontroller_differential_orthexp.h>
 #include <path_follower/legacy/robotcontroller_kinematic_SLP.h>
@@ -68,21 +72,42 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
     // Choose robot controller
+    // FIXME: implement factory for this...
     ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
     if (opt_.controller() == "ackermann_pid") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
         controller_ = new RobotController_Ackermann_Pid(this);
 
-	 } else if (opt_.controller() == "ackermann_purepursuit") {
+    } else if (opt_.controller() == "ackermann_purepursuit") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-		  controller_ = new Robotcontroller_Ackermann_PurePursuit(this);
+        controller_ = new Robotcontroller_Ackermann_PurePursuit(this);
 
-	 } else if (opt_.controller() == "ackermann_kinematic") {
-		  if (opt_.obstacle_avoider_use_collision_box())
-				obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-		  controller_ = new RobotController_Ackermann_Kinematic(this);
+    } else if (opt_.controller() == "ackermann_kinematic") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+        controller_ = new RobotController_Ackermann_Kinematic(this);
+
+    } else if (opt_.controller() == "ackermann_stanley") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+        controller_ = new RobotController_Ackermann_Stanley(this);
+
+    } else if (opt_.controller() == "4ws_purepursuit") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+        controller_ = new RobotController_4WS_PurePursuit(this);
+
+    } else if (opt_.controller() == "4ws_stanley") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+        controller_ = new RobotController_4WS_Stanley(this);
+
+    } else if (opt_.controller() == "4ws_inputscaling") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+        controller_ = new RobotController_4WS_InputScaling(this);
 
     } else if (opt_.controller() == "patsy_pid") {
         RobotControllerTrailer *ctrl = new RobotControllerTrailer(this,&this->node_handle_);
@@ -436,10 +461,10 @@ void PathFollower::stop()
 bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& result)
 {
     /* TODO:
-     * The global use of the result-constants as status codes is a bit problematic, as there are feedback
-     * states, which do not imply that the path execution is finished (and thus there is no result to send).
-     * This is currently the case for collisions.
-     */
+      * The global use of the result-constants as status codes is a bit problematic, as there are feedback
+      * states, which do not imply that the path execution is finished (and thus there is no result to send).
+      * This is currently the case for collisions.
+      */
 
     // constants for return codes
     const bool DONE   = false;
@@ -533,21 +558,30 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
 
     int id = 0;
     bool is_duplicate_wp ;
+
+    // TODO: does this really do what we think it does?
+    // FIXME: refactor this method
     for(unsigned i = 1; i < n; ++i){
         const Waypoint current_point(path.poses[i]);
+
+        // filter identical points that lead to the "unsorted" alglib exception
+        const bool is_identical = current_point.x == last_point.x
+                && current_point.y == last_point.y;
+        if(!is_identical || !only_one_segment) {
+            // append to current segment if not in "filter" mode
+            current_segment.push_back(current_point);
+        }
 
         double diff_last_x = current_point.x - last_point.x;
         double diff_last_y = current_point.y - last_point.y;
         double diff_last_angle = MathHelper::AngleClamp(current_point.orientation - last_point.orientation);
         if (diff_last_x*diff_last_x+diff_last_y*diff_last_y<WAYPOINT_POS_DIFF_TOL*WAYPOINT_POS_DIFF_TOL
                 && fabs(diff_last_angle)<WAYPOINT_ANGLE_DIFF_TOL) {
-           // duplicate waypoint
+            // duplicate waypoint
             is_duplicate_wp = true;
         } else {
             is_duplicate_wp = false;
         }
-        // append to current segment
-        current_segment.push_back(current_point);
 
         bool is_the_last_node = i == n-1;
         bool segment_ends_with_this_node = false;
@@ -556,11 +590,12 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
             // this is the last node
             segment_ends_with_this_node = true;
 
-        } else {
+        } else if (!is_identical) {
             const Waypoint next_point(path.poses[i+1]);
 
             // if angle between last direction and next direction to large -> segment ends
-
+            double diff_last_x = current_point.x - last_point.x;
+            double diff_last_y = current_point.y - last_point.y;
             double last_angle = std::atan2(diff_last_y, diff_last_x);
 
             double diff_next_x = next_point.x - current_point.x;
@@ -570,6 +605,7 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
             double angle = MathHelper::AngleClamp(last_angle - next_angle);
 
             bool split_segment = std::abs(angle) > M_PI / 3.0;
+
             if(!only_one_segment && split_segment && !is_duplicate_wp) {
                 // new segment!
                 // current node is the last one of the old segment

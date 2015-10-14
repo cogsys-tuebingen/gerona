@@ -12,6 +12,7 @@ PathController::PathController(ros::NodeHandle &nh):
     ros::param::param<int>("~num_replan_attempts", opt_.num_replan_attempts, 5);
 
     speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 5);
+    goal_pub_ = node_handle_.advertise<geometry_msgs::PoseStamped>("/move_base_simple/accepted_goal", 5);
 
     navigate_to_goal_server_.start();
     ROS_INFO("Initialisation done.");
@@ -97,8 +98,15 @@ bool PathController::processGoal()
     follow_path_client_.waitForServer();
 //    follow_path_client_.cancelAllGoals();
 
+    geometry_msgs::PoseStamped goal_msg = current_goal_->goal_pose;
+    if(goal_msg.header.frame_id.empty()) {
+        goal_msg.header.frame_id = "/map";
+    }
+    goal_msg.header.stamp = ros::Time::now();
+    goal_pub_.publish(goal_msg);
+
     // send goal pose to planner and wait for the result
-    findPath(current_goal_->goal_pose);
+    findPath();
 
     ros::spinOnce();
 
@@ -302,7 +310,7 @@ void PathController::followPathFeedbackCB(const path_msgs::FollowPathFeedbackCon
     navigate_to_goal_server_.publishFeedback(nav_feedback);
 }
 
-void PathController::findPath(const geometry_msgs::PoseStamped& goal)
+void PathController::findPath()
 {
     {
         // pause all activity that can be paused:
@@ -311,9 +319,12 @@ void PathController::findPath(const geometry_msgs::PoseStamped& goal)
         //sys_pub_.publish(pause);
     }
 
+    const geometry_msgs::PoseStamped& goal = current_goal_->goal_pose;
+
     PlanPathGoal goal_msg;
     goal_msg.use_start = false;
     goal_msg.goal = goal;
+    goal_msg.algorithm = current_goal_->planning_algorithm;
 
     ros::Duration timeout(20.0);
     ros::Time start = ros::Time::now();
