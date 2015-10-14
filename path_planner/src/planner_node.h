@@ -135,6 +135,8 @@ protected:
     void preempt();
     void feedback(int status);
 
+    nav_msgs::Path empty() const;
+
 protected:
     virtual bool supportsGoalType(int type) const = 0;
 

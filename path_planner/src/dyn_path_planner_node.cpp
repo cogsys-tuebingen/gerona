@@ -85,7 +85,7 @@ struct DynPathPlanner : public Planner
         }
         catch(const std::logic_error& e) {
             ROS_ERROR_STREAM("no path found: " << e.what());
-            path = algo.empty();
+            path = {};
         }
 
         return path2msg(path, goal.goal.pose.header.stamp);

@@ -19,7 +19,7 @@ using namespace lib_path;
 Planner::Planner()
     : nh_priv("~"),
       server_(nh, "plan_path", boost::bind(&Planner::execute, this, _1), false),
-      map_info(NULL), map_rotation_yaw_(0.0)
+      map_info(NULL), map_rotation_yaw_(0.0), thread_running(false)
 {
     std::string target_topic = "/goal";
     nh_priv.param("target_topic", target_topic, target_topic);
@@ -638,7 +638,7 @@ nav_msgs::Path Planner::planImpl(const path_msgs::PlanPathGoal &request)
 
     if(!supportsGoalType(request.goal.type)) {
         ROS_FATAL_STREAM("requested goal type " << request.goal.type << " is not supported.");
-        return {};
+        return empty();
     }
 
     switch(request.goal.type) {
@@ -653,7 +653,7 @@ nav_msgs::Path Planner::planImpl(const path_msgs::PlanPathGoal &request)
 
     default:
         ROS_FATAL_STREAM("requested goal type " << request.goal.type << " is unknown.");
-        return {};
+        return empty();
     }
 }
 
@@ -661,7 +661,7 @@ nav_msgs::Path Planner::planWithoutTargetPose(const path_msgs::PlanPathGoal &req
                                               const Pose2d &from_world, const Pose2d &from_map)
 {
     ROS_FATAL_STREAM("requested goal type " << request.goal.type << " is not implemented.");
-    return {};
+    return empty();
 }
 
 void Planner::transformPose(const geometry_msgs::PoseStamped& pose, lib_path::Pose2d& world, lib_path::Pose2d& map)
@@ -1175,11 +1175,14 @@ void Planner::integratePointCloud(const sensor_msgs::PointCloud2 &cloud)
 
 void Planner::publish(const nav_msgs::Path &path, const nav_msgs::Path &path_raw)
 {
-    /// path
-    raw_path_publisher.publish(path_raw);
-    path_publisher.publish(path);
-    ROS_INFO("*************************\n********************\n*************vis path\n");
-    visualizePath(path);
+    if(!path_raw.poses.empty()) {
+        raw_path_publisher.publish(path_raw);
+    }
+    if(!path.poses.empty()) {
+        path_publisher.publish(path);
+        visualizePath(path);
+    }
+
 }
 
 nav_msgs::Path Planner::smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance) {
@@ -1245,4 +1248,12 @@ nav_msgs::Path Planner::smoothPathSegment(const nav_msgs::Path& path, double wei
     }
 
     return new_path;
+}
+
+nav_msgs::Path Planner::empty() const
+{
+    nav_msgs::Path res;
+    res.header.stamp = ros::Time::now();
+    res.header.frame_id = "/map";
+    return res;
 }
