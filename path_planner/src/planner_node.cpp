@@ -149,7 +149,8 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map, bool is_cost_map) {
 
 
         if(use_collision_gridmap_) {
-            map_info = new lib_path::CollisionGridMap2d(map.info.width, map.info.height, map.info.resolution, size_forward, size_backward, size_width);
+            double map_yaw=0.0;
+            map_info = new lib_path::CollisionGridMap2d(map.info.width, map.info.height, map_yaw, map.info.resolution, size_forward, size_backward, size_width);
         } else {
             map_info = new lib_path::SimpleGridMap2d(map.info.width, map.info.height, map.info.resolution);
         }
