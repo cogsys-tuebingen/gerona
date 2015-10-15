@@ -169,6 +169,7 @@ struct MapGoalTest
                 const nav_msgs::OccupancyGrid& map, const lib_path::SimpleGridMap2d* map_info)
         : algo(algo),
           start(start),
+          has_heuristic_goal(false),
           min_dist(min_dist),
           map_info(map_info), map(map),
           res(map.info.resolution),
@@ -202,21 +203,43 @@ struct MapGoalTest
 
         const int8_t& val = map.data.at(idx);
 
-        if(val > 0) {
-            std::cerr << (int) val << std::endl;
-        }
-
         if(val > 32) {
-            algo.addGoalCandidate(node, 255 - val);
-            return true;
+            if(has_heuristic_goal) {
+                double dist_to_heuristic_goal = std::hypot(wx - heuristic_goal.x, wy - heuristic_goal.y);
+                algo.addGoalCandidate(node, dist_to_heuristic_goal);
+
+            } else {
+                algo.addGoalCandidate(node, 255 - val);
+            }
             ++candidates;
         }
 
-        return candidates > 16;
+        return candidates > 64;
+    }
+
+    const Pose2d* getHeuristicGoal() const
+    {
+        if(has_heuristic_goal) {
+            std::cerr << "heuristic goal " << &heuristic_goal << std::endl;
+            return &heuristic_goal;
+        } else {
+            std::cerr << "no heuristic goal " << std::endl;
+            return NULL;
+        }
+    }
+
+    void setHeuristicGoal(const Pose2d& goal)
+    {
+        has_heuristic_goal = true;
+        heuristic_goal = goal;
     }
 
     Algorithm& algo;
     const Pose2d& start;
+
+    bool has_heuristic_goal;
+    Pose2d heuristic_goal;
+
     double min_dist;
 
     const lib_path::SimpleGridMap2d * map_info;
@@ -402,6 +425,14 @@ struct PathPlanner : public Planner
             MapGoalTest<Algorithm> goal_test(algo, from_world,
                                              request.goal.min_dist,
                                              request.goal.map, map_info);
+
+            if(request.goal.has_search_dir) {
+                Pose2d goal;
+                goal.x = request.goal.search_dir.x;
+                goal.y = request.goal.search_dir.y;
+                goal.theta = 0;
+                goal_test.setHeuristicGoal(goal);
+            }
 
             if(render_open_cells_) {
                 path = algo.findPath(from_map, goal_test,
