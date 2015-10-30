@@ -626,7 +626,7 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
             // Marker for subpaths
             visualizer_->drawMark(id++, ((geometry_msgs::Pose)current_point).position, "paths", 0.2,0.2,0.2);
 
-
+            current_segment.pop_back();
             subpaths.push_back(current_segment);
             current_segment.clear();
 

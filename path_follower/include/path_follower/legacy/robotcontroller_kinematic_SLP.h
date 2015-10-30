@@ -25,11 +25,6 @@ protected:
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
     
-    virtual bool isOmnidirectional() const
-    {
-        return true;
-    }
-    
     virtual void initialize();
     
     void laserBack(const sensor_msgs::LaserScanConstPtr& scan_back);
@@ -134,6 +129,9 @@ private:
     
     std::vector<float> ranges_front_;
     std::vector<float> ranges_back_;
+
+    void reset();
+    void setPath(Path::Ptr path);
     
     //nominal velocity
     double vn_;
@@ -146,8 +144,6 @@ private:
     uint ind_;
     //index of the orthogonal projection to the path
     uint proj_ind_;
-    //driving direction sign
-    int driving_dir_;
     
     //x component of the following error in path coordinates
     double xe_;

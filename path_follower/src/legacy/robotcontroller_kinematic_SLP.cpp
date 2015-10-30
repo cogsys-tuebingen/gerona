@@ -9,6 +9,7 @@
 // PROJECT
 #include <path_follower/pathfollower.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
+#include "../alglib/interpolation.h"
 #include <utils_general/MathHelper.h>
 #include <cmath>
 
@@ -16,6 +17,7 @@
 #include <deque>
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#include <boost/algorithm/clamp.hpp>
 
 using namespace Eigen;
 
@@ -28,7 +30,6 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_
     Ts_(0.02),
     ind_(0),
     proj_ind_(0),
-    driving_dir_(0),
     xe_(0),
     ye_(0),
     curv_sum_(1e-3),
@@ -115,6 +116,25 @@ void RobotController_Kinematic_SLP::start()
     path_driver_->getCoursePredictor().reset();
 }
 
+void RobotController_Kinematic_SLP::reset()
+{
+    RobotController_Interpolation::reset();
+}
+
+void RobotController_Kinematic_SLP::setPath(Path::Ptr path) {
+    RobotController_Interpolation::setPath(path);
+
+    Eigen::Vector3d pose = path_driver_->getRobotPose();
+    const double theta_diff = MathHelper::AngleDelta(path_interpol.theta_p(0), pose[2]);
+
+    // decide whether to drive forward or backward
+    if (theta_diff > M_PI_2 || theta_diff < -M_PI_2) {
+        setDirSign(-1.f);
+    } else {
+        setDirSign(1.f);
+    }
+}
+
 RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCommand(MoveCommand *cmd)
 {
     // omni drive can rotate.
@@ -135,6 +155,41 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double y_meas = current_pose[1];
     double theta_meas = current_pose[2];
     ///***///
+
+
+    // check for the subpaths, and see if the goal is reached
+    if((ind_ == path_interpol.n()-1) & (xe_ > 0.0)) {
+        path_->switchToNextSubPath();
+        // check if we reached the actual goal or just the end of a subpath
+        if (path_->isDone()) {
+
+            cmd_.speed = 0;
+            cmd_.direction_angle = 0;
+            cmd_.rotation = 0;
+
+            *cmd = cmd_;
+
+            double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
+                                          y_meas - path_interpol.q(path_interpol.n()-1));
+
+            ROS_INFO("Final positioning error: %f m", distance_to_goal_eucl);
+
+            return RobotController::MoveCommandStatus::REACHED_GOAL;
+
+        } else {
+
+            ROS_INFO("Next subpath...");
+            // interpolate the next subpath
+            try {
+                path_interpol.interpolatePath(path_);
+                publishInterpolatedPath();
+            } catch(const alglib::ap_error& error) {
+                throw std::runtime_error(error.msg);
+            }
+            // invert the driving direction
+            setDirSign(-getDirSign());
+        }
+    }
 
 
     //find the orthogonal projection to the curve and extract the corresponding index
@@ -177,17 +232,12 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///***///
 
 
-    ///Determine the driving direction, and set the complementary angle in path coordinates, if driving backwards
+    ///Check the driving direction, and set the complementary angle in path coordinates, if driving backwards
 
-    if (theta_e > M_PI_2 || theta_e < -M_PI_2) {
-
-        driving_dir_ = -1;
-
+    if (getDirSign() < 0.0) {
         theta_e = MathHelper::NormalizeAngle(M_PI + theta_e);
-
+        ROS_WARN_THROTTLE(1, "Driving backwards...");
     }
-
-    else driving_dir_ = 1;
 
     ///***///
 
@@ -220,7 +270,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     double delta_old = delta_;
 
-    delta_ = MathHelper::AngleClamp(-driving_dir_*opt_.theta_a()*tanh(ye_));
+    delta_ = MathHelper::AngleClamp(-getDirSign()*opt_.theta_a()*tanh(ye_));
 
     double delta_prim = (delta_ - delta_old)/Ts_;
     ///***///
@@ -264,8 +314,9 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
                     /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
 
 
-    if (omega_m > opt_.max_angular_velocity()) omega_m = opt_.max_angular_velocity();
-    if (omega_m < -opt_.max_angular_velocity()) omega_m = -opt_.max_angular_velocity();
+    /*if (omega_m > opt_.max_angular_velocity()) omega_m = opt_.max_angular_velocity();
+    if (omega_m < -opt_.max_angular_velocity()) omega_m = -opt_.max_angular_velocity();*/
+    omega_m = boost::algorithm::clamp(omega_m, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
     cmd_.rotation = omega_m;
 
     ///***///
@@ -285,7 +336,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     //TODO: consider the minimum excitation speed
     v = v * exp(-exponent);
 
-    cmd_.speed = driving_dir_*std::max((double)path_driver_->getOptions().min_velocity(), fabs(v));
+    cmd_.speed = getDirSign()*std::max((double)path_driver_->getOptions().min_velocity(), fabs(v));
 
     ///***///
 
@@ -328,24 +379,24 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     //***//
 
-    double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
+    /*double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
                                   y_meas - path_interpol.q(path_interpol.n()-1));
 
-    ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl);
+    ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl);*/
 
     // check for end
-    if((ind_ == path_interpol.n()-1) & (xe_ > 0.0)){
+    /*if((ind_ == path_interpol.n()-1) & (xe_ > 0.0)){
 
         ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl);
 
         return MoveCommandStatus::REACHED_GOAL;
 
-    } else {
+    } else {*/
 
         *cmd = cmd_;
 
         return MoveCommandStatus::OKAY;
-    }
+    /*}*/
 }
 
 void RobotController_Kinematic_SLP::publishMoveCommand(const MoveCommand &cmd) const

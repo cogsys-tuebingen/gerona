@@ -38,7 +38,7 @@ protected:
 
     virtual const InterpolationParameters& getParameters() const = 0;
 
-private:
+protected:
     void publishInterpolatedPath();
 
 protected:

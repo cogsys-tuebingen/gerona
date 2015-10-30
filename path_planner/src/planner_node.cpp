@@ -519,7 +519,7 @@ nav_msgs::Path Planner::postprocess(const nav_msgs::Path& path)
 
     if(use_cost_map_) {
         sw.restart();
-        working_copy = optimizePathCost(working_copy);
+    //    working_copy = optimizePathCost(working_copy);
         ROS_INFO_STREAM("optimizing cost took " << sw.msElapsed() << "ms");
     }
 
