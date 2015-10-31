@@ -16,8 +16,13 @@ public:
         ObstacleDetectorPolygon(tf_listener)
     {}
 
+
+    virtual bool avoid(MoveCommand * const cmd, ObstacleCloud::ConstPtr obstacles, const ObstacleAvoider::State &state) override;
+
 protected:
     virtual PolygonWithTfFrame getPolygon(float width, float length, float course_angle, float curve_enlarge_factor) const;
+
+    bool velocity_;
 };
 
 #endif // OBSTACLEDETECTORACKERMANN_H

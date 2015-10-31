@@ -137,7 +137,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 		controller_ = new RobotController_Differential_OrthogonalExponential(this);
 	} else if (opt_.controller() == "kinematic_SLP") {
 		if (opt_.obstacle_avoider_use_collision_box())
-			obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
 		controller_ = new RobotController_Kinematic_SLP(this);
 	} else {
 		ROS_FATAL("Unknown robot controller. Shutdown.");
