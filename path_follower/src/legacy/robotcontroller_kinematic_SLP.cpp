@@ -125,7 +125,13 @@ void RobotController_Kinematic_SLP::setPath(Path::Ptr path) {
     RobotController_Interpolation::setPath(path);
 
     Eigen::Vector3d pose = path_driver_->getRobotPose();
-    const double theta_diff = MathHelper::AngleDelta(path_interpol.theta_p(0), pose[2]);
+
+    const Path& p = *path;
+    const std::vector<Waypoint> subp = p.getCurrentSubPath();
+    const double theta_0 = subp[0].orientation;
+    Eigen::Vector2d looking_dir_normalized(std::cos(theta_0), std::sin(theta_0));
+    Eigen::Vector2d delta(subp[1].x - subp[0].x, subp[1].y - subp[0].y);
+    const double theta_diff = std::acos(delta.dot(looking_dir_normalized) / delta.norm());
 
     // decide whether to drive forward or backward
     if (theta_diff > M_PI_2 || theta_diff < -M_PI_2) {

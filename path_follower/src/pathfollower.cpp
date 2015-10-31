@@ -573,9 +573,9 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
         const Waypoint current_point(path.poses[i]);
 
         // filter identical points that lead to the "unsorted" alglib exception
-        const bool is_identical = current_point.x == last_point.x
-                && current_point.y == last_point.y;
-        if(!is_identical || !only_one_segment) {
+        const bool is_identical = std::abs(current_point.x - last_point.x) < 1e-4
+                && std::abs(current_point.y - last_point.y) < 1e-4;
+        if(!is_identical) {
             // append to current segment if not in "filter" mode
             current_segment.push_back(current_point);
         }
