@@ -399,6 +399,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     } else {*/
 
+
         *cmd = cmd_;
 
         return MoveCommandStatus::OKAY;

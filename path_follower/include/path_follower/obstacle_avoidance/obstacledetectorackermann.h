@@ -22,7 +22,7 @@ public:
 protected:
     virtual PolygonWithTfFrame getPolygon(float width, float length, float course_angle, float curve_enlarge_factor) const;
 
-    bool velocity_;
+    float velocity_;
 };
 
 #endif // OBSTACLEDETECTORACKERMANN_H
