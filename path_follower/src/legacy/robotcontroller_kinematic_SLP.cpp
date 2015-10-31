@@ -376,6 +376,10 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     }
 
+    if(old_ind != ind_) {
+        path_->fireNextWaypointCallback();
+    }
+
     ///***///
 
 
