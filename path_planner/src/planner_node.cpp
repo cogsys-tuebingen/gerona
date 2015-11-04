@@ -529,7 +529,7 @@ nav_msgs::Path Planner::postprocess(const nav_msgs::Path& path)
 
 
     sw.restart();
-    nav_msgs::Path smooted_path = smoothPath(interpolated_path, 0.6, 0.3);
+    nav_msgs::Path smooted_path = smoothPath(interpolated_path, 0.6, 0.15);
     ROS_INFO_STREAM("smoothing took " << sw.msElapsed() << "ms");
 
 
