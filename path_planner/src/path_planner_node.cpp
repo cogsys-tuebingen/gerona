@@ -278,9 +278,9 @@ struct PathPlanner : public Planner
     //                    NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermann; // Ackermann
     typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
     NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermannReversed; // Ackermann
-    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<30, 500, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
+    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<30, 600, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
     NoExpansion, Pose2d, GridMap2d, 100> AStarSummitReversed; // Summit
-    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD, false>,
+    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 300, NonHolonomicNeighborhoodMoves::FORWARD, false>,
     NoExpansion, Pose2d, GridMap2d, 100> AStarSummitForward; // Summit Only Forward
 
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
