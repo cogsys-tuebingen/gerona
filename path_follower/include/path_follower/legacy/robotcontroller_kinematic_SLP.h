@@ -32,6 +32,7 @@ protected:
     
 private:
     void findMinDistance();
+    void calculateMovingDirection();
     
 private:
     struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters

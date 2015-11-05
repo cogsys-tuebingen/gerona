@@ -1237,8 +1237,12 @@ nav_msgs::Path Planner::smoothPathSegment(const nav_msgs::Path& path, double wei
     double dx = next.position.x - current.position.x;
     double dy = next.position.y - current.position.y;
 
-    double dotprod = std::cos(a) * dx + std::sin(a) * dy;
-    bool is_backward = dotprod < 0;//!new_path[0].forward;
+    Eigen::Vector2d looking_dir_normalized(std::cos(a), std::sin(a));
+    Eigen::Vector2d delta(dx, dy);
+    const double theta_diff = std::acos(delta.dot(looking_dir_normalized) / delta.norm());
+
+    // decide whether to drive forward or backward
+    bool is_backward = (theta_diff > M_PI_2 || theta_diff < -M_PI_2) ;
 
     for(unsigned i = 1; i < n-1; ++i){
         Pose2d next = convert(new_path.poses[i+1]);

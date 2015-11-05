@@ -121,13 +121,10 @@ void RobotController_Kinematic_SLP::reset()
     RobotController_Interpolation::reset();
 }
 
-void RobotController_Kinematic_SLP::setPath(Path::Ptr path) {
-    RobotController_Interpolation::setPath(path);
+void RobotController_Kinematic_SLP::calculateMovingDirection()
+{
+    const std::vector<Waypoint> subp = path_->getCurrentSubPath();
 
-    Eigen::Vector3d pose = path_driver_->getRobotPose();
-
-    const Path& p = *path;
-    const std::vector<Waypoint> subp = p.getCurrentSubPath();
     const double theta_0 = subp[0].orientation;
     Eigen::Vector2d looking_dir_normalized(std::cos(theta_0), std::sin(theta_0));
     Eigen::Vector2d delta(subp[1].x - subp[0].x, subp[1].y - subp[0].y);
@@ -139,6 +136,13 @@ void RobotController_Kinematic_SLP::setPath(Path::Ptr path) {
     } else {
         setDirSign(1.f);
     }
+}
+
+void RobotController_Kinematic_SLP::setPath(Path::Ptr path)
+{
+    RobotController_Interpolation::setPath(path);
+
+    calculateMovingDirection();
 }
 
 RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCommand(MoveCommand *cmd)
@@ -192,8 +196,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
             } catch(const alglib::ap_error& error) {
                 throw std::runtime_error(error.msg);
             }
-            // invert the driving direction
-            setDirSign(-getDirSign());
+            // recalculate the driving direction
+            calculateMovingDirection();
         }
     }
 
