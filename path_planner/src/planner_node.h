@@ -171,7 +171,6 @@ protected:
 
     ros::Publisher viz_pub;
     ros::Publisher cost_pub;
-
     tf::TransformListener tfl;
 
     std::string base_frame_;

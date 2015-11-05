@@ -19,6 +19,7 @@
 #include "course_planner.h"
 
 CoursePlanner::CoursePlanner()
+
     :    plan_avoidance_server_(nh, "/plan_avoidance", boost::bind(&CoursePlanner::planAvoidanceCb, this, _1), false)
 
 {
@@ -31,11 +32,11 @@ CoursePlanner::CoursePlanner()
     obstacle_pose_sub_ = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/obst_pose", 0, &CoursePlanner::obstaclePoseCb, this);
 
 
-    nh.param("avoidance_radius",avoidance_radius_,1.5);
-    nh.param("obstacle_radius",obstacle_radius_,1.0);
+    nh_priv.param("avoidance_radius",avoidance_radius_,1.5);
+    nh_priv.param("obstacle_radius",obstacle_radius_,1.0);
 
-    nh.param("resolution", resolution_, 0.1);
-    nh.param("segments", segment_array_, segment_array_);
+    nh_priv.param("resolution", resolution_, 0.1);
+    nh_priv.param("segments", segment_array_, segment_array_);
     plan_avoidance_server_.start();
 }
 
@@ -74,7 +75,6 @@ void CoursePlanner::planAvoidanceCb(const path_msgs::PlanAvoidanceGoalConstPtr &
     ROS_INFO("Avoidance planner received request for avoidance plan");
     const path_msgs::Obstacle& obstacle = goal_msg->obstacle;
     //const geometry_msgs::PoseStamped& goal = goal_msg->goal;
-    const geometry_msgs::PoseStamped& current = goal_msg->current;
     path_geom::PathPose obstacle_gp;
     obstacle_gp.pos_.x()=obstacle.position.x;
     obstacle_gp.pos_.y()=obstacle.position.y;
@@ -148,7 +148,7 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
     int second_idx = indices.back();
     for (int i=0;i<3;++i) {
 
-        if (second_idx>=active_segments_.size()) {
+        if (second_idx>=(int)active_segments_.size()) {
             second_idx = 0;
         }
         auto& second_segment = active_segments_[second_idx];
@@ -357,7 +357,7 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
 
             int cnt = (int)course_segments_.size();
             while (idx!=nearest_idx && cnt) {
-                if (idx>=course_segments_.size()) {
+                if (idx>=(int)course_segments_.size()) {
                     idx=0;
                 }
                 active_segments_.push_back(course_segments_[idx]);

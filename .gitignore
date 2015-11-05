@@ -53,3 +53,4 @@ install/
 # RANDOM #
 ##########
 .svn/
+/.project
