@@ -18,6 +18,7 @@ using namespace lib_path;
 
 Planner::Planner()
     : nh_priv("~"),
+      is_cost_map_(false),
       server_(nh, "plan_path", boost::bind(&Planner::execute, this, _1), false),
       map_info(NULL), map_rotation_yaw_(0.0), thread_running(false)
 {
@@ -137,6 +138,8 @@ void Planner::updateMapCallback (const nav_msgs::OccupancyGridConstPtr &map) {
 }
 
 void Planner::updateMap (const nav_msgs::OccupancyGrid &map, bool is_cost_map) {
+    is_cost_map_ = is_cost_map;
+  
     unsigned w = map.info.width;
     unsigned h = map.info.height;
 
@@ -1129,6 +1132,8 @@ void Planner::integrateLaserScan(const sensor_msgs::LaserScan &scan)
 {
     tf::StampedTransform trafo = lookupTransform("/map", scan.header.frame_id, scan.header.stamp);
 
+    int OBSTACLE = is_cost_map_ ? 254 : 100;
+
     double angle = scan.angle_min;
     for(std::size_t i = 0, total = scan.ranges.size(); i < total; ++i) {
         const float& range = scan.ranges[i];
@@ -1139,7 +1144,7 @@ void Planner::integrateLaserScan(const sensor_msgs::LaserScan &scan)
 
             unsigned int x,y;
             if(map_info->point2cell(pt_map.x(), pt_map.y(), x, y)) {
-                map_info->setValue(x,y, 100);
+                map_info->setValue(x,y, OBSTACLE);
             }
         }
 
@@ -1157,6 +1162,8 @@ void Planner::integratePointCloud(const sensor_msgs::PointCloud2 &cloud)
 {
     tf::StampedTransform trafo = lookupTransform("/map", cloud.header.frame_id, cloud.header.stamp);
 
+    int OBSTACLE = is_cost_map_ ? 254 : 100;
+
     pcl::PointCloud<pcl::PointXYZL>::Ptr ptr(new pcl::PointCloud<pcl::PointXYZL>());
     pcl::fromROSMsg(cloud, *ptr);
 
@@ -1168,7 +1175,7 @@ void Planner::integratePointCloud(const sensor_msgs::PointCloud2 &cloud)
 
         unsigned int x,y;
         if(map_info->point2cell(pt_map.x(), pt_map.y(), x, y)) {
-            map_info->setValue(x,y, 100);
+            map_info->setValue(x,y, OBSTACLE);
         }
     }
 }

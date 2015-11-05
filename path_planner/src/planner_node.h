@@ -170,6 +170,8 @@ protected:
     ros::NodeHandle nh;
     ros::NodeHandle nh_priv;
 
+    bool is_cost_map_;
+
     bool use_map_topic_;
     bool use_cost_map_;
     bool use_cost_map_service_;
