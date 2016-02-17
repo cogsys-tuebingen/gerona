@@ -1,5 +1,5 @@
 // HEADER
-#include <path_follower/legacy/robotcontroller_kinematic_SLP.h>
+#include <path_follower/legacy/robotcontroller_dynamic_SLP.h>
 
 // THIRD PARTY
 #include <nav_msgs/Path.h>
@@ -22,7 +22,7 @@
 using namespace Eigen;
 
 
-RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_driver):
+RobotController_Dynamic_SLP::RobotController_Dynamic_SLP(PathFollower *path_driver):
     RobotController_Interpolation(path_driver),
     cmd_(this),
     vn_(0),
@@ -37,12 +37,12 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_
     distance_to_obstacle_(1)
 {
     laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
-                                                             &RobotController_Kinematic_SLP::laserFront, this);
+                                                             &RobotController_Dynamic_SLP::laserFront, this);
     laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
-                                                            &RobotController_Kinematic_SLP::laserBack, this);
+                                                            &RobotController_Dynamic_SLP::laserBack, this);
 }
 
-void RobotController_Kinematic_SLP::stopMotion()
+void RobotController_Dynamic_SLP::stopMotion()
 {
 
     cmd_.speed = 0;
@@ -53,7 +53,7 @@ void RobotController_Kinematic_SLP::stopMotion()
     publishMoveCommand(mcmd);
 }
 
-void RobotController_Kinematic_SLP::initialize()
+void RobotController_Dynamic_SLP::initialize()
 {
     RobotController_Interpolation::initialize();
 
@@ -70,7 +70,7 @@ void RobotController_Kinematic_SLP::initialize()
 
 }
 
-void RobotController_Kinematic_SLP::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
+void RobotController_Dynamic_SLP::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
 {
     ranges_front_.clear();
     for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
@@ -82,7 +82,7 @@ void RobotController_Kinematic_SLP::laserFront(const sensor_msgs::LaserScanConst
     findMinDistance();
 }
 
-void RobotController_Kinematic_SLP::laserBack(const sensor_msgs::LaserScanConstPtr &scan)
+void RobotController_Dynamic_SLP::laserBack(const sensor_msgs::LaserScanConstPtr &scan)
 {
     ranges_back_.clear();
     for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
@@ -95,7 +95,7 @@ void RobotController_Kinematic_SLP::laserBack(const sensor_msgs::LaserScanConstP
 }
 
 //TODO: work with the obstacle map!!!
-void RobotController_Kinematic_SLP::findMinDistance()
+void RobotController_Dynamic_SLP::findMinDistance()
 {
     std::vector<float> ranges;
     ranges.insert(ranges.end(), ranges_front_.begin(), ranges_front_.end());
@@ -111,17 +111,17 @@ void RobotController_Kinematic_SLP::findMinDistance()
 
 }
 
-void RobotController_Kinematic_SLP::start()
+void RobotController_Dynamic_SLP::start()
 {
     path_driver_->getCoursePredictor().reset();
 }
 
-void RobotController_Kinematic_SLP::reset()
+void RobotController_Dynamic_SLP::reset()
 {
     RobotController_Interpolation::reset();
 }
 
-void RobotController_Kinematic_SLP::calculateMovingDirection()
+void RobotController_Dynamic_SLP::calculateMovingDirection()
 {
     const std::vector<Waypoint> subp = path_->getCurrentSubPath();
 
@@ -138,14 +138,14 @@ void RobotController_Kinematic_SLP::calculateMovingDirection()
     }
 }
 
-void RobotController_Kinematic_SLP::setPath(Path::Ptr path)
+void RobotController_Dynamic_SLP::setPath(Path::Ptr path)
 {
     RobotController_Interpolation::setPath(path);
 
     calculateMovingDirection();
 }
 
-RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCommand(MoveCommand *cmd)
+RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveCommand(MoveCommand *cmd)
 {
     // omni drive can rotate.
     *cmd = MoveCommand(true);
@@ -396,7 +396,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
         return MoveCommandStatus::OKAY;
 }
 
-void RobotController_Kinematic_SLP::publishMoveCommand(const MoveCommand &cmd) const
+void RobotController_Dynamic_SLP::publishMoveCommand(const MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
     msg.linear.x  = cmd.getVelocity();

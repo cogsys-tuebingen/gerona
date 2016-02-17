@@ -23,6 +23,7 @@ endif()
 find_package(catkin REQUIRED COMPONENTS
   actionlib
   path_msgs
+  control_msgs
   nav_msgs
   roscpp
   utils_general
@@ -191,6 +192,7 @@ add_executable(path_follower_node
   src/legacy/robotcontroller_differential_orthexp.cpp
   src/legacy/robotcontroller_omnidrive_orthexp.cpp
   src/legacy/robotcontroller_kinematic_SLP.cpp
+  src/legacy/robotcontroller_dynamic_SLP.cpp
 
   src/supervisor/supervisorchain.cpp
   src/supervisor/pathlookout.cpp
@@ -214,7 +216,7 @@ add_executable(path_follower_node
   src/alglib/statistics.cpp
 )
 
-add_dependencies(path_follower_node path_msgs_generate_messages_cpp)
+add_dependencies(path_follower_node path_msgs_generate_messages_cpp control_msgs_generate_messages_cpp)
 target_link_libraries(path_follower_node
   ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES} ${PCL_LIBRARIES}
 )

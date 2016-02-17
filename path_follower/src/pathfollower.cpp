@@ -26,6 +26,7 @@
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/legacy/robotcontroller_differential_orthexp.h>
 #include <path_follower/legacy/robotcontroller_kinematic_SLP.h>
+#include <path_follower/legacy/robotcontroller_dynamic_SLP.h>
 // Supervisors
 #include <path_follower/supervisor/pathlookout.h>
 #include <path_follower/supervisor/waypointtimeout.h>
@@ -135,10 +136,16 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 		if (opt_.obstacle_avoider_use_collision_box())
 			obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
 		controller_ = new RobotController_Differential_OrthogonalExponential(this);
+
 	} else if (opt_.controller() == "kinematic_SLP") {
 		if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
 		controller_ = new RobotController_Kinematic_SLP(this);
+
+    } else if (opt_.controller() == "dynamic_SLP") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+        controller_ = new RobotController_Dynamic_SLP(this);
 	} else {
 		ROS_FATAL("Unknown robot controller. Shutdown.");
 		exit(1);
