@@ -6,6 +6,10 @@
 #include <geometry_msgs/Twist.h>
 #include <Eigen/Core>
 #include <visualization_msgs/Marker.h>
+#include "std_msgs/MultiArrayLayout.h"
+#include "std_msgs/MultiArrayDimension.h"
+#include "std_msgs/Float64MultiArray.h"
+
 
 // PROJECT
 #include <path_follower/utils/path.h>

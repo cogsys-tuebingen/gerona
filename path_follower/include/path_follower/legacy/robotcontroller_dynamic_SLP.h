@@ -39,6 +39,8 @@ private:
     {
         P<double> k1;
         P<double> k2;
+        P<double> k3;
+        P<double> k4;
         P<double> gamma;
         P<double> theta_a;
         P<double> epsilon;
@@ -49,10 +51,19 @@ private:
         P<double> k_g;
         P<double> k_w;
         P<double> k_curv;
+        P<double> m;
+        P<double> I;
+        P<double> r;
+        P<double> w;
+        P<double> gearbox;
+        P<double> Kt;
+        P<double> max_current;
 
         ControllerParameters():
             k1(this, "~k1", 1.0, ""),
             k2(this, "~k2", 1.0, ""),
+            k3(this, "~k3", 1.0, ""),
+            k4(this, "~k4", 1.0, ""),
             gamma(this, "~gamma", 1.0, ""),
             theta_a(this, "~theta_a", M_PI/4.0, ""),
             epsilon(this, "~epsilon", 0.5, ""),
@@ -62,7 +73,14 @@ private:
             k_o(this, "~k_o", 0.3, ""),
             k_g(this, "~k_g", 0.4, ""),
             k_w(this, "~k_w", 0.5, ""),
-            k_curv(this, "~k_curv", 0.05, "")
+            k_curv(this, "~k_curv", 0.05, ""),
+            m(this, "~m", 50.0, ""),
+            I(this, "~I", 0.0356, ""),
+            r(this, "~r", 0.10, ""),
+            w(this, "~w", 0.2335, ""),
+            gearbox(this, "~gearbox", 12.52, ""),
+            Kt(this, "~Kt", 0.08, ""),
+            max_current(this, "~max_current", 12.0, "")
         {}
     } opt_;
 
@@ -75,43 +93,42 @@ private:
     {
         RobotController_Dynamic_SLP *parent_;
 
-        //! Speed of the movement.
-        float speed;
-        //! Direction of movement as angle to the current robot orientation.
-        float direction_angle;
-        //! rotational velocity.
-        float rotation;
+        float tau_fl;
+        float tau_fr;
+        float tau_br;
+        float tau_bl;
 
 
         // initialize all values to zero
         Command(RobotController_Dynamic_SLP *parent):
             parent_(parent),
-            speed(0.0f), direction_angle(0.0f), rotation(0.0f)
+            tau_fl(0.0f), tau_fr(0.0f), tau_br(0.0f), tau_bl(0.0)
         {}
 
         operator MoveCommand()
         {
-            MoveCommand mcmd(true);
-            mcmd.setDirection(direction_angle);
-            mcmd.setVelocity(speed);
-            mcmd.setRotationalVelocity(rotation);
+            MoveCommand mcmd(true, true);
+            mcmd.setWheelTorques(tau_fl, tau_fr, tau_br, tau_bl);
             return mcmd;
         }
 
         bool isValid()
         {
-            if ( isnan(speed) || isinf(speed)
-                 || isnan(direction_angle) || isinf(direction_angle)
-                 || isnan(rotation) || isinf(rotation) )
+            if ( isnan(tau_fl) || isinf(tau_fl)
+                 || isnan(tau_fr) || isinf(tau_fr)
+                 || isnan(tau_br) || isinf(tau_br)
+                 || isnan(tau_bl) || isinf(tau_bl))
             {
-                ROS_FATAL("Non-numerical values in command: %d,%d,%d,%d,%d,%d",
-                          isnan(speed), isinf(speed),
-                          isnan(direction_angle), isinf(direction_angle),
-                          isnan(rotation), isinf(rotation));
+                ROS_FATAL("Non-numerical values in command: %d,%d,%d,%d,%d,%d,%d,%d",
+                          isnan(tau_fl), isinf(tau_fl),
+                          isnan(tau_fr), isinf(tau_fr),
+                          isnan(tau_br), isinf(tau_br),
+                          isnan(tau_bl), isinf(tau_bl));
                 // fix this instantly, to avoid further problems.
-                speed = 0.0;
-                direction_angle = 0.0;
-                rotation = 0.0;
+                tau_fl = 0.0;
+                tau_fr = 0.0;
+                tau_br = 0.0;
+                tau_bl = 0.0;
 
                 return false;
             } else {
@@ -136,8 +153,6 @@ private:
 
     //nominal velocity
     double vn_;
-    //function for transient maneuvers
-    double delta_;
     //sampling time
     double Ts_;
 
@@ -150,6 +165,20 @@ private:
     double xe_;
     //y component of the following error in path coordinates
     double ye_;
+    //orientation in path coordinates
+    double theta_e_;
+    //function for transient maneuvers
+    double delta_;
+    //moving point dynamics
+    double s_prim_;
+
+    //longitudinal speed
+    double vx_;
+    //desired rotation control
+    double zeta_;
+    //rotation control error
+    double epsilon_;
+
 
     //cumulative curvature sum w.r.t. path
     double curv_sum_;
@@ -157,6 +186,9 @@ private:
     double distance_to_goal_;
     //distance to the nearest obstacle
     double distance_to_obstacle_;
+
+    //maximal torque
+    double max_torque_;
 };
 
 #endif // ROBOTCONTROLLER_DYNAMIC_SLP_H

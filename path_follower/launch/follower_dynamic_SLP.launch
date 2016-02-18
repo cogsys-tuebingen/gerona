@@ -27,11 +27,13 @@
     <param name="obstacle_scale_lifetime" value="5.0" />
     <param name="path_width" value="0.5" />
  
-    <param name="k1" value="5.0" />
-    <param name="k2" value="5.0" />
+    <param name="k1" value="1.0" />
+    <param name="k2" value="1.0" />
+    <param name="k3" value="1.0" />
+    <param name="k4" value="1.0" />
 
-    <param name="gamma" value="55.0" />
-    <param name="theta_a" value="16*0.78539816339" />
+    <param name="gamma" value="2.0" />
+    <param name="theta_a" value="4*0.78539816339" />
     <param name="max_angular_velocity" value="0.5" />
     <param name="epsilon" value="0.5" />
     <param name="b" value="0.2" />
@@ -41,6 +43,14 @@
     <param name="k_g" value="0.4" />
     <param name="k_w" value="0.1" />
     <param name="k_curv" value="0.00" />
+
+    <param name="m" value="50.00" />
+    <param name="I" value="0.0356" />
+    <param name="r" value="0.1" />
+    <param name="w" value="0.2335" />
+    <param name="gearbox" value="12.52" />
+    <param name="Kt" value="0.08" />
+
 
     <remap from="scan" to="scan/front" />
     <remap from="/obstacles" to="/obstacle_cloud" />

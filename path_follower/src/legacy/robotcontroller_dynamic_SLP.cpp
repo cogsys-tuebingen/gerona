@@ -26,12 +26,17 @@ RobotController_Dynamic_SLP::RobotController_Dynamic_SLP(PathFollower *path_driv
     RobotController_Interpolation(path_driver),
     cmd_(this),
     vn_(0),
-    delta_(0),
     Ts_(0.02),
     ind_(0),
     proj_ind_(0),
     xe_(0),
     ye_(0),
+    theta_e_(0),
+    delta_(0),
+    s_prim_(0),
+    vx_(0),
+    zeta_(0),
+    epsilon_(0),
     curv_sum_(1e-3),
     distance_to_goal_(1e6),
     distance_to_obstacle_(1)
@@ -44,10 +49,10 @@ RobotController_Dynamic_SLP::RobotController_Dynamic_SLP(PathFollower *path_driv
 
 void RobotController_Dynamic_SLP::stopMotion()
 {
-
-    cmd_.speed = 0;
-    cmd_.direction_angle = 0;
-    cmd_.rotation = 0;
+    cmd_.tau_fl = 0;
+    cmd_.tau_fr = 0;
+    cmd_.tau_br = 0;
+    cmd_.tau_bl = 0;
 
     MoveCommand mcmd = cmd_;
     publishMoveCommand(mcmd);
@@ -66,6 +71,9 @@ void RobotController_Dynamic_SLP::initialize()
     // desired velocity
     vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
+
+    //calculate the maximal allowed torque (this should be defined as constant later)
+    max_torque_ = opt_.gearbox()*opt_.Kt()*opt_.max_current();
 
 
 }
@@ -148,7 +156,8 @@ void RobotController_Dynamic_SLP::setPath(Path::Ptr path)
 RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveCommand(MoveCommand *cmd)
 {
     // omni drive can rotate.
-    *cmd = MoveCommand(true);
+    *cmd = MoveCommand(true, true);
+
 
     if(path_interpol.n() < 2) {
         ROS_ERROR("[Line] path is too short (N = %d)", (int) path_interpol.n());
@@ -173,10 +182,10 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
         // check if we reached the actual goal or just the end of a subpath
         if (path_->isDone()) {
 
-            cmd_.speed = 0;
-            cmd_.direction_angle = 0;
-            cmd_.rotation = 0;
-
+            cmd_.tau_fl = 0;
+            cmd_.tau_fr = 0;
+            cmd_.tau_br = 0;
+            cmd_.tau_bl = 0;
             *cmd = cmd_;
 
             double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
@@ -221,10 +230,12 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
     //***//
 
 
-    ///calculate the control for the current point on the path
+    ///calculate the error coordinates for the current point on the path
 
     //robot direction angle in path coordinates
-    double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), theta_meas);
+    double theta_e_new = MathHelper::AngleDelta(path_interpol.theta_p(ind_), theta_meas);
+    double theta_e_prim = (theta_e_new - theta_e_)/Ts_;
+    theta_e_ = theta_e_new;
 
     //robot position vector module
     double r = hypot(x_meas - path_interpol.p(ind_), y_meas - path_interpol.q(ind_));
@@ -245,7 +256,7 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
     ///Check the driving direction, and set the complementary angle in path coordinates, if driving backwards
 
     if (getDirSign() < 0.0) {
-        theta_e = MathHelper::NormalizeAngle(M_PI + theta_e);
+        theta_e_ = MathHelper::NormalizeAngle(M_PI + theta_e_);
         ROS_WARN_THROTTLE(1, "Driving backwards...");
     }
 
@@ -288,14 +299,14 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
 
     ///Lyapunov-curvature speed control
 
-    //Lyapunov function as a measure of the path following error
-    double v = vn_;
-    double V1 = 0.5*(std::pow(xe_,2) + std::pow(ye_,2)) + (0.5/opt_.gamma())*std::pow((theta_e - delta_),2);
+//    //Lyapunov function as a measure of the path following error
+//    double v = vn_;
+//    double V1 = 0.5*(std::pow(xe_,2) + std::pow(ye_,2)) + (0.5/opt_.gamma())*std::pow((theta_e - delta_),2);
 
-    //use v/2 as the minimum speed, and allow larger values when the error is small
-    if (V1 >= opt_.epsilon()) v = 0.5*v;
+//    //use v/2 as the minimum speed, and allow larger values when the error is small
+//    if (V1 >= opt_.epsilon()) v = 0.5*v;
 
-    else if (V1 < opt_.epsilon()) v = v/(1 + opt_.b()*std::abs(path_interpol.curvature(ind_)));
+//    else if (V1 < opt_.epsilon()) v = v/(1 + opt_.b()*std::abs(path_interpol.curvature(ind_)));
 
     ///***///
 
@@ -304,9 +315,13 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
 
     double s_old = path_interpol.s_new();
 
+    double s_prim_old = s_prim_;
+
     //calculate the speed of the "virtual vehicle"
-    double s_prim_tmp = v * cos(theta_e) + opt_.k1() * xe_;
-    path_interpol.set_s_prim(s_prim_tmp > 0 ? s_prim_tmp : 0);
+    double s_prim_ = vn_ * cos(theta_e_) + opt_.k1() * xe_;
+    path_interpol.set_s_prim(s_prim_ > 0 ? s_prim_ : 0);
+
+    double s_sek = (s_prim_ - s_prim_old)/Ts_;
 
     //approximate the first derivative and calculate the next point
     double s_temp = Ts_*path_interpol.s_prim() + s_old;
@@ -315,36 +330,73 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
     ///***///
 
 
-    ///Direction control
-
-    cmd_.direction_angle = 0;
-
-    //omega_m = theta_e_prim + curv*s_prim
-    double omega_m = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
-                    /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
+    ///Calculate the control
 
 
-    omega_m = boost::algorithm::clamp(omega_m, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
-    cmd_.rotation = omega_m;
+//    //omega_m = theta_e_prim + curv*s_prim
+//    double omega_m = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
+//                    /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
+
+
+//    omega_m = boost::algorithm::clamp(omega_m, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
+//    //cmd_.rotation = omega_m;
+
+    double u1 = 0.0;
+    double u2 = 0.0;
+
+    double c1 = opt_.I()*opt_.r()/opt_.w();
+    double c2 = opt_.m()*opt_.r();
+
+    vx_ = path_driver_->getVelocity().linear.x;
+
+    double zeta_old = zeta_;
+    zeta_ = delta_prim - opt_.gamma()*(sin(theta_e_) - sin(delta_))/(theta_e_ - delta_) - opt_.k2()*(theta_e_ - delta_);
+    double zeta_prim = (zeta_ - zeta_old)/Ts_;
+
+    double epsilon_old = epsilon_;
+    epsilon_ = theta_e_prim - zeta_;
+    double epsilon_prim = (epsilon_ - epsilon_old)/Ts_;
+
+    double vx_prim = 0;
+    double omega_m_prim = 0;
+
+    omega_m_prim = epsilon_prim + zeta_prim + path_interpol.curvature(ind_)*s_sek
+            + path_interpol.curvature_prim(ind_)*s_prim_*s_prim_;
+
+    vx_prim = -opt_.k4()*(vx_ - vn_);
+
+    u1 = c1*omega_m_prim;
+    u2 = c2*vx_prim;
+
+    //right tread
+    double tau1 = (u1 + u2)/2.0;
+    //left tread
+    double tau2 = (u2 - u1)/2.0;
+
+    cmd_.tau_fl = boost::algorithm::clamp(tau2/2.0, -max_torque_, max_torque_);
+    cmd_.tau_bl = boost::algorithm::clamp(tau2/2.0, -max_torque_, max_torque_);
+    cmd_.tau_fr = boost::algorithm::clamp(tau1/2.0, -max_torque_, max_torque_);
+    cmd_.tau_br = boost::algorithm::clamp(tau1/2.0, -max_torque_, max_torque_);
+
 
     ///***///
 
 
     ///Exponential speed control
 
-    //ensure valid values
-    if (distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
-    if (distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e-10;
+//    //ensure valid values
+//    if (distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
+//    if (distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e-10;
 
-    double exponent = opt_.k_curv()*fabs(curv_sum_)
-            + opt_.k_w()*fabs(angular_vel)
-            + opt_.k_o()/distance_to_obstacle_
-            + opt_.k_g()/distance_to_goal_;
+//    double exponent = opt_.k_curv()*fabs(curv_sum_)
+//            + opt_.k_w()*fabs(angular_vel)
+//            + opt_.k_o()/distance_to_obstacle_
+//            + opt_.k_g()/distance_to_goal_;
 
-    //TODO: consider the minimum excitation speed
-    v = v * exp(-exponent);
+//    //TODO: consider the minimum excitation speed
+//    v = v * exp(-exponent);
 
-    cmd_.speed = getDirSign()*std::max((double)path_driver_->getOptions().min_velocity(), fabs(v));
+//    //cmd_.speed = getDirSign()*std::max((double)path_driver_->getOptions().min_velocity(), fabs(v));
 
     ///***///
 
@@ -386,7 +438,7 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
 
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+      //  visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
     ///***///
@@ -397,11 +449,14 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
 }
 
 void RobotController_Dynamic_SLP::publishMoveCommand(const MoveCommand &cmd) const
-{
-    geometry_msgs::Twist msg;
-    msg.linear.x  = cmd.getVelocity();
-    msg.linear.y  = 0;
-    msg.angular.z = cmd.getRotationalVelocity();
+{   
+    std_msgs::Float64MultiArray torques;
+    torques.data.clear();
 
-    cmd_pub_.publish(msg);
+    torques.data.push_back(cmd.getWheelTorqueFL());
+    torques.data.push_back(cmd.getWheelTorqueFR());
+    torques.data.push_back(cmd.getWheelTorqueBR());
+    torques.data.push_back(cmd.getWheelTorqueBL());
+
+    cmd_pub_.publish(torques);
 }
