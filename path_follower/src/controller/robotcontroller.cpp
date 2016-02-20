@@ -65,9 +65,9 @@ void RobotController::initPublisher(ros::Publisher *pub) const
     ros::NodeHandle nh;
     //TODO: implement a dynamic switching between velocity and torque mode
     //torque mode
-    *pub = nh.advertise<std_msgs::Float64MultiArray>("/wheel_torques", 10);
+    //*pub = nh.advertise<std_msgs::Float64MultiArray>("/wheel_torques", 10);
     //velocity mode
-    //*pub = nh.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
+    *pub = nh.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
 }
 
 double RobotController::calculateAngleError()

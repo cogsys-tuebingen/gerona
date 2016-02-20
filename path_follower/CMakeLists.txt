@@ -193,6 +193,7 @@ add_executable(path_follower_node
   src/legacy/robotcontroller_omnidrive_orthexp.cpp
   src/legacy/robotcontroller_kinematic_SLP.cpp
   src/legacy/robotcontroller_dynamic_SLP.cpp
+  src/legacy/robotcontroller_kinematic_SSG.cpp
 
   src/supervisor/supervisorchain.cpp
   src/supervisor/pathlookout.cpp
