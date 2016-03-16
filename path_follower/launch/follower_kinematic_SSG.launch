@@ -32,6 +32,10 @@
 
     <param name="lambda" value="1.0" />
     <param name="x_ICR" value="0.05" />
+    <param name="y_ICR_l" value="0.2335" />
+    <param name="y_ICR_r" value="-0.2335" />
+    <param name="alpha_l" value="1.0" />
+    <param name="alpha_r" value="1.0" />
     <param name="max_angular_velocity" value="0.5" />
     <param name="epsilon" value="0.5" />
     <param name="b" value="0.2" />

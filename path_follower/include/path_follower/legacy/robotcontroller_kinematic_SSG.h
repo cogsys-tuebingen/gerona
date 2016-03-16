@@ -4,6 +4,9 @@
 /// THIRD PARTY
 #include <Eigen/Core>
 #include <geometry_msgs/PointStamped.h>
+#include "std_msgs/MultiArrayLayout.h"
+#include "std_msgs/MultiArrayDimension.h"
+#include "std_msgs/Float64MultiArray.h"
 
 /// PROJECT
 #include <path_follower/controller/robotcontroller_interpolation.h>
@@ -29,6 +32,7 @@ protected:
 
     void laserBack(const sensor_msgs::LaserScanConstPtr& scan_back);
     void laserFront(const sensor_msgs::LaserScanConstPtr& scan_front);
+    void WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array);
 
 private:
     void findMinDistance();
@@ -41,6 +45,10 @@ private:
         P<double> k2;
         P<double> lambda;
         P<double> x_ICR;
+        P<double> y_ICR_l;
+        P<double> y_ICR_r;
+        P<double> alpha_l;
+        P<double> alpha_r;
         P<double> epsilon;
         P<double> b;
         P<double> max_angular_velocity;
@@ -55,6 +63,10 @@ private:
             k2(this, "~k2", 1.0, ""),
             lambda(this, "~gamma", 1.0, ""),
             x_ICR(this, "~x_ICR", 0.0, ""),
+            y_ICR_l(this, "~y_ICR_l", 0.2335, ""),
+            y_ICR_r(this, "~y_ICR_r", -0.2335, ""),
+            alpha_l(this, "~alpha_l", 1.0, ""),
+            alpha_r(this, "~alpha_r", 1.0, ""),
             epsilon(this, "~epsilon", 0.5, ""),
             b(this, "~b", 0.2, ""),
             max_angular_velocity(this, "~max_angular_velocity", 0.8, ""),
@@ -128,6 +140,8 @@ private:
     ros::Subscriber laser_sub_front_;
     ros::Subscriber laser_sub_back_;
 
+    ros::Subscriber wheel_velocities_;
+
     std::vector<float> ranges_front_;
     std::vector<float> ranges_back_;
 
@@ -148,6 +162,11 @@ private:
     double xe_;
     //y component of the following error in path coordinates
     double ye_;
+
+    //velocity of the left tread
+    double Vl_;
+    //velocity of the right tread
+    double Vr_;
 
     //cumulative curvature sum w.r.t. path
     double curv_sum_;

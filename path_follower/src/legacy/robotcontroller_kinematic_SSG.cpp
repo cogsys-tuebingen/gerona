@@ -6,6 +6,7 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
+
 // PROJECT
 #include <path_follower/pathfollower.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
@@ -31,6 +32,8 @@ RobotController_Kinematic_SSG::RobotController_Kinematic_SSG(PathFollower *path_
     proj_ind_(0),
     xe_(0),
     ye_(0),
+    Vl_(0),
+    Vr_(0),
     curv_sum_(1e-3),
     distance_to_goal_(1e6),
     distance_to_obstacle_(1)
@@ -39,6 +42,9 @@ RobotController_Kinematic_SSG::RobotController_Kinematic_SSG(PathFollower *path_
                                                              &RobotController_Kinematic_SSG::laserFront, this);
     laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
                                                             &RobotController_Kinematic_SSG::laserBack, this);
+
+    wheel_velocities_ = nh_.subscribe<std_msgs::Float64MultiArray>("/wheel_velocities", 10,
+                                                                   &RobotController_Kinematic_SSG::WheelVelocities, this);
 }
 
 void RobotController_Kinematic_SSG::stopMotion()
@@ -91,6 +97,17 @@ void RobotController_Kinematic_SSG::laserBack(const sensor_msgs::LaserScanConstP
         }
     }
     findMinDistance();
+}
+
+void RobotController_Kinematic_SSG::WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array)
+{
+    double frw = array->data[0];
+    double flw = array->data[1];
+    double brw = array->data[2];
+    double blw = array->data[3];
+
+    Vl_ = (flw + blw)/2.0;
+    Vr_ = (frw + brw)/2.0;
 }
 
 //TODO: work with the obstacle map!!!
@@ -275,7 +292,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
     ///***///
 
 
-//    ///Lyapunov-curvature speed control
+//    ///Lyapunov-curvature speed control - ideal unicycle
 
 //    //Lyapunov function as a measure of the path following error
 //    double v = vn_;
@@ -287,6 +304,40 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
 //    else if (V1 < opt_.epsilon()) v = v/(1 + opt_.b()*std::abs(path_interpol.curvature(ind_)));
 
 //    ///***///
+
+    ///Lyapunov-curvature speed control - skid steering
+
+    double v = vn_;
+    double V1 = 1.0/2.0*(std::pow(xe_,2) + std::pow(ye_,2) + 1.0/opt_.lambda()*std::pow(theta_e,2));
+
+    if(Vr_ > Vl_){
+
+        if(V1 >= opt_.epsilon()){
+            v = (-opt_.alpha_r()*opt_.y_ICR_l()*vn_)/(opt_.y_ICR_r() - opt_.y_ICR_l());
+        }
+        else if(V1 < opt_.epsilon()){
+            v = (opt_.alpha_r()*vn_)/(1 + std::fabs(opt_.y_ICR_r()*path_interpol.curvature(ind_)));
+        }
+    }
+    else if(Vr_ < Vl_){
+
+        if(V1 >= opt_.epsilon()){
+            v = (opt_.alpha_l()*opt_.y_ICR_r()*vn_)/(opt_.y_ICR_r() - opt_.y_ICR_l());
+        }
+        else if(V1 < opt_.epsilon()){
+            v = (opt_.alpha_l()*vn_)/(1 + std::fabs(opt_.y_ICR_l()*path_interpol.curvature(ind_)));
+        }
+    }
+    else if(std::fabs(Vr_ - Vl_) < 1e-1){
+        if(V1 >= opt_.epsilon()){
+            v = vn_/2.0*(opt_.alpha_r()*opt_.y_ICR_l() - opt_.alpha_l()*opt_.y_ICR_r())/(opt_.y_ICR_l() - opt_.y_ICR_r());
+        }
+        else if(V1 < opt_.epsilon()){
+            v = (vn_*(opt_.alpha_r() + opt_.alpha_l()))/(2 + std::fabs(path_interpol.curvature(ind_))
+                                                         *(std::fabs(opt_.y_ICR_l()) + std::fabs(opt_.y_ICR_r())));
+        }
+    }
+
 
 
     ///Calculate the next point on the path
@@ -312,8 +363,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
     cmd_.direction_angle = 0;
 
     //omega_m = theta_e_prim + curv*s_prim
-    double omega = opt_.lambda()*ye_/theta_e*(opt_.x_ICR()*omega_meas*cos(theta_e) - v_meas*sin(theta_e)) -opt_.k2()*theta_e
-            + path_interpol.curvature(ind_)*path_interpol.s_prim();
+    double omega = opt_.lambda()*ye_/theta_e*(opt_.x_ICR()*omega_meas*cos(theta_e) - v_meas*sin(theta_e))
+            - opt_.k2()*theta_e + path_interpol.curvature(ind_)*path_interpol.s_prim();
 
 
     omega = boost::algorithm::clamp(omega, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
@@ -334,7 +385,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
             + opt_.k_g()/distance_to_goal_;
 
     //TODO: consider the minimum excitation speed
-    double v = vn_ * exp(-exponent);
+    v = v * exp(-exponent);
 
     cmd_.speed = getDirSign()*std::max((double)path_driver_->getOptions().min_velocity(), fabs(v));
 
