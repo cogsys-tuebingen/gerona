@@ -310,7 +310,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
     double v = vn_;
     double V1 = 1.0/2.0*(std::pow(xe_,2) + std::pow(ye_,2) + 1.0/opt_.lambda()*std::pow(theta_e,2));
 
-    if(Vr_ > Vl_){
+    if(angular_vel >= 0){
 
         if(V1 >= opt_.epsilon()){
             v = (-opt_.alpha_r()*opt_.y_ICR_l()*vn_)/(opt_.y_ICR_r() - opt_.y_ICR_l());
@@ -319,7 +319,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
             v = (opt_.alpha_r()*vn_)/(1 + std::fabs(opt_.y_ICR_r()*path_interpol.curvature(ind_)));
         }
     }
-    else if(Vr_ < Vl_){
+    else if(angular_vel < 0){
 
         if(V1 >= opt_.epsilon()){
             v = (opt_.alpha_l()*opt_.y_ICR_r()*vn_)/(opt_.y_ICR_r() - opt_.y_ICR_l());
@@ -328,15 +328,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
             v = (opt_.alpha_l()*vn_)/(1 + std::fabs(opt_.y_ICR_l()*path_interpol.curvature(ind_)));
         }
     }
-    else if(std::fabs(Vr_ - Vl_) < 1e-1){
-        if(V1 >= opt_.epsilon()){
-            v = vn_/2.0*(opt_.alpha_r()*opt_.y_ICR_l() - opt_.alpha_l()*opt_.y_ICR_r())/(opt_.y_ICR_l() - opt_.y_ICR_r());
-        }
-        else if(V1 < opt_.epsilon()){
-            v = (vn_*(opt_.alpha_r() + opt_.alpha_l()))/(2 + std::fabs(path_interpol.curvature(ind_))
-                                                         *(std::fabs(opt_.y_ICR_l()) + std::fabs(opt_.y_ICR_r())));
-        }
-    }
+
+
 
 
 
