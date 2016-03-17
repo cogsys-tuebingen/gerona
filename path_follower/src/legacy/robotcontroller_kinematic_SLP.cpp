@@ -251,7 +251,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     ///***///
 
-
     ///Calculate the parameters for exponential speed control
 
     //calculate the curvature, and stop when the look-ahead distance is reached (w.r.t. orthogonal projection)
@@ -270,6 +269,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     //calculate the distance from the orthogonal projection to the goal, w.r.t. path
     distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(proj_ind_);
+    //A very dirty hack!!!!!!!!!!
+    distance_to_goal_ = 100.0;
 
     //get the robot's current angular velocity
     double angular_vel = path_driver_->getVelocity().angular.z;
@@ -352,7 +353,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     ///plot the moving reference frame together with position vector and error components
 
-    if (visualizer_->hasSubscriber()) {
+    if (visualizer_->MarrayhasSubscriber()) {
         visualizer_->drawFrenetSerretFrame(0, current_pose, xe_, ye_, path_interpol.p(ind_),
                                            path_interpol.q(ind_), path_interpol.theta_p(ind_));
     }

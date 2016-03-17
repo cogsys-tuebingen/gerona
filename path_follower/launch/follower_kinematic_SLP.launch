@@ -30,15 +30,15 @@
     <param name="k1" value="5.0" />
     <param name="k2" value="5.0" />
 
-    <param name="gamma" value="55.0" />
-    <param name="theta_a" value="16*0.78539816339" />
+    <param name="gamma" value="5.0" />
+    <param name="theta_a" value="4*0.78539816339" />
     <param name="max_angular_velocity" value="0.5" />
     <param name="epsilon" value="0.5" />
     <param name="b" value="0.2" />
 
     <param name="look_ahead_dist" value="0.5" />
     <param name="k_o" value="0" />
-    <param name="k_g" value="0.4" />
+    <param name="k_g" value="0.1" />
     <param name="k_w" value="0.1" />
     <param name="k_curv" value="0.00" />
 
