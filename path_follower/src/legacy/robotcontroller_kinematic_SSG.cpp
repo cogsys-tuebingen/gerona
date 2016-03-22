@@ -34,6 +34,7 @@ RobotController_Kinematic_SSG::RobotController_Kinematic_SSG(PathFollower *path_
     ye_(0),
     Vl_(0),
     Vr_(0),
+    delta_(0),
     curv_sum_(1e-3),
     distance_to_goal_(1e6),
     distance_to_obstacle_(1)
@@ -292,23 +293,10 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
     ///***///
 
 
-//    ///Lyapunov-curvature speed control - ideal unicycle
-
-//    //Lyapunov function as a measure of the path following error
-//    double v = vn_;
-//    double V1 = 0.5*(std::pow(xe_,2) + std::pow(ye_,2)) + (0.5/opt_.gamma())*std::pow((theta_e - delta_),2);
-
-//    //use v/2 as the minimum speed, and allow larger values when the error is small
-//    if (V1 >= opt_.epsilon()) v = 0.5*v;
-
-//    else if (V1 < opt_.epsilon()) v = v/(1 + opt_.b()*std::abs(path_interpol.curvature(ind_)));
-
-//    ///***///
-
     ///Lyapunov-curvature speed control - skid steering
 
     double v = vn_;
-    double V1 = 1.0/2.0*(std::pow(xe_,2) + std::pow(ye_,2) + 1.0/opt_.lambda()*std::pow(theta_e,2));
+    /*double V1 = 1.0/2.0*(std::pow(xe_,2) + std::pow(ye_,2) + 1.0/opt_.lambda()*fabs(sin(theta_e-delta_)));
 
     if(angular_vel >= 0){
 
@@ -327,10 +315,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
         else if(V1 < opt_.epsilon()){
             v = (opt_.alpha_l()*vn_)/(1 + std::fabs(opt_.y_ICR_l()*path_interpol.curvature(ind_)));
         }
-    }
-
-
-
+    }*/
 
 
     ///Calculate the next point on the path
@@ -341,7 +326,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
     double s_old = path_interpol.s_new();
 
     //calculate the speed of the "virtual vehicle"
-    double s_prim_tmp = v_meas * cos(theta_e) + opt_.x_ICR()*omega_meas*sin(theta_e) + opt_.k1() * xe_;
+    double s_prim_tmp = v * cos(theta_e) + opt_.x_ICR()*omega_meas*sin(theta_e) + opt_.k1() * xe_;
     path_interpol.set_s_prim(s_prim_tmp > 0 ? s_prim_tmp : 0);
 
     //approximate the first derivative and calculate the next point
@@ -350,18 +335,39 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
 
     ///***///
 
+    ///Calculate the delta_ and its derivative
+
+    double delta_old = delta_;
+
+    delta_ = MathHelper::AngleClamp(-getDirSign()*opt_.theta_a()*tanh(ye_));
+
+    double delta_prim = (delta_ - delta_old)/Ts_;
+    ///***///
+
 
     ///Direction control
 
     cmd_.direction_angle = 0;
 
     //omega_m = theta_e_prim + curv*s_prim
-    double omega = opt_.lambda()*ye_/theta_e*(opt_.x_ICR()*omega_meas*cos(theta_e) - v_meas*sin(theta_e))
-            - opt_.k2()*theta_e + path_interpol.curvature(ind_)*path_interpol.s_prim();
+    /*double omega = opt_.lambda()*ye_/theta_e*(opt_.x_ICR()*omega_meas*cos(theta_e) - v_meas*sin(theta_e))
+            - opt_.k2()*theta_e + path_interpol.curvature(ind_)*path_interpol.s_prim();*/
+    double trig_ratio = (fabs(sin(theta_e-delta_)))/(sin(theta_e-delta_)*cos(theta_e-delta_));
+    double omega = delta_prim
+            - opt_.lambda()*trig_ratio*ye_*v*sin(theta_e)
+            + opt_.lambda()*trig_ratio*ye_*opt_.x_ICR()*omega_meas*cos(theta_e)
+            - opt_.k2()*trig_ratio*(theta_e-delta_)*(theta_e-delta_);
 
 
+    ROS_INFO("First: %f, second: %f, third: %f", - opt_.lambda()*trig_ratio*ye_*v_meas*sin(theta_e),
+             opt_.lambda()*trig_ratio*ye_*opt_.x_ICR()*omega_meas*cos(theta_e),
+             - opt_.k2()*trig_ratio*(theta_e-delta_)*(theta_e-delta_));
+    ROS_INFO("Lambda: %f, x_ICR: %f, delta_prim %f", opt_.lambda(), opt_.x_ICR(), delta_prim);
+    ROS_INFO("Omega_cmd: %f, theta_e: %f, xe: %f, ye: %f", omega, theta_e, xe_, ye_);
     omega = boost::algorithm::clamp(omega, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
-    cmd_.rotation = omega;
+    cmd_.rotation = omega + path_interpol.curvature(ind_)*path_interpol.s_prim();
+    ROS_INFO("omega_meas: %f, v_meas: %f", omega_meas, v_meas);
+    ROS_INFO("Omega_cmd clamped: %f", omega);
 
     ///***///
 
@@ -379,6 +385,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
 
     //TODO: consider the minimum excitation speed
     v = v * exp(-exponent);
+
+   ROS_INFO("Linear vel cmd: %f", v);
 
     cmd_.speed = getDirSign()*std::max((double)path_driver_->getOptions().min_velocity(), fabs(v));
 

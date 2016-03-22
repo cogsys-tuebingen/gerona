@@ -44,6 +44,7 @@ private:
         P<double> k1;
         P<double> k2;
         P<double> lambda;
+        P<double> theta_a;
         P<double> x_ICR;
         P<double> y_ICR_l;
         P<double> y_ICR_r;
@@ -61,7 +62,8 @@ private:
         ControllerParameters():
             k1(this, "~k1", 1.0, ""),
             k2(this, "~k2", 1.0, ""),
-            lambda(this, "~gamma", 1.0, ""),
+            lambda(this, "~lambda", 1.0, ""),
+            theta_a(this, "~theta_a", M_PI/4.0, ""),
             x_ICR(this, "~x_ICR", 0.0, ""),
             y_ICR_l(this, "~y_ICR_l", 0.2335, ""),
             y_ICR_r(this, "~y_ICR_r", -0.2335, ""),
@@ -167,6 +169,9 @@ private:
     double Vl_;
     //velocity of the right tread
     double Vr_;
+
+    //transient function
+    double delta_;
 
     //cumulative curvature sum w.r.t. path
     double curv_sum_;

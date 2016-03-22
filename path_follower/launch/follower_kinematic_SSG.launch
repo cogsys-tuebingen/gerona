@@ -28,10 +28,12 @@
     <param name="path_width" value="0.5" />
  
     <param name="k1" value="1.0" />
-    <param name="k2" value="1.0" />
+    <param name="k2" value="5" />
 
-    <param name="lambda" value="1.0" />
-    <param name="x_ICR" value="0.2809" />
+    <param name="lambda" value="2.5" />
+    <param name="theta_a" value="2.0*0.78539816339" />
+    <!--param name="x_ICR" value="0.2809" /-->
+    <param name="x_ICR" value="0.05" />
     <param name="y_ICR_l" value="0.38178" />
     <param name="y_ICR_r" value="-0.487" />
     <param name="alpha_l" value="0.9" />
@@ -42,8 +44,8 @@
 
     <param name="look_ahead_dist" value="0.5" />
     <param name="k_o" value="0" />
-    <param name="k_g" value="0.1" />
-    <param name="k_w" value="0.1" />
+    <param name="k_g" value="0.0" />
+    <param name="k_w" value="0.0" />
     <param name="k_curv" value="0.00" />
 
     <remap from="scan" to="scan/front" />
