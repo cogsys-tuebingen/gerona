@@ -278,7 +278,9 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
     for (unsigned int i = ind_ + 1; i < path_interpol.n(); i++){
 
         s_cum_sum = path_interpol.s(i) - path_interpol.s(ind_);
-        curv_sum_ += fabs(path_interpol.curvature(i));
+        //TODO: need two types of curv_sum_, one for the exponential, the other one for the Lyapunov speed control
+        //curv_sum_ += fabs(path_interpol.curvature(i));
+        curv_sum_ += path_interpol.curvature(i);
 
         if(s_cum_sum - opt_.look_ahead_dist() >= 0){
             break;
@@ -296,9 +298,9 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
     ///Lyapunov-curvature speed control - skid steering
 
     double v = vn_;
-    /*double V1 = 1.0/2.0*(std::pow(xe_,2) + std::pow(ye_,2) + 1.0/opt_.lambda()*fabs(sin(theta_e-delta_)));
+    double V1 = 1.0/2.0*(std::pow(xe_,2) + std::pow(ye_,2) + 1.0/opt_.lambda()*fabs(sin(theta_e-delta_)));
 
-    if(angular_vel >= 0){
+    if(angular_vel > 0){
 
         if(V1 >= opt_.epsilon()){
             v = (-opt_.alpha_r()*opt_.y_ICR_l()*vn_)/(opt_.y_ICR_r() - opt_.y_ICR_l());
@@ -307,7 +309,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
             v = (opt_.alpha_r()*vn_)/(1 + std::fabs(opt_.y_ICR_r()*path_interpol.curvature(ind_)));
         }
     }
-    else if(angular_vel < 0){
+    else if(angular_vel <= 0){
 
         if(V1 >= opt_.epsilon()){
             v = (opt_.alpha_l()*opt_.y_ICR_r()*vn_)/(opt_.y_ICR_r() - opt_.y_ICR_l());
@@ -315,7 +317,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
         else if(V1 < opt_.epsilon()){
             v = (opt_.alpha_l()*vn_)/(1 + std::fabs(opt_.y_ICR_l()*path_interpol.curvature(ind_)));
         }
-    }*/
+    }
 
 
     ///Calculate the next point on the path
@@ -368,6 +370,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
     cmd_.rotation = omega + path_interpol.curvature(ind_)*path_interpol.s_prim();
     ROS_INFO("omega_meas: %f, v_meas: %f", omega_meas, v_meas);
     ROS_INFO("Omega_cmd clamped: %f", omega);
+    ROS_INFO("Cumulative curvature: %f", curv_sum_);
 
     ///***///
 
