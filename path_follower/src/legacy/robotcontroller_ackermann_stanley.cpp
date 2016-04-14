@@ -95,7 +95,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Stanley::computeMov
 	geometry_msgs::Point from, to;
 	from.x = pose[0]; from.y = pose[1];
 	to.x = path_interpol.p(ind); to.y = path_interpol.q(ind);
-	visualizer_->drawLine(12341234, from, to, "map", "kinematic", 1, 0, 0, 1, 0.01);
+    visualizer_->drawLine(12341234, from, to, getFixedFrame(), "kinematic", 1, 0, 0, 1, 0.01);
 
 
 	// distance to the path (path to the right -> positive)

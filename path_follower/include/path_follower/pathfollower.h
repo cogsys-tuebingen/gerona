@@ -42,7 +42,7 @@ public:
     PathFollower(ros::NodeHandle &nh);
     ~PathFollower();
 
-    bool getWorldPose(Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = nullptr) const;
+
     geometry_msgs::Twist getVelocity() const;
     bool transformToLocal(const geometry_msgs::PoseStamped& global, geometry_msgs::PoseStamped& local );
     bool transformToLocal(const geometry_msgs::PoseStamped& global, Vector3d& local );
@@ -71,6 +71,9 @@ public:
     const PathFollowerParameters &getOptions() const;
 
     ros::NodeHandle& getNodeHandle();
+
+private:
+    bool getWorldPose(Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = nullptr) const;
 
 private:
     typedef actionlib::SimpleActionServer<path_msgs::FollowPathAction> FollowPathServer;
@@ -115,9 +118,11 @@ private:
     ObstacleCloud::ConstPtr obstacle_cloud_;
 
     //! Current pose of the robot as Eigen vector (x,y,theta).
-    Eigen::Vector3d robot_pose_;
+    Eigen::Vector3d robot_pose_world_;
+    Eigen::Vector3d robot_pose_odom_;
     //! Current pose of the robot as geometry_msgs pose.
-    geometry_msgs::Pose robot_pose_msg_;
+    geometry_msgs::Pose robot_pose_world_msg_;
+    geometry_msgs::Pose robot_pose_odom_msg_;
 
     //! Path as a list of separated subpaths
     Path::Ptr path_;

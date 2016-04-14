@@ -249,7 +249,7 @@ float RobotControllerTrailer::getErrorApproachSubpathEnd()
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_->getCurrentWaypoint()).position,
-                                0.5, "/map", "turning point", 1, 1, 1);
+                                0.5, getFixedFrame(), "turning point", 1, 1, 1);
 
     }
 
@@ -484,7 +484,7 @@ void RobotControllerTrailer::visualizeCarrot(const Vector2d &carrot,
     carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
     geometry_msgs::PoseStamped carrot_map;
     if (path_driver_->transformToGlobal(carrot_local, carrot_map)) {
-        visualizer_->drawCircle(id, carrot_map.pose.position, 0.2, "/map","pred", r,g,b,1,5);
+        visualizer_->drawCircle(id, carrot_map.pose.position, 0.2, getFixedFrame(),"pred", r,g,b,1,5);
     }
 }
 

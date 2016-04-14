@@ -16,7 +16,7 @@ RobotController::RobotController(PathFollower* path_driver)
     points_pub_ = nh.advertise<visualization_msgs::Marker>("path_points", 10);
 
     // path marker
-    robot_path_marker_.header.frame_id = "map";
+    robot_path_marker_.header.frame_id = getFixedFrame();
     robot_path_marker_.header.stamp = ros::Time();
     robot_path_marker_.ns = "robot path";
     robot_path_marker_.id = 50;
@@ -40,6 +40,15 @@ RobotController::RobotController(PathFollower* path_driver)
     visualizer_ = Visualizer::getInstance();
 }
 
+std::string RobotController::getFixedFrame() const
+{
+    if(path_) {
+        return path_->getFrameId();
+    } else {
+        return "/map";
+    }
+}
+
 void RobotController::setStatus(int status)
 {
     path_driver_->setStatus(status);
@@ -58,6 +67,11 @@ void RobotController::setPath(Path::Ptr path)
         throw EmergencyBreakException("cannot transform path",
                                       path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
+}
+
+void RobotController::setLocalPath(Path::Ptr path)
+{
+    // nothing to do, can be implemented by children
 }
 
 void RobotController::initPublisher(ros::Publisher *pub) const

@@ -51,7 +51,7 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
 
     std::cout << "Value of K_O: " << opt_.k_o() << std::endl;
     // path marker
-    robot_path_marker_.header.frame_id = "map";
+    robot_path_marker_.header.frame_id = getFixedFrame();
     robot_path_marker_.header.stamp = ros::Time();
     robot_path_marker_.ns = "my_namespace";
     robot_path_marker_.id = 50;
@@ -304,7 +304,7 @@ void RobotController_Omnidrive_OrthogonalExponential::publishInterpolatedPath()
         interp_path_.poses.push_back(poza);
     }
 
-    interp_path_.header.frame_id = "map";
+    interp_path_.header.frame_id = getFixedFrame();
     interp_path_pub_.publish(interp_path_);
 }
 
@@ -375,7 +375,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 
     visualization_msgs::Marker marker;
     marker.ns = "orthexp";
-    marker.header.frame_id = "/map";
+    marker.header.frame_id = getFixedFrame();
     marker.header.stamp = ros::Time();
     marker.action = visualization_msgs::Marker::ADD;
     marker.id = 0;

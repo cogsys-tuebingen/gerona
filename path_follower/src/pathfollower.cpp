@@ -9,6 +9,7 @@
 /// ROS
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Int32MultiArray.h>
+#include <tf_conversions/tf_eigen.h>
 
 /// PROJECT
 // Controller/Models
@@ -227,6 +228,12 @@ void PathFollower::followPathPreemptCB()
 void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
 {
     odometry_ = *odom;
+
+    robot_pose_odom_msg_ = odometry_.pose.pose;
+
+    robot_pose_odom_.x() = robot_pose_odom_msg_.position.x;
+    robot_pose_odom_.y() = robot_pose_odom_msg_.position.y;
+    robot_pose_odom_.z() = tf::getYaw(robot_pose_odom_msg_.orientation);
 }
 
 void PathFollower::obstacleCloudCB(const ObstacleCloud::ConstPtr &msg)
@@ -236,7 +243,7 @@ void PathFollower::obstacleCloudCB(const ObstacleCloud::ConstPtr &msg)
 
 bool PathFollower::updateRobotPose()
 {
-    if (getWorldPose(&robot_pose_, &robot_pose_msg_)) {
+    if (getWorldPose(&robot_pose_world_, &robot_pose_world_msg_)) {
         course_predictor_.update();
         return true;
     } else {
@@ -365,7 +372,7 @@ void PathFollower::update()
         }
 
         // Ask supervisor whether path following can continue
-        Supervisor::State state(robot_pose_,
+        Supervisor::State state(robot_pose_world_,
                                 getPath(),
                                 obstacle_cloud_,
                                 feedback);
@@ -434,12 +441,12 @@ void PathFollower::say(string text)
 
 Eigen::Vector3d PathFollower::getRobotPose() const
 {
-    return robot_pose_;
+    return robot_pose_world_;
 }
 
 const geometry_msgs::Pose &PathFollower::getRobotPoseMsg() const
 {
-    return robot_pose_msg_;
+    return robot_pose_world_msg_;
 }
 
 Path::Ptr PathFollower::getPath()

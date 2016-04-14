@@ -203,7 +203,7 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
 
     visualization_msgs::Marker marker;
     marker.ns = "orthexp";
-    marker.header.frame_id = "/map";
+    marker.header.frame_id = getFixedFrame();
     marker.header.stamp = ros::Time();
     marker.action = visualization_msgs::Marker::ADD;
     marker.id = 0;

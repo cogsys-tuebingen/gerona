@@ -186,7 +186,7 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(double& lookahead_dis
 	geometry_msgs::Point from, to;
 	from.x = pose[0]; from.y = pose[1];
 	to.x = path_interpol.p(waypoint_); to.y = path_interpol.q(waypoint_);
-	visualizer_->drawLine(12341234, from, to, "map", "geo", 1, 0, 0, 1, 0.01);
+    visualizer_->drawLine(12341234, from, to, getFixedFrame(), "geo", 1, 0, 0, 1, 0.01);
 
 #ifdef DEBUG
 	ROS_INFO("LookAheadPoint: index=%i, x=%f, y=%f", waypoint_, path_interpol.p(waypoint_)

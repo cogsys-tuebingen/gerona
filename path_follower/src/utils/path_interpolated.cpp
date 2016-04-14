@@ -20,6 +20,7 @@ using namespace Eigen;
 
 PathInterpolated::PathInterpolated()
 	: N_(0),
+      frame_id_("/map"),
 	  s_new_(0),
 	  s_prim_(0)
 {
@@ -31,6 +32,8 @@ PathInterpolated::~PathInterpolated() {
 void PathInterpolated::interpolatePath(const Path::Ptr path) {
 
 	clearBuffers();
+
+    frame_id_ = path->getFrameId();
 
 	std::deque<Waypoint> waypoints;
 	while (true) {
@@ -176,7 +179,7 @@ PathInterpolated::operator nav_msgs::Path() const {
 		path.poses.push_back(poza);
 	}
 
-	path.header.frame_id = "map";
+    path.header.frame_id = frame_id_;
 
 	return path;
 }

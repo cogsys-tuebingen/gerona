@@ -82,6 +82,8 @@ private:
     //number of path elements
     uint N_;
 
+    std::string frame_id_;
+
 	nav_msgs::Path interp_path;
     //curvilinear abscissa
     std::vector<double> s_;

@@ -196,7 +196,7 @@ double RobotController_4WS_PurePursuit::computeAlpha(double& l_ah, const Eigen::
 	geometry_msgs::Point from, to;
 	from.x = pose[0]; from.y = pose[1];
 	to.x = path_interpol.p(waypoint_); to.y = path_interpol.q(waypoint_);
-	visualizer_->drawLine(12341234, from, to, "map", "geo", 1, 0, 0, 1, 0.01);
+    visualizer_->drawLine(12341234, from, to, getFixedFrame(), "geo", 1, 0, 0, 1, 0.01);
 
 	return alpha;
 }

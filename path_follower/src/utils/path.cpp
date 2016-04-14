@@ -133,3 +133,8 @@ void Path::precomputeSteerCommands(RobotController *controller)
         controller->precomputeSteerCommand((*current_sub_path_)[i],(*current_sub_path_)[i+1]);
     }
 }
+
+std::string Path::getFrameId() const
+{
+    return frame_id_;
+}

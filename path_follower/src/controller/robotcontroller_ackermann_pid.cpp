@@ -200,7 +200,7 @@ float RobotController_Ackermann_Pid::getErrorApproachSubpathEnd()
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_->getCurrentWaypoint()).position,
-                                0.5, "/map", "turning point", 1, 1, 1);
+                                0.5, getFixedFrame(), "turning point", 1, 1, 1);
 
         // draw steer front
         visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);

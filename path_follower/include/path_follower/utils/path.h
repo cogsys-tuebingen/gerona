@@ -191,7 +191,12 @@ public:
 
     void fireNextWaypointCallback() const;
 
+    std::string getFrameId() const;
+
 private:
+    //! frame in which the path is valid
+    std::string frame_id_;
+
     std::vector<SubPath> path_;
     //! Iterator on `path_` pointing to the current subpath.
     std::vector<SubPath>::iterator current_sub_path_;
