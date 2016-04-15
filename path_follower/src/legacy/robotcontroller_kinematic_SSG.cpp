@@ -400,7 +400,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
     ///plot the moving reference frame together with position vector and error components
 
     if (visualizer_->MarrayhasSubscriber()) {
-        visualizer_->drawFrenetSerretFrame(0, current_pose, xe_, ye_, path_interpol.p(ind_),
+        visualizer_->drawFrenetSerretFrame(getFixedFrame(), 0, current_pose, xe_, ye_, path_interpol.p(ind_),
                                            path_interpol.q(ind_), path_interpol.theta_p(ind_));
     }
 
@@ -433,7 +433,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
 
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
     ///***///

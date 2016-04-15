@@ -82,7 +82,8 @@ public:
     typedef std::function<void ()> NextWaypointCallback_t;
 
 
-    Path():
+    Path(const std::string& frame_id):
+        frame_id_(frame_id),
         current_sub_path_(path_.begin()),
         has_callback_(false)
     {}
@@ -145,6 +146,7 @@ public:
      * @return The current sub path.
      */
     const SubPath &getCurrentSubPath() const;
+    const SubPath &getSubPath(size_t idx) const;
 
     /**
      * @brief Get a waypoint on the current sub path.
@@ -192,6 +194,7 @@ public:
     void fireNextWaypointCallback() const;
 
     std::string getFrameId() const;
+    void setFrameId(const std::string& frame_id);
 
 private:
     //! frame in which the path is valid

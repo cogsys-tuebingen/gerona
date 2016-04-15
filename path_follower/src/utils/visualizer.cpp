@@ -29,12 +29,12 @@ bool Visualizer::MarrayhasSubscriber()
     return marray_vis_pub_.getNumSubscribers() > 0;
 }
 
-void Visualizer::drawArrow(int id, const geometry_msgs::Pose &pose, const std::string &ns, float r, float g, float b, double live) const
+void Visualizer::drawArrow(const std::string& frame, int id, const geometry_msgs::Pose &pose, const std::string &ns, float r, float g, float b, double live) const
 {
     visualization_msgs::Marker marker;
     marker.pose = pose;
     marker.ns = ns;
-    marker.header.frame_id = "/map";
+    marker.header.frame_id = frame;
     marker.header.stamp = ros::Time();
     marker.action = visualization_msgs::Marker::ADD;
     marker.id = id;
@@ -155,10 +155,10 @@ void Visualizer::drawText(int id, const geometry_msgs::Point &pos, const std::st
 }
 
 
-void Visualizer::drawSteeringArrow(int id, geometry_msgs::Pose robot_pose, double angle, double r, double g, double b)
+void Visualizer::drawSteeringArrow(const std::string& frame, int id, geometry_msgs::Pose robot_pose, double angle, double r, double g, double b)
 {
     robot_pose.orientation = tf::createQuaternionMsgFromYaw(tf::getYaw(robot_pose.orientation) + angle);
-    drawArrow(id, robot_pose, "steer", r, g, b);
+    drawArrow(frame, id, robot_pose, "steer", r, g, b);
 }
 
 void Visualizer::visualizeLine(const Line2d &line)
@@ -175,13 +175,13 @@ void Visualizer::visualizeLine(const Line2d &line)
     drawLine(2, f, t, "/base_link", "line", 0.7, 0.2, 1.0, 1, 0.1);
 }
 
-void Visualizer::drawFrenetSerretFrame(int id, Eigen::Vector3d robot_pose, double xe, double ye, double p_ind,
+void Visualizer::drawFrenetSerretFrame(const std::string& frame, int id, Eigen::Vector3d robot_pose, double xe, double ye, double p_ind,
                                        double q_ind, double theta_p)
 {
     visualization_msgs::MarkerArray path_coord_marray;
 
     visualization_msgs::Marker prototype;
-    prototype.header.frame_id = "/map";
+    prototype.header.frame_id = frame;
     prototype.header.stamp = ros::Time();
     prototype.action = visualization_msgs::Marker::ADD;
     prototype.id = id;

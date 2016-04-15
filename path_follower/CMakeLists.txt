@@ -195,6 +195,10 @@ add_executable(path_follower_node
   src/legacy/robotcontroller_dynamic_SLP.cpp
   src/legacy/robotcontroller_kinematic_SSG.cpp
 
+  src/local_planner/local_planner.cpp
+  src/local_planner/local_planner_null.cpp
+  src/local_planner/local_planner_transformer.cpp
+
   src/supervisor/supervisorchain.cpp
   src/supervisor/pathlookout.cpp
   src/supervisor/obstacletracker.cpp

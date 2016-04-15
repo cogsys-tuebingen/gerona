@@ -41,6 +41,9 @@
 // Utils
 #include <path_follower/utils/path_exceptions.h>
 
+#include <path_follower/local_planner/local_planner_null.h>
+#include <path_follower/local_planner/local_planner_transformer.h>
+
 using namespace path_msgs;
 using namespace std;
 using namespace Eigen;
@@ -58,9 +61,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     node_handle_(nh),
     follow_path_server_(nh, "follow_path", false),
     controller_(nullptr),
+    local_planner_(nullptr),
     obstacle_avoider_(nullptr),
     course_predictor_(this),
-    path_(new Path),
+    path_(new Path("/map")),
     pending_error_(-1),
     last_beep_(ros::Time::now()),
     beep_pause_(2.0),
@@ -73,91 +77,99 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
 	speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
 	beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
+    local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("local_path", 1, true);
 
 	odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
-	// Choose robot controller
-	ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
-	if (opt_.controller() == "ackermann_pid") {
-		if (opt_.obstacle_avoider_use_collision_box())
-			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-		controller_ = new RobotController_Ackermann_Pid(this);
+    // Choose robot controller
+    ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
+    if (opt_.controller() == "ackermann_pid") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_Ackermann_Pid>(this);
 
-	} else if (opt_.controller() == "ackermann_purepursuit") {
-		if (opt_.obstacle_avoider_use_collision_box())
-			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-		controller_ = new Robotcontroller_Ackermann_PurePursuit(this);
+    } else if (opt_.controller() == "ackermann_purepursuit") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+        controller_ = std::make_shared<Robotcontroller_Ackermann_PurePursuit>(this);
 
-	} else if (opt_.controller() == "ackermann_kinematic") {
-		if (opt_.obstacle_avoider_use_collision_box())
-			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-		controller_ = new RobotController_Ackermann_Kinematic(this);
+    } else if (opt_.controller() == "ackermann_kinematic") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_Ackermann_Kinematic>(this);
 
-	} else if (opt_.controller() == "ackermann_stanley") {
-		if (opt_.obstacle_avoider_use_collision_box())
-			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-		controller_ = new RobotController_Ackermann_Stanley(this);
+    } else if (opt_.controller() == "ackermann_stanley") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_Ackermann_Stanley>(this);
 
-	} else if (opt_.controller() == "4ws_purepursuit") {
-	if (opt_.obstacle_avoider_use_collision_box())
-		obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-	controller_ = new RobotController_4WS_PurePursuit(this);
+    } else if (opt_.controller() == "4ws_purepursuit") {
+    if (opt_.obstacle_avoider_use_collision_box())
+        obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+    controller_ = std::make_shared<RobotController_4WS_PurePursuit>(this);
 
-	} else if (opt_.controller() == "4ws_stanley") {
-		if (opt_.obstacle_avoider_use_collision_box())
-			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-		controller_ = new RobotController_4WS_Stanley(this);
+    } else if (opt_.controller() == "4ws_stanley") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_4WS_Stanley>(this);
 
-	} else if (opt_.controller() == "4ws_inputscaling") {
-		if (opt_.obstacle_avoider_use_collision_box())
-			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-		controller_ = new RobotController_4WS_InputScaling(this);
+    } else if (opt_.controller() == "4ws_inputscaling") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_4WS_InputScaling>(this);
 
     } else if (opt_.controller() == "unicycle_inputscaling") {
             if (opt_.obstacle_avoider_use_collision_box())
-                obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-            controller_ = new RobotController_Unicycle_InputScaling(this);
+                obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+            controller_ = std::make_shared<RobotController_Unicycle_InputScaling>(this);
 
     } else if (opt_.controller() == "patsy_pid") {
-        RobotControllerTrailer *ctrl = new RobotControllerTrailer(this,&this->node_handle_);
+        std::shared_ptr<RobotControllerTrailer> ctrl(new RobotControllerTrailer(this,&this->node_handle_));
         if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorPatsy(&pose_listener_,ctrl);
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorPatsy>(&pose_listener_,ctrl.get());
         controller_ = ctrl;
 
-	} else if (opt_.controller() == "omnidrive_orthexp") {
-		if (opt_.obstacle_avoider_use_collision_box())
-			obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
-		controller_ = new RobotController_Omnidrive_OrthogonalExponential(this);
+    } else if (opt_.controller() == "omnidrive_orthexp") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorOmnidrive>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_Omnidrive_OrthogonalExponential>(this);
 
-	} else if (opt_.controller() == "ackermann_orthexp") {
-		if (opt_.obstacle_avoider_use_collision_box())
-			obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
-		controller_ = new RobotController_Ackermann_OrthogonalExponential(this);
+    } else if (opt_.controller() == "ackermann_orthexp") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorOmnidrive>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_Ackermann_OrthogonalExponential>(this);
 
-	} else if (opt_.controller() == "differential_orthexp") {
-		if (opt_.obstacle_avoider_use_collision_box())
-			obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
-		controller_ = new RobotController_Differential_OrthogonalExponential(this);
+    } else if (opt_.controller() == "differential_orthexp") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorOmnidrive>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_Differential_OrthogonalExponential>(this);
 
-	} else if (opt_.controller() == "kinematic_SLP") {
-		if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-		controller_ = new RobotController_Kinematic_SLP(this);
+    } else if (opt_.controller() == "kinematic_SLP") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_Kinematic_SLP>(this);
 
     } else if (opt_.controller() == "dynamic_SLP") {
         if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-        controller_ = new RobotController_Dynamic_SLP(this);
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_Dynamic_SLP>(this);
     } else if (opt_.controller() == "kinematic_SSG") {
         if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-        controller_ = new RobotController_Kinematic_SSG(this);
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_Kinematic_SSG>(this);
     } else {
-		ROS_FATAL("Unknown robot controller. Shutdown.");
-		exit(1);
-	}
+        ROS_FATAL("Unknown robot controller. Shutdown.");
+        exit(1);
+    }
 
-	obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
+    // TODO: make selectable once more than one planner is available
+    local_planner_ = std::make_shared<LocalPlannerTransformer>(*this, pose_listener_,ros::Duration(1.0));
+
+    if(!local_planner_) {
+        local_planner_ = std::make_shared<LocalPlannerNull>(*this, pose_listener_);
+    }
+
+    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
 																					&PathFollower::obstacleCloudCB, this);
 
 	visualizer_ = Visualizer::getInstance();
@@ -187,8 +199,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
 
 	//  if no obstacle avoider was set, use the none-avoider
-	if (obstacle_avoider_ == nullptr) {
-		obstacle_avoider_ = new NoneAvoider();
+    if (!obstacle_avoider_) {
+        obstacle_avoider_ = std::make_shared<NoneAvoider>();
 	}
 
 	follow_path_server_.start();
@@ -200,8 +212,6 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
 PathFollower::~PathFollower()
 {
-    delete controller_;
-    delete obstacle_avoider_;
 }
 
 
@@ -311,8 +321,8 @@ bool PathFollower::transformToLocal(const geometry_msgs::PoseStamped &global_org
 {
     geometry_msgs::PoseStamped global(global_org);
     try {
-        global.header.frame_id=opt_.world_frame();
-        pose_listener_.transformPose(opt_.robot_frame(),ros::Time(0),global,opt_.world_frame(),local);
+        global.header.frame_id = getFixedFrameId();
+        pose_listener_.transformPose(opt_.robot_frame(),ros::Time(0),global, global.header.frame_id,local);
         return true;
 
     } catch (tf::TransformException& ex) {
@@ -326,7 +336,7 @@ bool PathFollower::transformToGlobal(const geometry_msgs::PoseStamped &local_org
     geometry_msgs::PoseStamped local(local_org);
     try {
         local.header.frame_id=opt_.robot_frame();
-        pose_listener_.transformPose(opt_.world_frame(),ros::Time(0),local,opt_.robot_frame(),global);
+        pose_listener_.transformPose(getFixedFrameId(),ros::Time(0),local,opt_.robot_frame(),global);
         return true;
 
     } catch (tf::TransformException& ex) {
@@ -379,6 +389,24 @@ void PathFollower::update()
 
         Supervisor::Result s_res = supervisors_.supervise(state);
         if (s_res.can_continue) {
+            Path::Ptr local_path = local_planner_->updateLocalPath();
+            if(local_path) {
+                nav_msgs::Path path;
+                path.header.stamp = ros::Time::now();
+                path.header.frame_id = local_path->getFrameId();
+                for(int i = 0, sub = local_path->subPathCount(); i < sub; ++i) {
+                    const SubPath& p = local_path->getSubPath(i);
+                    for(const Waypoint& wp : p) {
+                        geometry_msgs::PoseStamped pose;
+                        pose.pose.position.x = wp.x;
+                        pose.pose.position.y = wp.y;
+                        pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
+                        path.poses.push_back(pose);
+                    }
+                }
+                local_path_pub_.publish(path);
+            }
+
             is_running_ = execute(feedback, result);
         } else {
             ROS_WARN("My supervisor told me to stop.");
@@ -424,7 +452,7 @@ bool PathFollower::callObstacleAvoider(MoveCommand *cmd)
 
 RobotController *PathFollower::getController()
 {
-    return controller_;
+    return controller_.get();
 }
 
 CoursePredictor &PathFollower::getCoursePredictor()
@@ -441,17 +469,34 @@ void PathFollower::say(string text)
 
 Eigen::Vector3d PathFollower::getRobotPose() const
 {
-    return robot_pose_world_;
+    if(local_planner_->isNull()) {
+        return robot_pose_world_;
+    } else {
+        return robot_pose_odom_;
+    }
 }
 
 const geometry_msgs::Pose &PathFollower::getRobotPoseMsg() const
 {
-    return robot_pose_world_msg_;
+    if(local_planner_->isNull()) {
+        return robot_pose_world_msg_;
+    } else {
+        return robot_pose_odom_msg_;
+    }
 }
 
 Path::Ptr PathFollower::getPath()
 {
     return path_;
+}
+
+std::string PathFollower::getFixedFrameId()
+{
+    if(local_planner_->isNull()) {
+        return opt_.world_frame();
+    } else {
+        return opt_.odom_frame();
+    }
 }
 
 const PathFollowerParameters& PathFollower::getOptions() const
@@ -472,7 +517,7 @@ void PathFollower::start()
 
     controller_->start();
 
-    controller_->setPath(path_);
+    local_planner_->setGlobalPath(path_);
 
     is_running_ = true;
 }
@@ -514,7 +559,7 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
         return DONE;
     }
 
-    visualizer_->drawArrow(0, getRobotPoseMsg(), "slam pose", 2.0, 0.7, 1.0);
+    visualizer_->drawArrow(getFixedFrameId(), 0, getRobotPoseMsg(), "slam pose", 2.0, 0.7, 1.0);
 
     RobotController::ControlStatus status = controller_->execute();
 
@@ -640,7 +685,7 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
             }
         }
 
-        visualizer_->drawArrow(id++, current_point, "paths", 0, 0, 0);
+        visualizer_->drawArrow(path.header.frame_id, id++, current_point, "paths", 0, 0, 0);
         if(segment_ends_with_this_node) {
             // Marker for subpaths
             visualizer_->drawMark(id++, ((geometry_msgs::Pose)current_point).position, "paths", 0.2,0.2,0.2);

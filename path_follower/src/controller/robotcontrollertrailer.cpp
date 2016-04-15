@@ -174,8 +174,8 @@ void RobotControllerTrailer::selectWaypoint()
     }
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawArrow(0, path_->getCurrentWaypoint(), "current waypoint", 1, 1, 0);
-        visualizer_->drawArrow(1, path_->getLastWaypoint(), "current waypoint", 1, 0, 0);
+        visualizer_->drawArrow(path_driver_->getFixedFrameId(), 0, path_->getCurrentWaypoint(), "current waypoint", 1, 1, 0);
+        visualizer_->drawArrow(path_driver_->getFixedFrameId(), 1, path_->getLastWaypoint(), "current waypoint", 1, 0, 0);
     }
 
     // convert waypoint to local frame. NOTE: This has to be done, even if the waypoint did not
@@ -263,8 +263,8 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
 {
     // draw steer front
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), angle_error, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), dist_error, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, path_driver_->getRobotPoseMsg(), angle_error, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 2, path_driver_->getRobotPoseMsg(), dist_error, 0.2, 0.2, 1.0);
     }
 
 
@@ -279,7 +279,7 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
     }
     float u_val = u[0];
 
-    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), u_val, 0.0, 1.0, 1.0);
+    visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 14, path_driver_->getRobotPoseMsg(), u_val, 0.0, 1.0, 1.0);
 
     float steer = dir_sign_* std::max(-opt_.max_steer(), std::min(u_val, opt_.max_steer()));
     ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);

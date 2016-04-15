@@ -4,6 +4,7 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/String.h>
 #include <string>
+#include <tf/transform_listener.h>
 
 using namespace path_msgs;
 
@@ -30,6 +31,7 @@ public:
 
         speech_pub_ = nh.advertise<std_msgs::String>("/speech", 0);
 
+        pnh.param("target_frame", target_frame_, std::string("/map"));
         // target speed
         pnh.param("target_speed", target_speed_, 1.0);
 
@@ -63,6 +65,9 @@ private:
     ros::Subscriber goal_sub_;
     ros::Publisher speech_pub_;
 
+    tf::TransformListener tfl_;
+
+    std::string target_frame_;
     double target_speed_;
     int failure_mode_;
 
@@ -132,6 +137,22 @@ private:
         goal.goal.pose = *pose;
         goal.failure_mode = failure_mode_;
         goal.velocity = target_speed_;
+
+        if(pose->header.frame_id != target_frame_) {
+            if(!tfl_.waitForTransform(target_frame_, pose->header.frame_id, pose->header.stamp, ros::Duration(10.0))) {
+                ROS_ERROR_STREAM("cannot drive to goal, the transformation between " << target_frame_ << " and " << pose->header.frame_id << " is not known");
+            }
+            tf::StampedTransform trafo;
+            tfl_.lookupTransform(target_frame_, pose->header.frame_id, pose->header.stamp, trafo);
+
+            tf::Pose old_pose;
+            tf::poseMsgToTF(pose->pose, old_pose);
+
+            tf::Pose map_pose = trafo * old_pose;
+            tf::poseTFToMsg(map_pose, goal.goal.pose.pose);
+
+            goal.goal.pose.header.frame_id = target_frame_;
+        }
 
         client_.cancelAllGoals();
         ros::spinOnce();

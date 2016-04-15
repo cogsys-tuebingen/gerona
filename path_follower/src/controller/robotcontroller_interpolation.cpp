@@ -23,6 +23,8 @@ void RobotController_Interpolation::setPath(Path::Ptr path)
         return;
     }
 
+    std::cerr << "interpolating path in frame " << path->getFrameId() << std::endl;
+
     try {
         path_interpol.interpolatePath(path);
         publishInterpolatedPath();

@@ -130,6 +130,7 @@ void RobotController_Kinematic_SLP::calculateMovingDirection()
     Eigen::Vector2d delta(subp[1].x - subp[0].x, subp[1].y - subp[0].y);
     const double theta_diff = std::acos(delta.dot(looking_dir_normalized) / delta.norm());
 
+    std::cerr << "theta diff is " << theta_diff << ", theta_0: " << theta_0 << ", delta: " << delta << ", look: " << looking_dir_normalized << std::endl;
     // decide whether to drive forward or backward
     if (theta_diff > M_PI_2 || theta_diff < -M_PI_2) {
         setDirSign(-1.f);
@@ -354,7 +355,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///plot the moving reference frame together with position vector and error components
 
     if (visualizer_->MarrayhasSubscriber()) {
-        visualizer_->drawFrenetSerretFrame(0, current_pose, xe_, ye_, path_interpol.p(ind_),
+        visualizer_->drawFrenetSerretFrame(getFixedFrame(), 0, current_pose, xe_, ye_, path_interpol.p(ind_),
                                            path_interpol.q(ind_), path_interpol.theta_p(ind_));
     }
 
@@ -387,7 +388,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
     ///***///

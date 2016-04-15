@@ -109,6 +109,8 @@ private:
 
     //! Send 'text' to a text to speech processor.
     void say(std::string text);
+
+    void publishGoalMessage();
 };
 
 #endif // PATHCONTROLLER_H
