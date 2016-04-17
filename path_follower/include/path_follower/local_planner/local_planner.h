@@ -3,6 +3,8 @@
 
 /// PROJECT
 #include <path_follower/utils/path.h>
+#include <path_follower/local_planner/constraint.h>
+#include <path_follower/local_planner/scorer.h>
 
 class PathFollower;
 
@@ -13,7 +15,8 @@ public:
 
     virtual void setGlobalPath(Path::Ptr path);
 
-    virtual Path::Ptr updateLocalPath() = 0;
+    virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
+                                      const std::vector<Scorer::Ptr>& scorer) = 0;
 
     virtual bool isNull() const;
 

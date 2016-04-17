@@ -389,7 +389,10 @@ void PathFollower::update()
 
         Supervisor::Result s_res = supervisors_.supervise(state);
         if (s_res.can_continue) {
-            Path::Ptr local_path = local_planner_->updateLocalPath();
+            std::vector<Constraint::Ptr> constraints;
+            std::vector<Scorer::Ptr> scorer;
+
+            Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer);
             if(local_path) {
                 nav_msgs::Path path;
                 path.header.stamp = ros::Time::now();

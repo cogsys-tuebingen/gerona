@@ -22,7 +22,8 @@ void LocalPlannerNull::setGlobalPath(Path::Ptr path)
     follower_.getController()->setPath(global_path_);
 }
 
-Path::Ptr LocalPlannerNull::updateLocalPath()
+Path::Ptr LocalPlannerNull::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
+                                            const std::vector<Scorer::Ptr>& scorer)
 {
     // do nothing
     return nullptr;

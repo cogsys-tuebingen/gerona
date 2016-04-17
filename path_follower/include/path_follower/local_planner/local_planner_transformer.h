@@ -16,7 +16,8 @@ public:
 
     virtual void setGlobalPath(Path::Ptr path) override;
 
-    virtual Path::Ptr updateLocalPath() override;
+    virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
+                                      const std::vector<Scorer::Ptr>& scorer) override;
 
 private:
     ros::Time last_update_;
