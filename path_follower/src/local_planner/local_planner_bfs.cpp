@@ -70,8 +70,12 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         nodes.push_back(wpose);
         parents.push_back(-1);
 
-        std::vector<Waypoint> queue;
-        queue.push_back(wpose);
+        std::queue<Waypoint> fifo;
+        fifo.push(wpose);
+
+        while(!fifo.empty()){
+
+        }
 
 
         double closest_dist = std::numeric_limits<double>::infinity();
