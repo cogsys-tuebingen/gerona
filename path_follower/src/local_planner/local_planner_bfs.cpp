@@ -73,12 +73,47 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         std::queue<Waypoint> fifo;
         fifo.push(wpose);
 
-        while(!fifo.empty()){
+        std::queue<int> fifo_i;
+        fifo_i.push(0);
+        double cu_dist = 0.0;
+        int obj = -1;
 
+        while(!fifo.empty() && cu_dist <= ldist){
+            Waypoint current = fifo.front();
+            fifo.pop();
+            int c_index = fifo_i.front();
+            fifo_i.pop();
+            ROS_INFO_STREAM("Current index:" << c_index);
+            if(isNearEnough(current,last)){
+                obj = c_index;
+                break;
+            }
+
+            std::vector<int> successors;
+            getSuccessors(current, c_index, successors, nodes, parents);
+            for(std::size_t i = 0; i < successors.size(); ++i){
+                Waypoint processed = nodes[successors[i]];
+                double new_dist = wpose.distanceTo(processed);
+                if(new_dist > cu_dist){
+                    cu_dist = new_dist;
+                }
+                fifo.push(processed);
+            }
         }
 
+        std::vector<Waypoint> local_wps;
+        if(obj != -1){
+            int cu_i = obj;
+            while(parents[cu_i] != -1){
+                local_wps.push_back(nodes[cu_i]);
+                cu_i = parents[cu_i];
+            }
+            std::reverse(local_wps.begin(),local_wps.end());
+        }else{
+            return nullptr;
+        }
 
-        double closest_dist = std::numeric_limits<double>::infinity();
+        /*double closest_dist = std::numeric_limits<double>::infinity();
         std::size_t start = 0;
         for(std::size_t i = 0; i < waypoints.size(); ++i) {
             const Waypoint& wp = waypoints[i];
@@ -91,7 +126,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         std::vector<Waypoint> local_wps;
         for(std::size_t i = start, n = std::min(start + 20, waypoints.size()); i < n; ++i) {
             local_wps.push_back(waypoints[i]);
-        }
+        }*/
 
         //        // example use of scorers
         //        // (return the path with the lowest score.)
@@ -128,4 +163,39 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
     } else {
         return nullptr;
     }
+}
+
+void LocalPlannerBFS::getSuccessors(Waypoint& current, int index, std::vector<int>& successors,
+                                    std::vector<Waypoint>& nodes, std::vector<int>& parents){
+    successors.clear();
+    for(int i = 0; i < 3; ++i){
+        double theta;
+        switch (i) {
+        case 0:// straight
+            theta = current.orientation;
+            break;
+        case 1:// right
+            theta = current.orientation - D_THETA;
+            break;
+        case 2:// left
+            theta = current.orientation + D_THETA;
+            break;
+        default:
+            break;
+        }
+        double x = current.x + 0.7*std::cos(theta);
+        double y = current.y + 0.7*std::sin(theta);
+        Waypoint succ(x,y,theta);
+        ROS_INFO_STREAM("Current succ:" << nodes.size());
+        successors.push_back((int)nodes.size());
+        nodes.push_back(succ);
+        parents.push_back(index);
+    }
+}
+
+bool LocalPlannerBFS::isNearEnough(Waypoint& current, const Waypoint& last){
+    if(current.distanceTo(last) <= 0.5){
+        return true;
+    }
+    return false;
 }
