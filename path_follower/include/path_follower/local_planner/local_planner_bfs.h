@@ -20,9 +20,9 @@ public:
                                       const std::vector<Scorer::Ptr>& scorer) override;
 
 private:
-    void getSuccessors(Waypoint& current, int index, std::vector<int>& successors,
+    void getSuccessors(const Waypoint& current, int index, std::vector<int>& successors,
                        std::vector<Waypoint>& nodes, std::vector<int>& parents);
-    bool isNearEnough(Waypoint& current, const Waypoint& last);
+    bool isNearEnough(const Waypoint& current, const Waypoint& last);
     const double D_THETA = 5*M_PI/36;//Assume like the global planner 25° turn
     ros::Time last_update_;
     ros::Duration update_interval_;

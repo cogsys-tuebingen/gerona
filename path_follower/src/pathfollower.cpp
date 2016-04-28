@@ -164,8 +164,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     }
 
     // TODO: make selectable once more than one planner is available
-    // local_planner_ = std::make_shared<LocalPlannerTransformer>(*this, pose_listener_,ros::Duration(1.0));
-    local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(1.0));
+    local_planner_ = std::make_shared<LocalPlannerTransformer>(*this, pose_listener_,ros::Duration(1.0));
+    //local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(1.0));
 
     if(!local_planner_) {
         local_planner_ = std::make_shared<LocalPlannerNull>(*this, pose_listener_);
