@@ -111,6 +111,9 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             }
             local_wps.push_back(nodes[cu_i]);
             std::reverse(local_wps.begin(),local_wps.end());
+            for(std::size_t i = 0; i < waypoints.size(); ++i) {
+                ROS_INFO_STREAM("(" << waypoints[i].x << "," << waypoints[i].y << ")");
+            }
         }else{
             return nullptr;
         }
