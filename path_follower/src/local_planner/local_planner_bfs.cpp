@@ -76,7 +76,8 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         double go_dist = std::numeric_limits<double>::infinity();
         int obj = -1;
 
-        while(!fifo_i.empty() && cu_dist <= ldist && nodes.size() <= 3280){
+        while(!fifo_i.empty() && cu_dist <= ldist && nodes.size() <= 3280){//level 7
+        //while(!fifo_i.empty() && cu_dist <= ldist && nodes.size() <= 1093){//level 6
             int c_index = fifo_i.front();
             fifo_i.pop();
             const Waypoint& current = nodes[c_index];
@@ -111,8 +112,8 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             }
             local_wps.push_back(nodes[cu_i]);
             std::reverse(local_wps.begin(),local_wps.end());
-            for(std::size_t i = 0; i < waypoints.size(); ++i) {
-                ROS_INFO_STREAM("(" << waypoints[i].x << "," << waypoints[i].y << ")");
+            for(std::size_t i = 0; i < local_wps.size(); ++i) {
+                ROS_INFO_STREAM("(" << local_wps[i].x << "," << local_wps[i].y << ")");
             }
         }else{
             return nullptr;
