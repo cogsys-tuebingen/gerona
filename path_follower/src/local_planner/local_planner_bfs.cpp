@@ -22,7 +22,6 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
 {
     // this planner does not "plan" locally, but transforms the global path to the odometry frame
     // to eliminate odometry drift
-    ROS_INFO_STREAM("Nr of constraints: " << constraints.size());
 
     ros::Time now = ros::Time::now();
 
@@ -32,6 +31,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
 
         // only look at the first sub path for now
         auto waypoints = global_path_->getSubPath(0);
+        std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints);
 
         // calculate the corrective transformation to map from world coordinates to odom
         if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
@@ -88,7 +88,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             }
 
             std::vector<int> successors;
-            getSuccessors(current, c_index, successors, nodes, parents);
+            getSuccessors(current, c_index, successors, nodes, parents, constraints);
             for(std::size_t i = 0; i < successors.size(); ++i){
                 const Waypoint& processed = nodes[successors[i]];
                 double new_dist = wpose.distanceTo(processed);
@@ -158,7 +158,8 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
 }
 
 void LocalPlannerBFS::getSuccessors(const Waypoint& current, int index, std::vector<int>& successors,
-                                    std::vector<Waypoint>& nodes, std::vector<int>& parents){
+                                    std::vector<Waypoint>& nodes, std::vector<int>& parents,
+                                    const std::vector<Constraint::Ptr>& constraints){
     successors.clear();
     for(int i = 0; i < 3; ++i){
         double theta;
@@ -178,7 +179,9 @@ void LocalPlannerBFS::getSuccessors(const Waypoint& current, int index, std::vec
         double x = current.x + 0.3*std::cos(theta);
         double y = current.y + 0.3*std::sin(theta);
         const Waypoint succ(x,y,theta);
-        if(!isNearEnough(current,succ)){
+        const tf::Point succp(x,y,theta);
+        if(!isNearEnough(current,succ) &&
+                std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->isSatisfied(succp)){
             successors.push_back(nodes.size());
             nodes.push_back(succ);
             parents.push_back(index);

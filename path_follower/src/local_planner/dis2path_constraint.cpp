@@ -16,5 +16,5 @@ void Dis2Path_Constraint::setSubPath(SubPath &current){
 }
 
 bool Dis2Path_Constraint::isSatisfied(const tf::Point &point){
-
+    return true;//to_debug
 }

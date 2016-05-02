@@ -21,7 +21,8 @@ public:
 
 private:
     void getSuccessors(const Waypoint& current, int index, std::vector<int>& successors,
-                       std::vector<Waypoint>& nodes, std::vector<int>& parents);
+                       std::vector<Waypoint>& nodes, std::vector<int>& parents,
+                       const std::vector<Constraint::Ptr>& constraints);
     bool isNearEnough(const Waypoint& current, const Waypoint& last);
     const double D_THETA = 5*M_PI/36;//Assume like the global planner 25° turn
     ros::Time last_update_;
