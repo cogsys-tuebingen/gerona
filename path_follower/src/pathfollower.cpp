@@ -393,6 +393,7 @@ void PathFollower::update()
         if (s_res.can_continue) {
             std::vector<Constraint::Ptr> constraints;
             std::vector<Scorer::Ptr> scorer;
+            constraints.push_back(Dis2Path_Constraint::Ptr());
             Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer);
             if(local_path) {
                 nav_msgs::Path path;

@@ -4,6 +4,7 @@
 /// PROJECT
 #include <path_follower/utils/path.h>
 #include <path_follower/local_planner/constraint.h>
+#include <path_follower/local_planner/dis2path_constraint.h>
 #include <path_follower/local_planner/scorer.h>
 
 class PathFollower;

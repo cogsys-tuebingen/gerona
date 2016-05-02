@@ -22,6 +22,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
 {
     // this planner does not "plan" locally, but transforms the global path to the odometry frame
     // to eliminate odometry drift
+    ROS_INFO_STREAM("Nr of constraints: " << constraints.size());
 
     ros::Time now = ros::Time::now();
 

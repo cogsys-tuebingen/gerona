@@ -115,6 +115,7 @@ add_executable(path_follower_node
   src/local_planner/local_planner_transformer.cpp
   src/local_planner/local_planner_bfs.cpp
   src/local_planner/constraint.cpp
+  src/local_planner/dis2path_constraint.cpp
   src/local_planner/scorer.cpp
 
   src/supervisor/supervisorchain.cpp
