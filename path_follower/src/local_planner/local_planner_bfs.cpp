@@ -64,7 +64,6 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
 
         const Waypoint& last = waypoints[waypoints.size()-1];
         double ldist = wpose.distanceTo(last);
-        ROS_INFO_STREAM("Aeusserste punkt:" << ldist);
 
         std::vector<Waypoint> nodes;
         std::vector<int> parents;
@@ -84,6 +83,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             const Waypoint& current = nodes[c_index];
             if(isNearEnough(current,last)){
                 obj = c_index;
+                ROS_INFO_STREAM("Goal found: " << current.x << ", " << current.y);
                 break;
             }
 
@@ -91,18 +91,20 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             getSuccessors(current, c_index, successors, nodes, parents, constraints);
             for(std::size_t i = 0; i < successors.size(); ++i){
                 const Waypoint& processed = nodes[successors[i]];
-                double new_dist = wpose.distanceTo(processed);
-                if(new_dist > cu_dist){
-                    cu_dist = new_dist;
-                }
-                new_dist = processed.distanceTo(last);
+                double new_dist = processed.distanceTo(last);
                 if(new_dist < go_dist){
                     go_dist = new_dist;
                     obj = successors[i];
+                    new_dist = wpose.distanceTo(processed);
+                    if(new_dist > cu_dist){
+                        cu_dist = new_dist;
+                    }
                 }
                 fifo_i.push(successors[i]);
             }
         }
+        ROS_INFO_STREAM("Reasons: " <<  !fifo_i.empty() << ", " << (cu_dist <= ldist) << ", "
+                        << (nodes.size() <= 3280));
 
         std::vector<Waypoint> local_wps;
         if(obj != -1){
@@ -113,9 +115,6 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             }
             local_wps.push_back(nodes[cu_i]);
             std::reverse(local_wps.begin(),local_wps.end());
-            for(std::size_t i = 0; i < local_wps.size(); ++i) {
-                ROS_INFO_STREAM("(" << local_wps[i].x << "," << local_wps[i].y << ")");
-            }
         }else{
             return nullptr;
         }
@@ -190,7 +189,7 @@ void LocalPlannerBFS::getSuccessors(const Waypoint& current, int index, std::vec
 }
 
 bool LocalPlannerBFS::isNearEnough(const Waypoint& current, const Waypoint& last){
-    if(current.distanceTo(last) <= 0.3){
+    if(current.distanceTo(last) <= 0.2){
         return true;
     }
     return false;
