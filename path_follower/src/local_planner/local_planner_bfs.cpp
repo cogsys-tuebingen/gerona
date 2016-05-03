@@ -28,10 +28,8 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
     // only calculate a new local path, if enough time has passed.
     // TODO: also replan for other reasons, e.g. the global path has changed, ...
     if(last_update_ + update_interval_ < now) {
-
         // only look at the first sub path for now
         auto waypoints = global_path_->getSubPath(0);
-        std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints);
 
         // calculate the corrective transformation to map from world coordinates to odom
         if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
@@ -55,6 +53,8 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             rot = transform_correction * rot;
             wp.orientation = tf::getYaw(rot);
         }
+
+        std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints);
 
         // find the subpath that starts closest to the robot
         Eigen::Vector3d pose = follower_.getRobotPose();
