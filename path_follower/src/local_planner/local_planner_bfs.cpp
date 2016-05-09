@@ -67,17 +67,20 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
 
         std::vector<Waypoint> nodes;
         std::vector<int> parents;
+        std::vector<int> level;
         nodes.push_back(wpose);
         parents.push_back(-1);
+        level.push_back(0);
 
         std::queue<int> fifo_i;
         fifo_i.push(0);
         double cu_dist = 0.0;
         double go_dist = std::numeric_limits<double>::infinity();
         int obj = -1;
+        int li_level = 8;
 
-        while(!fifo_i.empty() && cu_dist <= ldist && nodes.size() <= 3280){//level 7
-        //while(!fifo_i.empty() && cu_dist <= ldist && nodes.size() <= 1093){//level 6
+        while(!fifo_i.empty() && cu_dist <= ldist &&
+              level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level){
             int c_index = fifo_i.front();
             fifo_i.pop();
             const Waypoint& current = nodes[c_index];
@@ -88,7 +91,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             }
 
             std::vector<int> successors;
-            getSuccessors(current, c_index, successors, nodes, parents, constraints);
+            getSuccessors(current, c_index, successors, nodes, parents, level, constraints);
             for(std::size_t i = 0; i < successors.size(); ++i){
                 const Waypoint& processed = nodes[successors[i]];
                 double new_dist = processed.distanceTo(last);
@@ -104,7 +107,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             }
         }
         ROS_INFO_STREAM("Reasons: " <<  !fifo_i.empty() << ", " << (cu_dist <= ldist) << ", "
-                        << (nodes.size() <= 3280));
+                        << (level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level));
 
         std::vector<Waypoint> local_wps;
         if(obj != -1){
@@ -158,7 +161,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
 
 void LocalPlannerBFS::getSuccessors(const Waypoint& current, int index, std::vector<int>& successors,
                                     std::vector<Waypoint>& nodes, std::vector<int>& parents,
-                                    const std::vector<Constraint::Ptr>& constraints){
+                                    std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints){
     successors.clear();
     for(int i = 0; i < 3; ++i){
         double theta;
@@ -175,8 +178,8 @@ void LocalPlannerBFS::getSuccessors(const Waypoint& current, int index, std::vec
         default:
             break;
         }
-        double x = current.x + 0.3*std::cos(theta);
-        double y = current.y + 0.3*std::sin(theta);
+        double x = current.x + 0.15*std::cos(theta);
+        double y = current.y + 0.15*std::sin(theta);
         const Waypoint succ(x,y,theta);
         const tf::Point succp(x,y,theta);
         if(!isNearEnough(current,succ) &&
@@ -184,12 +187,13 @@ void LocalPlannerBFS::getSuccessors(const Waypoint& current, int index, std::vec
             successors.push_back(nodes.size());
             nodes.push_back(succ);
             parents.push_back(index);
+            level.push_back(level[index]+1);
         }
     }
 }
 
 bool LocalPlannerBFS::isNearEnough(const Waypoint& current, const Waypoint& last){
-    if(current.distanceTo(last) <= 0.2){
+    if(current.distanceTo(last) <= 0.05){
         return true;
     }
     return false;
