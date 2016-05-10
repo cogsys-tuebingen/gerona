@@ -105,7 +105,6 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
                 }
                 fifo_i.push(successors[i]);
             }
-            ROS_INFO_STREAM("Queue: " << fifo_i.size());
         }
         ROS_INFO_STREAM("Reasons: " <<  !fifo_i.empty() << ", " << (cu_dist <= ldist) << ", "
                         << (level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level));
@@ -168,22 +167,13 @@ void LocalPlannerBFS::getSuccessors(const Waypoint& current, int index, std::vec
     for(int i = 0; i < 3; ++i){
         switch (i) {
         case 0:// straight
-            ROS_INFO_STREAM("Still: " << i);
-            ROS_INFO_STREAM("ATheta: " << current.orientation);
             theta = current.orientation;
-            ROS_INFO_STREAM("BranchA: " << theta);
             break;
         case 1:// right
-            ROS_INFO_STREAM("Still: " << i);
-            ROS_INFO_STREAM("ATheta: " << current.orientation << " - " << D_THETA);
             theta = current.orientation - D_THETA;
-            ROS_INFO_STREAM("BranchA: " << theta);
             break;
         case 2:// left
-            ROS_INFO_STREAM("Still: " << i);
-            ROS_INFO_STREAM("ATheta: " << current.orientation << " + " << D_THETA);
             theta = current.orientation + D_THETA;
-            ROS_INFO_STREAM("BranchA: " << theta);
             break;
         default:
             break;
