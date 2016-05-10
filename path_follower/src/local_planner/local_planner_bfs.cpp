@@ -77,7 +77,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         double cu_dist = 0.0;
         double go_dist = std::numeric_limits<double>::infinity();
         int obj = -1;
-        int li_level = 8;
+        int li_level = 9;
 
         while(!fifo_i.empty() && cu_dist <= ldist &&
               level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level){
@@ -105,6 +105,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
                 }
                 fifo_i.push(successors[i]);
             }
+            ROS_INFO_STREAM("Queue: " << fifo_i.size());
         }
         ROS_INFO_STREAM("Reasons: " <<  !fifo_i.empty() << ", " << (cu_dist <= ldist) << ", "
                         << (level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level));
@@ -163,17 +164,26 @@ void LocalPlannerBFS::getSuccessors(const Waypoint& current, int index, std::vec
                                     std::vector<Waypoint>& nodes, std::vector<int>& parents,
                                     std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints){
     successors.clear();
+    double theta;
     for(int i = 0; i < 3; ++i){
-        double theta;
         switch (i) {
         case 0:// straight
+            ROS_INFO_STREAM("Still: " << i);
+            ROS_INFO_STREAM("ATheta: " << current.orientation);
             theta = current.orientation;
+            ROS_INFO_STREAM("BranchA: " << theta);
             break;
         case 1:// right
+            ROS_INFO_STREAM("Still: " << i);
+            ROS_INFO_STREAM("ATheta: " << current.orientation << " - " << D_THETA);
             theta = current.orientation - D_THETA;
+            ROS_INFO_STREAM("BranchA: " << theta);
             break;
         case 2:// left
+            ROS_INFO_STREAM("Still: " << i);
+            ROS_INFO_STREAM("ATheta: " << current.orientation << " + " << D_THETA);
             theta = current.orientation + D_THETA;
+            ROS_INFO_STREAM("BranchA: " << theta);
             break;
         default:
             break;
