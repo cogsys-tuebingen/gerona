@@ -52,6 +52,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             tf::Quaternion rot = tf::createQuaternionFromYaw(wp.orientation);
             rot = transform_correction * rot;
             wp.orientation = tf::getYaw(rot);
+            //ROS_INFO_STREAM("Path Point: (" << wp.x << ", " << wp.y << ", " << wp.orientation << ")");
         }
 
         std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints);
@@ -60,6 +61,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         Eigen::Vector3d pose = follower_.getRobotPose();
 
         Waypoint wpose(pose(0),pose(1),pose(2));
+        //ROS_INFO_STREAM("Pose: (" << wpose.x << ", " << wpose.y << ", " << wpose.orientation << ")");
 
 
         const Waypoint& last = waypoints[waypoints.size()-1];
@@ -77,7 +79,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         double cu_dist = 0.0;
         double go_dist = std::numeric_limits<double>::infinity();
         int obj = -1;
-        int li_level = 9;
+        int li_level = 8;
 
         while(!fifo_i.empty() && cu_dist <= ldist &&
               level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level){
@@ -105,7 +107,6 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
                 }
                 fifo_i.push(successors[i]);
             }
-            ROS_INFO_STREAM("Queue: " << fifo_i.size());
         }
         ROS_INFO_STREAM("Reasons: " <<  !fifo_i.empty() << ", " << (cu_dist <= ldist) << ", "
                         << (level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level));
@@ -165,31 +166,26 @@ void LocalPlannerBFS::getSuccessors(const Waypoint& current, int index, std::vec
                                     std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints){
     successors.clear();
     double theta;
+    double ori = current.orientation;
+    double ox = current.x;
+    double oy = current.y;
     for(int i = 0; i < 3; ++i){
         switch (i) {
         case 0:// straight
-            ROS_INFO_STREAM("Still: " << i);
-            ROS_INFO_STREAM("ATheta: " << current.orientation);
-            theta = current.orientation;
-            ROS_INFO_STREAM("BranchA: " << theta);
+            theta = ori;
             break;
         case 1:// right
-            ROS_INFO_STREAM("Still: " << i);
-            ROS_INFO_STREAM("ATheta: " << current.orientation << " - " << D_THETA);
-            theta = current.orientation - D_THETA;
-            ROS_INFO_STREAM("BranchA: " << theta);
+            theta = ori - D_THETA;
             break;
         case 2:// left
-            ROS_INFO_STREAM("Still: " << i);
-            ROS_INFO_STREAM("ATheta: " << current.orientation << " + " << D_THETA);
-            theta = current.orientation + D_THETA;
-            ROS_INFO_STREAM("BranchA: " << theta);
+            theta = ori + D_THETA;
             break;
         default:
             break;
         }
-        double x = current.x + 0.15*std::cos(theta);
-        double y = current.y + 0.15*std::sin(theta);
+
+        double x = ox + 0.15*std::cos(theta);
+        double y = oy + 0.15*std::sin(theta);
         const Waypoint succ(x,y,theta);
         const tf::Point succp(x,y,theta);
         if(!isNearEnough(current,succ) &&
