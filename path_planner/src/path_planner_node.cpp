@@ -351,10 +351,11 @@ struct PathPlanner : public Planner
         if(render_open_cells_) {
             auto& open = algo.getOpenList();
 
+            /*
             double res = cost_map.info.resolution;
             double ox = cost_map.info.origin.position.x;
             double oy = cost_map.info.origin.position.y;
-
+*/
             for(auto it = open.begin(); it != open.end(); ++it) {
                 const auto* node = *it;
                 geometry_msgs::Point pt;

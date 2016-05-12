@@ -1180,6 +1180,7 @@ void Planner::publish(const nav_msgs::Path &path, const nav_msgs::Path &path_raw
     /// path
     raw_path_publisher_.publish(path_raw);
     path_publisher_.publish(path);
+
     visualizePath(path);
 }
 

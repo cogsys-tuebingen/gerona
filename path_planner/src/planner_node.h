@@ -149,7 +149,7 @@ private:
 
     void visualizeOutline(const geometry_msgs::Pose &at, int id, const std::string &frame);
     void visualizePath(const nav_msgs::Path& path);
-
+    void visualizePathLine(const nav_msgs::Path &path);
 protected:
     ros::NodeHandle nh;
     ros::NodeHandle nh_priv;
@@ -185,7 +185,6 @@ protected:
     ros::Publisher viz_pub;
     ros::Publisher viz_array_pub;
     ros::Publisher cost_pub;
-
     tf::TransformListener tfl;
 
     std::string base_frame_;

@@ -33,7 +33,7 @@ public:
 
     void execute(const path_msgs::PlanPathGoalConstPtr &goal);
 
-    nav_msgs::Path plan (const path_msgs::PlanPathGoal &goal,
+    virtual nav_msgs::Path plan (const path_msgs::PlanPathGoal &goal,
                          const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                          const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
 
