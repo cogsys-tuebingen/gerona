@@ -52,16 +52,17 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             tf::Quaternion rot = tf::createQuaternionFromYaw(wp.orientation);
             rot = transform_correction * rot;
             wp.orientation = tf::getYaw(rot);
-            //ROS_INFO_STREAM("Path Point: (" << wp.x << ", " << wp.y << ", " << wp.orientation << ")");
+            //ROS_INFO_STREAM("Path Point: (" << wp.x << ", " << wp.y << ", " << wp.orientation << ")");//
         }
 
         std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints);
+        std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setDistances(waypoints);
 
         // find the subpath that starts closest to the robot
         Eigen::Vector3d pose = follower_.getRobotPose();
 
         Waypoint wpose(pose(0),pose(1),pose(2));
-        //ROS_INFO_STREAM("Pose: (" << wpose.x << ", " << wpose.y << ", " << wpose.orientation << ")");
+        //ROS_INFO_STREAM("Pose: (" << wpose.x << ", " << wpose.y << ", " << wpose.orientation << ")");//
 
 
         const Waypoint& last = waypoints[waypoints.size()-1];
