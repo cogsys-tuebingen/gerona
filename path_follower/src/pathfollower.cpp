@@ -18,6 +18,11 @@
 #include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
 #include <path_follower/legacy/robotcontroller_ackermann_purepursuit.h>
 #include <path_follower/legacy/robotcontroller_ackermann_kinematic.h>
+#include <path_follower/legacy/robotcontroller_ackermann_stanley.h>
+#include <path_follower/legacy/robotcontroller_4ws_purepursuit.h>
+#include <path_follower/legacy/robotcontroller_4ws_stanley.h>
+#include <path_follower/legacy/robotcontroller_4ws_inputscaling.h>
+#include <path_follower/legacy/robotcontroller_unicycle_inputscaling.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/legacy/robotcontroller_differential_orthexp.h>
 #include <path_follower/legacy/robotcontroller_kinematic_SLP.h>
@@ -58,96 +63,124 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     beep_pause_(2.0),
     is_running_(false)
 {
-    // Init. action server
-    follow_path_server_.registerGoalCallback([this]() { followPathGoalCB(); });
-    follow_path_server_.registerPreemptCallback([this]() {followPathPreemptCB(); });
 
-    speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
-    beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
+	// Init. action server
+	follow_path_server_.registerGoalCallback([this]() { followPathGoalCB(); });
+	follow_path_server_.registerPreemptCallback([this]() {followPathPreemptCB(); });
 
-    odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
+	speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
+	beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
 
-    // Choose robot controller
-    ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
-    if (opt_.controller() == "ackermann_pid") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-        controller_ = new RobotController_Ackermann_Pid(this);
+	odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
-	 } else if (opt_.controller() == "ackermann_purepursuit") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-		  controller_ = new Robotcontroller_Ackermann_PurePursuit(this);
+	// Choose robot controller
+	ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
+	if (opt_.controller() == "ackermann_pid") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		controller_ = new RobotController_Ackermann_Pid(this);
 
-	 } else if (opt_.controller() == "ackermann_kinematic") {
-		  if (opt_.obstacle_avoider_use_collision_box())
-				obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-		  controller_ = new RobotController_Ackermann_Kinematic(this);
+	} else if (opt_.controller() == "ackermann_purepursuit") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		controller_ = new Robotcontroller_Ackermann_PurePursuit(this);
+
+	} else if (opt_.controller() == "ackermann_kinematic") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		controller_ = new RobotController_Ackermann_Kinematic(this);
+
+	} else if (opt_.controller() == "ackermann_stanley") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		controller_ = new RobotController_Ackermann_Stanley(this);
+
+	} else if (opt_.controller() == "4ws_purepursuit") {
+	if (opt_.obstacle_avoider_use_collision_box())
+		obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+	controller_ = new RobotController_4WS_PurePursuit(this);
+
+	} else if (opt_.controller() == "4ws_stanley") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		controller_ = new RobotController_4WS_Stanley(this);
+
+	} else if (opt_.controller() == "4ws_inputscaling") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+		controller_ = new RobotController_4WS_InputScaling(this);
+
+    } else if (opt_.controller() == "unicycle_inputscaling") {
+            if (opt_.obstacle_avoider_use_collision_box())
+                obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+            controller_ = new RobotController_Unicycle_InputScaling(this);
 
     } else if (opt_.controller() == "patsy_pid") {
         RobotControllerTrailer *ctrl = new RobotControllerTrailer(this,&this->node_handle_);
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = new ObstacleDetectorPatsy(&pose_listener_,ctrl);
         controller_ = ctrl;
-    } else if (opt_.controller() == "omnidrive_orthexp") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
-        controller_ = new RobotController_Omnidrive_OrthogonalExponential(this);
 
-    } else if (opt_.controller() == "ackermann_orthexp") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
-        controller_ = new RobotController_Ackermann_OrthogonalExponential(this);
+	} else if (opt_.controller() == "omnidrive_orthexp") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+		controller_ = new RobotController_Omnidrive_OrthogonalExponential(this);
 
-    } else if (opt_.controller() == "differential_orthexp") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
-        controller_ = new RobotController_Differential_OrthogonalExponential(this);
-    } else if (opt_.controller() == "kinematic_SLP") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
-        controller_ = new RobotController_Kinematic_SLP(this);
-    } else {
-        ROS_FATAL("Unknown robot controller. Shutdown.");
-        exit(1);
-    }
+	} else if (opt_.controller() == "ackermann_orthexp") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+		controller_ = new RobotController_Ackermann_OrthogonalExponential(this);
 
-    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
-                                                                &PathFollower::obstacleCloudCB, this);
+	} else if (opt_.controller() == "differential_orthexp") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+		controller_ = new RobotController_Differential_OrthogonalExponential(this);
+	} else if (opt_.controller() == "kinematic_SLP") {
+		if (opt_.obstacle_avoider_use_collision_box())
+			obstacle_avoider_ = new ObstacleDetectorOmnidrive(&pose_listener_);
+		controller_ = new RobotController_Kinematic_SLP(this);
+	} else {
+		ROS_FATAL("Unknown robot controller. Shutdown.");
+		exit(1);
+	}
 
-    visualizer_ = Visualizer::getInstance();
+	obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
+																					&PathFollower::obstacleCloudCB, this);
 
-
-    /*** Initialize supervisors ***/
-
-    // register callback for new waypoint event.
-    path_->registerNextWaypointCallback([this]() { supervisors_.notifyNewWaypoint(); });
-
-    if (opt_.supervisor_use_path_lookout()) {
-        supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );
-    }
-
-    // Waypoint timeout
-    if (opt_.supervisor_use_waypoint_timeout()) {
-        Supervisor::Ptr waypoint_timeout(
-                    new WaypointTimeout(ros::Duration( opt_.supervisor_waypoint_timeout_time())));
-        supervisors_.addSupervisor(waypoint_timeout);
-    }
-
-    // Distance to path
-    if (opt_.supervisor_use_distance_to_path()) {
-        supervisors_.addSupervisor(Supervisor::Ptr(
-                                       new DistanceToPathSupervisor(opt_.supervisor_distance_to_path_max_dist())));
-    }
+	visualizer_ = Visualizer::getInstance();
 
 
-    //  if no obstacle avoider was set, use the none-avoider
-    if (obstacle_avoider_ == nullptr) {
-        obstacle_avoider_ = new NoneAvoider();
-    }
+	/*** Initialize supervisors ***/
 
-    follow_path_server_.start();
-    ROS_INFO("Initialisation done.");
+	// register callback for new waypoint event.
+	path_->registerNextWaypointCallback([this]() { supervisors_.notifyNewWaypoint(); });
+
+	if (opt_.supervisor_use_path_lookout()) {
+		supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );
+	}
+
+	// Waypoint timeout
+	if (opt_.supervisor_use_waypoint_timeout()) {
+		Supervisor::Ptr waypoint_timeout(
+					new WaypointTimeout(ros::Duration( opt_.supervisor_waypoint_timeout_time())));
+		supervisors_.addSupervisor(waypoint_timeout);
+	}
+
+	// Distance to path
+	if (opt_.supervisor_use_distance_to_path()) {
+		supervisors_.addSupervisor(Supervisor::Ptr(
+												new DistanceToPathSupervisor(opt_.supervisor_distance_to_path_max_dist())));
+	}
+
+
+	//  if no obstacle avoider was set, use the none-avoider
+	if (obstacle_avoider_ == nullptr) {
+		obstacle_avoider_ = new NoneAvoider();
+	}
+
+	follow_path_server_.start();
+	ROS_INFO("Initialisation done.");
+
 }
 
 
@@ -361,7 +394,7 @@ bool PathFollower::callObstacleAvoider(MoveCommand *cmd)
     }
 
     if (obstacle_cloud_ == nullptr) {
-        ROS_ERROR("No obstacle cloud received. Obstacle avoidace is skipped!");
+        ROS_ERROR_THROTTLE(1, "No obstacle cloud received. Obstacle avoidace is skipped!");
         return false;
     }
 
@@ -436,10 +469,10 @@ void PathFollower::stop()
 bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& result)
 {
     /* TODO:
-     * The global use of the result-constants as status codes is a bit problematic, as there are feedback
-     * states, which do not imply that the path execution is finished (and thus there is no result to send).
-     * This is currently the case for collisions.
-     */
+      * The global use of the result-constants as status codes is a bit problematic, as there are feedback
+      * states, which do not imply that the path execution is finished (and thus there is no result to send).
+      * This is currently the case for collisions.
+      */
 
     // constants for return codes
     const bool DONE   = false;
@@ -533,21 +566,30 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
 
     int id = 0;
     bool is_duplicate_wp ;
+
+    // TODO: does this really do what we think it does?
+    // FIXME: refactor this method
     for(unsigned i = 1; i < n; ++i){
         const Waypoint current_point(path.poses[i]);
+
+        // filter identical points that lead to the "unsorted" alglib exception
+        const bool is_identical = current_point.x == last_point.x
+                && current_point.y == last_point.y;
+        if(!is_identical || !only_one_segment) {
+            // append to current segment if not in "filter" mode
+            current_segment.push_back(current_point);
+        }
 
         double diff_last_x = current_point.x - last_point.x;
         double diff_last_y = current_point.y - last_point.y;
         double diff_last_angle = MathHelper::AngleClamp(current_point.orientation - last_point.orientation);
         if (diff_last_x*diff_last_x+diff_last_y*diff_last_y<WAYPOINT_POS_DIFF_TOL*WAYPOINT_POS_DIFF_TOL
                 && fabs(diff_last_angle)<WAYPOINT_ANGLE_DIFF_TOL) {
-           // duplicate waypoint
+            // duplicate waypoint
             is_duplicate_wp = true;
         } else {
             is_duplicate_wp = false;
         }
-        // append to current segment
-        current_segment.push_back(current_point);
 
         bool is_the_last_node = i == n-1;
         bool segment_ends_with_this_node = false;
@@ -556,11 +598,12 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
             // this is the last node
             segment_ends_with_this_node = true;
 
-        } else {
+        } else if (!is_identical) {
             const Waypoint next_point(path.poses[i+1]);
 
             // if angle between last direction and next direction to large -> segment ends
-
+            double diff_last_x = current_point.x - last_point.x;
+            double diff_last_y = current_point.y - last_point.y;
             double last_angle = std::atan2(diff_last_y, diff_last_x);
 
             double diff_next_x = next_point.x - current_point.x;
@@ -570,6 +613,7 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
             double angle = MathHelper::AngleClamp(last_angle - next_angle);
 
             bool split_segment = std::abs(angle) > M_PI / 3.0;
+
             if(!only_one_segment && split_segment && !is_duplicate_wp) {
                 // new segment!
                 // current node is the last one of the old segment

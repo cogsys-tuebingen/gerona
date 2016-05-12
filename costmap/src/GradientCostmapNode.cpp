@@ -41,20 +41,28 @@ public:
 
     bool getMap(nav_msgs::GetMap::Request &req, nav_msgs::GetMap::Response &res)
     {
-        nav_msgs::GetMap map_service;
-        if(map_service_client.call(map_service)) {
-            updateMap(map_service.response.map);
+        if(map_service_client.exists()) {
+            nav_msgs::GetMap map_service;
+            if(map_service_client.call(map_service)) {
+                ROS_WARN("map request");
+                updateMap(map_service.response.map);
+                res.map = current_map_;
+                return true;
+            } else {
+                ROS_WARN("map request failed");
+                return false;
+            }
+        } else {
+            ROS_WARN("map request, but there is no service!");
             res.map = current_map_;
             return true;
-        } else {
-            return false;
         }
     }
 
     void updateMapCallback(const nav_msgs::OccupancyGridConstPtr &ptr)
     {
-	ROS_WARN("received map");
-	ROS_WARN_STREAM("SIZE is " << ptr->info.width << " x " << ptr->info.height);
+        ROS_WARN("received map");
+        ROS_WARN_STREAM("SIZE is " << ptr->info.width << " x " << ptr->info.height);
         updateMap(*ptr);
 
         map_publisher_.publish(current_map_);

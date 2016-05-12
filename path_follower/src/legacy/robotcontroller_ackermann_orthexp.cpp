@@ -137,6 +137,7 @@ void RobotController_Ackermann_OrthogonalExponential::initialize()
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 }
 
+
 void RobotController_Ackermann_OrthogonalExponential::start()
 {
     path_driver_->getCoursePredictor().reset();

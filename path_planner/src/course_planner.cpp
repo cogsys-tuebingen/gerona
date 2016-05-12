@@ -30,12 +30,13 @@ CoursePlanner::CoursePlanner()
 
     obstacle_pose_sub_ = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/obst_pose", 0, &CoursePlanner::obstaclePoseCb, this);
 
+    ros::NodeHandle pnh("~");
 
-    nh.param("avoidance_radius",avoidance_radius_,1.5);
-    nh.param("obstacle_radius",obstacle_radius_,1.0);
+    pnh.param("avoidance_radius",avoidance_radius_,1.5);
+    pnh.param("obstacle_radius",obstacle_radius_,1.0);
 
-    nh.param("resolution", resolution_, 0.1);
-    nh.param("segments", segment_array_, segment_array_);
+    pnh.param("resolution", resolution_, 0.1);
+    pnh.param("segments", segment_array_, segment_array_);
     plan_avoidance_server_.start();
 }
 

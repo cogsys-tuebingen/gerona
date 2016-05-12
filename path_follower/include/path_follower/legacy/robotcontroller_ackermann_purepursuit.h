@@ -11,8 +11,6 @@
 #include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
 
-#include <visualization_msgs/Marker.h>
-
 
 class Robotcontroller_Ackermann_PurePursuit: public RobotController_Interpolation
 {
@@ -22,8 +20,10 @@ public:
 
 	virtual void stopMotion();
 	virtual void start();
+	void reset();
+	void setPath(Path::Ptr path);
 	virtual bool isOmnidirectional() const {
-		return true;
+		return false;
 	}
 
 protected:
@@ -32,28 +32,35 @@ protected:
 
 private:
 
-    struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
-		P<double> factor_lookahead_distance;
-        P<double> vehicle_length;
+	struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
+		P<double> factor_lookahead_distance_forward;
+		P<double> factor_lookahead_distance_backward;
+		P<double> vehicle_length;
+		P<double> factor_steering_angle;
 
 		ControllerParameters() :
-			factor_lookahead_distance(this, "~factor_lookahead_distance", 0.5, "lookahead distance factor"),
-            vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance")
+			factor_lookahead_distance_forward(this, "~factor_lookahead_distance_forward", 0.8,
+														 "lookahead distance factor while driving forwards"),
+			factor_lookahead_distance_backward(this, "~factor_lookahead_distance_forward", 0.8,
+														 "lookahead distance factor while driving backwards"),
+			vehicle_length(this, "~vehicle_length", 0.34, "axis-centre distance"),
+			factor_steering_angle(this, "~factor_steering_angle", 1.0,
+										 "Set 1.0 for one axis steering, 0.5 for two axis steering")
 		{}
 
-    } params;
+	} params_;
 
-    const RobotController_Interpolation::InterpolationParameters& getParameters() const
-    {
-        return params;
-    }
+	const RobotController_Interpolation::InterpolationParameters& getParameters() const {
+		return params_;
+	}
 
-	double computeAlpha(double& lookahead_distance, const Eigen::Vector3d& pose) const;
+	double computeAlpha(double& lookahead_distance, const Eigen::Vector3d& pose);
 
-	ros::NodeHandle node_handle;
-	ros::Publisher path_interpol_pub;
+	ros::NodeHandle node_handle_;
+	ros::Publisher path_interpol_pub_;
 
-	MoveCommand move_cmd;
+	unsigned int waypoint_;
+	MoveCommand move_cmd_;
 };
 
 #endif /* NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_CONTROLLER_ROBOTCONTROLLER_ACKERMANN_GEOMETRICAL_H_ */

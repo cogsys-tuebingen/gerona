@@ -23,11 +23,11 @@ using namespace Eigen;
 RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_driver):
     RobotController_Interpolation(path_driver),
     cmd_(this),
-    view_direction_(LookInDrivingDirection),
     vn_(0),
     delta_(0),
     Ts_(0.02),
     ind_(0),
+    driving_dir_(0),
     sign_v_(0),
     xe_(0),
     ye_(0),
@@ -35,18 +35,10 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_
     distance_to_goal_(1e-3),
     distance_to_obstacle_(1e-3)
 {
-    look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
-                                                       &RobotController_Kinematic_SLP::lookAtCommand, this);
-    look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
-                                                              &RobotController_Kinematic_SLP::lookAt, this);
-
     laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
                                                              &RobotController_Kinematic_SLP::laserFront, this);
     laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
                                                             &RobotController_Kinematic_SLP::laserBack, this);
-
-    lookInDrivingDirection();
-
 }
 
 void RobotController_Kinematic_SLP::stopMotion()
@@ -60,19 +52,6 @@ void RobotController_Kinematic_SLP::stopMotion()
     publishMoveCommand(mcmd);
 }
 
-void RobotController_Kinematic_SLP::lookAtCommand(const std_msgs::StringConstPtr &cmd)
-{
-    const std::string& command = cmd->data;
-
-    if(command == "reset" || command == "view") {
-        lookInDrivingDirection();
-    } else if(command == "keep") {
-        keepHeading();
-    } else if(command == "rotate") {
-        rotate();
-    }
-}
-
 void RobotController_Kinematic_SLP::initialize()
 {
     RobotController_Interpolation::initialize();
@@ -83,12 +62,8 @@ void RobotController_Kinematic_SLP::initialize()
     // desired velocity
     vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
-}
 
-void RobotController_Kinematic_SLP::lookAt(const geometry_msgs::PointStampedConstPtr &look_at)
-{
-    look_at_ = look_at->point;
-    view_direction_ = LookAtPoint;
+
 }
 
 void RobotController_Kinematic_SLP::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
@@ -131,21 +106,6 @@ void RobotController_Kinematic_SLP::findMinDistance()
 
 }
 
-void RobotController_Kinematic_SLP::keepHeading()
-{
-    view_direction_ = KeepHeading;
-}
-
-void RobotController_Kinematic_SLP::rotate()
-{
-    view_direction_ = Rotate;
-}
-
-void RobotController_Kinematic_SLP::lookInDrivingDirection()
-{
-    view_direction_ = LookInDrivingDirection;
-}
-
 void RobotController_Kinematic_SLP::start()
 {
     path_driver_->getCoursePredictor().reset();
@@ -176,7 +136,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///calculate the control for the current point on the path
 
     //robot direction angle in path coordinates
-    double theta_e = theta_meas - path_interpol.theta_p(ind_);
+    double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), theta_meas);
 
     //robot position vector module
     double r = hypot(x_meas - path_interpol.p(ind_), y_meas - path_interpol.q(ind_));
@@ -185,11 +145,26 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double theta_r = atan2(y_meas - path_interpol.q(ind_), x_meas - path_interpol.p(ind_));
 
     //robot position vector angle in path coordinates
-    double delta_theta = MathHelper::AngleClamp(theta_r - path_interpol.theta_p(ind_));
+    double delta_theta = MathHelper::AngleDelta(path_interpol.theta_p(ind_), theta_r);
 
     //current robot position in path coordinates
     xe_ = r * cos(delta_theta);
     ye_ = r * sin(delta_theta);
+
+    ///***///
+
+
+    ///Determine the driving direction, and set the complementary angle in path coordinates, if driving backwards
+
+    if (theta_e > M_PI_2 || theta_e < -M_PI_2) {
+
+        driving_dir_ = -1;
+
+        theta_e = MathHelper::NormalizeAngle(M_PI + theta_e);
+
+    }
+
+    else driving_dir_ = 1;
 
     ///***///
 
@@ -217,21 +192,12 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double angular_vel = path_driver_->getVelocity().angular.z;
     ///***///
 
-    ///Calculate the delta_ and its derivative
-
-    double delta_old = delta_;
-
-    delta_ = -sign_v_*opt_.theta_a()*tanh(ye_);
-
-    double delta_prim = (delta_ - delta_old)/Ts_;
-    ///***///
-
 
     ///Exponential speed control
 
     //ensure valid values
-    if(distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
-    if(distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e-10;
+    if (distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
+    if (distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e-10;
 
     double exponent = opt_.k_curv()*fabs(curv_sum_)
             + opt_.k_w()*fabs(angular_vel)
@@ -239,8 +205,19 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
             + opt_.k_g()/distance_to_goal_;
 
     //TODO: consider the minimum excitation speed
-    double v = std::max(0.4,vn_*exp(-exponent));
+    //double v = driving_dir_*std::max(0.1,fabs(vn_*exp(-exponent)));
+    double v = driving_dir_*vn_*exp(-exponent);
 
+    ///***///
+
+
+    ///Calculate the delta_ and its derivative
+
+    double delta_old = delta_;
+
+    delta_ = MathHelper::AngleClamp(-driving_dir_*opt_.theta_a()*tanh(ye_));
+
+    double delta_prim = (delta_ - delta_old)/Ts_;
     ///***///
 
 
@@ -250,12 +227,11 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     double V1 = 0.5*(std::pow(xe_,2) + std::pow(ye_,2)) + (0.5/opt_.gamma())*std::pow((theta_e - delta_),2);
 
     //use v/2 as the minimum speed, and allow larger values when the error is small
-    if(V1 >= opt_.epsilon()) v = 0.5*v;
+    if (V1 >= opt_.epsilon()) v = 0.5*v;
 
-    else if(V1 < opt_.epsilon()) v = v/(1 + opt_.b()*std::abs(path_interpol.curvature(ind_)));
+    else if (V1 < opt_.epsilon()) v = v/(1 + opt_.b()*std::abs(path_interpol.curvature(ind_)));
 
-
-    cmd_.speed = v;
+    cmd_.speed = driving_dir_*std::max(0.1, fabs(v));
 
     ///***///
 
@@ -278,17 +254,14 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     cmd_.direction_angle = 0;
 
-    //omega_m = theta_prim + curv*s_prim
-    cmd_.rotation = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
+    //omega_m = theta_e_prim + curv*s_prim
+    double omega_m = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
                     /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
 
-    ///***///
 
-    ///Get the velocity sign
-
-    if(v > 0) sign_v_ = 1;
-    else if (v < 0) sign_v_ = -1;
-    else sign_v_ = 0;
+    if (omega_m > 0.8) omega_m = 0.8;
+    if (omega_m < -0.8) omega_m = -0.8;
+    cmd_.rotation = omega_m;
 
     ///***///
 

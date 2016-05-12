@@ -5,6 +5,8 @@ bool use_start
 
 geometry_msgs/PoseStamped goal
 
+std_msgs/String algorithm
+
 ---
 #result definition
 

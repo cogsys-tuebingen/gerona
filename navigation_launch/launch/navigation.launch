@@ -9,9 +9,24 @@ The alternative launchfile `full.launch` contains nodes for all those
 tasks and can be used instead of this file.
 -->
 <launch>
-    <include file="$(find path_planner)/launch/planner_cost.launch" />
-    <!--<include file="$(find path_planner)/launch/planner.launch" />-->
-    <!-- include file="$(find path_planner)/launch/static_path.launch" / -->
+    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER ackermann_kinematic)" />
+    
+    <arg name="use_planner_cost" default="false" />
+    <arg name="use_planner_dynamic" default="false" />
+	 <arg name="use_planner_static" default="false" />
+	 <arg name="use_planner_default" default="true" />
+
+    <include file="$(find path_planner)/launch/path_planner.launch">
+        <arg name="use_planner_cost" value="$(arg use_planner_cost)" />
+        <arg name="use_planner_dynamic" value="$(arg use_planner_dynamic)" />
+        <arg name="use_planner_static" value="$(arg use_planner_static)" />
+        <arg name="use_planner_default" value="$(arg use_planner_default)" />
+    </include>
+
     <include file="$(find path_control)/launch/path_control.launch" />
-    <include file="$(find path_follower)/launch/follower.launch" />
+
+	 <include file="$(find path_follower)/launch/follower.launch">
+        <arg name="controller" value="$(arg robot_controller)" />
+	 </include>
+
 </launch>

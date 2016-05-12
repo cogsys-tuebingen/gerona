@@ -48,21 +48,35 @@ include_directories(include
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(path_planner_node src/planner_node.cpp src/path_planner_node.cpp)
+## Common Library
+add_library(path_planner SHARED src/planner_node.cpp)
+target_link_libraries(path_planner
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+)
+
+## Generic Search (utils_path)
+add_executable(path_planner_node src/path_planner_node.cpp)
 add_dependencies(path_planner_node path_msgs_generate_messages_cpp)
 
 target_link_libraries(path_planner_node
-  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+  path_planner ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
 
+## D-Star
+add_executable(dyn_path_planner_node src/dyn_path_planner_node.cpp)
+add_dependencies(dyn_path_planner_node path_msgs_generate_messages_cpp)
 
-add_executable(static_path_node src/planner_node.cpp src/static_path_node.cpp)
+target_link_libraries(dyn_path_planner_node
+  path_planner ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+)
+
+## Static Path "Planner"
+add_executable(static_path_node src/static_path_node.cpp)
 add_dependencies(static_path_node path_msgs_generate_messages_cpp)
 
 target_link_libraries(static_path_node
-  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+  path_planner ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
-
 
 add_executable(course_planner_node
 src/course_planner_node.cpp
@@ -74,21 +88,23 @@ add_dependencies(course_planner_node path_msgs_generate_messages_cpp)
 target_link_libraries(course_planner_node
   ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
+
 add_executable(pub_goal_pose src/pub_goal_pose.cpp)
 
 target_link_libraries(pub_goal_pose
   ${catkin_LIBRARIES}
 )
 
+## OMPL planner
 if(${OMPL_FOUND})
     if(${OMPLAPP_LIBRARIES})
         include_directories(${OMPL_INCLUDE_DIRS})
 
-        add_executable(ompl_planner_node src/planner_node.cpp src/ompl_planner_node.cpp)
+        add_executable(ompl_planner_node src/ompl_planner_node.cpp)
         add_dependencies(ompl_planner_node path_msgs_generate_messages_cpp)
 
         target_link_libraries(ompl_planner_node
-            ${catkin_LIBRARIES} ${OMPL_LIBRARIES} ${OMPLAPP_LIBRARIES}
+            path_planner ${catkin_LIBRARIES} ${OMPL_LIBRARIES} ${OMPLAPP_LIBRARIES}
         )
     else()
         message("not building OMPL planner, your library is missing the OMPLAPP part")
@@ -98,14 +114,15 @@ else()
     message("if you want OMPL, see http://ompl.kavrakilab.org/download.html)")
 endif()
 
+## SBPL planner
 if(${SBPL_FOUND})
     include_directories(${SBPL_INCLUDE_DIRS})
 
-    add_executable(sbpl_planner_node src/planner_node.cpp src/sbpl_planner_node.cpp)
+    add_executable(sbpl_planner_node src/sbpl_planner_node.cpp)
     add_dependencies(sbpl_planner_node path_msgs_generate_messages_cpp)
 
     target_link_libraries(sbpl_planner_node
-        ${catkin_LIBRARIES} ${SBPL_LIBRARIES}
+       path_planner ${catkin_LIBRARIES} ${SBPL_LIBRARIES}
     )
 else()
     message("not building SBPL planner")

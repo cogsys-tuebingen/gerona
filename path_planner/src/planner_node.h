@@ -14,6 +14,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <opencv2/core/core.hpp>
 
 /**
  * @brief The Planner class is a base class for other planning algorithms
@@ -65,7 +66,7 @@ protected:
      * @param from_map start pose in map coordinates
      * @param to_map goal pose in map coordinates
      */
-    virtual nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,
+    virtual nav_msgs::Path plan (const path_msgs::PlanPathGoal &goal,
                        const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                        const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) = 0;
 
@@ -89,6 +90,15 @@ protected:
      * @return smooted path
      */
     nav_msgs::Path smoothPath(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
+
+    nav_msgs::Path optimizePathCost(const nav_msgs::Path& path);
+
+    /**
+     * @brief segmentPath splits a path into its constituent parts
+     * @param path
+     * @return
+     */
+    std::vector<nav_msgs::Path> segmentPath(const nav_msgs::Path& path);
 
     /**
      * @brief convert convert a ros pose to a lib_path::Pose
@@ -117,15 +127,20 @@ private:
     void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud);
     void integratePointCloud(const sensor_msgs::PointCloud2 &cloud);
 
+    void calculateGradient(cv::Mat& gx, cv::Mat& gy);
+    void publishGradient(const cv::Mat &gx, const cv::Mat &gy);
+
     geometry_msgs::PoseStamped lookupPose();
     tf::StampedTransform lookupTransform(const std::string& from, const std::string& to, const ros::Time& stamp);
 
-    nav_msgs::Path findPath(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
+    nav_msgs::Path findPath(const path_msgs::PlanPathGoal &request,
+                            const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
 
-    void planThreaded(const geometry_msgs::PoseStamped &goal,
+    void planThreaded(const path_msgs::PlanPathGoal &goal,
                       const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                       const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map);
-    nav_msgs::Path doPlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
+    nav_msgs::Path doPlan(const path_msgs::PlanPathGoal& request,
+                          const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
 
 
     nav_msgs::Path smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance);
@@ -137,6 +152,7 @@ private:
 
 protected:
     ros::NodeHandle nh;
+    ros::NodeHandle nh_priv;
 
     bool use_map_topic_;
     bool use_cost_map_;
@@ -167,6 +183,7 @@ protected:
     actionlib::SimpleActionServer<path_msgs::PlanPathAction> server_;
 
     ros::Publisher viz_pub;
+    ros::Publisher viz_array_pub;
     ros::Publisher cost_pub;
 
     tf::TransformListener tfl;
@@ -174,6 +191,8 @@ protected:
     std::string base_frame_;
 
     lib_path::SimpleGridMap2d * map_info;
+    double map_rotation_yaw_;
+
     nav_msgs::OccupancyGrid cost_map;
     std::vector<double> gradient_x;
     std::vector<double> gradient_y;

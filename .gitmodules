@@ -1,0 +1,12 @@
+[submodule "utils_path"]
+	path = utils_path
+	url = gitlab@gitlab.cs.uni-tuebingen.de:utils/path
+[submodule "utils_general"]
+	path = utils_general
+	url = gitlab@gitlab.cs.uni-tuebingen.de:utils/general
+[submodule "utils_generic"]
+	path = utils_generic
+	url = gitlab@gitlab.cs.uni-tuebingen.de:utils/generic
+[submodule "utils_robot"]
+	path = utils_robot
+	url = gitlab@gitlab.cs.uni-tuebingen.de:utils/robot

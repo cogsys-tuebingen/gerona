@@ -183,6 +183,11 @@ add_executable(path_follower_node
   src/legacy/robotcontroller_ackermann_orthexp.cpp
   src/legacy/robotcontroller_ackermann_purepursuit.cpp
   src/legacy/robotcontroller_ackermann_kinematic.cpp
+  src/legacy/robotcontroller_ackermann_stanley.cpp
+  src/legacy/robotcontroller_4ws_purepursuit.cpp
+  src/legacy/robotcontroller_4ws_stanley.cpp
+  src/legacy/robotcontroller_4ws_inputscaling.cpp
+  src/legacy/robotcontroller_unicycle_inputscaling.cpp
   src/legacy/robotcontroller_differential_orthexp.cpp
   src/legacy/robotcontroller_omnidrive_orthexp.cpp
   src/legacy/robotcontroller_kinematic_SLP.cpp
@@ -214,6 +219,21 @@ target_link_libraries(path_follower_node
   ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES} ${PCL_LIBRARIES}
 )
 
+add_executable(pose_goal_remapper
+  src/utils/pose_goal_remapper.cpp
+)
+
+target_link_libraries(pose_goal_remapper
+  ${catkin_LIBRARIES}
+)
+
+add_executable(test_output_2_csv
+  src/utils/test_output_2_csv.cpp
+)
+
+target_link_libraries(test_output_2_csv
+  ${catkin_LIBRARIES}
+)
 #############
 ## Install ##
 #############

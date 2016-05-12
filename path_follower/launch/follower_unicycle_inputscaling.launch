@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <!--
-Launch the path follower with the pure pursuit controller for a car-like (Ackermann) robot.
+Launch the path follower with the kinematic controller for a unicycle robot.
 -->
 <launch>
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
-    <param name="controller" value="ackermann_purepursuit" />
+	 <param name="controller" value="unicycle_inputscaling" />
 
     <!-- supervisors -->
     <param name="use_obstacle_map" value="false" />
@@ -17,8 +17,6 @@ Launch the path follower with the pure pursuit controller for a car-like (Ackerm
     <param name="waypoint_tolerance" value="2.0" />
     <param name="goal_tolerance" value="0.25" />
     <param name="max_distance_to_path" value="2.0" />
-    <param name="min_velocity" value="0.5" />
-    <param name="max_velocity" value="2.0" />
     <param name="collision_box_width" value="0.4" />
     <param name="collision_box_crit_length" value="0.6" />
     <param name="collision_box_min_length" value="1.0" />
@@ -33,15 +31,12 @@ Launch the path follower with the pure pursuit controller for a car-like (Ackerm
     <param name="min_velocity" value="0.5" />
     <param name="max_velocity" value="0.7" />
     <param name="waypoint_tolerance" value="0.8" />
-	 <param name="goal_tolerance" value="0.25" />
-    
+	 <param name="goal_tolerance" value="0.3" />
     
     <!-- parameters, that are dependent of the controller or the robot model -->
-	 <param name="factor_lookahead_distance_forward" value="0.8" />
-	 <param name="factor_lookahead_distance_backward" value="0.4" />
-	 <param name="vehicle_length" value="0.34" />
-	 <param name="factor_steering_angle" value="1.0" />
-
+	 <param name="vehicle_length" value="0.5" />
+	 <param name="k" value="1.0" />
+	 <param name="max_steering_angle_speed" value="4.0" /> <!-- ~4.0 should be realistic -->
 
     <remap from="scan" to="scan/filtered" />
     <remap from="/obstacles" to="/obstacle_cloud" />
