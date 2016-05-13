@@ -9,7 +9,7 @@
         <param name="use_cost_map" value="false" />
         <param name="use_collision_gridmap" value="true" />
 
-        <param name="render_open_cells" value="true"/>
+        <param name="render_open_cells" value="false"/>
 
         <param name="algorithm" value="patsy_forward" />
 
