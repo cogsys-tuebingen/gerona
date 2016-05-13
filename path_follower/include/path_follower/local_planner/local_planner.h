@@ -7,6 +7,7 @@
 #include <path_follower/local_planner/dis2path_constraint.h>
 #include <path_follower/local_planner/scorer.h>
 #include <path_follower/local_planner/dis2start_scorer.h>
+#include <path_follower/local_planner/dis2path_scorer.h>
 
 class PathFollower;
 

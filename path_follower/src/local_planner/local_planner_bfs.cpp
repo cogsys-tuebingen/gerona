@@ -56,6 +56,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
 
         std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints);
         std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setDistances(waypoints);
+        std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->setSubPath(waypoints);
 
         // find the subpath that starts closest to the robot
         Eigen::Vector3d pose = follower_.getRobotPose();
@@ -66,8 +67,11 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         const Waypoint& last = waypoints[waypoints.size()-1];
         const tf::Point lastp(last.x,last.y,last.orientation);
         const tf::Point wposep(pose(0),pose(1),pose(2));
-        double ldist = std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp)
-                - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(wposep);
+
+        if((std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp)
+                - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(wposep)) < 0.8){
+            return nullptr;
+        }
 
         std::vector<Waypoint> nodes;
         std::vector<int> parents;
@@ -78,19 +82,16 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
 
         std::queue<int> fifo_i;
         fifo_i.push(0);
-        double cu_dist = 0.0;
         double go_dist = std::numeric_limits<double>::infinity();
         int obj = -1;
-        int li_level = 14;
+        int li_level = 10;
 
-        while(!fifo_i.empty() && cu_dist <= ldist &&
-              level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level){
+        while(!fifo_i.empty() && level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level){
             int c_index = fifo_i.front();
             fifo_i.pop();
             const Waypoint& current = nodes[c_index];
             if(isNearEnough(current,last)){
                 obj = c_index;
-                ROS_INFO_STREAM("Goal found: " << current.x << ", " << current.y);
                 break;
             }
 
@@ -99,15 +100,12 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             for(std::size_t i = 0; i < successors.size(); ++i){
                 const tf::Point processed(nodes[successors[i]].x,nodes[successors[i]].y,
                         nodes[successors[i]].orientation);
-                double new_dist = std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp)
-                        - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(processed);
+                double new_dist = (std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp)
+                        - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(processed))
+                        + std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->score(processed);
                 if(new_dist < go_dist){
                     go_dist = new_dist;
                     obj = successors[i];
-                    new_dist = std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(processed);
-                    if(new_dist > cu_dist){
-                        cu_dist = new_dist;
-                    }
                 }
                 fifo_i.push(successors[i]);
             }
