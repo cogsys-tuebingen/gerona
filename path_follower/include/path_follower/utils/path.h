@@ -189,6 +189,8 @@ public:
 
     void precomputeSteerCommands(RobotController *controller);
 
+    void fireNextWaypointCallback() const;
+
 private:
     std::vector<SubPath> path_;
     //! Iterator on `path_` pointing to the current subpath.
@@ -206,8 +208,6 @@ private:
     //! Undefined if has_callback_ == false
     NextWaypointCallback_t next_wp_callback_;
     bool has_callback_;
-
-    inline void fireNextWaypointCallback() const;
 
     /**
      * @brief Precompute the distance from each waypoint to the end of the subpath.

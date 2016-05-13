@@ -7,6 +7,16 @@
 using namespace Eigen;
 
 
+
+bool ObstacleDetectorAckermann::avoid(MoveCommand * const cmd,
+                                    ObstacleCloud::ConstPtr obstacles,
+                                    const ObstacleAvoider::State &state)
+{
+    velocity_ = cmd->getVelocity();
+
+    return ObstacleDetectorPolygon::avoid(cmd, obstacles, state);
+}
+
 ObstacleDetectorPolygon::PolygonWithTfFrame ObstacleDetectorAckermann::getPolygon(float width, float length, float course_angle, float curve_enlarge_factor) const
 {
     /// Based on http://stackoverflow.com/questions/1217585/parallelogram-contains-point
@@ -15,7 +25,7 @@ ObstacleDetectorPolygon::PolygonWithTfFrame ObstacleDetectorAckermann::getPolygo
      * The parallelogram is defined by four points p,q,r,s:
      * p and q are the corners near the robot, r and s are on the opposite site.
      *
-     * For course_angle = 0, the parallelogram is a rectangle. Ifcourse_angle != 0, a and b
+     * For course_angle = 0, the parallelogram is a rectangle. If course_angle != 0, a and b
      * stay constant, but c is moved to the side, depending on course_angle:
      *
      * course_angle = 0:
@@ -50,6 +60,7 @@ ObstacleDetectorPolygon::PolygonWithTfFrame ObstacleDetectorAckermann::getPolygo
     Vector2f p(0.0f,  width/2.0f);
     Vector2f q(0.0f, -width/2.0f);
 
+    float dir = velocity_ < 0.f ? -1.f : 1.f;
     float sin_angle = std::sin(course_angle);
     float cos_angle = std::cos(course_angle);
 
@@ -60,8 +71,8 @@ ObstacleDetectorPolygon::PolygonWithTfFrame ObstacleDetectorAckermann::getPolygo
         q(1) += curve_enlarge_factor * sin_angle;
     }
 
-    Vector2f r = p + length * Vector2f(cos_angle, sin_angle);
-    Vector2f s = q + length * Vector2f(cos_angle, sin_angle);
+    Vector2f r = p + dir * length * Vector2f(cos_angle, sin_angle);
+    Vector2f s = q + dir * length * Vector2f(cos_angle, sin_angle);
 
     PolygonWithTfFrame pwf;
     pwf.frame = "/base_link";

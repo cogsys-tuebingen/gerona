@@ -31,6 +31,8 @@ class CoursePlanner : public Planner
 public:
     CoursePlanner();
 
+    virtual bool supportsGoalType(int type) const override;
+
     void execute(const path_msgs::PlanPathGoalConstPtr &goal);
 
     virtual nav_msgs::Path plan (const path_msgs::PlanPathGoal &goal,

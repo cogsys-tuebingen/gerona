@@ -98,7 +98,7 @@ bool PathController::processGoal()
     follow_path_client_.waitForServer();
 //    follow_path_client_.cancelAllGoals();
 
-    geometry_msgs::PoseStamped goal_msg = current_goal_->goal_pose;
+    geometry_msgs::PoseStamped goal_msg = current_goal_->goal.pose;
     if(goal_msg.header.frame_id.empty()) {
         goal_msg.header.frame_id = "/map";
     }
@@ -319,12 +319,11 @@ void PathController::findPath()
         //sys_pub_.publish(pause);
     }
 
-    const geometry_msgs::PoseStamped& goal = current_goal_->goal_pose;
+    const path_msgs::Goal& goal = current_goal_->goal;
 
     PlanPathGoal goal_msg;
     goal_msg.use_start = false;
     goal_msg.goal = goal;
-    goal_msg.algorithm = current_goal_->planning_algorithm;
 
     ros::Duration timeout(20.0);
     ros::Time start = ros::Time::now();

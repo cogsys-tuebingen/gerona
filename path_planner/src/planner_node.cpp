@@ -18,8 +18,9 @@ using namespace lib_path;
 
 Planner::Planner()
     : nh_priv("~"),
+      is_cost_map_(false),
       server_(nh, "plan_path", boost::bind(&Planner::execute, this, _1), false),
-      map_info(NULL), map_rotation_yaw_(0.0)
+      map_info(NULL), map_rotation_yaw_(0.0), thread_running(false)
 {
     std::string target_topic = "/goal";
     nh_priv.param("target_topic", target_topic, target_topic);
@@ -70,7 +71,7 @@ Planner::Planner()
     nh_priv.param("use_scan_back", use_scan_back_, true);
 
     if(use_cloud_) {
-        sub_cloud = nh_priv.subscribe<sensor_msgs::PointCloud2>("/obstacles", 0, boost::bind(&Planner::cloudCallback, this, _1));
+        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("obstacles", 0, boost::bind(&Planner::cloudCallback, this, _1));
         //        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("/obstacle_cloud", 0, boost::bind(&Planner::cloudCallback, this, _1));
     }
     if(use_scan_front_) {
@@ -137,6 +138,8 @@ void Planner::updateMapCallback (const nav_msgs::OccupancyGridConstPtr &map) {
 }
 
 void Planner::updateMap (const nav_msgs::OccupancyGrid &map, bool is_cost_map) {
+    is_cost_map_ = is_cost_map;
+  
     unsigned w = map.info.width;
     unsigned h = map.info.height;
 
@@ -329,10 +332,11 @@ void Planner::updateGoalCallback(const geometry_msgs::PoseStampedConstPtr &goal)
 
     path_msgs::PlanPathGoal request;
     request.use_start = false;
+    request.goal.type = path_msgs::Goal::GOAL_TYPE_POSE;
+    request.goal.pose = *goal;
     request.start = lookupPose();
-    request.goal = *goal;
 
-    findPath(request, request.start, request.goal);
+    findPath(request);
 }
 
 void Planner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
@@ -341,18 +345,8 @@ void Planner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
     ROS_INFO("planner: got request");
 
     Stopwatch sw;
-
     sw.reset();
-    geometry_msgs::PoseStamped s;
-    if(goal->use_start) {
-        s = goal->start;
-    } else {
-        s = lookupPose();
-    }
-    ROS_INFO_STREAM("start pose lookup took " << sw.msElapsed() << "ms");
-
-    sw.reset();
-    nav_msgs::Path path = findPath(*goal, s, goal->goal);
+    nav_msgs::Path path = findPath(*goal);
     ROS_INFO_STREAM("findPath took " << sw.msElapsed() << "ms");
 
     if(path.poses.empty()) {
@@ -371,8 +365,7 @@ void Planner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
     ROS_INFO_STREAM("execution took " << sw_global.msElapsed() << "ms");
 }
 
-nav_msgs::Path Planner::findPath(const path_msgs::PlanPathGoal& request,
-                                 const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal)
+nav_msgs::Path Planner::findPath(const path_msgs::PlanPathGoal& request)
 {
     Stopwatch sw;
 
@@ -422,19 +415,12 @@ nav_msgs::Path Planner::findPath(const path_msgs::PlanPathGoal& request,
 
     if(pre_process_) {
         sw.reset();
-        preprocess(start, goal);
+        preprocess(request);
         ROS_INFO_STREAM("preprocessing took " << sw.msElapsed() << "ms");
     }
 
-    //    cv::Mat map(map_info->getHeight(), map_info->getWidth(), CV_8UC1, map_info->getData());
-    ////    cv::Mat colored(map_info->getHeight(), map_info->getWidth(), CV_8UC3);
-    ////    map.convertTo(colored, CV_8UC3);
-
-    //    cv::imshow("map", map);
-    //    cv::waitKey(100);
-
     sw.reset();
-    nav_msgs::Path path_raw = doPlan(request, start, goal);
+    nav_msgs::Path path_raw = doPlan(request);
     ROS_INFO_STREAM("planning took " << sw.msElapsed() << "ms");
 
     nav_msgs::Path path;
@@ -455,8 +441,13 @@ nav_msgs::Path Planner::findPath(const path_msgs::PlanPathGoal& request,
 }
 
 
-void Planner::preprocess(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal)
+void Planner::preprocess(const path_msgs::PlanPathGoal& request)
 {
+    feedback(path_msgs::PlanPathFeedback::STATUS_PRE_PROCESSING);
+
+    geometry_msgs::PoseStamped start = request.use_start ? request.start : lookupPose();
+    geometry_msgs::PoseStamped goal = request.goal.pose;
+
     // growth
     cv::Mat map(map_info->getHeight(), map_info->getWidth(), CV_8UC1, map_info->getData());
     cv::Mat working;
@@ -522,21 +513,26 @@ nav_msgs::Path Planner::postprocess(const nav_msgs::Path& path)
 
     ROS_INFO("postprocessing");
 
+    feedback(path_msgs::PlanPathFeedback::STATUS_POST_PROCESSING);
+
+    nav_msgs::Path working_copy = path;
+
     //    nav_msgs::Path simplified_path = simplifyPath(path);
     //    ROS_INFO_STREAM("simplifying took " << sw.msElapsed() << "ms");
 
-    sw.restart();
-    //nav_msgs::Path pre_smooted_path = optimizePathCost(path);
-    //ROS_INFO_STREAM("optimizing cost took " << sw.msElapsed() << "ms");
-    nav_msgs::Path pre_smooted_path = path;
+    if(use_cost_map_) {
+        sw.restart();
+    //    working_copy = optimizePathCost(working_copy);
+        ROS_INFO_STREAM("optimizing cost took " << sw.msElapsed() << "ms");
+    }
 
     sw.restart();
-    nav_msgs::Path interpolated_path = interpolatePath(pre_smooted_path, 0.5);
+    nav_msgs::Path interpolated_path = interpolatePath(working_copy, 0.5);
     ROS_INFO_STREAM("interpolation took " << sw.msElapsed() << "ms");
 
 
     sw.restart();
-    nav_msgs::Path smooted_path = smoothPath(interpolated_path, 0.6, 0.3);
+    nav_msgs::Path smooted_path = smoothPath(interpolated_path, 0.6, 0.15);
     ROS_INFO_STREAM("smoothing took " << sw.msElapsed() << "ms");
 
 
@@ -577,55 +573,15 @@ tf::StampedTransform Planner::lookupTransform(const std::string& from, const std
 }
 
 
-nav_msgs::Path Planner::doPlan(const path_msgs::PlanPathGoal &request,
-                               const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal)
+nav_msgs::Path Planner::doPlan(const path_msgs::PlanPathGoal &request)
 {
     feedback(path_msgs::PlanPathFeedback::STATUS_PLANNING);
 
     ROS_INFO("starting search");
-    lib_path::Pose2d from_world;
-    lib_path::Pose2d to_world;
 
-    from_world.x = start.pose.position.x;
-    from_world.y = start.pose.position.y;
-    from_world.theta = tf::getYaw(start.pose.orientation);
+    feedback(path_msgs::PlanPathFeedback::STATUS_PLANNING);
 
-    ROS_WARN_STREAM("world: x=" << from_world.x << ", y=" << from_world.y << ", theta=" << from_world.theta);
-
-    to_world.x = goal.pose.position.x;
-    to_world.y = goal.pose.position.y;
-    to_world.theta = tf::getYaw(goal.pose.orientation);
-
-    visualizeOutline(start.pose, 0, "/map");
-    visualizeOutline(goal.pose, 1, "/map");
-
-    lib_path::Pose2d from_map;
-    lib_path::Pose2d to_map;
-
-    {
-        unsigned fx, fy;
-        map_info->point2cell(from_world.x, from_world.y, fx, fy);
-        from_map.x = fx;
-        from_map.y = fy;
-        from_map.theta = from_world.theta - map_rotation_yaw_;
-    }
-
-    ROS_WARN_STREAM("res=" << map_info->getResolution());
-    {
-        unsigned tx, ty;
-        map_info->point2cell(to_world.x, to_world.y, tx, ty);
-        to_map.x = tx;
-        to_map.y = ty;
-        to_map.theta = to_world.theta - map_rotation_yaw_;
-    }
-    ROS_WARN_STREAM("map: x=" << from_map.x << ", y=" << from_map.y << ", theta=" << from_map.theta);
-
-
-    feedback(path_msgs::PlanPathFeedback::STATUS_POST_PROCESSING);
-
-    //nav_msgs::Path path = plan(goal, from_world, to_world, from_map, to_map);
-
-    boost::thread worker(boost::bind(&Planner::planThreaded, this, request, from_world, to_world, from_map, to_map));
+    boost::thread worker(boost::bind(&Planner::planThreaded, this, request));
     ros::Rate spin(10);
     ros::Time start_time = ros::Time::now();
     ros::Duration max_search_time(40);
@@ -663,18 +619,66 @@ nav_msgs::Path Planner::doPlan(const path_msgs::PlanPathGoal &request,
     return path;
 }
 
-void Planner::planThreaded(const path_msgs::PlanPathGoal &goal, const Pose2d &from_world, const Pose2d &to_world, const Pose2d &from_map, const Pose2d &to_map)
+void Planner::planThreaded(const path_msgs::PlanPathGoal &goal)
 {
     thread_mutex.lock();
     thread_running = true;
     thread_mutex.unlock();
 
-    nav_msgs::Path path = plan(goal, from_world, to_world, from_map, to_map);
+    nav_msgs::Path path = planImpl(goal);
 
     thread_mutex.lock();
     thread_result = path;
     thread_running = false;
     thread_mutex.unlock();
+}
+
+nav_msgs::Path Planner::planImpl(const path_msgs::PlanPathGoal &request)
+{
+    geometry_msgs::PoseStamped start = request.use_start ? request.start : lookupPose();
+    lib_path::Pose2d from_world, from_map;
+    transformPose(start, from_world, from_map);
+
+    if(!supportsGoalType(request.goal.type)) {
+        ROS_FATAL_STREAM("requested goal type " << request.goal.type << " is not supported.");
+        return empty();
+    }
+
+    switch(request.goal.type) {
+    case path_msgs::Goal::GOAL_TYPE_POSE: {
+        lib_path::Pose2d to_world, to_map;
+        transformPose(request.goal.pose, to_world, to_map);
+
+        return plan(request, from_world, to_world, from_map, to_map);
+    }
+    case path_msgs::Goal::GOAL_TYPE_MAP:
+        return planWithoutTargetPose(request, from_world, from_map);
+
+    default:
+        ROS_FATAL_STREAM("requested goal type " << request.goal.type << " is unknown.");
+        return empty();
+    }
+}
+
+nav_msgs::Path Planner::planWithoutTargetPose(const path_msgs::PlanPathGoal &request,
+                                              const Pose2d &from_world, const Pose2d &from_map)
+{
+    ROS_FATAL_STREAM("requested goal type " << request.goal.type << " is not implemented.");
+    return empty();
+}
+
+void Planner::transformPose(const geometry_msgs::PoseStamped& pose, lib_path::Pose2d& world, lib_path::Pose2d& map)
+{
+    world.x = pose.pose.position.x;
+    world.y = pose.pose.position.y;
+    world.theta = tf::getYaw(pose.pose.orientation);
+    visualizeOutline(pose.pose, 0, "/map");
+
+    unsigned fx, fy;
+    map_info->point2cell(world.x, world.y, fx, fy);
+    map.x = fx;
+    map.y = fy;
+    map.theta = world.theta - map_rotation_yaw_;
 }
 
 void Planner::subdividePath(nav_msgs::Path& result, geometry_msgs::PoseStamped low, geometry_msgs::PoseStamped up, double max_distance) {
@@ -920,7 +924,7 @@ void Planner::calculateGradient(cv::Mat &gx, cv::Mat &gy)
     cv::Mat cost_mat(cost.info.height, cost.info.width, CV_8UC1, (uint8_t*)(cost.data.data()));
 
     /// Sobel Version
-//    double s = 1e-2;
+    //    double s = 1e-2;
     //    cv::Sobel(cost_mat, gx, CV_32F, 1, 0, 5, s);
     //    cv::Sobel(cost_mat, gy, CV_32F, 0, 1, 5, s);
 
@@ -1000,7 +1004,7 @@ nav_msgs::Path Planner::optimizePathCost(const nav_msgs::Path& path) {
     cv::Mat gx, gy;
     calculateGradient(gx, gy);
 
-//    publishGradient(gx, gy);
+    //    publishGradient(gx, gy);
 
     double last_change = -2 * tolerance;
     double change = 0;
@@ -1131,6 +1135,8 @@ void Planner::integrateLaserScan(const sensor_msgs::LaserScan &scan)
 {
     tf::StampedTransform trafo = lookupTransform("/map", scan.header.frame_id, scan.header.stamp);
 
+    int OBSTACLE = is_cost_map_ ? 254 : 100;
+
     double angle = scan.angle_min;
     for(std::size_t i = 0, total = scan.ranges.size(); i < total; ++i) {
         const float& range = scan.ranges[i];
@@ -1141,7 +1147,7 @@ void Planner::integrateLaserScan(const sensor_msgs::LaserScan &scan)
 
             unsigned int x,y;
             if(map_info->point2cell(pt_map.x(), pt_map.y(), x, y)) {
-                map_info->setValue(x,y, 100);
+                map_info->setValue(x,y, OBSTACLE);
             }
         }
 
@@ -1159,6 +1165,8 @@ void Planner::integratePointCloud(const sensor_msgs::PointCloud2 &cloud)
 {
     tf::StampedTransform trafo = lookupTransform("/map", cloud.header.frame_id, cloud.header.stamp);
 
+    int OBSTACLE = is_cost_map_ ? 254 : 100;
+
     pcl::PointCloud<pcl::PointXYZL>::Ptr ptr(new pcl::PointCloud<pcl::PointXYZL>());
     pcl::fromROSMsg(cloud, *ptr);
 
@@ -1170,18 +1178,20 @@ void Planner::integratePointCloud(const sensor_msgs::PointCloud2 &cloud)
 
         unsigned int x,y;
         if(map_info->point2cell(pt_map.x(), pt_map.y(), x, y)) {
-            map_info->setValue(x,y, 100);
+            map_info->setValue(x,y, OBSTACLE);
         }
     }
 }
 
 void Planner::publish(const nav_msgs::Path &path, const nav_msgs::Path &path_raw)
 {
-    /// path
-    raw_path_publisher_.publish(path_raw);
-    path_publisher_.publish(path);
-
-    visualizePath(path);
+    if(!path_raw.poses.empty()) {
+        raw_path_publisher_.publish(path_raw);
+    }
+    if(!path.poses.empty()) {
+        path_publisher_.publish(path);
+        visualizePath(path);
+    }
 }
 
 nav_msgs::Path Planner::smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance) {
@@ -1229,8 +1239,12 @@ nav_msgs::Path Planner::smoothPathSegment(const nav_msgs::Path& path, double wei
     double dx = next.position.x - current.position.x;
     double dy = next.position.y - current.position.y;
 
-    double dotprod = std::cos(a) * dx + std::sin(a) * dy;
-    bool is_backward = dotprod < 0;//!new_path[0].forward;
+    Eigen::Vector2d looking_dir_normalized(std::cos(a), std::sin(a));
+    Eigen::Vector2d delta(dx, dy);
+    const double theta_diff = std::acos(delta.dot(looking_dir_normalized) / delta.norm());
+
+    // decide whether to drive forward or backward
+    bool is_backward = (theta_diff > M_PI_2 || theta_diff < -M_PI_2) ;
 
     for(unsigned i = 1; i < n-1; ++i){
         Pose2d next = convert(new_path.poses[i+1]);
@@ -1247,4 +1261,12 @@ nav_msgs::Path Planner::smoothPathSegment(const nav_msgs::Path& path, double wei
     }
 
     return new_path;
+}
+
+nav_msgs::Path Planner::empty() const
+{
+    nav_msgs::Path res;
+    res.header.stamp = ros::Time::now();
+    res.header.frame_id = "/map";
+    return res;
 }

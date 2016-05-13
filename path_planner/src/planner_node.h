@@ -61,6 +61,19 @@ protected:
     /**
      * @brief plan is the interface for implementation classes
      * @param goal the requested goal message
+     */
+    nav_msgs::Path planImpl (const path_msgs::PlanPathGoal &goal);
+
+    /**
+     * @brief plan is the interface for implementation classes for 'non pose mode'
+     * @param goal the requested goal message
+     */
+    virtual nav_msgs::Path planWithoutTargetPose(const path_msgs::PlanPathGoal &goal,
+                                                 const lib_path::Pose2d& from_world, const lib_path::Pose2d& from_map);
+
+    /**
+     * @brief plan is the interface for implementation classes for 'pose mode'
+     * @param goal the requested goal message
      * @param from_world start pose in world coordinates
      * @param to_world goal pose in world coordinates
      * @param from_map start pose in map coordinates
@@ -114,11 +127,18 @@ protected:
     void publish(const nav_msgs::Path& path, const nav_msgs::Path &path_raw);
 
 protected:
-    void preprocess(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
+    void transformPose(const geometry_msgs::PoseStamped& pose, lib_path::Pose2d& world, lib_path::Pose2d& map);
+
+    void preprocess(const path_msgs::PlanPathGoal& request);
     nav_msgs::Path postprocess(const nav_msgs::Path& path);
 
     void preempt();
     void feedback(int status);
+
+    nav_msgs::Path empty() const;
+
+protected:
+    virtual bool supportsGoalType(int type) const = 0;
 
 private:
     void laserCallback(const sensor_msgs::LaserScanConstPtr& scan, bool front);
@@ -133,14 +153,10 @@ private:
     geometry_msgs::PoseStamped lookupPose();
     tf::StampedTransform lookupTransform(const std::string& from, const std::string& to, const ros::Time& stamp);
 
-    nav_msgs::Path findPath(const path_msgs::PlanPathGoal &request,
-                            const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
+    nav_msgs::Path findPath(const path_msgs::PlanPathGoal &request);
 
-    void planThreaded(const path_msgs::PlanPathGoal &goal,
-                      const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-                      const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map);
-    nav_msgs::Path doPlan(const path_msgs::PlanPathGoal& request,
-                          const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
+    void planThreaded(const path_msgs::PlanPathGoal &request);
+    nav_msgs::Path doPlan(const path_msgs::PlanPathGoal& request);
 
 
     nav_msgs::Path smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance);
@@ -153,6 +169,8 @@ private:
 protected:
     ros::NodeHandle nh;
     ros::NodeHandle nh_priv;
+
+    bool is_cost_map_;
 
     bool use_map_topic_;
     bool use_cost_map_;

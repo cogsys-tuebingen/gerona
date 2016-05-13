@@ -42,6 +42,11 @@ CoursePlanner::CoursePlanner()
     plan_avoidance_server_.start();
 }
 
+bool CoursePlanner::supportsGoalType(int type) const
+{
+    return type == path_msgs::Goal::GOAL_TYPE_POSE;
+}
+
 
 void CoursePlanner::addGeomPoses(const PathPoseVec &gposes, nav_msgs::Path &path)
 {
@@ -345,7 +350,7 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
     path_raw.header.stamp = ros::Time::now();
     geometry_msgs::PoseArray poses;
 
-    path_geom::PathPose goal_gp = pose2PathPose(goal->goal.pose);
+    path_geom::PathPose goal_gp = pose2PathPose(goal->goal.pose.pose);
     int nearest_idx;
     Eigen::Vector2d nearest;
     findPosOnCourse(goal_gp,course_segments_,nearest_idx,nearest);
@@ -375,7 +380,7 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
      } else {
 
        ROS_INFO("creating course");
-       createCourse(segment_array_,goal->goal.pose, course_segments_,path_raw);
+       createCourse(segment_array_,goal->goal.pose.pose, course_segments_,path_raw);
        active_segments_ = course_segments_;
     }
 

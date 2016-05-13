@@ -47,6 +47,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
     Obstacle.msg
+    Goal.msg
 )
 
 # Generate actions in the 'action' folder
