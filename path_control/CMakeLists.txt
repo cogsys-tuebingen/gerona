@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   actionlib
   path_msgs
+  tf
 )
 
 ## System dependencies are found with CMake's conventions

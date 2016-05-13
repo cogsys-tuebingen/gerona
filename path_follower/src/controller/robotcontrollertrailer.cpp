@@ -177,8 +177,8 @@ void RobotControllerTrailer::selectWaypoint()
     }
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawArrow(0, path_->getCurrentWaypoint(), "current waypoint", 1, 1, 0);
-        visualizer_->drawArrow(1, path_->getLastWaypoint(), "current waypoint", 1, 0, 0);
+        visualizer_->drawArrow(path_driver_->getFixedFrameId(), 0, path_->getCurrentWaypoint(), "current waypoint", 1, 1, 0);
+        visualizer_->drawArrow(path_driver_->getFixedFrameId(), 1, path_->getLastWaypoint(), "current waypoint", 1, 0, 0);
     }
 
     // convert waypoint to local frame. NOTE: This has to be done, even if the waypoint did not
@@ -252,7 +252,7 @@ float RobotControllerTrailer::getErrorApproachSubpathEnd()
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_->getCurrentWaypoint()).position,
-                                0.5, "/map", "turning point", 1, 1, 1);
+                                0.5, getFixedFrame(), "turning point", 1, 1, 1);
 
     }
 
@@ -266,8 +266,8 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
 {
     // draw steer front
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), angle_error, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), dist_error, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, path_driver_->getRobotPoseMsg(), angle_error, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 2, path_driver_->getRobotPoseMsg(), dist_error, 0.2, 0.2, 1.0);
     }
 
 
@@ -283,7 +283,7 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
     }
     float u_val = u[0];
 
-    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), u_val, 0.0, 1.0, 1.0);
+    visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 14, path_driver_->getRobotPoseMsg(), u_val, 0.0, 1.0, 1.0);
 
     float steer = dir_sign_* std::max(-opt_.max_steer(), std::min(u_val, opt_.max_steer()));
 
@@ -492,7 +492,7 @@ void RobotControllerTrailer::visualizeCarrot(const Vector2d &carrot,
     carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
     geometry_msgs::PoseStamped carrot_map;
     if (path_driver_->transformToGlobal(carrot_local, carrot_map)) {
-        visualizer_->drawCircle(id, carrot_map.pose.position, 0.2, "/map","pred", r,g,b,1,5);
+        visualizer_->drawCircle(id, carrot_map.pose.position, 0.2, getFixedFrame(),"pred", r,g,b,1,5);
     }
 }
 

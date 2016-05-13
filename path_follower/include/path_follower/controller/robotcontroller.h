@@ -6,6 +6,10 @@
 #include <geometry_msgs/Twist.h>
 #include <Eigen/Core>
 #include <visualization_msgs/Marker.h>
+#include "std_msgs/MultiArrayLayout.h"
+#include "std_msgs/MultiArrayDimension.h"
+#include "std_msgs/Float64MultiArray.h"
+
 
 // PROJECT
 #include <path_follower/utils/path.h>
@@ -98,8 +102,11 @@ public:
     //! Execute one iteration of path following. This method should not be overwritten by subclasses!
     ControlStatus execute();
 
-
+    //! Set the global path (map frame)
     virtual void setPath(Path::Ptr path);
+
+    //! Set the local path (odometry frame)
+    virtual void setLocalPath(Path::Ptr path);
 
     virtual void setVelocity(float v)
     {
@@ -117,6 +124,8 @@ public:
     {
         return dir_sign_;
     }
+
+    std::string getFixedFrame() const;
 
 private:
     //Vizualize the path driven by the robot

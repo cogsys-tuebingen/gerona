@@ -9,7 +9,7 @@ controller, there has to be a lauch file with the name `follower_CONTROLLER_NAME
 Please make sure, you add an according launch file, if you implement a new controller.
 -->
 <launch>
-	<arg name="controller" default="$(optenv ROBOT_CONTROLLER ackermann_kinematic)" />
+	<arg name="controller" default="$(optenv ROBOT_CONTROLLER kinematic_SSG)" />
 
 	<include file="$(find path_follower)/launch/follower_$(arg controller).launch" />
 </launch>

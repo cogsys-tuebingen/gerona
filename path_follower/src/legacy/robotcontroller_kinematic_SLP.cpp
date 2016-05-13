@@ -130,6 +130,7 @@ void RobotController_Kinematic_SLP::calculateMovingDirection()
     Eigen::Vector2d delta(subp[1].x - subp[0].x, subp[1].y - subp[0].y);
     const double theta_diff = std::acos(delta.dot(looking_dir_normalized) / delta.norm());
 
+    std::cerr << "theta diff is " << theta_diff << ", theta_0: " << theta_0 << ", delta: " << delta << ", look: " << looking_dir_normalized << std::endl;
     // decide whether to drive forward or backward
     if (theta_diff > M_PI_2 || theta_diff < -M_PI_2) {
         setDirSign(-1.f);
@@ -251,7 +252,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     ///***///
 
-
     ///Calculate the parameters for exponential speed control
 
     //calculate the curvature, and stop when the look-ahead distance is reached (w.r.t. orthogonal projection)
@@ -270,6 +270,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     //calculate the distance from the orthogonal projection to the goal, w.r.t. path
     distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(proj_ind_);
+    //A very dirty hack!!!!!!!!!!
+    distance_to_goal_ = 100.0;
 
     //get the robot's current angular velocity
     double angular_vel = path_driver_->getVelocity().angular.z;
@@ -324,8 +326,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
                     /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
 
 
-    /*if (omega_m > opt_.max_angular_velocity()) omega_m = opt_.max_angular_velocity();
-    if (omega_m < -opt_.max_angular_velocity()) omega_m = -opt_.max_angular_velocity();*/
     omega_m = boost::algorithm::clamp(omega_m, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
     cmd_.rotation = omega_m;
 
@@ -354,8 +354,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     ///plot the moving reference frame together with position vector and error components
 
-    if (visualizer_->hasSubscriber()) {
-        visualizer_->drawFrenetSerretFrame(0, current_pose, xe_, ye_, path_interpol.p(ind_),
+    if (visualizer_->MarrayhasSubscriber()) {
+        visualizer_->drawFrenetSerretFrame(getFixedFrame(), 0, current_pose, xe_, ye_, path_interpol.p(ind_),
                                            path_interpol.q(ind_), path_interpol.theta_p(ind_));
     }
 
@@ -388,30 +388,14 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
-    //***//
-
-    /*double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
-                                  y_meas - path_interpol.q(path_interpol.n()-1));
-
-    ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl);*/
-
-    // check for end
-    /*if((ind_ == path_interpol.n()-1) & (xe_ > 0.0)){
-
-        ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal_eucl);
-
-        return MoveCommandStatus::REACHED_GOAL;
-
-    } else {*/
-
+    ///***///
 
         *cmd = cmd_;
 
         return MoveCommandStatus::OKAY;
-    /*}*/
 }
 
 void RobotController_Kinematic_SLP::publishMoveCommand(const MoveCommand &cmd) const

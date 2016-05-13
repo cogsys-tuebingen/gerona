@@ -74,6 +74,11 @@ const SubPath &Path::getCurrentSubPath() const
     return *current_sub_path_;
 }
 
+const SubPath &Path::getSubPath(size_t idx) const
+{
+    return path_.at(idx);
+}
+
 const Waypoint &Path::getWaypoint(size_t idx) const
 {
     return (*current_sub_path_)[idx];
@@ -132,4 +137,14 @@ void Path::precomputeSteerCommands(RobotController *controller)
 
         controller->precomputeSteerCommand((*current_sub_path_)[i],(*current_sub_path_)[i+1]);
     }
+}
+
+std::string Path::getFrameId() const
+{
+    return frame_id_;
+}
+
+void Path::setFrameId(const std::string &frame_id)
+{
+    frame_id_ = frame_id;
 }

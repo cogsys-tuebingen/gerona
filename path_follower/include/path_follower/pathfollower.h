@@ -3,7 +3,6 @@
 
 /// THIRD PARTY
 #include <Eigen/Core>
-
 /// ROS
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
@@ -17,6 +16,7 @@
 #include <nav_msgs/Path.h>
 
 /// PROJECT
+#include <path_follower/local_planner/local_planner.h>
 #include <path_msgs/FollowPathAction.h>
 #include <utils_general/Global.h>
 #include <path_follower/pathfollowerparameters.h>
@@ -28,8 +28,10 @@
 #include <path_follower/utils/coursepredictor.h>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/obstacle_avoidance/obstacleavoider.h>
-
 #include <path_follower/supervisor/supervisorchain.h>
+
+/// SYSTEM
+#include <memory>
 
 class PathFollower
 {
@@ -42,7 +44,7 @@ public:
     PathFollower(ros::NodeHandle &nh);
     ~PathFollower();
 
-    bool getWorldPose(Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = nullptr) const;
+
     geometry_msgs::Twist getVelocity() const;
     bool transformToLocal(const geometry_msgs::PoseStamped& global, geometry_msgs::PoseStamped& local );
     bool transformToLocal(const geometry_msgs::PoseStamped& global, Vector3d& local );
@@ -63,6 +65,7 @@ public:
     const geometry_msgs::Pose &getRobotPoseMsg() const;
 
     Path::Ptr getPath();
+    std::string getFixedFrameId();
 
     ROS_DEPRECATED void setStatus(int status);
 
@@ -71,6 +74,9 @@ public:
     const PathFollowerParameters &getOptions() const;
 
     ros::NodeHandle& getNodeHandle();
+
+private:
+    bool getWorldPose(Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = nullptr) const;
 
 private:
     typedef actionlib::SimpleActionServer<path_msgs::FollowPathAction> FollowPathServer;
@@ -86,6 +92,8 @@ private:
     ros::Publisher speech_pub_;
     //! Publisher for beeps.
     ros::Publisher beep_pub_;
+    //! Publisher for local paths
+    ros::Publisher local_path_pub_;
 
     //! Subscriber for odometry messages.
     ros::Subscriber odom_sub_;
@@ -95,9 +103,11 @@ private:
     tf::TransformListener pose_listener_;
 
     //! The robot controller is responsible for everything that is dependend on robot model and controller type.
-    RobotController* controller_;
+    std::shared_ptr<RobotController> controller_;
 
-    ObstacleAvoider* obstacle_avoider_;
+    std::shared_ptr<LocalPlanner> local_planner_;
+
+    std::shared_ptr<ObstacleAvoider> obstacle_avoider_;
 
     SupervisorChain supervisors_;
 
@@ -115,9 +125,11 @@ private:
     ObstacleCloud::ConstPtr obstacle_cloud_;
 
     //! Current pose of the robot as Eigen vector (x,y,theta).
-    Eigen::Vector3d robot_pose_;
+    Eigen::Vector3d robot_pose_world_;
+    Eigen::Vector3d robot_pose_odom_;
     //! Current pose of the robot as geometry_msgs pose.
-    geometry_msgs::Pose robot_pose_msg_;
+    geometry_msgs::Pose robot_pose_world_msg_;
+    geometry_msgs::Pose robot_pose_odom_msg_;
 
     //! Path as a list of separated subpaths
     Path::Ptr path_;

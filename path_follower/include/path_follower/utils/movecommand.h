@@ -26,7 +26,7 @@ public:
      * @param can_rotate Set this to true if the used robot model supports direct rotation
      *                   commands.
      */
-    MoveCommand(bool can_rotate = false);
+    MoveCommand(bool can_rotate = false, bool torque_mode = false);
 
     //! Check if the command is valid (= there are no nan or inf values).
     bool isValid() const;
@@ -41,9 +41,19 @@ public:
     float getVelocity() const;
     //! Rotational velocity. Undefined if `canRotate() == false`
     float getRotationalVelocity() const;
+    //! Torque of the forward left wheel
+    double getWheelTorqueFL() const;
+    //! Torque of the forward right wheel
+    double getWheelTorqueFR() const;
+    //! Torque of the back right wheel
+    double getWheelTorqueBR() const;
+    //! Torque of the back left wheel
+    double getWheelTorqueBL() const;
 
     //! True, iff the robot supports rotation commands.
     bool canRotate() const;
+    //! True if the torque mode is enabled
+    bool useTorque() const;
 
     //! Set direction vector (length of the vector is ignored)
     void setDirection(const Eigen::Vector2f &dir);
@@ -53,6 +63,8 @@ public:
     void setVelocity(float v);
     //! Set rotational velocity.
     void setRotationalVelocity(float omega);
+    //! Set wheel torques
+    void setWheelTorques(double fl, double fr, double br, double bl);
 
 private:
     //! Unit vector pointing in the direction of movement.
@@ -64,9 +76,17 @@ private:
     float rot_velocity_;
     //! If false, rot_velocity_ is undefined and must not be used.
     bool use_rotation_;
+    //! If true, torque mode is used
+    bool use_torque_;
 
     //! Check if the given value is neither NaN nor +/-infinity.
     bool isValid(float val) const;
+
+    //! Wheel torques
+    double fl_torque_;
+    double fr_torque_;
+    double br_torque_;
+    double bl_torque_;
 };
 
 #endif // MOVECOMMAND_H

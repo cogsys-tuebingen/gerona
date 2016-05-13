@@ -201,7 +201,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 
     visualization_msgs::Marker marker;
     marker.ns = "orth_proj";
-    marker.header.frame_id = "/map";
+    marker.header.frame_id = getFixedFrame();
     marker.header.stamp = ros::Time();
     marker.action = visualization_msgs::Marker::ADD;
     marker.id = 0;
@@ -323,7 +323,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     //***//
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
 
