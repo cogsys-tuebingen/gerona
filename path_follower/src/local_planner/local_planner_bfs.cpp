@@ -67,6 +67,11 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         const tf::Point lastp(last.x,last.y,last.orientation);
         const tf::Point wposep(pose(0),pose(1),pose(2));
 
+        if((std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp)
+                - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(wposep)) < 0.8){
+            return nullptr;
+        }
+
         std::vector<Waypoint> nodes;
         std::vector<int> parents;
         std::vector<int> level;
@@ -86,7 +91,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             const Waypoint& current = nodes[c_index];
             if(isNearEnough(current,last)){
                 obj = c_index;
-                ROS_INFO_STREAM("Goal found: " << current.x << ", " << current.y);
+                //ROS_INFO_STREAM("Goal found: " << current.x << ", " << current.y);
                 break;
             }
 
