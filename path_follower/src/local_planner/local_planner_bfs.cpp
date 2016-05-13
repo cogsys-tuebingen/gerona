@@ -55,6 +55,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         }
 
         std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints);
+        std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setDistances(waypoints);
 
         // find the subpath that starts closest to the robot
         Eigen::Vector3d pose = follower_.getRobotPose();
@@ -63,7 +64,10 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
 
 
         const Waypoint& last = waypoints[waypoints.size()-1];
-        double ldist = wpose.distanceTo(last);
+        const tf::Point lastp(last.x,last.y,last.orientation);
+        const tf::Point wposep(pose(0),pose(1),pose(2));
+        double ldist = std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp)
+                - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(wposep);
 
         std::vector<Waypoint> nodes;
         std::vector<int> parents;
@@ -77,7 +81,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         double cu_dist = 0.0;
         double go_dist = std::numeric_limits<double>::infinity();
         int obj = -1;
-        int li_level = 9;
+        int li_level = 14;
 
         while(!fifo_i.empty() && cu_dist <= ldist &&
               level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level){
@@ -93,12 +97,14 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             std::vector<int> successors;
             getSuccessors(current, c_index, successors, nodes, parents, level, constraints);
             for(std::size_t i = 0; i < successors.size(); ++i){
-                const Waypoint& processed = nodes[successors[i]];
-                double new_dist = processed.distanceTo(last);
+                const tf::Point processed(nodes[successors[i]].x,nodes[successors[i]].y,
+                        nodes[successors[i]].orientation);
+                double new_dist = std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp)
+                        - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(processed);
                 if(new_dist < go_dist){
                     go_dist = new_dist;
                     obj = successors[i];
-                    new_dist = wpose.distanceTo(processed);
+                    new_dist = std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(processed);
                     if(new_dist > cu_dist){
                         cu_dist = new_dist;
                     }
@@ -106,8 +112,8 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
                 fifo_i.push(successors[i]);
             }
         }
-        ROS_INFO_STREAM("Reasons: " <<  !fifo_i.empty() << ", " << (cu_dist <= ldist) << ", "
-                        << (level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level));
+        //ROS_INFO_STREAM("Reasons: " <<  !fifo_i.empty() << ", " << (cu_dist <= ldist) << ", "
+        //                << (level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level));
 
         std::vector<Waypoint> local_wps;
         if(obj != -1){
@@ -164,26 +170,30 @@ void LocalPlannerBFS::getSuccessors(const Waypoint& current, int index, std::vec
                                     std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints){
     successors.clear();
     double theta;
+    double ori = current.orientation;
+    double ox = current.x;
+    double oy = current.y;
     for(int i = 0; i < 3; ++i){
         switch (i) {
         case 0:// straight
-            theta = current.orientation;
+            theta = ori;
             break;
         case 1:// right
-            theta = current.orientation - D_THETA;
+            theta = ori - D_THETA;
             break;
         case 2:// left
-            theta = current.orientation + D_THETA;
+            theta = ori + D_THETA;
             break;
         default:
             break;
         }
-        double x = current.x + 0.15*std::cos(theta);
-        double y = current.y + 0.15*std::sin(theta);
+
+        double x = ox + 0.15*std::cos(theta);
+        double y = oy + 0.15*std::sin(theta);
         const Waypoint succ(x,y,theta);
         const tf::Point succp(x,y,theta);
-        if(!isNearEnough(current,succ) &&
-                std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->isSatisfied(succp)){
+        if(std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->isSatisfied(succp)
+                && !isInGraph(succ,nodes)){
             successors.push_back(nodes.size());
             nodes.push_back(succ);
             parents.push_back(index);
@@ -195,6 +205,16 @@ void LocalPlannerBFS::getSuccessors(const Waypoint& current, int index, std::vec
 bool LocalPlannerBFS::isNearEnough(const Waypoint& current, const Waypoint& last){
     if(current.distanceTo(last) <= 0.05){
         return true;
+    }
+    return false;
+}
+
+bool LocalPlannerBFS::isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes){
+    for(std::size_t i = 0; i < nodes.size(); ++i){
+        double dis = current.distanceTo(nodes[i]);
+        if(dis < 0.05){
+            return true;
+        }
     }
     return false;
 }

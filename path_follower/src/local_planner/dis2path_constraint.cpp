@@ -11,9 +11,9 @@ Dis2Path_Constraint::~Dis2Path_Constraint()
 
 }
 
-void Dis2Path_Constraint::setSubPath(const SubPath& current){
+void Dis2Path_Constraint::setSubPath(const SubPath& path){
     currentPath.clear();
-    currentPath.assign(current.begin(),current.end());
+    currentPath.assign(path.begin(),path.end());
 }
 
 bool Dis2Path_Constraint::isSatisfied(const tf::Point& point){
@@ -23,7 +23,7 @@ bool Dis2Path_Constraint::isSatisfied(const tf::Point& point){
         double dist = std::hypot(wp.x - point.getX(), wp.y - point.getY());
         if(dist < closest_dist) {
             closest_dist = dist;
-            if(closest_dist <= 0.2){
+            if(closest_dist <= 0.22){
                 return true;
             }
         }

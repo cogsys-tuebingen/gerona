@@ -71,7 +71,6 @@ Path::Ptr LocalPlannerTransformer::updateLocalPath(const std::vector<Constraint:
         std::vector<Waypoint> local_wps;
         for(std::size_t i = start, n = std::min(start + 20, waypoints.size()); i < n; ++i) {
             local_wps.push_back(waypoints[i]);
-            ROS_INFO_STREAM("(" << waypoints[i].x << "," << waypoints[i].y << ")");
         }
 
         //        // example use of scorers
