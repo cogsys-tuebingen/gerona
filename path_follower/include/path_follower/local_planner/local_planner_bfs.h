@@ -24,6 +24,7 @@ private:
                        std::vector<Waypoint>& nodes, std::vector<int>& parents,
                        std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints);
     bool isNearEnough(const Waypoint& current, const Waypoint& last);
+    bool isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes);
     const double D_THETA = 5*M_PI/36;//Assume like the global planner 25° turn
     ros::Time last_update_;
     ros::Duration update_interval_;

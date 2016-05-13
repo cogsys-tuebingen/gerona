@@ -15,7 +15,7 @@ public:
 
     virtual bool isSatisfied(const tf::Point& point) override;
 
-    void setSubPath(const SubPath& current);
+    void setSubPath(const SubPath& path);
 private:
     SubPath currentPath;//For now stores the points of the current subpath
 };

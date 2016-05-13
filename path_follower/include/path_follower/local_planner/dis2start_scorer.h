@@ -17,6 +17,7 @@ public:
     void setDistances(const SubPath& path);
 private:
     std::vector<double> distances;
+    SubPath currentPath;
 };
 
 #endif // DIS2START_SCORER_H
