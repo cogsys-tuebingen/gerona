@@ -285,8 +285,8 @@ struct PathPlanner : public Planner
 
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
-    typedef AStarSearch<NonHolonomicNeighborhood<100, 500, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsy;
-    typedef AStarSearch<NonHolonomicNeighborhood<100, 500, NonHolonomicNeighborhoodMoves::FORWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsyForward;
+    typedef AStarSearch<NonHolonomicNeighborhood<120, 500, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsy;
+    typedef AStarSearch<NonHolonomicNeighborhood<120, 500, NonHolonomicNeighborhoodMoves::FORWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsyForward;
     typedef AStarSearch<NonHolonomicNeighborhood<40, 350, NonHolonomicNeighborhoodMoves::FORWARD>,
     ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
     //    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStarOmnidrive; // Omnidrive

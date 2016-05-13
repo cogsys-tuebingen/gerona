@@ -15,6 +15,8 @@ LocalPlannerTransformer::LocalPlannerTransformer(PathFollower &follower,
 void LocalPlannerTransformer::setGlobalPath(Path::Ptr path)
 {
     LocalPlanner::setGlobalPath(path);
+    ROS_INFO("set global path");
+    last_update_ = ros::Time(0);
 }
 
 Path::Ptr LocalPlannerTransformer::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
@@ -28,18 +30,18 @@ Path::Ptr LocalPlannerTransformer::updateLocalPath(const std::vector<Constraint:
     // only calculate a new local path, if enough time has passed.
     // TODO: also replan for other reasons, e.g. the global path has changed, ...
     if(last_update_ + update_interval_ < now) {
-
+        ROS_INFO("updating local path");
         // only look at the first sub path for now
         auto waypoints = global_path_->getSubPath(0);
 
         // calculate the corrective transformation to map from world coordinates to odom
-        if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
+        if(!transformer_.waitForTransform("map", "odom", ros::Time(0), ros::Duration(0.1))) {
             ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
             return nullptr;
         }
 
         tf::StampedTransform now_map_to_odom;
-        transformer_.lookupTransform("map", "odom", now, now_map_to_odom);
+        transformer_.lookupTransform("map", "odom", ros::Time(0), now_map_to_odom);
 
         tf::Transform transform_correction = now_map_to_odom.inverse();
 
@@ -69,7 +71,7 @@ Path::Ptr LocalPlannerTransformer::updateLocalPath(const std::vector<Constraint:
             }
         }
         std::vector<Waypoint> local_wps;
-        for(std::size_t i = start, n = std::min(start + 20, waypoints.size()); i < n; ++i) {
+        for(std::size_t i = start, n = std::min(start + 100, waypoints.size()); i < n; ++i) {
             local_wps.push_back(waypoints[i]);
         }
 
