@@ -49,18 +49,19 @@ struct NonHolonomicNeighborhoodPrecise :
 
     template <class NodeType>
     static bool isGoal(const NodeType* goal, const NodeType* reference) {
-        double angle_dist_ref = MathHelper::AngleClamp(goal->theta - reference->theta);
+        double delta_rot = std::atan2(std::sin(goal->theta - reference->theta),
+                                      std::cos(goal->theta - reference->theta));
         static const double angle_threshold = M_PI / 8;
-        if(std::abs(angle_dist_ref) > angle_threshold) {
+        if(std::abs(delta_rot) > angle_threshold) {
             return false;
         }
 
-        double dist = hypot(goal->x - reference->x, goal->y - reference->y);
-
+        double cell_dist = hypot(goal->x - reference->x, goal->y - reference->y);
+        double dist = cell_dist * Parent::resolution;
 
         // euclidean distance
         int delta = 2;
-        if(dist < 5.0) return true;
+        if(dist < 0.7) return true;
 
         if(std::abs(goal->x - reference->x) < delta &&
                 std::abs(goal->y - reference->y) < delta) {
@@ -285,8 +286,8 @@ struct PathPlanner : public Planner
 
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
-    typedef AStarSearch<NonHolonomicNeighborhood<120, 500, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsy;
-    typedef AStarSearch<NonHolonomicNeighborhood<120, 500, NonHolonomicNeighborhoodMoves::FORWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsyForward;
+    typedef AStarSearch<NonHolonomicNeighborhood<100, 500, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsy;
+    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<50, 250, NonHolonomicNeighborhoodMoves::FORWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsyForward;
     typedef AStarSearch<NonHolonomicNeighborhood<40, 350, NonHolonomicNeighborhoodMoves::FORWARD>,
     ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
     //    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStarOmnidrive; // Omnidrive
@@ -313,7 +314,7 @@ struct PathPlanner : public Planner
         std::string algo = "ackermann";
         nh_priv.param("algorithm", algo, algo);
 
-        nh_priv.param("oversearch_distance", oversearch_distance_, 2.0);
+        nh_priv.param("oversearch_distance", oversearch_distance_, 0.5);
 
         std::transform(algo.begin(), algo.end(), algo.begin(), ::tolower);
 
