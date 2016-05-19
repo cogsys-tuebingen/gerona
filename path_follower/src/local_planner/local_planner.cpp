@@ -232,6 +232,60 @@ std::vector<Waypoint> LocalPlanner::smoothPathSegment(const std::vector<Waypoint
     return new_path;
 }
 
+void LocalPlanner::getSuccessors(const Waypoint& current, int index, std::vector<int>& successors,
+                                    std::vector<Waypoint>& nodes, std::vector<int>& parents,
+                                    std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints){
+    successors.clear();
+    double theta;
+    double ori = current.orientation;
+    double ox = current.x;
+    double oy = current.y;
+    for(int i = 0; i < 3; ++i){
+        switch (i) {
+        case 0:// straight
+            theta = ori;
+            break;
+        case 1:// right
+            theta = ori - D_THETA;
+            break;
+        case 2:// left
+            theta = ori + D_THETA;
+            break;
+        default:
+            break;
+        }
+
+        double x = ox + 0.15*std::cos(theta);
+        double y = oy + 0.15*std::sin(theta);
+        const Waypoint succ(x,y,theta);
+        const tf::Point succp(x,y,theta);
+        if(std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->isSatisfied(succp)
+                && !isInGraph(succ,nodes)){
+            successors.push_back(nodes.size());
+            nodes.push_back(succ);
+            parents.push_back(index);
+            level.push_back(level[index]+1);
+        }
+    }
+}
+
+bool LocalPlanner::isNearEnough(const Waypoint& current, const Waypoint& last){
+    if(current.distanceTo(last) <= 0.05){
+        return true;
+    }
+    return false;
+}
+
+bool LocalPlanner::isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes){
+    for(std::size_t i = 0; i < nodes.size(); ++i){
+        double dis = current.distanceTo(nodes[i]);
+        if(dis < 0.05){
+            return true;
+        }
+    }
+    return false;
+}
+
 bool LocalPlanner::isNull() const
 {
     return false;

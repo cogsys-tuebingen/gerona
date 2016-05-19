@@ -29,6 +29,12 @@ protected:
     LocalPlanner(PathFollower& controller,
                  tf::Transformer &transformer);
 
+    void getSuccessors(const Waypoint& current, int index, std::vector<int>& successors,
+                       std::vector<Waypoint>& nodes, std::vector<int>& parents,
+                       std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints);
+    bool isNearEnough(const Waypoint& current, const Waypoint& last);
+    bool isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes);
+
     std::vector<Waypoint> interpolatePath(const std::vector<Waypoint>& path, double max_distance);
     void subdividePath(std::vector<Waypoint>& result, Waypoint low, Waypoint up, double max_distance);
     std::vector<Waypoint> smoothPath(const std::vector<Waypoint>& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
@@ -36,6 +42,8 @@ protected:
     std::vector<Waypoint> smoothPathSegment(const std::vector<Waypoint>& path, double weight_data, double weight_smooth, double tolerance);
 
 protected:
+    const double D_THETA = 5*M_PI/36;//Assume like the global planner 25° turn
+
     PathFollower& follower_;
     tf::Transformer &transformer_;
 

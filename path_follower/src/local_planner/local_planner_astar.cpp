@@ -1,10 +1,10 @@
 /// HEADER
-#include <path_follower/local_planner/local_planner_bfs.h>
+#include <path_follower/local_planner/local_planner_astar.h>
 
 /// PROJECT
 #include <path_follower/pathfollower.h>
 
-LocalPlannerBFS::LocalPlannerBFS(PathFollower &follower,
+LocalPlannerAStar::LocalPlannerAStar(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval)
@@ -12,12 +12,12 @@ LocalPlannerBFS::LocalPlannerBFS(PathFollower &follower,
 
 }
 
-void LocalPlannerBFS::setGlobalPath(Path::Ptr path)
+void LocalPlannerAStar::setGlobalPath(Path::Ptr path)
 {
     LocalPlanner::setGlobalPath(path);
 }
 
-Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
+Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                                    const std::vector<Scorer::Ptr>& scorer)
 {
     // this planner does not "plan" locally, but transforms the global path to the odometry frame
