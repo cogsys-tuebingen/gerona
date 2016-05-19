@@ -114,6 +114,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         //                << (level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level));
 
         std::vector<Waypoint> local_wps;
+        Stopwatch sw;
         if(obj != -1){
             int cu_i = obj;
             while(parents[cu_i] != -1){
@@ -122,6 +123,19 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             }
             local_wps.push_back(nodes[cu_i]);
             std::reverse(local_wps.begin(),local_wps.end());
+            ROS_INFO("Postprocessing local path");
+            //smoothing
+            sw.restart();
+            local_wps = smoothPath(local_wps, 0.6, 0.15);
+            ROS_INFO_STREAM("Smoothing took " << sw.msElapsed() << "ms");
+            //interpolate
+            sw.restart();
+            local_wps = interpolatePath(local_wps, 0.1);
+            ROS_INFO_STREAM("Interpolation took " << sw.msElapsed() << "ms");
+            //final smoothing
+            sw.restart();
+            local_wps = smoothPath(local_wps, 2.0, 0.4);
+            ROS_INFO_STREAM("Final smoothing took " << sw.msElapsed() << "ms");
         }else{
             return nullptr;
         }

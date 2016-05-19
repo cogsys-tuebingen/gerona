@@ -2,6 +2,8 @@
 #define LOCAL_PLANNER_H
 
 /// PROJECT
+#include <utils_general/MathHelper.h>
+#include <utils_general/Stopwatch.h>
 #include <path_follower/utils/path.h>
 #include <path_follower/local_planner/constraint.h>
 #include <path_follower/local_planner/dis2path_constraint.h>
@@ -26,6 +28,12 @@ public:
 protected:
     LocalPlanner(PathFollower& controller,
                  tf::Transformer &transformer);
+
+    std::vector<Waypoint> interpolatePath(const std::vector<Waypoint>& path, double max_distance);
+    void subdividePath(std::vector<Waypoint>& result, Waypoint low, Waypoint up, double max_distance);
+    std::vector<Waypoint> smoothPath(const std::vector<Waypoint>& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
+    std::vector<std::vector<Waypoint>> segmentPath(const std::vector<Waypoint> &path);
+    std::vector<Waypoint> smoothPathSegment(const std::vector<Waypoint>& path, double weight_data, double weight_smooth, double tolerance);
 
 protected:
     PathFollower& follower_;
