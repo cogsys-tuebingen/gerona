@@ -259,8 +259,7 @@ void LocalPlanner::getSuccessors(const Waypoint& current, int index, std::vector
         double y = oy + 0.15*std::sin(theta);
         const Waypoint succ(x,y,theta);
         const tf::Point succp(x,y,theta);
-        if(std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->isSatisfied(succp)
-                && !isInGraph(succ,nodes)){
+        if(constraints.at(0)->isSatisfied(succp) && !isInGraph(succ,nodes)){
             successors.push_back(nodes.size());
             nodes.push_back(succ);
             parents.push_back(index);
