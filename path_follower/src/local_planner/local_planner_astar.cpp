@@ -127,15 +127,11 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
             //smoothing
             sw.restart();
             local_wps = smoothPath(local_wps, 0.6, 0.15);
-            ROS_INFO_STREAM("Smoothing took " << sw.msElapsed() << "ms");
             //interpolate
-            sw.restart();
             local_wps = interpolatePath(local_wps, 0.1);
-            ROS_INFO_STREAM("Interpolation took " << sw.msElapsed() << "ms");
             //final smoothing
-            sw.restart();
             local_wps = smoothPath(local_wps, 2.0, 0.4);
-            ROS_INFO_STREAM("Final smoothing took " << sw.msElapsed() << "ms");
+            ROS_INFO_STREAM("Local path postprocessing took " << sw.msElapsed() << " ms");
         }else{
             return nullptr;
         }

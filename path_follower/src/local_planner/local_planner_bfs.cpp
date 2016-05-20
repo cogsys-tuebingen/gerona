@@ -57,6 +57,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints);
         std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setDistances(waypoints);
         std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->setSubPath(waypoints);
+        //std::dynamic_pointer_cast<Dis2Obst_Scorer>(scorer.at(2))->setTransformer(transformer_);
 
         // find the subpath that starts closest to the robot
         Eigen::Vector3d pose = follower_.getRobotPose();
@@ -68,8 +69,9 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         const tf::Point lastp(last.x,last.y,last.orientation);
         const tf::Point wposep(pose(0),pose(1),pose(2));
 
-        if((std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp)
-                - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(wposep)) < 0.8){
+        float dis2last = std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp);
+
+        if((dis2last - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(wposep)) < 0.8){
             return nullptr;
         }
 
@@ -100,8 +102,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             for(std::size_t i = 0; i < successors.size(); ++i){
                 const tf::Point processed(nodes[successors[i]].x,nodes[successors[i]].y,
                         nodes[successors[i]].orientation);
-                double new_dist = (std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp)
-                        - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(processed))
+                double new_dist = (dis2last - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(processed))
                         + std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->score(processed);
                 if(new_dist < go_dist){
                     go_dist = new_dist;
@@ -123,19 +124,14 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             }
             local_wps.push_back(nodes[cu_i]);
             std::reverse(local_wps.begin(),local_wps.end());
-            ROS_INFO("Postprocessing local path");
             //smoothing
             sw.restart();
             local_wps = smoothPath(local_wps, 0.6, 0.15);
-            ROS_INFO_STREAM("Smoothing took " << sw.msElapsed() << "ms");
             //interpolate
-            sw.restart();
             local_wps = interpolatePath(local_wps, 0.1);
-            ROS_INFO_STREAM("Interpolation took " << sw.msElapsed() << "ms");
             //final smoothing
-            sw.restart();
             local_wps = smoothPath(local_wps, 2.0, 0.4);
-            ROS_INFO_STREAM("Final smoothing took " << sw.msElapsed() << "ms");
+            ROS_INFO_STREAM("Local path postprocessing took " << sw.msElapsed() << " ms");
         }else{
             return nullptr;
         }
