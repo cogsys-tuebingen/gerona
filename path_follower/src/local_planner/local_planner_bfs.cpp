@@ -74,10 +74,6 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             return nullptr;
         }
 
-        //
-        ROS_INFO_STREAM("Distance Score (d) = " << scorer.at(2)->score(wposep));
-        //
-
         std::vector<Waypoint> nodes;
         std::vector<int> parents;
         std::vector<int> level;
@@ -105,7 +101,8 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             for(std::size_t i = 0; i < successors.size(); ++i){
                 const tf::Point processed(nodes[successors[i]].x,nodes[successors[i]].y,
                         nodes[successors[i]].orientation);
-                double new_dist = (dis2last - scorer.at(0)->score(processed)) + scorer.at(1)->score(processed);
+                double new_dist = (dis2last - scorer.at(0)->score(processed))
+                        + scorer.at(1)->score(processed) + scorer.at(2)->score(processed);
                 if(new_dist < go_dist){
                     go_dist = new_dist;
                     obj = successors[i];

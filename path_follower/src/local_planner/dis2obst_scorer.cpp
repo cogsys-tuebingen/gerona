@@ -29,11 +29,14 @@ double Dis2Obst_Scorer::score(const tf::Point& point){
 
     ObstacleCloud::const_iterator point_it;
     for (point_it = obstacles->begin(); point_it != obstacles->end(); ++point_it){
-        double dist = std::hypot(pt.x() - (point_it->x), pt.y() - (point_it->y));
+        double x = pt.x() - (double)(point_it->x);
+        double y = pt.y() - (double)(point_it->y);
+        double dist = std::hypot(x, y);
         if(dist < closest_obst) {
             closest_obst = dist;
         }
     }
 
-    return closest_obst;
+    double partial = closest_obst * closest_obst;
+    return 1.0/partial;
 }

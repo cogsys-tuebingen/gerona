@@ -23,7 +23,7 @@ bool Dis2Path_Constraint::isSatisfied(const tf::Point& point){
         double dist = std::hypot(wp.x - point.getX(), wp.y - point.getY());
         if(dist < closest_dist) {
             closest_dist = dist;
-            if(closest_dist <= 0.22){
+            if(closest_dist <= 0.3){
                 return true;
             }
         }
