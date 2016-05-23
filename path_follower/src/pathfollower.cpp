@@ -398,8 +398,10 @@ void PathFollower::update()
             constraints.push_back(d2pc);
             Dis2Start_Scorer::Ptr d2ss(new Dis2Start_Scorer);
             Dis2Path_Scorer::Ptr d2ps(new Dis2Path_Scorer);
+            Dis2Obst_Scorer::Ptr d2os(new Dis2Obst_Scorer(this->obstacle_cloud_, pose_listener_));
             scorer.push_back(d2ss);
             scorer.push_back(d2ps);
+            scorer.push_back(d2os);
             //End CConstraints and Scorers Construction
             Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer);
             if(local_path) {

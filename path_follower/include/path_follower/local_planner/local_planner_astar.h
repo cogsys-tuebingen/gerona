@@ -1,5 +1,5 @@
-#ifndef LOCAL_PLANNER_BFS_H
-#define LOCAL_PLANNER_BFS_H
+#ifndef LOCAL_PLANNER_ASTAR_H
+#define LOCAL_PLANNER_ASTAR_H
 
 /// PROJECT
 #include <path_follower/local_planner/local_planner.h>
@@ -7,10 +7,10 @@
 /// SYSTEM
 #include <ros/time.h>
 
-class LocalPlannerBFS : public LocalPlanner
+class LocalPlannerAStar : public LocalPlanner
 {
 public:
-    LocalPlannerBFS(PathFollower& controller,
+    LocalPlannerAStar(PathFollower& controller,
                             tf::Transformer &transformer,
                             const ros::Duration& update_interval);
 
@@ -24,4 +24,4 @@ private:
     ros::Duration update_interval_;
 };
 
-#endif // LOCAL_PLANNER_BFS_H
+#endif // LOCAL_PLANNER_ASTAR_H

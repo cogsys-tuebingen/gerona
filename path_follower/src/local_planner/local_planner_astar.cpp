@@ -1,10 +1,10 @@
 /// HEADER
-#include <path_follower/local_planner/local_planner_bfs.h>
+#include <path_follower/local_planner/local_planner_astar.h>
 
 /// PROJECT
 #include <path_follower/pathfollower.h>
 
-LocalPlannerBFS::LocalPlannerBFS(PathFollower &follower,
+LocalPlannerAStar::LocalPlannerAStar(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval)
@@ -12,12 +12,12 @@ LocalPlannerBFS::LocalPlannerBFS(PathFollower &follower,
 
 }
 
-void LocalPlannerBFS::setGlobalPath(Path::Ptr path)
+void LocalPlannerAStar::setGlobalPath(Path::Ptr path)
 {
     LocalPlanner::setGlobalPath(path);
 }
 
-Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
+Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                                    const std::vector<Scorer::Ptr>& scorer)
 {
     // this planner does not "plan" locally, but transforms the global path to the odometry frame
@@ -68,9 +68,8 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         const tf::Point lastp(last.x,last.y,last.orientation);
         const tf::Point wposep(pose(0),pose(1),pose(2));
 
-        float dis2last = scorer.at(0)->score(lastp);
-
-        if((dis2last - scorer.at(0)->score(wposep)) < 0.8){
+        if((std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp)
+                - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(wposep)) < 0.8){
             return nullptr;
         }
 
@@ -101,8 +100,9 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             for(std::size_t i = 0; i < successors.size(); ++i){
                 const tf::Point processed(nodes[successors[i]].x,nodes[successors[i]].y,
                         nodes[successors[i]].orientation);
-                double new_dist = (dis2last - scorer.at(0)->score(processed))
-                        + scorer.at(1)->score(processed) + scorer.at(2)->score(processed);
+                double new_dist = (std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp)
+                        - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(processed))
+                        + std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->score(processed);
                 if(new_dist < go_dist){
                     go_dist = new_dist;
                     obj = successors[i];
@@ -123,6 +123,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             }
             local_wps.push_back(nodes[cu_i]);
             std::reverse(local_wps.begin(),local_wps.end());
+            ROS_INFO("Postprocessing local path");
             //smoothing
             sw.restart();
             local_wps = smoothPath(local_wps, 0.6, 0.15);
