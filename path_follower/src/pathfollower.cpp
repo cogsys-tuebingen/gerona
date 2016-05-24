@@ -395,13 +395,17 @@ void PathFollower::update()
             std::vector<Scorer::Ptr> scorer;
             //Begin Constraints and Scorers Construction
             Dis2Path_Constraint::Ptr d2pc(new Dis2Path_Constraint);
+            Dis2Path_Constraint::Ptr d2spc(new Dis2Path_Constraint);
             constraints.push_back(d2pc);
+            constraints.push_back(d2spc);
             Dis2Start_Scorer::Ptr d2ss(new Dis2Start_Scorer);
             Dis2Path_Scorer::Ptr d2ps(new Dis2Path_Scorer);
             Dis2Obst_Scorer::Ptr d2os(new Dis2Obst_Scorer(this->obstacle_cloud_, pose_listener_));
+            Dis2Path_Scorer::Ptr d2sps(new Dis2Path_Scorer);
             scorer.push_back(d2ss);
             scorer.push_back(d2ps);
             scorer.push_back(d2os);
+            scorer.push_back(d2sps);
             //End CConstraints and Scorers Construction
             Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer);
             if(local_path) {

@@ -20,8 +20,7 @@ void LocalPlannerBFS::setGlobalPath(Path::Ptr path)
 Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                                    const std::vector<Scorer::Ptr>& scorer)
 {
-    // this planner does not "plan" locally, but transforms the global path to the odometry frame
-    // to eliminate odometry drift
+    // this planner uses the Breadth-first search algorithm
 
     ros::Time now = ros::Time::now();
 
@@ -55,8 +54,10 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         }
 
         std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints);
+        std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(1))->setSubPath(last_local_path_);
         std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setDistances(waypoints);
         std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->setSubPath(waypoints);
+        std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(3))->setSubPath(last_local_path_);
 
         // find the subpath that starts closest to the robot
         Eigen::Vector3d pose = follower_.getRobotPose();
@@ -102,7 +103,8 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
                 const tf::Point processed(nodes[successors[i]].x,nodes[successors[i]].y,
                         nodes[successors[i]].orientation);
                 double new_dist = (dis2last - scorer.at(0)->score(processed))
-                        + scorer.at(1)->score(processed) + scorer.at(2)->score(processed);
+                        + scorer.at(1)->score(processed) + scorer.at(2)->score(processed)
+                        + (constraints.at(1)->isSatisfied(processed)?scorer.at(3)->score(processed):0.0);
                 if(new_dist < go_dist){
                     go_dist = new_dist;
                     obj = successors[i];
@@ -131,28 +133,10 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             //final smoothing
             local_wps = smoothPath(local_wps, 2.0, 0.4);
             ROS_INFO_STREAM("Local path postprocessing took " << sw.msElapsed() << " ms");
+            last_local_path_.assign(local_wps.begin(),local_wps.end());
         }else{
             return nullptr;
         }
-
-        //        // example use of scorers
-        //        // (return the path with the lowest score.)
-        //        double score = 0;
-        //        for(tf::Point& pt : local_path) {
-        //            for(Scorer& scorer : scorers) {
-        //                score += scorer.score(pt);
-        //            }
-        //        }
-
-        //        // example use of constraints to check for goal conditions
-        //        bool is_goal = true;
-        //        tf::Point point = ....;
-        //        for(Constraint& constraint : constraints) {
-        //            if(!constraint.isSatisfied(point)) {
-        //               is_goal = false;
-        //               break;
-        //            }
-        //        }
 
         // here we just use the subpath without checking constraints / scorerers
         Path::Ptr local_path(new Path("/odom"));

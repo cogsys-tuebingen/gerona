@@ -36,11 +36,11 @@ protected:
     bool isNearEnough(const Waypoint& current, const Waypoint& last);
     bool isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes);
 
-    std::vector<Waypoint> interpolatePath(const std::vector<Waypoint>& path, double max_distance);
-    void subdividePath(std::vector<Waypoint>& result, Waypoint low, Waypoint up, double max_distance);
-    std::vector<Waypoint> smoothPath(const std::vector<Waypoint>& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
-    std::vector<std::vector<Waypoint>> segmentPath(const std::vector<Waypoint> &path);
-    std::vector<Waypoint> smoothPathSegment(const std::vector<Waypoint>& path, double weight_data, double weight_smooth, double tolerance);
+    SubPath interpolatePath(const SubPath& path, double max_distance);
+    void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
+    SubPath smoothPath(const SubPath& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
+    std::vector<SubPath> segmentPath(const SubPath &path);
+    SubPath smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance);
 
 protected:
     const double D_THETA = 5*M_PI/36;//Assume like the global planner 25° turn
@@ -49,6 +49,7 @@ protected:
     tf::Transformer &transformer_;
 
     Path::Ptr global_path_;
+    SubPath last_local_path_;
 
     tf::StampedTransform initial_map_to_odom_;
 };

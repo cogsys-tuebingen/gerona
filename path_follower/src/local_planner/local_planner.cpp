@@ -2,7 +2,7 @@
 #include <path_follower/local_planner/local_planner.h>
 
 LocalPlanner::LocalPlanner(PathFollower &follower, tf::Transformer &transformer)
-    : follower_(follower), transformer_(transformer)
+    : follower_(follower), transformer_(transformer), last_local_path_()
 {
 
 }
@@ -33,7 +33,7 @@ void LocalPlanner::setGlobalPath(Path::Ptr path)
 
 
 //borrowed from path_planner/planner_node.cpp
-std::vector<Waypoint> LocalPlanner::interpolatePath(const std::vector<Waypoint>& path, double max_distance){
+SubPath LocalPlanner::interpolatePath(const SubPath& path, double max_distance){
     unsigned n = path.size();
     std::vector<Waypoint> result;
     if(n < 2) {
@@ -53,7 +53,7 @@ std::vector<Waypoint> LocalPlanner::interpolatePath(const std::vector<Waypoint>&
 }
 
 //borrowed from path_planner/planner_node.cpp
-void LocalPlanner::subdividePath(std::vector<Waypoint>& result, Waypoint low, Waypoint up, double max_distance){
+void LocalPlanner::subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance){
     double distance = low.distanceTo(up);
     if(distance > max_distance) {
         // split half way between the lower and the upper node
@@ -73,17 +73,17 @@ void LocalPlanner::subdividePath(std::vector<Waypoint>& result, Waypoint low, Wa
 }
 
 //borrowed from path_planner/planner_node.cpp
-std::vector<Waypoint> LocalPlanner::smoothPath(const std::vector<Waypoint>& path, double weight_data, double weight_smooth, double tolerance){
-    std::vector<Waypoint> result;
+SubPath LocalPlanner::smoothPath(const SubPath& path, double weight_data, double weight_smooth, double tolerance){
+    SubPath result;
     int n = path.size();
     if(n < 2) {
         return result;
     }
     // find segments
-    std::vector<std::vector<Waypoint>> segments = segmentPath(path);
+    std::vector<SubPath> segments = segmentPath(path);
     // smooth segments and merge results
-    for(const std::vector<Waypoint>& segment : segments) {
-        std::vector<Waypoint> smoothed_segment = smoothPathSegment(segment, weight_data, weight_smooth, tolerance);
+    for(const SubPath& segment : segments) {
+        SubPath smoothed_segment = smoothPathSegment(segment, weight_data, weight_smooth, tolerance);
         result.insert(result.end(), smoothed_segment.begin(), smoothed_segment.end());
     }
 
@@ -91,15 +91,15 @@ std::vector<Waypoint> LocalPlanner::smoothPath(const std::vector<Waypoint>& path
 }
 
 //borrowed from path_planner/planner_node.cpp
-std::vector<std::vector<Waypoint>> LocalPlanner::segmentPath(const std::vector<Waypoint> &path){
-                                   std::vector<std::vector<Waypoint>> result;
+std::vector<SubPath> LocalPlanner::segmentPath(const std::vector<Waypoint> &path){
+                                   std::vector<SubPath> result;
 
                                    int n = path.size();
                                    if(n < 2) {
                                        return result;
                                    }
 
-                                   std::vector<Waypoint> current_segment;
+                                   SubPath current_segment;
 
                                    const Waypoint * last_point = &path[0];
                                    current_segment.push_back(*last_point);
@@ -156,8 +156,8 @@ std::vector<std::vector<Waypoint>> LocalPlanner::segmentPath(const std::vector<W
 }
 
 //borrowed from path_planner/planner_node.cpp
-std::vector<Waypoint> LocalPlanner::smoothPathSegment(const std::vector<Waypoint>& path, double weight_data, double weight_smooth, double tolerance){
-    std::vector<Waypoint> new_path(path);
+SubPath LocalPlanner::smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance){
+    SubPath new_path(path);
 
     unsigned n = path.size();
     if(n < 2) {

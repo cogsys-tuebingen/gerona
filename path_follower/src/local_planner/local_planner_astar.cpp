@@ -7,7 +7,8 @@
 LocalPlannerAStar::LocalPlannerAStar(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
-    : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval)
+    : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval),
+      fScore()
 {
 
 }
@@ -20,8 +21,7 @@ void LocalPlannerAStar::setGlobalPath(Path::Ptr path)
 Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                                    const std::vector<Scorer::Ptr>& scorer)
 {
-    // this planner does not "plan" locally, but transforms the global path to the odometry frame
-    // to eliminate odometry drift
+    // this planner uses the A* search algorithm
 
     ros::Time now = ros::Time::now();
 
@@ -55,8 +55,10 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
         }
 
         std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints);
+        std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(1))->setSubPath(last_local_path_);
         std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setDistances(waypoints);
         std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->setSubPath(waypoints);
+        std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(3))->setSubPath(last_local_path_);
 
         // find the subpath that starts closest to the robot
         Eigen::Vector3d pose = follower_.getRobotPose();
@@ -68,50 +70,39 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
         const tf::Point lastp(last.x,last.y,last.orientation);
         const tf::Point wposep(pose(0),pose(1),pose(2));
 
-        if((std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp)
-                - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(wposep)) < 0.8){
+        float dis2last = scorer.at(0)->score(lastp);
+
+        if((dis2last - scorer.at(0)->score(wposep)) < 0.8){
             return nullptr;
         }
 
         std::vector<Waypoint> nodes;
         std::vector<int> parents;
         std::vector<int> level;
+
+        std::vector<int> closedSet;
+
+        std::vector<double> gScore;
+        fScore.clear();
+
         nodes.push_back(wpose);
         parents.push_back(-1);
         level.push_back(0);
 
-        std::queue<int> fifo_i;
-        fifo_i.push(0);
-        double go_dist = std::numeric_limits<double>::infinity();
+        gScore.push_back(0.0);
+        double heuristic = (dis2last - scorer.at(0)->score(wposep))
+                + scorer.at(1)->score(wposep) + scorer.at(2)->score(wposep)
+                + (constraints.at(1)->isSatisfied(wposep)?scorer.at(3)->score(wposep):0.0);
+        fScore.push_back(heuristic);
+
+        //std::priority_queue<int, std::vector<int>, LocalPlannerAStar> fifo_i;
+        //fifo_i.push(0);
         int obj = -1;
         int li_level = 10;
 
-        while(!fifo_i.empty() && level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level){
-            int c_index = fifo_i.front();
-            fifo_i.pop();
-            const Waypoint& current = nodes[c_index];
-            if(isNearEnough(current,last)){
-                obj = c_index;
-                break;
-            }
+        //while(!fifo_i.empty() && level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level){
 
-            std::vector<int> successors;
-            getSuccessors(current, c_index, successors, nodes, parents, level, constraints);
-            for(std::size_t i = 0; i < successors.size(); ++i){
-                const tf::Point processed(nodes[successors[i]].x,nodes[successors[i]].y,
-                        nodes[successors[i]].orientation);
-                double new_dist = (std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(lastp)
-                        - std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->score(processed))
-                        + std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->score(processed);
-                if(new_dist < go_dist){
-                    go_dist = new_dist;
-                    obj = successors[i];
-                }
-                fifo_i.push(successors[i]);
-            }
-        }
-        //ROS_INFO_STREAM("Reasons: " <<  !fifo_i.empty() << ", " << (cu_dist <= ldist) << ", "
-        //                << (level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level));
+        //}
 
         std::vector<Waypoint> local_wps;
         Stopwatch sw;
@@ -123,7 +114,6 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
             }
             local_wps.push_back(nodes[cu_i]);
             std::reverse(local_wps.begin(),local_wps.end());
-            ROS_INFO("Postprocessing local path");
             //smoothing
             sw.restart();
             local_wps = smoothPath(local_wps, 0.6, 0.15);
@@ -132,28 +122,10 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
             //final smoothing
             local_wps = smoothPath(local_wps, 2.0, 0.4);
             ROS_INFO_STREAM("Local path postprocessing took " << sw.msElapsed() << " ms");
+            last_local_path_.assign(local_wps.begin(),local_wps.end());
         }else{
             return nullptr;
         }
-
-        //        // example use of scorers
-        //        // (return the path with the lowest score.)
-        //        double score = 0;
-        //        for(tf::Point& pt : local_path) {
-        //            for(Scorer& scorer : scorers) {
-        //                score += scorer.score(pt);
-        //            }
-        //        }
-
-        //        // example use of constraints to check for goal conditions
-        //        bool is_goal = true;
-        //        tf::Point point = ....;
-        //        for(Constraint& constraint : constraints) {
-        //            if(!constraint.isSatisfied(point)) {
-        //               is_goal = false;
-        //               break;
-        //            }
-        //        }
 
         // here we just use the subpath without checking constraints / scorerers
         Path::Ptr local_path(new Path("/odom"));
@@ -171,4 +143,8 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
     } else {
         return nullptr;
     }
+}
+
+bool LocalPlannerAStar::operator() (const int& lhs, const int&rhs) const{
+    return fScore.at(lhs) > fScore.at(rhs);
 }
