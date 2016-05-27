@@ -1,6 +1,9 @@
 /// HEADER
 #include <path_follower/local_planner/local_planner.h>
 
+//Now the compiler is happy
+std::vector<double> LocalPlanner::DUMMY_VECTOR;
+
 LocalPlanner::LocalPlanner(PathFollower &follower, tf::Transformer &transformer)
     : follower_(follower), transformer_(transformer), last_local_path_()
 {
@@ -233,8 +236,9 @@ SubPath LocalPlanner::smoothPathSegment(const SubPath& path, double weight_data,
 }
 
 void LocalPlanner::getSuccessors(const Waypoint& current, int index, std::vector<int>& successors,
-                                    std::vector<Waypoint>& nodes, std::vector<int>& parents,
-                                    std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints){
+                                 std::vector<Waypoint>& nodes, std::vector<int>& parents,
+                                 std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints,
+                                 std::vector<double>& g, std::vector<double>& f, bool repeat){
     successors.clear();
     double theta;
     double ori = current.orientation;
@@ -259,11 +263,23 @@ void LocalPlanner::getSuccessors(const Waypoint& current, int index, std::vector
         double y = oy + 0.15*std::sin(theta);
         const Waypoint succ(x,y,theta);
         const tf::Point succp(x,y,theta);
-        if(constraints.at(0)->isSatisfied(succp) && !isInGraph(succ,nodes)){
-            successors.push_back(nodes.size());
-            nodes.push_back(succ);
-            parents.push_back(index);
-            level.push_back(level[index]+1);
+
+        if(constraints.at(0)->isSatisfied(succp)){
+            int wo = -1;
+            if(!isInGraph(succ,nodes,wo)){
+                successors.push_back(nodes.size());
+                nodes.push_back(succ);
+                parents.push_back(index);
+                level.push_back(level[index]+1);
+                if(repeat){
+                    g.push_back(std::numeric_limits<double>::infinity());
+                    f.push_back(std::numeric_limits<double>::infinity());
+                }
+            }else{
+                if(repeat){
+                    successors.push_back(wo);
+                }
+            }
         }
     }
 }
@@ -275,10 +291,11 @@ bool LocalPlanner::isNearEnough(const Waypoint& current, const Waypoint& last){
     return false;
 }
 
-bool LocalPlanner::isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes){
+bool LocalPlanner::isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes, int& position){
     for(std::size_t i = 0; i < nodes.size(); ++i){
         double dis = current.distanceTo(nodes[i]);
         if(dis < 0.05){
+            position = i;
             return true;
         }
     }

@@ -132,7 +132,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             local_wps = interpolatePath(local_wps, 0.1);
             //final smoothing
             local_wps = smoothPath(local_wps, 2.0, 0.4);
-            ROS_INFO_STREAM("Local path postprocessing took " << sw.msElapsed() << " ms");
+            ROS_INFO_STREAM("Local path postprocessing took " << sw.usElapsed() << " us");
             last_local_path_.assign(local_wps.begin(),local_wps.end());
         }else{
             return nullptr;
@@ -155,3 +155,4 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         return nullptr;
     }
 }
+

@@ -32,9 +32,11 @@ protected:
 
     void getSuccessors(const Waypoint& current, int index, std::vector<int>& successors,
                        std::vector<Waypoint>& nodes, std::vector<int>& parents,
-                       std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints);
+                       std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints,
+                       std::vector<double>& g = DUMMY_VECTOR,
+                       std::vector<double>& f = DUMMY_VECTOR, bool repeat = false);
     bool isNearEnough(const Waypoint& current, const Waypoint& last);
-    bool isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes);
+    bool isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes, int& position);
 
     SubPath interpolatePath(const SubPath& path, double max_distance);
     void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
@@ -50,6 +52,7 @@ protected:
 
     Path::Ptr global_path_;
     SubPath last_local_path_;
+    static std::vector<double> DUMMY_VECTOR;
 
     tf::StampedTransform initial_map_to_odom_;
 };
