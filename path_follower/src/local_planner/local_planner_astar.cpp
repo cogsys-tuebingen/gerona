@@ -95,15 +95,15 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
                 + (constraints.at(1)->isSatisfied(wposep)?scorer.at(3)->score(wposep):0.0);
         fScore.push_back(heuristic);
 
-        std::priority_queue<int, std::vector<int>, LocalPlannerAStar> openSet(*this);
-        openSet.push(0);
+        prio_queue openSet(*this);
+        openSet.insert(0);
         double go_dist = std::numeric_limits<double>::infinity();
         int obj = -1;
         int li_level = 10;
 
-        while(!openSet.empty() && level.at(openSet.empty()?nodes.size()-1:openSet.top()) <= li_level){
-            int c_index = openSet.top();
-            openSet.pop();
+        while(!openSet.empty() && level.at(openSet.empty()?nodes.size()-1:*openSet.begin()) <= li_level){
+            int c_index = *openSet.begin();
+            openSet.erase(openSet.begin());
             const Waypoint& current = nodes[c_index];
             if(isNearEnough(current,last)){
                 obj = c_index;
@@ -114,18 +114,18 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
             std::vector<int> successors;
             getSuccessors(current, c_index, successors, nodes, parents, level, constraints,
                           gScore, fScore, true);
+            ROS_INFO_STREAM("openSet1["<< c_index << "]");
             for(std::size_t i = 0; i < successors.size(); ++i){
+                ROS_INFO_STREAM("successor " << i << " = " << successors[i]);
                 if(std::find(closedSet.begin(), closedSet.end(), successors[i]) != closedSet.end()){
                     continue;
                 }
+
                 double tentative_gScore = gScore[c_index] + 0.15;//vllt tat. Abstand?
-                /*if(std::find(openSet.begin(), openSet.end(), successors[i]) == openSet.end()){
-                    openSet.push(successors[i]);
-                }else{
-                    if(tentative_gScore >= gScore[successors[i]]){
-                        continue;
-                    }
-                }*/
+
+                if(tentative_gScore >= gScore[successors[i]]){
+                    continue;
+                }
 
                 parents.at(successors[i]) = c_index;
                 gScore.at(successors[i]) = tentative_gScore;
@@ -137,6 +137,18 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
                         + scorer.at(1)->score(processed) + scorer.at(2)->score(processed)
                         + (constraints.at(1)->isSatisfied(processed)?scorer.at(3)->score(processed):0.0);
                 fScore.at(successors[i]) = heuristic;
+
+                prio_queue::const_iterator inOpen = std::find(openSet.begin(), openSet.end(), successors[i]);
+                if(inOpen == openSet.end()){
+                    ROS_INFO_STREAM("Line 5a");
+                    ROS_INFO_STREAM("Size G: " << gScore.size());
+                    ROS_INFO_STREAM("Size Nodes: " << nodes.size());
+                    openSet.insert(successors[i]);
+                    ROS_INFO_STREAM("Line 6a");
+                }else{
+                    openSet.erase(inOpen);
+                    openSet.insert(successors[i]);
+                }
 
                 if(heuristic < go_dist){
                     go_dist = heuristic;
@@ -187,5 +199,6 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
 }
 
 bool LocalPlannerAStar::operator() (const int& lhs, const int&rhs) const{
-    return fScore.at(lhs) > fScore.at(rhs);
+    ROS_INFO_STREAM("Size F: " << fScore.size());
+    return fScore.at(lhs) < fScore.at(rhs);
 }

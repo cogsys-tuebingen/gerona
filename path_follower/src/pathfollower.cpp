@@ -44,6 +44,7 @@
 #include <path_follower/local_planner/local_planner_null.h>
 #include <path_follower/local_planner/local_planner_transformer.h>
 #include <path_follower/local_planner/local_planner_bfs.h>
+#include <path_follower/local_planner/local_planner_astar.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -165,7 +166,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
     // TODO: make selectable once more than one planner is available
     //local_planner_ = std::make_shared<LocalPlannerTransformer>(*this, pose_listener_,ros::Duration(1.0));
-    local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(1.0));
+    //local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(1.0));
+    local_planner_ = std::make_shared<LocalPlannerAStar>(*this, pose_listener_,ros::Duration(1.0));
 
     if(!local_planner_) {
         local_planner_ = std::make_shared<LocalPlannerNull>(*this, pose_listener_);
