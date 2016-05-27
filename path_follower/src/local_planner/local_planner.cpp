@@ -264,7 +264,7 @@ void LocalPlanner::getSuccessors(const Waypoint& current, int index, std::vector
         const Waypoint succ(x,y,theta);
         const tf::Point succp(x,y,theta);
 
-        if(constraints.at(0)->isSatisfied(succp)){
+        if(constraints.at(0)->isSatisfied(succp) && constraints.at(2)->isSatisfied(succp)){
             int wo = -1;
             if(!isInGraph(succ,nodes,wo)){
                 successors.push_back(nodes.size());
