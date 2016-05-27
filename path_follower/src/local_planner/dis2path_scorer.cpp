@@ -18,6 +18,9 @@ void Dis2Path_Scorer::setSubPath(const SubPath& path){
 
 double Dis2Path_Scorer::score(const tf::Point& point){
     double closest_dist = std::numeric_limits<double>::infinity();
+    if(currentPath.empty()){
+        return 0.0;
+    }
     for(std::size_t i = 0; i < currentPath.size(); ++i) {
         const Waypoint& wp = currentPath[i];
         double dist = std::hypot(wp.x - point.getX(), wp.y - point.getY());

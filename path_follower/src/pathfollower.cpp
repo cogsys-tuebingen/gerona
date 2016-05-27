@@ -44,6 +44,7 @@
 #include <path_follower/local_planner/local_planner_null.h>
 #include <path_follower/local_planner/local_planner_transformer.h>
 #include <path_follower/local_planner/local_planner_bfs.h>
+#include <path_follower/local_planner/local_planner_astar.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -166,6 +167,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // TODO: make selectable once more than one planner is available
     //local_planner_ = std::make_shared<LocalPlannerTransformer>(*this, pose_listener_,ros::Duration(1.0));
     local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(1.0));
+    //local_planner_ = std::make_shared<LocalPlannerAStar>(*this, pose_listener_,ros::Duration(1.0));
 
     if(!local_planner_) {
         local_planner_ = std::make_shared<LocalPlannerNull>(*this, pose_listener_);
@@ -395,13 +397,19 @@ void PathFollower::update()
             std::vector<Scorer::Ptr> scorer;
             //Begin Constraints and Scorers Construction
             Dis2Path_Constraint::Ptr d2pc(new Dis2Path_Constraint);
+            Dis2Path_Constraint::Ptr d2spc(new Dis2Path_Constraint);
+            Dis2Obst_Constraint::Ptr d2oc(new Dis2Obst_Constraint(this->obstacle_cloud_, pose_listener_));
             constraints.push_back(d2pc);
+            constraints.push_back(d2spc);
+            constraints.push_back(d2oc);
             Dis2Start_Scorer::Ptr d2ss(new Dis2Start_Scorer);
             Dis2Path_Scorer::Ptr d2ps(new Dis2Path_Scorer);
             Dis2Obst_Scorer::Ptr d2os(new Dis2Obst_Scorer(this->obstacle_cloud_, pose_listener_));
+            Dis2Path_Scorer::Ptr d2sps(new Dis2Path_Scorer);
             scorer.push_back(d2ss);
             scorer.push_back(d2ps);
             scorer.push_back(d2os);
+            scorer.push_back(d2sps);
             //End CConstraints and Scorers Construction
             Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer);
             if(local_path) {

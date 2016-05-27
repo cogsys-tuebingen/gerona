@@ -18,10 +18,13 @@ public:
 
     virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                       const std::vector<Scorer::Ptr>& scorer) override;
+    bool operator() (const int& lhs, const int&rhs) const;
 
 private:
+    typedef std::multiset<int,LocalPlannerAStar> prio_queue;
     ros::Time last_update_;
     ros::Duration update_interval_;
+    std::vector<double> fScore;
 };
 
 #endif // LOCAL_PLANNER_ASTAR_H

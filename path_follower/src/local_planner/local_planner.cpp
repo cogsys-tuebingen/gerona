@@ -1,8 +1,11 @@
 /// HEADER
 #include <path_follower/local_planner/local_planner.h>
 
+//Now the compiler is happy
+std::vector<double> LocalPlanner::DUMMY_VECTOR;
+
 LocalPlanner::LocalPlanner(PathFollower &follower, tf::Transformer &transformer)
-    : follower_(follower), transformer_(transformer)
+    : follower_(follower), transformer_(transformer), last_local_path_()
 {
 
 }
@@ -33,7 +36,7 @@ void LocalPlanner::setGlobalPath(Path::Ptr path)
 
 
 //borrowed from path_planner/planner_node.cpp
-std::vector<Waypoint> LocalPlanner::interpolatePath(const std::vector<Waypoint>& path, double max_distance){
+SubPath LocalPlanner::interpolatePath(const SubPath& path, double max_distance){
     unsigned n = path.size();
     std::vector<Waypoint> result;
     if(n < 2) {
@@ -53,7 +56,7 @@ std::vector<Waypoint> LocalPlanner::interpolatePath(const std::vector<Waypoint>&
 }
 
 //borrowed from path_planner/planner_node.cpp
-void LocalPlanner::subdividePath(std::vector<Waypoint>& result, Waypoint low, Waypoint up, double max_distance){
+void LocalPlanner::subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance){
     double distance = low.distanceTo(up);
     if(distance > max_distance) {
         // split half way between the lower and the upper node
@@ -73,17 +76,17 @@ void LocalPlanner::subdividePath(std::vector<Waypoint>& result, Waypoint low, Wa
 }
 
 //borrowed from path_planner/planner_node.cpp
-std::vector<Waypoint> LocalPlanner::smoothPath(const std::vector<Waypoint>& path, double weight_data, double weight_smooth, double tolerance){
-    std::vector<Waypoint> result;
+SubPath LocalPlanner::smoothPath(const SubPath& path, double weight_data, double weight_smooth, double tolerance){
+    SubPath result;
     int n = path.size();
     if(n < 2) {
         return result;
     }
     // find segments
-    std::vector<std::vector<Waypoint>> segments = segmentPath(path);
+    std::vector<SubPath> segments = segmentPath(path);
     // smooth segments and merge results
-    for(const std::vector<Waypoint>& segment : segments) {
-        std::vector<Waypoint> smoothed_segment = smoothPathSegment(segment, weight_data, weight_smooth, tolerance);
+    for(const SubPath& segment : segments) {
+        SubPath smoothed_segment = smoothPathSegment(segment, weight_data, weight_smooth, tolerance);
         result.insert(result.end(), smoothed_segment.begin(), smoothed_segment.end());
     }
 
@@ -91,15 +94,15 @@ std::vector<Waypoint> LocalPlanner::smoothPath(const std::vector<Waypoint>& path
 }
 
 //borrowed from path_planner/planner_node.cpp
-std::vector<std::vector<Waypoint>> LocalPlanner::segmentPath(const std::vector<Waypoint> &path){
-                                   std::vector<std::vector<Waypoint>> result;
+std::vector<SubPath> LocalPlanner::segmentPath(const std::vector<Waypoint> &path){
+                                   std::vector<SubPath> result;
 
                                    int n = path.size();
                                    if(n < 2) {
                                        return result;
                                    }
 
-                                   std::vector<Waypoint> current_segment;
+                                   SubPath current_segment;
 
                                    const Waypoint * last_point = &path[0];
                                    current_segment.push_back(*last_point);
@@ -156,8 +159,8 @@ std::vector<std::vector<Waypoint>> LocalPlanner::segmentPath(const std::vector<W
 }
 
 //borrowed from path_planner/planner_node.cpp
-std::vector<Waypoint> LocalPlanner::smoothPathSegment(const std::vector<Waypoint>& path, double weight_data, double weight_smooth, double tolerance){
-    std::vector<Waypoint> new_path(path);
+SubPath LocalPlanner::smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance){
+    SubPath new_path(path);
 
     unsigned n = path.size();
     if(n < 2) {
@@ -233,8 +236,9 @@ std::vector<Waypoint> LocalPlanner::smoothPathSegment(const std::vector<Waypoint
 }
 
 void LocalPlanner::getSuccessors(const Waypoint& current, int index, std::vector<int>& successors,
-                                    std::vector<Waypoint>& nodes, std::vector<int>& parents,
-                                    std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints){
+                                 std::vector<Waypoint>& nodes, std::vector<int>& parents,
+                                 std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints,
+                                 std::vector<double>& g, std::vector<double>& f, bool repeat){
     successors.clear();
     double theta;
     double ori = current.orientation;
@@ -259,11 +263,23 @@ void LocalPlanner::getSuccessors(const Waypoint& current, int index, std::vector
         double y = oy + 0.15*std::sin(theta);
         const Waypoint succ(x,y,theta);
         const tf::Point succp(x,y,theta);
-        if(constraints.at(0)->isSatisfied(succp) && !isInGraph(succ,nodes)){
-            successors.push_back(nodes.size());
-            nodes.push_back(succ);
-            parents.push_back(index);
-            level.push_back(level[index]+1);
+
+        if(constraints.at(0)->isSatisfied(succp) && constraints.at(2)->isSatisfied(succp)){
+            int wo = -1;
+            if(!isInGraph(succ,nodes,wo)){
+                successors.push_back(nodes.size());
+                nodes.push_back(succ);
+                parents.push_back(index);
+                level.push_back(level[index]+1);
+                if(repeat){
+                    g.push_back(std::numeric_limits<double>::infinity());
+                    f.push_back(std::numeric_limits<double>::infinity());
+                }
+            }else{
+                if(repeat){
+                    successors.push_back(wo);
+                }
+            }
         }
     }
 }
@@ -275,10 +291,11 @@ bool LocalPlanner::isNearEnough(const Waypoint& current, const Waypoint& last){
     return false;
 }
 
-bool LocalPlanner::isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes){
+bool LocalPlanner::isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes, int& position){
     for(std::size_t i = 0; i < nodes.size(); ++i){
         double dis = current.distanceTo(nodes[i]);
         if(dis < 0.05){
+            position = i;
             return true;
         }
     }
