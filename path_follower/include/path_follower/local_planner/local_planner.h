@@ -31,13 +31,12 @@ protected:
     LocalPlanner(PathFollower& controller,
                  tf::Transformer &transformer);
 
-    void getSuccessors(const Waypoint& current, int index, std::vector<int>& successors,
-                       std::vector<Waypoint>& nodes, std::vector<int>& parents,
-                       std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints,
+    void getSuccessors(const LNode& current, int index, std::vector<int>& successors,
+                       std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
                        std::vector<double>& g = DUMMY_VECTOR,
                        std::vector<double>& f = DUMMY_VECTOR, bool repeat = false);
     bool isNearEnough(const Waypoint& current, const Waypoint& last);
-    bool isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes, int& position);
+    bool isInGraph(const Waypoint& current, std::vector<LNode>& nodes, int& position);
 
     SubPath interpolatePath(const SubPath& path, double max_distance);
     void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);

@@ -235,9 +235,8 @@ SubPath LocalPlanner::smoothPathSegment(const SubPath& path, double weight_data,
     return new_path;
 }
 
-void LocalPlanner::getSuccessors(const Waypoint& current, int index, std::vector<int>& successors,
-                                 std::vector<Waypoint>& nodes, std::vector<int>& parents,
-                                 std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints,
+void LocalPlanner::getSuccessors(const LNode& current, int index, std::vector<int>& successors,
+                                 std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
                                  std::vector<double>& g, std::vector<double>& f, bool repeat){
     successors.clear();
     double theta;
@@ -261,16 +260,14 @@ void LocalPlanner::getSuccessors(const Waypoint& current, int index, std::vector
 
         double x = ox + 0.15*std::cos(theta);
         double y = oy + 0.15*std::sin(theta);
-        const Waypoint succ(x,y,theta);
+        const LNode succ(x,y,theta,index,current.level_+1);
         const tf::Point succp(x,y,theta);
 
         if(constraints.at(0)->isSatisfied(succp) && constraints.at(2)->isSatisfied(succp)){
             int wo = -1;
             if(!isInGraph(succ,nodes,wo)){
-                successors.push_back(nodes.size());
                 nodes.push_back(succ);
-                parents.push_back(index);
-                level.push_back(level[index]+1);
+                successors.push_back(nodes.size());
                 if(repeat){
                     g.push_back(std::numeric_limits<double>::infinity());
                     f.push_back(std::numeric_limits<double>::infinity());
@@ -291,7 +288,7 @@ bool LocalPlanner::isNearEnough(const Waypoint& current, const Waypoint& last){
     return false;
 }
 
-bool LocalPlanner::isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes, int& position){
+bool LocalPlanner::isInGraph(const Waypoint& current, std::vector<LNode>& nodes, int& position){
     for(std::size_t i = 0; i < nodes.size(); ++i){
         double dis = current.distanceTo(nodes[i]);
         if(dis < 0.05){

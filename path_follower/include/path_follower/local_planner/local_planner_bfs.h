@@ -3,7 +3,6 @@
 
 /// PROJECT
 #include <path_follower/local_planner/local_planner.h>
-#include <path_follower/local_planner/lnode.h>
 
 /// SYSTEM
 #include <ros/time.h>

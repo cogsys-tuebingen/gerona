@@ -62,7 +62,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         // find the subpath that starts closest to the robot
         Eigen::Vector3d pose = follower_.getRobotPose();
 
-        Waypoint wpose(pose(0),pose(1),pose(2));
+        LNode wpose(pose(0),pose(1),pose(2),-1,0);
 
 
         const Waypoint& last = waypoints[waypoints.size()-1];
@@ -75,12 +75,8 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             return nullptr;
         }
 
-        std::vector<Waypoint> nodes;
-        std::vector<int> parents;
-        std::vector<int> level;
+        std::vector<LNode> nodes;
         nodes.push_back(wpose);
-        parents.push_back(-1);
-        level.push_back(0);
 
         std::queue<int> fifo_i;
         fifo_i.push(0);
@@ -88,20 +84,21 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         int obj = -1;
         int li_level = 10;
 
-        while(!fifo_i.empty() && level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level){
-            int c_index = fifo_i.front();
+
+        while(!fifo_i.empty() && nodes.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()).level_ <= li_level){
+            int cu_i = fifo_i.front();
             fifo_i.pop();
-            const Waypoint& current = nodes[c_index];
+            LNode current = nodes.at(cu_i);
             if(isNearEnough(current,last)){
-                obj = c_index;
+                obj = cu_i;
                 break;
             }
 
             std::vector<int> successors;
-            getSuccessors(current, c_index, successors, nodes, parents, level, constraints);
+            getSuccessors(current, cu_i, successors, nodes, constraints);
             for(std::size_t i = 0; i < successors.size(); ++i){
-                const tf::Point processed(nodes[successors[i]].x,nodes[successors[i]].y,
-                        nodes[successors[i]].orientation);
+                const tf::Point processed(nodes[successors.at(i)].x, nodes[successors.at(i)].y,
+                        nodes[successors.at(i)].orientation);
                 double new_dist = (dis2last - scorer.at(0)->score(processed))
                         + scorer.at(1)->score(processed) + scorer.at(2)->score(processed)
                         + (constraints.at(1)->isSatisfied(processed)?scorer.at(3)->score(processed):0.0);
@@ -118,12 +115,12 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         std::vector<Waypoint> local_wps;
         Stopwatch sw;
         if(obj != -1){
-            int cu_i = obj;
-            while(parents[cu_i] != -1){
-                local_wps.push_back(nodes[cu_i]);
-                cu_i = parents[cu_i];
+            int cu = obj;
+            while(nodes.at(cu).parent_ != -1){
+                local_wps.push_back(nodes.at(cu));
+                cu = nodes.at(cu).parent_;
             }
-            local_wps.push_back(nodes[cu_i]);
+            local_wps.push_back(nodes.at(cu));
             std::reverse(local_wps.begin(),local_wps.end());
             //smoothing
             sw.restart();

@@ -62,6 +62,21 @@ struct Waypoint
     std::vector<double> actuator_cmds_;
 };
 
+struct LNode: Waypoint
+{
+    LNode():Waypoint(){
+
+    }
+    LNode(double x, double y, double orientation, int parent, int level):
+        Waypoint(x,y,orientation),parent_(parent),level_(level)
+    {
+
+    }
+
+    int parent_;
+    int level_;
+};
+
 
 //! A path is sequence of waypoints.
 typedef std::vector<Waypoint> SubPath;

@@ -112,8 +112,8 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
             closedSet.push_back(c_index);
 
             std::vector<int> successors;
-            getSuccessors(current, c_index, successors, nodes, parents, level, constraints,
-                          gScore, fScore, true);
+            /*getSuccessors(current, c_index, successors, nodes, parents, level, constraints,
+                          gScore, fScore, true);*/
             ROS_INFO_STREAM("openSet1["<< c_index << "]");
             for(std::size_t i = 0; i < successors.size(); ++i){
                 ROS_INFO_STREAM("successor " << i << " = " << successors[i]);
@@ -140,11 +140,7 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
 
                 prio_queue::const_iterator inOpen = std::find(openSet.begin(), openSet.end(), successors[i]);
                 if(inOpen == openSet.end()){
-                    ROS_INFO_STREAM("Line 5a");
-                    ROS_INFO_STREAM("Size G: " << gScore.size());
-                    ROS_INFO_STREAM("Size Nodes: " << nodes.size());
                     openSet.insert(successors[i]);
-                    ROS_INFO_STREAM("Line 6a");
                 }else{
                     openSet.erase(inOpen);
                     openSet.insert(successors[i]);
@@ -159,13 +155,13 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
 
         std::vector<Waypoint> local_wps;
         Stopwatch sw;
-        if(obj != -1){
-            int cu_i = obj;
-            while(parents[cu_i] != -1){
-                local_wps.push_back(nodes[cu_i]);
-                cu_i = parents[cu_i];
+        /*if(obj != nullptr){
+            LNode* cu = obj;
+            while(cu->getParent() != nullptr){
+                local_wps.push_back(cu->getData());
+                cu = cu->getParent();
             }
-            local_wps.push_back(nodes[cu_i]);
+            local_wps.push_back(cu->getData());
             std::reverse(local_wps.begin(),local_wps.end());
             //smoothing
             sw.restart();
@@ -178,7 +174,7 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
             last_local_path_.assign(local_wps.begin(),local_wps.end());
         }else{
             return nullptr;
-        }
+        }*/
 
         // here we just use the subpath without checking constraints / scorerers
         Path::Ptr local_path(new Path("/odom"));
