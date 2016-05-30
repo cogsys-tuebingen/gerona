@@ -266,8 +266,8 @@ void LocalPlanner::getSuccessors(const LNode& current, int index, std::vector<in
         if(constraints.at(0)->isSatisfied(succp) && constraints.at(2)->isSatisfied(succp)){
             int wo = -1;
             if(!isInGraph(succ,nodes,wo)){
-                nodes.push_back(succ);
                 successors.push_back(nodes.size());
+                nodes.push_back(succ);
                 if(repeat){
                     g.push_back(std::numeric_limits<double>::infinity());
                     f.push_back(std::numeric_limits<double>::infinity());
