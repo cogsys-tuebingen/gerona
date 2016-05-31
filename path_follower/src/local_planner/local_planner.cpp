@@ -1,9 +1,6 @@
 /// HEADER
 #include <path_follower/local_planner/local_planner.h>
 
-//Now the compiler is happy
-std::vector<double> LocalPlanner::DUMMY_VECTOR;
-
 LocalPlanner::LocalPlanner(PathFollower &follower, tf::Transformer &transformer)
     : follower_(follower), transformer_(transformer), last_local_path_()
 {
@@ -233,52 +230,6 @@ SubPath LocalPlanner::smoothPathSegment(const SubPath& path, double weight_data,
     }
 
     return new_path;
-}
-
-void LocalPlanner::getSuccessors(const LNode& current, int index, std::vector<int>& successors,
-                                 std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                                 std::vector<double>& g, std::vector<double>& f, bool repeat){
-    successors.clear();
-    double theta;
-    double ori = current.orientation;
-    double ox = current.x;
-    double oy = current.y;
-    for(int i = 0; i < 3; ++i){
-        switch (i) {
-        case 0:// straight
-            theta = ori;
-            break;
-        case 1:// right
-            theta = ori - D_THETA;
-            break;
-        case 2:// left
-            theta = ori + D_THETA;
-            break;
-        default:
-            break;
-        }
-
-        double x = ox + 0.15*std::cos(theta);
-        double y = oy + 0.15*std::sin(theta);
-        const LNode succ(x,y,theta,index,current.level_+1);
-        const tf::Point succp(x,y,theta);
-
-        if(constraints.at(0)->isSatisfied(succp) && constraints.at(2)->isSatisfied(succp)){
-            int wo = -1;
-            if(!isInGraph(succ,nodes,wo)){
-                successors.push_back(nodes.size());
-                nodes.push_back(succ);
-                if(repeat){
-                    g.push_back(std::numeric_limits<double>::infinity());
-                    f.push_back(std::numeric_limits<double>::infinity());
-                }
-            }else{
-                if(repeat){
-                    successors.push_back(wo);
-                }
-            }
-        }
-    }
 }
 
 bool LocalPlanner::isNearEnough(const Waypoint& current, const Waypoint& last){

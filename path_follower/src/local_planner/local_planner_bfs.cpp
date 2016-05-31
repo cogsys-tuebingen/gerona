@@ -62,14 +62,13 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         // find the subpath that starts closest to the robot
         Eigen::Vector3d pose = follower_.getRobotPose();
 
-        LNode wpose(pose(0),pose(1),pose(2),-1,0);
-
-
         const Waypoint& last = waypoints[waypoints.size()-1];
         const tf::Point lastp(last.x,last.y,last.orientation);
         const tf::Point wposep(pose(0),pose(1),pose(2));
 
         float dis2last = scorer.at(0)->score(lastp);
+
+        LNode wpose(pose(0),pose(1),pose(2),-1,0);
 
         if((dis2last - scorer.at(0)->score(wposep)) < 0.8){
             return nullptr;
@@ -86,19 +85,19 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
 
 
         while(!fifo_i.empty() && nodes.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()).level_ <= li_level){
-            int cu_i = fifo_i.front();
+            int c_index = fifo_i.front();
             fifo_i.pop();
-            LNode current = nodes.at(cu_i);
+            const LNode& current = nodes.at(c_index);
             if(isNearEnough(current,last)){
-                obj = cu_i;
+                obj = c_index;
                 break;
             }
 
             std::vector<int> successors;
-            getSuccessors(current, cu_i, successors, nodes, constraints);
+            getSuccessors(current, c_index, successors, nodes, constraints);
             for(std::size_t i = 0; i < successors.size(); ++i){
-                const tf::Point processed(nodes[successors.at(i)].x, nodes[successors.at(i)].y,
-                        nodes[successors.at(i)].orientation);
+                const tf::Point processed(nodes[successors[i]].x, nodes[successors[i]].y,
+                        nodes[successors[i]].orientation);
                 double new_dist = (dis2last - scorer.at(0)->score(processed))
                         + scorer.at(1)->score(processed) + scorer.at(2)->score(processed)
                         + (constraints.at(1)->isSatisfied(processed)?scorer.at(3)->score(processed):0.0);

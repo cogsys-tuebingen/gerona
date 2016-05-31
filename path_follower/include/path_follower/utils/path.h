@@ -62,6 +62,7 @@ struct Waypoint
     std::vector<double> actuator_cmds_;
 };
 
+//!Local Node for the local tree (BFS)
 struct LNode: Waypoint
 {
     LNode():Waypoint(){
@@ -75,6 +76,28 @@ struct LNode: Waypoint
 
     int parent_;
     int level_;
+};
+
+//!Heuristic Node for the local tree (A*)
+struct HNode: LNode
+{
+    HNode():LNode(){
+
+    }
+    HNode(double x, double y, double orientation, int parent, int level):
+        LNode(x,y,orientation,parent,level),gScore_(std::numeric_limits<double>::infinity()),
+        fScore_(std::numeric_limits<double>::infinity())
+    {
+
+    }
+    double gScore_;
+    double fScore_;
+};
+
+struct CompareLNode : public std::binary_function<HNode*, HNode*, bool> {
+    bool operator()(const HNode* lhs, const HNode* rhs) const {
+        return lhs->fScore_ < rhs->fScore_;
+    }
 };
 
 
