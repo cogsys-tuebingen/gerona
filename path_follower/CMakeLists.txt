@@ -167,6 +167,7 @@ add_executable(path_follower_node
   src/utils/path.cpp
   src/utils/movecommand.cpp
   src/utils/path_interpolated.cpp
+  src/utils/extended_kalman_filter.cpp
 
   src/obstacle_avoidance/obstacledetector.cpp
   src/obstacle_avoidance/obstacledetectorpolygon.cpp
