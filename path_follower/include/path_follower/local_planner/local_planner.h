@@ -32,14 +32,14 @@ protected:
                  tf::Transformer &transformer);
 
     template <typename NodeT>
-    void getSuccessors(const NodeT& current, int index, std::vector<int>& successors,
+    void getSuccessors(NodeT*& current, int& nsize, std::vector<NodeT*>& successors,
                        std::vector<NodeT>& nodes, const std::vector<Constraint::Ptr>& constraints,
                        bool repeat = false){
         successors.clear();
         double theta;
-        double ori = current.orientation;
-        double ox = current.x;
-        double oy = current.y;
+        double ori = current->orientation;
+        double ox = current->x;
+        double oy = current->y;
         for(int i = 0; i < 3; ++i){
             switch (i) {
             case 0:// straight
@@ -57,24 +57,25 @@ protected:
 
             double x = ox + 0.15*std::cos(theta);
             double y = oy + 0.15*std::sin(theta);
-            const NodeT succ(x,y,theta,index,current.level_+1);
+            const NodeT succ(x,y,theta,current,current->level_+1);
             const tf::Point succp(x,y,theta);
 
             if(constraints.at(0)->isSatisfied(succp) && constraints.at(2)->isSatisfied(succp)){
                 int wo = -1;
-                if(!isInGraph(succ,nodes,wo)){
-                    successors.push_back(nodes.size());
-                    nodes.push_back(succ);
+                if(!isInGraph(succ,nodes,nsize,wo)){
+                    nodes.at(nsize) = succ;
+                    successors.push_back(&nodes.at(nsize));
+                    nsize++;
                 }else{
                     if(repeat){
-                        successors.push_back(wo);
+                        successors.push_back(&nodes[wo]);
                     }
                 }
             }
         }
     }
     bool isNearEnough(const Waypoint& current, const Waypoint& last);
-    bool isInGraph(const Waypoint& current, std::vector<LNode>& nodes, int& position);
+    bool isInGraph(const Waypoint& current, std::vector<LNode>& nodes, int& asize, int& position);
 
     SubPath interpolatePath(const SubPath& path, double max_distance);
     void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);

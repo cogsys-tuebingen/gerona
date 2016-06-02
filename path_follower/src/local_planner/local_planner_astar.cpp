@@ -72,7 +72,7 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
                 + scorer.at(1)->score(wposep) + scorer.at(2)->score(wposep)
                 + (constraints.at(1)->isSatisfied(wposep)?scorer.at(3)->score(wposep):0.0);
 
-        HNode wpose(pose(0),pose(1),pose(2),-1,0);
+        /*HNode wpose(pose(0),pose(1),pose(2),-1,0);
         wpose.gScore_ = 0.0;
         wpose.fScore_ = heuristic;
 
@@ -84,7 +84,7 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
 
         std::vector<int> closedSet;
 
-        nodes.push_back(wpose);
+        nodes.push_back(wpose);*/
 
         /*prio_queue openSet;
         openSet.insert(0);*/
@@ -143,7 +143,7 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
             }
         }*/
 
-        std::vector<Waypoint> local_wps;
+        /*std::vector<Waypoint> local_wps;
         Stopwatch sw;
         if(obj != -1){
             int cu = obj;
@@ -162,12 +162,12 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
             local_wps = smoothPath(local_wps, 2.0, 0.4);
             ROS_INFO_STREAM("Local path postprocessing took " << sw.usElapsed() << " us");
             last_local_path_.assign(local_wps.begin(),local_wps.end());
-        }else{
+        }else*/{
             return nullptr;
         }
 
         // here we just use the subpath without checking constraints / scorerers
-        Path::Ptr local_path(new Path("/odom"));
+        /*Path::Ptr local_path(new Path("/odom"));
         local_path->setPath({local_wps});
 
         follower_.getController()->reset();
@@ -177,7 +177,7 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
 
         ROS_INFO_STREAM("Local Planner duration: " << ros::Time::now()-now << " s");
 
-        return local_path;
+        return local_path;*/
 
     } else {
         return nullptr;

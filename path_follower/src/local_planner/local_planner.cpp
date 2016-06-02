@@ -239,8 +239,8 @@ bool LocalPlanner::isNearEnough(const Waypoint& current, const Waypoint& last){
     return false;
 }
 
-bool LocalPlanner::isInGraph(const Waypoint& current, std::vector<LNode>& nodes, int& position){
-    for(std::size_t i = 0; i < nodes.size(); ++i){
+bool LocalPlanner::isInGraph(const Waypoint& current, std::vector<LNode>& nodes, int& asize, int& position){
+    for(std::size_t i = 0; i < asize; ++i){
         double dis = current.distanceTo(nodes[i]);
         if(dis < 0.05){
             position = i;
