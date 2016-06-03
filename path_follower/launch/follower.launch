@@ -10,6 +10,9 @@ Please make sure, you add an according launch file, if you implement a new contr
 -->
 <launch>
 	<arg name="controller" default="$(optenv ROBOT_CONTROLLER kinematic_SSG)" />
+	<arg name="algo" default="AStar" />
 
-	<include file="$(find path_follower)/launch/follower_$(arg controller).launch" />
+	<include file="$(find path_follower)/launch/follower_$(arg controller).launch">
+		<arg name="algo" value="$(arg algo)" />
+	</include>
 </launch>

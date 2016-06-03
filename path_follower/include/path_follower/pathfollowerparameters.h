@@ -17,6 +17,9 @@ struct PathFollowerParameters : public Parameters
     P<float> max_velocity;
     P<bool> abort_if_obstacle_ahead;
 
+    //Parameters for the Local Planner
+    P<std::string> algo;
+
     // obstacle avoider
     P<bool> obstacle_avoider_use_collision_box;
     //P<bool> obstacle_avoider_use_vfh;  // not yet implemented
@@ -50,6 +53,8 @@ struct PathFollowerParameters : public Parameters
                                 "If set to true, path execution is aborted, if an obstacle is"
                                 " detected on front of the robot. If false, the robot will"
                                 " stop, but not abort (the obstacle might move away)."),
+
+        algo(this, "~algo", "AStar", "Algorithm to be used by the Local Planner"),
 
         obstacle_avoider_use_collision_box(this, "~obstacle_avoider/use_collision_box", true,
                                            "Use the collision box obstacle avoider ('ObstacleDetector')"),

@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <launch>
+  <arg name="algo" default="AStar" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
     <param name="supervisor/use_path_lookout" value="false" />
     <param name="supervisor/use_waypoint_timeout" value="false" />
@@ -54,6 +55,9 @@
     <param name="k_g" value="0.0" />
     <param name="k_w" value="0.0" />
     <param name="k_curv" value="0.00" />
+
+    <!-- local planner -->
+    <param name="algo" value="$(arg algo)"/>
 
     <remap from="scan" to="scan/front" />
     <remap from="/obstacles" to="/obstacle_cloud" />

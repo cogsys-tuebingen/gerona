@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <launch>
+  <arg name="algo" default="AStar" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
     <param name="use_obstacle_map" value="false" />
     <param name="use_vfh" value="false" />
@@ -34,6 +35,9 @@
     <param name="k_g" value="0.0" />
     <param name="k_w" value="0.9" />
     <param name="k_curv" value="0.3" />
+
+    <!-- local planner -->
+    <param name="algo" value="$(arg algo)"/>
 
     <remap from="scan" to="scan/front/filtered" />
   </node>

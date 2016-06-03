@@ -9,6 +9,7 @@ demonstrating the navigation framework.
 -->
 <launch>
     <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_SLP)" />
+    <arg name="algo" default="AStar" />
 
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
@@ -30,6 +31,7 @@ demonstrating the navigation framework.
     <include file="$(find navigation_launch)/launch/laser_filter.launch" />
     <include file="$(find navigation_launch)/launch/full.launch">
       <arg name="robot_controller" value="$(arg robot_controller)" />
+      <arg name="algo" value="$(arg algo)" />
 
       <arg name="use_karto" value="$(arg use_karto)" />
       <arg name="use_karto_segmented" value="$(arg use_karto_segmented)" />
