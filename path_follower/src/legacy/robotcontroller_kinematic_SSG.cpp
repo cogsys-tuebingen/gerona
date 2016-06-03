@@ -102,8 +102,8 @@ void RobotController_Kinematic_SSG::laserBack(const sensor_msgs::LaserScanConstP
 
 void RobotController_Kinematic_SSG::WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array)
 {
-    double frw = array->data[0];
-    double flw = array->data[1];
+    double flw = array->data[0];
+    double frw = array->data[1];
     double brw = array->data[2];
     double blw = array->data[3];
 
@@ -242,6 +242,11 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
 
     //robot direction angle in path coordinates
     double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), theta_meas);
+    /////use velocity vector instead of the vehicle middle axle////////////////////////////////////
+    double phi = atan2(path_driver_->getVelocity().linear.y, path_driver_->getVelocity().linear.x);
+    theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), phi);
+    ////////////////////////////////////////////////////////////////////////////////////////////
+
 
     //robot position vector module
     double r = hypot(x_meas - path_interpol.p(ind_), y_meas - path_interpol.q(ind_));
@@ -323,7 +328,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
     ///Calculate the next point on the path
 
     double omega_meas = path_driver_->getVelocity().angular.z;
-    double v_meas = path_driver_->getVelocity().linear.x;
 
     double s_old = path_interpol.s_new();
 
@@ -351,9 +355,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
 
     cmd_.direction_angle = 0;
 
-    //omega_m = theta_e_prim + curv*s_prim
-    /*double omega = opt_.lambda()*ye_/theta_e*(opt_.x_ICR()*omega_meas*cos(theta_e) - v_meas*sin(theta_e))
-            - opt_.k2()*theta_e + path_interpol.curvature(ind_)*path_interpol.s_prim();*/
     double trig_ratio = (fabs(sin(theta_e-delta_)))/(sin(theta_e-delta_)*cos(theta_e-delta_));
     double omega = delta_prim
             - opt_.lambda()*trig_ratio*ye_*v*sin(theta_e)
@@ -361,16 +362,9 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
             - opt_.k2()*trig_ratio*(theta_e-delta_)*(theta_e-delta_);
 
 
-    ROS_INFO("First: %f, second: %f, third: %f", - opt_.lambda()*trig_ratio*ye_*v_meas*sin(theta_e),
-             opt_.lambda()*trig_ratio*ye_*opt_.x_ICR()*omega_meas*cos(theta_e),
-             - opt_.k2()*trig_ratio*(theta_e-delta_)*(theta_e-delta_));
-    ROS_INFO("Lambda: %f, x_ICR: %f, delta_prim %f", opt_.lambda(), opt_.x_ICR(), delta_prim);
-    ROS_INFO("Omega_cmd: %f, theta_e: %f, xe: %f, ye: %f", omega, theta_e, xe_, ye_);
     omega = boost::algorithm::clamp(omega, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
     cmd_.rotation = omega + path_interpol.curvature(ind_)*path_interpol.s_prim();
-    ROS_INFO("omega_meas: %f, v_meas: %f", omega_meas, v_meas);
-    ROS_INFO("Omega_cmd clamped: %f", omega);
-    ROS_INFO("Cumulative curvature: %f", curv_sum_);
+
 
     ///***///
 
@@ -432,8 +426,9 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
     ///***///
 
 
-    if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+    if (visualizer_->hasSubscriber()) {   
+        //visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), theta_e-theta_meas, 0.2, 1.0, 0.2);
     }
 
     ///***///

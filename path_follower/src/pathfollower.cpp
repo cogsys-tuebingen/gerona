@@ -14,6 +14,7 @@
 // Controller/Models
 #include <path_follower/controller/robotcontroller_ackermann_pid.h>
 #include <path_follower/controller/robotcontrollertrailer.h>
+#include <path_follower/controller/robotcontroller_ICR_CCW.h>
 
 #include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
 #include <path_follower/legacy/robotcontroller_ackermann_purepursuit.h>
@@ -148,9 +149,13 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
             obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
         controller_ = new RobotController_Dynamic_SLP(this);
     } else if (opt_.controller() == "kinematic_SSG") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
-        controller_ = new RobotController_Kinematic_SSG(this);
+            if (opt_.obstacle_avoider_use_collision_box())
+                obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+            controller_ = new RobotController_Kinematic_SSG(this);
+    } else if (opt_.controller() == "ICR_CCW") {
+            if (opt_.obstacle_avoider_use_collision_box())
+                obstacle_avoider_ = new ObstacleDetectorAckermann(&pose_listener_);
+            controller_ = new RobotController_ICR_CCW(this);
     } else {
 		ROS_FATAL("Unknown robot controller. Shutdown.");
 		exit(1);
