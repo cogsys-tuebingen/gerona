@@ -62,6 +62,44 @@ struct Waypoint
     std::vector<double> actuator_cmds_;
 };
 
+//!Local Node for the local tree (BFS)
+struct LNode: Waypoint
+{
+    LNode():Waypoint(){
+
+    }
+    LNode(double x, double y, double orientation, LNode* parent, int level):
+        Waypoint(x,y,orientation),parent_(parent),level_(level)
+    {
+
+    }
+
+    LNode* parent_;
+    int level_;
+};
+
+//!Heuristic Node for the local tree (A*)
+struct HNode: LNode
+{
+    HNode():LNode(){
+
+    }
+    HNode(double x, double y, double orientation, HNode* parent, int level):
+        LNode(x,y,orientation,parent,level),gScore_(std::numeric_limits<double>::infinity()),
+        fScore_(std::numeric_limits<double>::infinity())
+    {
+
+    }
+    double gScore_;
+    double fScore_;
+};
+
+struct CompareLNode : public std::binary_function<HNode*, HNode*, bool> {
+    bool operator()(const HNode* lhs, const HNode* rhs) const {
+        return lhs->fScore_ < rhs->fScore_;
+    }
+};
+
 
 //! A path is sequence of waypoints.
 typedef std::vector<Waypoint> SubPath;

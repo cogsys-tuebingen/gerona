@@ -3,6 +3,7 @@
 Launch the path follower with the kinematic controller for a car-like (Ackermann) robot.
 -->
 <launch>
+  <arg name="algo" default="AStar" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
 	 <param name="controller" value="4ws_inputscaling" />
 
@@ -39,6 +40,9 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
 	 <param name="k_backward" value="7.0" />
 	 <param name="max_steering_angle" value="0.52359877559" /> <!-- 30° -->
 	 <param name="max_steering_angle_speed" value="4.0" /> <!-- ~4.0 should be realistic -->
+
+    <!-- local planner -->
+    <param name="algo" value="$(arg algo)"/>
 
     <remap from="scan" to="scan/filtered" />
     <remap from="/obstacles" to="/obstacle_cloud" />

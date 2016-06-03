@@ -6,6 +6,7 @@ This is a complete setup and enought to actually navigate the robot.
 -->
 <launch>
 	 <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_SLP)" />
+         <arg name="algo" default="AStar" />
 
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
@@ -32,6 +33,7 @@ This is a complete setup and enought to actually navigate the robot.
     
     <include file="$(find navigation_launch)/launch/navigation.launch">
       <arg name="robot_controller" value="$(arg robot_controller)" />
+      <arg name="algo" value="$(arg algo)" />
 
       <arg name="use_planner_cost" value="$(arg use_planner_cost)" />
       <arg name="use_planner_dynamic" value="$(arg use_planner_dynamic)" />

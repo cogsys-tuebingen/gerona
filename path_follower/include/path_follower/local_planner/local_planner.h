@@ -31,13 +31,63 @@ protected:
     LocalPlanner(PathFollower& controller,
                  tf::Transformer &transformer);
 
-    void getSuccessors(const Waypoint& current, int index, std::vector<int>& successors,
-                       std::vector<Waypoint>& nodes, std::vector<int>& parents,
-                       std::vector<int>& level, const std::vector<Constraint::Ptr>& constraints,
-                       std::vector<double>& g = DUMMY_VECTOR,
-                       std::vector<double>& f = DUMMY_VECTOR, bool repeat = false);
+    template <typename NodeT>
+    void getSuccessors(NodeT*& current, int& nsize, std::vector<NodeT*>& successors,
+                       std::vector<NodeT>& nodes, const std::vector<Constraint::Ptr>& constraints,
+                       bool repeat = false){
+        successors.clear();
+        double theta;
+        double ori = current->orientation;
+        double ox = current->x;
+        double oy = current->y;
+        for(int i = 0; i < 3; ++i){
+            switch (i) {
+            case 0:// straight
+                theta = ori;
+                break;
+            case 1:// right
+                theta = ori - D_THETA;
+                break;
+            case 2:// left
+                theta = ori + D_THETA;
+                break;
+            default:
+                break;
+            }
+
+            double x = ox + 0.15*std::cos(theta);
+            double y = oy + 0.15*std::sin(theta);
+            const NodeT succ(x,y,theta,current,current->level_+1);
+            const tf::Point succp(x,y,theta);
+
+            if(constraints.at(0)->isSatisfied(succp) && constraints.at(2)->isSatisfied(succp)){
+                int wo = -1;
+                if(!isInGraph(succ,nodes,nsize,wo)){
+                    nodes.at(nsize) = succ;
+                    successors.push_back(&nodes.at(nsize));
+                    nsize++;
+                }else{
+                    if(repeat){
+                        successors.push_back(&nodes[wo]);
+                    }
+                }
+            }
+        }
+    }
+
+    template <typename NodeT>
+    bool isInGraph(const NodeT& current, std::vector<NodeT>& nodes, int& asize, int& position){
+        for(std::size_t i = 0; i < asize; ++i){
+            double dis = current.distanceTo(nodes[i]);
+            if(dis < 0.05){
+                position = i;
+                return true;
+            }
+        }
+        return false;
+    }
+
     bool isNearEnough(const Waypoint& current, const Waypoint& last);
-    bool isInGraph(const Waypoint& current, std::vector<Waypoint>& nodes, int& position);
 
     SubPath interpolatePath(const SubPath& path, double max_distance);
     void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
@@ -53,7 +103,6 @@ protected:
 
     Path::Ptr global_path_;
     SubPath last_local_path_;
-    static std::vector<double> DUMMY_VECTOR;
 
     tf::StampedTransform initial_map_to_odom_;
 };

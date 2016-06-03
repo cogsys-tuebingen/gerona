@@ -164,10 +164,18 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         exit(1);
     }
 
-    // TODO: make selectable once more than one planner is available
-    //local_planner_ = std::make_shared<LocalPlannerTransformer>(*this, pose_listener_,ros::Duration(1.0));
-    local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(1.0));
-    //local_planner_ = std::make_shared<LocalPlannerAStar>(*this, pose_listener_,ros::Duration(1.0));
+    // Choose Local Planner Algorithm
+    ROS_INFO("Use local planner algorithm '%s'", opt_.algo().c_str());
+    if(opt_.algo() == "AStar"){
+        local_planner_ = std::make_shared<LocalPlannerAStar>(*this, pose_listener_,ros::Duration(1.0));
+    }else if(opt_.algo() == "BFS"){
+        local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(1.0));
+    }else if(opt_.algo() == "NONE"){
+        local_planner_ = std::make_shared<LocalPlannerTransformer>(*this, pose_listener_,ros::Duration(1.0));
+    } else {
+        ROS_FATAL("Unknown local planner algorithm. Shutdown.");
+        exit(1);
+    }
 
     if(!local_planner_) {
         local_planner_ = std::make_shared<LocalPlannerNull>(*this, pose_listener_);

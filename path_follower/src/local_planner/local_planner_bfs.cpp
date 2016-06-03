@@ -62,46 +62,43 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         // find the subpath that starts closest to the robot
         Eigen::Vector3d pose = follower_.getRobotPose();
 
-        Waypoint wpose(pose(0),pose(1),pose(2));
-
-
         const Waypoint& last = waypoints[waypoints.size()-1];
         const tf::Point lastp(last.x,last.y,last.orientation);
         const tf::Point wposep(pose(0),pose(1),pose(2));
 
         float dis2last = scorer.at(0)->score(lastp);
 
+        LNode wpose(pose(0),pose(1),pose(2),nullptr,0);
+
         if((dis2last - scorer.at(0)->score(wposep)) < 0.8){
             return nullptr;
         }
 
-        std::vector<Waypoint> nodes;
-        std::vector<int> parents;
-        std::vector<int> level;
-        nodes.push_back(wpose);
-        parents.push_back(-1);
-        level.push_back(0);
+        std::vector<LNode> nodes(200);
+        nodes.at(0) = wpose;
 
-        std::queue<int> fifo_i;
-        fifo_i.push(0);
+        std::queue<LNode*> fifo;
+        fifo.push(&nodes[0]);
         double go_dist = std::numeric_limits<double>::infinity();
-        int obj = -1;
+        LNode* obj = nullptr;
         int li_level = 10;
+        int nnodes = 1;
 
-        while(!fifo_i.empty() && level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level){
-            int c_index = fifo_i.front();
-            fifo_i.pop();
-            const Waypoint& current = nodes[c_index];
-            if(isNearEnough(current,last)){
-                obj = c_index;
+        LNode* current;
+
+        while(!fifo.empty() && (fifo.empty()?nodes.back().level_:fifo.front()->level_) <= li_level){
+            current = fifo.front();
+            fifo.pop();
+            if(isNearEnough(*current,last)){
+                obj = current;
                 break;
             }
 
-            std::vector<int> successors;
-            getSuccessors(current, c_index, successors, nodes, parents, level, constraints);
+            std::vector<LNode*> successors;
+            getSuccessors(current, nnodes, successors, nodes, constraints);
             for(std::size_t i = 0; i < successors.size(); ++i){
-                const tf::Point processed(nodes[successors[i]].x,nodes[successors[i]].y,
-                        nodes[successors[i]].orientation);
+                const tf::Point processed(successors[i]->x, successors[i]->y,
+                        successors[i]->orientation);
                 double new_dist = (dis2last - scorer.at(0)->score(processed))
                         + scorer.at(1)->score(processed) + scorer.at(2)->score(processed)
                         + (constraints.at(1)->isSatisfied(processed)?scorer.at(3)->score(processed):0.0);
@@ -109,21 +106,19 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
                     go_dist = new_dist;
                     obj = successors[i];
                 }
-                fifo_i.push(successors[i]);
+                fifo.push(successors[i]);
             }
         }
-        //ROS_INFO_STREAM("Reasons: " <<  !fifo_i.empty() << ", " << (cu_dist <= ldist) << ", "
-        //                << (level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level));
+        ROS_INFO_STREAM("# Nodes: " << nnodes);
 
         std::vector<Waypoint> local_wps;
         Stopwatch sw;
-        if(obj != -1){
-            int cu_i = obj;
-            while(parents[cu_i] != -1){
-                local_wps.push_back(nodes[cu_i]);
-                cu_i = parents[cu_i];
+        if(obj != nullptr){
+            LNode* cu = obj;
+            while(cu != nullptr){
+                local_wps.push_back(*cu);
+                cu = cu->parent_;
             }
-            local_wps.push_back(nodes[cu_i]);
             std::reverse(local_wps.begin(),local_wps.end());
             //smoothing
             sw.restart();
@@ -138,7 +133,6 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             return nullptr;
         }
 
-        // here we just use the subpath without checking constraints / scorerers
         Path::Ptr local_path(new Path("/odom"));
         local_path->setPath({local_wps});
 

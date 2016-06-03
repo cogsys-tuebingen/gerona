@@ -3,6 +3,7 @@
 Launch the path follower with the stanley controller for a car-like (Ackermann) robot.
 -->
 <launch>
+  <arg name="algo" default="AStar" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
 	 <param name="controller" value="ackermann_stanley" />
 
@@ -48,6 +49,9 @@ Launch the path follower with the stanley controller for a car-like (Ackermann) 
 
 
 	 <param name="vehicle_length" value="0.34" />
+
+    <!-- local planner -->
+    <param name="algo" value="$(arg algo)"/>
 
     <remap from="scan" to="scan/filtered" />
     <remap from="/obstacles" to="/obstacle_cloud" />

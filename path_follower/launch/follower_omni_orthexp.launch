@@ -3,6 +3,7 @@
 Launch the path follower with the "OrthExp" controller and omnidirectional kinematic model.
 -->
 <launch>
+  <arg name="algo" default="AStar" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
     <param name="controller" value="omnidrive_orthexp" />
     
@@ -46,6 +47,8 @@ Launch the path follower with the "OrthExp" controller and omnidirectional kinem
     <param name="k_w" value="0.75" />
     <param name="k_curv" value="0.2" />
 
+    <!-- local planner -->
+    <param name="algo" value="$(arg algo)"/>
 
     <remap from="scan" to="scan/front/filtered" />
   </node>

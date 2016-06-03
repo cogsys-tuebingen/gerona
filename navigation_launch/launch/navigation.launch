@@ -10,6 +10,7 @@ tasks and can be used instead of this file.
 -->
 <launch>
     <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER ackermann_kinematic)" />
+    <arg name="algo" default="AStar" />
     
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
@@ -27,6 +28,7 @@ tasks and can be used instead of this file.
 
 	 <include file="$(find path_follower)/launch/follower.launch">
         <arg name="controller" value="$(arg robot_controller)" />
+	<arg name="algo" value="$(arg algo)" />
 	 </include>
 
 </launch>
