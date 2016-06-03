@@ -109,9 +109,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
                 fifo.push(successors[i]);
             }
         }
-        ROS_INFO_STREAM(nnodes);
-        //ROS_INFO_STREAM("Reasons: " <<  !fifo_i.empty() << ", " << (cu_dist <= ldist) << ", "
-        //                << (level.at(fifo_i.empty()?nodes.size()-1:fifo_i.front()) <= li_level));
+        ROS_INFO_STREAM("# Nodes: " << nnodes);
 
         std::vector<Waypoint> local_wps;
         Stopwatch sw;
@@ -135,7 +133,6 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             return nullptr;
         }
 
-        // here we just use the subpath without checking constraints / scorerers
         Path::Ptr local_path(new Path("/odom"));
         local_path->setPath({local_wps});
 

@@ -72,7 +72,7 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
                 + scorer.at(1)->score(wposep) + scorer.at(2)->score(wposep)
                 + (constraints.at(1)->isSatisfied(wposep)?scorer.at(3)->score(wposep):0.0);
 
-        /*HNode wpose(pose(0),pose(1),pose(2),-1,0);
+        HNode wpose(pose(0),pose(1),pose(2),nullptr,0);
         wpose.gScore_ = 0.0;
         wpose.fScore_ = heuristic;
 
@@ -80,53 +80,55 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
             return nullptr;
         }
 
-        std::vector<HNode> nodes;
+        std::vector<HNode> nodes(200);
 
-        std::vector<int> closedSet;
+        std::vector<HNode*> closedSet;
 
-        nodes.push_back(wpose);*/
+        nodes.at(0) = wpose;
 
-        /*prio_queue openSet;
-        openSet.insert(0);*/
+        prio_queue openSet;
+        openSet.insert(&nodes[0]);
         double go_dist = std::numeric_limits<double>::infinity();
-        int obj = -1;
+        HNode* obj = nullptr;
         int li_level = 10;
+        int nnodes = 1;
 
-        /*while(!openSet.empty() && nodes.at(openSet.empty()?nodes.size()-1:*openSet.begin()).level_ <= li_level){
-            int c_index = *openSet.begin();
+        HNode* current;
+
+        while(!openSet.empty() && (openSet.empty()?nodes.back().level_:(*openSet.begin())->level_) <= li_level){
+            current = *openSet.begin();
             openSet.erase(openSet.begin());
-            const HNode& current = nodes.at(c_index);
-            if(isNearEnough(current,last)){
-                obj = c_index;
+            if(isNearEnough(*current,last)){
+                obj = current;
                 break;
             }
-            closedSet.push_back(c_index);
+            closedSet.push_back(current);
 
-            std::vector<int> successors;
-            getSuccessors(current, c_index, successors, nodes, constraints, true);
+            std::vector<HNode*> successors;
+            getSuccessors(current, nnodes, successors, nodes, constraints, true);
             for(std::size_t i = 0; i < successors.size(); ++i){
                 if(std::find(closedSet.begin(), closedSet.end(), successors[i]) != closedSet.end()){
                     continue;
                 }
 
-                double tentative_gScore = nodes[c_index].gScore_ + 0.15;//vllt tat. Abstand?
+                double tentative_gScore = current->gScore_ + 0.15;//vllt tat. Abstand?
 
-                if(tentative_gScore >= nodes[successors[i]].gScore_){
+                if(tentative_gScore >= successors[i]->gScore_){
                     continue;
                 }
 
-                nodes[successors[i]].parent_ = c_index;
-                nodes[successors[i]].gScore_ = tentative_gScore;
+                successors[i]->parent_ = current;
+                successors[i]->gScore_ = tentative_gScore;
 
-                const tf::Point processed(nodes[successors[i]].x,nodes[successors[i]].y,
-                        nodes[successors[i]].orientation);
+                const tf::Point processed(successors[i]->x,successors[i]->y,
+                        successors[i]->orientation);
 
                 heuristic = (dis2last - scorer.at(0)->score(processed))
                         + scorer.at(1)->score(processed) + scorer.at(2)->score(processed)
                         + (constraints.at(1)->isSatisfied(processed)?scorer.at(3)->score(processed):0.0);
 
 
-                nodes[successors[i]].fScore_ = heuristic;
+                successors[i]->fScore_ = heuristic;
 
                 prio_queue::const_iterator inOpen = std::find(openSet.begin(), openSet.end(), successors[i]);
                 if(inOpen == openSet.end()){
@@ -141,17 +143,17 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
                     obj = successors[i];
                 }
             }
-        }*/
+        }
+        ROS_INFO_STREAM("# Nodes: " << nnodes);
 
-        /*std::vector<Waypoint> local_wps;
+        std::vector<Waypoint> local_wps;
         Stopwatch sw;
-        if(obj != -1){
-            int cu = obj;
-            while(nodes.at(cu).parent_ != -1){
-                local_wps.push_back(nodes.at(cu));
-                cu = nodes.at(cu).parent_;
+        if(obj != nullptr){
+            LNode* cu = obj;
+            while(cu != nullptr){
+                local_wps.push_back(*cu);
+                cu = cu->parent_;
             }
-            local_wps.push_back(nodes.at(cu));
             std::reverse(local_wps.begin(),local_wps.end());
             //smoothing
             sw.restart();
@@ -162,12 +164,11 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
             local_wps = smoothPath(local_wps, 2.0, 0.4);
             ROS_INFO_STREAM("Local path postprocessing took " << sw.usElapsed() << " us");
             last_local_path_.assign(local_wps.begin(),local_wps.end());
-        }else*/{
+        }else{
             return nullptr;
         }
 
-        // here we just use the subpath without checking constraints / scorerers
-        /*Path::Ptr local_path(new Path("/odom"));
+        Path::Ptr local_path(new Path("/odom"));
         local_path->setPath({local_wps});
 
         follower_.getController()->reset();
@@ -177,7 +178,7 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
 
         ROS_INFO_STREAM("Local Planner duration: " << ros::Time::now()-now << " s");
 
-        return local_path;*/
+        return local_path;
 
     } else {
         return nullptr;

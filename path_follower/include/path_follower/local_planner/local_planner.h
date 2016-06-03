@@ -74,8 +74,20 @@ protected:
             }
         }
     }
+
+    template <typename NodeT>
+    bool isInGraph(const NodeT& current, std::vector<NodeT>& nodes, int& asize, int& position){
+        for(std::size_t i = 0; i < asize; ++i){
+            double dis = current.distanceTo(nodes[i]);
+            if(dis < 0.05){
+                position = i;
+                return true;
+            }
+        }
+        return false;
+    }
+
     bool isNearEnough(const Waypoint& current, const Waypoint& last);
-    bool isInGraph(const Waypoint& current, std::vector<LNode>& nodes, int& asize, int& position);
 
     SubPath interpolatePath(const SubPath& path, double max_distance);
     void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);

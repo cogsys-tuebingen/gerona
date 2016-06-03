@@ -21,7 +21,7 @@ public:
     bool operator() (const int& lhs, const int&rhs) const;
 
 private:
-    //typedef std::multiset<int,CompareLNode> prio_queue;
+    typedef std::multiset<HNode*,CompareLNode> prio_queue;
     ros::Time last_update_;
     ros::Duration update_interval_;
 };
