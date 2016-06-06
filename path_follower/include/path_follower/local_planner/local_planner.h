@@ -23,7 +23,9 @@ public:
     virtual void setGlobalPath(Path::Ptr path);
 
     virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
-                                      const std::vector<Scorer::Ptr>& scorer) = 0;
+                                      const std::vector<Scorer::Ptr>& scorer,
+                                      const std::vector<bool>& fconstraints,
+                                      const std::vector<bool>& fscorer) = 0;
 
     virtual bool isNull() const;
 
@@ -34,7 +36,7 @@ protected:
     template <typename NodeT>
     void getSuccessors(NodeT*& current, int& nsize, std::vector<NodeT*>& successors,
                        std::vector<NodeT>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                       bool repeat = false){
+                       const std::vector<bool>& fconstraints, bool repeat = false){
         successors.clear();
         double theta;
         double ori = current->orientation;
@@ -60,7 +62,7 @@ protected:
             const NodeT succ(x,y,theta,current,current->level_+1);
             const tf::Point succp(x,y,theta);
 
-            if(constraints.at(0)->isSatisfied(succp) && constraints.at(2)->isSatisfied(succp)){
+            if(areConstraintsSAT(succp,constraints,fconstraints)){
                 int wo = -1;
                 if(!isInGraph(succ,nodes,nsize,wo)){
                     nodes.at(nsize) = succ;
@@ -86,6 +88,9 @@ protected:
         }
         return false;
     }
+
+    bool areConstraintsSAT(const tf::Point& current, const std::vector<Constraint::Ptr>& constraints,
+                           const std::vector<bool>& fconstraints);
 
     bool isNearEnough(const Waypoint& current, const Waypoint& last);
 

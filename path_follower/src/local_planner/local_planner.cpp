@@ -239,6 +239,18 @@ bool LocalPlanner::isNearEnough(const Waypoint& current, const Waypoint& last){
     return false;
 }
 
+bool LocalPlanner::areConstraintsSAT(const tf::Point& current, const std::vector<Constraint::Ptr>& constraints,
+                       const std::vector<bool>& fconstraints){
+    bool rval = true;
+    if(fconstraints.at(0)){
+        rval = rval && constraints.at(0)->isSatisfied(current);
+    }
+    if(fconstraints.at(2)){
+        rval = rval && constraints.at(2)->isSatisfied(current);
+    }
+    return rval;
+}
+
 bool LocalPlanner::isNull() const
 {
     return false;

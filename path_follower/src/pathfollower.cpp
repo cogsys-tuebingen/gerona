@@ -170,16 +170,20 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         local_planner_ = std::make_shared<LocalPlannerAStar>(*this, pose_listener_,ros::Duration(1.0));
     }else if(opt_.algo() == "BFS"){
         local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(1.0));
-    }else if(opt_.algo() == "NONE"){
+    }else if(opt_.algo() == "Transformer"){
         local_planner_ = std::make_shared<LocalPlannerTransformer>(*this, pose_listener_,ros::Duration(1.0));
-    } else {
+    }else if(opt_.algo() == "NULL"){
+        local_planner_ = std::make_shared<LocalPlannerNull>(*this, pose_listener_);
+    }else {
         ROS_FATAL("Unknown local planner algorithm. Shutdown.");
         exit(1);
     }
 
-    if(!local_planner_) {
-        local_planner_ = std::make_shared<LocalPlannerNull>(*this, pose_listener_);
-    }
+    ROS_INFO("Constraint usage [%s, %s, %s]", opt_.c1() ? "true" : "false",
+             opt_.c2() ? "true" : "false", opt_.c3() ? "true" : "false");
+    ROS_INFO("Scorer usage [%s, %s, %s, %s]", opt_.s1() ? "true" : "false",
+             opt_.s2() ? "true" : "false", opt_.s3() ? "true" : "false",
+             opt_.s4() ? "true" : "false");
 
     obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
 																					&PathFollower::obstacleCloudCB, this);
@@ -401,25 +405,48 @@ void PathFollower::update()
 
         Supervisor::Result s_res = supervisors_.supervise(state);
         if (s_res.can_continue) {
-            std::vector<Constraint::Ptr> constraints;
-            std::vector<Scorer::Ptr> scorer;
             //Begin Constraints and Scorers Construction
-            Dis2Path_Constraint::Ptr d2pc(new Dis2Path_Constraint);
-            Dis2Path_Constraint::Ptr d2spc(new Dis2Path_Constraint);
-            Dis2Obst_Constraint::Ptr d2oc(new Dis2Obst_Constraint(this->obstacle_cloud_, pose_listener_));
-            constraints.push_back(d2pc);
-            constraints.push_back(d2spc);
-            constraints.push_back(d2oc);
-            Dis2Start_Scorer::Ptr d2ss(new Dis2Start_Scorer);
-            Dis2Path_Scorer::Ptr d2ps(new Dis2Path_Scorer);
-            Dis2Obst_Scorer::Ptr d2os(new Dis2Obst_Scorer(this->obstacle_cloud_, pose_listener_));
-            Dis2Path_Scorer::Ptr d2sps(new Dis2Path_Scorer);
-            scorer.push_back(d2ss);
-            scorer.push_back(d2ps);
-            scorer.push_back(d2os);
-            scorer.push_back(d2sps);
-            //End CConstraints and Scorers Construction
-            Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer);
+            std::vector<Constraint::Ptr> constraints(3);
+            std::vector<bool> fconstraints(3);
+            if(opt_.c1()){
+                constraints.at(0) = Dis2Path_Constraint::Ptr(new Dis2Path_Constraint);
+            }
+            fconstraints.at(0) = opt_.c1();
+
+            if(opt_.c2()){
+                constraints.at(1) = Dis2Path_Constraint::Ptr(new Dis2Path_Constraint);
+            }
+            fconstraints.at(1) = opt_.c2();
+
+            if(opt_.c3()){
+                constraints.at(2) = Dis2Obst_Constraint::Ptr(new Dis2Obst_Constraint(this->obstacle_cloud_, pose_listener_));
+            }
+            fconstraints.at(2) = opt_.c3();
+
+            std::vector<Scorer::Ptr> scorer(4);
+            std::vector<bool> fscorer(4);
+            if(opt_.s1()){
+                scorer.at(0) = Dis2Start_Scorer::Ptr(new Dis2Start_Scorer);
+            }
+            fscorer.at(0) = opt_.s1();
+
+            if(opt_.s2()){
+                scorer.at(1) = Dis2Path_Scorer::Ptr(new Dis2Path_Scorer);
+            }
+            fscorer.at(1) = opt_.s2();
+
+            if(opt_.s3()){
+                scorer.at(2) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer(this->obstacle_cloud_, pose_listener_));
+            }
+            fscorer.at(2) = opt_.s3();
+
+            if(opt_.s4()){
+                scorer.at(3) = Dis2Path_Scorer::Ptr(new Dis2Path_Scorer);
+            }
+            fscorer.at(3) = opt_.s4();
+
+            //End Constraints and Scorers Construction
+            Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, fscorer);
             if(local_path) {
                 nav_msgs::Path path;
                 path.header.stamp = ros::Time::now();

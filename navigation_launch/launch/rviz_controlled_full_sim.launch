@@ -11,6 +11,15 @@ demonstrating the navigation framework.
     <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_SLP)" />
     <arg name="algo" default="AStar" />
 
+    <arg name="c1" default="true" />
+    <arg name="c2" default="true" />
+    <arg name="c3" default="true" />
+
+    <arg name="s1" default="true" />
+    <arg name="s2" default="true" />
+    <arg name="s3" default="true" />
+    <arg name="s4" default="true" />
+
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
     <arg name="use_planner_static" default="false" />
@@ -32,6 +41,15 @@ demonstrating the navigation framework.
     <include file="$(find navigation_launch)/launch/full.launch">
       <arg name="robot_controller" value="$(arg robot_controller)" />
       <arg name="algo" value="$(arg algo)" />
+
+      <arg name="c1" value="$(arg c1)" />
+      <arg name="c2" value="$(arg c2)" />
+      <arg name="c3" value="$(arg c3)" />
+
+      <arg name="s1" value="$(arg s1)" />
+      <arg name="s2" value="$(arg s2)" />
+      <arg name="s3" value="$(arg s3)" />
+      <arg name="s4" value="$(arg s4)" />
 
       <arg name="use_karto" value="$(arg use_karto)" />
       <arg name="use_karto_segmented" value="$(arg use_karto_segmented)" />

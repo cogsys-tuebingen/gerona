@@ -19,6 +19,8 @@ struct PathFollowerParameters : public Parameters
 
     //Parameters for the Local Planner
     P<std::string> algo;
+    P<bool> c1, c2, c3;
+    P<bool> s1, s2, s3, s4;
 
     // obstacle avoider
     P<bool> obstacle_avoider_use_collision_box;
@@ -54,7 +56,24 @@ struct PathFollowerParameters : public Parameters
                                 " detected on front of the robot. If false, the robot will"
                                 " stop, but not abort (the obstacle might move away)."),
 
-        algo(this, "~algo", "AStar", "Algorithm to be used by the Local Planner"),
+        //Local Planner
+        algo(this, "~algo", "AStar", "Algorithm to be used by the Local Planner."),
+        //Constraints
+        c1(this, "~c1", true,
+           "Determines whether the first constraint is used or not. (Distance to global path)"),
+        c2(this, "~c2", true,
+           "Determines whether the second constraint is used or not. (Distance to last local path)"),
+        c3(this, "~c3", true,
+           "Determines whether the third constraint is used or not. (Distance to nearest obstacle)"),
+        //Scorers
+        s1(this, "~s1", true,
+           "Determines whether the first scorer is used or not. (Distance to start position)"),
+        s2(this, "~s2", true,
+           "Determines whether the second scorer is used or not. (Distance to global path)"),
+        s3(this, "~s3", true,
+           "Determines whether the third scorer is used or not. (Distance to nearest obstacle)"),
+        s4(this, "~s4", true,
+           "Determines whether the third scorer is used or not. (Distance to last local path)"),
 
         obstacle_avoider_use_collision_box(this, "~obstacle_avoider/use_collision_box", true,
                                            "Use the collision box obstacle avoider ('ObstacleDetector')"),
