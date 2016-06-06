@@ -122,11 +122,11 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
                 fifo.push(successors[i]);
             }
         }
-        ROS_INFO_STREAM("# Nodes: " << nnodes);
 
         std::vector<Waypoint> local_wps;
         Stopwatch sw;
         if(obj != nullptr){
+            ROS_INFO_STREAM("# Nodes: " << nnodes);
             LNode* cu = obj;
             while(cu != nullptr){
                 local_wps.push_back(*cu);
