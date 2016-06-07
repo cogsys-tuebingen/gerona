@@ -250,6 +250,14 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
         }
 
     }
+
+    // distance to the path (path to the right -> positive)
+    Eigen::Vector2d path_vehicle(x_meas - path_interpol.p(proj_ind_), y_meas - path_interpol.q(proj_ind_));
+
+    orth_proj =
+                     MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), MathHelper::Angle(path_vehicle)) > 0. ?
+                     orth_proj : -orth_proj;
+
     //***//
 
 
@@ -313,9 +321,6 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     double omega = -opt_.k1()*v*orth_proj*std::sin(theta_e)/theta_e - opt_.k2()*std::abs(v)*theta_e;
     omega = boost::algorithm::clamp(omega, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
     cmd_.rotation = omega;
-    ROS_INFO("Projection: %f", orth_proj);
-    ROS_INFO("v = %f, omega = %f", v, omega);
-    ROS_INFO("theta_e = %f", theta_e);
     ///***///
 
 
