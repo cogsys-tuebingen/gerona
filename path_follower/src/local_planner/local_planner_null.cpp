@@ -25,7 +25,7 @@ void LocalPlannerNull::setGlobalPath(Path::Ptr path)
 Path::Ptr LocalPlannerNull::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                             const std::vector<Scorer::Ptr>& scorer,
                                             const std::vector<bool>& fconstraints,
-                                            const std::vector<bool>& fscorer)
+                                            const std::vector<double>& wscorer)
 {
     // do nothing
     return nullptr;

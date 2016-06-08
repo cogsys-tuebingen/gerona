@@ -19,8 +19,7 @@ public:
     virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                       const std::vector<Scorer::Ptr>& scorer,
                                       const std::vector<bool>& fconstraints,
-                                      const std::vector<bool>& fscorer) override;
-    bool operator() (const int& lhs, const int&rhs) const;
+                                      const std::vector<double>& wscorer) override;
 
 private:
     typedef std::multiset<HNode*,CompareLNode> prio_queue;

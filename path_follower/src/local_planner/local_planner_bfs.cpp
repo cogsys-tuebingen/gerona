@@ -20,7 +20,7 @@ void LocalPlannerBFS::setGlobalPath(Path::Ptr path)
 Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                            const std::vector<Scorer::Ptr>& scorer,
                                            const std::vector<bool>& fconstraints,
-                                           const std::vector<bool>& fscorer)
+                                           const std::vector<double>& wscorer)
 {
     // this planner uses the Breadth-first search algorithm
 
@@ -61,13 +61,13 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         if(fconstraints.at(1)){
             std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(1))->setSubPath(last_local_path_);
         }
-        if(fscorer.at(0)){
+        if(wscorer.at(0) != 0.0){
             std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setDistances(waypoints);
         }
-        if(fscorer.at(1)){
+        if(wscorer.at(1) != 0.0){
             std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->setSubPath(waypoints);
         }
-        if(fscorer.at(3)){
+        if(wscorer.at(3) != 0.0){
             std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(3))->setSubPath(last_local_path_);
         }
 
@@ -78,11 +78,11 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         const tf::Point lastp(last.x,last.y,last.orientation);
         const tf::Point wposep(pose(0),pose(1),pose(2));
 
-        float dis2last = fscorer.at(0)?scorer.at(0)->score(lastp):0.0;
+        float dis2last = (wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(lastp)):0.0;
 
         LNode wpose(pose(0),pose(1),pose(2),nullptr,0);
 
-        if(dis2last - (fscorer.at(0)?scorer.at(0)->score(wposep):0.0) < 0.8){
+        if(dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wposep)):0.0) < 0.8){
             return nullptr;
         }
 
@@ -111,10 +111,11 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             for(std::size_t i = 0; i < successors.size(); ++i){
                 const tf::Point processed(successors[i]->x, successors[i]->y,
                         successors[i]->orientation);
-                double new_dist = (dis2last - (fscorer.at(0)?scorer.at(0)->score(processed):0.0))
-                        + (fscorer.at(1)?scorer.at(1)->score(processed):0.0)
-                        + (fscorer.at(2)?scorer.at(2)->score(processed):0.0)
-                        + ((fconstraints.at(1)?constraints.at(1)->isSatisfied(processed):true)?(fscorer.at(3)?scorer.at(3)->score(processed):0.0):0.0);
+                double new_dist = (dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(processed)):0.0))
+                        + ((wscorer.at(1) != 0.0)?(wscorer.at(1)*scorer.at(1)->score(processed)):0.0)
+                        + ((wscorer.at(2) != 0.0)?(wscorer.at(2)*scorer.at(2)->score(processed)):0.0)
+                        + ((fconstraints.at(1)?constraints.at(1)->isSatisfied(processed):true)?
+                               ((wscorer.at(3) != 0.0)?(wscorer.at(3)*scorer.at(3)->score(processed)):0.0):0.0);
                 if(new_dist < go_dist){
                     go_dist = new_dist;
                     obj = successors[i];

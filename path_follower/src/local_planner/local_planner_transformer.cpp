@@ -20,7 +20,7 @@ void LocalPlannerTransformer::setGlobalPath(Path::Ptr path)
 Path::Ptr LocalPlannerTransformer::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                                    const std::vector<Scorer::Ptr>& scorer,
                                                    const std::vector<bool>& fconstraints,
-                                                   const std::vector<bool>& fscorer)
+                                                   const std::vector<double>& wscorer)
 {
     // this planner does not "plan" locally, but transforms the global path to the odometry frame
     // to eliminate odometry drift

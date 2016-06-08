@@ -16,10 +16,10 @@ tasks and can be used instead of this file.
     <arg name="c2" default="true" />
     <arg name="c3" default="true" />
 
-    <arg name="s1" default="true" />
-    <arg name="s2" default="true" />
-    <arg name="s3" default="true" />
-    <arg name="s4" default="true" />
+    <arg name="s1" default="1.0" />
+    <arg name="s2" default="1.0" />
+    <arg name="s3" default="1.0" />
+    <arg name="s4" default="1.0" />
     
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />

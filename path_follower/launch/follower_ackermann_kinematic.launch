@@ -8,10 +8,10 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
   <arg name="c2" default="true" />
   <arg name="c3" default="true" />
 
-  <arg name="s1" default="true" />
-  <arg name="s2" default="true" />
-  <arg name="s3" default="true" />
-  <arg name="s4" default="true" />
+  <arg name="s1" default="1.0" />
+  <arg name="s2" default="1.0" />
+  <arg name="s3" default="1.0" />
+  <arg name="s4" default="1.0" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
 	 <param name="controller" value="ackermann_kinematic" />
 
