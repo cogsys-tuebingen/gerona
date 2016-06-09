@@ -34,15 +34,54 @@ RobotController_ICR_CCW::RobotController_ICR_CCW(PathFollower *path_driver):
     Vr_(0),
     curv_sum_(1e-3),
     distance_to_goal_(1e6),
-    distance_to_obstacle_(1)
+    distance_to_obstacle_(1.0)
 {
+
+    pose_ekf_ = Eigen::Vector3d::Zero();
+    ICR_ekf_  = Eigen::Vector3d::Zero();
+    last_time_ = ros::Time::now();
+
+    points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
+
     laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
                                                              &RobotController_ICR_CCW::laserFront, this);
     laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
                                                             &RobotController_ICR_CCW::laserBack, this);
 
-    wheel_velocities_ = nh_.subscribe<std_msgs::Float64MultiArray>("/wheel_velocities", 10,
+    wheel_vel_sub_ = nh_.subscribe<std_msgs::Float64MultiArray>("/wheel_velocities", 10,
                                                                    &RobotController_ICR_CCW::WheelVelocities, this);
+
+    ICR_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("ICR_parameters", 100);
+
+    ekf_path_marker_.header.frame_id = "map";
+    ekf_path_marker_.header.stamp = ros::Time();
+    ekf_path_marker_.ns = "ekf_path_namespace";
+    ekf_path_marker_.id = 51;
+    ekf_path_marker_.type = visualization_msgs::Marker::LINE_STRIP;
+    ekf_path_marker_.action = visualization_msgs::Marker::ADD;
+    ekf_path_marker_.pose.position.x = 0;
+    ekf_path_marker_.pose.position.y = 0;
+    ekf_path_marker_.pose.position.z = 0;
+    ekf_path_marker_.pose.orientation.x = 0.0;
+    ekf_path_marker_.pose.orientation.y = 0.0;
+    ekf_path_marker_.pose.orientation.z = 0.0;
+    ekf_path_marker_.pose.orientation.w = 1.0;
+    ekf_path_marker_.scale.x = 0.1;
+    ekf_path_marker_.scale.y = 0.0;
+    ekf_path_marker_.scale.z = 0.0;
+    ekf_path_marker_.color.a = 1.0;
+    ekf_path_marker_.color.r = 0.5;
+    ekf_path_marker_.color.g = 0.0;
+    ekf_path_marker_.color.b = 1.0;
+
+    //copy the original path in the augmented path for the initialization
+    for(std::size_t i = 0; i < path_interpol.n(); ++i) {
+
+        x_aug_[i] = path_interpol.p(i);
+        y_aug_[i] = path_interpol.q(i);
+
+    }
+
 }
 
 void RobotController_ICR_CCW::stopMotion()
@@ -67,6 +106,12 @@ void RobotController_ICR_CCW::initialize()
     vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 
+    //reset the ekf path points
+    ekf_path_marker_.points.clear();
+
+    //reset the augmented path
+    x_aug_.clear();
+    y_aug_.clear();
 
 }
 
@@ -96,13 +141,23 @@ void RobotController_ICR_CCW::laserBack(const sensor_msgs::LaserScanConstPtr &sc
 
 void RobotController_ICR_CCW::WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array)
 {
-    double flw = array->data[0];
-    double frw = array->data[1];
+    double frw = array->data[0];
+    double flw = array->data[1];
     double brw = array->data[2];
     double blw = array->data[3];
 
     Vl_ = (flw + blw)/2.0;
     Vr_ = (frw + brw)/2.0;
+
+    ros::Time current_time = ros::Time::now();
+    double dt = (current_time - last_time_).toSec();
+    last_time_ = current_time;
+    if(Vl_ > 1e-3 && Vr_ > 1e-3){
+        ekf_.predict(array, dt);
+        pose_ekf_ << ekf_.x_(0), ekf_.x_(1), ekf_.x_(2);
+        ICR_ekf_  << ekf_.x_(3), ekf_.x_(4), ekf_.x_(5);
+    }
+
 }
 
 //TODO: work with the obstacle map!!!
@@ -156,6 +211,14 @@ void RobotController_ICR_CCW::setPath(Path::Ptr path)
     calculateMovingDirection();
 }
 
+void RobotController_ICR_CCW::setCurrentPose(const Eigen::Vector3d& pose){
+
+    ekf_.correct(pose);
+    pose_ekf_ << ekf_.x_(0), ekf_.x_(1), ekf_.x_(2);
+    ICR_ekf_  << ekf_.x_(3), ekf_.x_(4), ekf_.x_(5);
+
+}
+
 RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(MoveCommand *cmd)
 {
     // omni drive can rotate.
@@ -178,16 +241,37 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     ///***///
 
 
+    //Map the path using current ICR values
+
+    //vector of the ICR mapping in robot coordinates
+    double r_x = ICR_ekf_(2);
+    double r_y = ICR_ekf_(1) - ICR_ekf_(0);
+
+    //vector of the ICR mapping in world coordinates
+    double r_x_m = std::cos(theta_meas)*r_x + std::sin(theta_meas)*r_y;
+    double r_y_m = -std::sin(theta_meas)*r_x + std::cos(theta_meas)*r_y;
+
+    //augmenting the path by the vector r = (x_ICR, (y_ICRl-y_ICRr)/2)
+    for(std::size_t i = proj_ind_; i < path_interpol.n(); ++i) {
+
+        x_aug_[i] = path_interpol.p(i) + r_x_m;
+        y_aug_[i] = path_interpol.q(i) + r_y_m;
+
+    }
+
+    //***//
+
+
     ///calculate the control for the current point on the path
 
     //robot direction angle in path coordinates
     double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), theta_meas);
 
     //robot position vector module
-    double r = hypot(x_meas - path_interpol.p(proj_ind_), y_meas - path_interpol.q(proj_ind_));
+    double r = hypot(x_meas - x_aug_[proj_ind_], y_meas - y_aug_[proj_ind_]);
 
     //robot position vector angle in world coordinates
-    double theta_r = atan2(y_meas - path_interpol.q(proj_ind_), x_meas - path_interpol.p(proj_ind_));
+    double theta_r = atan2(y_meas - y_aug_[proj_ind_], x_meas - x_aug_[proj_ind_]);
 
     //robot position vector angle in path coordinates
     double delta_theta = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), theta_r);
@@ -211,8 +295,8 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
 
             *cmd = cmd_;
 
-            double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
-                                          y_meas - path_interpol.q(path_interpol.n()-1));
+            double distance_to_goal_eucl = hypot(x_meas - x_aug_[path_interpol.n()-1],
+                                          y_meas - y_aug_[path_interpol.n()-1]);
 
             ROS_INFO("Final positioning error: %f m", distance_to_goal_eucl);
 
@@ -241,7 +325,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
 
     for (unsigned int i = proj_ind_; i < path_interpol.n(); i++){
 
-        dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
+        dist = hypot(x_meas - x_aug_[i], y_meas - y_aug_[i]);
         if(dist < orth_proj){
 
             orth_proj = dist;
@@ -252,11 +336,10 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     }
 
     // distance to the path (path to the right -> positive)
-    Eigen::Vector2d path_vehicle(x_meas - path_interpol.p(proj_ind_), y_meas - path_interpol.q(proj_ind_));
+    Eigen::Vector2d path_vehicle(x_meas - x_aug_[proj_ind_], y_meas - y_aug_[proj_ind_]);
 
-    orth_proj =
-                     MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), MathHelper::Angle(path_vehicle)) > 0. ?
-                     orth_proj : -orth_proj;
+    orth_proj = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), MathHelper::Angle(path_vehicle)) > 0. ?
+                orth_proj : -orth_proj;
 
     //***//
 
@@ -343,6 +426,24 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     }
 
     ///***///
+
+
+    ///Vizualize the path estimated by the EKF
+    geometry_msgs::Point pt;
+    pt.x = pose_ekf_(0);
+    pt.y = pose_ekf_(1);
+    ekf_path_marker_.points.push_back(pt);
+
+    points_pub_.publish(ekf_path_marker_);
+    ///***///
+
+    //Publish the ICR parameters in a form of an array
+    std_msgs::Float64MultiArray ICR_ekf_array;
+    ICR_ekf_array.data[0] = ICR_ekf_(0);
+    ICR_ekf_array.data[1] = ICR_ekf_(1);
+    ICR_ekf_array.data[2] = ICR_ekf_(2);
+    ICR_pub_.publish(ICR_ekf_array);
+    //***//
 
         *cmd = cmd_;
 

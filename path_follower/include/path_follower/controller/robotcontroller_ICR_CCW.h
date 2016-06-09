@@ -12,6 +12,7 @@
 #include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/pathfollower.h>
+#include <path_follower/utils/extended_kalman_filter.h>
 
 class RobotController_ICR_CCW : public RobotController_Interpolation
 {
@@ -114,19 +115,24 @@ private:
 
     Command cmd_;
 
+    EKF ekf_;
+
     ros::Subscriber look_at_sub_;
     ros::Subscriber look_at_cmd_sub_;
 
     ros::Subscriber laser_sub_front_;
     ros::Subscriber laser_sub_back_;
 
-    ros::Subscriber wheel_velocities_;
+    ros::Subscriber wheel_vel_sub_;
+
+    ros::Publisher ICR_pub_;
 
     std::vector<float> ranges_front_;
     std::vector<float> ranges_back_;
 
     void reset();
     void setPath(Path::Ptr path);
+    void setCurrentPose(const Eigen::Vector3d&);
 
     //nominal velocity
     double vn_;
@@ -141,12 +147,26 @@ private:
     //velocity of the right tread
     double Vr_;
 
+    //pose estimated by the EKF
+    Eigen::Vector3d pose_ekf_;
+    //ICR coordinates estimated by the EKF
+    Eigen::Vector3d ICR_ekf_;
+    //last time step in which the prediction was made
+    ros::Time last_time_;
+
     //cumulative curvature sum w.r.t. path
     double curv_sum_;
     //cumulative distance to goal sum w.r.t. path
     double distance_to_goal_;
     //distance to the nearest obstacle
     double distance_to_obstacle_;
+
+    //points estimated by the EKF
+    visualization_msgs::Marker ekf_path_marker_;
+
+    //x and y components of the augmented path
+    std::vector<double> x_aug_;
+    std::vector<double> y_aug_;
 };
 
 #endif // ROBOTCONTROLLER_ICR_CCW_H

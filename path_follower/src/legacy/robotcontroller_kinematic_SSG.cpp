@@ -102,8 +102,8 @@ void RobotController_Kinematic_SSG::laserBack(const sensor_msgs::LaserScanConstP
 
 void RobotController_Kinematic_SSG::WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array)
 {
-    double flw = array->data[0];
-    double frw = array->data[1];
+    double frw = array->data[0];
+    double flw = array->data[1];
     double brw = array->data[2];
     double blw = array->data[3];
 
@@ -382,8 +382,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
 
     //TODO: consider the minimum excitation speed
     v = v * exp(-exponent);
-
-   ROS_INFO("Linear vel cmd: %f", v);
 
     cmd_.speed = getDirSign()*std::max((double)path_driver_->getOptions().min_velocity(), fabs(v));
 
