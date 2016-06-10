@@ -16,7 +16,7 @@ public:
 	PathInterpolated();
 	virtual ~PathInterpolated();
 
-	void interpolatePath(const Path::Ptr path);
+    void interpolatePath(const Path::Ptr path);
 
     inline double s(const unsigned int i) const {
         return s_[i];
@@ -75,6 +75,7 @@ public:
 	}
 
 	operator nav_msgs::Path() const;
+    operator SubPath() const;
 
 private:
 	void clearBuffers();

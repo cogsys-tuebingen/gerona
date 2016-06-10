@@ -184,6 +184,20 @@ PathInterpolated::operator nav_msgs::Path() const {
 	return path;
 }
 
+PathInterpolated::operator SubPath() const {
+
+    SubPath path(p_.size());
+    const unsigned int length = p_.size();
+
+    for (uint i = 0; i < length; ++i) {
+        path.at(i).x = p_[i];
+        path.at(i).y = q_[i];
+        path.at(i).orientation = 0;//tmp
+    }
+
+    return path;
+}
+
 void PathInterpolated::clearBuffers() {
 	N_ = 0;
 

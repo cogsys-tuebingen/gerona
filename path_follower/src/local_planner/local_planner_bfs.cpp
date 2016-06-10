@@ -30,7 +30,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
     // TODO: also replan for other reasons, e.g. the global path has changed, ...
     if(last_update_ + update_interval_ < now) {
         // only look at the first sub path for now
-        auto waypoints = global_path_->getSubPath(0);
+        auto waypoints = (SubPath) global_path_;
 
         // calculate the corrective transformation to map from world coordinates to odom
         if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
@@ -62,7 +62,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(1))->setSubPath(last_local_path_);
         }
         if(wscorer.at(0) != 0.0){
-            std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setDistances(waypoints);
+            std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setPath(global_path_, waypoints);
         }
         if(wscorer.at(1) != 0.0){
             std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->setSubPath(waypoints);
@@ -75,10 +75,11 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         Eigen::Vector3d pose = follower_.getRobotPose();
 
         const Waypoint& last = waypoints.back();
-        const tf::Point lastp(last.x,last.y,last.orientation);
+        //const tf::Point lastp(last.x,last.y,last.orientation);
         const tf::Point wposep(pose(0),pose(1),pose(2));
 
-        float dis2last = (wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(lastp)):0.0;
+        //float dis2last = (wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(lastp)):0.0;
+        float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
 
         LNode wpose(pose(0),pose(1),pose(2),nullptr,0);
 

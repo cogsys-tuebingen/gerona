@@ -5,6 +5,7 @@
 #include <utils_general/MathHelper.h>
 #include <utils_general/Stopwatch.h>
 #include <path_follower/utils/path.h>
+#include <path_follower/utils/path_interpolated.h>
 #include <path_follower/local_planner/constraint.h>
 #include <path_follower/local_planner/dis2path_constraint.h>
 #include <path_follower/local_planner/dis2obst_constraint.h>
@@ -106,7 +107,8 @@ protected:
     PathFollower& follower_;
     tf::Transformer &transformer_;
 
-    Path::Ptr global_path_;
+    PathInterpolated global_path_;
+    //Path::Ptr global_path_;
     SubPath last_local_path_;
 
     tf::StampedTransform initial_map_to_odom_;

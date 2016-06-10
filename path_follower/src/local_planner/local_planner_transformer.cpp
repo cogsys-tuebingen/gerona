@@ -32,7 +32,7 @@ Path::Ptr LocalPlannerTransformer::updateLocalPath(const std::vector<Constraint:
     if(last_update_ + update_interval_ < now) {
 
         // only look at the first sub path for now
-        auto waypoints = global_path_->getSubPath(0);
+        auto waypoints = (SubPath) global_path_;
 
         // calculate the corrective transformation to map from world coordinates to odom
         if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {

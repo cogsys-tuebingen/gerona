@@ -19,7 +19,7 @@ void LocalPlannerNull::setGlobalPath(Path::Ptr path)
      */
     LocalPlanner::setGlobalPath(path);
 
-    follower_.getController()->setPath(global_path_);
+    follower_.getController()->setPath(path);
 }
 
 Path::Ptr LocalPlannerNull::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
