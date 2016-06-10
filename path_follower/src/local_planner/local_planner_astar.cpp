@@ -30,8 +30,11 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
     // TODO: also replan for other reasons, e.g. the global path has changed, ...
     if(last_update_ + update_interval_ < now) {
         // only look at the first sub path for now
+        Stopwatch sw;
+        sw.restart();
         auto waypoints = (SubPath) global_path_;
         initIndexes();
+        int path_ini = sw.usElapsed();
 
         // calculate the corrective transformation to map from world coordinates to odom
         if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
@@ -179,10 +182,15 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
         }
 
         std::vector<Waypoint> local_wps;
-        Stopwatch sw;
         if(obj != nullptr){
             global_path_.set_s_new(global_path_.s_new() + 0.7);
+            ROS_INFO_STREAM("Path inizalitation took " << path_ini << " us");
             ROS_INFO_STREAM("# Nodes: " << nnodes);
+            for(std::size_t i = 0; i < scorer.size(); ++i){
+                if(wscorer.at(i)){
+                    ROS_INFO_STREAM("Scorer #" << (i+1) << " took " << scorer.at(i)->usUsed() << " us");
+                }
+            }
             LNode* cu = obj;
             while(cu != nullptr){
                 local_wps.push_back(*cu);

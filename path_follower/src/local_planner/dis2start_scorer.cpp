@@ -4,7 +4,7 @@
 Dis2Start_Scorer::Dis2Start_Scorer():
     currentPath(), distances(), index1_(-1), index2_(-1)
 {
-
+    sw.resetStopped();
 }
 
 Dis2Start_Scorer::~Dis2Start_Scorer()
@@ -25,6 +25,7 @@ void Dis2Start_Scorer::setPath(const SubPath& Path, const std::vector<double>& d
 }
 
 double Dis2Start_Scorer::score(const tf::Point& point){
+    sw.resume();
     double closest_dist = std::numeric_limits<double>::infinity();
     std::size_t closest_index = -1;
 
@@ -36,5 +37,6 @@ double Dis2Start_Scorer::score(const tf::Point& point){
             closest_index = i;
         }
     }
+    sw.stop();
     return distances[closest_index-index1_];
 }

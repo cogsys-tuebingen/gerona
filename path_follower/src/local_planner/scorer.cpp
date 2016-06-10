@@ -10,3 +10,7 @@ Scorer::~Scorer()
 {
 
 }
+
+int Scorer::usUsed(){
+    return sw.usElapsedStatic();
+}

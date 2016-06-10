@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <tf/transform_datatypes.h>
+#include <utils_general/Stopwatch.h>
 
 class Scorer
 {
@@ -14,6 +15,10 @@ public:
     virtual ~Scorer();
 
     virtual double score(const tf::Point& point) = 0;
+
+    int usUsed();
+protected:
+    Stopwatch sw;
 };
 
 #endif // SCORER_H

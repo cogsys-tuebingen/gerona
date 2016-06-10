@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <tf/transform_datatypes.h>
+#include <utils_general/Stopwatch.h>
 
 class Constraint
 {
@@ -14,6 +15,8 @@ public:
     virtual ~Constraint();
 
     virtual bool isSatisfied(const tf::Point& point) = 0;
+protected:
+    Stopwatch sw;
 };
 
 #endif // CONSTRAINT_H

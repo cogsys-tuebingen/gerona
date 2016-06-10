@@ -4,6 +4,7 @@
 Dis2Path_Scorer::Dis2Path_Scorer():
     currentPath(), index1_(-1), index2_(-1)
 {
+    sw.resetStopped();
 }
 
 Dis2Path_Scorer::~Dis2Path_Scorer()
@@ -21,8 +22,10 @@ void Dis2Path_Scorer::setSubPath(const SubPath& path,
 }
 
 double Dis2Path_Scorer::score(const tf::Point& point){
+    sw.resume();
     double closest_dist = std::numeric_limits<double>::infinity();
     if(currentPath.empty()){
+        sw.stop();
         return 0.0;
     }
     for(std::size_t i = index1_; i <= index2_; ++i) {
@@ -32,5 +35,6 @@ double Dis2Path_Scorer::score(const tf::Point& point){
             closest_dist = dist;
         }
     }
+    sw.stop();
     return closest_dist;
 }
