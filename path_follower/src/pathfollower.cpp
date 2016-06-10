@@ -243,6 +243,7 @@ bool PathFollower::updateRobotPose()
 {
     if (getWorldPose(&robot_pose_, &robot_pose_msg_)) {
         course_predictor_.update();
+        controller_->setCurrentPose(robot_pose_);
         return true;
     } else {
         return false;
