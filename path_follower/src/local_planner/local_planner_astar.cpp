@@ -31,6 +31,7 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
     if(last_update_ + update_interval_ < now) {
         // only look at the first sub path for now
         auto waypoints = (SubPath) global_path_;
+        initIndexes();
 
         // calculate the corrective transformation to map from world coordinates to odom
         if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
@@ -56,19 +57,34 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
         }
 
         if(fconstraints.at(0)){
-            std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints);
+            std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints,
+                                                                                          index1, index2);
         }
         if(fconstraints.at(1)){
-            std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(1))->setSubPath(last_local_path_);
+            if(last_local_path_.empty()){
+                std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(1))->setSubPath(last_local_path_,
+                                                                                          last_local_path_.size()-1, 0);
+            }else{
+                std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(1))->setSubPath(last_local_path_,
+                                                                                          0, last_local_path_.size()-1);
+            }
         }
         if(wscorer.at(0) != 0.0){
-            std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setPath(global_path_, waypoints);
+            std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setPath(waypoints, c_dist,
+                                                                               index1, index2);
         }
         if(wscorer.at(1) != 0.0){
-            std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->setSubPath(waypoints);
+            std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->setSubPath(waypoints,
+                                                                                 index1, index2);
         }
         if(wscorer.at(3) != 0.0){
-            std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(3))->setSubPath(last_local_path_);
+            if(last_local_path_.empty()){
+                std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(3))->setSubPath(last_local_path_,
+                                                                                 last_local_path_.size()-1, 0);
+            }else{
+                std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(3))->setSubPath(last_local_path_,
+                                                                                 0, last_local_path_.size()-1);
+            }
         }
 
         // find the subpath that starts closest to the robot
@@ -165,6 +181,7 @@ Path::Ptr LocalPlannerAStar::updateLocalPath(const std::vector<Constraint::Ptr>&
         std::vector<Waypoint> local_wps;
         Stopwatch sw;
         if(obj != nullptr){
+            global_path_.set_s_new(global_path_.s_new() + 0.7);
             ROS_INFO_STREAM("# Nodes: " << nnodes);
             LNode* cu = obj;
             while(cu != nullptr){

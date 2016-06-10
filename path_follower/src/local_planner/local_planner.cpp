@@ -2,7 +2,8 @@
 #include <path_follower/local_planner/local_planner.h>
 
 LocalPlanner::LocalPlanner(PathFollower &follower, tf::Transformer &transformer)
-    : follower_(follower), transformer_(transformer), last_local_path_()
+    : follower_(follower), transformer_(transformer), last_local_path_(),
+      index1(-1), index2(-1), c_dist()
 {
 
 }
@@ -14,7 +15,6 @@ LocalPlanner::~LocalPlanner()
 
 void LocalPlanner::setGlobalPath(Path::Ptr path)
 {
-    //global_path_ = path;
     global_path_.interpolatePath(path);
 
     ros::Time now = ros::Time::now();
@@ -238,6 +238,29 @@ bool LocalPlanner::isNearEnough(const Waypoint& current, const Waypoint& last){
         return true;
     }
     return false;
+}
+
+void LocalPlanner::initIndexes(){
+    double s_new = global_path_.s_new() + 1.5;
+    double closest_dist1 = std::numeric_limits<double>::infinity();
+    double closest_dist2 = std::numeric_limits<double>::infinity();
+    for(std::size_t i = 0; i < global_path_.n(); ++i){
+        double dist1 = std::abs(global_path_.s_new() - global_path_.s(i));
+        double dist2 = std::abs(s_new - global_path_.s(i));
+        if(dist1 < closest_dist1) {
+            closest_dist1 = dist1;
+            index1 = i;
+        }
+        if(dist2 < closest_dist2) {
+            closest_dist2 = dist2;
+            index2 = i;
+        }
+    }
+
+    c_dist.clear();
+    for(std::size_t i = index1; i <= index2; ++i){
+        c_dist.push_back(global_path_.s(i));
+    }
 }
 
 bool LocalPlanner::areConstraintsSAT(const tf::Point& current, const std::vector<Constraint::Ptr>& constraints,

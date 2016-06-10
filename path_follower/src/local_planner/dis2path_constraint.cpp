@@ -2,7 +2,7 @@
 #include <path_follower/local_planner/dis2path_constraint.h>
 
 Dis2Path_Constraint::Dis2Path_Constraint():
-    currentPath()
+    currentPath(), index1_(-1), index2_(-1)
 {
 }
 
@@ -11,14 +11,18 @@ Dis2Path_Constraint::~Dis2Path_Constraint()
 
 }
 
-void Dis2Path_Constraint::setSubPath(const SubPath& path){
+void Dis2Path_Constraint::setSubPath(const SubPath& path,
+                                     const std::size_t index1, const std::size_t index2){
     currentPath.clear();
     currentPath.assign(path.begin(),path.end());
+
+    index1_ = index1;
+    index2_ = index2;
 }
 
 bool Dis2Path_Constraint::isSatisfied(const tf::Point& point){
     double closest_dist = std::numeric_limits<double>::infinity();
-    for(std::size_t i = 0; i < currentPath.size(); ++i) {
+    for(std::size_t i = index1_; i <= index2_; ++i) {
         const Waypoint& wp = currentPath[i];
         double dist = std::hypot(wp.x - point.getX(), wp.y - point.getY());
         if(dist < closest_dist) {

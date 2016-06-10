@@ -95,6 +95,8 @@ protected:
 
     bool isNearEnough(const Waypoint& current, const Waypoint& last);
 
+    void initIndexes();
+
     SubPath interpolatePath(const SubPath& path, double max_distance);
     void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
     SubPath smoothPath(const SubPath& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
@@ -108,8 +110,11 @@ protected:
     tf::Transformer &transformer_;
 
     PathInterpolated global_path_;
-    //Path::Ptr global_path_;
     SubPath last_local_path_;
+    std::size_t index1;
+    std::size_t index2;
+
+    std::vector<double> c_dist;
 
     tf::StampedTransform initial_map_to_odom_;
 };
