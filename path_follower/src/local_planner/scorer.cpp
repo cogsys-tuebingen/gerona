@@ -11,6 +11,6 @@ Scorer::~Scorer()
 
 }
 
-int Scorer::usUsed(){
-    return sw.usElapsedStatic();
+long Scorer::nsUsed(){
+    return sw.nsElapsedStatic();
 }

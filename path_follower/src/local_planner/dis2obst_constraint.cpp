@@ -4,7 +4,7 @@
 Dis2Obst_Constraint::Dis2Obst_Constraint(ObstacleCloud::ConstPtr &msg, tf::Transformer &transformer):
     obstacles(msg),transformer_(transformer),now_(ros::Time::now())
 {
-
+    sw.resetStopped();
 }
 
 Dis2Obst_Constraint::~Dis2Obst_Constraint()
@@ -13,6 +13,7 @@ Dis2Obst_Constraint::~Dis2Obst_Constraint()
 }
 
 bool Dis2Obst_Constraint::isSatisfied(const tf::Point& point){
+    sw.resume();
     if(!transformer_.waitForTransform("odom", "base_link", now_, ros::Duration(0.1))) {
         ROS_WARN_THROTTLE_NAMED(1, "local_path/Dis2Obst_Constraint", "cannot transform base_link to odom");
         return std::numeric_limits<double>::infinity();
@@ -35,10 +36,11 @@ bool Dis2Obst_Constraint::isSatisfied(const tf::Point& point){
         if(dist < closest_obst) {
             closest_obst = dist;
             if(closest_obst <= 0.85){
+                sw.stop();
                 return false;
             }
         }
     }
-
+    sw.stop();
     return true;
 }

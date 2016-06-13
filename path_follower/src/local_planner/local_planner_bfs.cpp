@@ -25,6 +25,8 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
     // this planner uses the Breadth-first search algorithm
 
     ros::Time now = ros::Time::now();
+    Stopwatch gsw;
+    gsw.restart();
 
     // only calculate a new local path, if enough time has passed.
     // TODO: also replan for other reasons, e.g. the global path has changed, ...
@@ -149,9 +151,14 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             global_path_.set_s_new(global_path_.s_new() + 0.7);
             ROS_INFO_STREAM("Path inizalitation took " << path_ini << " us");
             ROS_INFO_STREAM("# Nodes: " << nnodes);
+            for(std::size_t i = 0; i < constraints.size(); ++i){
+                if(fconstraints.at(i)){
+                    ROS_INFO_STREAM("Constraint #" << (i+1) << " took " << constraints.at(i)->nsUsed()/1000.0 << " us");
+                }
+            }
             for(std::size_t i = 0; i < scorer.size(); ++i){
-                if(wscorer.at(i)){
-                    ROS_INFO_STREAM("Scorer #" << (i+1) << " took " << scorer.at(i)->usUsed() << " us");
+                if(wscorer.at(i) != 0.0){
+                    ROS_INFO_STREAM("Scorer #" << (i+1) << " took " << scorer.at(i)->nsUsed()/1000.0 << " us");
                 }
             }
             LNode* cu = obj;
@@ -181,7 +188,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
 
         last_update_ = now;
 
-        ROS_INFO_STREAM("Local Planner duration: " << ros::Time::now()-now << " s");
+        ROS_INFO_STREAM("Local Planner duration: " << gsw.sElapsedDouble() << " s");
 
         return local_path;
 

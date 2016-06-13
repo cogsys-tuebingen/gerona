@@ -15,6 +15,7 @@ public:
     virtual ~Constraint();
 
     virtual bool isSatisfied(const tf::Point& point) = 0;
+    long nsUsed();
 protected:
     Stopwatch sw;
 };

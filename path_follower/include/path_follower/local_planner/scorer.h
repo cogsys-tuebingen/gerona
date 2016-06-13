@@ -16,7 +16,7 @@ public:
 
     virtual double score(const tf::Point& point) = 0;
 
-    int usUsed();
+    long nsUsed();
 protected:
     Stopwatch sw;
 };

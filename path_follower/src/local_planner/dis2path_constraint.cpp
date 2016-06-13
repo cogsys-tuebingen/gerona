@@ -4,6 +4,7 @@
 Dis2Path_Constraint::Dis2Path_Constraint():
     currentPath(), index1_(-1), index2_(-1)
 {
+    sw.resetStopped();
 }
 
 Dis2Path_Constraint::~Dis2Path_Constraint()
@@ -21,6 +22,7 @@ void Dis2Path_Constraint::setSubPath(const SubPath& path,
 }
 
 bool Dis2Path_Constraint::isSatisfied(const tf::Point& point){
+    sw.resume();
     double closest_dist = std::numeric_limits<double>::infinity();
     for(std::size_t i = index1_; i <= index2_; ++i) {
         const Waypoint& wp = currentPath[i];
@@ -28,9 +30,11 @@ bool Dis2Path_Constraint::isSatisfied(const tf::Point& point){
         if(dist < closest_dist) {
             closest_dist = dist;
             if(closest_dist <= 0.3){
+                sw.stop();
                 return true;
             }
         }
     }
+    sw.stop();
     return false;
 }
