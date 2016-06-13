@@ -245,7 +245,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
 
     //vector of the ICR mapping in robot coordinates
     double r_x = ICR_ekf_(2);
-    double r_y = ICR_ekf_(1) - ICR_ekf_(0);
+    double r_y = (ICR_ekf_(1) - ICR_ekf_(0))/2.0;
 
     //vector of the ICR mapping in world coordinates
     double r_x_m = std::cos(theta_meas)*r_x + std::sin(theta_meas)*r_y;
