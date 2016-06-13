@@ -218,7 +218,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
         }
     }
 
-
     //find the orthogonal projection to the curve and extract the corresponding index
 
     double dist = 0;

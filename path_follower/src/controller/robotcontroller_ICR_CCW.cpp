@@ -36,12 +36,11 @@ RobotController_ICR_CCW::RobotController_ICR_CCW(PathFollower *path_driver):
     distance_to_goal_(1e6),
     distance_to_obstacle_(1.0)
 {
-
     pose_ekf_ = Eigen::Vector3d::Zero();
     ICR_ekf_  = Eigen::Vector3d::Zero();
     last_time_ = ros::Time::now();
 
-    points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
+    points_pub_ = nh_.advertise<visualization_msgs::Marker>("ekf_path", 10);
 
     laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
                                                              &RobotController_ICR_CCW::laserFront, this);
@@ -74,14 +73,6 @@ RobotController_ICR_CCW::RobotController_ICR_CCW(PathFollower *path_driver):
     ekf_path_marker_.color.g = 0.0;
     ekf_path_marker_.color.b = 1.0;
 
-    //copy the original path in the augmented path for the initialization
-    for(std::size_t i = 0; i < path_interpol.n(); ++i) {
-
-        x_aug_[i] = path_interpol.p(i);
-        y_aug_[i] = path_interpol.q(i);
-
-    }
-
 }
 
 void RobotController_ICR_CCW::stopMotion()
@@ -109,10 +100,9 @@ void RobotController_ICR_CCW::initialize()
     //reset the ekf path points
     ekf_path_marker_.points.clear();
 
-    //reset the augmented path
+//    //reset the augmented path
     x_aug_.clear();
     y_aug_.clear();
-
 }
 
 void RobotController_ICR_CCW::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
@@ -141,6 +131,7 @@ void RobotController_ICR_CCW::laserBack(const sensor_msgs::LaserScanConstPtr &sc
 
 void RobotController_ICR_CCW::WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array)
 {
+
     double frw = array->data[0];
     double flw = array->data[1];
     double brw = array->data[2];
@@ -216,7 +207,6 @@ void RobotController_ICR_CCW::setCurrentPose(const Eigen::Vector3d& pose){
     ekf_.correct(pose);
     pose_ekf_ << ekf_.x_(0), ekf_.x_(1), ekf_.x_(2);
     ICR_ekf_  << ekf_.x_(3), ekf_.x_(4), ekf_.x_(5);
-
 }
 
 RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(MoveCommand *cmd)
@@ -238,48 +228,6 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
     double theta_meas = current_pose[2];
-    ///***///
-
-
-    //Map the path using current ICR values
-
-    //vector of the ICR mapping in robot coordinates
-    double r_x = ICR_ekf_(2);
-    double r_y = (ICR_ekf_(1) - ICR_ekf_(0))/2.0;
-
-    //vector of the ICR mapping in world coordinates
-    double r_x_m = std::cos(theta_meas)*r_x + std::sin(theta_meas)*r_y;
-    double r_y_m = -std::sin(theta_meas)*r_x + std::cos(theta_meas)*r_y;
-
-    //augmenting the path by the vector r = (x_ICR, (y_ICRl-y_ICRr)/2)
-    for(std::size_t i = proj_ind_; i < path_interpol.n(); ++i) {
-
-        x_aug_[i] = path_interpol.p(i) + r_x_m;
-        y_aug_[i] = path_interpol.q(i) + r_y_m;
-
-    }
-
-    //***//
-
-
-    ///calculate the control for the current point on the path
-
-    //robot direction angle in path coordinates
-    double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), theta_meas);
-
-    //robot position vector module
-    double r = hypot(x_meas - x_aug_[proj_ind_], y_meas - y_aug_[proj_ind_]);
-
-    //robot position vector angle in world coordinates
-    double theta_r = atan2(y_meas - y_aug_[proj_ind_], x_meas - x_aug_[proj_ind_]);
-
-    //robot position vector angle in path coordinates
-    double delta_theta = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), theta_r);
-
-    //current robot position in path coordinates
-    double xe = r * cos(delta_theta);
-    double ye = r * sin(delta_theta);
-
     ///***///
 
 
@@ -309,6 +257,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
             try {
                 path_interpol.interpolatePath(path_);
                 publishInterpolatedPath();
+
             } catch(const alglib::ap_error& error) {
                 throw std::runtime_error(error.msg);
             }
@@ -316,6 +265,47 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
             calculateMovingDirection();
         }
     }
+
+
+    //Map the path using current ICR values
+    //vector of the ICR mapping in robot coordinates
+    double r_x = ICR_ekf_(2);
+    double r_y = (ICR_ekf_(1) - ICR_ekf_(0))/2.0;
+
+    //vector of the ICR mapping in world coordinates
+    double r_x_m = std::cos(theta_meas)*r_x + std::sin(theta_meas)*r_y;
+    double r_y_m = -std::sin(theta_meas)*r_x + std::cos(theta_meas)*r_y;
+
+    //augmenting the path by the vector r = (x_ICR, (y_ICRl-y_ICRr)/2)
+    for(std::size_t i = proj_ind_; i < path_interpol.n(); ++i) {
+
+        x_aug_.push_back(path_interpol.p(i) + r_x_m);
+        y_aug_.push_back(path_interpol.q(i) + r_y_m);
+
+    }
+
+    //***//
+
+
+    ///calculate the control for the current point on the path
+    //robot direction angle in path coordinates
+    double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), theta_meas);
+
+    //robot position vector module
+    double r = hypot(x_meas - x_aug_[proj_ind_], y_meas - y_aug_[proj_ind_]);
+
+    //robot position vector angle in world coordinates
+    double theta_r = atan2(y_meas - y_aug_[proj_ind_], x_meas - x_aug_[proj_ind_]);
+
+    //robot position vector angle in path coordinates
+    double delta_theta = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), theta_r);
+
+    //current robot position in path coordinates
+    double xe = r * cos(delta_theta);
+    double ye = r * sin(delta_theta);
+
+    ///***///
+
 
 
     //find the orthogonal projection to the curve and extract the corresponding index
@@ -439,6 +429,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
 
     //Publish the ICR parameters in a form of an array
     std_msgs::Float64MultiArray ICR_ekf_array;
+    ICR_ekf_array.data.resize(3);
     ICR_ekf_array.data[0] = ICR_ekf_(0);
     ICR_ekf_array.data[1] = ICR_ekf_(1);
     ICR_ekf_array.data[2] = ICR_ekf_(2);
