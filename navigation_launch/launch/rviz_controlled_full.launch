@@ -22,14 +22,17 @@ demonstrating the navigation framework.
 
     <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy"
     		output="screen" respawn="true">
-        <param name="target_speed" value="0.4" />
+        <param name="target_speed" value="1.0" />
         <param name="failure_mode" value="replan" />
         <remap from="/rviz_goal" to="/move_base_simple/goal" />
     </node>
 
     <include file="$(find navigation_launch)/launch/full.launch">
       <arg name="robot_controller" value="$(arg robot_controller)" />
-
+      <arg name="s1" value="0.75" />
+      <arg name="s2" value="1.5" />
+      <arg name="s3" value="0.0" />
+      <arg name="c3" value="false" />
       <arg name="use_karto" value="$(arg use_karto)" />
       <arg name="use_karto_segmented" value="$(arg use_karto_segmented)" />
       <arg name="use_amcl" value="$(arg use_amcl)" />
