@@ -49,6 +49,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
 
         tf::Transform transform_correction = now_map_to_odom.inverse();
 
+        sw.restart();
         // transform the waypoints from world to odom
         for(Waypoint& wp : waypoints) {
             tf::Point pt(wp.x, wp.y, 0);
@@ -60,7 +61,9 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             rot = transform_correction * rot;
             wp.orientation = tf::getYaw(rot);
         }
+        int trans_t = sw.usElapsed();
 
+        sw.restart();
         if(fconstraints.at(0)){
             std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints,
                                                                                           index1, index2);
@@ -91,6 +94,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
                                                                                  0, last_local_path_.size()-1);
             }
         }
+        int cs_ini = sw.usElapsed();
 
         // find the subpath that starts closest to the robot
         Eigen::Vector3d pose = follower_.getRobotPose();
@@ -119,6 +123,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         int nnodes = 1;
 
         LNode* current;
+        int init_t = gsw.usElapsed();
 
         while(!fifo.empty() && (fifo.empty()?nodes.back().level_:fifo.front()->level_) <= li_level){
             current = fifo.front();
@@ -147,20 +152,9 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         }
 
         std::vector<Waypoint> local_wps;
+        int pos_t;
         if(obj != nullptr){
             global_path_.set_s_new(global_path_.s_new() + 0.7);
-            ROS_INFO_STREAM("Path inizalitation took " << path_ini << " us");
-            ROS_INFO_STREAM("# Nodes: " << nnodes);
-            for(std::size_t i = 0; i < constraints.size(); ++i){
-                if(fconstraints.at(i)){
-                    ROS_INFO_STREAM("Constraint #" << (i+1) << " took " << constraints.at(i)->nsUsed()/1000.0 << " us");
-                }
-            }
-            for(std::size_t i = 0; i < scorer.size(); ++i){
-                if(wscorer.at(i) != 0.0){
-                    ROS_INFO_STREAM("Scorer #" << (i+1) << " took " << scorer.at(i)->nsUsed()/1000.0 << " us");
-                }
-            }
             LNode* cu = obj;
             while(cu != nullptr){
                 local_wps.push_back(*cu);
@@ -175,7 +169,7 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             local_wps = interpolatePath(local_wps, 0.1);
             //final smoothing
             local_wps = smoothPath(local_wps, 2.0, 0.4);
-            ROS_INFO_STREAM("Local path postprocessing took " << sw.usElapsed() << " us");
+            pos_t = sw.usElapsed();
         }else{
             return nullptr;
         }
@@ -187,8 +181,25 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         follower_.getController()->setPath(local_path);
 
         last_update_ = now;
+        int end_t = gsw.usElapsed();
 
-        ROS_INFO_STREAM("Local Planner duration: " << gsw.sElapsedDouble() << " s");
+        ROS_INFO_STREAM("Path inizalitation took " << path_ini << " us");
+        ROS_INFO_STREAM("Transformation to /odom took " << trans_t << " us");
+        ROS_INFO_STREAM("Constraints/Scorers inizalitation took " << cs_ini << " us");
+        ROS_INFO_STREAM("General inizalitation took " << init_t << " us");
+        ROS_INFO_STREAM("# Nodes: " << nnodes);
+        for(std::size_t i = 0; i < constraints.size(); ++i){
+            if(fconstraints.at(i)){
+                ROS_INFO_STREAM("Constraint #" << (i+1) << " took " << constraints.at(i)->nsUsed()/1000.0 << " us");
+            }
+        }
+        for(std::size_t i = 0; i < scorer.size(); ++i){
+            if(wscorer.at(i) != 0.0){
+                ROS_INFO_STREAM("Scorer #" << (i+1) << " took " << scorer.at(i)->nsUsed()/1000.0 << " us");
+            }
+        }
+        ROS_INFO_STREAM("Local path postprocessing took " << pos_t << " us");
+        ROS_INFO_STREAM("Local Planner duration: " << (end_t/1000.0) << " ms");
 
         return local_path;
 

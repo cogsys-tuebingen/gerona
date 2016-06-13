@@ -8,29 +8,29 @@
 
         <param name="resolution" value="0.1" />
 
-		<!--rosparam param="segments">[[0.7], [1.57, 1.0], [0.3], [-3.141592, 1.0], [0.7], [3.141592, 1.0], [1.0]]</rosparam-->
+		<!-- rosparam param="segments">[[0.7], [1.57, 1.0], [0.3], [-3.141592, 1.0], [0.7], [3.141592, 1.0], [1.0]]</rosparam-->
 		<!-- rosparam param="segments">[[4.5], [3.14, 1.0], [4.0]]</rosparam -->
 		<!-- typical turning maneuver -->
-		<!--rosparam param="segments">[[1.57079632679, -1.2], [-1.57079632679, 1.2]]</rosparam-->
+		<!-- rosparam param="segments">[[1.57079632679, -1.2], [-1.57079632679, 1.2]]</rosparam -->
 
 
 		<!-- forward-backward-forward -->
-		<rosparam param="segments">[[1.57079632679, 1.2],[-1.57079632679, -1.2], [1.57079632679, -1.2], [-1.57079632679, 1.2]]</rosparam>
+		<!-- rosparam param="segments">[[1.57079632679, 1.2],[-1.57079632679, -1.2], [1.57079632679, -1.2], [-1.57079632679, 1.2]]</rosparam -->
 
 		<!-- circles -->
 		<!--rosparam param="segments">[[-4.71238898038, 1.0], [4.71238898038, 1.0]]</rosparam-->
 
 		<!-- lane change -->
-		<!-- rosparam param="segments">[[3.5], [1.0471975512, 1.0], [-1.0471975512, 1.0], [3.5]]</rosparam -->
+		<rosparam param="segments">[[3.5], [1.0471975512, 1.0], [-1.0471975512, 1.0], [3.5]]</rosparam>
 
 		<!-- left-right-left -->
-		<!--rosparam param="segments">[[2.0], [1.57079632679, 1.2],[-3.141592, 1.2], [3.141592], [3.141592, 1.2], [-1.57079632679, 1.2], [2.0]]</rosparam-->
+		<!-- rosparam param="segments">[[2.0], [1.57079632679, 1.2],[-3.141592, 1.2], [3.141592], [3.141592, 1.2], [-1.57079632679, 1.2], [2.0]]</rosparam -->
 		<!-- straight line forward -->
 		<!--rosparam param="segments">[[5.0]]</rosparam-->
 		<!-- straight line backward -->
 		<!--rosparam param="segments">[[-5.0]]</rosparam-->
 		<!-- figure eight course -->
-		<!-- rosparam param="segments">[[6.28318530718, 1.0], [-6.28318530718, 1.0]]</rosparam-->
+		<!-- rosparam param="segments">[[6.28318530718, 1.0], [-6.28318530718, 1.0]]</rosparam -->
 		<!-- circle forward -->
 		<!--rosparam param="segments">[[3.14, 0.8]]</rosparam-->
 		<!-- circle backward -->
