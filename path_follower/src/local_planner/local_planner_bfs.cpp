@@ -7,14 +7,9 @@
 LocalPlannerBFS::LocalPlannerBFS(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
-    : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval)
+    : LocalPlannerClassic(follower, transformer, update_interval)
 {
 
-}
-
-void LocalPlannerBFS::setGlobalPath(Path::Ptr path)
-{
-    LocalPlanner::setGlobalPath(path);
 }
 
 Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
@@ -38,72 +33,22 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         initIndexes();
         int path_ini = sw.usElapsed();
 
-        // calculate the corrective transformation to map from world coordinates to odom
-        if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
-            ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
-            return nullptr;
-        }
-
-        tf::StampedTransform now_map_to_odom;
-        transformer_.lookupTransform("map", "odom", now, now_map_to_odom);
-
-        tf::Transform transform_correction = now_map_to_odom.inverse();
-
         sw.restart();
-        // transform the waypoints from world to odom
-        for(Waypoint& wp : waypoints) {
-            tf::Point pt(wp.x, wp.y, 0);
-            pt = transform_correction * pt;
-            wp.x = pt.x();
-            wp.y = pt.y();
-
-            tf::Quaternion rot = tf::createQuaternionFromYaw(wp.orientation);
-            rot = transform_correction * rot;
-            wp.orientation = tf::getYaw(rot);
+        if(transform2Odo(waypoints,now) == 0){
+            return nullptr;
         }
         int trans_t = sw.usElapsed();
 
         sw.restart();
-        if(fconstraints.at(0)){
-            std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints,
-                                                                                          index1, index2);
-        }
-        if(fconstraints.at(1)){
-            if(last_local_path_.empty()){
-                std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(1))->setSubPath(last_local_path_,
-                                                                                          last_local_path_.size()-1, 0);
-            }else{
-                std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(1))->setSubPath(last_local_path_,
-                                                                                          0, last_local_path_.size()-1);
-            }
-        }
-        if(wscorer.at(0) != 0.0){
-            std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setPath(waypoints, c_dist,
-                                                                               index1, index2);
-        }
-        if(wscorer.at(1) != 0.0){
-            std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->setSubPath(waypoints,
-                                                                                 index1, index2);
-        }
-        if(wscorer.at(3) != 0.0){
-            if(last_local_path_.empty()){
-                std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(3))->setSubPath(last_local_path_,
-                                                                                 last_local_path_.size()-1, 0);
-            }else{
-                std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(3))->setSubPath(last_local_path_,
-                                                                                 0, last_local_path_.size()-1);
-            }
-        }
+        initConstraintsAndScorers(constraints, scorer, fconstraints, wscorer, waypoints);
         int cs_ini = sw.usElapsed();
 
         // find the subpath that starts closest to the robot
         Eigen::Vector3d pose = follower_.getRobotPose();
 
         const Waypoint& last = waypoints.back();
-        //const tf::Point lastp(last.x,last.y,last.orientation);
         const tf::Point wposep(pose(0),pose(1),pose(2));
 
-        //float dis2last = (wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(lastp)):0.0;
         float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
 
         LNode wpose(pose(0),pose(1),pose(2),nullptr,0);
@@ -162,25 +107,15 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
             }
             std::reverse(local_wps.begin(),local_wps.end());
             last_local_path_.assign(local_wps.begin(),local_wps.end());
-            //smoothing
             sw.restart();
-            local_wps = smoothPath(local_wps, 0.6, 0.15);
-            //interpolate
-            local_wps = interpolatePath(local_wps, 0.1);
-            //final smoothing
-            local_wps = smoothPath(local_wps, 2.0, 0.4);
+            smoothAndInterpolate(local_wps);
             pos_t = sw.usElapsed();
         }else{
             return nullptr;
         }
 
         Path::Ptr local_path(new Path("/odom"));
-        local_path->setPath({local_wps});
-
-        follower_.getController()->reset();
-        follower_.getController()->setPath(local_path);
-
-        last_update_ = now;
+        setPath(local_path, local_wps, now);
         int end_t = gsw.usElapsed();
 
         ROS_INFO_STREAM("Path inizalitation took " << path_ini << " us");
@@ -207,4 +142,3 @@ Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& c
         return nullptr;
     }
 }
-

@@ -7,14 +7,9 @@
 LocalPlannerTransformer::LocalPlannerTransformer(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
-    : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval)
+    : LocalPlannerClassic(follower, transformer, update_interval)
 {
 
-}
-
-void LocalPlannerTransformer::setGlobalPath(Path::Ptr path)
-{
-    LocalPlanner::setGlobalPath(path);
 }
 
 Path::Ptr LocalPlannerTransformer::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
@@ -34,27 +29,8 @@ Path::Ptr LocalPlannerTransformer::updateLocalPath(const std::vector<Constraint:
         // only look at the first sub path for now
         auto waypoints = (SubPath) global_path_;
 
-        // calculate the corrective transformation to map from world coordinates to odom
-        if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
-            ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
+        if(transform2Odo(waypoints,now) == 0){
             return nullptr;
-        }
-
-        tf::StampedTransform now_map_to_odom;
-        transformer_.lookupTransform("map", "odom", now, now_map_to_odom);
-
-        tf::Transform transform_correction = now_map_to_odom.inverse();
-
-        // transform the waypoints from world to odom
-        for(Waypoint& wp : waypoints) {
-            tf::Point pt(wp.x, wp.y, 0);
-            pt = transform_correction * pt;
-            wp.x = pt.x();
-            wp.y = pt.y();
-
-            tf::Quaternion rot = tf::createQuaternionFromYaw(wp.orientation);
-            rot = transform_correction * rot;
-            wp.orientation = tf::getYaw(rot);
         }
 
         // find the subpath that starts closest to the robot
@@ -96,12 +72,7 @@ Path::Ptr LocalPlannerTransformer::updateLocalPath(const std::vector<Constraint:
 
         // here we just use the subpath without planning and checking constraints / scorerers
         Path::Ptr local_path(new Path("/odom"));
-        local_path->setPath({local_wps});
-
-        follower_.getController()->reset();
-        follower_.getController()->setPath(local_path);
-
-        last_update_ = now;
+        setPath(local_path, local_wps, now);
 
         return local_path;
 
