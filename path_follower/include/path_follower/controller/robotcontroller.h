@@ -50,8 +50,7 @@ public:
     virtual void reset() {}
 
     //! Set the robot pose
-    virtual void setCurrentPose(Eigen::Vector3d& pose) {}
-
+    virtual void setCurrentPose(const Eigen::Vector3d&) {}
 
     virtual void precomputeSteerCommand(Waypoint& wp_now,  Waypoint& wp_next ) {}
 

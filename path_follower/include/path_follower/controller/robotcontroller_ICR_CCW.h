@@ -3,6 +3,7 @@
 
 /// THIRD PARTY
 #include <Eigen/Core>
+#include <nav_msgs/Path.h>
 #include <geometry_msgs/PointStamped.h>
 #include "std_msgs/MultiArrayLayout.h"
 #include "std_msgs/MultiArrayDimension.h"
@@ -20,6 +21,8 @@ public:
     RobotController_ICR_CCW(PathFollower *path_driver);
     virtual void stopMotion();
     virtual void start();
+
+    virtual void setCurrentPose(const Eigen::Vector3d&);
 
 protected:
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
@@ -126,13 +129,15 @@ private:
     ros::Subscriber wheel_vel_sub_;
 
     ros::Publisher ICR_pub_;
+    ros::Publisher ekf_points_pub_;
+    ros::Publisher path_aug_pub_;
 
     std::vector<float> ranges_front_;
     std::vector<float> ranges_back_;
 
     void reset();
     void setPath(Path::Ptr path);
-    void setCurrentPose(const Eigen::Vector3d&);
+
 
     //nominal velocity
     double vn_;
@@ -163,6 +168,9 @@ private:
 
     //points estimated by the EKF
     visualization_msgs::Marker ekf_path_marker_;
+
+    //points of the augmented path
+    visualization_msgs::Marker path_aug_marker_;
 
     //x and y components of the augmented path
     std::vector<double> x_aug_;
