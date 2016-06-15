@@ -262,10 +262,13 @@ bool LocalPlannerClassic::areConstraintsSAT(const tf::Point& current, const std:
 
 int LocalPlannerClassic::transform2Odo(SubPath& waypoints, ros::Time& now){
     // calculate the corrective transformation to map from world coordinates to odom
+    Stopwatch sw;
+    sw.restart();
     if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
         ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
         return 0;
     }
+    ROS_INFO_STREAM("Time Leak here: " << sw.usElapsed()/1000.0 << "ms");
 
     tf::StampedTransform now_map_to_odom;
     transformer_.lookupTransform("map", "odom", now, now_map_to_odom);
@@ -398,4 +401,3 @@ Path::Ptr LocalPlannerClassic::updateLocalPath(const std::vector<Constraint::Ptr
         return nullptr;
     }
 }
-

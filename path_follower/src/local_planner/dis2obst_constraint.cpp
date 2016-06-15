@@ -14,7 +14,7 @@ Dis2Obst_Constraint::~Dis2Obst_Constraint()
 
 bool Dis2Obst_Constraint::isSatisfied(const tf::Point& point){
     sw.resume();
-    if(!transformer_.waitForTransform("odom", "base_link", now_, ros::Duration(0.1))) {
+    if(!transformer_.waitForTransform("odom", "base_link", now_, ros::Duration(0.005))) {
         ROS_WARN_THROTTLE_NAMED(1, "local_path/Dis2Obst_Constraint", "cannot transform base_link to odom");
         return std::numeric_limits<double>::infinity();
     }

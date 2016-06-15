@@ -22,6 +22,7 @@ int LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& lo
                                   const std::vector<bool>& fconstraints,
                                   const std::vector<double>& wscorer,
                                   int& nnodes){
+    // this planner uses the Breadth-first search algorithm
     initIndexes();
     initConstraintsAndScorers(constraints, scorer, fconstraints, wscorer, waypoints);
 
