@@ -14,7 +14,7 @@ Dis2Obst_Scorer::~Dis2Obst_Scorer()
 
 double Dis2Obst_Scorer::score(const tf::Point& point){
     sw.resume();
-    if(!transformer_.waitForTransform("odom", "base_link", now_, ros::Duration(0.1))) {
+    if(!transformer_.waitForTransform("odom", "base_link", now_, ros::Duration(0.005))) {
         ROS_WARN_THROTTLE_NAMED(1, "local_path/Dis2Obst_Scorer", "cannot transform base_link to odom");
         sw.stop();
         return std::numeric_limits<double>::infinity();

@@ -382,8 +382,7 @@ Path::Ptr LocalPlannerClassic::updateLocalPath(const std::vector<Constraint::Ptr
 
         std::vector<Waypoint> local_wps;
 
-        if(algo(pose, waypoints, local_wps, constraints, scorer, fconstraints, wscorer,
-                nnodes) == 0){
+        if(algo(pose, waypoints, local_wps, constraints, scorer, fconstraints, wscorer, nnodes) == 0){
             return nullptr;
         }
 
