@@ -12,133 +12,75 @@ LocalPlannerBFS::LocalPlannerBFS(PathFollower &follower,
 
 }
 
-Path::Ptr LocalPlannerBFS::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
-                                           const std::vector<Scorer::Ptr>& scorer,
-                                           const std::vector<bool>& fconstraints,
-                                           const std::vector<double>& wscorer)
-{
-    // this planner uses the Breadth-first search algorithm
+void LocalPlannerBFS::printNodeUsage(int& nnodes) const{
+    ROS_INFO_STREAM("# Nodes: " << nnodes);
+}
 
-    ros::Time now = ros::Time::now();
-    Stopwatch gsw;
-    gsw.restart();
+int LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
+                                  const std::vector<Constraint::Ptr>& constraints,
+                                  const std::vector<Scorer::Ptr>& scorer,
+                                  const std::vector<bool>& fconstraints,
+                                  const std::vector<double>& wscorer,
+                                  int& nnodes){
+    initIndexes();
+    initConstraintsAndScorers(constraints, scorer, fconstraints, wscorer, waypoints);
 
-    // only calculate a new local path, if enough time has passed.
-    // TODO: also replan for other reasons, e.g. the global path has changed, ...
-    if(last_update_ + update_interval_ < now) {
-        // only look at the first sub path for now
-        Stopwatch sw;
-        sw.restart();
-        auto waypoints = (SubPath) global_path_;
-        initIndexes();
-        int path_ini = sw.usElapsed();
+    const Waypoint& last = waypoints.back();
+    const tf::Point wposep(pose(0),pose(1),pose(2));
 
-        sw.restart();
-        if(transform2Odo(waypoints,now) == 0){
-            return nullptr;
+    float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
+
+    LNode wpose(pose(0),pose(1),pose(2),nullptr,0);
+
+    if(dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wposep)):0.0) < 0.8){
+        return 0;
+    }
+
+    std::vector<LNode> nodes(200);
+    nodes.at(0) = wpose;
+
+    std::queue<LNode*> fifo;
+    fifo.push(&nodes[0]);
+    double go_dist = std::numeric_limits<double>::infinity();
+    LNode* obj = nullptr;
+    int li_level = 10;
+    nnodes = 1;
+
+    LNode* current;
+
+    while(!fifo.empty() && (fifo.empty()?nodes.back().level_:fifo.front()->level_) <= li_level){
+        current = fifo.front();
+        fifo.pop();
+        if(isNearEnough(*current,last)){
+            obj = current;
+            break;
         }
-        int trans_t = sw.usElapsed();
 
-        sw.restart();
-        initConstraintsAndScorers(constraints, scorer, fconstraints, wscorer, waypoints);
-        int cs_ini = sw.usElapsed();
-
-        // find the subpath that starts closest to the robot
-        Eigen::Vector3d pose = follower_.getRobotPose();
-
-        const Waypoint& last = waypoints.back();
-        const tf::Point wposep(pose(0),pose(1),pose(2));
-
-        float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
-
-        LNode wpose(pose(0),pose(1),pose(2),nullptr,0);
-
-        if(dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wposep)):0.0) < 0.8){
-            return nullptr;
-        }
-
-        std::vector<LNode> nodes(200);
-        nodes.at(0) = wpose;
-
-        std::queue<LNode*> fifo;
-        fifo.push(&nodes[0]);
-        double go_dist = std::numeric_limits<double>::infinity();
-        LNode* obj = nullptr;
-        int li_level = 10;
-        int nnodes = 1;
-
-        LNode* current;
-        int init_t = gsw.usElapsed();
-
-        while(!fifo.empty() && (fifo.empty()?nodes.back().level_:fifo.front()->level_) <= li_level){
-            current = fifo.front();
-            fifo.pop();
-            if(isNearEnough(*current,last)){
-                obj = current;
-                break;
+        std::vector<LNode*> successors;
+        getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints);
+        for(std::size_t i = 0; i < successors.size(); ++i){
+            const tf::Point processed(successors[i]->x, successors[i]->y,
+                    successors[i]->orientation);
+            double new_dist = (dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(processed)):0.0))
+                    + ((wscorer.at(1) != 0.0)?(wscorer.at(1)*scorer.at(1)->score(processed)):0.0)
+                    + ((wscorer.at(2) != 0.0)?(wscorer.at(2)*scorer.at(2)->score(processed)):0.0)
+                    + ((fconstraints.at(1)?constraints.at(1)->isSatisfied(processed):true)?
+                           ((wscorer.at(3) != 0.0)?(wscorer.at(3)*scorer.at(3)->score(processed)):0.0):0.0);
+            if(new_dist < go_dist){
+                go_dist = new_dist;
+                obj = successors[i];
             }
-
-            std::vector<LNode*> successors;
-            getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints);
-            for(std::size_t i = 0; i < successors.size(); ++i){
-                const tf::Point processed(successors[i]->x, successors[i]->y,
-                        successors[i]->orientation);
-                double new_dist = (dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(processed)):0.0))
-                        + ((wscorer.at(1) != 0.0)?(wscorer.at(1)*scorer.at(1)->score(processed)):0.0)
-                        + ((wscorer.at(2) != 0.0)?(wscorer.at(2)*scorer.at(2)->score(processed)):0.0)
-                        + ((fconstraints.at(1)?constraints.at(1)->isSatisfied(processed):true)?
-                               ((wscorer.at(3) != 0.0)?(wscorer.at(3)*scorer.at(3)->score(processed)):0.0):0.0);
-                if(new_dist < go_dist){
-                    go_dist = new_dist;
-                    obj = successors[i];
-                }
-                fifo.push(successors[i]);
-            }
+            fifo.push(successors[i]);
         }
+    }
 
-        std::vector<Waypoint> local_wps;
-        int pos_t;
-        if(obj != nullptr){
-            global_path_.set_s_new(global_path_.s_new() + 0.7);
-            LNode* cu = obj;
-            while(cu != nullptr){
-                local_wps.push_back(*cu);
-                cu = cu->parent_;
-            }
-            std::reverse(local_wps.begin(),local_wps.end());
-            last_local_path_.assign(local_wps.begin(),local_wps.end());
-            sw.restart();
-            smoothAndInterpolate(local_wps);
-            pos_t = sw.usElapsed();
-        }else{
-            return nullptr;
-        }
-
-        Path::Ptr local_path(new Path("/odom"));
-        setPath(local_path, local_wps, now);
-        int end_t = gsw.usElapsed();
-
-        ROS_INFO_STREAM("Path inizalitation took " << path_ini << " us");
-        ROS_INFO_STREAM("Transformation to /odom took " << trans_t << " us");
-        ROS_INFO_STREAM("Constraints/Scorers inizalitation took " << cs_ini << " us");
-        ROS_INFO_STREAM("General inizalitation took " << init_t << " us");
-        ROS_INFO_STREAM("# Nodes: " << nnodes);
-        for(std::size_t i = 0; i < constraints.size(); ++i){
-            if(fconstraints.at(i)){
-                ROS_INFO_STREAM("Constraint #" << (i+1) << " took " << constraints.at(i)->nsUsed()/1000.0 << " us");
-            }
-        }
-        for(std::size_t i = 0; i < scorer.size(); ++i){
-            if(wscorer.at(i) != 0.0){
-                ROS_INFO_STREAM("Scorer #" << (i+1) << " took " << scorer.at(i)->nsUsed()/1000.0 << " us");
-            }
-        }
-        ROS_INFO_STREAM("Local path postprocessing took " << pos_t << " us");
-        ROS_INFO_STREAM("Local Planner duration: " << (end_t/1000.0) << " ms");
-
-        return local_path;
-
-    } else {
-        return nullptr;
+    if(obj != nullptr){
+        global_path_.set_s_new(global_path_.s_new() + 0.7);
+        retrievePath(obj, local_wps);
+        last_local_path_.assign(local_wps.begin(),local_wps.end());
+        smoothAndInterpolate(local_wps);
+        return 1;
+    }else{
+        return 0;
     }
 }

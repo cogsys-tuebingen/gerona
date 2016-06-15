@@ -340,3 +340,62 @@ void LocalPlannerClassic::smoothAndInterpolate(SubPath& local_wps){
     //final smoothing
     local_wps = smoothPath(local_wps, 2.0, 0.4);
 }
+
+void LocalPlannerClassic::printSCTimeUsage(const std::vector<Constraint::Ptr>& constraints,
+                                           const std::vector<Scorer::Ptr>& scorer,
+                                           const std::vector<bool>& fconstraints,
+                                           const std::vector<double>& wscorer){
+    for(std::size_t i = 0; i < constraints.size(); ++i){
+        if(fconstraints.at(i)){
+            ROS_INFO_STREAM("Constraint #" << (i+1) << " took " << constraints.at(i)->nsUsed()/1000.0 << " us");
+        }
+    }
+    for(std::size_t i = 0; i < scorer.size(); ++i){
+        if(wscorer.at(i) != 0.0){
+            ROS_INFO_STREAM("Scorer #" << (i+1) << " took " << scorer.at(i)->nsUsed()/1000.0 << " us");
+        }
+    }
+}
+
+Path::Ptr LocalPlannerClassic::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
+                                                   const std::vector<Scorer::Ptr>& scorer,
+                                                   const std::vector<bool>& fconstraints,
+                                                   const std::vector<double>& wscorer)
+{
+    ros::Time now = ros::Time::now();
+    Stopwatch gsw;
+    gsw.restart();
+
+    if(last_update_ + update_interval_ < now) {
+
+        // only look at the first sub path for now
+        auto waypoints = (SubPath) global_path_;
+
+        if(transform2Odo(waypoints,now) == 0){
+            return nullptr;
+        }
+        Eigen::Vector3d pose = follower_.getRobotPose();
+        int nnodes = 0;
+
+        std::vector<Waypoint> local_wps;
+
+        if(algo(pose, waypoints, local_wps, constraints, scorer, fconstraints, wscorer,
+                nnodes) == 0){
+            return nullptr;
+        }
+
+        Path::Ptr local_path(new Path("/odom"));
+        setPath(local_path, local_wps, now);
+        int end_t = gsw.usElapsed();
+
+        printNodeUsage(nnodes);
+        printSCTimeUsage(constraints, scorer, fconstraints, wscorer);
+        ROS_INFO_STREAM("Local Planner duration: " << (end_t/1000.0) << " ms");
+
+        return local_path;
+
+    } else {
+        return nullptr;
+    }
+}
+

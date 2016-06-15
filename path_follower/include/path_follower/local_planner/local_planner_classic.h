@@ -14,8 +14,12 @@ public:
                             tf::Transformer &transformer,
                             const ros::Duration& update_interval);
 
-    virtual void setGlobalPath(Path::Ptr path) override;
+    virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
+                                      const std::vector<Scorer::Ptr>& scorer,
+                                      const std::vector<bool>& fconstraints,
+                                      const std::vector<double>& wscorer) override;
 
+    virtual void setGlobalPath(Path::Ptr path) override;
 protected:
     template <typename NodeT>
     void getSuccessors(NodeT*& current, int& nsize, std::vector<NodeT*>& successors,
@@ -73,6 +77,16 @@ protected:
         return false;
     }
 
+    template <typename NodeT>
+    void retrievePath(NodeT* obj, SubPath& local_wps){
+        LNode* cu = obj;
+        while(cu != nullptr){
+            local_wps.push_back(*cu);
+            cu = cu->parent_;
+        }
+        std::reverse(local_wps.begin(),local_wps.end());
+    }
+
     bool areConstraintsSAT(const tf::Point& current, const std::vector<Constraint::Ptr>& constraints,
                            const std::vector<bool>& fconstraints);
 
@@ -91,12 +105,24 @@ protected:
 
     void initIndexes();
 
+    void printSCTimeUsage(const std::vector<Constraint::Ptr>& constraints,
+                          const std::vector<Scorer::Ptr>& scorer,
+                          const std::vector<bool>& fconstraints,
+                          const std::vector<double>& wscorer);
+
     SubPath interpolatePath(const SubPath& path, double max_distance);
     void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
     SubPath smoothPath(const SubPath& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
     std::vector<SubPath> segmentPath(const SubPath &path);
     SubPath smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance);
-
+private:
+    virtual void printNodeUsage(int& nnodes) const = 0;
+    virtual int algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
+                     const std::vector<Constraint::Ptr>& constraints,
+                     const std::vector<Scorer::Ptr>& scorer,
+                     const std::vector<bool>& fconstraints,
+                     const std::vector<double>& wscorer,
+                     int& nnodes) = 0;
 protected:
     const double D_THETA = 5*M_PI/36;//Assume like the global planner 25° turn
 
