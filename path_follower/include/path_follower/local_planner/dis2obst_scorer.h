@@ -14,7 +14,7 @@ public:
     Dis2Obst_Scorer(ObstacleCloud::ConstPtr &msg, tf::Transformer &transformer);
     virtual ~Dis2Obst_Scorer();
 
-    virtual double score(const tf::Point& point) override;
+    virtual double score(const LNode& point) override;
 private:
     ObstacleCloud::ConstPtr obstacles;
     tf::Transformer &transformer_;

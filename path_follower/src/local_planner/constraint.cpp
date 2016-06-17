@@ -10,3 +10,7 @@ Constraint::~Constraint()
 {
 
 }
+
+long Constraint::nsUsed(){
+    return sw.nsElapsedStatic();
+}

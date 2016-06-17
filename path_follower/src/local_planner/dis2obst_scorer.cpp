@@ -4,7 +4,7 @@
 Dis2Obst_Scorer::Dis2Obst_Scorer(ObstacleCloud::ConstPtr &msg, tf::Transformer &transformer):
     obstacles(msg),transformer_(transformer),now_(ros::Time::now())
 {
-
+    sw.resetStopped();
 }
 
 Dis2Obst_Scorer::~Dis2Obst_Scorer()
@@ -12,18 +12,22 @@ Dis2Obst_Scorer::~Dis2Obst_Scorer()
 
 }
 
-double Dis2Obst_Scorer::score(const tf::Point& point){
-    if(!transformer_.waitForTransform("odom", "base_link", now_, ros::Duration(0.1))) {
+double Dis2Obst_Scorer::score(const LNode& point){
+    sw.resume();
+    if(!transformer_.waitForTransform("odom", "base_link", now_, ros::Duration(0.005))) {
         ROS_WARN_THROTTLE_NAMED(1, "local_path/Dis2Obst_Scorer", "cannot transform base_link to odom");
+        sw.stop();
         return std::numeric_limits<double>::infinity();
     }
 
     tf::StampedTransform now_base_to_odom;
     transformer_.lookupTransform("odom", "base_link", now_, now_base_to_odom);
 
+    tf::Point pt(point.x, point.y, point.orientation);
+
     tf::Transform transform_correction = now_base_to_odom.inverse();
 
-    tf::Point pt = transform_correction * point;
+    pt = transform_correction * pt;
 
     double closest_obst = std::numeric_limits<double>::infinity();
 
@@ -38,5 +42,6 @@ double Dis2Obst_Scorer::score(const tf::Point& point){
     }
 
     double partial = closest_obst * closest_obst;
+    sw.stop();
     return 1.0/partial;
 }

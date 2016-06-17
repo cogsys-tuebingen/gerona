@@ -14,7 +14,7 @@ public:
     Dis2Obst_Constraint(ObstacleCloud::ConstPtr &msg, tf::Transformer &transformer);
     virtual ~Dis2Obst_Constraint();
 
-    virtual bool isSatisfied(const tf::Point& point) override;
+    virtual bool isSatisfied(const LNode& point) override;
 private:
     ObstacleCloud::ConstPtr obstacles;
     tf::Transformer &transformer_;

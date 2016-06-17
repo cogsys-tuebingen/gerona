@@ -10,3 +10,7 @@ Scorer::~Scorer()
 {
 
 }
+
+long Scorer::nsUsed(){
+    return sw.nsElapsedStatic();
+}
