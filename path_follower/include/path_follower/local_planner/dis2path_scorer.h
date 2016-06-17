@@ -2,7 +2,6 @@
 #define DIS2PATH_SCORER_H
 
 #include <path_follower/local_planner/scorer.h>
-#include <path_follower/utils/path.h>
 
 class Dis2Path_Scorer : public Scorer
 {
@@ -13,7 +12,7 @@ public:
     Dis2Path_Scorer();
     virtual ~Dis2Path_Scorer();
 
-    virtual double score(const tf::Point& point) override;
+    virtual double score(const LNode& point) override;
 
     void setSubPath(const SubPath& path,
                     const std::size_t index1, const std::size_t index2);

@@ -2,9 +2,9 @@
 #define LOCAL_PLANNER_TRANSFORMER_H
 
 /// PROJECT
-#include <path_follower/local_planner/local_planner_classic.h>
+#include <path_follower/local_planner/local_planner_implemented.h>
 
-class LocalPlannerTransformer : public LocalPlannerClassic
+class LocalPlannerTransformer : public LocalPlannerImplemented
 {
 public:
     LocalPlannerTransformer(PathFollower& controller,

@@ -12,10 +12,6 @@ LocalPlannerBFS::LocalPlannerBFS(PathFollower &follower,
 
 }
 
-void LocalPlannerBFS::printNodeUsage(int& nnodes) const{
-    ROS_INFO_STREAM("# Nodes: " << nnodes);
-}
-
 int LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
                                   const std::vector<Constraint::Ptr>& constraints,
                                   const std::vector<Scorer::Ptr>& scorer,
@@ -27,23 +23,22 @@ int LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& lo
     initConstraintsAndScorers(constraints, scorer, fconstraints, wscorer, waypoints);
 
     const Waypoint& last = waypoints.back();
-    const tf::Point wposep(pose(0),pose(1),pose(2));
+    LNode wpose(pose(0),pose(1),pose(2),nullptr,0);
 
     float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
 
-    LNode wpose(pose(0),pose(1),pose(2),nullptr,0);
-
-    if(dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wposep)):0.0) < 0.8){
+    if(dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wpose)):0.0) < 0.8){
         return 0;
     }
 
     std::vector<LNode> nodes(200);
+    LNode* obj = nullptr;
+
     nodes.at(0) = wpose;
 
     std::queue<LNode*> fifo;
     fifo.push(&nodes[0]);
     double go_dist = std::numeric_limits<double>::infinity();
-    LNode* obj = nullptr;
     int li_level = 10;
     nnodes = 1;
 
@@ -60,13 +55,7 @@ int LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& lo
         std::vector<LNode*> successors;
         getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints);
         for(std::size_t i = 0; i < successors.size(); ++i){
-            const tf::Point processed(successors[i]->x, successors[i]->y,
-                    successors[i]->orientation);
-            double new_dist = (dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(processed)):0.0))
-                    + ((wscorer.at(1) != 0.0)?(wscorer.at(1)*scorer.at(1)->score(processed)):0.0)
-                    + ((wscorer.at(2) != 0.0)?(wscorer.at(2)*scorer.at(2)->score(processed)):0.0)
-                    + ((fconstraints.at(1)?constraints.at(1)->isSatisfied(processed):true)?
-                           ((wscorer.at(3) != 0.0)?(wscorer.at(3)*scorer.at(3)->score(processed)):0.0):0.0);
+            double new_dist = Score(*(successors[i]), dis2last, constraints, scorer, fconstraints, wscorer);
             if(new_dist < go_dist){
                 go_dist = new_dist;
                 obj = successors[i];

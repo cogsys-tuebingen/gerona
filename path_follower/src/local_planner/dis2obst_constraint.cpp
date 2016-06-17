@@ -12,7 +12,7 @@ Dis2Obst_Constraint::~Dis2Obst_Constraint()
 
 }
 
-bool Dis2Obst_Constraint::isSatisfied(const tf::Point& point){
+bool Dis2Obst_Constraint::isSatisfied(const LNode& point){
     sw.resume();
     if(!transformer_.waitForTransform("odom", "base_link", now_, ros::Duration(0.005))) {
         ROS_WARN_THROTTLE_NAMED(1, "local_path/Dis2Obst_Constraint", "cannot transform base_link to odom");
@@ -22,9 +22,11 @@ bool Dis2Obst_Constraint::isSatisfied(const tf::Point& point){
     tf::StampedTransform now_base_to_odom;
     transformer_.lookupTransform("odom", "base_link", now_, now_base_to_odom);
 
+    tf::Point pt(point.x, point.y, point.orientation);
+
     tf::Transform transform_correction = now_base_to_odom.inverse();
 
-    tf::Point pt = transform_correction * point;
+    pt = transform_correction * pt;
 
     double closest_obst = std::numeric_limits<double>::infinity();
 

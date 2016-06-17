@@ -2,24 +2,15 @@
 #define LOCAL_PLANNER_CLASSIC_H
 
 /// PROJECT
-#include <path_follower/local_planner/local_planner.h>
+#include <path_follower/local_planner/local_planner_implemented.h>
 
-/// SYSTEM
-#include <ros/time.h>
-
-class LocalPlannerClassic : public LocalPlanner
+class LocalPlannerClassic : public LocalPlannerImplemented
 {
 public:
     LocalPlannerClassic(PathFollower& controller,
                             tf::Transformer &transformer,
                             const ros::Duration& update_interval);
 
-    virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
-                                      const std::vector<Scorer::Ptr>& scorer,
-                                      const std::vector<bool>& fconstraints,
-                                      const std::vector<double>& wscorer) override;
-
-    virtual void setGlobalPath(Path::Ptr path) override;
 protected:
     template <typename NodeT>
     void getSuccessors(NodeT*& current, int& nsize, std::vector<NodeT*>& successors,
@@ -48,9 +39,8 @@ protected:
             double x = ox + 0.15*std::cos(theta);
             double y = oy + 0.15*std::sin(theta);
             const NodeT succ(x,y,theta,current,current->level_+1);
-            const tf::Point succp(x,y,theta);
 
-            if(areConstraintsSAT(succp,constraints,fconstraints)){
+            if(areConstraintsSAT(succ,constraints,fconstraints)){
                 int wo = -1;
                 if(!isInGraph(succ,nodes,nsize,wo)){
                     nodes.at(nsize) = succ;
@@ -87,28 +77,30 @@ protected:
         std::reverse(local_wps.begin(),local_wps.end());
     }
 
-    bool areConstraintsSAT(const tf::Point& current, const std::vector<Constraint::Ptr>& constraints,
+    bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
                            const std::vector<bool>& fconstraints);
-
-    int transform2Odo(SubPath& waypoints, ros::Time& now);
 
     void initConstraintsAndScorers(const std::vector<Constraint::Ptr>& constraints,
                                    const std::vector<Scorer::Ptr>& scorer,
                                    const std::vector<bool>& fconstraints,
                                    const std::vector<double>& wscorer,
                                    SubPath& waypoints);
-    void setPath(Path::Ptr& local_path, SubPath& local_wps, ros::Time& now);
+
+    void initIndexes();
 
     void smoothAndInterpolate(SubPath& local_wps);
 
     bool isNearEnough(const Waypoint& current, const Waypoint& last);
 
-    void initIndexes();
-
-    void printSCTimeUsage(const std::vector<Constraint::Ptr>& constraints,
-                          const std::vector<Scorer::Ptr>& scorer,
-                          const std::vector<bool>& fconstraints,
-                          const std::vector<double>& wscorer);
+    inline double Score(const LNode& current, const double& dis2last, const std::vector<Constraint::Ptr>& constraints,
+                 const std::vector<Scorer::Ptr>& scorer, const std::vector<bool>& fconstraints,
+                 const std::vector<double>& wscorer){
+        return (dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(current)):0.0))
+                + ((wscorer.at(1) != 0.0)?(wscorer.at(1)*scorer.at(1)->score(current)):0.0)
+                + ((wscorer.at(2) != 0.0)?(wscorer.at(2)*scorer.at(2)->score(current)):0.0)
+                + ((fconstraints.at(1)?constraints.at(1)->isSatisfied(current):true)?
+                       ((wscorer.at(3) != 0.0)?(wscorer.at(3)*scorer.at(3)->score(current)):0.0):0.0);
+    }
 
     SubPath interpolatePath(const SubPath& path, double max_distance);
     void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
@@ -116,20 +108,10 @@ protected:
     std::vector<SubPath> segmentPath(const SubPath &path);
     SubPath smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance);
 private:
-    virtual void printNodeUsage(int& nnodes) const = 0;
-    virtual int algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
-                     const std::vector<Constraint::Ptr>& constraints,
-                     const std::vector<Scorer::Ptr>& scorer,
-                     const std::vector<bool>& fconstraints,
-                     const std::vector<double>& wscorer,
-                     int& nnodes) = 0;
+    virtual void printNodeUsage(int& nnodes) const override;
 protected:
     const double D_THETA = 5*M_PI/36;//Assume like the global planner 25° turn
 
-    ros::Time last_update_;
-    ros::Duration update_interval_;
-
-    SubPath last_local_path_;
     std::size_t index1;
     std::size_t index2;
 

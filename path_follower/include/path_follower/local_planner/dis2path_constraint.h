@@ -2,7 +2,6 @@
 #define DIS2PATH_CONSTRAINT_H
 
 #include <path_follower/local_planner/constraint.h>
-#include <path_follower/utils/path.h>
 
 class Dis2Path_Constraint : public Constraint
 {
@@ -13,7 +12,7 @@ public:
     Dis2Path_Constraint();
     virtual ~Dis2Path_Constraint();
 
-    virtual bool isSatisfied(const tf::Point& point) override;
+    virtual bool isSatisfied(const LNode& point) override;
 
     void setSubPath(const SubPath& path,
                     const std::size_t index1, const std::size_t index2);

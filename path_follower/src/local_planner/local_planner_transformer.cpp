@@ -7,7 +7,7 @@
 LocalPlannerTransformer::LocalPlannerTransformer(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
-    : LocalPlannerClassic(follower, transformer, update_interval)
+    : LocalPlannerImplemented(follower, transformer, update_interval)
 {
 
 }

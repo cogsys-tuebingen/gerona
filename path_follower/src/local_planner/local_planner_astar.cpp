@@ -12,10 +12,6 @@ LocalPlannerAStar::LocalPlannerAStar(PathFollower &follower,
 
 }
 
-void LocalPlannerAStar::printNodeUsage(int& nnodes) const{
-    ROS_INFO_STREAM("# Nodes: " << nnodes);
-}
-
 int LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
                                   const std::vector<Constraint::Ptr>& constraints,
                                   const std::vector<Scorer::Ptr>& scorer,
@@ -27,25 +23,22 @@ int LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& 
     initConstraintsAndScorers(constraints, scorer, fconstraints, wscorer, waypoints);
 
     const Waypoint& last = waypoints.back();
-    const tf::Point wposep(pose(0),pose(1),pose(2));
+    HNode wpose(pose(0),pose(1),pose(2),nullptr,0);
 
     float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
 
-    double heuristic = (dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wposep)):0.0))
-                            + ((wscorer.at(1) != 0.0)?(wscorer.at(1)*scorer.at(1)->score(wposep)):0.0)
-                            + ((wscorer.at(2) != 0.0)?(wscorer.at(2)*scorer.at(2)->score(wposep)):0.0)
-                            + ((fconstraints.at(1)?constraints.at(1)->isSatisfied(wposep):true)?
-                                   ((wscorer.at(3) != 0.0)?(wscorer.at(3)*scorer.at(3)->score(wposep)):0.0):0.0);
-
-    HNode wpose(pose(0),pose(1),pose(2),nullptr,0);
-    wpose.gScore_ = 0.0;
-    wpose.fScore_ = heuristic;
-
-    if(dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wposep)):0.0) < 0.8){
+    if(dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wpose)):0.0) < 0.8){
         return 0;
     }
 
     std::vector<HNode> nodes(200);
+    HNode* obj = nullptr;
+
+    double heuristic = Score(wpose, dis2last, constraints, scorer, fconstraints, wscorer);
+
+    wpose.gScore_ = 0.0;
+    wpose.fScore_ = heuristic;
+
     nodes.at(0) = wpose;
 
     std::vector<HNode*> closedSet;
@@ -53,7 +46,6 @@ int LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& 
     prio_queue openSet;
     openSet.insert(&nodes[0]);
     double go_dist = std::numeric_limits<double>::infinity();
-    HNode* obj = nullptr;
     int li_level = 10;
     nnodes = 1;
 
@@ -84,15 +76,7 @@ int LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& 
             successors[i]->parent_ = current;
             successors[i]->gScore_ = tentative_gScore;
 
-            const tf::Point processed(successors[i]->x,successors[i]->y,
-                    successors[i]->orientation);
-
-            heuristic = (dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(processed)):0.0))
-                    + ((wscorer.at(1) != 0.0)?(wscorer.at(1)*scorer.at(1)->score(processed)):0.0)
-                    + ((wscorer.at(2) != 0.0)?(wscorer.at(2)*scorer.at(2)->score(processed)):0.0)
-                    + ((fconstraints.at(1)?constraints.at(1)->isSatisfied(processed):true)?
-                           ((wscorer.at(3) != 0.0)?(wscorer.at(3)*scorer.at(3)->score(processed)):0.0):0.0);
-
+            heuristic = Score(*(successors[i]), dis2last, constraints, scorer, fconstraints, wscorer);
 
             successors[i]->fScore_ = heuristic;
 
