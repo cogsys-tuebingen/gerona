@@ -36,10 +36,10 @@
     <param name="obstacle_scale_lifetime" value="5.0" />
     <param name="path_width" value="0.5" />
  
-    <param name="k1" value="15.0" />
-    <param name="k2" value="45" />
+    <param name="k1" value="2.0" />
+    <param name="k2" value="15" />
 
-    <param name="lambda" value="15" />
+    <param name="lambda" value="5" />
     <param name="theta_a" value="2.0*0.78539816339" />
     <!-- grass -->
     <!-- param name="x_ICR" value="0.2809"/>

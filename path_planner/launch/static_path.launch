@@ -13,6 +13,8 @@
 		<!-- typical turning maneuver -->
 		<!-- rosparam param="segments">[[1.57079632679, -1.2], [-1.57079632679, 1.2]]</rosparam -->
 
+                <!-- big path for the meadow behind the Sand building -->
+                <!-- rosparam param="segments">[[25.0],[1.57, 2.0], [15.0], [1.57, 2.0], [25.0], [1.57, 2.0], [15.0], [2.25, 2.0], [28.5], [-2.25, 2.0], [15.0], [-1.57, 2.0], [15.0]]</rosparam -->
 
 		<!-- forward-backward-forward -->
 		<!-- rosparam param="segments">[[1.57079632679, 1.2],[-1.57079632679, -1.2], [1.57079632679, -1.2], [-1.57079632679, 1.2]]</rosparam -->
