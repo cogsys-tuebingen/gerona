@@ -4,10 +4,9 @@
 using namespace path_msgs;
 
 PathController::PathController(ros::NodeHandle &nh):
-    node_handle_(nh),
+    node_handle_(nh), private_node_handle_("~"),
     navigate_to_goal_server_(nh, "navigate_to_goal", boost::bind(&PathController::navToGoalActionCallback, this, _1), false),
-    follow_path_client_("follow_path"),
-    path_planner_client_("plan_path")
+    follow_path_client_("follow_path")
 {
     ros::param::param<int>("~num_replan_attempts", opt_.num_replan_attempts, 5);
 
@@ -335,28 +334,40 @@ void PathController::findPath()
     ros::Duration timeout(20.0);
     ros::Time start = ros::Time::now();
 
-    ROS_INFO("waiting for planner");
-    path_planner_client_.waitForServer();
-    path_planner_client_.cancelAllGoals();
+    std::string planner_topic = goal.channel.data;
+    if(planner_topic.empty()) {
+        planner_topic = private_node_handle_.resolveName("plan_path", true);
+    }
+
+    // is this a new planner?
+    auto it = path_planner_client_.find(planner_topic);
+    if(it == path_planner_client_.end()) {
+        path_planner_client_[planner_topic] = boost::make_shared<PlanPathClient>(planner_topic);
+    }
+
+    PlanPathClient& planner = *path_planner_client_.at(planner_topic);
+    ROS_INFO_STREAM("waiting for planner @ " << planner_topic);
+    planner.waitForServer();
+    planner.cancelAllGoals();
     ros::spinOnce(); ros::Duration(0.1).sleep();
 
-    path_planner_client_.sendGoal(goal_msg);
+    planner.sendGoal(goal_msg);
 
     ROS_INFO("waiting for path");
     while(ros::Time::now() < start + timeout) {
-        if(path_planner_client_.waitForResult(ros::Duration(0.5))) {
+        if(planner.waitForResult(ros::Duration(0.5))) {
             break;
         }
         ROS_INFO_THROTTLE(2, "still waiting for path");
         ros::spinOnce();
     }
 
-    actionlib::SimpleClientGoalState state = path_planner_client_.getState();
+    actionlib::SimpleClientGoalState state = planner.getState();
     if(state == actionlib::SimpleClientGoalState::SUCCEEDED) {
 
 
         ROS_INFO("Got a path, continue");
-        nav_msgs::PathPtr path(new nav_msgs::Path(path_planner_client_.getResult()->path));
+        nav_msgs::PathPtr path(new nav_msgs::Path(planner.getResult()->path));
 
         requested_path_ = path;
 
@@ -364,7 +375,7 @@ void PathController::findPath()
         say("no path found!");
 
         ROS_ERROR_STREAM("Path planner failed. Final state: " << state.toString());
-        path_planner_client_.cancelAllGoals();
+        planner.cancelAllGoals();
         ros::spinOnce(); ros::Duration(0.1).sleep();
         requested_path_ = nav_msgs::PathPtr(new nav_msgs::Path);
     }

@@ -37,6 +37,7 @@ private:
     };
 
     ros::NodeHandle node_handle_;
+    ros::NodeHandle private_node_handle_;
 
     Options opt_;
 
@@ -46,8 +47,8 @@ private:
     //! Action client to communicate with the path_follower package.
     FollowPathClient follow_path_client_;
 
-    //! Action client to communicate with the path_planner package
-    PlanPathClient path_planner_client_;
+    //! Action clients to communicate with the path_planner package
+    std::map<std::string, boost::shared_ptr<PlanPathClient>> path_planner_client_;
 
     //! Publisher for text to speech messages.
     ros::Publisher speech_pub_;
