@@ -15,7 +15,7 @@ Please make sure, you add an according launch file, if you implement a new contr
 	<arg name="c1" default="true" />
 	<arg name="c2" default="true" />
 
-	<arg name="s1" default="1.0" />
+	<arg name="s1" default="-1.0" />
 	<arg name="s2" default="1.0" />
 	<arg name="s3" default="1.0" />
 

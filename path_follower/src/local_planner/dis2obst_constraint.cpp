@@ -2,9 +2,9 @@
 #include <path_follower/local_planner/dis2obst_constraint.h>
 
 Dis2Obst_Constraint::Dis2Obst_Constraint(ObstacleCloud::ConstPtr &msg, tf::Transformer &transformer):
-    obstacles(msg),transformer_(transformer),now_(ros::Time::now())
+    Constraint(),obstacles(msg),transformer_(transformer),now_(ros::Time::now())
 {
-    sw.resetStopped();
+
 }
 
 Dis2Obst_Constraint::~Dis2Obst_Constraint()

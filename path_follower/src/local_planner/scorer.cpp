@@ -3,7 +3,7 @@
 
 Scorer::Scorer()
 {
-
+    sw.resetStopped();
 }
 
 Scorer::~Scorer()

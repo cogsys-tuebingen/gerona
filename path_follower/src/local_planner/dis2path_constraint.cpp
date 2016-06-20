@@ -2,9 +2,9 @@
 #include <path_follower/local_planner/dis2path_constraint.h>
 
 Dis2Path_Constraint::Dis2Path_Constraint():
-    currentPath(), index1_(-1), index2_(-1)
+    Constraint(),currentPath(), index1_(-1), index2_(-1)
 {
-    sw.resetStopped();
+
 }
 
 Dis2Path_Constraint::~Dis2Path_Constraint()

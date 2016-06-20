@@ -12,9 +12,9 @@ demonstrating the navigation framework.
     <arg name="algo" default="AStar" />
 
     <arg name="c1" default="true" />
-    <arg name="c2" default="true" />
+    <arg name="c2" default="false" />
 
-    <arg name="s1" default="1.0" />
+    <arg name="s1" default="-1.0" />
     <arg name="s2" default="1.0" />
     <arg name="s3" default="0.0" />
 

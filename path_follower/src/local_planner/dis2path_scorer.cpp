@@ -2,9 +2,9 @@
 #include <path_follower/local_planner/dis2path_scorer.h>
 
 Dis2Path_Scorer::Dis2Path_Scorer():
-    currentPath(), index1_(-1), index2_(-1)
+    Scorer(),currentPath(), index1_(-1), index2_(-1)
 {
-    sw.resetStopped();
+
 }
 
 Dis2Path_Scorer::~Dis2Path_Scorer()

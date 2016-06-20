@@ -181,8 +181,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
     ROS_INFO("Constraint usage [%s, %s]", opt_.c1() ? "true" : "false",
              opt_.c2() ? "true" : "false");
-    ROS_INFO("Scorer usage [%s, %s, %s]", (opt_.s1() > 0.0) ? "true" : "false",
-             (opt_.s2() > 0.0) ? "true" : "false", (opt_.s3() > 0.0) ? "true" : "false");
+    ROS_INFO("Scorer usage [%s, %s, %s]", (opt_.s1() != 0.0) ? "true" : "false",
+             (opt_.s2() != 0.0) ? "true" : "false", (opt_.s3() != 0.0) ? "true" : "false");
 
     obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
 																					&PathFollower::obstacleCloudCB, this);
@@ -419,17 +419,17 @@ void PathFollower::update()
 
             std::vector<Scorer::Ptr> scorer(3);
             std::vector<double> wscorer(3);
-            if(opt_.s1() > 0.0){
+            if(opt_.s1() != 0.0){
                 scorer.at(0) = Dis2Start_Scorer::Ptr(new Dis2Start_Scorer);
             }
             wscorer.at(0) = opt_.s1();
 
-            if(opt_.s2() > 0.0){
+            if(opt_.s2() != 0.0){
                 scorer.at(1) = Dis2Path_Scorer::Ptr(new Dis2Path_Scorer);
             }
             wscorer.at(1) = opt_.s2();
 
-            if(opt_.s3() > 0.0){
+            if(opt_.s3() != 0.0){
                 scorer.at(2) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer(this->obstacle_cloud_, pose_listener_));
             }
             wscorer.at(2) = opt_.s3();

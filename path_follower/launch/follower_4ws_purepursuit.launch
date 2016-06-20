@@ -7,7 +7,7 @@ Launch the path follower with the pure pursuit controller for a car-like (Ackerm
   <arg name="c1" default="true" />
   <arg name="c2" default="true" />
 
-  <arg name="s1" default="1.0" />
+  <arg name="s1" default="-1.0" />
   <arg name="s2" default="1.0" />
   <arg name="s3" default="1.0" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">

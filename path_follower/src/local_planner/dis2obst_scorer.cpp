@@ -2,9 +2,9 @@
 #include <path_follower/local_planner/dis2obst_scorer.h>
 
 Dis2Obst_Scorer::Dis2Obst_Scorer(ObstacleCloud::ConstPtr &msg, tf::Transformer &transformer):
-    obstacles(msg),transformer_(transformer),now_(ros::Time::now())
+    Scorer(),obstacles(msg),transformer_(transformer),now_(ros::Time::now())
 {
-    sw.resetStopped();
+
 }
 
 Dis2Obst_Scorer::~Dis2Obst_Scorer()

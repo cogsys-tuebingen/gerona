@@ -265,11 +265,10 @@ void LocalPlannerClassic::initConstraintsAndScorers(const std::vector<Constraint
 bool LocalPlannerClassic::areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
                        const std::vector<bool>& fconstraints){
     bool rval = true;
-    if(fconstraints.at(0)){
-        rval = rval && constraints.at(0)->isSatisfied(current);
-    }
-    if(fconstraints.at(1)){
-        rval = rval && constraints.at(1)->isSatisfied(current);
+    for(std::size_t i = 0; i < constraints.size(); ++i){
+        if(fconstraints.at(i)){
+            rval = rval && constraints.at(i)->isSatisfied(current);
+        }
     }
     return rval;
 }
@@ -285,4 +284,13 @@ void LocalPlannerClassic::smoothAndInterpolate(SubPath& local_wps){
 
 void LocalPlannerClassic::printNodeUsage(int& nnodes) const{
     ROS_INFO_STREAM("# Nodes: " << nnodes);
+}
+
+double LocalPlannerClassic::Score(const LNode& current, const double& dis2last,
+                        const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer){
+    double score = dis2last;
+    for(std::size_t i = 0; i < scorer.size(); ++i){
+        score += ((wscorer.at(i) != 0.0)?(wscorer.at(i)*scorer.at(i)->score(current)):0.0);
+    }
+    return score;
 }
