@@ -40,8 +40,6 @@ private:
 protected:
     ros::Time last_update_;
     ros::Duration update_interval_;
-
-    SubPath last_local_path_;
 };
 
 #endif // LOCAL_PLANNER_IMPLEMENTED_H

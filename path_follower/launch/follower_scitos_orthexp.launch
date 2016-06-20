@@ -3,7 +3,6 @@
   <arg name="algo" default="AStar" />
   <arg name="c1" default="true" />
   <arg name="c2" default="true" />
-  <arg name="c3" default="true" />
 
   <arg name="s1" default="1.0" />
   <arg name="s2" default="1.0" />
@@ -49,7 +48,6 @@
     <!-- constraints -->
     <param name="c1" value="$(arg c1)"/>
     <param name="c2" value="$(arg c2)"/>
-    <param name="c3" value="$(arg c3)"/>
     <!-- scorers -->
     <param name="s1" value="$(arg s1)"/>
     <param name="s2" value="$(arg s2)"/>

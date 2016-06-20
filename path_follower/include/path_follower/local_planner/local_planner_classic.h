@@ -92,14 +92,11 @@ protected:
 
     bool isNearEnough(const Waypoint& current, const Waypoint& last);
 
-    inline double Score(const LNode& current, const double& dis2last, const std::vector<Constraint::Ptr>& constraints,
-                 const std::vector<Scorer::Ptr>& scorer, const std::vector<bool>& fconstraints,
-                 const std::vector<double>& wscorer){
+    inline double Score(const LNode& current, const double& dis2last,
+                        const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer){
         return (dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(current)):0.0))
                 + ((wscorer.at(1) != 0.0)?(wscorer.at(1)*scorer.at(1)->score(current)):0.0)
-                + ((wscorer.at(2) != 0.0)?(wscorer.at(2)*scorer.at(2)->score(current)):0.0)
-                + ((fconstraints.at(1)?constraints.at(1)->isSatisfied(current):true)?
-                       ((wscorer.at(3) != 0.0)?(wscorer.at(3)*scorer.at(3)->score(current)):0.0):0.0);
+                + ((wscorer.at(2) != 0.0)?(wscorer.at(2)*scorer.at(2)->score(current)):0.0);
     }
 
     SubPath interpolatePath(const SubPath& path, double max_distance);

@@ -252,15 +252,6 @@ void LocalPlannerClassic::initConstraintsAndScorers(const std::vector<Constraint
         std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints,
                                                                                       index1, index2);
     }
-    if(fconstraints.at(1)){
-        if(last_local_path_.empty()){
-            std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(1))->setSubPath(last_local_path_,
-                                                                                      last_local_path_.size()-1, 0);
-        }else{
-            std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(1))->setSubPath(last_local_path_,
-                                                                                      0, last_local_path_.size()-1);
-        }
-    }
     if(wscorer.at(0) != 0.0){
         std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setPath(waypoints, c_dist,
                                                                            index1, index2);
@@ -268,15 +259,6 @@ void LocalPlannerClassic::initConstraintsAndScorers(const std::vector<Constraint
     if(wscorer.at(1) != 0.0){
         std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->setSubPath(waypoints,
                                                                              index1, index2);
-    }
-    if(wscorer.at(3) != 0.0){
-        if(last_local_path_.empty()){
-            std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(3))->setSubPath(last_local_path_,
-                                                                             last_local_path_.size()-1, 0);
-        }else{
-            std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(3))->setSubPath(last_local_path_,
-                                                                             0, last_local_path_.size()-1);
-        }
     }
 }
 
@@ -286,8 +268,8 @@ bool LocalPlannerClassic::areConstraintsSAT(const LNode& current, const std::vec
     if(fconstraints.at(0)){
         rval = rval && constraints.at(0)->isSatisfied(current);
     }
-    if(fconstraints.at(2)){
-        rval = rval && constraints.at(2)->isSatisfied(current);
+    if(fconstraints.at(1)){
+        rval = rval && constraints.at(1)->isSatisfied(current);
     }
     return rval;
 }

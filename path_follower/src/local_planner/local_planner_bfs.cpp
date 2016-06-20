@@ -55,7 +55,7 @@ int LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& lo
         std::vector<LNode*> successors;
         getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints);
         for(std::size_t i = 0; i < successors.size(); ++i){
-            double new_dist = Score(*(successors[i]), dis2last, constraints, scorer, fconstraints, wscorer);
+            double new_dist = Score(*(successors[i]), dis2last, scorer, wscorer);
             if(new_dist < go_dist){
                 go_dist = new_dist;
                 obj = successors[i];
@@ -67,8 +67,7 @@ int LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& lo
     if(obj != nullptr){
         global_path_.set_s_new(global_path_.s_new() + 0.7);
         retrievePath(obj, local_wps);
-        last_local_path_.assign(local_wps.begin(),local_wps.end());
-        smoothAndInterpolate(local_wps);
+        //smoothAndInterpolate(local_wps);
         return 1;
     }else{
         return 0;
