@@ -75,6 +75,7 @@ int LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& 
 
             successors[i]->parent_ = current;
             successors[i]->gScore_ = tentative_gScore;
+            successors[i]->computeDiff();
 
             heuristic = Score(*(successors[i]), dis2last, scorer, wscorer);
 
@@ -98,7 +99,7 @@ int LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& 
     if(obj != nullptr){
         global_path_.set_s_new(global_path_.s_new() + 0.7);
         retrievePath(obj, local_wps);
-        //smoothAndInterpolate(local_wps);
+        smoothAndInterpolate(local_wps);
         return 1;
     }else{
         return 0;

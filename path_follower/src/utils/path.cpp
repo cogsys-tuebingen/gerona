@@ -148,3 +148,13 @@ void Path::setFrameId(const std::string &frame_id)
 {
     frame_id_ = frame_id;
 }
+
+void LNode::computeDiff(){
+    if(parent_ != nullptr){
+        xp = (x - parent_->x)/h;
+        yp = (y - parent_->y)/h;
+
+        xs = (xp - parent_->xp)/h;
+        ys = (yp - parent_->yp)/h;
+    }
+}

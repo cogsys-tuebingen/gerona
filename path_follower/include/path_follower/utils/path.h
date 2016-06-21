@@ -72,9 +72,12 @@ struct LNode: Waypoint
         Waypoint(x,y,orientation),xp(0.0),yp(0.0),xs(0.0),ys(0.0),
         parent_(parent),level_(level)
     {
-
+        computeDiff();
     }
 
+    void computeDiff();
+
+    static constexpr double h = 0.15;
     //!first derivative
     double xp;
     double yp;
