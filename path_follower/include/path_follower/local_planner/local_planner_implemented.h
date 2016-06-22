@@ -21,7 +21,7 @@ public:
 
     virtual void setGlobalPath(Path::Ptr path) override;
 protected:
-    int transform2Odo(SubPath& waypoints, ros::Time& now);
+    bool transform2Odo(SubPath& waypoints, ros::Time& now);
 
     void setPath(Path::Ptr& local_path, SubPath& local_wps, ros::Time& now);
 
@@ -31,7 +31,7 @@ protected:
                           const std::vector<double>& wscorer);
 private:
     virtual void printNodeUsage(int& nnodes) const = 0;
-    virtual int algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
+    virtual bool algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
                      const std::vector<Constraint::Ptr>& constraints,
                      const std::vector<Scorer::Ptr>& scorer,
                      const std::vector<bool>& fconstraints,

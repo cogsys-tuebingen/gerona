@@ -8,9 +8,14 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
-      index1(-1), index2(-1), c_dist()
+      index1(-1), index2(-1), c_dist(),last_local_path_()
 {
 
+}
+
+void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
+    LocalPlannerImplemented::setGlobalPath(path);
+    last_local_path_ = PathInterpolated();
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -293,4 +298,11 @@ double LocalPlannerClassic::Score(const LNode& current, const double& dis2last,
         score += ((wscorer.at(i) != 0.0)?(wscorer.at(i)*scorer.at(i)->score(current)):0.0);
     }
     return score;
+}
+void LocalPlannerClassic::savePath(SubPath& local_wps){
+    std::vector<SubPath> tmpV;
+    tmpV.push_back(local_wps);
+    Path::Ptr tmpPath(new Path("/odom"));
+    tmpPath->setPath(tmpV);
+    last_local_path_.interpolatePath(tmpPath);
 }

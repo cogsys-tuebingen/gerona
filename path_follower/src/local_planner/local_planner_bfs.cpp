@@ -12,7 +12,7 @@ LocalPlannerBFS::LocalPlannerBFS(PathFollower &follower,
 
 }
 
-int LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
+bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
                                   const std::vector<Constraint::Ptr>& constraints,
                                   const std::vector<Scorer::Ptr>& scorer,
                                   const std::vector<bool>& fconstraints,
@@ -28,8 +28,10 @@ int LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& lo
     float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
 
     if(dis2last + ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wpose)):0.0) < 0.8){
-        return 0;
+        return false;
     }
+
+    retrieveContinuity(wpose);
 
     std::vector<LNode> nodes(200);
     LNode* obj = nullptr;
@@ -68,8 +70,9 @@ int LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& lo
         global_path_.set_s_new(global_path_.s_new() + 0.7);
         retrievePath(obj, local_wps);
         smoothAndInterpolate(local_wps);
-        return 1;
+        savePath(local_wps);
+        return true;
     }else{
-        return 0;
+        return false;
     }
 }

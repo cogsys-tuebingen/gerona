@@ -12,7 +12,7 @@ LocalPlannerAStar::LocalPlannerAStar(PathFollower &follower,
 
 }
 
-int LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
+bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
                                   const std::vector<Constraint::Ptr>& constraints,
                                   const std::vector<Scorer::Ptr>& scorer,
                                   const std::vector<bool>& fconstraints,
@@ -28,8 +28,10 @@ int LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& 
     float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
 
     if(dis2last + ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wpose)):0.0) < 0.8){
-        return 0;
+        return false;
     }
+
+    retrieveContinuity(wpose);
 
     std::vector<HNode> nodes(200);
     HNode* obj = nullptr;
@@ -100,8 +102,9 @@ int LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& 
         global_path_.set_s_new(global_path_.s_new() + 0.7);
         retrievePath(obj, local_wps);
         smoothAndInterpolate(local_wps);
-        return 1;
+        savePath(local_wps);
+        return true;
     }else{
-        return 0;
+        return false;
     }
 }

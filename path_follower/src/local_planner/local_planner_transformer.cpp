@@ -16,7 +16,7 @@ void LocalPlannerTransformer::printNodeUsage(int& nnodes) const{
     (void)nnodes;
 }
 
-int LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
+bool LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
                                   const std::vector<Constraint::Ptr>& constraints,
                                   const std::vector<Scorer::Ptr>& scorer,
                                   const std::vector<bool>& fconstraints,
@@ -65,5 +65,5 @@ int LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& waypoints, Sub
     //        }
 
     // here we just use the subpath without planning and checking constraints / scorerers
-    return 1;
+    return true;
 }

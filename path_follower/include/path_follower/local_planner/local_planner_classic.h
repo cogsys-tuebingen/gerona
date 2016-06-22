@@ -11,6 +11,8 @@ public:
                             tf::Transformer &transformer,
                             const ros::Duration& update_interval);
 
+    virtual void setGlobalPath(Path::Ptr path) override;
+
 protected:
     template <typename NodeT>
     void getSuccessors(NodeT*& current, int& nsize, std::vector<NodeT*>& successors,
@@ -77,6 +79,27 @@ protected:
         std::reverse(local_wps.begin(),local_wps.end());
     }
 
+    template <typename NodeT>
+    void retrieveContinuity(NodeT& wpose){
+        if(last_local_path_.n()>0){
+            std::size_t index = -1;
+            double s_new = last_local_path_.s_new() + 0.7;
+            double closest_point = std::numeric_limits<double>::infinity();
+            for(std::size_t i = 0; i < last_local_path_.n(); ++i){
+                double dist = std::abs(s_new - last_local_path_.s(i));
+                if(dist < closest_point) {
+                    closest_point = dist;
+                    index = i;
+                }
+            }
+            wpose.xp = last_local_path_.p_prim(index);
+            wpose.yp = last_local_path_.q_prim(index);
+
+            wpose.xs = last_local_path_.p_sek(index);
+            wpose.ys = last_local_path_.q_sek(index);
+        }
+    }
+
     bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
                            const std::vector<bool>& fconstraints);
 
@@ -95,6 +118,8 @@ protected:
     double Score(const LNode& current, const double& dis2last,
                         const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer);
 
+    void savePath(SubPath& local_wps);
+
     SubPath interpolatePath(const SubPath& path, double max_distance);
     void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
     SubPath smoothPath(const SubPath& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
@@ -103,12 +128,14 @@ protected:
 private:
     virtual void printNodeUsage(int& nnodes) const override;
 protected:
-    const double D_THETA = 5*M_PI/36;//Assume like the global planner 25° turn
+    static constexpr double D_THETA = 5*M_PI/36;//Assume like the global planner 25° turn
 
     std::size_t index1;
     std::size_t index2;
 
     std::vector<double> c_dist;
+
+    PathInterpolated last_local_path_;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H

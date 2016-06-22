@@ -14,7 +14,7 @@ Curvature_Scorer::~Curvature_Scorer()
 
 double Curvature_Scorer::score(const LNode& point){
     sw.resume();
-    double div = point.xp*point.ys - point.xs*point.yp;
+    double div = abs(point.xp*point.ys - point.xs*point.yp);
     if(div != 0.0){
         div /= sqrt(pow(point.xp*point.xp + point.yp*point.yp,3));
     }
