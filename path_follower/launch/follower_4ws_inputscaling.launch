@@ -11,6 +11,7 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
   <arg name="s2" default="1.0" />
   <arg name="s3" default="1.0" />
   <arg name="s4" default="1.0" />
+  <arg name="s5" default="1.0" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
 	 <param name="controller" value="4ws_inputscaling" />
 
@@ -58,6 +59,7 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
     <param name="s2" value="$(arg s2)"/>
     <param name="s3" value="$(arg s3)"/>
     <param name="s4" value="$(arg s4)"/>
+    <param name="s5" value="$(arg s5)"/>
 
     <remap from="scan" to="scan/filtered" />
     <remap from="/obstacles" to="/obstacle_cloud" />

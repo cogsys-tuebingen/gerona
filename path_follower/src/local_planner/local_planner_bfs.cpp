@@ -12,7 +12,7 @@ LocalPlannerBFS::LocalPlannerBFS(PathFollower &follower,
 
 }
 
-bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
+bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                   const std::vector<Constraint::Ptr>& constraints,
                                   const std::vector<Scorer::Ptr>& scorer,
                                   const std::vector<bool>& fconstraints,
@@ -20,7 +20,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& l
                                   int& nnodes){
     // this planner uses the Breadth-first search algorithm
     initIndexes();
-    initConstraintsAndScorers(constraints, scorer, fconstraints, wscorer, waypoints);
+    initConstraintsAndScorers(constraints, scorer, fconstraints, wscorer);
 
     const Waypoint& last = waypoints.back();
     LNode wpose(pose(0),pose(1),pose(2),nullptr,0);
@@ -32,6 +32,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& l
     }
 
     retrieveContinuity(wpose);
+    setDis2Path(wpose);
 
     std::vector<LNode> nodes(200);
     LNode* obj = nullptr;

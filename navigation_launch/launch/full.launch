@@ -16,6 +16,7 @@ This is a complete setup and enought to actually navigate the robot.
     <arg name="s2" default="1.0" />
     <arg name="s3" default="1.0" />
     <arg name="s4" default="1.0" />
+    <arg name="s5" default="1.0" />
 
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
@@ -51,6 +52,7 @@ This is a complete setup and enought to actually navigate the robot.
       <arg name="s2" value="$(arg s2)" />
       <arg name="s3" value="$(arg s3)" />
       <arg name="s4" value="$(arg s4)" />
+      <arg name="s5" value="$(arg s5)" />
 
       <arg name="use_planner_cost" value="$(arg use_planner_cost)" />
       <arg name="use_planner_dynamic" value="$(arg use_planner_dynamic)" />

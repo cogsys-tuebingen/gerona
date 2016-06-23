@@ -21,7 +21,7 @@ public:
 
     virtual void setGlobalPath(Path::Ptr path) override;
 protected:
-    bool transform2Odo(SubPath& waypoints, ros::Time& now);
+    bool transform2Odo(ros::Time& now);
 
     void setPath(Path::Ptr& local_path, SubPath& local_wps, ros::Time& now);
 
@@ -31,7 +31,7 @@ protected:
                           const std::vector<double>& wscorer);
 private:
     virtual void printNodeUsage(int& nnodes) const = 0;
-    virtual bool algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
+    virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
                      const std::vector<Constraint::Ptr>& constraints,
                      const std::vector<Scorer::Ptr>& scorer,
                      const std::vector<bool>& fconstraints,
@@ -40,6 +40,8 @@ private:
 protected:
     ros::Time last_update_;
     ros::Duration update_interval_;
+
+    SubPath waypoints;
 };
 
 #endif // LOCAL_PLANNER_IMPLEMENTED_H

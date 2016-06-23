@@ -7,7 +7,8 @@
 LocalPlannerImplemented::LocalPlannerImplemented(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
-    : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval)
+    : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval),
+      waypoints()
 {
 
 }
@@ -17,7 +18,7 @@ void LocalPlannerImplemented::setGlobalPath(Path::Ptr path)
     LocalPlanner::setGlobalPath(path);
 }
 
-bool LocalPlannerImplemented::transform2Odo(SubPath& waypoints, ros::Time& now){
+bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
     // calculate the corrective transformation to map from world coordinates to odom
     Stopwatch sw;
     sw.restart();
@@ -83,9 +84,9 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
     if(last_update_ + update_interval_ < now) {
 
         // only look at the first sub path for now
-        auto waypoints = (SubPath) global_path_;
+        waypoints = (SubPath) global_path_;
 
-        if(!transform2Odo(waypoints,now)){
+        if(!transform2Odo(now)){
             return nullptr;
         }
         Eigen::Vector3d pose = follower_.getRobotPose();
@@ -93,7 +94,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
 
         std::vector<Waypoint> local_wps;
 
-        if(!algo(pose, waypoints, local_wps, constraints, scorer, fconstraints, wscorer, nnodes)){
+        if(!algo(pose, local_wps, constraints, scorer, fconstraints, wscorer, nnodes)){
             return nullptr;
         }
 

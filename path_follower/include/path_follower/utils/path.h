@@ -70,12 +70,20 @@ struct LNode: Waypoint
     }
     LNode(double x, double y, double orientation, LNode* parent, int level):
         Waypoint(x,y,orientation),xp(0.0),yp(0.0),xs(0.0),ys(0.0),
-        parent_(parent),level_(level)
+        parent_(parent),level_(level),d2p(0.0)
     {
         computeDiff();
     }
 
-    void computeDiff();
+    void computeDiff(){
+        if(parent_ != nullptr){
+            xp = (x - parent_->x)/h;
+            yp = (y - parent_->y)/h;
+
+            xs = (xp - parent_->xp)/h;
+            ys = (yp - parent_->yp)/h;
+        }
+    }
 
     static constexpr double h = 0.15;
     //!first derivative
@@ -88,6 +96,9 @@ struct LNode: Waypoint
 
     LNode* parent_;
     int level_;
+
+    //!distance to path
+    double d2p;
 };
 
 //!Heuristic Node for the local tree (A*)

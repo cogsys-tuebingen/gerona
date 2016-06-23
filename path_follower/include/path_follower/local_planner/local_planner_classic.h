@@ -40,7 +40,8 @@ protected:
 
             double x = ox + 0.15*std::cos(theta);
             double y = oy + 0.15*std::sin(theta);
-            const NodeT succ(x,y,theta,current,current->level_+1);
+            NodeT succ(x,y,theta,current,current->level_+1);
+            setDis2Path(succ);
 
             if(areConstraintsSAT(succ,constraints,fconstraints)){
                 int wo = -1;
@@ -67,6 +68,22 @@ protected:
             }
         }
         return false;
+    }
+
+    template <typename NodeT>
+    void setDis2Path(NodeT& current){
+        double closest_dist = std::numeric_limits<double>::infinity();
+        if(waypoints.empty()){
+            return;
+        }
+        for(std::size_t i = index1; i <= index2; ++i) {
+            const Waypoint& wp = waypoints[i];
+            double dist = std::hypot(wp.x - current.x, wp.y - current.y);
+            if(dist < closest_dist) {
+                closest_dist = dist;
+            }
+        }
+        current.d2p = closest_dist;
     }
 
     template <typename NodeT>
@@ -106,8 +123,7 @@ protected:
     void initConstraintsAndScorers(const std::vector<Constraint::Ptr>& constraints,
                                    const std::vector<Scorer::Ptr>& scorer,
                                    const std::vector<bool>& fconstraints,
-                                   const std::vector<double>& wscorer,
-                                   SubPath& waypoints);
+                                   const std::vector<double>& wscorer);
 
     void initIndexes();
 

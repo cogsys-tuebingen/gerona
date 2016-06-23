@@ -20,7 +20,7 @@ struct PathFollowerParameters : public Parameters
     //Parameters for the Local Planner
     P<std::string> algo;
     P<bool> c1, c2;
-    P<double> s1, s2, s3, s4;
+    P<double> s1, s2, s3, s4, s5;
 
     // obstacle avoider
     P<bool> obstacle_avoider_use_collision_box;
@@ -67,11 +67,13 @@ struct PathFollowerParameters : public Parameters
         s1(this, "~s1", -1.0,
            "Determines whether the first scorer is used or not. (Distance to start position)"),
         s2(this, "~s2", 1.0,
-           "Determines whether the second scorer is used or not. (Distance to global path)"),
+           "Determines whether the second scorer is used or not. (Distance to global path (P))"),
         s3(this, "~s3", 1.0,
-           "Determines whether the third scorer is used or not. (Distance to nearest obstacle)"),
+           "Determines whether the third  scorer is used or not. (Distance to global path (D))"),
         s4(this, "~s4", 1.0,
-           "Determines whether the fourth scorer is used or not. (Curvature of the point)"),
+           "Determines whether the fourth scorer is used or not. (Distance to nearest obstacle)"),
+        s5(this, "~s5", 1.0,
+           "Determines whether the fifth scorer is used or not. (Curvature of the point)"),
 
         obstacle_avoider_use_collision_box(this, "~obstacle_avoider/use_collision_box", true,
                                            "Use the collision box obstacle avoider ('ObstacleDetector')"),

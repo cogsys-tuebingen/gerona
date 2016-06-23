@@ -12,7 +12,7 @@ LocalPlannerAStar::LocalPlannerAStar(PathFollower &follower,
 
 }
 
-bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
+bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                   const std::vector<Constraint::Ptr>& constraints,
                                   const std::vector<Scorer::Ptr>& scorer,
                                   const std::vector<bool>& fconstraints,
@@ -20,7 +20,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath&
                                   int& nnodes){
     // this planner uses the A* search algorithm
     initIndexes();
-    initConstraintsAndScorers(constraints, scorer, fconstraints, wscorer, waypoints);
+    initConstraintsAndScorers(constraints, scorer, fconstraints, wscorer);
 
     const Waypoint& last = waypoints.back();
     HNode wpose(pose(0),pose(1),pose(2),nullptr,0);
@@ -32,6 +32,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath&
     }
 
     retrieveContinuity(wpose);
+    setDis2Path(wpose);
 
     std::vector<HNode> nodes(200);
     HNode* obj = nullptr;
