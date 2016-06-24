@@ -16,7 +16,7 @@ double Dis2PathD_Scorer::score(const LNode& point){
     sw.resume();
     double diff = 0.0;
     if(point.parent_ != nullptr){
-        diff = point.d2p - point.parent_->d2p;
+        diff = abs(point.d2p - point.parent_->d2p);
     }
     sw.stop();
     return diff;
