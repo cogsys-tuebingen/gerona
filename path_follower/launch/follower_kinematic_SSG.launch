@@ -3,12 +3,12 @@
   <arg name="algo" default="AStar" />
   <arg name="c1" default="true" />
   <arg name="c2" default="true" />
-  <arg name="c3" default="true" />
 
-  <arg name="s1" default="1.0" />
+  <arg name="s1" default="-1.0" />
   <arg name="s2" default="1.0" />
   <arg name="s3" default="1.0" />
   <arg name="s4" default="1.0" />
+  <arg name="s5" default="1.0" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
     <param name="supervisor/use_path_lookout" value="false" />
     <param name="supervisor/use_waypoint_timeout" value="false" />
@@ -69,12 +69,12 @@
     <!-- constraints -->
     <param name="c1" value="$(arg c1)"/>
     <param name="c2" value="$(arg c2)"/>
-    <param name="c3" value="$(arg c3)"/>
     <!-- scorers -->
     <param name="s1" value="$(arg s1)"/>
     <param name="s2" value="$(arg s2)"/>
     <param name="s3" value="$(arg s3)"/>
     <param name="s4" value="$(arg s4)"/>
+    <param name="s5" value="$(arg s5)"/>
 
     <remap from="scan" to="scan/front" />
     <remap from="/obstacles" to="/obstacle_cloud" />

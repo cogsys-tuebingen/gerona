@@ -3,7 +3,7 @@
 
 Constraint::Constraint()
 {
-
+    sw.resetStopped();
 }
 
 Constraint::~Constraint()

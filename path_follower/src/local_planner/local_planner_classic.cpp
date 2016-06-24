@@ -8,9 +8,14 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
-      index1(-1), index2(-1), c_dist()
+      index1(-1), index2(-1), c_dist(),last_local_path_()
 {
 
+}
+
+void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
+    LocalPlannerImplemented::setGlobalPath(path);
+    last_local_path_ = PathInterpolated();
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -246,48 +251,22 @@ void LocalPlannerClassic::initIndexes(){
 void LocalPlannerClassic::initConstraintsAndScorers(const std::vector<Constraint::Ptr>& constraints,
                                                     const std::vector<Scorer::Ptr>& scorer,
                                                     const std::vector<bool>& fconstraints,
-                                                    const std::vector<double>& wscorer,
-                                                    SubPath& waypoints){
-    if(fconstraints.at(0)){
-        std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setSubPath(waypoints,
-                                                                                      index1, index2);
-    }
-    if(fconstraints.at(1)){
-        if(last_local_path_.empty()){
-            std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(1))->setSubPath(last_local_path_,
-                                                                                      last_local_path_.size()-1, 0);
-        }else{
-            std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(1))->setSubPath(last_local_path_,
-                                                                                      0, last_local_path_.size()-1);
-        }
-    }
+                                                    const std::vector<double>& wscorer){
+    (void)constraints;
+    (void)fconstraints;
     if(wscorer.at(0) != 0.0){
         std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setPath(waypoints, c_dist,
                                                                            index1, index2);
-    }
-    if(wscorer.at(1) != 0.0){
-        std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(1))->setSubPath(waypoints,
-                                                                             index1, index2);
-    }
-    if(wscorer.at(3) != 0.0){
-        if(last_local_path_.empty()){
-            std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(3))->setSubPath(last_local_path_,
-                                                                             last_local_path_.size()-1, 0);
-        }else{
-            std::dynamic_pointer_cast<Dis2Path_Scorer>(scorer.at(3))->setSubPath(last_local_path_,
-                                                                             0, last_local_path_.size()-1);
-        }
     }
 }
 
 bool LocalPlannerClassic::areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
                        const std::vector<bool>& fconstraints){
     bool rval = true;
-    if(fconstraints.at(0)){
-        rval = rval && constraints.at(0)->isSatisfied(current);
-    }
-    if(fconstraints.at(2)){
-        rval = rval && constraints.at(2)->isSatisfied(current);
+    for(std::size_t i = 0; i < constraints.size(); ++i){
+        if(fconstraints.at(i)){
+            rval = rval && constraints.at(i)->isSatisfied(current);
+        }
     }
     return rval;
 }
@@ -303,4 +282,20 @@ void LocalPlannerClassic::smoothAndInterpolate(SubPath& local_wps){
 
 void LocalPlannerClassic::printNodeUsage(int& nnodes) const{
     ROS_INFO_STREAM("# Nodes: " << nnodes);
+}
+
+double LocalPlannerClassic::Score(const LNode& current, const double& dis2last,
+                        const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer){
+    double score = dis2last;
+    for(std::size_t i = 0; i < scorer.size(); ++i){
+        score += ((wscorer.at(i) != 0.0)?(wscorer.at(i)*scorer.at(i)->score(current)):0.0);
+    }
+    return score;
+}
+void LocalPlannerClassic::savePath(SubPath& local_wps){
+    std::vector<SubPath> tmpV;
+    tmpV.push_back(local_wps);
+    Path::Ptr tmpPath(new Path("/odom"));
+    tmpPath->setPath(tmpV);
+    last_local_path_.interpolatePath(tmpPath);
 }

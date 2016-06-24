@@ -8,7 +8,7 @@ LocalPlannerImplemented::LocalPlannerImplemented(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval),
-      last_local_path_()
+      waypoints()
 {
 
 }
@@ -18,13 +18,13 @@ void LocalPlannerImplemented::setGlobalPath(Path::Ptr path)
     LocalPlanner::setGlobalPath(path);
 }
 
-int LocalPlannerImplemented::transform2Odo(SubPath& waypoints, ros::Time& now){
+bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
     // calculate the corrective transformation to map from world coordinates to odom
     Stopwatch sw;
     sw.restart();
     if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
         ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
-        return 0;
+        return false;
     }
     ROS_INFO_STREAM("Time Leak here: " << sw.usElapsed()/1000.0 << "ms");
 
@@ -44,7 +44,7 @@ int LocalPlannerImplemented::transform2Odo(SubPath& waypoints, ros::Time& now){
         rot = transform_correction * rot;
         wp.orientation = tf::getYaw(rot);
     }
-    return 1;
+    return true;
 }
 
 void LocalPlannerImplemented::setPath(Path::Ptr& local_path, SubPath& local_wps, ros::Time& now){
@@ -84,9 +84,9 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
     if(last_update_ + update_interval_ < now) {
 
         // only look at the first sub path for now
-        auto waypoints = (SubPath) global_path_;
+        waypoints = (SubPath) global_path_;
 
-        if(transform2Odo(waypoints,now) == 0){
+        if(!transform2Odo(now)){
             return nullptr;
         }
         Eigen::Vector3d pose = follower_.getRobotPose();
@@ -94,7 +94,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
 
         std::vector<Waypoint> local_wps;
 
-        if(algo(pose, waypoints, local_wps, constraints, scorer, fconstraints, wscorer, nnodes) == 0){
+        if(!algo(pose, local_wps, constraints, scorer, fconstraints, wscorer, nnodes)){
             return nullptr;
         }
 

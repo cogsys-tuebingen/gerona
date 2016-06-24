@@ -2,9 +2,9 @@
 #include <path_follower/local_planner/dis2obst_scorer.h>
 
 Dis2Obst_Scorer::Dis2Obst_Scorer(ObstacleCloud::ConstPtr &msg, tf::Transformer &transformer):
-    obstacles(msg),transformer_(transformer),now_(ros::Time::now())
+    Scorer(),obstacles(msg),transformer_(transformer),now_(ros::Time::now())
 {
-    sw.resetStopped();
+
 }
 
 Dis2Obst_Scorer::~Dis2Obst_Scorer()
@@ -33,9 +33,10 @@ double Dis2Obst_Scorer::score(const LNode& point){
 
     ObstacleCloud::const_iterator point_it;
     for (point_it = obstacles->begin(); point_it != obstacles->end(); ++point_it){
-        double x = pt.x() - (double)(point_it->x);
-        double y = pt.y() - (double)(point_it->y);
-        double dist = std::hypot(x, y);
+        double x = (double)(point_it->x) - pt.x();
+        double y = (double)(point_it->y) - pt.y();
+        double a_diff = point.orientation - atan2(y,x);
+        double dist = ((3-cos(a_diff)) * std::hypot(x, y))/2;
         if(dist < closest_obst) {
             closest_obst = dist;
         }

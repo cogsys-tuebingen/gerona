@@ -12,7 +12,7 @@ LocalPlannerAStar::LocalPlannerAStar(PathFollower &follower,
 
 }
 
-int LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& local_wps,
+bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                   const std::vector<Constraint::Ptr>& constraints,
                                   const std::vector<Scorer::Ptr>& scorer,
                                   const std::vector<bool>& fconstraints,
@@ -20,21 +20,24 @@ int LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& 
                                   int& nnodes){
     // this planner uses the A* search algorithm
     initIndexes();
-    initConstraintsAndScorers(constraints, scorer, fconstraints, wscorer, waypoints);
+    initConstraintsAndScorers(constraints, scorer, fconstraints, wscorer);
 
     const Waypoint& last = waypoints.back();
     HNode wpose(pose(0),pose(1),pose(2),nullptr,0);
 
     float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
 
-    if(dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wpose)):0.0) < 0.8){
-        return 0;
+    if(dis2last + ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wpose)):0.0) < 0.8){
+        return false;
     }
+
+    retrieveContinuity(wpose);
+    setDis2Path(wpose);
 
     std::vector<HNode> nodes(200);
     HNode* obj = nullptr;
 
-    double heuristic = Score(wpose, dis2last, constraints, scorer, fconstraints, wscorer);
+    double heuristic = Score(wpose, dis2last, scorer, wscorer);
 
     wpose.gScore_ = 0.0;
     wpose.fScore_ = heuristic;
@@ -75,8 +78,9 @@ int LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& 
 
             successors[i]->parent_ = current;
             successors[i]->gScore_ = tentative_gScore;
+            successors[i]->computeDiff();
 
-            heuristic = Score(*(successors[i]), dis2last, constraints, scorer, fconstraints, wscorer);
+            heuristic = Score(*(successors[i]), dis2last, scorer, wscorer);
 
             successors[i]->fScore_ = heuristic;
 
@@ -98,10 +102,10 @@ int LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& waypoints, SubPath& 
     if(obj != nullptr){
         global_path_.set_s_new(global_path_.s_new() + 0.7);
         retrievePath(obj, local_wps);
-        last_local_path_.assign(local_wps.begin(),local_wps.end());
         smoothAndInterpolate(local_wps);
-        return 1;
+        savePath(local_wps);
+        return true;
     }else{
-        return 0;
+        return false;
     }
 }

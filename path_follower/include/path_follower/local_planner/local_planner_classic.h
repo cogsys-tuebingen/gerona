@@ -11,6 +11,8 @@ public:
                             tf::Transformer &transformer,
                             const ros::Duration& update_interval);
 
+    virtual void setGlobalPath(Path::Ptr path) override;
+
 protected:
     template <typename NodeT>
     void getSuccessors(NodeT*& current, int& nsize, std::vector<NodeT*>& successors,
@@ -38,7 +40,8 @@ protected:
 
             double x = ox + 0.15*std::cos(theta);
             double y = oy + 0.15*std::sin(theta);
-            const NodeT succ(x,y,theta,current,current->level_+1);
+            NodeT succ(x,y,theta,current,current->level_+1);
+            setDis2Path(succ);
 
             if(areConstraintsSAT(succ,constraints,fconstraints)){
                 int wo = -1;
@@ -68,6 +71,22 @@ protected:
     }
 
     template <typename NodeT>
+    void setDis2Path(NodeT& current){
+        double closest_dist = std::numeric_limits<double>::infinity();
+        if(waypoints.empty()){
+            return;
+        }
+        for(std::size_t i = index1; i <= index2; ++i) {
+            const Waypoint& wp = waypoints[i];
+            double dist = std::hypot(wp.x - current.x, wp.y - current.y);
+            if(dist < closest_dist) {
+                closest_dist = dist;
+            }
+        }
+        current.d2p = closest_dist;
+    }
+
+    template <typename NodeT>
     void retrievePath(NodeT* obj, SubPath& local_wps){
         LNode* cu = obj;
         while(cu != nullptr){
@@ -77,14 +96,34 @@ protected:
         std::reverse(local_wps.begin(),local_wps.end());
     }
 
+    template <typename NodeT>
+    void retrieveContinuity(NodeT& wpose){
+        if(last_local_path_.n()>0){
+            std::size_t index = -1;
+            double s_new = last_local_path_.s_new() + 0.7;
+            double closest_point = std::numeric_limits<double>::infinity();
+            for(std::size_t i = 0; i < last_local_path_.n(); ++i){
+                double dist = std::abs(s_new - last_local_path_.s(i));
+                if(dist < closest_point) {
+                    closest_point = dist;
+                    index = i;
+                }
+            }
+            wpose.xp = last_local_path_.p_prim(index);
+            wpose.yp = last_local_path_.q_prim(index);
+
+            wpose.xs = last_local_path_.p_sek(index);
+            wpose.ys = last_local_path_.q_sek(index);
+        }
+    }
+
     bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
                            const std::vector<bool>& fconstraints);
 
     void initConstraintsAndScorers(const std::vector<Constraint::Ptr>& constraints,
                                    const std::vector<Scorer::Ptr>& scorer,
                                    const std::vector<bool>& fconstraints,
-                                   const std::vector<double>& wscorer,
-                                   SubPath& waypoints);
+                                   const std::vector<double>& wscorer);
 
     void initIndexes();
 
@@ -92,15 +131,10 @@ protected:
 
     bool isNearEnough(const Waypoint& current, const Waypoint& last);
 
-    inline double Score(const LNode& current, const double& dis2last, const std::vector<Constraint::Ptr>& constraints,
-                 const std::vector<Scorer::Ptr>& scorer, const std::vector<bool>& fconstraints,
-                 const std::vector<double>& wscorer){
-        return (dis2last - ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(current)):0.0))
-                + ((wscorer.at(1) != 0.0)?(wscorer.at(1)*scorer.at(1)->score(current)):0.0)
-                + ((wscorer.at(2) != 0.0)?(wscorer.at(2)*scorer.at(2)->score(current)):0.0)
-                + ((fconstraints.at(1)?constraints.at(1)->isSatisfied(current):true)?
-                       ((wscorer.at(3) != 0.0)?(wscorer.at(3)*scorer.at(3)->score(current)):0.0):0.0);
-    }
+    double Score(const LNode& current, const double& dis2last,
+                        const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer);
+
+    void savePath(SubPath& local_wps);
 
     SubPath interpolatePath(const SubPath& path, double max_distance);
     void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
@@ -110,12 +144,14 @@ protected:
 private:
     virtual void printNodeUsage(int& nnodes) const override;
 protected:
-    const double D_THETA = 5*M_PI/36;//Assume like the global planner 25° turn
+    static constexpr double D_THETA = 5*M_PI/36;//Assume like the global planner 25° turn
 
     std::size_t index1;
     std::size_t index2;
 
     std::vector<double> c_dist;
+
+    PathInterpolated last_local_path_;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H
