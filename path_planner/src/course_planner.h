@@ -129,6 +129,8 @@ private:
     tf::TransformListener pose_listener_;
 
 
+    nav_msgs::Path planWithStaticPath(const path_msgs::PlanPathGoalConstPtr &goal);
+    nav_msgs::Path planWithMap(const path_msgs::PlanPathGoalConstPtr &goal);
 };
 
 #endif // COURSE_PLANNER_H

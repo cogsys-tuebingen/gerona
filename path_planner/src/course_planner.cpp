@@ -344,55 +344,26 @@ void CoursePlanner::startPoseCb(const geometry_msgs::PoseStampedConstPtr &pose_s
 }
 
 
-
-
 void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
 {
     nav_msgs::Path path_raw = nav_msgs::Path();
 
-
-    //        pose = tf::Transform(tf::createIdentityQuaternion(), tf::Vector3(0,0,0));
+    if(course_.hasSegments()) {
+        path_raw = planWithMap(goal);
+    } else {
+        path_raw = planWithStaticPath(goal);
+    }
 
     path_raw.header.frame_id = "map";
     path_raw.header.stamp = ros::Time::now();
-    geometry_msgs::PoseArray poses;
 
-    path_geom::PathPose goal_gp = pose2PathPose(goal->goal.pose.pose);
-    int nearest_idx;
-    Eigen::Vector2d nearest;
-    findPosOnCourse(goal_gp,course_segments_,nearest_idx,nearest);
-    if ((nearest_idx>=0) && (goal_gp.pos_-nearest).norm()<0.5) {
-            active_segments_.clear();
-            shared_ptr<Shape> nearest_cpy=Shape::deepCopy(course_segments_[nearest_idx]);
-            nearest_cpy->selectStartPoint(nearest);
-
-            active_segments_.push_back(nearest_cpy);
-            int idx=nearest_idx+1;
-
-            int cnt = (int)course_segments_.size();
-            while (idx!=nearest_idx && cnt) {
-                if (idx>=(int)course_segments_.size()) {
-                    idx=0;
-                }
-                active_segments_.push_back(course_segments_[idx]);
-                idx+=1;
-                --cnt;
-            }
-            /*
-            active_segments_.push_back(course_segments_[nearest_idx]);
-
-            active_segments_.back()->selectEndPoint(nearest);*/
-            segments2Path(active_segments_,0.0,path_geom::FORWARD,path_raw);
-            ROS_INFO_STREAM("resuning course with "<<active_segments_.size()<< " segments");
-     } else {
-
-       ROS_INFO("creating course");
-       createCourse(segment_array_,goal->goal.pose.pose, course_segments_,path_raw);
-       active_segments_ = course_segments_;
+    if(course_.hasSegments()) {
+        path_ = path_raw;
+    } else {
+        path_ = postprocess(path_raw);
     }
-
-    path_ = postprocess(path_raw);
     publish(path_, path_raw);
+    geometry_msgs::PoseArray poses;
     for (vector<geometry_msgs::PoseStamped>::iterator pose_it=path_.poses.begin();pose_it!=path_.poses.end();++pose_it) {
         geometry_msgs::Pose pose;
         pose.position = pose_it->pose.position;
@@ -402,6 +373,7 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
     }
     poses.header.frame_id="/map";
     posearray_pub_.publish(poses);
+
     feedback(path_msgs::PlanPathFeedback::STATUS_DONE);
 
     path_msgs::PlanPathResult success;
@@ -409,6 +381,70 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
     server_.setSucceeded(success);
 }
 
+
+
+
+nav_msgs::Path CoursePlanner::planWithMap(const path_msgs::PlanPathGoalConstPtr &goal)
+{
+    nav_msgs::Path path_raw = nav_msgs::Path();
+
+    geometry_msgs::PoseStamped robot_pose;
+    bool has_pose = getWorldPose("/map","/base_link",robot_pose);
+    if (!has_pose) {
+        ROS_ERROR("cannot find robot pose with TF");
+        return path_raw;
+    }
+
+    std::vector<path_geom::PathPose> pts = course_.findPath(pose2PathPose(robot_pose.pose), pose2PathPose(goal->goal.pose.pose));
+    for(const path_geom::PathPose& pose : pts) {
+        path_raw.poses.push_back(pathPose2Pose(pose));
+    }
+
+    return path_raw;
+}
+
+
+
+nav_msgs::Path CoursePlanner::planWithStaticPath(const path_msgs::PlanPathGoalConstPtr &goal)
+{
+    nav_msgs::Path path_raw = nav_msgs::Path();
+
+    path_geom::PathPose goal_gp = pose2PathPose(goal->goal.pose.pose);
+    int nearest_idx;
+    Eigen::Vector2d nearest;
+    findPosOnCourse(goal_gp,course_segments_,nearest_idx,nearest);
+    if ((nearest_idx>=0) && (goal_gp.pos_-nearest).norm()<0.5) {
+        active_segments_.clear();
+        shared_ptr<Shape> nearest_cpy=Shape::deepCopy(course_segments_[nearest_idx]);
+        nearest_cpy->selectStartPoint(nearest);
+
+        active_segments_.push_back(nearest_cpy);
+        int idx=nearest_idx+1;
+
+        int cnt = (int)course_segments_.size();
+        while (idx!=nearest_idx && cnt) {
+            if (idx>=(int)course_segments_.size()) {
+                idx=0;
+            }
+            active_segments_.push_back(course_segments_[idx]);
+            idx+=1;
+            --cnt;
+        }
+        /*
+        active_segments_.push_back(course_segments_[nearest_idx]);
+
+        active_segments_.back()->selectEndPoint(nearest);*/
+        segments2Path(active_segments_,0.0,path_geom::FORWARD,path_raw);
+        ROS_INFO_STREAM("resuning course with "<<active_segments_.size()<< " segments");
+    } else {
+
+        ROS_INFO("creating course");
+        createCourse(segment_array_,goal->goal.pose.pose, course_segments_,path_raw);
+        active_segments_ = course_segments_;
+    }
+
+    return path_raw;
+}
 
 
 void CoursePlanner::findPosOnCourse(const PathPose &gp, const vector<shared_ptr<Shape> > &course, int &nearest_idx,
