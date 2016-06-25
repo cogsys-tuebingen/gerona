@@ -18,12 +18,15 @@
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <path_msgs/PlanAvoidanceAction.h>
+#include "course/course_generator.h"
 
 #include <nav_msgs/Path.h>
 #include <tf/transform_listener.h>
 
 #include <utils_path/geometry/shape.h>
 #include <utils_path/geometry/circle.h>
+
+
 using namespace std;
 using namespace path_geom;
 class CoursePlanner : public Planner
@@ -41,6 +44,8 @@ public:
 
         throw std::logic_error("should not be called");
     }
+
+    void tick();
 
     void addCurve(double angle, double radius);
 
@@ -62,6 +67,9 @@ private:
     double obstacle_radius_ = 1.5;
 
     XmlRpc::XmlRpcValue segment_array_;
+    XmlRpc::XmlRpcValue map_segment_array_;
+
+    CourseGenerator course_;
 
     vector<shared_ptr<Shape>> course_segments_;
     vector<shared_ptr<Shape>> active_segments_;
@@ -82,6 +90,7 @@ private:
     void processPlanAvoidance(const path_geom::PathPose& obstacle,
                               const path_geom::PathPose& robot,
                               nav_msgs::Path& path);
+
 
 
     /**

@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(path_follower)
 
-set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # -std=gnu++0x
 
 ## Enforce that we use C++11
@@ -68,9 +67,11 @@ include_directories(
 
 file(GLOB_RECURSE INCLUDE_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} FOLLOW_SYMLINKS include/*.hpp include/*.h)
 
+add_custom_target(path_follower_include_headers SOURES
+    ${INCLUDE_HEADERS}
+)
 
 add_executable(path_follower_node
-  ${INCLUDE_HEADERS}
   src/follower_node.cpp
   src/pathfollower.cpp
 

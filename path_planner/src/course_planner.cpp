@@ -20,8 +20,8 @@
 
 CoursePlanner::CoursePlanner()
 
-    :    plan_avoidance_server_(nh, "/plan_avoidance", boost::bind(&CoursePlanner::planAvoidanceCb, this, _1), false)
-
+    : course_(nh),
+      plan_avoidance_server_(nh, "/plan_avoidance", boost::bind(&CoursePlanner::planAvoidanceCb, this, _1), false)
 {
     posearray_pub_ = nh.advertise<geometry_msgs::PoseArray>("static_poses",1000);
 
@@ -38,8 +38,16 @@ CoursePlanner::CoursePlanner()
 
     pnh.param("resolution", resolution_, 0.1);
     pnh.param("segments", segment_array_, segment_array_);
+    pnh.param("map_segments", map_segment_array_, map_segment_array_);
     
     plan_avoidance_server_.start();
+
+    course_.createMap(map_segment_array_);
+}
+
+void CoursePlanner::tick()
+{
+    course_.publishMarkers();
 }
 
 bool CoursePlanner::supportsGoalType(int type) const
@@ -219,7 +227,6 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
     path = postprocess(path_raw);
 
 }
-
 
 void CoursePlanner::createCourse(XmlRpc::XmlRpcValue &segment_array, const geometry_msgs::Pose& start_pose,
                                  vector<shared_ptr<Shape>>& segments,

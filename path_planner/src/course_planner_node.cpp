@@ -20,10 +20,11 @@ int main(int argc, char** argv)
 
     CoursePlanner planner;
 
-
     ros::WallRate r(2);
     while(ros::ok()){
         ros::spinOnce();
         r.sleep();
+
+        planner.tick();
     }
 }
