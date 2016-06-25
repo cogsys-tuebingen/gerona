@@ -20,24 +20,24 @@ class HighDummy
 public:
     HighDummy(ros::NodeHandle &nh):
         nh_(nh),
+        pnh_("~"),
         client_("navigate_to_goal", true)
     {
         srand(ros::Time::now().toNSec());
-        ros::NodeHandle pnh("~");
 
         // topic for goal position
-        goal_sub_ = pnh.subscribe<geometry_msgs::PoseStamped>("/rviz_goal", 0, &HighDummy::goalCb, this);
+        goal_sub_ = pnh_.subscribe<geometry_msgs::PoseStamped>("/rviz_goal", 0, &HighDummy::goalCb, this);
         client_.waitForServer();
 
         speech_pub_ = nh.advertise<std_msgs::String>("/speech", 0);
 
-        pnh.param("target_frame", target_frame_, std::string("/map"));
+        pnh_.param("target_frame", target_frame_, std::string("/map"));
         // target speed
-        pnh.param("target_speed", target_speed_, 1.0);
+        pnh_.param("target_speed", target_speed_, 1.0);
 
         // failure mode; possible: ABORT, REPLAN
         std::string failure_mode = "ABORT";
-        pnh.param("failure_mode", failure_mode, failure_mode);
+        pnh_.param("failure_mode", failure_mode, failure_mode);
 
         std::transform(failure_mode.begin(), failure_mode.end(), failure_mode.begin(), ::toupper);
 
@@ -61,6 +61,8 @@ public:
 
 private:
     ros::NodeHandle nh_;
+    ros::NodeHandle pnh_;
+
     actionlib::SimpleActionClient<path_msgs::NavigateToGoalAction> client_;
     ros::Subscriber goal_sub_;
     ros::Publisher speech_pub_;
@@ -137,6 +139,10 @@ private:
         goal.goal.pose = *pose;
         goal.failure_mode = failure_mode_;
         goal.velocity = target_speed_;
+        goal.goal.channel.data = pnh_.param("channel", std::string(""));
+        goal.goal.algorithm.data = pnh_.param("algorithm", std::string(""));
+
+        ROS_INFO_STREAM("goal: " << goal.goal);
 
         if(pose->header.frame_id != target_frame_) {
             if(!tfl_.waitForTransform(target_frame_, pose->header.frame_id, pose->header.stamp, ros::Duration(10.0))) {
