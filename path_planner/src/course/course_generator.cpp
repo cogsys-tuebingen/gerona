@@ -6,9 +6,13 @@
 #include <set>
 
 CourseGenerator::CourseGenerator(ros::NodeHandle &nh)
-    : nh_(nh)
+    : nh_(nh), pnh_("~")
 {
     pub_viz_ = nh.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 100, true);
+
+    pnh_.param("course/radius", curve_radius, 1.0);
+    pnh_.param("course/penalty/backwards", backward_penalty_factor, 2.5);
+    pnh_.param("course/penalty/turn", turning_penalty, 5.0);
 }
 
 Eigen::Vector2d CourseGenerator::readPoint(const XmlRpc::XmlRpcValue& value, int index)
@@ -25,8 +29,16 @@ Eigen::Vector2d CourseGenerator::readPoint(const XmlRpc::XmlRpcValue& value, int
 }
 
 namespace {
-bool comp (const CourseGenerator::Node* lhs, const CourseGenerator::Node* rhs) {
+bool comp (const CourseGenerator::Node* lhs, const CourseGenerator::Node* rhs)
+{
     return lhs->cost<rhs->cost;
+}
+
+bool isSegmentForward(const CourseGenerator::Segment* segment, const Eigen::Vector2d& pos, const Eigen::Vector2d& target)
+{
+    Eigen::Vector2d segment_dir = segment->line.endPoint() - segment->line.startPoint();
+    Eigen::Vector2d move_dir = target - pos;
+    return segment_dir.dot(move_dir) > 0.0;
 }
 }
 
@@ -79,46 +91,47 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
     Eigen::Vector2d start_segment_dir = start_segment->line.endPoint() - start_segment->line.startPoint();
     start_segment_dir /= start_segment_dir.norm();
 
-    double backward_penalty = 1.0;
 
     for(const Transition& t : start_segment->transitions) {
         Node& node = nodes.at(&t);
-        node.forward = std::abs(start_segment->line.distanceTo(t.path.front())) < std::abs(start_segment->line.distanceTo(t.path.back()));
+        bool curve_forward = std::abs(start_segment->line.distanceTo(t.path.front())) < std::abs(start_segment->line.distanceTo(t.path.back()));
 
         // distance from start_pt to transition
-        Eigen::Vector2d  end_point_on_associated_segment = node.forward ? t.path.front() : t.path.back();
+        Eigen::Vector2d  end_point_on_associated_segment = curve_forward ? t.path.front() : t.path.back();
         {
-            Eigen::Vector2d  other_possibility = !node.forward ? t.path.front() : t.path.back();
+            Eigen::Vector2d  other_possibility = !curve_forward ? t.path.front() : t.path.back();
             ROS_ASSERT(start_segment->line.distanceTo(end_point_on_associated_segment) < start_segment->line.distanceTo(other_possibility));
         }
 
+        node.curve_forward = curve_forward;
+
+        bool segment_forward = isSegmentForward(start_segment, start_pt, end_point_on_associated_segment);
+
         double distance = (start_pt - end_point_on_associated_segment).norm();
 
-        if(node.forward) {
+        if(segment_forward) {
             node.cost = distance;
             node.distance_forward += distance;
             node.history.push_back(0);
             node.history.push_back(distance);
+            node.history.push_back(0);
         } else {
-            node.cost = backward_penalty * distance;
+            node.cost = backward_penalty_factor * distance;
             node.distance_backward += distance;
             node.history.push_back(0);
             node.history.push_back(-distance);
+            node.history.push_back(0);
         }
 
-        ROS_INFO_STREAM("start distance: " << distance);
         ROS_ASSERT(node.cost > 0);
 
         Q.insert(&node);
     }
 
-    ROS_INFO_STREAM("starting with " << Q.size() << " nodes");
-
     while(!Q.empty()) {
         Node* current_node = *Q.begin();
         Q.erase(Q.begin());
 
-        ROS_INFO_STREAM("front distance: " << current_node->cost);
         ROS_ASSERT(current_node->cost > 0);
 
         const Transition& current_transition = *current_node->transition;
@@ -126,27 +139,29 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
         double current_arc_length = std::abs(current_transition.dtheta * current_transition.r);
 
 
-        const Segment* associated_segment = current_node->forward ? current_transition.target : current_transition.source;
+        const Segment* associated_segment = current_node->curve_forward ? current_transition.target : current_transition.source;
 
         Eigen::Vector2d start_point_on_segment;
         if(associated_segment == start_segment) {
             start_point_on_segment = start_pt;
         } else {
-            start_point_on_segment = current_node->forward ? current_transition.path.back() : current_transition.path.front();
+            start_point_on_segment = current_node->curve_forward ? current_transition.path.back() : current_transition.path.front();
             {
-                Eigen::Vector2d  other_possibility = !current_node->forward ? current_transition.path.back() : current_transition.path.front();
+                Eigen::Vector2d  other_possibility = !current_node->curve_forward ? current_transition.path.back() : current_transition.path.front();
                 ROS_ASSERT(associated_segment->line.distanceTo(start_point_on_segment) < associated_segment->line.distanceTo(other_possibility));
             }
         }
 
         if(associated_segment == end_segment) {
+            bool segment_forward = isSegmentForward(associated_segment, start_point_on_segment, end_pt);
+
             double distance_to_end = (end_pt - start_point_on_segment).norm();
-            if(current_node->forward) {
+            if(segment_forward) {
                 current_node->cost += distance_to_end;
                 current_node->distance_forward += distance_to_end;
                 current_node->history.push_back(distance_to_end);
             } else {
-                current_node->cost += backward_penalty * distance_to_end;
+                current_node->cost += backward_penalty_factor * distance_to_end;
                 current_node->distance_backward += distance_to_end;
                 current_node->history.push_back(-distance_to_end);
             }
@@ -159,44 +174,49 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
             if(&next_transition == &current_transition) {
                 continue;
             }
-            bool use_curve_forward = std::abs(associated_segment->line.distanceTo(next_transition.path.front())) < std::abs(associated_segment->line.distanceTo(next_transition.path.back()));
+            bool curve_forward = std::abs(associated_segment->line.distanceTo(next_transition.path.front())) < std::abs(associated_segment->line.distanceTo(next_transition.path.back()));
 
             ROS_ASSERT(associated_segment != end_segment);
-            Eigen::Vector2d  end_point_on_associated_segment = use_curve_forward ? next_transition.path.front() : next_transition.path.back();
+            Eigen::Vector2d  end_point_on_associated_segment = curve_forward ? next_transition.path.front() : next_transition.path.back();
             {
-                Eigen::Vector2d  other_possibility = !use_curve_forward ? next_transition.path.front() : next_transition.path.back();
+                Eigen::Vector2d  other_possibility = !curve_forward ? next_transition.path.front() : next_transition.path.back();
                 ROS_ASSERT(associated_segment->line.distanceTo(end_point_on_associated_segment) < associated_segment->line.distanceTo(other_possibility));
             }
 
+            bool segment_forward = isSegmentForward(associated_segment, start_point_on_segment, end_point_on_associated_segment);
+
+
+
             double distance_to_end = (end_point_on_associated_segment - start_point_on_segment).norm();
 
-            double new_dist = current_arc_length + distance_to_end;
-
             double new_cost = current_node->cost;
-            if(use_curve_forward) {
-                ROS_WARN_STREAM("forwards " << distance_to_end << ": " << start_point_on_segment << " -> " << end_point_on_associated_segment );
-                new_cost += new_dist;
+            if(curve_forward) {
+                new_cost += current_arc_length;
             } else {
-                ROS_WARN_STREAM("backwards " << distance_to_end << ": " << start_point_on_segment << " -> " << end_point_on_associated_segment );
-                new_cost += backward_penalty * new_dist;
-//                    new_cost += new_dist;
+                new_cost += backward_penalty_factor * current_arc_length;
+            }
+
+            if(segment_forward) {
+                new_cost += distance_to_end;
+            } else {
+                new_cost += backward_penalty_factor * distance_to_end;
+            }
+
+            if(curve_forward != segment_forward) {
+                new_cost += turning_penalty;
             }
 
             ROS_ASSERT(new_cost != std::numeric_limits<double>::infinity());
             ROS_ASSERT(current_node->cost > 0);
-            ROS_ASSERT(new_dist > 0);
             ROS_ASSERT(new_cost > 0);
 
             Node* next_transition_node = &nodes.at(&next_transition);
             if(new_cost < next_transition_node->cost) {
-
-                ROS_INFO_STREAM("closer neighbor with distance " << new_dist);
-
                 next_transition_node->prev = current_node;
                 ROS_ASSERT(new_cost < next_transition_node->cost);
                 ROS_ASSERT(new_cost > 0);
                 next_transition_node->cost = new_cost;
-                next_transition_node->forward = use_curve_forward;
+                next_transition_node->curve_forward = curve_forward;
                 if(Q.find(next_transition_node) != Q.end()) {
                     Q.erase(next_transition_node);
                 }
@@ -205,12 +225,20 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
                 next_transition_node->distance_backward = current_node->distance_backward;
 
                 next_transition_node->history = current_node->history;
-                if(use_curve_forward) {
-                    next_transition_node->distance_forward += new_dist;
-                    next_transition_node->history.push_back(new_dist);
+                if(curve_forward) {
+                    next_transition_node->distance_forward += current_arc_length;
+                    next_transition_node->history.push_back(current_arc_length);
                 } else {
-                    next_transition_node->distance_backward += new_dist;
-                    next_transition_node->history.push_back(-new_dist);
+                    next_transition_node->distance_backward += current_arc_length;
+                    next_transition_node->history.push_back(-current_arc_length);
+                }
+
+                if(segment_forward) {
+                    next_transition_node->distance_forward += distance_to_end;
+                    next_transition_node->history.push_back(distance_to_end);
+                } else {
+                    next_transition_node->distance_backward += distance_to_end;
+                    next_transition_node->history.push_back(-distance_to_end);
                 }
 
                 Q.insert(next_transition_node);
@@ -219,30 +247,11 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
     }
 
 
-
-    //            {
-    //                Eigen::Vector2d delta = start_segment->line.endPoint() - start_segment->line.startPoint();
-    //                double s_yaw = std::atan2(delta(1), delta(0));
-    //                res.push_back(path_geom::PathPose(start.pos_(0), start.pos_(1), s_yaw));
-    //            }
-
     std::deque<const Node*> path_transitions;
     Node* gd = nullptr;
     double min_cost = std::numeric_limits<double>::infinity();
-    ROS_WARN_STREAM("selecting the best of " << candidates.size() << " candidates");
-    for(Node* candidate : candidates) {
-        ROS_WARN_STREAM(candidate->cost << " / forward: " << candidate->distance_forward << "m, backward: " << candidate->distance_backward << "m" );
-        std::stringstream history;
-        for(double dist : candidate->history) {
-            history << dist << ", ";
-        }
-        ROS_WARN_STREAM("history: " << history.str());
-        Node* n = candidate;
-        while(n) {
-            ROS_WARN_STREAM("- " << n->forward);
-            n = n->prev;
-        }
 
+    for(Node* candidate : candidates) {
         if(candidate->cost < min_cost) {
             min_cost = candidate->cost;
             gd = candidate;
@@ -256,15 +265,6 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
     generatePath(start, end,
                  start_segment, end_segment,
                  path_transitions, res);
-
-    //            {
-    //                Eigen::Vector2d delta = end_segment->line.endPoint() - end_segment->line.startPoint();
-    //                double s_yaw = std::atan2(delta(1), delta(0));
-    //                res.push_back(path_geom::PathPose(end.pos_(0), end.pos_(1), s_yaw));
-    //            }
-
-    //            res.push_back(end);
-    return res;
 
     return res;
 }
@@ -285,7 +285,7 @@ void CourseGenerator::generatePath(const path_geom::PathPose& start, const path_
     for(const Node* node : path_transitions) {
         const Transition* transition = node->transition;
 
-        if(node->forward) {
+        if(node->curve_forward) {
             for(std::size_t j = 1, m = transition->path.size(); j < m; ++j) {
                 const Eigen::Vector2d& pt = transition->path.at(j);
                 const Eigen::Vector2d& prev_pt = transition->path.at(j-1);
@@ -358,8 +358,6 @@ void CourseGenerator::createMap(const XmlRpc::XmlRpcValue &map_segment_array)
 
         segments_.emplace_back(s);
     }
-
-    double curve_radius = 0.25;
 
     for(std::size_t i = 0; i < segments_.size(); ++i) {
         for(std::size_t j = 0; j < segments_.size(); ++j) {

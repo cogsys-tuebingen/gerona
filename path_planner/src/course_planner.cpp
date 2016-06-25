@@ -357,11 +357,8 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
     path_raw.header.frame_id = "map";
     path_raw.header.stamp = ros::Time::now();
 
-    if(course_.hasSegments()) {
-        path_ = path_raw;
-    } else {
-        path_ = postprocess(path_raw);
-    }
+    path_ = postprocess(path_raw);
+
     publish(path_, path_raw);
     geometry_msgs::PoseArray poses;
     for (vector<geometry_msgs::PoseStamped>::iterator pose_it=path_.poses.begin();pose_it!=path_.poses.end();++pose_it) {

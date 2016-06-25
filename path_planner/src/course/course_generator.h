@@ -42,7 +42,7 @@ public:
         // associated transition
         const Transition* transition = nullptr;
 
-        bool forward = true;
+        bool curve_forward= true;
 
         // distance travelled until this transition is reached
         double cost = std::numeric_limits<double>::infinity();
@@ -87,7 +87,14 @@ private:
     std::vector<Eigen::Vector2d> intersections_;
 
     ros::NodeHandle& nh_;
+    ros::NodeHandle pnh_;
     ros::Publisher pub_viz_;
+
+
+    double curve_radius;
+
+    double backward_penalty_factor;
+    double turning_penalty;
 };
 
 #endif // COURSE_GENERATOR_H
