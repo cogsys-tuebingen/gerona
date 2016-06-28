@@ -248,12 +248,8 @@ void LocalPlannerClassic::initIndexes(){
     }
 }
 
-void LocalPlannerClassic::initConstraintsAndScorers(const std::vector<Constraint::Ptr>& constraints,
-                                                    const std::vector<Scorer::Ptr>& scorer,
-                                                    const std::vector<bool>& fconstraints,
-                                                    const std::vector<double>& wscorer){
-    (void)constraints;
-    (void)fconstraints;
+void LocalPlannerClassic::initScorers(const std::vector<Scorer::Ptr>& scorer,
+                                      const std::vector<double>& wscorer){
     if(wscorer.at(0) != 0.0){
         std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setPath(waypoints, c_dist,
                                                                            index1, index2);

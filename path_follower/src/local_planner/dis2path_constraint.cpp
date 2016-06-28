@@ -14,7 +14,7 @@ Dis2Path_Constraint::~Dis2Path_Constraint()
 
 bool Dis2Path_Constraint::isSatisfied(const LNode& point){
     sw.resume();
-    if(point.d2p < 0.3){
+    if(point.d2p <= 0.3){
         sw.stop();
         return true;
     }

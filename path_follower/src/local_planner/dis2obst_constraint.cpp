@@ -36,7 +36,7 @@ bool Dis2Obst_Constraint::isSatisfied(const LNode& point){
         double x = (double)(point_it->x) - pt.x();
         double y = (double)(point_it->y) - pt.y();
         double a_diff = point.orientation - atan2(y,x);
-        double dist = ((3-cos(a_diff)) * std::hypot(x, y))/2;
+        double dist = ((3-cos(a_diff)) * std::hypot(x, y))/2.0;
         if(dist < closest_obst) {
             closest_obst = dist;
             if(closest_obst <= 0.85){

@@ -20,7 +20,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                   int& nnodes){
     // this planner uses the Breadth-first search algorithm
     initIndexes();
-    initConstraintsAndScorers(constraints, scorer, fconstraints, wscorer);
+    initScorers(scorer, wscorer);
 
     const Waypoint& last = waypoints.back();
     LNode wpose(pose(0),pose(1),pose(2),nullptr,0);

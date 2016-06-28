@@ -120,10 +120,11 @@ protected:
     bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
                            const std::vector<bool>& fconstraints);
 
-    void initConstraintsAndScorers(const std::vector<Constraint::Ptr>& constraints,
-                                   const std::vector<Scorer::Ptr>& scorer,
-                                   const std::vector<bool>& fconstraints,
-                                   const std::vector<double>& wscorer);
+    void initScorers(const std::vector<Scorer::Ptr>& scorer,
+                     const std::vector<double>& wscorer);
+
+    void initConstraints(const std::vector<Constraint::Ptr>& constraints,
+                         const std::vector<bool>& fconstraints);
 
     void initIndexes();
 
