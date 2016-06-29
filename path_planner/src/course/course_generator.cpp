@@ -1,9 +1,12 @@
 #include "course_generator.h"
 #include <utils_path/geometry/intersector.h>
+#include <utils_path/common/CollisionGridMap2d.h>
 #include <ros/console.h>
 #include <visualization_msgs/MarkerArray.h>
-
+#include <nav_msgs/OccupancyGrid.h>
+#include <nav_msgs/GetMap.h>
 #include <set>
+#include <tf/tf.h>
 
 CourseGenerator::CourseGenerator(ros::NodeHandle &nh)
     : nh_(nh), pnh_("~")
@@ -13,6 +16,20 @@ CourseGenerator::CourseGenerator(ros::NodeHandle &nh)
     pnh_.param("course/radius", curve_radius, 1.0);
     pnh_.param("course/penalty/backwards", backward_penalty_factor, 2.5);
     pnh_.param("course/penalty/turn", turning_penalty, 5.0);
+
+
+    pnh_.param("size/forward", size_forward, 0.4);
+    pnh_.param("size/backward", size_backward, -0.6);
+    pnh_.param("size/width", size_width, 0.5);
+
+    std::string map_service = "/static_map";
+    pnh_.param("map_service",map_service, map_service);
+    map_service_client_ = pnh_.serviceClient<nav_msgs::GetMap> (map_service);
+}
+
+CourseGenerator::~CourseGenerator()
+{
+
 }
 
 Eigen::Vector2d CourseGenerator::readPoint(const XmlRpc::XmlRpcValue& value, int index)
@@ -40,11 +57,135 @@ bool isSegmentForward(const CourseGenerator::Segment* segment, const Eigen::Vect
     Eigen::Vector2d move_dir = target - pos;
     return segment_dir.dot(move_dir) > 0.0;
 }
+
+
+
+template <typename Algorithm>
+struct PathGoalTest
+{
+    PathGoalTest(CourseGenerator& parent, Algorithm& algo, const nav_msgs::OccupancyGrid& map, const lib_path::SimpleGridMap2d* map_info)
+        : parent(parent),
+          algo(algo), map(map), map_info(map_info),
+          res(map.info.resolution),
+          ox(map.info.origin.position.x),
+          oy(map.info.origin.position.y),
+          w(map.info.width),
+          h(map.info.height),
+
+          candidates(0)
+    {
+    }
+
+    void reset()
+    {
+        candidates = 0;
+    }
+
+    bool terminate(const typename Algorithm::NodeT* node) const
+    {
+        double wx, wy;
+        map_info->cell2pointSubPixel(node->x,node->y, wx, wy);
+
+        int x = (-ox + wx) / res;
+        int y = (-oy + wy) / res;
+
+        // find the closest segments and then perform bfs
+        path_geom::PathPose point(wx, wy, node->theta);
+        const CourseGenerator::Segment* start_segment = parent.findClosestSegment(point, M_PI / 8, 0.2);
+        ROS_INFO_STREAM(wx << " / " << wy << " / " << node->theta);
+        if(start_segment) {
+            algo.addGoalCandidate(node, start_segment->line.distanceTo(point.pos_));
+            ++candidates;
+        }
+
+        return candidates > 4;
+    }
+
+    const lib_path::Pose2d* getHeuristicGoal() const
+    {
+        std::cerr << "no heuristic goal " << std::endl;
+        return NULL;
+    }
+
+    CourseGenerator& parent;
+
+    Algorithm& algo;
+    const nav_msgs::OccupancyGrid& map;
+    const lib_path::SimpleGridMap2d * map_info;
+
+    double res;
+    double ox;
+    double oy;
+    int w;
+    int h;
+
+    mutable int candidates;
+};
+
 }
 
-std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::PathPose& start, const path_geom::PathPose& end) const
+std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::PathPose& start_pose, const path_geom::PathPose& end_pose)
 {
     std::vector<path_geom::PathPose> res;
+
+    nav_msgs::GetMap map_service;
+    if(!map_service_client_.exists()) {
+        map_service_client_.waitForExistence();
+    }
+    if(!map_service_client_.call(map_service)) {
+        ROS_ERROR("map service lookup failed");
+        return res;
+    }
+
+    const nav_msgs::OccupancyGrid& map = map_service.response.map;
+
+    unsigned w = map.info.width;
+    unsigned h = map.info.height;
+
+    bool replace = !map_info  ||
+            map_info->getWidth() != w ||
+            map_info->getHeight() != h;
+
+    if(replace){
+        map_info.reset(new lib_path::CollisionGridMap2d(map.info.width, map.info.height, tf::getYaw(map.info.origin.orientation), map.info.resolution, size_forward, size_backward, size_width));
+    }
+
+    std::vector<uint8_t> data(w*h);
+    int i = 0;
+
+    /// Map data
+    /// -1: unknown -> 0
+    /// 0:100 probabilities -> 1 - 100
+    for(std::vector<int8_t>::const_iterator it = map.data.begin(); it != map.data.end(); ++it) {
+        data[i++] = std::min(100, *it + 1);
+    }
+
+    map_info->setLowerThreshold(50);
+    map_info->setUpperThreshold(70);
+    map_info->setNoInformationValue(-1);
+
+    map_info->set(data, w, h);
+    map_info->setOrigin(lib_path::Point2d(map.info.origin.position.x, map.info.origin.position.y));
+
+    algo_forward.setMap(map_info.get());
+    algo_reverse.setMap(map_info.get());
+
+    ROS_WARN_STREAM("searching appendices");
+
+    lib_path::Pose2d from_map = convertToMap(start_pose);
+    lib_path::Pose2d to_map = convertToMap(end_pose);
+
+
+    PathGoalTest<AStarPatsyForward> goal_test_forward(*this, algo_forward, map, map_info.get());
+    auto path_start = algo_forward.findPath(from_map, goal_test_forward, 0);
+    ROS_WARN_STREAM("start path: " << path_start.size());
+    path_geom::PathPose start = convertToWorld(path_start.back());
+
+    PathGoalTest<AStarPatsyReversed> goal_test_reverse(*this, algo_reverse, map, map_info.get());
+    auto path_end = algo_reverse.findPath(to_map, goal_test_reverse, 0);
+    std::reverse(path_end.begin(), path_end.end());
+    ROS_WARN_STREAM("end path: " << path_end.size());
+    path_geom::PathPose end = convertToWorld(path_end.front());
 
     // find the closest segments and then perform bfs
     const Segment* start_segment = findClosestSegment(start, M_PI / 8, 0.5);
@@ -70,7 +211,7 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
         double e_yaw = std::atan2(end_delta(1), end_delta(0));
         res.push_back(path_geom::PathPose(end_pt(0), end_pt(1), e_yaw));
 
-        return res;
+        return combine(path_start, res, path_end);
     }
 
     //    res.push_back(start);
@@ -266,9 +407,55 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
                  start_segment, end_segment,
                  path_transitions, res);
 
+    return combine(path_start, res, path_end);
+}
+
+
+
+template <typename NodeT>
+path_geom::PathPose CourseGenerator::convertToWorld(const NodeT& node)
+{
+    double tmpx, tmpy;
+
+    map_info->cell2pointSubPixel(node.x, node.y, tmpx, tmpy);
+
+    return path_geom::PathPose(tmpx, tmpy, node.theta/* - tf::getYaw(map.info.origin.orientation)*/);
+}
+
+lib_path::Pose2d  CourseGenerator::convertToMap(const path_geom::PathPose& pt)
+{
+    lib_path::Pose2d res;
+    unsigned tmpx, tmpy;
+    map_info->point2cell(pt.pos_(0), pt.pos_(1), tmpx, tmpy);
+    res.x = tmpx;
+    res.y = tmpy;
+    res.theta = pt.theta_;// - map_info->getRotation();
     return res;
 }
 
+template <typename PathT>
+std::vector<path_geom::PathPose> CourseGenerator::combine(const PathT& start,
+             const std::vector<path_geom::PathPose>& centre,
+             const PathT& end)
+{
+    if(start.empty() && end.empty()) {
+        return centre;
+    }
+
+    std::vector<path_geom::PathPose> res;
+
+    for(const auto& node : start) {
+        res.push_back(convertToWorld(node));
+    }
+
+    res.insert(res.end(), centre.begin(), centre.end());
+
+    for(const auto& node : end) {
+        res.push_back(convertToWorld(node));
+    }
+
+    return res;
+}
 
 void CourseGenerator::generatePath(const path_geom::PathPose& start, const path_geom::PathPose& end,
                                    const Segment* start_segment, const Segment* end_segment,

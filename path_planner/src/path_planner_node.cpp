@@ -418,8 +418,9 @@ struct PathPlanner : public Planner
         }
         catch(const std::logic_error& e) {
             ROS_ERROR_STREAM("no path found: " << e.what());
-            return empty();
         }
+
+        return empty();
     }
     template <typename Algorithm>
     nav_msgs::Path planMapInstance (Algo algo_id, Algorithm& algo,
@@ -459,8 +460,8 @@ struct PathPlanner : public Planner
         }
         catch(const std::logic_error& e) {
             ROS_ERROR_STREAM("no path found: " << e.what());
-            return empty();
         }
+        return empty();
     }
 
     nav_msgs::Path planWithoutTargetPose (const path_msgs::PlanPathGoal &request,
