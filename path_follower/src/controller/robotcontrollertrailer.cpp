@@ -92,7 +92,7 @@ RobotController::MoveCommandStatus RobotControllerTrailer::computeMoveCommand(Mo
      *    path, until the end of the last sub path (= the goal) is reached
      */
 
-
+   // ROS_INFO_STREAM_THROTTLE(1, "state is " << behaviour_);
     // If wait_for_stop_ is set, do nothing, until the actual velocity fell below a given
     // threshold.
     // When the robot has finally stopped, go to the next subpath or quit, if goal is reached.

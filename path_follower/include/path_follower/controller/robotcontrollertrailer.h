@@ -24,6 +24,11 @@ public:
     virtual void reset();
     virtual void setPath(Path::Ptr path);
     virtual void precomputeSteerCommand(Waypoint& wp_now,  Waypoint& wp_next );
+    /**
+         * @brief isOmnidirectional
+         * @return true ***hack to avoid bugs in local_plannr_transformer with multiple subpaths
+         */
+    virtual bool isOmnidirectional() const {return true;}
 
 protected:
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);

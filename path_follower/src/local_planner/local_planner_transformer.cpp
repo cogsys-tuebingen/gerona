@@ -30,7 +30,7 @@ Path::Ptr LocalPlannerTransformer::updateLocalPath(const std::vector<Constraint:
     // only calculate a new local path, if enough time has passed.
     // TODO: also replan for other reasons, e.g. the global path has changed, ...
     if(last_update_ + update_interval_ < now) {
-        ROS_INFO("updating local path");
+        //ROS_INFO("updating local path");
         // only look at the first sub path for now
         auto waypoints = global_path_->getSubPath(0);
 
