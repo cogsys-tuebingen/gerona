@@ -64,7 +64,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         closedSet.push_back(current);
 
         std::vector<HNode*> successors;
-        getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints, true);
+        getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints/*, true*/);
         for(std::size_t i = 0; i < successors.size(); ++i){
             if(std::find(closedSet.begin(), closedSet.end(), successors[i]) != closedSet.end()){
                 continue;

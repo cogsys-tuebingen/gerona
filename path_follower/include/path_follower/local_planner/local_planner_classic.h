@@ -17,7 +17,7 @@ protected:
     template <typename NodeT>
     void getSuccessors(NodeT*& current, int& nsize, std::vector<NodeT*>& successors,
                        std::vector<NodeT>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                       const std::vector<bool>& fconstraints, bool repeat = false){
+                       const std::vector<bool>& fconstraints/*, bool repeat = false*/){
         successors.clear();
         double theta;
         double ori = current->orientation;
@@ -49,11 +49,11 @@ protected:
                     nodes.at(nsize) = succ;
                     successors.push_back(&nodes.at(nsize));
                     nsize++;
-                }else{
+                }/*else{
                     if(repeat){
                         successors.push_back(&nodes[wo]);
                     }
-                }
+                }*/
             }
         }
     }
@@ -122,9 +122,6 @@ protected:
 
     void initScorers(const std::vector<Scorer::Ptr>& scorer,
                      const std::vector<double>& wscorer);
-
-    void initConstraints(const std::vector<Constraint::Ptr>& constraints,
-                         const std::vector<bool>& fconstraints);
 
     void initIndexes();
 

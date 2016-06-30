@@ -32,6 +32,10 @@ bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
     transformer_.lookupTransform("map", "odom", now, now_map_to_odom);
 
     tf::Transform transform_correction = now_map_to_odom.inverse();
+    /*
+    ofstream myfile;
+    myfile.open ("/tmp/path.txt");
+    */
 
     // transform the waypoints from world to odom
     for(Waypoint& wp : waypoints) {
@@ -43,7 +47,13 @@ bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
         tf::Quaternion rot = tf::createQuaternionFromYaw(wp.orientation);
         rot = transform_correction * rot;
         wp.orientation = tf::getYaw(rot);
+        /*
+        myfile << wp.x << ", " << wp.y << ", " << wp.orientation <<std::endl;
+        */
     }
+    /*
+    myfile.close();
+    */
     return true;
 }
 
@@ -89,7 +99,15 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         if(!transform2Odo(now)){
             return nullptr;
         }
+        /*
+        ofstream myfile;
+        myfile.open ("/tmp/pose.txt");
+        */
         Eigen::Vector3d pose = follower_.getRobotPose();
+        /*
+        myfile << pose(0) << ", " << pose(1) << ", " << pose(2)<< std::endl;
+        myfile.close();
+        */
         int nnodes = 0;
 
         std::vector<Waypoint> local_wps;
