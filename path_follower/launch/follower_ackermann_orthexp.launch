@@ -9,6 +9,7 @@
   <arg name="s3" default="1.0" />
   <arg name="s4" default="1.0" />
   <arg name="s5" default="1.0" />
+  <arg name="s6" default="1.0" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
     <param name="use_obstacle_map" value="false" />
     <param name="use_vfh" value="false" />
@@ -55,6 +56,7 @@
     <param name="s3" value="$(arg s3)"/>
     <param name="s4" value="$(arg s4)"/>
     <param name="s5" value="$(arg s5)"/>
+    <param name="s6" value="$(arg s6)"/>
 
     <remap from="scan" to="scan/filtered" />
     <remap from="/obstacles" to="/obstacle_cloud" />

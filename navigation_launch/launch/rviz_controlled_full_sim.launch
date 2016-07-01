@@ -15,10 +15,11 @@ demonstrating the navigation framework.
     <arg name="c2" default="true" />
 
     <arg name="s1" default="-1.0" />
-    <arg name="s2" default="1.0" />
-    <arg name="s3" default="2.95" />
-    <arg name="s4" default="1.0" />
-    <arg name="s5" default="1.0" />
+    <arg name="s2" default="0.0" />
+    <arg name="s3" default="0.0" />
+    <arg name="s4" default="0.0" />
+    <arg name="s5" default="0.0" />
+    <arg name="s6" default="0.0" />
 
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
@@ -50,6 +51,7 @@ demonstrating the navigation framework.
       <arg name="s3" value="$(arg s3)" />
       <arg name="s4" value="$(arg s4)" />
       <arg name="s5" value="$(arg s5)" />
+      <arg name="s6" value="$(arg s6)" />
 
       <arg name="use_karto" value="$(arg use_karto)" />
       <arg name="use_karto_segmented" value="$(arg use_karto_segmented)" />
