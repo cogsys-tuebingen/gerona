@@ -35,3 +35,17 @@ bool LocalPlanner::isNull() const
 {
     return false;
 }
+
+void LocalPlanner::setObstacleCloud(const ObstacleCloud::ConstPtr &msg)
+{
+    obstacle_cloud_ = msg;
+
+    ros::Time now = ros::Time::now();
+
+    if(!transformer_.waitForTransform("odom", "base_link", now, ros::Duration(0.005))) {
+        ROS_WARN_THROTTLE_NAMED(1, "global_path", "cannot transform base_link to odom");
+        return;
+    }
+    transformer_.lookupTransform("odom", "base_link", now, base_to_odom);
+    odom_to_base = base_to_odom.inverse();
+}

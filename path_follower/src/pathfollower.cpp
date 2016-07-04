@@ -415,7 +415,7 @@ void PathFollower::update()
             fconstraints.at(0) = opt_.c1();
 
             if(opt_.c2()){
-                constraints.at(1) = Dis2Obst_Constraint::Ptr(new Dis2Obst_Constraint(this->obstacle_cloud_, pose_listener_));
+                constraints.at(1) = Dis2Obst_Constraint::Ptr(new Dis2Obst_Constraint);
             }
             fconstraints.at(1) = opt_.c2();
 
@@ -442,7 +442,7 @@ void PathFollower::update()
             wscorer.at(3) = opt_.s4();
 
             if(opt_.s5() != 0.0){
-                scorer.at(4) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer(this->obstacle_cloud_, pose_listener_));
+                scorer.at(4) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
             }
             wscorer.at(4) = opt_.s5();
 
@@ -452,6 +452,9 @@ void PathFollower::update()
             wscorer.at(5) = opt_.s6();
 
             //End Constraints and Scorers Construction
+            if(obstacle_cloud_ != nullptr){
+                local_planner_->setObstacleCloud(obstacle_cloud_);
+            }
             Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, wscorer);
             if(local_path) {
                 nav_msgs::Path path;

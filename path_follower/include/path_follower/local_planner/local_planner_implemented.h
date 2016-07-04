@@ -42,6 +42,8 @@ protected:
     ros::Duration update_interval_;
 
     SubPath waypoints;
+
+    bool tooClose;
 };
 
 #endif // LOCAL_PLANNER_IMPLEMENTED_H

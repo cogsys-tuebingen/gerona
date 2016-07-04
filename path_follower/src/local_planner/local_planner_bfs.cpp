@@ -28,11 +28,12 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
 
     if(dis2last + ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wpose)):0.0) < 0.8){
+        tooClose = true;
         return false;
     }
 
     retrieveContinuity(wpose);
-    setDis2Path(wpose);
+    setDistances(wpose,(fconstraints.at(1) || wscorer.at(4) != 0));
 
     std::vector<LNode> nodes(200);
     LNode* obj = nullptr;
@@ -56,7 +57,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         }
 
         std::vector<LNode*> successors;
-        getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints);
+        getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints, wscorer);
         for(std::size_t i = 0; i < successors.size(); ++i){
             double new_dist = Score(*(successors[i]), dis2last, scorer, wscorer);
             if(new_dist < go_dist){

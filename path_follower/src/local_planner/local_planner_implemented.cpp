@@ -8,7 +8,7 @@ LocalPlannerImplemented::LocalPlannerImplemented(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval),
-      waypoints()
+      waypoints(), tooClose(false)
 {
 
 }
@@ -16,6 +16,7 @@ LocalPlannerImplemented::LocalPlannerImplemented(PathFollower &follower,
 void LocalPlannerImplemented::setGlobalPath(Path::Ptr path)
 {
     LocalPlanner::setGlobalPath(path);
+    tooClose = false;
 }
 
 bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
@@ -91,7 +92,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
     Stopwatch gsw;
     gsw.restart();
 
-    if(last_update_ + update_interval_ < now) {
+    if(last_update_ + update_interval_ < now && !tooClose) {
 
         // only look at the first sub path for now
         waypoints = (SubPath) global_path_;
