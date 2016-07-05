@@ -13,6 +13,8 @@ public:
     virtual ~Dis2Path_Constraint();
 
     virtual bool isSatisfied(const LNode& point) override;
+private:
+    double limit;
 };
 
 #endif // DIS2PATH_CONSTRAINT_H
