@@ -21,7 +21,7 @@ struct Waypoint
     Waypoint() {}
 
     Waypoint(double x, double y, double orientation):
-        x(x), y(y), orientation(orientation)
+        x(x), y(y), orientation(orientation), s(0.0)
     {}
 
     Waypoint(const geometry_msgs::PoseStamped& ref)
@@ -58,6 +58,8 @@ struct Waypoint
     double y;
     //! Orientation of the waypoint, represented as an angle ("theta")
     double orientation;
+    //!curvilinear abscissa
+    double s;
 
     std::vector<double> actuator_cmds_;
 };

@@ -34,8 +34,10 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     retrieveContinuity(wpose);
     setDistances(wpose,(fconstraints.at(1) || wscorer.at(4) != 0));
+    d2p = wpose.d2p;
+    initConstraints(constraints,fconstraints);
 
-    std::vector<LNode> nodes(200);
+    std::vector<LNode> nodes(300);
     LNode* obj = nullptr;
 
     nodes.at(0) = wpose;
@@ -69,10 +71,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     }
 
     if(obj != nullptr){
-        global_path_.set_s_new(global_path_.s_new() + 0.7);
-        retrievePath(obj, local_wps);
-        smoothAndInterpolate(local_wps);
-        savePath(local_wps);
+        processPath(obj, local_wps);
         return true;
     }else{
         return false;

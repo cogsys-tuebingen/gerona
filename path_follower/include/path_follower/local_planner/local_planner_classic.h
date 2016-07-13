@@ -88,6 +88,7 @@ protected:
         }
         current.d2p = closest_dist;
         current.npp = waypoints[closest_index];
+        current.s = global_path_.s(closest_index);
 
         if(b_obst){
             tf::Point pt(current.x, current.y, current.orientation);
@@ -146,11 +147,22 @@ protected:
         }
     }
 
+    template <typename NodeT>
+    void processPath(NodeT* obj,SubPath& local_wps){
+        retrievePath(obj, local_wps);
+        global_path_.set_s_new(local_wps.at(4).s);
+        smoothAndInterpolate(local_wps);
+        savePath(local_wps);
+    }
+
     bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
                            const std::vector<bool>& fconstraints);
 
     void initScorers(const std::vector<Scorer::Ptr>& scorer,
                      const std::vector<double>& wscorer);
+
+    void initConstraints(const std::vector<Constraint::Ptr>& constraints,
+                                              const std::vector<bool>& fconstraints);
 
     void initIndexes();
 
@@ -172,6 +184,8 @@ private:
     virtual void printNodeUsage(int& nnodes) const override;
 protected:
     static constexpr double D_THETA = 5*M_PI/36;//Assume like the global planner 25° turn
+
+    double d2p;
 
     std::size_t index1;
     std::size_t index2;
