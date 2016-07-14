@@ -351,10 +351,13 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     double dist = 0;
     double orth_proj = std::numeric_limits<double>::max();
 
+    //this is a hack made for the lemniscate
+    uint old_ind = proj_ind_;
+
     for (unsigned int i = proj_ind_; i < path_interpol.n(); i++){
 
         dist = hypot(x_meas - x_aug_[i], y_meas - y_aug_[i]);
-        if(dist < orth_proj){
+        if((dist < orth_proj) & (i - old_ind >= 0) & (i - old_ind <= 3)){
 
             orth_proj = dist;
             proj_ind_ = i;
@@ -456,7 +459,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     ///***///
 
 
-    ///Vizualize the path estimated by the EKF
+    ///Visualize the path estimated by the EKF
     geometry_msgs::Point pt;
     pt.x = pose_ekf_(0);
     pt.y = pose_ekf_(1);
