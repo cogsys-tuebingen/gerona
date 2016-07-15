@@ -36,7 +36,7 @@ bool PathCascadePid::execute(double dist_error, double angle_error, double veloc
         dist_error /= fabs(v);
     }
     float u_angle, u_dist;
-    bool do_ctrl = true;
+//    bool do_ctrl = true;
     if (velocity>1e-3) {
          fwd_angle_pid_.execute(angle_error, &u_angle);
          fwd_dist_pid_.execute(dist_error, &u_dist);
