@@ -57,7 +57,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     HNode* current;
 
-    while(!openSet.empty() && (openSet.empty()?nodes.back().level_:(*openSet.begin())->level_) <= li_level){
+    while(!openSet.empty() && (openSet.empty()?nodes.at(nnodes - 1).level_:(*openSet.begin())->level_) <= li_level){
         current = *openSet.begin();
         openSet.erase(openSet.begin());
         if(isNearEnough(*current,last)){
