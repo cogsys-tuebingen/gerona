@@ -120,44 +120,26 @@ struct StaticPathPlanner : public Planner
         ///////////////////////////////////////////////////////////////////////
         /// This is just a hacked solution to plan a lemniscate
         //////////////////////////////////////////////////////////////////////
-        double a = 2.0;
+/*        double a = 2.0;
 
         path_raw.poses.clear();
 
         geometry_msgs::PoseStamped first_pose = goal->goal.pose;
-//        const Waypoint& first_waypoint = path_->getWaypoint(0);
-//        first_pose.pose.position.x = first_waypoint.x;
-//        first_pose.pose.position.y = first_waypoint.y;
-        //path_raw.poses.push_back(first_pose);
 
         double N_lem = 100;
         double f = 2*M_PI / (double) (N_lem-1);
 
-    //    path_new.header.frame_id = "map";
-    //    path_new.header.stamp = ros::Time::now();
-
-//        vector<SubPath> subpaths;
-//        SubPath current_segment;
-
-//        current_segment.push_back(first_waypoint);
-
-
         for(std::size_t i = 0; i < N_lem-1; i++){
 
             double t = i*f;
-            //Waypoint curr_waypoint;
             geometry_msgs::PoseStamped curr_pose;
 
             curr_pose.pose.position.x = a*sqrt(2)*std::cos(t)/(pow(std::sin(t),2) + 1) + first_pose.pose.position.x - a*sqrt(2);
             curr_pose.pose.position.y = a*sqrt(2)*std::cos(t)*std::sin(t)/(pow(std::sin(t),2) + 1) + first_pose.pose.position.y;
 
-            //current_segment.push_back(curr_waypoint);
             path_raw.poses.push_back(curr_pose);
         }
-
-//        subpaths.push_back(current_segment);
-//        path->setPath(subpaths);
-
+*/
         ///////////////////////////////////////////////////////////////////////
 
         path_ = postprocess(path_raw);
