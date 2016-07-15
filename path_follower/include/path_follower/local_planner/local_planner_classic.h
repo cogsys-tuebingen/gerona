@@ -17,7 +17,8 @@ protected:
     template <typename NodeT>
     void getSuccessors(NodeT*& current, int& nsize, std::vector<NodeT*>& successors,
                        std::vector<NodeT>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                       const std::vector<bool>& fconstraints, bool repeat = false){
+                       const std::vector<bool>& fconstraints,const std::vector<double>& wscorer
+                       /*, bool repeat = false*/){
         successors.clear();
         double theta;
         double ori = current->orientation;
@@ -41,7 +42,7 @@ protected:
             double x = ox + 0.15*std::cos(theta);
             double y = oy + 0.15*std::sin(theta);
             NodeT succ(x,y,theta,current,current->level_+1);
-            setDis2Path(succ);
+            setDistances(succ,(fconstraints.at(1) || wscorer.at(4) != 0));
 
             if(areConstraintsSAT(succ,constraints,fconstraints)){
                 int wo = -1;
@@ -49,11 +50,11 @@ protected:
                     nodes.at(nsize) = succ;
                     successors.push_back(&nodes.at(nsize));
                     nsize++;
-                }else{
+                }/*else{
                     if(repeat){
                         successors.push_back(&nodes[wo]);
                     }
-                }
+                }*/
             }
         }
     }
@@ -71,8 +72,9 @@ protected:
     }
 
     template <typename NodeT>
-    void setDis2Path(NodeT& current){
+    void setDistances(NodeT& current, bool b_obst){
         double closest_dist = std::numeric_limits<double>::infinity();
+        int closest_index = 0;
         if(waypoints.empty()){
             return;
         }
@@ -81,9 +83,37 @@ protected:
             double dist = std::hypot(wp.x - current.x, wp.y - current.y);
             if(dist < closest_dist) {
                 closest_dist = dist;
+                closest_index = i;
             }
         }
         current.d2p = closest_dist;
+        current.npp = waypoints[closest_index];
+        current.s = global_path_.s(closest_index);
+
+        if(b_obst){
+            tf::Point pt(current.x, current.y, current.orientation);
+            pt = odom_to_base * pt;
+            double closest_obst = std::numeric_limits<double>::infinity();
+            double closest_x = std::numeric_limits<double>::infinity();
+            double closest_y = std::numeric_limits<double>::infinity();
+            ObstacleCloud::const_iterator point_it;
+            for (point_it = obstacle_cloud_->begin(); point_it != obstacle_cloud_->end(); ++point_it){
+                double x = (double)(point_it->x) - pt.x();
+                double y = (double)(point_it->y) - pt.y();
+                double dist = std::hypot(x, y);
+                if(dist < closest_obst) {
+                    closest_obst = dist;
+                    closest_x = (double)(point_it->x);
+                    closest_y = (double)(point_it->y);
+                }
+            }
+            current.d2o = closest_obst;
+            tf::Point tmpnop(closest_x ,closest_y,0.0);
+            tmpnop = base_to_odom * tmpnop;
+            current.nop = Waypoint(tmpnop.x(), tmpnop.x(), 0.0);
+        }else{
+            current.d2o = std::numeric_limits<double>::infinity();
+        }
     }
 
     template <typename NodeT>
@@ -117,13 +147,22 @@ protected:
         }
     }
 
+    template <typename NodeT>
+    void processPath(NodeT* obj,SubPath& local_wps){
+        retrievePath(obj, local_wps);
+        global_path_.set_s_new(local_wps.at(4).s);
+        smoothAndInterpolate(local_wps);
+        savePath(local_wps);
+    }
+
     bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
                            const std::vector<bool>& fconstraints);
 
-    void initConstraintsAndScorers(const std::vector<Constraint::Ptr>& constraints,
-                                   const std::vector<Scorer::Ptr>& scorer,
-                                   const std::vector<bool>& fconstraints,
-                                   const std::vector<double>& wscorer);
+    void initScorers(const std::vector<Scorer::Ptr>& scorer,
+                     const std::vector<double>& wscorer);
+
+    void initConstraints(const std::vector<Constraint::Ptr>& constraints,
+                                              const std::vector<bool>& fconstraints);
 
     void initIndexes();
 
@@ -144,7 +183,9 @@ protected:
 private:
     virtual void printNodeUsage(int& nnodes) const override;
 protected:
-    static constexpr double D_THETA = 5*M_PI/36;//Assume like the global planner 25° turn
+    static constexpr double D_THETA = 5.0*M_PI/36.0;//Assume like the global planner 25° turn
+
+    double d2p;
 
     std::size_t index1;
     std::size_t index2;

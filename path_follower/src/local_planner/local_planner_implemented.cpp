@@ -8,7 +8,7 @@ LocalPlannerImplemented::LocalPlannerImplemented(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval),
-      waypoints()
+      waypoints(), tooClose(false)
 {
 
 }
@@ -16,6 +16,7 @@ LocalPlannerImplemented::LocalPlannerImplemented(PathFollower &follower,
 void LocalPlannerImplemented::setGlobalPath(Path::Ptr path)
 {
     LocalPlanner::setGlobalPath(path);
+    tooClose = false;
 }
 
 bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
@@ -32,6 +33,10 @@ bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
     transformer_.lookupTransform("map", "odom", now, now_map_to_odom);
 
     tf::Transform transform_correction = now_map_to_odom.inverse();
+    /*
+    ofstream myfile;
+    myfile.open ("/tmp/path.txt");
+    */
 
     // transform the waypoints from world to odom
     for(Waypoint& wp : waypoints) {
@@ -43,7 +48,13 @@ bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
         tf::Quaternion rot = tf::createQuaternionFromYaw(wp.orientation);
         rot = transform_correction * rot;
         wp.orientation = tf::getYaw(rot);
+        /*
+        myfile << wp.x << ", " << wp.y << ", " << wp.orientation <<std::endl;
+        */
     }
+    /*
+    myfile.close();
+    */
     return true;
 }
 
@@ -81,7 +92,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
     Stopwatch gsw;
     gsw.restart();
 
-    if(last_update_ + update_interval_ < now) {
+    if(last_update_ + update_interval_ < now && !tooClose) {
 
         // only look at the first sub path for now
         waypoints = (SubPath) global_path_;
@@ -89,7 +100,15 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         if(!transform2Odo(now)){
             return nullptr;
         }
+        /*
+        ofstream myfile;
+        myfile.open ("/tmp/pose.txt");
+        */
         Eigen::Vector3d pose = follower_.getRobotPose();
+        /*
+        myfile << pose(0) << ", " << pose(1) << ", " << pose(2)<< std::endl;
+        myfile.close();
+        */
         int nnodes = 0;
 
         std::vector<Waypoint> local_wps;

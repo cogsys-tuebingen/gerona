@@ -21,7 +21,7 @@ struct Waypoint
     Waypoint() {}
 
     Waypoint(double x, double y, double orientation):
-        x(x), y(y), orientation(orientation)
+        x(x), y(y), orientation(orientation), s(0.0)
     {}
 
     Waypoint(const geometry_msgs::PoseStamped& ref)
@@ -58,6 +58,8 @@ struct Waypoint
     double y;
     //! Orientation of the waypoint, represented as an angle ("theta")
     double orientation;
+    //!curvilinear abscissa
+    double s;
 
     std::vector<double> actuator_cmds_;
 };
@@ -70,7 +72,7 @@ struct LNode: Waypoint
     }
     LNode(double x, double y, double orientation, LNode* parent, int level):
         Waypoint(x,y,orientation),xp(0.0),yp(0.0),xs(0.0),ys(0.0),
-        parent_(parent),level_(level),d2p(0.0)
+        parent_(parent),level_(level),d2p(0.0),d2o(0.0),npp(),nop()
     {
         computeDiff();
     }
@@ -97,8 +99,10 @@ struct LNode: Waypoint
     LNode* parent_;
     int level_;
 
-    //!distance to path
-    double d2p;
+    //!distance to path and obstacle
+    double d2p, d2o;
+    //!nearest path point and obstacle point
+    Waypoint npp, nop;
 };
 
 //!Heuristic Node for the local tree (A*)

@@ -11,8 +11,14 @@ public:
 public:
     Dis2Path_Constraint();
     virtual ~Dis2Path_Constraint();
+    void setLimit(double new_limit);
 
     virtual bool isSatisfied(const LNode& point) override;
+private:
+    static constexpr double D_RATE = 0.15*std::cos(5.0*M_PI/36.0);
+    double limit;
+    int level;
 };
 
 #endif // DIS2PATH_CONSTRAINT_H
+void setLimit(double new_limit);

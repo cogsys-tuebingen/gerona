@@ -6,12 +6,14 @@
 #include <utils_general/Stopwatch.h>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/path_interpolated.h>
+#include <path_follower/utils/obstaclecloud.hpp>
 #include <path_follower/local_planner/constraint.h>
 #include <path_follower/local_planner/dis2path_constraint.h>
 #include <path_follower/local_planner/dis2obst_constraint.h>
 #include <path_follower/local_planner/scorer.h>
 #include <path_follower/local_planner/dis2start_scorer.h>
 #include <path_follower/local_planner/dis2pathd_scorer.h>
+#include <path_follower/local_planner/dis2pathi_scorer.h>
 #include <path_follower/local_planner/dis2pathp_scorer.h>
 #include <path_follower/local_planner/dis2obst_scorer.h>
 #include <path_follower/local_planner/curvature_scorer.h>
@@ -32,6 +34,8 @@ public:
 
     virtual bool isNull() const;
 
+    void setObstacleCloud(const ObstacleCloud::ConstPtr &msg);
+
 protected:
     LocalPlanner(PathFollower& controller,
                  tf::Transformer &transformer);
@@ -42,7 +46,11 @@ protected:
 
     PathInterpolated global_path_;
 
-    tf::StampedTransform initial_map_to_odom_;
+    tf::StampedTransform initial_map_to_odom_, base_to_odom;
+
+    tf::Transform odom_to_base;
+
+    ObstacleCloud::ConstPtr obstacle_cloud_;
 };
 
 #endif // LOCAL_PLANNER_H

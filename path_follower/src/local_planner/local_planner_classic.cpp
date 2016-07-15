@@ -8,7 +8,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
-      index1(-1), index2(-1), c_dist(),last_local_path_()
+      d2p(0.0),index1(-1), index2(-1), c_dist(),last_local_path_()
 {
 
 }
@@ -248,15 +248,18 @@ void LocalPlannerClassic::initIndexes(){
     }
 }
 
-void LocalPlannerClassic::initConstraintsAndScorers(const std::vector<Constraint::Ptr>& constraints,
-                                                    const std::vector<Scorer::Ptr>& scorer,
-                                                    const std::vector<bool>& fconstraints,
-                                                    const std::vector<double>& wscorer){
-    (void)constraints;
-    (void)fconstraints;
+void LocalPlannerClassic::initScorers(const std::vector<Scorer::Ptr>& scorer,
+                                      const std::vector<double>& wscorer){
     if(wscorer.at(0) != 0.0){
         std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setPath(waypoints, c_dist,
                                                                            index1, index2);
+    }
+}
+
+void LocalPlannerClassic::initConstraints(const std::vector<Constraint::Ptr>& constraints,
+                                          const std::vector<bool>& fconstraints){
+    if(fconstraints.at(0)){
+        std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setLimit(d2p);
     }
 }
 
