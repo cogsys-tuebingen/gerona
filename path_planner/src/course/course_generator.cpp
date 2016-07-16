@@ -17,6 +17,7 @@ CourseGenerator::CourseGenerator(ros::NodeHandle &nh)
     pnh_.param("course/penalty/backwards", backward_penalty_factor, 2.5);
     pnh_.param("course/penalty/turn", turning_penalty, 5.0);
 
+    pnh_.param("course/turning/straight", turning_straight_segment, 0.7);
 
     pnh_.param("size/forward", size_forward, 0.4);
     pnh_.param("size/backward", size_backward, -0.6);
@@ -51,13 +52,6 @@ bool comp (const CourseGenerator::Node* lhs, const CourseGenerator::Node* rhs)
     return lhs->cost<rhs->cost;
 }
 
-bool isSegmentForward(const CourseGenerator::Segment* segment, const Eigen::Vector2d& pos, const Eigen::Vector2d& target)
-{
-    Eigen::Vector2d segment_dir = segment->line.endPoint() - segment->line.startPoint();
-    Eigen::Vector2d move_dir = target - pos;
-    return segment_dir.dot(move_dir) > 0.0;
-}
-
 
 
 template <typename Algorithm>
@@ -86,19 +80,32 @@ struct PathGoalTest
         double wx, wy;
         map_info->cell2pointSubPixel(node->x,node->y, wx, wy);
 
-        int x = (-ox + wx) / res;
-        int y = (-oy + wy) / res;
+        //        int x = (-ox + wx) / res;
+        //        int y = (-oy + wy) / res;
+
+        const double min_necessary_dist_to_crossing = 0.0;
 
         // find the closest segments and then perform bfs
         path_geom::PathPose point(wx, wy, node->theta);
-        const CourseGenerator::Segment* start_segment = parent.findClosestSegment(point, M_PI / 8, 0.2);
-        ROS_INFO_STREAM(wx << " / " << wy << " / " << node->theta);
+        const CourseGenerator::Segment* start_segment = parent.findClosestSegment(point, M_PI / 8, 0.1);
+        //        ROS_INFO_STREAM(wx << " / " << wy << " / " << node->theta);
         if(start_segment) {
-            algo.addGoalCandidate(node, start_segment->line.distanceTo(point.pos_));
-            ++candidates;
+            double min_dist_to_crossing = std::numeric_limits<double>::infinity();
+            for(const CourseGenerator::Transition& transition : start_segment->transitions) {
+                double distance = (transition.intersection - point.pos_).norm();
+                if(distance < min_dist_to_crossing)  {
+                    min_dist_to_crossing = distance;
+                }
+            }
+
+            if(min_dist_to_crossing > min_necessary_dist_to_crossing) {
+                algo.addGoalCandidate(node, start_segment->line.distanceTo(point.pos_));
+                ++candidates;
+            }
+
         }
 
-        return candidates > 4;
+        return candidates > 40;
     }
 
     const lib_path::Pose2d* getHeuristicGoal() const
@@ -178,23 +185,46 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
 
     PathGoalTest<AStarPatsyForward> goal_test_forward(*this, algo_forward, map, map_info.get());
     auto path_start = algo_forward.findPath(from_map, goal_test_forward, 0);
+    if(path_start.empty()) {
+        ROS_WARN("cannot connect to start without turning");
+        PathGoalTest<AStarPatsyReversedTurning> goal_test_forward_turn(*this, algo_reverse_turn, map, map_info.get());
+        algo_forward_turn.setMap(map_info.get());
+        path_start = algo_forward_turn.findPath(from_map, goal_test_forward_turn, 0);
+        if(path_start.empty()) {
+            ROS_ERROR("cannot connect to start");
+            return res;
+        }
+    }
+
     ROS_WARN_STREAM("start path: " << path_start.size());
-    path_geom::PathPose start = convertToWorld(path_start.back());
+    start = convertToWorld(path_start.back());
 
     PathGoalTest<AStarPatsyReversed> goal_test_reverse(*this, algo_reverse, map, map_info.get());
     auto path_end = algo_reverse.findPath(to_map, goal_test_reverse, 0);
+
+    if(path_end.empty()) {
+        algo_reverse_turn.setMap(map_info.get());
+        ROS_WARN("cannot connect to end without turning");
+        PathGoalTest<AStarPatsyReversedTurning> goal_test_reverse_turn(*this, algo_reverse_turn, map, map_info.get());
+        path_end = algo_reverse_turn.findPath(to_map, goal_test_reverse_turn, 0);
+        if(path_end.empty()) {
+            ROS_ERROR("cannot connect to end");
+            return res;
+        }
+    }
+
     std::reverse(path_end.begin(), path_end.end());
     ROS_WARN_STREAM("end path: " << path_end.size());
-    path_geom::PathPose end = convertToWorld(path_end.front());
+    end = convertToWorld(path_end.front());
 
     // find the closest segments and then perform bfs
-    const Segment* start_segment = findClosestSegment(start, M_PI / 8, 0.5);
+    start_segment = findClosestSegment(start, M_PI / 8, 0.5);
     if(!start_segment) {
         ROS_ERROR_STREAM("cannot find a path for start pose " << start.pos_);
         return res;
     }
 
-    const Segment* end_segment = findClosestSegment(end, M_PI / 8, 0.5);
+    end_segment = findClosestSegment(end, M_PI / 8, 0.5);
     if(!end_segment) {
         ROS_ERROR_STREAM("cannot find a path for end pose " << end.pos_);
         return res;
@@ -279,22 +309,21 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
 
         double current_arc_length = std::abs(current_transition.dtheta * current_transition.r);
 
-
-        const Segment* associated_segment = current_node->curve_forward ? current_transition.target : current_transition.source;
+        current_node->associated_segment = current_node->curve_forward ? current_transition.target : current_transition.source;
 
         Eigen::Vector2d start_point_on_segment;
-        if(associated_segment == start_segment) {
+        if(current_node->associated_segment == start_segment) {
             start_point_on_segment = start_pt;
         } else {
             start_point_on_segment = current_node->curve_forward ? current_transition.path.back() : current_transition.path.front();
             {
                 Eigen::Vector2d  other_possibility = !current_node->curve_forward ? current_transition.path.back() : current_transition.path.front();
-                ROS_ASSERT(associated_segment->line.distanceTo(start_point_on_segment) < associated_segment->line.distanceTo(other_possibility));
+                ROS_ASSERT(current_node->associated_segment->line.distanceTo(start_point_on_segment) < current_node->associated_segment->line.distanceTo(other_possibility));
             }
         }
 
-        if(associated_segment == end_segment) {
-            bool segment_forward = isSegmentForward(associated_segment, start_point_on_segment, end_pt);
+        if(current_node->associated_segment == end_segment) {
+            bool segment_forward = isSegmentForward(current_node->associated_segment, start_point_on_segment, end_pt);
 
             double distance_to_end = (end_pt - start_point_on_segment).norm();
             if(segment_forward) {
@@ -311,20 +340,20 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
             continue;
         }
 
-        for(const Transition& next_transition : associated_segment->transitions) {
+        for(const Transition& next_transition : current_node->associated_segment->transitions) {
             if(&next_transition == &current_transition) {
                 continue;
             }
-            bool curve_forward = std::abs(associated_segment->line.distanceTo(next_transition.path.front())) < std::abs(associated_segment->line.distanceTo(next_transition.path.back()));
+            bool curve_forward = std::abs(current_node->associated_segment->line.distanceTo(next_transition.path.front())) < std::abs(current_node->associated_segment->line.distanceTo(next_transition.path.back()));
 
-            ROS_ASSERT(associated_segment != end_segment);
+            ROS_ASSERT(current_node->associated_segment != end_segment);
             Eigen::Vector2d  end_point_on_associated_segment = curve_forward ? next_transition.path.front() : next_transition.path.back();
             {
                 Eigen::Vector2d  other_possibility = !curve_forward ? next_transition.path.front() : next_transition.path.back();
-                ROS_ASSERT(associated_segment->line.distanceTo(end_point_on_associated_segment) < associated_segment->line.distanceTo(other_possibility));
+                ROS_ASSERT(current_node->associated_segment->line.distanceTo(end_point_on_associated_segment) < current_node->associated_segment->line.distanceTo(other_possibility));
             }
 
-            bool segment_forward = isSegmentForward(associated_segment, start_point_on_segment, end_point_on_associated_segment);
+            bool segment_forward = isSegmentForward(current_node->associated_segment, start_point_on_segment, end_point_on_associated_segment);
 
 
 
@@ -344,6 +373,7 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
             }
 
             if(curve_forward != segment_forward) {
+                new_cost += turning_straight_segment;
                 new_cost += turning_penalty;
             }
 
@@ -354,6 +384,8 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
             Node* next_transition_node = &nodes.at(&next_transition);
             if(new_cost < next_transition_node->cost) {
                 next_transition_node->prev = current_node;
+                current_node->next = next_transition_node;
+
                 ROS_ASSERT(new_cost < next_transition_node->cost);
                 ROS_ASSERT(new_cost > 0);
                 next_transition_node->cost = new_cost;
@@ -400,16 +432,63 @@ std::vector<path_geom::PathPose> CourseGenerator::findPath(const path_geom::Path
     }
     while(gd) {
         path_transitions.push_front(gd);
+        if(gd->prev) {
+            gd->prev->next = gd;
+        }
         gd = gd->prev;
     }
 
-    generatePath(start, end,
-                 start_segment, end_segment,
-                 path_transitions, res);
+    generatePath(path_transitions, res);
 
     return combine(path_start, res, path_end);
 }
 
+
+bool CourseGenerator::isAssociatedSegmentForward(const CourseGenerator::Node* node) const
+{
+    const Transition& current_transition = *node->transition;
+
+    Eigen::Vector2d start_point_on_segment;
+    if(node->associated_segment == start_segment) {
+        ROS_INFO_STREAM("first point is start");
+        start_point_on_segment = start.pos_;
+    } else {
+        if(node->curve_forward) {
+            ROS_INFO_STREAM("curving forward: first point is last point in curve");
+            start_point_on_segment =  current_transition.path.back();
+        } else {
+            ROS_INFO_STREAM("curving backward: first point is first point in curve");
+            start_point_on_segment =  current_transition.path.front();
+
+        }
+    }
+
+    Eigen::Vector2d  end_point_on_associated_segment;
+    if(node->associated_segment == end_segment) {
+        ROS_INFO_STREAM("last point is end");
+        end_point_on_associated_segment = end.pos_;
+    } else  {
+        const Node* next_node = node->next;
+        const Transition& next_transition = *next_node->transition;
+        if(next_node->curve_forward) {
+            ROS_INFO_STREAM("curving forward: last point is first point in next curve");
+            end_point_on_associated_segment =  next_transition.path.front();
+        } else {
+            ROS_INFO_STREAM("curving backward: last point is first point in next curve");
+            end_point_on_associated_segment = next_transition.path.back();
+        }
+    }
+
+    return isSegmentForward(node->associated_segment, start_point_on_segment, end_point_on_associated_segment);
+}
+
+
+bool CourseGenerator::isSegmentForward(const CourseGenerator::Segment* segment, const Eigen::Vector2d& pos, const Eigen::Vector2d& target) const
+{
+    Eigen::Vector2d segment_dir = segment->line.endPoint() - segment->line.startPoint();
+    Eigen::Vector2d move_dir = target - pos;
+    return segment_dir.dot(move_dir) > 0.0;
+}
 
 
 template <typename NodeT>
@@ -435,8 +514,8 @@ lib_path::Pose2d  CourseGenerator::convertToMap(const path_geom::PathPose& pt)
 
 template <typename PathT>
 std::vector<path_geom::PathPose> CourseGenerator::combine(const PathT& start,
-             const std::vector<path_geom::PathPose>& centre,
-             const PathT& end)
+                                                          const std::vector<path_geom::PathPose>& centre,
+                                                          const PathT& end)
 {
     if(start.empty() && end.empty()) {
         return centre;
@@ -457,9 +536,7 @@ std::vector<path_geom::PathPose> CourseGenerator::combine(const PathT& start,
     return res;
 }
 
-void CourseGenerator::generatePath(const path_geom::PathPose& start, const path_geom::PathPose& end,
-                                   const Segment* start_segment, const Segment* end_segment,
-                                   const std::deque<const Node*>& path_transitions, std::vector<path_geom::PathPose>& res) const
+void CourseGenerator::generatePath(const std::deque<const Node*>& path_transitions, std::vector<path_geom::PathPose>& res) const
 {
     Eigen::Vector2d first_pos = start_segment->line.nearestPointTo(start.pos_);
     const Node* first_node = path_transitions.front();
@@ -468,27 +545,43 @@ void CourseGenerator::generatePath(const path_geom::PathPose& start, const path_
     double first_yaw = std::atan2(first_delta(1), first_delta(0));
     res.push_back(path_geom::PathPose(first_pos(0), first_pos(1), first_yaw));
 
-    ROS_INFO_STREAM("generating path from " << path_transitions.size() << " transitions");
-    for(const Node* node : path_transitions) {
-        const Transition* transition = node->transition;
+    Eigen::Vector2d  end_point_on_associated_segment = path_transitions.front()->curve_forward ? path_transitions.front()->transition->path.front() : path_transitions.front()->transition->path.back();
+    bool last_segment_forward = isSegmentForward(start_segment, start.pos_, end_point_on_associated_segment);
+    if(last_segment_forward) {
+        ROS_INFO_STREAM("start segment is forward");
+    } else {
+        ROS_INFO_STREAM("start segment is backward");
+    }
 
-        if(node->curve_forward) {
-            for(std::size_t j = 1, m = transition->path.size(); j < m; ++j) {
-                const Eigen::Vector2d& pt = transition->path.at(j);
-                const Eigen::Vector2d& prev_pt = transition->path.at(j-1);
-                Eigen::Vector2d delta = pt - prev_pt;
-                double c_yaw = std::atan2(delta(1), delta(0));
-                res.push_back(path_geom::PathPose(pt(0), pt(1), c_yaw));
-            }
+
+    ROS_INFO_STREAM("generating path from " << path_transitions.size() << " transitions");
+    for(std::size_t i = 0, n = path_transitions.size(); i < n; ++i) {
+        const Node* current_node = path_transitions[i];
+
+        bool segment_forward = isAssociatedSegmentForward(current_node);
+        if(segment_forward) {
+            ROS_INFO_STREAM("segment is forward");
         } else {
-            for(int m = transition->path.size(), j = m-2; j >= 0; --j) {
-                const Eigen::Vector2d& pt = transition->path.at(j);
-                const Eigen::Vector2d& next_pt = transition->path.at(j+1);
-                Eigen::Vector2d delta = pt - next_pt;
-                double c_yaw = std::atan2(delta(1), delta(0));
-                res.push_back(path_geom::PathPose(pt(0), pt(1), c_yaw));
-            }
+            ROS_INFO_STREAM("segment is backward");
         }
+
+        insertCurveSegment(res, current_node);
+
+        // insert turning point?
+        if(segment_forward == last_segment_forward) {
+            ROS_INFO("no straight segment necessary");
+
+        } else {
+            if(current_node->curve_forward) {
+                ROS_WARN("inserting straight segment at turning (forward)");
+
+            } else {
+                ROS_WARN("inserting straight segment at turning (backward)");
+            }
+            insertStraightTurningSegment(res, current_node);
+        }
+
+        last_segment_forward = segment_forward;
     }
 
     Eigen::Vector2d last_pos = end_segment->line.nearestPointTo(end.pos_);
@@ -497,6 +590,68 @@ void CourseGenerator::generatePath(const path_geom::PathPose& start, const path_
     Eigen::Vector2d last_delta = last_pos - last_node->transition->path.back();
     double last_yaw = std::atan2(last_delta(1), last_delta(0));
     res.push_back(path_geom::PathPose(last_pos(0), last_pos(1), last_yaw));
+}
+
+void CourseGenerator::insertStraightTurningSegment(std::vector<path_geom::PathPose>& res, const Node* current_node) const
+{
+    const Transition& current_transition = *current_node->transition;
+
+    double c_yaw = 0;
+    Eigen::Vector2d pt = res.back().pos_;
+
+
+    bool use_target_line = current_node->curve_forward;
+
+    if(use_target_line) {
+        ROS_INFO("segment is forward");
+        Eigen::Vector2d ep = current_transition.target->line.endPoint();
+        Eigen::Vector2d sp = current_transition.target->line.startPoint();
+        Eigen::Vector2d delta = ep - sp;
+
+        c_yaw = std::atan2(delta(1), delta(0));
+
+    } else {
+        ROS_INFO("segment is backward");
+
+        Eigen::Vector2d ep = current_transition.source->line.endPoint();
+        Eigen::Vector2d sp = current_transition.source->line.startPoint();
+        Eigen::Vector2d delta = ep - sp;
+
+        c_yaw = std::atan2(delta(1), delta(0));
+        c_yaw += M_PI;
+    }
+
+    Eigen::Vector2d offset(turning_straight_segment, 0.0);
+    Eigen::Matrix2d rot;
+    rot << std::cos(c_yaw), -std::sin(c_yaw), std::sin(c_yaw), std::cos(c_yaw);
+
+    pt += rot * offset;
+
+    res.push_back(path_geom::PathPose(pt(0), pt(1), c_yaw));
+}
+
+void CourseGenerator::insertCurveSegment(std::vector<path_geom::PathPose>& res, const Node* current_node) const
+{
+    const Transition& current_transition = *current_node->transition;
+
+    if(current_node->curve_forward) {
+        for(std::size_t j = 1, m = current_transition.path.size(); j < m; ++j) {
+            const Eigen::Vector2d& pt = current_transition.path.at(j);
+            const Eigen::Vector2d& prev_pt = current_transition.path.at(j-1);
+            Eigen::Vector2d delta = pt - prev_pt;
+            double c_yaw = std::atan2(delta(1), delta(0));
+            res.push_back(path_geom::PathPose(pt(0), pt(1), c_yaw));
+        }
+
+    } else {
+        for(int m = current_transition.path.size(), j = m-2; j >= 0; --j) {
+            const Eigen::Vector2d& pt = current_transition.path.at(j);
+            const Eigen::Vector2d& next_pt = current_transition.path.at(j+1);
+            Eigen::Vector2d delta = pt - next_pt;
+            double c_yaw = std::atan2(delta(1), delta(0));
+            res.push_back(path_geom::PathPose(pt(0), pt(1), c_yaw));
+        }
+    }
 }
 
 const CourseGenerator::Segment* CourseGenerator::findClosestSegment(const path_geom::PathPose &pose, double yaw_tolerance, double max_dist) const

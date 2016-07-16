@@ -12,10 +12,19 @@
 class CourseGenerator
 {
 public:
-    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<100, 500, lib_path::NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, false>,
+//    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 120, lib_path::NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, false>,
+//    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyForward;
+//    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 120, lib_path::NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
+//    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyReversed;
+    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD, false>,
     lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyForward;
-    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<100, 500, lib_path::NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
+    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD, true>,
     lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyReversed;
+
+    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, false>,
+    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyForwardTurning;
+    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
+    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyReversedTurning;
 
     class Transition;
 
@@ -49,6 +58,8 @@ public:
         // associated transition
         const Transition* transition = nullptr;
 
+        const Segment* associated_segment = nullptr;
+
         bool curve_forward= true;
 
         // distance travelled until this transition is reached
@@ -56,6 +67,7 @@ public:
 
         // node via which this transition is reached
         Node* prev = nullptr;
+        Node* next = nullptr;
 
 
         double distance_forward = 0.0;
@@ -86,9 +98,7 @@ private:
     void addTransitions(visualization_msgs::MarkerArray &array) const;
     void addIntersections(visualization_msgs::MarkerArray& array) const;
 
-    void generatePath(const path_geom::PathPose &start, const path_geom::PathPose &end,
-                      const Segment *start_segment, const Segment *end_segment,
-                      const std::deque<const Node *> &path_transitions, std::vector<path_geom::PathPose>& res) const;
+    void generatePath(const std::deque<const Node *> &path_transitions, std::vector<path_geom::PathPose>& res) const;
 
 
 
@@ -102,6 +112,14 @@ private:
                  const std::vector<path_geom::PathPose>& centre,
                  const PathT& end);
 
+
+    void insertCurveSegment(std::vector<path_geom::PathPose>& res, const Node* current_node) const;
+    void insertStraightTurningSegment(std::vector<path_geom::PathPose>& res, const Node *current_node) const;
+
+
+    bool isAssociatedSegmentForward(const Node* node) const;
+    bool isSegmentForward(const CourseGenerator::Segment* segment, const Eigen::Vector2d& pos, const Eigen::Vector2d& target) const;
+
 private:
 
     std::vector<Segment> segments_;
@@ -114,17 +132,27 @@ private:
     ros::ServiceClient map_service_client_;
 
     AStarPatsyForward algo_forward;
+    AStarPatsyForwardTurning algo_forward_turn;
     AStarPatsyReversed algo_reverse;
+    AStarPatsyReversedTurning algo_reverse_turn;
     std::shared_ptr<lib_path::SimpleGridMap2d> map_info;
 
     double curve_radius;
 
     double backward_penalty_factor;
+    double turning_straight_segment;
     double turning_penalty;
 
     double size_forward;
     double size_backward;
     double size_width;
+
+
+    const Segment* start_segment;
+    const Segment* end_segment;
+
+    path_geom::PathPose start;
+    path_geom::PathPose end;
 };
 
 #endif // COURSE_GENERATOR_H
