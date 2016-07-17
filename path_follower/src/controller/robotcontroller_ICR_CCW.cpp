@@ -170,10 +170,11 @@ void RobotController_ICR_CCW::WheelVelocities(const std_msgs::Float64MultiArray:
     ros::Time current_time = ros::Time::now();
     double dt = (current_time - last_time_).toSec();
     last_time_ = current_time;
-    if(Vl_ > 1e-3 && Vr_ > 1e-3){
+    if(Vl_ > 1e-3 || Vr_ > 1e-3){
         ekf_.predict(array, dt);
         pose_ekf_ << ekf_.x_(0), ekf_.x_(1), ekf_.x_(2);
         ICR_ekf_  << ekf_.x_(3), ekf_.x_(4), ekf_.x_(5);
+        ROS_INFO("Predicting...");
     }
 
 }
@@ -234,6 +235,7 @@ void RobotController_ICR_CCW::setCurrentPose(const Eigen::Vector3d& pose) {
     ekf_.correct(pose);
     pose_ekf_ << ekf_.x_(0), ekf_.x_(1), ekf_.x_(2);
     ICR_ekf_  << ekf_.x_(3), ekf_.x_(4), ekf_.x_(5);
+    ROS_INFO("Correcting...");
 }
 
 RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(MoveCommand *cmd)
@@ -256,6 +258,15 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     double y_meas = current_pose[1];
     double theta_meas = current_pose[2];
     ///***///
+
+    ///Map the path using current ICR values
+    //ICR mapping vector
+    double r_x = ICR_ekf_(2);
+    double r_y = (ICR_ekf_(1) - ICR_ekf_(0))/2.0;
+
+    //center of the "differential drive"
+    x_meas = x_meas + std::cos(theta_meas)*r_x - std::sin(theta_meas)*r_y;
+    y_meas = y_meas + std::sin(theta_meas)*r_x + std::cos(theta_meas)*r_y;
 
 
     // check for the subpaths, and see if the goal is reached
@@ -292,12 +303,6 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
             calculateMovingDirection();
         }
     }
-
-
-    ///Map the path using current ICR values
-    //ICR mapping vector
-    double r_x = ICR_ekf_(2);
-    double r_y = (ICR_ekf_(1) - ICR_ekf_(0))/2.0;
 
 
     //augmenting the path by the vector r = (x_ICR, (y_ICRl-y_ICRr)/2)
