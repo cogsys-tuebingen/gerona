@@ -124,7 +124,7 @@ private:
 
     Eigen::Vector2d findStartPointOnSegment(const Node* node) const;
     Eigen::Vector2d findStartPointOnSegment(const Node* node, const Transition* transition) const;
-    Eigen::Vector2d findEndPointOnSegment(const Node* node) const;
+    Eigen::Vector2d findEndPointOnNextSegment(const Node* node) const;
     Eigen::Vector2d findEndPointOnSegment(const Node* node, const Transition* transition) const;
 
     bool isAssociatedSegmentForward(const Node* node) const;

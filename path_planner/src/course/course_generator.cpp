@@ -362,7 +362,7 @@ Eigen::Vector2d CourseGenerator::findStartPointOnSegment(const Node* node, const
 }
 
 
-Eigen::Vector2d CourseGenerator::findEndPointOnSegment(const Node* node) const
+Eigen::Vector2d CourseGenerator::findEndPointOnNextSegment(const Node* node) const
 {
     if(node->associated_segment == end_segment) {
         return end_segment->line.nearestPointTo(end.pos_);
@@ -374,8 +374,6 @@ Eigen::Vector2d CourseGenerator::findEndPointOnSegment(const Node* node) const
         const Node* next_node = node->next;
         return findEndPointOnSegment(next_node, next_node->transition);
     }
-
-//    return findEndPointOnSegment(node, node->transition);
 }
 
 
@@ -403,11 +401,11 @@ bool CourseGenerator::isPreviousSegmentForward(Node* current_node) const
 
 bool CourseGenerator::isAssociatedSegmentForward(const CourseGenerator::Node* node) const
 {
-    return isSegmentForward(node->associated_segment, findStartPointOnSegment(node), findEndPointOnSegment(node));
+    return isSegmentForward(node->associated_segment, findStartPointOnSegment(node), findEndPointOnNextSegment(node));
 }
 double CourseGenerator::effectiveLengthOfAssociatedSegment(const CourseGenerator::Node* node) const
 {
-    return (findStartPointOnSegment(node) - findEndPointOnSegment(node)).norm();
+    return (findStartPointOnSegment(node) - findEndPointOnNextSegment(node)).norm();
 }
 
 
@@ -481,8 +479,14 @@ double  CourseGenerator::calculateStraightCost(Node* node, const Eigen::Vector2d
 
     bool prev_segment_forward = isPreviousSegmentForward(node);
     if(prev_segment_forward != segment_forward) {
+        // single turn
         cost += turning_straight_segment;
         cost += turning_penalty;
+
+    } else if(segment_forward != node->curve_forward) {
+        // double turn
+        cost += 2 * turning_straight_segment;
+        cost += 2 * turning_penalty;
     }
 
     return cost;
