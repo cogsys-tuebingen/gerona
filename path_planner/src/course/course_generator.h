@@ -62,7 +62,7 @@ public:
         // associated transition
         const Transition* transition = nullptr;
 
-        const Segment* associated_segment = nullptr;
+        const Segment* next_segment = nullptr;
 
         bool curve_forward= true;
 
@@ -122,13 +122,13 @@ private:
     void extendWithStraightTurningSegment(std::vector<path_geom::PathPose>& res, const Vector2d &pt) const;
 
 
-    Eigen::Vector2d findStartPointOnSegment(const Node* node) const;
-    Eigen::Vector2d findStartPointOnSegment(const Node* node, const Transition* transition) const;
+    Eigen::Vector2d findStartPointOnNextSegment(const Node* node) const;
+    Eigen::Vector2d findStartPointOnNextSegment(const Node* node, const Transition* transition) const;
     Eigen::Vector2d findEndPointOnNextSegment(const Node* node) const;
     Eigen::Vector2d findEndPointOnSegment(const Node* node, const Transition* transition) const;
 
-    bool isAssociatedSegmentForward(const Node* node) const;
-    double effectiveLengthOfAssociatedSegment(const Node* node) const;
+    bool isNextSegmentForward(const Node* node) const;
+    double effectiveLengthOfNextSegment(const Node* node) const;
     bool isSegmentForward(const CourseGenerator::Segment* segment, const Eigen::Vector2d& pos, const Eigen::Vector2d& target) const;
     bool isPreviousSegmentForward(Node* current_node) const;
 
