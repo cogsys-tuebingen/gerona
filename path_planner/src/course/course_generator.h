@@ -8,6 +8,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <utils_path/generic/Algorithms.hpp>
 #include <utils_path/common/SimpleGridMap2d.h>
+#include <nav_msgs/OccupancyGrid.h>
 
 class CourseGenerator
 {
@@ -42,6 +43,8 @@ public:
 
     class Transition {
     public:
+        double arc_length() const;
+
         const Segment* source;
         const Segment* target;
 
@@ -51,7 +54,7 @@ public:
         double r;
         double dtheta;
 
-        std::vector<Eigen::Vector2d> path;
+        std::vector<Eigen::Vector2d> path;        
     };
 
 
@@ -69,12 +72,6 @@ public:
         // node via which this transition is reached
         Node* prev = nullptr;
         Node* next = nullptr;
-
-
-        double distance_forward = 0.0;
-        double distance_backward = 0.0;
-
-        std::vector<double> history;
     };
 
 
@@ -92,16 +89,21 @@ public:
     std::vector<path_geom::PathPose> findPath(const path_geom::PathPose& start, const path_geom::PathPose& end);
 
 
+
 private:
+    void initMaps(const nav_msgs::OccupancyGrid& map);
+
     static Vector2d readPoint(const XmlRpc::XmlRpcValue& value, int index);
 
     void addLines(visualization_msgs::MarkerArray &array) const;
     void addTransitions(visualization_msgs::MarkerArray &array) const;
     void addIntersections(visualization_msgs::MarkerArray& array) const;
 
+    void generatePathCandidate(Node* current_node);
     void generatePath(const std::deque<const Node *> &path_transitions, std::vector<path_geom::PathPose>& res) const;
 
-
+    double calculateStraightCost(Node* current_node, const Vector2d &start_point_on_segment, const Vector2d &end_point_on_segment) const;
+    double calculateCurveCost(Node* current_node) const;
 
     template <typename NodeT>
     path_geom::PathPose convertToWorld(const NodeT& node);
@@ -121,11 +123,14 @@ private:
 
 
     Eigen::Vector2d findStartPointOnSegment(const Node* node) const;
+    Eigen::Vector2d findStartPointOnSegment(const Node* node, const Transition* transition) const;
     Eigen::Vector2d findEndPointOnSegment(const Node* node) const;
+    Eigen::Vector2d findEndPointOnSegment(const Node* node, const Transition* transition) const;
 
     bool isAssociatedSegmentForward(const Node* node) const;
     double effectiveLengthOfAssociatedSegment(const Node* node) const;
     bool isSegmentForward(const CourseGenerator::Segment* segment, const Eigen::Vector2d& pos, const Eigen::Vector2d& target) const;
+    bool isPreviousSegmentForward(Node* current_node) const;
 
     std::string signature(const Node* head) const;
 
@@ -162,6 +167,12 @@ private:
 
     path_geom::PathPose start;
     path_geom::PathPose end;
+
+    Eigen::Vector2d start_pt;
+    Eigen::Vector2d end_pt;
+
+    double min_cost;
+    std::vector<path_geom::PathPose> best_path;
 };
 
 #endif // COURSE_GENERATOR_H
