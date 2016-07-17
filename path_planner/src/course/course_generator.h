@@ -31,7 +31,8 @@ public:
     class Segment {
     public:
         path_geom::Line line;
-        std::vector<Transition> transitions;
+        std::vector<Transition> forward_transitions;
+        std::vector<Transition> backward_transitions;
 
         Segment(const path_geom::Line& line)
             : line(line)
@@ -114,11 +115,19 @@ private:
 
 
     void insertCurveSegment(std::vector<path_geom::PathPose>& res, const Node* current_node) const;
-    void insertStraightTurningSegment(std::vector<path_geom::PathPose>& res, const Node *current_node) const;
+    void extendAlongSourceSegment(std::vector<path_geom::PathPose>& res, const Node *current_node) const;
+    void extendAlongTargetSegment(std::vector<path_geom::PathPose>& res, const Node *current_node) const;
+    void extendWithStraightTurningSegment(std::vector<path_geom::PathPose>& res, const Vector2d &pt) const;
 
+
+    Eigen::Vector2d findStartPointOnSegment(const Node* node) const;
+    Eigen::Vector2d findEndPointOnSegment(const Node* node) const;
 
     bool isAssociatedSegmentForward(const Node* node) const;
+    double effectiveLengthOfAssociatedSegment(const Node* node) const;
     bool isSegmentForward(const CourseGenerator::Segment* segment, const Eigen::Vector2d& pos, const Eigen::Vector2d& target) const;
+
+    std::string signature(const Node* head) const;
 
 private:
 
