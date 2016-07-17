@@ -79,10 +79,14 @@ target_link_libraries(static_path_node
 )
 
 add_executable(course_planner_node
-src/course/course_generator.cpp
-src/course_planner_node.cpp
-src/course_planner.cpp
-src/planner_node.cpp
+    src/course/segment.cpp
+    src/course/transition.cpp
+    src/course/node.cpp
+    src/course/course_generator.cpp
+    src/course/search.cpp
+    src/course_planner_node.cpp
+    src/course_planner.cpp
+    src/planner_node.cpp
 )
 add_dependencies(course_planner_node path_msgs_generate_messages_cpp)
 
