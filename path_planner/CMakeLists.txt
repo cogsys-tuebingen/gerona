@@ -33,6 +33,7 @@ include_directories(
   ${EIGEN_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  #../../utils/
 )
 
 catkin_package(
@@ -78,6 +79,7 @@ target_link_libraries(static_path_node
 )
 
 add_executable(course_planner_node
+src/course/course_generator.cpp
 src/course_planner_node.cpp
 src/course_planner.cpp
 src/planner_node.cpp
