@@ -84,6 +84,7 @@ add_executable(course_planner_node
     src/course/node.cpp
     src/course/course_generator.cpp
     src/course/search.cpp
+    src/course/path_builder.cpp
     src/course_planner_node.cpp
     src/course_planner.cpp
     src/planner_node.cpp

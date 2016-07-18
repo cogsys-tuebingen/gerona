@@ -9,6 +9,7 @@
 #include <nav_msgs/OccupancyGrid.h>
 
 #include "node.h"
+#include "path_builder.h"
 
 class CourseGenerator;
 
@@ -41,32 +42,19 @@ private:
     std::vector<path_geom::PathPose> findAppendix(const nav_msgs::OccupancyGrid &map, const path_geom::PathPose& pose, const std::string& type);
 
 
+    std::vector<path_geom::PathPose> performDijkstraSearch();
     void initNodes();
 
     void enqueueStartingNodes(std::set<Node *, bool(*)(const Node *, const Node *)> &queue);
 
     void generatePathCandidate(Node* current_node);
-    void generatePath(const std::deque<const Node *> &path_transitions, std::vector<path_geom::PathPose>& res) const;
+    void generatePath(const std::deque<const Node *> &path_transitions, PathBuilder &path_builder) const;
 
     double calculateStraightCost(Node* current_node, const Vector2d &start_point_on_segment, const Vector2d &end_point_on_segment) const;
     double calculateCurveCost(Node* current_node) const;
 
     path_geom::PathPose convertToWorld(const NodeT& node);
     lib_path::Pose2d convertToMap(const path_geom::PathPose& node);
-
-    std::vector<path_geom::PathPose> combine(const std::vector<path_geom::PathPose>& start,
-                                             const std::vector<path_geom::PathPose>& centre,
-                                             const std::vector<path_geom::PathPose>& end);
-
-
-    void insertFirstNode(std::vector<path_geom::PathPose>& res) const;
-    void insertLastNode(std::vector<path_geom::PathPose>& res) const;
-
-    void insertCurveSegment(std::vector<path_geom::PathPose>& res, const Node* current_node) const;
-    void extendAlongSourceSegment(std::vector<path_geom::PathPose>& res, const Node *current_node) const;
-    void extendAlongTargetSegment(std::vector<path_geom::PathPose>& res, const Node *current_node) const;
-    void extendWithStraightTurningSegment(std::vector<path_geom::PathPose>& res, const Vector2d &pt) const;
-
 
     Eigen::Vector2d findStartPointOnNextSegment(const Node* node) const;
     Eigen::Vector2d findStartPointOnNextSegment(const Node* node, const Transition* transition) const;
@@ -103,16 +91,15 @@ private:
 
     const Segment* start_segment;
     const Segment* end_segment;
-
     Eigen::Vector2d start_pt;
     Eigen::Vector2d end_pt;
+
 
     double min_cost;
     std::vector<path_geom::PathPose> best_path;
 
     std::vector<path_geom::PathPose> start_appendix;
     std::vector<path_geom::PathPose> end_appendix;
-    std::vector<path_geom::PathPose> performDijkstraSearch();
 };
 
 #endif // SEARCH_H

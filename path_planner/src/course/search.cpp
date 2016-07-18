@@ -37,12 +37,8 @@ Search::Search(const CourseGenerator& generator)
 }
 
 
-
-
-
 std::vector<path_geom::PathPose> Search::findPath(const path_geom::PathPose& start_pose, const path_geom::PathPose& end_pose)
 {
-    std::vector<path_geom::PathPose> res;
 
     nav_msgs::GetMap map_service;
     if(!map_service_client_.exists()) {
@@ -50,21 +46,26 @@ std::vector<path_geom::PathPose> Search::findPath(const path_geom::PathPose& sta
     }
     if(!map_service_client_.call(map_service)) {
         ROS_ERROR("map service lookup failed");
-        return res;
+        return {};
     }
 
     initMaps(map_service.response.map);
 
     if(!findAppendices(map_service.response.map, start_pose, end_pose)) {
-        return res;
+        return {};
     }
 
 
     if(start_segment == end_segment) {
-        insertFirstNode(res);
-        insertLastNode(res);
+        PathBuilder path_builder;
+        path_builder.addPath(start_appendix);
 
-        return combine(start_appendix, res, end_appendix);
+        path_builder.insertTangentPoint(start_segment, start_pt);
+        path_builder.insertTangentPoint(end_segment, end_pt);
+
+        path_builder.addPath(end_appendix);
+
+        return path_builder;
     }
 
     return performDijkstraSearch();
@@ -74,19 +75,18 @@ std::vector<path_geom::PathPose> Search::performDijkstraSearch()
 {
     initNodes();
 
-    std::set<Node*, bool(*)(const Node*, const Node*)> queue(&comp);
+    std::set<Node*, bool(*)(const Node*, const Node*)> priority_queue(&comp);
 
-    enqueueStartingNodes(queue);
+    enqueueStartingNodes(priority_queue);
 
     min_cost = std::numeric_limits<double>::infinity();
 
-    while(!queue.empty()) {
-        Node* current_node = *queue.begin();
-        queue.erase(queue.begin());
+    while(!priority_queue.empty()) {
+        Node* current_node = *priority_queue.begin();
+        priority_queue.erase(priority_queue.begin());
 
         if(current_node->next_segment == end_segment) {
             generatePathCandidate(current_node);
-
             continue;
         }
 
@@ -101,21 +101,26 @@ std::vector<path_geom::PathPose> Search::performDijkstraSearch()
                 double new_cost = current_node->cost + curve_cost + straight_cost;
 
                 if(new_cost < neighbor->cost) {
+                    neighbor->cost = new_cost;
+
                     neighbor->prev = current_node;
                     current_node->next = neighbor;
 
-                    neighbor->cost = new_cost;
-
-                    if(queue.find(neighbor) != queue.end()) {
-                        queue.erase(neighbor);
+                    if(priority_queue.find(neighbor) != priority_queue.end()) {
+                        priority_queue.erase(neighbor);
                     }
-                    queue.insert(neighbor);
+                    priority_queue.insert(neighbor);
                 }
             }
         }
     }
 
-    return combine(start_appendix, best_path, end_appendix);
+    PathBuilder path_builder;
+    path_builder.addPath(start_appendix);
+    path_builder.addPath(best_path);
+    path_builder.addPath(end_appendix);
+
+    return path_builder;
 }
 
 void Search::enqueueStartingNodes(std::set<Node*, bool(*)(const Node*, const Node*)>& queue)
@@ -350,20 +355,6 @@ lib_path::Pose2d  Search::convertToMap(const path_geom::PathPose& pt)
     return res;
 }
 
-std::vector<path_geom::PathPose> Search::combine(const std::vector<path_geom::PathPose> &start,
-                                                 const std::vector<path_geom::PathPose>& centre,
-                                                 const std::vector<path_geom::PathPose> &end)
-{
-    if(start.empty() && end.empty()) {
-        return centre;
-    }
-
-    std::vector<path_geom::PathPose> res(start);
-    res.insert(res.end(), centre.begin(), centre.end());
-    res.insert(res.end(), end.begin(), end.end());
-
-    return res;
-}
 
 double  Search::calculateStraightCost(Node* node, const Eigen::Vector2d& start_point_on_segment, const Eigen::Vector2d& end_point_on_segment) const
 {
@@ -421,13 +412,15 @@ void Search::generatePathCandidate(Node* node)
             tmp = tmp->prev;
         }
 
-        generatePath(transitions, best_path);
+        PathBuilder path_builder;
+        generatePath(transitions, path_builder);
+        best_path = path_builder;
     }
 }
 
-void Search::generatePath(const std::deque<const Node*>& path_transitions, std::vector<path_geom::PathPose>& res) const
+void Search::generatePath(const std::deque<const Node*>& path_transitions, PathBuilder& path_builder) const
 {
-    insertFirstNode(res);
+    path_builder.insertTangentPoint(start_segment, start_pt);
 
     bool segment_forward = isStartSegmentForward(path_transitions.front());
 
@@ -438,7 +431,7 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, std::
         double eff_len = effectiveLengthOfNextSegment(current_node);
         if(eff_len < std::numeric_limits<double>::epsilon()) {
             // the segment has no length -> only insert the transition curve
-            insertCurveSegment(res, current_node);
+            path_builder.insertCurveSegment(current_node);
             continue;
         }
 
@@ -450,7 +443,7 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, std::
 
             if(current_node->curve_forward == next_segment_forward) {
                 // no straight segment necessary
-                insertCurveSegment(res, current_node);
+                path_builder.insertCurveSegment(current_node);
 
             } else {
                 // double turn
@@ -460,17 +453,17 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, std::
                  */
 
                 if(current_node->curve_forward) {
-                    extendWithStraightTurningSegment(res, current_node->transition->path.front());
+                    path_builder.extendWithStraightTurningSegment(current_node->transition->path.front(), turning_straight_segment);
                 } else {
-                    extendWithStraightTurningSegment(res, current_node->transition->path.back());
+                    path_builder.extendWithStraightTurningSegment(current_node->transition->path.back(), turning_straight_segment);
                 }
 
-                insertCurveSegment(res, current_node);
+                path_builder.insertCurveSegment(current_node);
 
                 if(current_node->curve_forward) {
-                    extendAlongTargetSegment(res, current_node);
+                    path_builder.extendAlongTargetSegment(current_node, turning_straight_segment);
                 } else {
-                    extendAlongSourceSegment(res, current_node);
+                    path_builder.extendAlongSourceSegment(current_node, turning_straight_segment);
                 }
             }
 
@@ -488,8 +481,8 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, std::
                      *            * Extension after curve along target segment of C
                      *            *
                      */
-                    insertCurveSegment(res, current_node);
-                    extendAlongTargetSegment(res, current_node);
+                    path_builder.insertCurveSegment(current_node);
+                    path_builder.extendAlongTargetSegment(current_node, turning_straight_segment);
 
                 } else {
                     // segment (S) forward + curve (C) backward + next segment (N) is backward
@@ -501,8 +494,8 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, std::
                      * > > > > > >v> > > > *******
                      *   S                     Extension before curve along target segment of C
                      */
-                    extendAlongTargetSegment(res, current_node);
-                    insertCurveSegment(res, current_node);
+                    path_builder.extendAlongTargetSegment(current_node, turning_straight_segment);
+                    path_builder.insertCurveSegment(current_node);
                 }
 
             } else {
@@ -517,8 +510,8 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, std::
                      *            * Extension before curve along source segment of C
                      *            *
                      */
-                    extendAlongSourceSegment(res, current_node);
-                    insertCurveSegment(res, current_node);
+                    path_builder.extendAlongSourceSegment(current_node, turning_straight_segment);
+                    path_builder.insertCurveSegment(current_node);
 
                 } else {
                     // segment (S) backward + curve (C) backward + next segment (N) is forward
@@ -530,8 +523,8 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, std::
                      * < < < < < <^< < < < *******
                      *   N                     Extension after curve along source segment of C
                      */
-                    insertCurveSegment(res, current_node);
-                    extendAlongSourceSegment(res, current_node);
+                    path_builder.insertCurveSegment(current_node);
+                    path_builder.extendAlongSourceSegment(current_node, turning_straight_segment);
                 }
             }
         }
@@ -539,114 +532,9 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, std::
         segment_forward = next_segment_forward;
     }
 
-    insertLastNode(res);
+    path_builder.insertTangentPoint(end_segment, end_pt);
 }
 
-void Search::insertFirstNode(std::vector<path_geom::PathPose>& res) const
-{
-    Eigen::Vector2d pos = start_pt;
-
-    Eigen::Vector2d delta = start_segment->line.endPoint() - start_segment->line.startPoint();
-    double yaw = std::atan2(delta(1), delta(0));
-    res.push_back(path_geom::PathPose(pos(0), pos(1), yaw));
-}
-
-
-void Search::insertLastNode(std::vector<path_geom::PathPose>& res) const
-{
-    Eigen::Vector2d pos = end_pt;
-
-    Eigen::Vector2d delta = end_segment->line.endPoint() - end_segment->line.startPoint();
-    double yaw = std::atan2(delta(1), delta(0));
-    res.push_back(path_geom::PathPose(pos(0), pos(1), yaw));
-}
-
-
-
-void Search::extendAlongTargetSegment(std::vector<path_geom::PathPose>& res, const Node* current_node) const
-{
-    ROS_INFO("extend along next");
-    const Transition& current_transition = *current_node->transition;
-
-    double c_yaw = 0;
-    Eigen::Vector2d  pt = current_transition.path.back();
-
-    Eigen::Vector2d ep = current_transition.target->line.endPoint();
-    Eigen::Vector2d sp = current_transition.target->line.startPoint();
-    Eigen::Vector2d delta = ep - sp;
-
-    c_yaw = std::atan2(delta(1), delta(0));
-
-    Eigen::Vector2d offset(turning_straight_segment, 0.0);
-    Eigen::Matrix2d rot;
-    rot << std::cos(c_yaw), -std::sin(c_yaw), std::sin(c_yaw), std::cos(c_yaw);
-
-    pt += rot * offset;
-
-    res.push_back(path_geom::PathPose(pt(0), pt(1), c_yaw));
-}
-
-void Search::extendAlongSourceSegment(std::vector<path_geom::PathPose>& res, const Node* current_node) const
-{
-    ROS_INFO("extend along current");
-    const Transition& current_transition = *current_node->transition;
-
-    double c_yaw = 0;
-    Eigen::Vector2d pt = current_transition.path.front();
-
-
-    Eigen::Vector2d ep = current_transition.source->line.endPoint();
-    Eigen::Vector2d sp = current_transition.source->line.startPoint();
-    Eigen::Vector2d delta = ep - sp;
-
-    c_yaw = std::atan2(delta(1), delta(0)) + M_PI;
-
-    Eigen::Vector2d offset(turning_straight_segment, 0.0);
-    Eigen::Matrix2d rot;
-    rot << std::cos(c_yaw), -std::sin(c_yaw), std::sin(c_yaw), std::cos(c_yaw);
-
-    pt += rot * offset;
-
-    res.push_back(path_geom::PathPose(pt(0), pt(1), c_yaw));
-}
-
-void Search::extendWithStraightTurningSegment(std::vector<path_geom::PathPose>& res, const Eigen::Vector2d& pt) const
-{
-    ROS_INFO("extend straight");
-    Eigen::Vector2d prev_pt = res.back().pos_;
-
-    Eigen::Vector2d dir = (pt - prev_pt);
-    Eigen::Vector2d offset = dir / dir.norm() * turning_straight_segment;
-    Eigen::Vector2d pos = pt + offset;
-
-    res.push_back(path_geom::PathPose(pos(0), pos(1), std::atan2(dir(1), dir(0))));
-}
-
-void Search::insertCurveSegment(std::vector<path_geom::PathPose>& res, const Node* current_node) const
-{
-    const Transition& current_transition = *current_node->transition;
-
-    if(current_node->curve_forward) {
-        ROS_INFO("insert curve: curve is forward");
-        for(std::size_t j = 1, m = current_transition.path.size(); j < m; ++j) {
-            const Eigen::Vector2d& pt = current_transition.path.at(j);
-            const Eigen::Vector2d& prev_pt = current_transition.path.at(j-1);
-            Eigen::Vector2d delta = pt - prev_pt;
-            double c_yaw = std::atan2(delta(1), delta(0));
-            res.push_back(path_geom::PathPose(pt(0), pt(1), c_yaw));
-        }
-
-    } else {
-        ROS_INFO("insert curve: curve is backward");
-        for(int m = current_transition.path.size(), j = m-2; j >= 0; --j) {
-            const Eigen::Vector2d& pt = current_transition.path.at(j);
-            const Eigen::Vector2d& next_pt = current_transition.path.at(j+1);
-            Eigen::Vector2d delta = pt - next_pt;
-            double c_yaw = std::atan2(delta(1), delta(0));
-            res.push_back(path_geom::PathPose(pt(0), pt(1), c_yaw));
-        }
-    }
-}
 
 
 std::string Search::signature(const Node *head) const
