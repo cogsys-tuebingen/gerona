@@ -1,12 +1,8 @@
 #include "course_generator.h"
 #include <utils_path/geometry/intersector.h>
-#include <utils_path/common/CollisionGridMap2d.h>
 #include <ros/console.h>
 #include <visualization_msgs/MarkerArray.h>
-#include <nav_msgs/OccupancyGrid.h>
-#include <nav_msgs/GetMap.h>
-#include <set>
-#include <tf/tf.h>
+#include <XmlRpcValue.h>
 
 
 CourseGenerator::CourseGenerator(ros::NodeHandle &nh)
@@ -35,6 +31,22 @@ Eigen::Vector2d CourseGenerator::readPoint(const XmlRpc::XmlRpcValue& value, int
     return Eigen::Vector2d (x, y);
 }
 
+Segment CourseGenerator::readSegment(const XmlRpc::XmlRpcValue &map_segment_array, int index)
+{
+    XmlRpc::XmlRpcValue segment = map_segment_array[index];
+
+    if(segment.size() != 2) {
+        ROS_FATAL_STREAM("segment " << segment << " has an invalid format, should be [start, end]");
+        std::abort();
+    }
+
+    Eigen::Vector2d start = readPoint(segment, 0);
+    Eigen::Vector2d end = readPoint(segment, 1);
+
+    path_geom::Line line(start, end);
+
+    return Segment(line);
+}
 
 
 const Segment* CourseGenerator::findClosestSegment(const path_geom::PathPose &pose, double yaw_tolerance, double max_dist) const
@@ -67,21 +79,7 @@ const Segment* CourseGenerator::findClosestSegment(const path_geom::PathPose &po
 void CourseGenerator::createMap(const XmlRpc::XmlRpcValue &map_segment_array)
 {
     for(int i =0; i < map_segment_array.size(); i++) {
-        XmlRpc::XmlRpcValue segment = map_segment_array[i];
-
-        if(segment.size() != 2) {
-            ROS_FATAL_STREAM("segment " << segment << " has an invalid format, should be [start, end]");
-            std::abort();
-        }
-
-        Eigen::Vector2d start = readPoint(segment, 0);
-        Eigen::Vector2d end = readPoint(segment, 1);
-
-        path_geom::Line line(start, end);
-
-        Segment s(line);
-
-        segments_.emplace_back(s);
+        segments_.emplace_back(readSegment(map_segment_array, i));
     }
 
     for(std::size_t i = 0; i < segments_.size(); ++i) {
@@ -98,7 +96,7 @@ void CourseGenerator::createMap(const XmlRpc::XmlRpcValue &map_segment_array)
 
             Eigen::Vector2d intersection;
             if(path_geom::Intersector::intersect(si.line, sj.line, intersection, eps)) {
-                // only forward motion is allowd
+                // only forward motion is allowed
                 //  -> if the intersection is at the start of the source segment -> ignore
                 if((intersection - si.line.startPoint()).norm() < eps) {
                     continue;
@@ -108,88 +106,113 @@ void CourseGenerator::createMap(const XmlRpc::XmlRpcValue &map_segment_array)
                     continue;
                 }
 
-                intersections_.push_back(intersection);
-
-                Eigen::Vector2d a = si.line.endPoint() - si.line.startPoint();
-                Eigen::Vector2d b = sj.line.endPoint() - sj.line.startPoint();
-
-                Eigen::Vector2d an = a / a.norm();
-                Eigen::Vector2d bn = b / b.norm();
-
-                double opening_angle = std::atan2(bn(1), bn(0)) - std::atan2(an(1), an(0));
-                opening_angle = MathHelper::NormalizeAngle(opening_angle);
-                double phi = 0;
-                if(opening_angle >= 0.0) {
-                    phi = (M_PI - opening_angle) / 2.;
-                } else {
-                    phi = (-M_PI - opening_angle) / 2.;
-                }
-
-                Eigen::Matrix2d rot_to_icr;
-                rot_to_icr << std::cos(phi), - std::sin(phi), std::sin(phi), std::cos(phi);
-
-                Eigen::Vector2d to_icr = rot_to_icr * bn;
-                to_icr *= curve_radius / (std::sin(std::abs(phi)) * to_icr.norm());
-
-                Eigen::Vector2d icr = intersection + to_icr;
-
-                Transition t;
-                t.source = &si;
-                t.target = &sj;
-                t.icr = icr;
-                t.intersection = intersection;
-                t.r = curve_radius;
-
-
-                Eigen::Vector2d s = si.line.projectPoint(t.icr);
-                Eigen::Vector2d e = sj.line.projectPoint(t.icr);
-
-                Eigen::Vector2d ds = s - t.icr;
-                Eigen::Vector2d de = e - t.icr;
-
-                double start_angle = std::atan2(ds(1), ds(0));
-                double end_angle = std::atan2(de(1), de(0));
-
-                t.dtheta = MathHelper::NormalizeAngle(end_angle - start_angle);
-
-                double desired_step = M_PI / 32.0;
-
-                int segments = std::abs((int) std::round(t.dtheta / desired_step));
-
-
-                if(segments <= 1) {
-                    t.path.push_back(s);
-                    t.path.push_back(e);
-
-                } else {
-                    double step_size = t.dtheta / segments;
-
-                    Eigen::Matrix2d delta;
-                    delta << std::cos(step_size), -std::sin(step_size), std::sin(step_size), std::cos(step_size);
-
-                    Eigen::Vector2d offset = ds;
-
-                    for(int step = 0; step < segments; ++step) {
-                        t.path.push_back(icr + offset);
-
-                        offset = delta * offset;
-                    }
-                }
-
-                si.forward_transitions.emplace_back(t);
-                sj.backward_transitions.emplace_back(t);
+                addTransition(si, sj, intersection);
             }
         }
     }
+}
+
+
+void CourseGenerator::addTransition(Segment &from, Segment &to, const Eigen::Vector2d& intersection)
+{
+    intersections_.push_back(intersection);
+
+    Eigen::Vector2d icr = calculateICR(from, to, intersection);
+
+    Transition t;
+    t.source = &from;
+    t.target = &to;
+    t.icr = icr;
+    t.intersection = intersection;
+    t.r = curve_radius;
+    t.dtheta = calculateSpan(from, to, icr);
+    t.path = calculateCurvePoints(from, to, icr, t.dtheta);
+
+    from.forward_transitions.emplace_back(t);
+    to.backward_transitions.emplace_back(t);
+}
+
+Vector2d CourseGenerator::calculateICR(const Segment &from, const Segment &to, const Eigen::Vector2d& intersection) const
+{
+    Eigen::Vector2d a = from.line.endPoint() - from.line.startPoint();
+    Eigen::Vector2d b = to.line.endPoint() - to.line.startPoint();
+
+    Eigen::Vector2d an = a / a.norm();
+    Eigen::Vector2d bn = b / b.norm();
+
+    double opening_angle = MathHelper::NormalizeAngle(std::atan2(bn(1), bn(0)) - std::atan2(an(1), an(0)));
+    double phi = 0;
+    if(opening_angle >= 0.0) {
+        phi = (M_PI - opening_angle) / 2.;
+    } else {
+        phi = (-M_PI - opening_angle) / 2.;
+    }
+
+    Eigen::Matrix2d rot_to_icr;
+    rot_to_icr << std::cos(phi), - std::sin(phi), std::sin(phi), std::cos(phi);
+
+    Eigen::Vector2d to_icr = rot_to_icr * bn;
+    to_icr *= curve_radius / (std::sin(std::abs(phi)) * to_icr.norm());
+
+    Eigen::Vector2d icr = intersection + to_icr;
+
+    return icr;
+}
+
+double CourseGenerator::calculateSpan(const Segment &from, const Segment &to, const Eigen::Vector2d& icr) const
+{
+    Eigen::Vector2d s = from.line.projectPoint(icr);
+    Eigen::Vector2d e = to.line.projectPoint(icr);
+
+    Eigen::Vector2d ds = s - icr;
+    Eigen::Vector2d de = e - icr;
+
+    double start_angle = std::atan2(ds(1), ds(0));
+    double end_angle = std::atan2(de(1), de(0));
+
+    return MathHelper::NormalizeAngle(end_angle - start_angle);
+}
+
+std::vector<Eigen::Vector2d> CourseGenerator::calculateCurvePoints(const Segment &from, const Segment &to, const Eigen::Vector2d& icr, double dtheta) const
+{
+    std::vector<Eigen::Vector2d> result;
+
+    Eigen::Vector2d first_pt = from.line.projectPoint(icr);
+    Eigen::Vector2d last_pt = to.line.projectPoint(icr);
+
+    double desired_step = M_PI / 32.0;
+
+    int segments = std::abs((int) std::round(dtheta / desired_step));
+
+    if(segments <= 1) {
+        result.push_back(first_pt);
+        result.push_back(last_pt);
+
+    } else {
+        double step_size = dtheta / segments;
+
+        Eigen::Matrix2d delta;
+        delta << std::cos(step_size), -std::sin(step_size), std::sin(step_size), std::cos(step_size);
+
+        Eigen::Vector2d offset = first_pt - icr;
+
+        for(int step = 0; step < segments; ++step) {
+            result.push_back(icr + offset);
+
+            offset = delta * offset;
+        }
+    }
+
+    return result;
 }
 
 void CourseGenerator::publishMarkers() const
 {
     visualization_msgs::MarkerArray array;
 
-    addLines(array);
-    addIntersections(array);
-    addTransitions(array);
+    addLineMarkers(array);
+    addIntersectionMarkers(array);
+    addTransitionMarkers(array);
 
 
     pub_viz_.publish(array);
@@ -200,7 +223,7 @@ bool CourseGenerator::hasSegments() const
     return !segments_.empty();
 }
 
-void CourseGenerator::addLines(visualization_msgs::MarkerArray& array) const
+void CourseGenerator::addLineMarkers(visualization_msgs::MarkerArray& array) const
 {
     visualization_msgs::Marker templ;
     templ.type = visualization_msgs::Marker::ARROW;
@@ -255,7 +278,7 @@ void CourseGenerator::addLines(visualization_msgs::MarkerArray& array) const
     }
 }
 
-void CourseGenerator::addTransitions(visualization_msgs::MarkerArray& array) const
+void CourseGenerator::addTransitionMarkers(visualization_msgs::MarkerArray& array) const
 {
     visualization_msgs::Marker icr;
     icr.type = visualization_msgs::Marker::ARROW;
@@ -330,7 +353,7 @@ void CourseGenerator::addTransitions(visualization_msgs::MarkerArray& array) con
     }
 }
 
-void CourseGenerator::addIntersections(visualization_msgs::MarkerArray& array) const
+void CourseGenerator::addIntersectionMarkers(visualization_msgs::MarkerArray& array) const
 {
     visualization_msgs::Marker templ;
     templ.type = visualization_msgs::Marker::CYLINDER;
