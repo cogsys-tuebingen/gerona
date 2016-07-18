@@ -12,7 +12,7 @@
 #include "path_builder.h"
 #include "analyzer.h"
 
-class CourseGenerator;
+class CourseMap;
 
 class Search
 {
@@ -32,7 +32,7 @@ public:
     friend class Analyzer;
 
 public:
-    Search(const CourseGenerator& generator);
+    Search(const CourseMap& generator);
 
     std::vector<path_geom::PathPose> findPath(const path_geom::PathPose& start, const path_geom::PathPose& end);
 
@@ -58,7 +58,7 @@ private:
     ros::NodeHandle pnh_;
 
     Analyzer analyzer;
-    const CourseGenerator& generator_;
+    const CourseMap& generator_;
 
     // appendix parameters
     ros::ServiceClient map_service_client_;

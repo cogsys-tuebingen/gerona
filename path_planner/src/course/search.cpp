@@ -7,7 +7,7 @@
 #include <set>
 #include <tf/tf.h>
 
-#include "course_generator.h"
+#include "course_map.h"
 
 #include "near_course_test.hpp"
 
@@ -18,7 +18,7 @@ bool comp (const Node* lhs, const Node* rhs)
 }
 }
 
-Search::Search(const CourseGenerator& generator)
+Search::Search(const CourseMap& generator)
     : pnh_("~"),
       analyzer(*this),
       generator_(generator)

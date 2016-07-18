@@ -1,7 +1,7 @@
 #ifndef NEAR_COURSE_TEST_HPP
 #define NEAR_COURSE_TEST_HPP
 
-#include "course_generator.h"
+#include "course_map.h"
 #include <nav_msgs/OccupancyGrid.h>
 #include <utils_path/common/SimpleGridMap2d.h>
 
@@ -9,7 +9,7 @@
 template <typename Algorithm>
 struct NearCourseTest
 {
-    NearCourseTest(const CourseGenerator& parent, Algorithm& algo, const nav_msgs::OccupancyGrid& map, const lib_path::SimpleGridMap2d* map_info)
+    NearCourseTest(const CourseMap& parent, Algorithm& algo, const nav_msgs::OccupancyGrid& map, const lib_path::SimpleGridMap2d* map_info)
         : parent(parent),
           algo(algo), map(map), map_info(map_info),
           res(map.info.resolution),
@@ -66,7 +66,7 @@ struct NearCourseTest
         return NULL;
     }
 
-    const CourseGenerator& parent;
+    const CourseMap& parent;
 
     Algorithm& algo;
     const nav_msgs::OccupancyGrid& map;

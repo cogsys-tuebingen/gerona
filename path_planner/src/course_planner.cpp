@@ -43,7 +43,7 @@ CoursePlanner::CoursePlanner()
     
     plan_avoidance_server_.start();
 
-    course_.createMap(map_segment_array_);
+    course_.load(map_segment_array_);
 }
 
 void CoursePlanner::tick()

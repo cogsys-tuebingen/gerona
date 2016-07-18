@@ -1,5 +1,5 @@
-#ifndef COURSE_GENERATOR_H
-#define COURSE_GENERATOR_H
+#ifndef COURSE_MAP_H
+#define COURSE_MAP_H
 
 #include <utils_path/geometry/line.h>
 #include <ros/publisher.h>
@@ -8,13 +8,13 @@
 
 #include "segment.h"
 
-class CourseGenerator
+class CourseMap
 {
 public:
-    CourseGenerator(ros::NodeHandle& nh);
-    ~CourseGenerator();
+    CourseMap(ros::NodeHandle& nh);
+    ~CourseMap();
 
-    void createMap(const XmlRpc::XmlRpcValue& map_segment_array);
+    void load(const XmlRpc::XmlRpcValue& map_segment_array);
     void publishMarkers() const;
 
     const Segment* findClosestSegment(const path_geom::PathPose& pose, double yaw_tolerance, double max_dist) const;
@@ -47,4 +47,4 @@ private:
     double curve_radius;
 };
 
-#endif // COURSE_GENERATOR_H
+#endif // COURSE_MAP_H

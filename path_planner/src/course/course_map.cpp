@@ -1,11 +1,11 @@
-#include "course_generator.h"
+#include "course_map.h"
 #include <utils_path/geometry/intersector.h>
 #include <ros/console.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <XmlRpcValue.h>
 
 
-CourseGenerator::CourseGenerator(ros::NodeHandle &nh)
+CourseMap::CourseMap(ros::NodeHandle &nh)
     : nh_(nh), pnh_("~")
 {
     pub_viz_ = nh.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 100, true);
@@ -13,12 +13,12 @@ CourseGenerator::CourseGenerator(ros::NodeHandle &nh)
     pnh_.param("course/radius", curve_radius, 1.0);
 }
 
-CourseGenerator::~CourseGenerator()
+CourseMap::~CourseMap()
 {
 
 }
 
-Eigen::Vector2d CourseGenerator::readPoint(const XmlRpc::XmlRpcValue& value, int index)
+Eigen::Vector2d CourseMap::readPoint(const XmlRpc::XmlRpcValue& value, int index)
 {
     XmlRpc::XmlRpcValue pt = value[index];
     if(pt.size() != 2) {
@@ -31,7 +31,7 @@ Eigen::Vector2d CourseGenerator::readPoint(const XmlRpc::XmlRpcValue& value, int
     return Eigen::Vector2d (x, y);
 }
 
-Segment CourseGenerator::readSegment(const XmlRpc::XmlRpcValue &map_segment_array, int index)
+Segment CourseMap::readSegment(const XmlRpc::XmlRpcValue &map_segment_array, int index)
 {
     XmlRpc::XmlRpcValue segment = map_segment_array[index];
 
@@ -49,7 +49,7 @@ Segment CourseGenerator::readSegment(const XmlRpc::XmlRpcValue &map_segment_arra
 }
 
 
-const Segment* CourseGenerator::findClosestSegment(const path_geom::PathPose &pose, double yaw_tolerance, double max_dist) const
+const Segment* CourseMap::findClosestSegment(const path_geom::PathPose &pose, double yaw_tolerance, double max_dist) const
 {
     Eigen::Vector2d pt = pose.pos_;
     double yaw = pose.theta_;
@@ -76,7 +76,7 @@ const Segment* CourseGenerator::findClosestSegment(const path_geom::PathPose &po
     return best_segment;
 }
 
-void CourseGenerator::createMap(const XmlRpc::XmlRpcValue &map_segment_array)
+void CourseMap::load(const XmlRpc::XmlRpcValue &map_segment_array)
 {
     for(int i =0; i < map_segment_array.size(); i++) {
         segments_.emplace_back(readSegment(map_segment_array, i));
@@ -113,7 +113,7 @@ void CourseGenerator::createMap(const XmlRpc::XmlRpcValue &map_segment_array)
 }
 
 
-void CourseGenerator::addTransition(Segment &from, Segment &to, const Eigen::Vector2d& intersection)
+void CourseMap::addTransition(Segment &from, Segment &to, const Eigen::Vector2d& intersection)
 {
     intersections_.push_back(intersection);
 
@@ -132,7 +132,7 @@ void CourseGenerator::addTransition(Segment &from, Segment &to, const Eigen::Vec
     to.backward_transitions.emplace_back(t);
 }
 
-Vector2d CourseGenerator::calculateICR(const Segment &from, const Segment &to, const Eigen::Vector2d& intersection) const
+Vector2d CourseMap::calculateICR(const Segment &from, const Segment &to, const Eigen::Vector2d& intersection) const
 {
     Eigen::Vector2d a = from.line.endPoint() - from.line.startPoint();
     Eigen::Vector2d b = to.line.endPoint() - to.line.startPoint();
@@ -159,7 +159,7 @@ Vector2d CourseGenerator::calculateICR(const Segment &from, const Segment &to, c
     return icr;
 }
 
-double CourseGenerator::calculateSpan(const Segment &from, const Segment &to, const Eigen::Vector2d& icr) const
+double CourseMap::calculateSpan(const Segment &from, const Segment &to, const Eigen::Vector2d& icr) const
 {
     Eigen::Vector2d s = from.line.projectPoint(icr);
     Eigen::Vector2d e = to.line.projectPoint(icr);
@@ -173,7 +173,7 @@ double CourseGenerator::calculateSpan(const Segment &from, const Segment &to, co
     return MathHelper::NormalizeAngle(end_angle - start_angle);
 }
 
-std::vector<Eigen::Vector2d> CourseGenerator::calculateCurvePoints(const Segment &from, const Segment &to, const Eigen::Vector2d& icr, double dtheta) const
+std::vector<Eigen::Vector2d> CourseMap::calculateCurvePoints(const Segment &from, const Segment &to, const Eigen::Vector2d& icr, double dtheta) const
 {
     std::vector<Eigen::Vector2d> result;
 
@@ -206,7 +206,7 @@ std::vector<Eigen::Vector2d> CourseGenerator::calculateCurvePoints(const Segment
     return result;
 }
 
-void CourseGenerator::publishMarkers() const
+void CourseMap::publishMarkers() const
 {
     visualization_msgs::MarkerArray array;
 
@@ -218,12 +218,12 @@ void CourseGenerator::publishMarkers() const
     pub_viz_.publish(array);
 }
 
-bool CourseGenerator::hasSegments() const
+bool CourseMap::hasSegments() const
 {
     return !segments_.empty();
 }
 
-void CourseGenerator::addLineMarkers(visualization_msgs::MarkerArray& array) const
+void CourseMap::addLineMarkers(visualization_msgs::MarkerArray& array) const
 {
     visualization_msgs::Marker templ;
     templ.type = visualization_msgs::Marker::ARROW;
@@ -278,7 +278,7 @@ void CourseGenerator::addLineMarkers(visualization_msgs::MarkerArray& array) con
     }
 }
 
-void CourseGenerator::addTransitionMarkers(visualization_msgs::MarkerArray& array) const
+void CourseMap::addTransitionMarkers(visualization_msgs::MarkerArray& array) const
 {
     visualization_msgs::Marker icr;
     icr.type = visualization_msgs::Marker::ARROW;
@@ -353,7 +353,7 @@ void CourseGenerator::addTransitionMarkers(visualization_msgs::MarkerArray& arra
     }
 }
 
-void CourseGenerator::addIntersectionMarkers(visualization_msgs::MarkerArray& array) const
+void CourseMap::addIntersectionMarkers(visualization_msgs::MarkerArray& array) const
 {
     visualization_msgs::Marker templ;
     templ.type = visualization_msgs::Marker::CYLINDER;
@@ -380,7 +380,7 @@ void CourseGenerator::addIntersectionMarkers(visualization_msgs::MarkerArray& ar
     }
 }
 
-const std::vector<Segment>& CourseGenerator::getSegments() const
+const std::vector<Segment>& CourseMap::getSegments() const
 {
     return segments_;
 }
