@@ -21,6 +21,7 @@
 CoursePlanner::CoursePlanner()
 
     : course_(nh),
+      course_search_(course_),
       plan_avoidance_server_(nh, "/plan_avoidance", boost::bind(&CoursePlanner::planAvoidanceCb, this, _1), false)
 {
     posearray_pub_ = nh.advertise<geometry_msgs::PoseArray>("static_poses",1000);
@@ -42,7 +43,7 @@ CoursePlanner::CoursePlanner()
     
     plan_avoidance_server_.start();
 
-    course_.createMap(map_segment_array_);
+    course_.load(map_segment_array_);
 }
 
 void CoursePlanner::tick()
@@ -392,7 +393,7 @@ nav_msgs::Path CoursePlanner::planWithMap(const path_msgs::PlanPathGoalConstPtr 
         return path_raw;
     }
 
-    std::vector<path_geom::PathPose> pts = course_.findPath(pose2PathPose(robot_pose.pose), pose2PathPose(goal->goal.pose.pose));
+    std::vector<path_geom::PathPose> pts = course_search_.findPath(pose2PathPose(robot_pose.pose), pose2PathPose(goal->goal.pose.pose));
     for(const path_geom::PathPose& pose : pts) {
         path_raw.poses.push_back(pathPose2Pose(pose));
     }

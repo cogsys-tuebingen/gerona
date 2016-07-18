@@ -18,7 +18,8 @@
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <path_msgs/PlanAvoidanceAction.h>
-#include "course/course_generator.h"
+#include "course/course_map.h"
+#include "course/search.h"
 
 #include <nav_msgs/Path.h>
 #include <tf/transform_listener.h>
@@ -69,7 +70,8 @@ private:
     XmlRpc::XmlRpcValue segment_array_;
     XmlRpc::XmlRpcValue map_segment_array_;
 
-    CourseGenerator course_;
+    CourseMap course_;
+    Search course_search_;
 
     vector<shared_ptr<Shape>> course_segments_;
     vector<shared_ptr<Shape>> active_segments_;
