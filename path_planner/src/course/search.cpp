@@ -1,9 +1,7 @@
 #include "search.h"
 
-#include <utils_path/geometry/intersector.h>
 #include <utils_path/common/CollisionGridMap2d.h>
 #include <ros/console.h>
-#include <visualization_msgs/MarkerArray.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/GetMap.h>
 #include <set>
@@ -11,90 +9,16 @@
 
 #include "course_generator.h"
 
+#include "near_course_test.hpp"
+
 namespace {
 bool comp (const Node* lhs, const Node* rhs)
 {
     return lhs->cost<rhs->cost;
 }
-
-template <typename Algorithm>
-struct PathGoalTest
-{
-    PathGoalTest(CourseGenerator& parent, Algorithm& algo, const nav_msgs::OccupancyGrid& map, const lib_path::SimpleGridMap2d* map_info)
-        : parent(parent),
-          algo(algo), map(map), map_info(map_info),
-          res(map.info.resolution),
-          ox(map.info.origin.position.x),
-          oy(map.info.origin.position.y),
-          w(map.info.width),
-          h(map.info.height),
-
-          candidates(0)
-    {
-    }
-
-    void reset()
-    {
-        candidates = 0;
-    }
-
-    bool terminate(const typename Algorithm::NodeT* node) const
-    {
-        double wx, wy;
-        map_info->cell2pointSubPixel(node->x,node->y, wx, wy);
-
-        const double min_necessary_dist_to_crossing = 0.0;
-
-        path_geom::PathPose point(wx, wy, node->theta);
-        const Segment* closest_segment = parent.findClosestSegment(point, M_PI / 8, 0.1);
-        if(closest_segment) {
-            double min_dist_to_crossing = std::numeric_limits<double>::infinity();
-            for(const Transition& transition : closest_segment->forward_transitions) {
-                double distance = (transition.intersection - point.pos_).norm();
-                if(distance < min_dist_to_crossing)  {
-                    min_dist_to_crossing = distance;
-                }
-            }
-            for(const Transition& transition : closest_segment->backward_transitions) {
-                double distance = (transition.intersection - point.pos_).norm();
-                if(distance < min_dist_to_crossing)  {
-                    min_dist_to_crossing = distance;
-                }
-            }
-
-            if(min_dist_to_crossing > min_necessary_dist_to_crossing) {
-                algo.addGoalCandidate(node, closest_segment->line.distanceTo(point.pos_));
-                ++candidates;
-            }
-
-        }
-
-        return candidates > 40;
-    }
-
-    const lib_path::Pose2d* getHeuristicGoal() const
-    {
-        return NULL;
-    }
-
-    CourseGenerator& parent;
-
-    Algorithm& algo;
-    const nav_msgs::OccupancyGrid& map;
-    const lib_path::SimpleGridMap2d * map_info;
-
-    double res;
-    double ox;
-    double oy;
-    int w;
-    int h;
-
-    mutable int candidates;
-};
-
 }
 
-Search::Search(CourseGenerator& generator)
+Search::Search(const CourseGenerator& generator)
     : pnh_("~"), generator_(generator)
 {    
     pnh_.param("size/forward", size_forward, 0.4);
@@ -113,6 +37,102 @@ Search::Search(CourseGenerator& generator)
 }
 
 
+
+
+
+std::vector<path_geom::PathPose> Search::findPath(const path_geom::PathPose& start_pose, const path_geom::PathPose& end_pose)
+{
+    std::vector<path_geom::PathPose> res;
+
+    nav_msgs::GetMap map_service;
+    if(!map_service_client_.exists()) {
+        map_service_client_.waitForExistence();
+    }
+    if(!map_service_client_.call(map_service)) {
+        ROS_ERROR("map service lookup failed");
+        return res;
+    }
+
+    initMaps(map_service.response.map);
+
+    if(!findAppendices(map_service.response.map, start_pose, end_pose)) {
+        return res;
+    }
+
+
+    if(start_segment == end_segment) {
+        insertFirstNode(res);
+        insertLastNode(res);
+
+        return combine(start_appendix, res, end_appendix);
+    }
+
+    return performDijkstraSearch();
+}
+
+std::vector<path_geom::PathPose> Search::performDijkstraSearch()
+{
+    initNodes();
+
+    std::set<Node*, bool(*)(const Node*, const Node*)> queue(&comp);
+
+    enqueueStartingNodes(queue);
+
+    min_cost = std::numeric_limits<double>::infinity();
+
+    while(!queue.empty()) {
+        Node* current_node = *queue.begin();
+        queue.erase(queue.begin());
+
+        if(current_node->next_segment == end_segment) {
+            generatePathCandidate(current_node);
+
+            continue;
+        }
+
+        for(int i = 0; i <= 1; ++i) {
+            const auto& transitions =  i == 0 ? current_node->next_segment->forward_transitions : current_node->next_segment->backward_transitions;
+            for(const Transition& next_transition : transitions) {
+                Node* neighbor = &nodes.at(&next_transition);
+
+                double curve_cost = calculateCurveCost(current_node);
+                double straight_cost = calculateStraightCost(current_node, findStartPointOnNextSegment(current_node), findEndPointOnSegment(current_node, &next_transition));
+
+                double new_cost = current_node->cost + curve_cost + straight_cost;
+
+                if(new_cost < neighbor->cost) {
+                    neighbor->prev = current_node;
+                    current_node->next = neighbor;
+
+                    neighbor->cost = new_cost;
+
+                    if(queue.find(neighbor) != queue.end()) {
+                        queue.erase(neighbor);
+                    }
+                    queue.insert(neighbor);
+                }
+            }
+        }
+    }
+
+    return combine(start_appendix, best_path, end_appendix);
+}
+
+void Search::enqueueStartingNodes(std::set<Node*, bool(*)(const Node*, const Node*)>& queue)
+{
+    for(int i = 0; i <= 1; ++i) {
+        const auto& transitions = i == 0 ? start_segment->forward_transitions : start_segment->backward_transitions;
+        for(const Transition& next_transition : transitions) {
+
+            Node* node = &nodes.at(&next_transition);
+
+            // distance from start_pt to transition
+            Eigen::Vector2d  end_point_on_segment = node->curve_forward ? next_transition.path.front() : next_transition.path.back();
+            node->cost = calculateStraightCost(node, start_pt, end_point_on_segment);
+            queue.insert(node);
+        }
+    }
+}
 
 void Search::initMaps(const nav_msgs::OccupancyGrid& map)
 {
@@ -143,97 +163,11 @@ void Search::initMaps(const nav_msgs::OccupancyGrid& map)
 
     map_info->set(data, w, h);
     map_info->setOrigin(lib_path::Point2d(map.info.origin.position.x, map.info.origin.position.y));
-
-    algo_forward.setMap(map_info.get());
-    algo_reverse.setMap(map_info.get());
 }
 
-std::vector<path_geom::PathPose> Search::findPath(const path_geom::PathPose& start_pose, const path_geom::PathPose& end_pose)
+void Search::initNodes()
 {
-    std::vector<path_geom::PathPose> res;
-
-    nav_msgs::GetMap map_service;
-    if(!map_service_client_.exists()) {
-        map_service_client_.waitForExistence();
-    }
-    if(!map_service_client_.call(map_service)) {
-        ROS_ERROR("map service lookup failed");
-        return res;
-    }
-
-    const nav_msgs::OccupancyGrid& map = map_service.response.map;
-
-    initMaps(map);
-
-    ROS_WARN_STREAM("searching appendices");
-
-    lib_path::Pose2d from_map = convertToMap(start_pose);
-    lib_path::Pose2d to_map = convertToMap(end_pose);
-
-
-    PathGoalTest<AStarPatsyForward> goal_test_forward(generator_, algo_forward, map, map_info.get());
-    auto path_start = algo_forward.findPath(from_map, goal_test_forward, 0);
-    if(path_start.empty()) {
-        ROS_WARN("cannot connect to start without turning");
-        PathGoalTest<AStarPatsyForwardTurning> goal_test_forward_turn(generator_, algo_forward_turn, map, map_info.get());
-        algo_forward_turn.setMap(map_info.get());
-        path_start = algo_forward_turn.findPath(from_map, goal_test_forward_turn, 0);
-        if(path_start.empty()) {
-            ROS_ERROR("cannot connect to start");
-            return res;
-        }
-    }
-
-    ROS_WARN_STREAM("start path: " << path_start.size());
-    start = convertToWorld(path_start.back());
-
-    PathGoalTest<AStarPatsyReversed> goal_test_reverse(generator_, algo_reverse, map, map_info.get());
-    auto path_end = algo_reverse.findPath(to_map, goal_test_reverse, 0);
-
-    if(path_end.empty()) {
-        algo_reverse_turn.setMap(map_info.get());
-        ROS_WARN("cannot connect to end without turning");
-        PathGoalTest<AStarPatsyReversedTurning> goal_test_reverse_turn(generator_, algo_reverse_turn, map, map_info.get());
-        path_end = algo_reverse_turn.findPath(to_map, goal_test_reverse_turn, 0);
-        if(path_end.empty()) {
-            ROS_ERROR("cannot connect to end");
-            return res;
-        }
-    }
-
-    std::reverse(path_end.begin(), path_end.end());
-    ROS_WARN_STREAM("end path: " << path_end.size());
-    end = convertToWorld(path_end.front());
-
-    // find the closest segments and then perform bfs
-    start_segment = generator_.findClosestSegment(start, M_PI / 8, 0.5);
-    if(!start_segment) {
-        ROS_ERROR_STREAM("cannot find a path for start pose " << start.pos_);
-        return res;
-    }
-
-    end_segment = generator_.findClosestSegment(end, M_PI / 8, 0.5);
-    if(!end_segment) {
-        ROS_ERROR_STREAM("cannot find a path for end pose " << end.pos_);
-        return res;
-    }
-
-    start_pt = start_segment->line.nearestPointTo(start.pos_);
-    end_pt = end_segment->line.nearestPointTo(end.pos_);
-
-    if(start_segment == end_segment) {
-        Eigen::Vector2d start_delta = start_segment->line.endPoint() - start_segment->line.startPoint();
-        double s_yaw = std::atan2(start_delta(1), start_delta(0));
-        res.push_back(path_geom::PathPose(start_pt(0), start_pt(1), s_yaw));
-
-        Eigen::Vector2d end_delta = end_segment->line.endPoint() - end_segment->line.startPoint();
-        double e_yaw = std::atan2(end_delta(1), end_delta(0));
-        res.push_back(path_geom::PathPose(end_pt(0), end_pt(1), e_yaw));
-
-        return combine(path_start, res, path_end);
-    }
-
-    std::map<const Transition*, Node> nodes;
+    nodes.clear();
     for(const Segment& s : generator_.getSegments()) {
         for(const Transition& t : s.forward_transitions) {
             nodes[&t].transition = &t;
@@ -246,83 +180,77 @@ std::vector<path_geom::PathPose> Search::findPath(const path_geom::PathPose& sta
             nodes[&t].next_segment = t.source;
         }
     }
+}
 
-    std::set<Node*, bool(*)(const Node*, const Node*)> Q(&comp);
+bool Search::findAppendices(const nav_msgs::OccupancyGrid& map, const path_geom::PathPose& start_pose, const path_geom::PathPose& end_pose)
+{
+    ROS_WARN_STREAM("searching appendices");
 
-
-    Eigen::Vector2d start_segment_dir = start_segment->line.endPoint() - start_segment->line.startPoint();
-    start_segment_dir /= start_segment_dir.norm();
-
-
-    for(int i = 0; i <= 1; ++i) {
-        const auto& transitions = i == 0 ? start_segment->forward_transitions : start_segment->backward_transitions;
-        for(const Transition& next_transition : transitions) {
-
-            Node* node = &nodes.at(&next_transition);
-
-            // distance from start_pt to transition
-            Eigen::Vector2d  end_point_on_segment = node->curve_forward ? next_transition.path.front() : next_transition.path.back();
-            node->cost = calculateStraightCost(node, start_pt, end_point_on_segment);
-            Q.insert(node);
-        }
+    start_appendix = findAppendix<AStarPatsyForward, AStarPatsyForwardTurning>(map, start_pose, "start");
+    if(start_appendix.empty()) {
+        return false;
     }
 
-    min_cost = std::numeric_limits<double>::infinity();
-
-    while(!Q.empty()) {
-        Node* current_node = *Q.begin();
-        Q.erase(Q.begin());
-
-        ROS_ASSERT(current_node->cost > 0);
-
-        if(current_node->next_segment == end_segment) {
-            generatePathCandidate(current_node);
-
-            continue;
-        }
-
-        for(int i = 0; i <= 1; ++i) {
-            const auto& transitions =  i == 0 ? current_node->next_segment->forward_transitions : current_node->next_segment->backward_transitions;
-            for(const Transition& next_transition : transitions) {
-                ROS_ASSERT(&next_transition != current_node->transition);
-                ROS_ASSERT(current_node->next_segment != end_segment);
-
-                Node* neighbor = &nodes.at(&next_transition);
-
-                double curve_cost = calculateCurveCost(current_node);
-                double straight_cost = calculateStraightCost(current_node, findStartPointOnNextSegment(current_node), findEndPointOnSegment(current_node, &next_transition));
-
-                double new_cost = current_node->cost + curve_cost + straight_cost;
-
-                ROS_ASSERT(new_cost != std::numeric_limits<double>::infinity());
-                ROS_ASSERT(current_node->cost > 0);
-                ROS_ASSERT(new_cost > 0);
-
-                if(new_cost < neighbor->cost) {
-                    neighbor->prev = current_node;
-                    current_node->next = neighbor;
-
-                    ROS_ASSERT(new_cost < neighbor->cost);
-                    ROS_ASSERT(new_cost > 0);
-                    neighbor->cost = new_cost;
-
-                    if(Q.find(neighbor) != Q.end()) {
-                        Q.erase(neighbor);
-                    }
-                    Q.insert(neighbor);
-                }
-            }
-        }
+    path_geom::PathPose start = start_appendix.back();
+    start_segment = generator_.findClosestSegment(start, M_PI / 8, 0.5);
+    start_pt = start_segment->line.nearestPointTo(start.pos_);
+    if(!start_segment) {
+        ROS_ERROR_STREAM("cannot find a path for start pose " << start.pos_);
+        return false;
     }
 
 
-    return combine(path_start, best_path, path_end);
+    end_appendix = findAppendix<AStarPatsyReversed, AStarPatsyReversedTurning>(map, end_pose, "end");
+    if(end_appendix.empty()) {
+        return false;
+    }
+    std::reverse(end_appendix.begin(), end_appendix.end());
+
+    path_geom::PathPose end = end_appendix.front();
+    end_segment = generator_.findClosestSegment(end, M_PI / 8, 0.5);
+    end_pt = end_segment->line.nearestPointTo(end.pos_);
+    if(!end_segment) {
+        ROS_ERROR_STREAM("cannot find a path for  end pose " << end.pos_);
+        return false;
+    }
+
+    return true;
+}
+
+template <typename AlgorithmForward, typename AlgorithmFull>
+std::vector<path_geom::PathPose> Search::findAppendix(const nav_msgs::OccupancyGrid &map, const path_geom::PathPose& pose, const std::string& type)
+{
+    lib_path::Pose2d pose_map = convertToMap(pose);
+
+    AlgorithmForward algo_forward;
+    algo_forward.setMap(map_info.get());
+
+    NearCourseTest<AlgorithmForward> goal_test_forward(generator_, algo_forward, map, map_info.get());
+    auto path_start = algo_forward.findPath(pose_map, goal_test_forward, 0);
+    if(path_start.empty()) {
+        ROS_WARN_STREAM("cannot connect to " << type << " without turning");
+        AlgorithmFull algo_forward_turn;
+        NearCourseTest<AlgorithmFull> goal_test_forward_turn(generator_, algo_forward_turn, map, map_info.get());
+        algo_forward_turn.setMap(map_info.get());
+        path_start = algo_forward_turn.findPath(pose_map, goal_test_forward_turn, 0);
+        if(path_start.empty()) {
+            ROS_ERROR_STREAM("cannot connect to " << type);
+            return {};
+        }
+    }
+
+    std::vector<path_geom::PathPose> appendix;
+    for(const auto& node : path_start) {
+        appendix.push_back(convertToWorld(node));
+    }
+
+    return appendix;
 }
 
 Eigen::Vector2d Search::findStartPointOnNextSegment(const Node* node) const
 {
     if(node->next_segment == start_segment) {
-        return start_segment->line.nearestPointTo(start.pos_);
+        return start_pt;
 
     } else {
         return findStartPointOnNextSegment(node, node->transition);
@@ -342,7 +270,7 @@ Eigen::Vector2d Search::findStartPointOnNextSegment(const Node* node, const Tran
 Eigen::Vector2d Search::findEndPointOnNextSegment(const Node* node) const
 {
     if(node->next_segment == end_segment) {
-        return end_segment->line.nearestPointTo(end.pos_);
+        return end_pt;
 
     } else if(!node->next) {
         return node->curve_forward ? node->next_segment->line.endPoint() : node->next_segment->line.startPoint();
@@ -366,16 +294,19 @@ Eigen::Vector2d Search::findEndPointOnSegment(const Node* node, const Transition
 
 
 
-bool Search::isPreviousSegmentForward(Node* node) const
+bool Search::isPreviousSegmentForward(const Node* node) const
 {
     if(node->prev) {
         return isNextSegmentForward(node->prev);
     } else {
-        return isSegmentForward(start_segment, start.pos_, findEndPointOnSegment(node, node->transition));
+        return isStartSegmentForward(node);
     }
 }
 
-
+bool Search::isStartSegmentForward(const Node* node) const
+{
+    return isSegmentForward(start_segment, start_pt, findEndPointOnSegment(node, node->transition));
+}
 
 bool Search::isNextSegmentForward(const Node* node) const
 {
@@ -399,7 +330,6 @@ bool Search::isSegmentForward(const Segment* segment, const Eigen::Vector2d& pos
 }
 
 
-template <typename NodeT>
 path_geom::PathPose Search::convertToWorld(const NodeT& node)
 {
     double tmpx, tmpy;
@@ -420,26 +350,17 @@ lib_path::Pose2d  Search::convertToMap(const path_geom::PathPose& pt)
     return res;
 }
 
-template <typename PathT>
-std::vector<path_geom::PathPose> Search::combine(const PathT& start,
-                                                          const std::vector<path_geom::PathPose>& centre,
-                                                          const PathT& end)
+std::vector<path_geom::PathPose> Search::combine(const std::vector<path_geom::PathPose> &start,
+                                                 const std::vector<path_geom::PathPose>& centre,
+                                                 const std::vector<path_geom::PathPose> &end)
 {
     if(start.empty() && end.empty()) {
         return centre;
     }
 
-    std::vector<path_geom::PathPose> res;
-
-    for(const auto& node : start) {
-        res.push_back(convertToWorld(node));
-    }
-
+    std::vector<path_geom::PathPose> res(start);
     res.insert(res.end(), centre.begin(), centre.end());
-
-    for(const auto& node : end) {
-        res.push_back(convertToWorld(node));
-    }
+    res.insert(res.end(), end.begin(), end.end());
 
     return res;
 }
@@ -506,22 +427,9 @@ void Search::generatePathCandidate(Node* node)
 
 void Search::generatePath(const std::deque<const Node*>& path_transitions, std::vector<path_geom::PathPose>& res) const
 {
-    Eigen::Vector2d first_pos = start_segment->line.nearestPointTo(start.pos_);
-    const Node* first_node = path_transitions.front();
+    insertFirstNode(res);
 
-    Eigen::Vector2d first_delta = first_node->transition->path.front() - first_pos;
-    double first_yaw = std::atan2(first_delta(1), first_delta(0));
-    ROS_INFO("insert first point");
-    res.push_back(path_geom::PathPose(first_pos(0), first_pos(1), first_yaw));
-
-    Eigen::Vector2d  end_point_on_start_segment = path_transitions.front()->curve_forward ? path_transitions.front()->transition->path.front() : path_transitions.front()->transition->path.back();
-    bool last_segment_forward = isSegmentForward(start_segment, start.pos_, end_point_on_start_segment);
-    if(last_segment_forward) {
-        ROS_INFO_STREAM("start segment is forward");
-    } else {
-        ROS_INFO_STREAM("start segment is backward");
-    }
-
+    bool segment_forward = isStartSegmentForward(path_transitions.front());
 
     ROS_INFO_STREAM("generating path from " << path_transitions.size() << " transitions");
     for(std::size_t i = 0, n = path_transitions.size(); i < n; ++i) {
@@ -529,26 +437,27 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, std::
 
         double eff_len = effectiveLengthOfNextSegment(current_node);
         if(eff_len < std::numeric_limits<double>::epsilon()) {
-            ROS_WARN_STREAM("skipping segment of length " << eff_len);
+            // the segment has no length -> only insert the transition curve
             insertCurveSegment(res, current_node);
             continue;
         }
 
         bool next_segment_forward = isNextSegmentForward(current_node);
-        if(next_segment_forward) {
-            ROS_INFO_STREAM("segment is forward");
-        } else {
-            ROS_INFO_STREAM("segment is backward");
-        }
 
         // insert turning point?
-        if(next_segment_forward == last_segment_forward) {
+        if(next_segment_forward == segment_forward) {
+            // same direction
+
             if(current_node->curve_forward == next_segment_forward) {
-                ROS_INFO("no straight segment necessary");
+                // no straight segment necessary
                 insertCurveSegment(res, current_node);
 
             } else {
-                ROS_WARN("inserting straight segment at double turn");
+                // double turn
+                /*
+                 * The direction effectively stays the same, only the transition is in the opposite direction
+                 * -> two turns are performed -> two straight segments are needed
+                 */
 
                 if(current_node->curve_forward) {
                     extendWithStraightTurningSegment(res, current_node->transition->path.front());
@@ -558,7 +467,6 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, std::
 
                 insertCurveSegment(res, current_node);
 
-
                 if(current_node->curve_forward) {
                     extendAlongTargetSegment(res, current_node);
                 } else {
@@ -567,39 +475,93 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, std::
             }
 
         } else {
-            if(last_segment_forward) {
-                ROS_WARN("inserting straight segment at turning (forward)");
+            // direction changed, there are four cases to check
+            if(segment_forward) {
                 if(current_node->curve_forward) {
+                    // segment (S) forward + curve (C) forward + next segment (N) is backward
+                    /*            v
+                     *            v  N
+                     * > > > > ,  v
+                     *   S      '.v
+                     *        C   v
+                     *            *
+                     *            * Extension after curve along target segment of C
+                     *            *
+                     */
                     insertCurveSegment(res, current_node);
                     extendAlongTargetSegment(res, current_node);
+
                 } else {
+                    // segment (S) forward + curve (C) backward + next segment (N) is backward
+                    /*            v
+                     *            v  N
+                     *            v,
+                     *            v',  C
+                     *            v  `'.,
+                     * > > > > > >v> > > > *******
+                     *   S                     Extension before curve along target segment of C
+                     */
                     extendAlongTargetSegment(res, current_node);
                     insertCurveSegment(res, current_node);
                 }
 
             } else {
-                ROS_WARN("inserting straight segment at turning (backward)");
                 if(current_node->curve_forward) {
+                    // segment (S) backward + curve (C) forward + next segment (N) is forward
+                    /*            ^
+                     *            ^  S
+                     * < < < < ,  ^
+                     *   N      '.^
+                     *        C   ^
+                     *            *
+                     *            * Extension before curve along source segment of C
+                     *            *
+                     */
                     extendAlongSourceSegment(res, current_node);
                     insertCurveSegment(res, current_node);
+
                 } else {
+                    // segment (S) backward + curve (C) backward + next segment (N) is forward
+                    /*            ^
+                     *            ^  S
+                     *            ^,
+                     *            ^',  C
+                     *            ^  `'.,
+                     * < < < < < <^< < < < *******
+                     *   N                     Extension after curve along source segment of C
+                     */
                     insertCurveSegment(res, current_node);
                     extendAlongSourceSegment(res, current_node);
                 }
             }
         }
 
-        last_segment_forward = next_segment_forward;
+        segment_forward = next_segment_forward;
     }
 
-    Eigen::Vector2d last_pos = end_segment->line.nearestPointTo(end.pos_);
-    const Node* last_node = path_transitions.back();
-
-    Eigen::Vector2d last_delta = last_pos - last_node->transition->path.back();
-    double last_yaw = std::atan2(last_delta(1), last_delta(0));
-    ROS_INFO("insert end point");
-    res.push_back(path_geom::PathPose(last_pos(0), last_pos(1), last_yaw));
+    insertLastNode(res);
 }
+
+void Search::insertFirstNode(std::vector<path_geom::PathPose>& res) const
+{
+    Eigen::Vector2d pos = start_pt;
+
+    Eigen::Vector2d delta = start_segment->line.endPoint() - start_segment->line.startPoint();
+    double yaw = std::atan2(delta(1), delta(0));
+    res.push_back(path_geom::PathPose(pos(0), pos(1), yaw));
+}
+
+
+void Search::insertLastNode(std::vector<path_geom::PathPose>& res) const
+{
+    Eigen::Vector2d pos = end_pt;
+
+    Eigen::Vector2d delta = end_segment->line.endPoint() - end_segment->line.startPoint();
+    double yaw = std::atan2(delta(1), delta(0));
+    res.push_back(path_geom::PathPose(pos(0), pos(1), yaw));
+}
+
+
 
 void Search::extendAlongTargetSegment(std::vector<path_geom::PathPose>& res, const Node* current_node) const
 {
@@ -708,7 +670,7 @@ std::string Search::signature(const Node *head) const
     }
 
     Eigen::Vector2d  end_point_on_start_segment = first->curve_forward ? first->transition->path.front() : first->transition->path.back();
-    std::string start_sym = isSegmentForward(start_segment, start.pos_, end_point_on_start_segment) ? ">" : "<";
+    std::string start_sym = isSegmentForward(start_segment, start_pt, end_point_on_start_segment) ? ">" : "<";
 
     return start_sym + res;
 }
