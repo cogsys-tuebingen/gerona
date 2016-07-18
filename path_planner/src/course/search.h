@@ -10,6 +10,7 @@
 
 #include "node.h"
 #include "path_builder.h"
+#include "analyzer.h"
 
 class CourseGenerator;
 
@@ -28,6 +29,8 @@ public:
 
     typedef AStarPatsyForward::NodeT NodeT;
 
+    friend class Analyzer;
+
 public:
     Search(const CourseGenerator& generator);
 
@@ -36,11 +39,9 @@ public:
 private:
     void initMaps(const nav_msgs::OccupancyGrid& map);
 
-    bool findAppendices(const nav_msgs::OccupancyGrid &map, const path_geom::PathPose& start_pose, const path_geom::PathPose& end_pose);
-
     template <typename AlgorithmForward, typename AlgorithmFull>
     std::vector<path_geom::PathPose> findAppendix(const nav_msgs::OccupancyGrid &map, const path_geom::PathPose& pose, const std::string& type);
-
+    bool findAppendices(const nav_msgs::OccupancyGrid &map, const path_geom::PathPose& start_pose, const path_geom::PathPose& end_pose);
 
     std::vector<path_geom::PathPose> performDijkstraSearch();
     void initNodes();
@@ -50,43 +51,27 @@ private:
     void generatePathCandidate(Node* current_node);
     void generatePath(const std::deque<const Node *> &path_transitions, PathBuilder &path_builder) const;
 
-    double calculateStraightCost(Node* current_node, const Vector2d &start_point_on_segment, const Vector2d &end_point_on_segment) const;
-    double calculateCurveCost(Node* current_node) const;
-
     path_geom::PathPose convertToWorld(const NodeT& node);
     lib_path::Pose2d convertToMap(const path_geom::PathPose& node);
-
-    Eigen::Vector2d findStartPointOnNextSegment(const Node* node) const;
-    Eigen::Vector2d findStartPointOnNextSegment(const Node* node, const Transition* transition) const;
-    Eigen::Vector2d findEndPointOnNextSegment(const Node* node) const;
-    Eigen::Vector2d findEndPointOnSegment(const Node* node, const Transition* transition) const;
-
-    bool isNextSegmentForward(const Node* node) const;
-    double effectiveLengthOfNextSegment(const Node* node) const;
-    bool isSegmentForward(const Segment* segment, const Eigen::Vector2d& pos, const Eigen::Vector2d& target) const;
-    bool isPreviousSegmentForward(const Node* current_node) const;
-    bool isStartSegmentForward(const Node *node) const;
-
-    std::string signature(const Node* head) const;
 
 private:
     ros::NodeHandle pnh_;
 
+    Analyzer analyzer;
     const CourseGenerator& generator_;
 
+    // appendix parameters
     ros::ServiceClient map_service_client_;
-
     std::shared_ptr<lib_path::SimpleGridMap2d> map_info;
-
-
-    double backward_penalty_factor;
-    double turning_straight_segment;
-    double turning_penalty;
 
     double size_forward;
     double size_backward;
     double size_width;
 
+    std::vector<path_geom::PathPose> start_appendix;
+    std::vector<path_geom::PathPose> end_appendix;
+
+    // search parameters
     std::map<const Transition*, Node> nodes;
 
     const Segment* start_segment;
@@ -94,12 +79,8 @@ private:
     Eigen::Vector2d start_pt;
     Eigen::Vector2d end_pt;
 
-
     double min_cost;
     std::vector<path_geom::PathPose> best_path;
-
-    std::vector<path_geom::PathPose> start_appendix;
-    std::vector<path_geom::PathPose> end_appendix;
 };
 
 #endif // SEARCH_H
