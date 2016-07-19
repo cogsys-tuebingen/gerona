@@ -27,6 +27,8 @@ public:
 
     virtual void setGlobalPath(Path::Ptr path);
 
+    virtual void setVelocity(geometry_msgs::Twist::_linear_type vector);
+
     virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                       const std::vector<Scorer::Ptr>& scorer,
                                       const std::vector<bool>& fconstraints,

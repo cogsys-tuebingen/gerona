@@ -31,6 +31,12 @@ void LocalPlanner::setGlobalPath(Path::Ptr path)
     ROS_ERROR_NAMED("global_path", "cannot transform map to odom");
 }
 
+void LocalPlanner::setVelocity(geometry_msgs::Twist::_linear_type vector)
+{
+    double v = sqrt(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z);
+    ROS_INFO_STREAM("v = " << v);
+}
+
 bool LocalPlanner::isNull() const
 {
     return false;

@@ -455,6 +455,7 @@ void PathFollower::update()
             if(obstacle_cloud_ != nullptr){
                 local_planner_->setObstacleCloud(obstacle_cloud_);
             }
+            local_planner_->setVelocity(getVelocity().linear);
             Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, wscorer);
             if(local_path) {
                 nav_msgs::Path path;
@@ -584,6 +585,7 @@ void PathFollower::start()
     controller_->start();
 
     local_planner_->setGlobalPath(path_);
+    local_planner_->setVelocity(getVelocity().linear);
 
     is_running_ = true;
 }
