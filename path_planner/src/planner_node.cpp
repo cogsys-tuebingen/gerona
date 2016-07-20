@@ -427,6 +427,7 @@ nav_msgs::Path Planner::findPath(const path_msgs::PlanPathGoal& request)
     nav_msgs::Path path;
     if(post_process_) {
         sw.reset();
+        ROS_INFO_STREAM("postprocessing path of size " << path_raw.poses.size());
         path = postprocess(path_raw);
         ROS_INFO_STREAM("postprocessing took " << sw.msElapsed() << "ms");
     } else {
@@ -437,6 +438,7 @@ nav_msgs::Path Planner::findPath(const path_msgs::PlanPathGoal& request)
     publish(path, path_raw);
     ROS_INFO_STREAM("publish took " << sw.msElapsed() << "ms");
 
+    ROS_INFO_STREAM("returning a path of size " << path.poses.size());
 
     return path;
 }
@@ -454,8 +456,8 @@ void Planner::preprocess(const path_msgs::PlanPathGoal& request)
     cv::Mat working;
     map.copyTo(working);
 
-    int erosion_size = 4;
-    int iterations = 3;
+    int erosion_size = 2;
+    int iterations = 0;
     cv::Mat element = cv::getStructuringElement( cv::MORPH_ELLIPSE,
                                                  cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
                                                  cv::Point( erosion_size, erosion_size ) );
@@ -762,7 +764,7 @@ nav_msgs::Path Planner::interpolatePath(const nav_msgs::Path& path, double max_d
     result.header = path.header;
 
     if(n < 2) {
-        return result;
+        return path;
     }
 
     result.poses.push_back(path.poses[0]);
@@ -785,6 +787,7 @@ std::vector<nav_msgs::Path> Planner::segmentPath(const nav_msgs::Path &path)
 
     int n = path.poses.size();
     if(n < 2) {
+        result.push_back(path);
         return result;
     }
 
@@ -850,7 +853,7 @@ nav_msgs::Path Planner::smoothPath(const nav_msgs::Path& path, double weight_dat
 
     int n = path.poses.size();
     if(n < 2) {
-        return result;
+        return path;
     }
 
     // find segments

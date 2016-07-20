@@ -12,9 +12,11 @@
 
         <param name="render_open_cells" value="false"/>
 
+        <param name="oversearch_distance" value="1.0" />
+
         <param name="algorithm" value="patsy_forward" />
 
-        <param name="preprocess" value="false" />
+        <param name="preprocess" value="true" />
         <param name="postprocess" value="true" />
 
         <param name="use_cloud" value="true" />
@@ -22,9 +24,10 @@
         <param name="use_scan_back" value="false" />
 
         <param name="size/forward" value="0.2" />
-        <param name="size/backward" value="-0.8" />
-        <param name="size/width" value="0.80" />
+        <param name="size/backward" value="-0.6" />
+        <param name="size/width" value="0.60" />
 
         <remap from="/obstacles" to="/obstacle_cloud" />
+        <remap from="/scan/front/filtered" to="/sick_s300_front/filtered" />
     </node>
 </launch>

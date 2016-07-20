@@ -58,10 +58,11 @@ struct NonHolonomicNeighborhoodPrecise :
 
         double cell_dist = hypot(goal->x - reference->x, goal->y - reference->y);
         double dist = cell_dist * Parent::resolution;
+        std::cout << dist << std::endl;
 
         // euclidean distance
         int delta = 2;
-        if(dist < 0.7) return true;
+        if(dist < 0.4) return true;
 
         if(std::abs(goal->x - reference->x) < delta &&
                 std::abs(goal->y - reference->y) < delta) {
@@ -287,8 +288,8 @@ struct PathPlanner : public Planner
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
     typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhood<100, 500, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsy;
-    typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhoodPrecise<20, 120, NonHolonomicNeighborhoodMoves::FORWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsyForward;
-    typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhood<40, 350, NonHolonomicNeighborhoodMoves::FORWARD>,
+    typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhoodPrecise<50, 300, NonHolonomicNeighborhoodMoves::FORWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsyForward;
+    typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhoodPrecise<50, 300, NonHolonomicNeighborhoodMoves::FORWARD>,
     ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
     //    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStarOmnidrive; // Omnidrive
 
@@ -314,7 +315,11 @@ struct PathPlanner : public Planner
         std::string algo = "ackermann";
         nh_priv.param("algorithm", algo, algo);
 
-        nh_priv.param("oversearch_distance", oversearch_distance_, 0.5);
+        nh_priv.param("oversearch_distance", oversearch_distance_, 0.15);
+        ROS_INFO_STREAM("oversearch distance is " << oversearch_distance_);
+        if(std::isnan(oversearch_distance_) || oversearch_distance_ > 100) {
+            oversearch_distance_ = 0.;
+        }        
 
         std::transform(algo.begin(), algo.end(), algo.begin(), ::tolower);
 
@@ -357,7 +362,7 @@ struct PathPlanner : public Planner
         path_out.header.stamp = goal_timestamp;
         path_out.header.frame_id = "/map";
 
-        if(path.size() >= 2) {
+        if(path.size() > 0) {
             for(const Pose2d& next_map : path) {
                 geometry_msgs::PoseStamped pose;
                 map_info->cell2pointSubPixel(next_map.x,next_map.y,pose.pose.position.x,
