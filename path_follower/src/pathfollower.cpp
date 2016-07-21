@@ -165,7 +165,6 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         exit(1);
     }
 
-
     // Choose Local Planner Algorithm
     ROS_INFO("Use local planner algorithm '%s'", opt_.algo().c_str());
     if(opt_.algo() == "AStar"){

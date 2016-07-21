@@ -115,8 +115,15 @@ bool PathController::processGoal()
     ros::spinOnce();
 
     // check, if path has been found
-    if ( requested_path_->poses.size() < 2 ) {
-        ROS_WARN("Got an invalid path with less than two poses. Abort goal.");
+    if ( requested_path_->poses.size() == 1 ) {
+        ROS_WARN("path has only one pose, assuming that start and goal are equal");
+        path_msgs::FollowPathResultPtr follow_path_result(new path_msgs::FollowPathResult);
+        follow_path_result->status = FollowPathResult::RESULT_STATUS_SUCCESS;
+        follow_path_result_ = follow_path_result;
+        return true;
+    }
+    if ( requested_path_->poses.empty() ) {
+        ROS_WARN("No path found. Abort goal.");
 
         NavigateToGoalResult result;
         result.reached_goal = false;

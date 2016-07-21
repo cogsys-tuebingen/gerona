@@ -231,13 +231,14 @@ std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::Co
     bool has_tf = tf_listener_->waitForTransform(obstacle_frame_,
                                                  cloud->header.frame_id,
                                                  pcl_conversions::fromPCL(cloud->header.stamp),
-                                                 ros::Duration(0.01));
+                                                 ros::Duration(0.05));
     if (!has_tf) {
-        ROS_WARN_NAMED(MODULE, "Got no transfom for obstacle cloud. Skip this cloud.");
+        ROS_WARN_THROTTLE_NAMED(0.5, MODULE, "Got no transfom for obstacle cloud. %s to %s ",obstacle_frame_.c_str(),
+                        cloud->header.frame_id.c_str());
         return std::list<cv::Point2f>(); // return empty cloud
     }
     if (!pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, *tf_listener_)) {
-        ROS_ERROR_NAMED(MODULE, "Failed to transform obstacle cloud");
+        ROS_ERROR_THROTTLE_NAMED(1.0, MODULE, "Failed to transform obstacle cloud");
         return std::list<cv::Point2f>(); // return empty cloud
     }
 
@@ -254,15 +255,20 @@ std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::Co
     if (first_step == 0) {
         first_step = opt_.segment_step_size();
     }
-    size_t first_idx = min(first_step, path_.size()-1);
+    size_t first_idx = 0;//min(first_step, path_.size()-1);
+ //   size_t first_idx = path_->getWaypointIndex();
     float dist = 0.0;
     cv::Point2f prev(path_[first_idx].x,path_[first_idx].y);
+    ROS_INFO_THROTTLE(1.0, "first wp %f %f", prev.x,prev.y);
+  //  size_t i = path_->getWaypointIndex();
 
     for (size_t i = min(first_step, path_.size()-1); i < path_.size(); i += opt_.segment_step_size()) {
+   // for (size_t i = path_->getWaypointIndex(); i < path_.size(); i += opt_.segment_step_size()) {
         cv::Point2f b(path_[i].x, path_[i].y);
         dist += cv::norm(b-prev);
         prev = b;
         if (dist>opt_.lookout_distance()) {
+            ROS_INFO_THROTTLE(1.0,"no obstacles");
             break;
         }
         /**
