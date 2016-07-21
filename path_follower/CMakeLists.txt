@@ -27,6 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   utils_general
   utils_robot
+  utils_path
   tf
   cmake_modules
   laser_geometry
@@ -113,12 +114,22 @@ add_executable(path_follower_node
 
   src/local_planner/local_planner.cpp
   src/local_planner/local_planner_null.cpp
+  src/local_planner/local_planner_implemented.cpp
+  src/local_planner/local_planner_classic.cpp
   src/local_planner/local_planner_transformer.cpp
   src/local_planner/local_planner_bfs.cpp
+  src/local_planner/local_planner_astar.cpp
+  src/local_planner/local_planner_astar_dynamic.cpp
   src/local_planner/constraint.cpp
   src/local_planner/dis2path_constraint.cpp
+  src/local_planner/dis2obst_constraint.cpp
   src/local_planner/scorer.cpp
+  src/local_planner/curvature_scorer.cpp
   src/local_planner/dis2start_scorer.cpp
+  src/local_planner/dis2pathd_scorer.cpp
+  src/local_planner/dis2pathi_scorer.cpp
+  src/local_planner/dis2pathp_scorer.cpp
+  src/local_planner/dis2obst_scorer.cpp
 
   src/supervisor/supervisorchain.cpp
   src/supervisor/pathlookout.cpp

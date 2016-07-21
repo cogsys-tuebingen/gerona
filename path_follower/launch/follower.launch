@@ -10,6 +10,28 @@ Please make sure, you add an according launch file, if you implement a new contr
 -->
 <launch>
 	<arg name="controller" default="$(optenv ROBOT_CONTROLLER kinematic_SSG)" />
+	<arg name="algo" default="AStar" />
 
-	<include file="$(find path_follower)/launch/follower_$(arg controller).launch" />
+	<arg name="c1" default="true" />
+	<arg name="c2" default="true" />
+
+	<arg name="s1" default="-1.0" />
+	<arg name="s2" default="1.0" />
+	<arg name="s3" default="1.0" />
+        <arg name="s4" default="1.0" />
+        <arg name="s5" default="1.0" />
+        <arg name="s6" default="1.0" />
+
+	<include file="$(find path_follower)/launch/follower_$(arg controller).launch">
+		<arg name="algo" value="$(arg algo)" />
+		<arg name="c1" value="$(arg c1)" />
+		<arg name="c2" value="$(arg c2)" />
+
+		<arg name="s1" value="$(arg s1)" />
+		<arg name="s2" value="$(arg s2)" />
+		<arg name="s3" value="$(arg s3)" />
+                <arg name="s4" value="$(arg s4)" />
+                <arg name="s5" value="$(arg s5)" />
+                <arg name="s6" value="$(arg s6)" />
+	</include>
 </launch>

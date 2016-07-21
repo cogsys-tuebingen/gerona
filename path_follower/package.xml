@@ -26,6 +26,7 @@
   <build_depend>roscpp</build_depend>
   <build_depend>utils_general</build_depend>
   <build_depend>utils_robot</build_depend>
+  <build_depend>utils_path</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>cmake_modules</build_depend>
   <build_depend>laser_geometry</build_depend>
@@ -39,6 +40,7 @@
   <run_depend>roscpp</run_depend>
   <run_depend>utils_general</run_depend>
   <run_depend>utils_robot</run_depend>
+  <run_depend>utils_path</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>laser_geometry</run_depend>
   <run_depend>pcl_ros</run_depend>

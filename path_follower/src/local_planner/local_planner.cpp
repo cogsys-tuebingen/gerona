@@ -14,7 +14,7 @@ LocalPlanner::~LocalPlanner()
 
 void LocalPlanner::setGlobalPath(Path::Ptr path)
 {
-    global_path_ = path;
+    global_path_.interpolatePath(path);
 
     ros::Time now = ros::Time::now();
 
@@ -31,7 +31,27 @@ void LocalPlanner::setGlobalPath(Path::Ptr path)
     ROS_ERROR_NAMED("global_path", "cannot transform map to odom");
 }
 
+void LocalPlanner::setVelocity(geometry_msgs::Twist::_linear_type vector)
+{
+    double v = sqrt(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z);
+//    ROS_INFO_STREAM("v = " << v);
+}
+
 bool LocalPlanner::isNull() const
 {
     return false;
+}
+
+void LocalPlanner::setObstacleCloud(const ObstacleCloud::ConstPtr &msg)
+{
+    obstacle_cloud_ = msg;
+
+    ros::Time now = ros::Time::now();
+
+    if(!transformer_.waitForTransform("odom", "base_link", now, ros::Duration(0.005))) {
+        ROS_WARN_THROTTLE_NAMED(1, "global_path", "cannot transform base_link to odom");
+        return;
+    }
+    transformer_.lookupTransform("odom", "base_link", now, base_to_odom);
+    odom_to_base = base_to_odom.inverse();
 }

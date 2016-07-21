@@ -17,6 +17,11 @@ struct PathFollowerParameters : public Parameters
     P<float> max_velocity;
     P<bool> abort_if_obstacle_ahead;
 
+    //Parameters for the Local Planner
+    P<std::string> algo;
+    P<bool> c1, c2;
+    P<double> s1, s2, s3, s4, s5, s6;
+
     // obstacle avoider
     P<bool> obstacle_avoider_use_collision_box;
     //P<bool> obstacle_avoider_use_vfh;  // not yet implemented
@@ -50,6 +55,27 @@ struct PathFollowerParameters : public Parameters
                                 "If set to true, path execution is aborted, if an obstacle is"
                                 " detected on front of the robot. If false, the robot will"
                                 " stop, but not abort (the obstacle might move away)."),
+
+        //Local Planner
+        algo(this, "~algo", "AStar", "Algorithm to be used by the Local Planner."),
+        //Constraints
+        c1(this, "~c1", true,
+           "Determines whether the first constraint is used or not. (Distance to global path)"),
+        c2(this, "~c2", true,
+           "Determines whether the third constraint is used or not. (Distance to nearest obstacle)"),
+        //Scorers
+        s1(this, "~s1", -1.0,
+           "Determines whether the first scorer is used or not. (Distance to start position)"),
+        s2(this, "~s2", 1.0,
+           "Determines whether the second scorer is used or not. (Distance to global path (P))"),
+        s3(this, "~s3", 1.0,
+           "Determines whether the third  scorer is used or not. (Distance to global path (I))"),
+        s4(this, "~s4", 1.0,
+           "Determines whether the fourth  scorer is used or not. (Distance to global path (D))"),
+        s5(this, "~s5", 1.0,
+           "Determines whether the fifth scorer is used or not. (Distance to nearest obstacle)"),
+        s6(this, "~s6", 1.0,
+           "Determines whether the sixth scorer is used or not. (Curvature of the point)"),
 
         obstacle_avoider_use_collision_box(this, "~obstacle_avoider/use_collision_box", true,
                                            "Use the collision box obstacle avoider ('ObstacleDetector')"),

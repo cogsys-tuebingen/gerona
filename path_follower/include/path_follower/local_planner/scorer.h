@@ -2,7 +2,8 @@
 #define SCORER_H
 
 #include <memory>
-#include <tf/transform_datatypes.h>
+#include <path_follower/utils/path.h>
+#include <utils_general/Stopwatch.h>
 
 class Scorer
 {
@@ -13,7 +14,11 @@ public:
     Scorer();
     virtual ~Scorer();
 
-    virtual double score(const tf::Point& point) = 0;
+    virtual double score(const LNode& point) = 0;
+
+    long nsUsed();
+protected:
+    Stopwatch sw;
 };
 
 #endif // SCORER_H

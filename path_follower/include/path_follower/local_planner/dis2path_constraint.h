@@ -2,7 +2,6 @@
 #define DIS2PATH_CONSTRAINT_H
 
 #include <path_follower/local_planner/constraint.h>
-#include <path_follower/utils/path.h>
 
 class Dis2Path_Constraint : public Constraint
 {
@@ -12,12 +11,14 @@ public:
 public:
     Dis2Path_Constraint();
     virtual ~Dis2Path_Constraint();
+    void setLimit(double new_limit);
 
-    virtual bool isSatisfied(const tf::Point& point) override;
-
-    void setSubPath(const SubPath& path);
+    virtual bool isSatisfied(const LNode& point) override;
 private:
-    SubPath currentPath;//For now stores the points of the current subpath
+    static constexpr double D_RATE = 0.15*std::cos(5.0*M_PI/36.0);
+    double limit;
+    int level;
 };
 
 #endif // DIS2PATH_CONSTRAINT_H
+void setLimit(double new_limit);

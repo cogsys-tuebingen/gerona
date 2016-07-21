@@ -3,10 +3,14 @@
 
 Scorer::Scorer()
 {
-
+    sw.resetStopped();
 }
 
 Scorer::~Scorer()
 {
 
+}
+
+long Scorer::nsUsed(){
+    return sw.nsElapsedStatic();
 }

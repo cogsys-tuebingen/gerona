@@ -1,13 +1,13 @@
-#ifndef LOCAL_PLANNER_BFS_H
-#define LOCAL_PLANNER_BFS_H
+#ifndef LOCAL_PLANNER_ASTAR_H
+#define LOCAL_PLANNER_ASTAR_H
 
 /// PROJECT
 #include <path_follower/local_planner/local_planner_classic.h>
 
-class LocalPlannerBFS : public LocalPlannerClassic
+class LocalPlannerAStar : public LocalPlannerClassic
 {
 public:
-    LocalPlannerBFS(PathFollower& controller,
+    LocalPlannerAStar(PathFollower& controller,
                             tf::Transformer &transformer,
                             const ros::Duration& update_interval);
 private:
@@ -17,6 +17,9 @@ private:
                      const std::vector<bool>& fconstraints,
                      const std::vector<double>& wscorer,
                      int& nnodes) override;
+
+private:
+    typedef std::multiset<HNode*,CompareLNode> prio_queue;
 };
 
-#endif // LOCAL_PLANNER_BFS_H
+#endif // LOCAL_PLANNER_ASTAR_H

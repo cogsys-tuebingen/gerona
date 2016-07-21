@@ -3,10 +3,14 @@
 
 Constraint::Constraint()
 {
-
+    sw.resetStopped();
 }
 
 Constraint::~Constraint()
 {
 
+}
+
+long Constraint::nsUsed(){
+    return sw.nsElapsedStatic();
 }

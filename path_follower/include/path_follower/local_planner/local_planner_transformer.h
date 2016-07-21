@@ -2,26 +2,22 @@
 #define LOCAL_PLANNER_TRANSFORMER_H
 
 /// PROJECT
-#include <path_follower/local_planner/local_planner.h>
+#include <path_follower/local_planner/local_planner_implemented.h>
 
-/// SYSTEM
-#include <ros/time.h>
-
-class LocalPlannerTransformer : public LocalPlanner
+class LocalPlannerTransformer : public LocalPlannerImplemented
 {
 public:
     LocalPlannerTransformer(PathFollower& controller,
                             tf::Transformer &transformer,
                             const ros::Duration& update_interval);
-
-    virtual void setGlobalPath(Path::Ptr path) override;
-
-    virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
-                                      const std::vector<Scorer::Ptr>& scorer) override;
-
 private:
-    ros::Time last_update_;
-    ros::Duration update_interval_;
+    virtual void printNodeUsage(int& nnodes) const override;
+    virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
+                     const std::vector<Constraint::Ptr>& constraints,
+                     const std::vector<Scorer::Ptr>& scorer,
+                     const std::vector<bool>& fconstraints,
+                     const std::vector<double>& wscorer,
+                     int& nnodes) override;
 };
 
 #endif // LOCAL_PLANNER_TRANSFORMER_H

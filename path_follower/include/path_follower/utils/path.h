@@ -21,7 +21,7 @@ struct Waypoint
     Waypoint() {}
 
     Waypoint(double x, double y, double orientation):
-        x(x), y(y), orientation(orientation)
+        x(x), y(y), orientation(orientation), s(0.0)
     {}
 
     Waypoint(const geometry_msgs::PoseStamped& ref)
@@ -58,8 +58,73 @@ struct Waypoint
     double y;
     //! Orientation of the waypoint, represented as an angle ("theta")
     double orientation;
+    //!curvilinear abscissa
+    double s;
 
     std::vector<double> actuator_cmds_;
+};
+
+//!Local Node for the local tree (BFS)
+struct LNode: Waypoint
+{
+    LNode():Waypoint(){
+
+    }
+    LNode(double x, double y, double orientation, LNode* parent, int level):
+        Waypoint(x,y,orientation),xp(0.0),yp(0.0),xs(0.0),ys(0.0),
+        parent_(parent),level_(level),d2p(0.0),d2o(0.0),npp(),nop()
+    {
+        computeDiff();
+    }
+
+    void computeDiff(){
+        if(parent_ != nullptr){
+            xp = (x - parent_->x)/h;
+            yp = (y - parent_->y)/h;
+
+            xs = (xp - parent_->xp)/h;
+            ys = (yp - parent_->yp)/h;
+        }
+    }
+
+    static constexpr double h = 0.15;
+    //!first derivative
+    double xp;
+    double yp;
+
+    //!second derivative
+    double xs;
+    double ys;
+
+    LNode* parent_;
+    int level_;
+
+    //!distance to path and obstacle
+    double d2p, d2o;
+    //!nearest path point and obstacle point
+    Waypoint npp, nop;
+};
+
+//!Heuristic Node for the local tree (A*)
+struct HNode: LNode
+{
+    HNode():LNode(){
+
+    }
+    HNode(double x, double y, double orientation, HNode* parent, int level):
+        LNode(x,y,orientation,parent,level),gScore_(std::numeric_limits<double>::infinity()),
+        fScore_(std::numeric_limits<double>::infinity())
+    {
+
+    }
+    double gScore_;
+    double fScore_;
+};
+
+struct CompareLNode : public std::binary_function<HNode*, HNode*, bool> {
+    bool operator()(const HNode* lhs, const HNode* rhs) const {
+        return lhs->fScore_ < rhs->fScore_;
+    }
 };
 
 
