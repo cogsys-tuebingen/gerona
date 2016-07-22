@@ -686,6 +686,14 @@ void PathFollower::setPath(const nav_msgs::Path& path)
     controller_->reset();
 }
 
+namespace {
+double angleDifference(double s1, double s2) {
+    double a1 = std::atan2(std::sin(s1), std::cos(s1));
+    double a2 = std::atan2(std::sin(s2), std::cos(s2));
+    return MathHelper::AngleClamp(a1 - a2);
+}
+}
+
 void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segment)
 {
     unsigned n = path.poses.size();
@@ -745,11 +753,13 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
             double diff_next_y = next_point.y - current_point.y;
             double next_angle = std::atan2(diff_next_y, diff_next_x);
 
-            double angle = MathHelper::AngleClamp(last_angle - next_angle);
+            double angle = angleDifference(last_angle, next_angle);//MathHelper::AngleClamp(last_angle - next_angle);
+
+            std::cerr << angle << std::endl;
 
             bool split_segment = std::abs(angle) > M_PI / 3.0;
 
-            if(!only_one_segment && split_segment && !is_duplicate_wp) {
+            if(!only_one_segment && split_segment/* && !is_duplicate_wp*/) {
                 // new segment!
                 // current node is the last one of the old segment
                 segment_ends_with_this_node = true;
@@ -774,6 +784,8 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
 
         last_point = current_point;
     }
+
+    std::cout << "split the path into " << subpaths.size() << " sub paths" << std::endl;
 
     path_->setPath(subpaths);
 }

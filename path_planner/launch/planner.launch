@@ -12,11 +12,11 @@
 
         <param name="render_open_cells" value="false"/>
 
-        <param name="oversearch_distance" value="1.0" />
+        <param name="oversearch_distance" value="0" />
 
         <param name="algorithm" value="patsy_forward" />
 
-        <param name="preprocess" value="true" />
+        <param name="preprocess" value="false" />
         <param name="postprocess" value="true" />
 
         <param name="use_cloud" value="true" />

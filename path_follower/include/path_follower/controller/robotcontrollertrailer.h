@@ -28,7 +28,7 @@ public:
          * @brief isOmnidirectional
          * @return true ***hack to avoid bugs in local_plannr_transformer with multiple subpaths
          */
-    virtual bool isOmnidirectional() const {return true;}
+    virtual bool isOmnidirectional() const {return false;}
 
 protected:
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);

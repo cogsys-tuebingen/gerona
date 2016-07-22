@@ -105,9 +105,11 @@ RobotController::MoveCommandStatus RobotControllerTrailer::computeMoveCommand(Mo
            (std::abs(current_vel.linear.y) > 0.01) ||
            (std::abs(current_vel.angular.z) > 0.01)) {
             ROS_INFO_THROTTLE_NAMED(1, MODULE, "WAITING until no more motion");
+            stopMotion();
             return MoveCommandStatus::OKAY;
         } else {
             ROS_INFO_NAMED(MODULE, "Done at waypoint -> reset");
+
             path_->switchToNextSubPath();
             if(path_->isDone()) {
                 return MoveCommandStatus::REACHED_GOAL;
@@ -167,7 +169,7 @@ void RobotControllerTrailer::selectWaypoint()
 
     // increase tolerance, when driving backwards
     if(getDirSign() < 0) {
-        tolerance *= 2;
+        tolerance *= 1;
     }
 
     // switch to the nearest waypoint, that is at least 'tolerance' far away.
@@ -204,6 +206,13 @@ void RobotControllerTrailer::selectWaypoint()
 
 
 
+namespace {
+double angleDifference(double s1, double s2) {
+    double dy = std::sin(s1) - std::sin(s2);
+    double dx = std::cos(s1) - std::cos(s2);
+    return std::atan2(dy, dx);
+}
+}
 
 
 double RobotControllerTrailer::calculateAngleError()
@@ -219,8 +228,8 @@ double RobotControllerTrailer::calculateAngleError()
         trailer_angle=0.0;
     }*/
     trailer_angle =  agv_vel_.angular.z;
-    return  MathHelper::AngleClamp(tf::getYaw(waypoint.orientation) - tf::getYaw(robot_pose.orientation)+trailer_angle);
-
+//    return MathHelper::AngleClamp(e);
+    return MathHelper::AngleClamp(tf::getYaw(waypoint.orientation) - tf::getYaw(robot_pose.orientation) + trailer_angle);
 }
 
 
@@ -396,8 +405,13 @@ void RobotControllerTrailer::predictPose(Vector2d &front_pred, Vector2d &rear_pr
         // radius desired turn circle
 
 
-        double r_f = fabs(opt_.l()/sin(trailer_angle));
-        double r_h = fabs(opt_.l()/tan(trailer_angle));
+        double l = opt_.l();
+        if(dir_sign_ < 0) {
+            l *= 5;
+        }
+
+        double r_f = fabs(l/sin(trailer_angle));
+        double r_h = fabs(l/tan(trailer_angle));
         double ds = v_current*dt; // sign of velocity matters
         double dtheta = ds/r_f;
         front_pred[0] = r_f*sin(dtheta);
@@ -419,22 +433,37 @@ void RobotControllerTrailer::predictPose(Vector2d &front_pred, Vector2d &rear_pr
 
 double RobotControllerTrailer::calculateLineError() const
 {
-    geometry_msgs::PoseStamped followup_next_wp_map;
-    followup_next_wp_map.header.stamp = ros::Time::now();
 
+    Vector3d next_wp_local;
+    Vector3d followup_next_wp_local;
     if(path_->getWaypointIndex() + 1 == path_->getCurrentSubPath().size()) {
-        followup_next_wp_map.pose = path_->getWaypoint(path_->getWaypointIndex() - 1);
+        geometry_msgs::PoseStamped prev_wp_map;
+        prev_wp_map.header.stamp = ros::Time::now();
+        prev_wp_map.pose = path_->getWaypoint(path_->getWaypointIndex()-1);
+        if (!path_driver_->transformToLocal( prev_wp_map, next_wp_local)) {
+            throw EmergencyBreakException("Cannot transform next waypoint",
+                                          path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
+        }
+        prev_wp_map.pose = path_->getWaypoint(path_->getWaypointIndex());
+        if (!path_driver_->transformToLocal( prev_wp_map, followup_next_wp_local)) {
+            throw EmergencyBreakException("Cannot transform next waypoint",
+                                          path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
+        }
+
     } else {
+        geometry_msgs::PoseStamped followup_next_wp_map;
+        followup_next_wp_map.header.stamp = ros::Time::now();
         followup_next_wp_map.pose = path_->getWaypoint(path_->getWaypointIndex() + 1);
+        if (!path_driver_->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
+            throw EmergencyBreakException("Cannot transform next waypoint",
+                                          path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
+        }
+
+        next_wp_local = next_wp_local_;
     }
 
     Line2d target_line;
-    Vector3d followup_next_wp_local;
-    if (!path_driver_->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
-        throw EmergencyBreakException("Cannot transform next waypoint",
-                                      path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
-    }
-    target_line = Line2d( next_wp_local_.head<2>(), followup_next_wp_local.head<2>());
+    target_line = Line2d( next_wp_local.head<2>(), followup_next_wp_local.head<2>());
     visualizer_->visualizeLine(target_line);
 
     Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
@@ -452,11 +481,19 @@ double RobotControllerTrailer::calculateLineError() const
         visualizeCarrot(alt_carrot, 101, 0.0,1.0,1.0);
     }
 
-    return -target_line.GetSignedDistance(main_carrot) - 0.25 * target_line.GetSignedDistance(alt_carrot);
+    if(dir_sign_ >= 0) {
+        return -target_line.GetSignedDistance(main_carrot) - 0.25 * target_line.GetSignedDistance(alt_carrot);
+    } else {
+        double trailer_dist = target_line.GetSignedDistance(main_carrot);
+//        return -target_line.GetSignedDistance(alt_carrot) - 0.25 * trailer_dist;
+        return -1.25 * target_line.GetSignedDistance(main_carrot) - 0.3 * target_line.GetSignedDistance(alt_carrot);
+    }
 }
 
 double RobotControllerTrailer::calculateSidewaysDistanceError() const
 {
+    return calculateLineError();
+
     const double tolerance = 0.1;
     Vector2d main_carrot, alt_carrot, front_pred, rear_pred;
 
@@ -474,6 +511,8 @@ double RobotControllerTrailer::calculateSidewaysDistanceError() const
         visualizeCarrot(alt_carrot, 101, 0.1,1.0,1.0);
     }
 
+
+    // TODO: code from approach pose
     double dist_on_y_axis = next_wp_local_[1] - main_carrot[1];
     if(std::abs(dist_on_y_axis) < tolerance) {
         return 0;

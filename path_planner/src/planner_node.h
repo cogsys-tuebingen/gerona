@@ -140,6 +140,10 @@ protected:
 protected:
     virtual bool supportsGoalType(int type) const = 0;
 
+    void visualizeOutline(const geometry_msgs::Pose &at, int id, const std::string &frame);
+    void visualizePath(const nav_msgs::Path& path, int id = 0, double alpha = 0.5);
+    void visualizePathLine(const nav_msgs::Path &path, int id);
+
 private:
     void laserCallback(const sensor_msgs::LaserScanConstPtr& scan, bool front);
     void integrateLaserScan(const sensor_msgs::LaserScan &scan);
@@ -163,9 +167,6 @@ private:
 
     void subdividePath(nav_msgs::Path& result, geometry_msgs::PoseStamped low, geometry_msgs::PoseStamped up, double max_distance);
 
-    void visualizeOutline(const geometry_msgs::Pose &at, int id, const std::string &frame);
-    void visualizePath(const nav_msgs::Path& path);
-    void visualizePathLine(const nav_msgs::Path &path);
 protected:
     ros::NodeHandle nh;
     ros::NodeHandle nh_priv;

@@ -270,20 +270,20 @@ void Planner::visualizeOutline(const geometry_msgs::Pose& at, int id, const std:
     viz_pub.publish(marker);
 }
 
-void Planner::visualizePath(const nav_msgs::Path &path)
+void Planner::visualizePath(const nav_msgs::Path &path, int id, double alpha)
 {
     visualization_msgs::Marker marker;
     marker.header.frame_id = "/map";
     marker.header.stamp = ros::Time();
     marker.ns = "planning/steps";
-    marker.id = 0;
+    marker.id = id;
     marker.type = visualization_msgs::Marker::LINE_LIST;
     marker.action = visualization_msgs::Marker::ADD;
     marker.pose.orientation.w = 1.0;
-    marker.scale.x = 0.01;
-    marker.scale.y = 0.01;
-    marker.scale.z = 0.01;
-    marker.color.a = 0.5;
+    marker.scale.x = 0.05;
+    marker.scale.y = 0.05;
+    marker.scale.z = 0.05;
+    marker.color.a = alpha;
     marker.color.r = 0.0;
     marker.color.g = 1.0;
     marker.color.b = 1.0;
@@ -324,6 +324,24 @@ void Planner::visualizePath(const nav_msgs::Path &path)
         marker.points.push_back(fl);
     }
 
+    viz_pub.publish(marker);
+
+    marker.ns = "planning/lines";
+    marker.id = id;
+    marker.type = visualization_msgs::Marker::LINE_STRIP;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.points.clear();
+    marker.color.r = 1.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.0;
+
+    for(unsigned i = 0; i < path.poses.size(); i+=4) {
+        const geometry_msgs::Pose& pose = path.poses[i].pose;
+        geometry_msgs::Point pt;
+        pt.x = pose.position.x;
+        pt.y = pose.position.y;
+        marker.points.push_back(pt);
+    }
     viz_pub.publish(marker);
 }
 
@@ -679,8 +697,8 @@ void Planner::transformPose(const geometry_msgs::PoseStamped& pose, lib_path::Po
 
     unsigned fx, fy;
     map_info->point2cell(world.x, world.y, fx, fy);
-    map.x = fx;
-    map.y = fy;
+    map.x = (int) fx;
+    map.y = (int) fy;
     map.theta = world.theta - map_rotation_yaw_;
 }
 

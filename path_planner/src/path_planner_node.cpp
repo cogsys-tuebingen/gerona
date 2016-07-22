@@ -24,10 +24,10 @@ using namespace lib_path;
 
 
 // IGNORE END ORIENTATION
-template <int n, int distance>
+template <int distance, int steerangle>
 struct NonHolonomicNeighborhoodNoEndOrientation :
-        public NonHolonomicNeighborhood<n, distance> {
-    typedef NonHolonomicNeighborhood<n, distance> Parent;
+        public NonHolonomicNeighborhood<distance, steerangle> {
+    typedef NonHolonomicNeighborhood<distance, steerangle> Parent;
 
     using Parent::distance_step_pixel;
 
@@ -40,10 +40,11 @@ struct NonHolonomicNeighborhoodNoEndOrientation :
 
 
 // MORE PRECISE END POSITION
-template <int n, int distance, int moves = NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, bool reversed = false>
+template <int distance, int steerangle, int moves = NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, bool reversed = false,
+          int straight_dir_switch = static_cast<int>(std::round(2.0 / (distance / 100.)))>
 struct NonHolonomicNeighborhoodPrecise :
-        public NonHolonomicNeighborhood<n, distance, moves, reversed> {
-    typedef NonHolonomicNeighborhood<n, distance, moves, reversed> Parent;
+        public NonHolonomicNeighborhood<distance, steerangle, moves, reversed, straight_dir_switch> {
+    typedef NonHolonomicNeighborhood<distance, steerangle, moves, reversed, straight_dir_switch> Parent;
 
     using Parent::distance_step_pixel;
 
@@ -56,47 +57,47 @@ struct NonHolonomicNeighborhoodPrecise :
             return false;
         }
 
+        int delta = 4 * distance;
+        if(std::abs(goal->x - reference->x) > delta ||
+                std::abs(goal->y - reference->y) > delta) {
+            return false;
+        }
+
         double cell_dist = hypot(goal->x - reference->x, goal->y - reference->y);
         double dist = cell_dist * Parent::resolution;
-        std::cout << dist << std::endl;
 
         // euclidean distance
-        int delta = 2;
-        if(dist < 0.4) return true;
-
-        if(std::abs(goal->x - reference->x) < delta &&
-                std::abs(goal->y - reference->y) < delta) {
+        if(dist < 0.05) {
             return true;
         }
 
-        return false;
-        // check, if goal is between reference an its predecessor
+
+        // check, if goal is near the segment through reference an its predecessor
         if(reference->prev) {
-            Pose2d v (*reference->prev);
-            Pose2d w (*reference);
-            Pose2d p (*goal);
+            Eigen::Vector2d p (reference->prev->x, reference->prev->y);
+            Eigen::Vector2d r (reference->x, reference->y);
+            Eigen::Vector2d g (goal->x, goal->y);
 
+            p *=  Parent::resolution;
+            r *=  Parent::resolution;
+            g *=  Parent::resolution;
+
+            // calculate distance of goal to the line segment through current and prev
+            //  if the projection of goal falls onto the segment, check if the distance is small enough
             double line_distance;
-            double l2 = (v-w).distance_to_origin();
+            double l2 = (p-r).squaredNorm();
             if(l2 <= 0.0001) { // v ~= w
-                line_distance = p.distance_to(v);
+                line_distance = (g - p).norm();
             } else {
-                double t = dot(p - v, w - v) / l2;
+                double t = (g - p).dot(r - p) / l2;
 
-                if(t < 0.0) {
-                    return false;
-                } else if(t > 1.0) {
-                    return false;
-                } else {
-                    Pose2d project = v + t * (w-v);
+                t = std::max(0.0, std::min(1.0, t));
 
-                    line_distance = p.distance_to(project);
-                }
+                Eigen::Vector2d project = p + t * (r-p);
+
+                line_distance = (g-project).norm();
             }
-
-            double threshold = 1.41;
-
-            return line_distance < threshold;
+            return line_distance < 0.1;
         }
 
         return false;
@@ -287,10 +288,10 @@ struct PathPlanner : public Planner
 
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
-    typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhood<100, 500, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsy;
-    typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhoodPrecise<50, 300, NonHolonomicNeighborhoodMoves::FORWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsyForward;
-    typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhoodPrecise<50, 300, NonHolonomicNeighborhoodMoves::FORWARD>,
-    ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
+    typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhoodPrecise<50, 250,  NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsy;
+    typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhoodPrecise<50, 250, NonHolonomicNeighborhoodMoves::FORWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsyForward;
+    //    typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhoodPrecise<30, 150, NonHolonomicNeighborhoodMoves::FORWARD>,
+    //    ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
     //    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStarOmnidrive; // Omnidrive
 
     typedef AStarAckermannReversed AStarAckermann;
@@ -407,6 +408,13 @@ struct PathPlanner : public Planner
 
         try {
             PathT path;
+
+            algo.setPathCandidateCallback([this, request](const PathT& path) {
+                std::cout << "path candidate found" << std::endl;
+                visualizePath(path2msg(path, request.goal.pose.header.stamp), 0, 0.8);
+                return false;
+            });
+
             if(render_open_cells_) {
                 path = algo.findPath(from_map, to_map,
                                      boost::bind(&PathPlanner::renderCells, this, algo_id),
@@ -416,6 +424,11 @@ struct PathPlanner : public Planner
                 renderCells(algo_id);
             } else {
                 path = algo.findPath(from_map, to_map, oversearch_distance_);
+            }
+
+            int id = 1;
+            for(const PathT& path : algo.getPathCandidates()) {
+                visualizePath(path2msg(path, request.goal.pose.header.stamp), id++, 0.1);
             }
 
             return path2msg(path, request.goal.pose.header.stamp);
