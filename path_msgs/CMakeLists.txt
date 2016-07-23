@@ -7,8 +7,8 @@ project(path_msgs)
 find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   geometry_msgs
-  nav_msgs
   message_generation
+  nav_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -46,17 +46,17 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_message_files(
   FILES
-    Obstacle.msg
     Goal.msg
+    Obstacle.msg
 )
 
 # Generate actions in the 'action' folder
 add_action_files(
   FILES
-    NavigateToGoal.action
     FollowPath.action
-    PlanPath.action
+    NavigateToGoal.action
     PlanAvoidance.action
+    PlanPath.action
 )
 
 # Generate added messages and services with any dependencies listed here
@@ -79,7 +79,7 @@ generate_messages(
 catkin_package(
    CATKIN_DEPENDS
      actionlib_msgs
-     message_runtime
      geometry_msgs
+     message_runtime
      nav_msgs
 )

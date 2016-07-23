@@ -272,6 +272,10 @@ void Planner::visualizeOutline(const geometry_msgs::Pose& at, int id, const std:
 
 void Planner::visualizePath(const nav_msgs::Path &path, int id, double alpha)
 {
+    if(path.poses.size() > 30000) {
+       ROS_WARN_STREAM("don't visualze path with " << path.poses.size() << " to avoid RVIZ crashes.") ;
+       return;
+    }
     visualization_msgs::Marker marker;
     marker.header.frame_id = "/map";
     marker.header.stamp = ros::Time();

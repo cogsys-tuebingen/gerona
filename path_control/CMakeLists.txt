@@ -6,9 +6,9 @@ include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-std=c++11" COMPILER_SUPPORTS_CXX11)
 check_cxx_compiler_flag("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
 if(COMPILER_SUPPORTS_CXX11)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  add_definitions(-std=c++11)
 elseif(COMPILER_SUPPORTS_CXX0X)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+  add_definitions(-std=c++0x)
 else()
   message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 catkin_package(
+    CATKIN_DEPENDS path_msgs geometry_msgs
 )
 
 ###########
@@ -32,14 +33,14 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(path_control_node
+add_executable(${PROJECT_NAME}_node
   src/controller_node.cpp
   src/pathcontroller.cpp
 )
-target_link_libraries(path_control_node
+target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
 )
-add_dependencies(path_control_node path_msgs_generate_messages_cpp)
+add_dependencies(${PROJECT_NAME}_node path_msgs_generate_messages_cpp)
 
 
 add_executable(highlevel_dummy
@@ -49,3 +50,10 @@ target_link_libraries(highlevel_dummy
   ${catkin_LIBRARIES}
 )
 add_dependencies(highlevel_dummy path_msgs_generate_messages_cpp)
+
+
+
+install(TARGETS ${PROJECT_NAME}_node
+        RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
+install(TARGETS highlevel_dummy
+        RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})

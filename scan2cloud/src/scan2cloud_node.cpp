@@ -1,4 +1,4 @@
-#include "scan2cloud.h"
+#include "../include/scan2cloud/scan2cloud.h"
 
 int main(int argc, char** argv)
 {

@@ -7,7 +7,7 @@
 #include <path_follower/legacy/behaviours.h>
 #include <path_follower/legacy/robotcontroller_omnidrive_vv.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
-#include "../alglib/interpolation.h"
+#include <interpolation.h>
 
 using namespace Eigen;
 

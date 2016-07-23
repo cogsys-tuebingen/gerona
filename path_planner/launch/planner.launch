@@ -12,7 +12,7 @@
 
         <param name="render_open_cells" value="false"/>
 
-        <param name="oversearch_distance" value="0" />
+        <param name="oversearch_distance" value="1.0" />
 
         <param name="algorithm" value="patsy_forward" />
 
@@ -25,7 +25,7 @@
 
         <param name="size/forward" value="0.2" />
         <param name="size/backward" value="-0.6" />
-        <param name="size/width" value="0.60" />
+        <param name="size/width" value="0.70" />
 
         <remap from="/obstacles" to="/obstacle_cloud" />
         <remap from="/scan/front/filtered" to="/sick_s300_front/filtered" />
