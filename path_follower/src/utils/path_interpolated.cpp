@@ -36,7 +36,7 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
     frame_id_ = path->getFrameId();
 
 	std::deque<Waypoint> waypoints;
-	while (true) {
+    while (!path->isDone()) {
 		waypoints.insert(waypoints.end(), path->getCurrentSubPath().begin(), path->getCurrentSubPath().end());
 
 		// (messy) hack!!!!!

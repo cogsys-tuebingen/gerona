@@ -42,6 +42,7 @@ protected:
     ros::Duration update_interval_;
 
     SubPath waypoints;
+    SubPath waypoints_map;
 
     bool tooClose;
 };

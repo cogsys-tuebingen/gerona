@@ -95,11 +95,18 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
     if(last_update_ + update_interval_ < now && !tooClose) {
 
         // only look at the first sub path for now
+        waypoints_map = (SubPath) global_path_;
         waypoints = (SubPath) global_path_;
 
         if(!transform2Odo(now)){
             return nullptr;
         }
+
+        if(!obstacle_cloud_) {
+            ROS_WARN("cannot calculate local path, no obstacle cloud received yet");
+            return nullptr;
+        }
+
         /*
         ofstream myfile;
         myfile.open ("/tmp/pose.txt");
