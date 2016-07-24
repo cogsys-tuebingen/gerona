@@ -22,7 +22,7 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
     ROS_INFO_STREAM("Start Action! Requested velocity: " << goal->velocity);
 
     follow_path_client_.cancelAllGoals();
-	ros::spinOnce(); ros::Duration(0.1).sleep();
+    ros::spinOnce(); ros::Duration(0.1).sleep();
 
     current_goal_ = goal;
 
@@ -105,7 +105,7 @@ bool PathController::processGoal()
 
     ROS_INFO("Wait for follow_path action server...");
     follow_path_client_.waitForServer();
-//    follow_path_client_.cancelAllGoals();
+    follow_path_client_.cancelAllGoals();
 
     publishGoalMessage();
 
@@ -369,7 +369,8 @@ void PathController::findPath()
         if(navigate_to_goal_server_.isPreemptRequested()) {
             ROS_WARN("preempting");
             planner.cancelAllGoals();
-            break;
+            navigate_to_goal_server_.setPreempted();
+            return;
         }
 
         ROS_INFO_THROTTLE(2, "still waiting for path");

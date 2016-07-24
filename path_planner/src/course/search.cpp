@@ -27,6 +27,9 @@ Search::Search(const CourseMap& generator)
     pnh_.param("size/backward", size_backward, -0.6);
     pnh_.param("size/width", size_width, 0.5);
 
+    pnh_.param("max_distance_for_direct_try", max_distance_for_direct_try, 7.0);
+    pnh_.param("max_time_for_direct_try", max_time_for_direct_try, 1.0);
+
 
     std::string map_service = "/static_map";
     pnh_.param("map_service",map_service, map_service);
@@ -49,6 +52,14 @@ std::vector<path_geom::PathPose> Search::findPath(const path_geom::PathPose& sta
 
     initMaps(map_service.response.map);
 
+    double distance = (start_pose.pos_ - end_pose.pos_).norm();
+    if(distance <= max_distance_for_direct_try) {
+        auto direct = tryDirectPath(start_pose, end_pose);
+        if(!direct.empty()) {
+            return direct;
+        }
+    }
+
     if(!findAppendices(map_service.response.map, start_pose, end_pose)) {
         return {};
     }
@@ -67,6 +78,33 @@ std::vector<path_geom::PathPose> Search::findPath(const path_geom::PathPose& sta
     }
 
     return performDijkstraSearch();
+}
+
+
+std::vector<path_geom::PathPose> Search::tryDirectPath(const path_geom::PathPose& start, const path_geom::PathPose& end)
+{
+//    {
+//        AStarPatsyReversed algo_forward;
+//        algo_forward.setMap(map_info.get());
+//        algo_forward.setTimeLimit(max_time_for_direct_try);
+//        auto path = algo_forward.findPath(convertToMap(start), convertToMap(end));
+
+//        if(!path.empty()) {
+//            return convertToWorld(path);
+//        }
+//    }
+    {
+        AStarPatsyReversedTurning algo_turning;
+        algo_turning.setMap(map_info.get());
+        algo_turning.setTimeLimit(max_time_for_direct_try * 10);
+        auto path = algo_turning.findPath(convertToMap(start), convertToMap(end));
+
+        if(!path.empty()) {
+            return convertToWorld(path);
+        }
+    }
+
+    return {};
 }
 
 std::vector<path_geom::PathPose> Search::performDijkstraSearch()
@@ -244,12 +282,7 @@ std::vector<path_geom::PathPose> Search::findAppendix(const nav_msgs::OccupancyG
         }
     }
 
-    std::vector<path_geom::PathPose> appendix;
-    for(const auto& node : path_start) {
-        appendix.push_back(convertToWorld(node));
-    }
-
-    return appendix;
+    return convertToWorld(path_start);
 }
 
 
@@ -262,6 +295,16 @@ path_geom::PathPose Search::convertToWorld(const NodeT& node)
     map_info->cell2pointSubPixel(node.x, node.y, tmpx, tmpy);
 
     return path_geom::PathPose(tmpx, tmpy, node.theta/* - tf::getYaw(map.info.origin.orientation)*/);
+}
+
+std::vector<path_geom::PathPose> Search::convertToWorld(const std::vector<NodeT>& path)
+{
+    std::vector<path_geom::PathPose> res;
+    for(const auto& node : path) {
+        res.push_back(convertToWorld(node));
+    }
+
+    return res;
 }
 
 lib_path::Pose2d  Search::convertToMap(const path_geom::PathPose& pt)

@@ -32,6 +32,8 @@ struct NearCourseTest
         double wx, wy;
         map_info->cell2pointSubPixel(node->x,node->y, wx, wy);
 
+        ROS_INFO_STREAM("test node " << wx <<  " / " << wy);
+
         const double min_necessary_dist_to_crossing = 0.0;
 
         path_geom::PathPose point(wx, wy, node->theta);
@@ -58,7 +60,7 @@ struct NearCourseTest
 
         }
 
-        return candidates > 40;
+        return candidates > 1;
     }
 
     const lib_path::Pose2d* getHeuristicGoal() const

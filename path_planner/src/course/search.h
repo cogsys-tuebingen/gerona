@@ -7,6 +7,8 @@
 #include <utils_path/generic/Algorithms.hpp>
 #include <utils_path/common/SimpleGridMap2d.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <utils_path/generic/SteeringNode.hpp>
+#include <utils_path/generic/SteeringNeighborhood.hpp>
 
 #include "node.h"
 #include "path_builder.h"
@@ -17,14 +19,24 @@ class CourseMap;
 class Search
 {
 public:
-    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD, false>,
+//    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD, false>,
+//    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyForward;
+//    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD, true>,
+//    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyReversed;
+
+//    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, false>,
+//    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyForwardTurning;
+//    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
+//    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyReversedTurning;
+
+    typedef lib_path::AStarDynamicSearch<lib_path::SteeringNeighborhood<40, 4, 15, 60, 120, lib_path::SteeringMoves::FORWARD, false>,
     lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyForward;
-    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD, true>,
+    typedef lib_path::AStarDynamicSearch<lib_path::SteeringNeighborhood<40, 4, 15, 60, 120, lib_path::SteeringMoves::FORWARD, true>,
     lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyReversed;
 
-    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, false>,
+    typedef lib_path::AStarDynamicSearch<lib_path::SteeringNeighborhood<40, 4, 15, 60, 120, lib_path::SteeringMoves::FORWARD_BACKWARD, false>,
     lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyForwardTurning;
-    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
+    typedef lib_path::AStarDynamicSearch<lib_path::SteeringNeighborhood<40, 4, 15, 60, 120, lib_path::SteeringMoves::FORWARD_BACKWARD, true>,
     lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyReversedTurning;
 
     typedef AStarPatsyForward::NodeT NodeT;
@@ -39,6 +51,8 @@ public:
 private:
     void initMaps(const nav_msgs::OccupancyGrid& map);
 
+    std::vector<path_geom::PathPose> tryDirectPath(const path_geom::PathPose& start, const path_geom::PathPose& end);
+
     template <typename AlgorithmForward, typename AlgorithmFull>
     std::vector<path_geom::PathPose> findAppendix(const nav_msgs::OccupancyGrid &map, const path_geom::PathPose& pose, const std::string& type);
     bool findAppendices(const nav_msgs::OccupancyGrid &map, const path_geom::PathPose& start_pose, const path_geom::PathPose& end_pose);
@@ -52,6 +66,7 @@ private:
     void generatePath(const std::deque<const Node *> &path_transitions, PathBuilder &path_builder) const;
 
     path_geom::PathPose convertToWorld(const NodeT& node);
+    std::vector<path_geom::PathPose> convertToWorld(const std::vector<NodeT>& path);
     lib_path::Pose2d convertToMap(const path_geom::PathPose& node);
 
 private:
@@ -67,6 +82,9 @@ private:
     double size_forward;
     double size_backward;
     double size_width;
+
+    double max_distance_for_direct_try;
+    double max_time_for_direct_try;
 
     std::vector<path_geom::PathPose> start_appendix;
     std::vector<path_geom::PathPose> end_appendix;

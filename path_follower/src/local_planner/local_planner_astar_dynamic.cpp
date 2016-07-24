@@ -55,7 +55,7 @@ struct NearPathTest
           candidates(0)
     {
         min_dist = 2.5;
-        desired_dist = 6.0;
+        desired_dist = 4.0;
 
         updateHeuristicGoal();
     }
@@ -318,7 +318,7 @@ bool LocalPlannerAStarDynamic::algo(Eigen::Vector3d& odom_pose_v, SubPath& local
             avoiding = true;
 
         } catch(const std::runtime_error& e) {
-            ROS_ERROR_STREAM_THROTTLE(1, "planning failed");
+            ROS_ERROR_STREAM_THROTTLE(1, "planning failed: " << e.what());
             local_wps.clear();
             return true;
         }
@@ -445,7 +445,7 @@ SubPath LocalPlannerAStarDynamic::calculateAvoidingPath(const Eigen::Vector3d& o
     ROS_WARN_STREAM("starting with a steering angle of " << start_config.steering_angle );
 
     typedef
-    AStarSearch<SteeringNeighborhood<50, 5, 10, 70, 100, SteeringMoves::FORWARD, false>, NoExpansion, Pose2d, GridMap2d, 500 >
+    AStarDynamicSearch<SteeringNeighborhood<40, 6, 5, 75, 120, SteeringMoves::FORWARD, false>, NoExpansion, Pose2d, GridMap2d, 500 >
             AStarPatsyForward;
 
     AStarPatsyForward algo_forward;
@@ -544,6 +544,8 @@ void LocalPlannerAStarDynamic::updateMap()
 
 bool LocalPlannerAStarDynamic::integrateObstacles()
 {
+    double max_range = 8.0;
+
     tf::StampedTransform trafo;
     ros::Time time;
     time.fromNSec(obstacle_cloud_->header.stamp * 1e3);
@@ -566,7 +568,14 @@ bool LocalPlannerAStarDynamic::integrateObstacles()
         const pcl::PointXYZ& pt = *it;
 
         tf::Vector3 pt_cloud(pt.x, pt.y, pt.z);
+
+        double dist = std::hypot(pt.x, pt.y);
+        if(dist > max_range) {
+            continue;
+        }
+
         tf::Vector3 pt_map = trafo * pt_cloud;
+
 
         unsigned int x,y;
         if(map_info->point2cell(pt_map.x(), pt_map.y(), x, y)) {

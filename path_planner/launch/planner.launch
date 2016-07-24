@@ -12,7 +12,7 @@
 
         <param name="render_open_cells" value="false"/>
 
-        <param name="oversearch_distance" value="1.0" />
+        <param name="oversearch_distance" value="0.5" />
 
         <param name="algorithm" value="patsy_forward" />
 

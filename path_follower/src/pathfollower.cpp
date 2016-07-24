@@ -391,6 +391,15 @@ void PathFollower::update()
         FollowPathFeedback feedback;
         FollowPathResult result;
 
+        if(follow_path_server_.isPreemptRequested()) {
+            if(is_running_) {
+                is_running_ = false;
+                stop();
+                follow_path_server_.setPreempted();
+                return;
+            }
+        }
+
         if(!is_running_) {
             start();
         }
@@ -709,6 +718,12 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
         return;
     }
 
+    if(is_running_) {
+        ROS_ERROR("got a new goal, stopping");
+        stop();
+        is_running_ = false;
+    }
+
     setPath(goal.path);
 
     ROS_INFO_STREAM("Following path with " << goal.path.poses.size() << " poses.");
@@ -763,7 +778,7 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
 
         double diff_last_x = current_point.x - last_point.x;
         double diff_last_y = current_point.y - last_point.y;
-        double diff_last_angle = MathHelper::AngleClamp(current_point.orientation - last_point.orientation);
+        double diff_last_angle = MathHelper::AngleDelta(current_point.orientation, last_point.orientation);
         if (diff_last_x*diff_last_x+diff_last_y*diff_last_y<WAYPOINT_POS_DIFF_TOL*WAYPOINT_POS_DIFF_TOL
                 && fabs(diff_last_angle)<WAYPOINT_ANGLE_DIFF_TOL) {
             // duplicate waypoint
@@ -797,7 +812,7 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
 
             bool split_segment = std::abs(angle) > M_PI / 3.0;
 
-            if(!only_one_segment && split_segment/* && !is_duplicate_wp*/) {
+            if(!only_one_segment && split_segment && !is_duplicate_wp) {
                 // new segment!
                 // current node is the last one of the old segment
                 segment_ends_with_this_node = true;
