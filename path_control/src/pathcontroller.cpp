@@ -365,6 +365,13 @@ void PathController::findPath()
         if(planner.waitForResult(ros::Duration(0.5))) {
             break;
         }
+
+        if(navigate_to_goal_server_.isPreemptRequested()) {
+            ROS_WARN("preempting");
+            planner.cancelAllGoals();
+            break;
+        }
+
         ROS_INFO_THROTTLE(2, "still waiting for path");
         ros::spinOnce();
     }
