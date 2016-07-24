@@ -37,7 +37,6 @@ private:
     void updateMap();
     bool integrateObstacles();
 
-    std::size_t  findClosestWaypoint(const Vector3d &odom_pose_vector, const SubPath &current_subpath_map);
     bool isPathObstructed(const SubPath &path, int start, std::size_t end, int radius);
 
 private:

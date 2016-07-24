@@ -58,11 +58,18 @@ bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
     return true;
 }
 
-void LocalPlannerImplemented::setPath(Path::Ptr& local_path, SubPath& local_wps, ros::Time& now){
-    local_path->setPath({local_wps});
-
+void LocalPlannerImplemented::setPath(Path::Ptr& local_path, SubPath& local_wps, ros::Time& now)
+{
     follower_.getController()->reset();
-    follower_.getController()->setPath(local_path);
+
+    if(local_wps.empty()) {
+        local_path->setPath({});
+        follower_.getController()->stopMotion();
+
+    } else {
+        local_path->setPath({local_wps});
+        follower_.getController()->setPath(local_path);
+    }
 
     last_update_ = now;
 }
@@ -128,8 +135,8 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         setPath(local_path, local_wps, now);
         int end_t = gsw.usElapsed();
 
-        printNodeUsage(nnodes);
-        printSCTimeUsage(constraints, scorer, fconstraints, wscorer);
+//        printNodeUsage(nnodes);
+//        printSCTimeUsage(constraints, scorer, fconstraints, wscorer);
         ROS_INFO_STREAM("Local Planner duration: " << (end_t/1000.0) << " ms");
 
         return local_path;

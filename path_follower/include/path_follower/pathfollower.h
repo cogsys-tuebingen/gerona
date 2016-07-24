@@ -72,6 +72,7 @@ public:
     bool callObstacleAvoider(MoveCommand *cmd);
 
     const PathFollowerParameters &getOptions() const;
+    Visualizer& getVisualizer() const;
 
     ros::NodeHandle& getNodeHandle();
 

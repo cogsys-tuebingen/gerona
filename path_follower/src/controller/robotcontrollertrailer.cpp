@@ -243,9 +243,6 @@ float RobotControllerTrailer::getErrorOnPath()
     // Calculate target line from current to next waypoint (if there is any)
     float error = calculateLineError();
 
-
-
-
     return error;
 }
 
@@ -292,6 +289,12 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
     }
     float u_val = u[0];
 
+    if(std::isnan(u_val)) {
+        ROS_WARN_STREAM("u_val is NaN!");
+        cmd_.setVelocity(0);
+        return;
+    }
+
     visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 14, path_driver_->getRobotPoseMsg(), u_val, 0.0, 1.0, 1.0);
 
     float steer = dir_sign_* std::max(-opt_.max_steer(), std::min(u_val, opt_.max_steer()));
@@ -300,6 +303,12 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
   //  ROS_INFO_STREAM_THROTTLE(0.3,"updateval steer angle "<<steer*180.0/M_PI<< " u "<<u_val*180.0/M_PI);
 
 //    ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
+
+//    ROS_WARN_STREAM_NAMED(MODULE, "==========");
+
+//    ROS_WARN_STREAM_NAMED(MODULE, "dist_error = " << dist_error << ", angle_error = " << angle_error << ", v = " << v << ", dir_sign_ = " << dir_sign_);
+//    ROS_WARN_STREAM_NAMED(MODULE, "u_val = " << u_val << ", v = " << v);
+//    ROS_WARN_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
 
     // Control velocity
     float velocity = controlVelocity(steer);

@@ -170,7 +170,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     if(opt_.algo() == "AStar"){
         local_planner_ = std::make_shared<LocalPlannerAStar>(*this, pose_listener_,ros::Duration(2.0));
     }else if(opt_.algo() == "AStarDynamic"){
-        local_planner_ = std::make_shared<LocalPlannerAStarDynamic>(*this, pose_listener_,ros::Duration(0.1));
+        local_planner_ = std::make_shared<LocalPlannerAStarDynamic>(*this, pose_listener_,ros::Duration(0.5));
     }else if(opt_.algo() == "BFS"){
         local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(1.0));
     }else if(opt_.algo() == "Transformer"){
@@ -410,7 +410,10 @@ void PathFollower::update()
         Supervisor::Result s_res = supervisors_.supervise(state);
         if (s_res.can_continue) {
             //Begin Constraints and Scorers Construction
-            if(!local_planner_->isNull()) {
+            if(local_planner_->isNull()) {
+                is_running_ = execute(feedback, result);
+
+            } else {
                 std::vector<Constraint::Ptr> constraints(2);
                 std::vector<bool> fconstraints(2);
                 if(opt_.c1()){
@@ -460,12 +463,15 @@ void PathFollower::update()
                     local_planner_->setObstacleCloud(obstacle_cloud_);
                 }
                 local_planner_->setVelocity(getVelocity().linear);
+
+                bool path_search_failure = false;
                 try {
                     Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, wscorer);
-                    if(local_path) {
+                    path_search_failure = local_path && local_path->empty();
+                    if(local_path && !path_search_failure) {
                         nav_msgs::Path path;
                         path.header.stamp = ros::Time::now();
-                        path.header.frame_id = local_path->getFrameId();
+                        path.header.frame_id = getFixedFrameId();
                         for(int i = 0, sub = local_path->subPathCount(); i < sub; ++i) {
                             const SubPath& p = local_path->getSubPath(i);
                             for(const Waypoint& wp : p) {
@@ -483,13 +489,26 @@ void PathFollower::update()
 
                 } catch(const std::runtime_error& e) {
                     ROS_ERROR_STREAM("Cannot find local_path: " << e.what());
-                    is_running_ = false;
-                    result.status = path_msgs::FollowPathResult::RESULT_STATUS_OBSTACLE;
-                    controller_->stopMotion();
+                    path_search_failure = true;
                 }
 
-            } else {
-                is_running_ = execute(feedback, result);
+                if(path_search_failure) {
+                    ROS_ERROR_STREAM("no local path found. there is an obstacle.");
+                    feedback.status = path_msgs::FollowPathFeedback::MOTION_STATUS_OBSTACLE;
+                    controller_->stopMotion();
+
+                    // avoid RViz bug with empty paths!
+                    nav_msgs::Path path;
+                    path.header.stamp = ros::Time::now();
+                    path.header.frame_id = getFixedFrameId();
+                    geometry_msgs::PoseStamped pose;
+                    pose.pose.position.x = std::numeric_limits<double>::quiet_NaN();
+                    path.poses.push_back(pose);
+                    local_path_pub_.publish(path);
+
+                } else {
+                    is_running_ = execute(feedback, result);
+                }
             }
 
         } else {
@@ -586,6 +605,11 @@ std::string PathFollower::getFixedFrameId()
 const PathFollowerParameters& PathFollower::getOptions() const
 {
     return opt_;
+}
+
+Visualizer& PathFollower::getVisualizer() const
+{
+    return *visualizer_;
 }
 
 ros::NodeHandle& PathFollower::getNodeHandle()

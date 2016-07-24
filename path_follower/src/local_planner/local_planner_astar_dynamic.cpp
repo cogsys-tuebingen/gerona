@@ -15,13 +15,33 @@
 #include <nav_msgs/GetMap.h>
 #include <ros/console.h>
 
+using namespace lib_path;
+
 namespace {
+
+
+size_t findClosestWaypoint(const Eigen::Vector3d& pose, const SubPath &current_subpath_map)
+{
+    double closest_dist = std::numeric_limits<double>::infinity();
+    std::size_t closest_index = 0;
+    for(std::size_t i = 0; i < current_subpath_map.size(); ++i) {
+        const Waypoint& wp = current_subpath_map[i];
+        double dist = std::hypot(wp.x - pose(0), wp.y - pose(1));
+        if(dist < closest_dist) {
+            closest_dist = dist;
+            closest_index = i;
+        }
+    }
+
+    return closest_index;
+}
+
 
 template <typename Algorithm>
 struct NearPathTest
 {
     NearPathTest(const LocalPlannerAStarDynamic& parent, const SubPath& map_path,
-                 Algorithm& algo, const lib_path::Pose2d& start, const nav_msgs::OccupancyGrid& map, const lib_path::SimpleGridMap2d* map_info)
+                 Algorithm& algo, const Pose2d& start_cell, const nav_msgs::OccupancyGrid& map, const SimpleGridMap2d* map_info)
         : parent(parent), map_path(map_path),
           algo(algo), map(map), map_info(map_info),
           res(map.info.resolution),
@@ -30,18 +50,31 @@ struct NearPathTest
           w(map.info.width),
           h(map.info.height),
 
-          start_cell(start),
+          start_cell(start_cell),
 
           candidates(0)
     {
-        min_dist = 3.0;
+        min_dist = 2.5;
+        desired_dist = 6.0;
+
+        updateHeuristicGoal();
+    }
+
+    void updateHeuristicGoal()
+    {
+        double mx,my;
+        map_info->cell2pointSubPixel(start_cell.x, start_cell.y, mx, my);
+        Eigen::Vector3d start_pose(mx,my, start_cell.theta);
+
+        std::size_t start_index = findClosestWaypoint(start_pose, map_path);
 
         double dist_accum = 0.0;
-        const Waypoint* last_wp = &map_path.front();
-        for(const Waypoint& wp : map_path) {
+        const Waypoint* last_wp = &map_path.at(start_index);
+        for(std::size_t i = start_index, n = map_path.size(); i < n; ++i) {
+            const Waypoint& wp = map_path[i];
             dist_accum += wp.distanceTo(*last_wp);
 
-            if(dist_accum >= min_dist) {
+            if(dist_accum >= min_dist * 2) {
                 map_info->point2cellSubPixel(wp.x, wp.y, heuristic_goal.x,heuristic_goal.y);
                 heuristic_goal.theta = wp.orientation;
                 return;
@@ -75,7 +108,7 @@ struct NearPathTest
 
         double dist = std::hypot(x - start_cell.x, y - start_cell.y) * map_info->getResolution();
 
-        if(min_dist > 0.0 && dist < min_dist) {
+        if(dist < min_dist) {
             return false;
         }
 
@@ -85,29 +118,47 @@ struct NearPathTest
         //        wy = y;
 
 
-        const Waypoint* closest_wp = nullptr;
+
+        static const double distance_tolerance = 0.33;
+        static const double angle_tolerance = M_PI / 8;
+
         double closest_dist = std::numeric_limits<double>::infinity();
         for(const Waypoint& wp : map_path) {
+            double dtheta = MathHelper::AngleDelta(wp.orientation, node->theta);
+            if(std::abs(dtheta) > angle_tolerance) {
+                continue;
+            }
+
             double dist = std::hypot(wp.x - wx, wp.y - wy);
             if(dist < closest_dist) {
                 closest_dist = dist;
-                closest_wp = &wp;
             }
         }
 
-
-        if(closest_dist > 2.0) {
-            return false;
+        if(dist > desired_dist) {
+            if(closest_dist > distance_tolerance) {
+                return false;
+            }
+        } else {
+            if(closest_dist > 1.5) {
+                return false;
+            }
         }
 
         //        algo.addGoalCandidate(node, node->distance);
         algo.addGoalCandidate(node, closest_dist);
         ++candidates;
 
-        return candidates > 5;
+        if(dist >= desired_dist) {
+            if(closest_dist < distance_tolerance) {
+                return true;
+            }
+        }
+
+        return candidates > 2;
     }
 
-    const lib_path::Pose2d* getHeuristicGoal() const
+    const Pose2d* getHeuristicGoal() const
     {
         return &heuristic_goal;
     }
@@ -117,7 +168,7 @@ struct NearPathTest
 
     Algorithm& algo;
     const nav_msgs::OccupancyGrid& map;
-    const lib_path::SimpleGridMap2d * map_info;
+    const SimpleGridMap2d * map_info;
 
     double res;
     double ox;
@@ -125,21 +176,22 @@ struct NearPathTest
     int w;
     int h;
 
-    lib_path::Pose2d heuristic_goal;
+    Pose2d heuristic_goal;
 
     double min_dist;
+    double desired_dist;
 
-    lib_path::Pose2d start_cell;
+    Pose2d start_cell;
 
     mutable int candidates;
 };
 
 
-lib_path::Pose2d  convertToCell(const lib_path::SimpleGridMap2d * map_info, const tf::Pose& pose)
+Pose2d  convertToCell(const SimpleGridMap2d * map_info, const tf::Pose& pose)
 {
     tf::Vector3 pt = pose.getOrigin();
 
-    lib_path::Pose2d res;
+    Pose2d res;
     unsigned tmpx, tmpy;
     map_info->point2cell(pt.getX(), pt.getY(), tmpx, tmpy);
     res.x = tmpx;
@@ -159,8 +211,8 @@ LocalPlannerAStarDynamic::LocalPlannerAStarDynamic(PathFollower &follower,
       avoiding(false)
 {
     pnh_.param("size/forward", size_forward, 0.2);
-    pnh_.param("size/backward", size_backward, -0.55);
-    pnh_.param("size/width", size_width, 0.45);
+    pnh_.param("size/backward", size_backward, -0.6);
+    pnh_.param("size/width", size_width, 0.6);
 
     std::string map_service = "/static_map";
     pnh_.param("map_service",map_service, map_service);
@@ -172,6 +224,10 @@ LocalPlannerAStarDynamic::LocalPlannerAStarDynamic(PathFollower &follower,
 
 bool LocalPlannerAStarDynamic::isPathObstructed(const SubPath &path, int start, size_t end, int radius)
 {
+    int obstacle_count = 0;
+    double res = map_info->getResolution();
+    double r = radius * res;
+
     for(std::size_t i = std::max(0, start), n = std::min(end, path.size()); i < n; ++i) {
         const Waypoint& wp = path[i];
 
@@ -184,31 +240,17 @@ bool LocalPlannerAStarDynamic::isPathObstructed(const SubPath &path, int start, 
                 int ny = wpy + dy;
 
                 if(!map_info->isInMap(nx, ny) || map_info->isOccupied(nx, ny)) {
-                    return true;
+                    geometry_msgs::Point c;
+                    c.x = wp.x + dx * res;
+                    c.y = wp.y + dy * res;
+                    follower_.getVisualizer().drawCircle(obstacle_count++, c, r, "/map", "local_obstacles", 1.0, 0.0, 0.0, 1.0, 0.5);
                 }
             }
         }
     }
 
-    return false;
+    return obstacle_count > 0;
 }
-
-size_t LocalPlannerAStarDynamic::findClosestWaypoint(const Eigen::Vector3d& pose, const SubPath &current_subpath_map)
-{
-    double closest_dist = std::numeric_limits<double>::infinity();
-    std::size_t closest_index = 0;
-    for(std::size_t i = 0; i < current_subpath_map.size(); ++i) {
-        const Waypoint& wp = current_subpath_map[i];
-        double dist = std::hypot(wp.x - pose(0), wp.y - pose(1));
-        if(dist < closest_dist) {
-            closest_dist = dist;
-            closest_index = i;
-        }
-    }
-
-    return closest_index;
-}
-
 
 void LocalPlannerAStarDynamic::setGlobalPath(Path::Ptr path)
 {
@@ -234,8 +276,8 @@ bool LocalPlannerAStarDynamic::algo(Eigen::Vector3d& odom_pose_v, SubPath& local
         return false;
     }
 
-    tf::StampedTransform now_map_to_odom;
-    transformer_.lookupTransform("map", "odom", time, now_map_to_odom);
+    tf::StampedTransform map_to_odom;
+    transformer_.lookupTransform("map", "odom", time, map_to_odom);
 
     if(!map_info_static) {
         // HINT: for now we assume a static map
@@ -249,63 +291,96 @@ bool LocalPlannerAStarDynamic::algo(Eigen::Vector3d& odom_pose_v, SubPath& local
         return false;
     }
 
-    Eigen::Vector3d map_pose = transformPose(odom_pose_v, now_map_to_odom);
+    Eigen::Vector3d map_pose = transformPose(odom_pose_v, map_to_odom);
 
     const SubPath &current_subpath_map = avoiding ? avoiding_path_map_ : waypoints_map;
-    tf::Transform odom_to_map = now_map_to_odom.inverse();
+    tf::Transform odom_to_map = map_to_odom.inverse();
     SubPath current_subpath_odom = transformPath(current_subpath_map, odom_to_map);
 
     // find the subpath that starts closest to the robot
-    std::size_t closest_wp_map_index = findClosestWaypoint(map_pose, current_subpath_map);
+    int closest_wp_map_index = findClosestWaypoint(map_pose, current_subpath_map);
 
-    int cell_width = 2 * size_width * map_info->getResolution();
-    int radius = std::ceil(cell_width / 2.) + 1;
+    int cell_width = size_width / map_info->getResolution();
+    int radius = std::ceil(cell_width / 2.);
 
-    if(isPathObstructed(current_subpath_map, closest_wp_map_index - 20, closest_wp_map_index + 150, radius)) {
+    double look_back_distance = 1.0;
+    double look_forward_distance = 5.0;
+
+    double path_resolution = 0.1;
+
+    int look_back = look_back_distance / path_resolution;
+    int look_forward = look_forward_distance / path_resolution;;
+    if(isPathObstructed(current_subpath_map, closest_wp_map_index - look_back, closest_wp_map_index + look_forward, radius)) {
         ROS_WARN("new avoiding plan");
-        avoiding_path_map_ = calculateAvoidingPath(odom_pose_v, odom_to_map);
+        try {
+            avoiding_path_map_ = calculateAvoidingPath(odom_pose_v, odom_to_map);
+            local_wps = transformPath(avoiding_path_map_, odom_to_map);
+            avoiding = true;
 
-        local_wps = transformPath(avoiding_path_map_, odom_to_map);
+        } catch(const std::runtime_error& e) {
+            ROS_ERROR_STREAM_THROTTLE(1, "planning failed");
+            local_wps.clear();
+            return true;
+        }
+
 
     } else {
         ROS_INFO("continue");
-        Eigen::Vector3d pose = follower_.getRobotPose();
-        std::size_t closest_local_wp_index = findClosestWaypoint(pose, current_subpath_odom);
-        local_wps.assign(current_subpath_odom.begin() + closest_local_wp_index, current_subpath_odom.end());
+        Eigen::Vector3d pose_odom = follower_.getRobotPose();
+        std::size_t closest_current_subpath_index = findClosestWaypoint(pose_odom, current_subpath_odom);
+        local_wps.assign(current_subpath_odom.begin() + closest_current_subpath_index, current_subpath_odom.end());
 
         if(avoiding) {
-            if(local_wps.size() < 15 || closest_local_wp_index > 30) {
-                SubPath waypoints_now = transformPath(waypoints_map, odom_to_map);
-                std::size_t closest_local_wp_now_index = findClosestWaypoint(pose, waypoints_now);
-                const Waypoint& closest_wp = waypoints_now.at(closest_local_wp_now_index);
-                double distance = std::hypot(closest_wp.x -pose(0), closest_wp.y - pose(1));
+//            if(local_wps.size() < 15 || closest_current_subpath_index > 30) {
+                SubPath waypoints_odom = transformPath(waypoints_map, odom_to_map);
+                std::size_t closest_local_wp_odom_index = findClosestWaypoint(pose_odom, waypoints_odom);
+                const Waypoint& closest_wp_odom = waypoints_odom.at(closest_local_wp_odom_index);
+                double distance = std::hypot(closest_wp_odom.x -pose_odom(0), closest_wp_odom.y - pose_odom(1));
 
                 ROS_INFO_STREAM("avoiding. distance: " << distance);
 
+                geometry_msgs::Pose avoiding_closest_pose;
+                avoiding_closest_pose.position.x = closest_wp_odom.x;
+                avoiding_closest_pose.position.y = closest_wp_odom.y;
+                avoiding_closest_pose.position.z = 0;
+                avoiding_closest_pose.orientation = tf::createQuaternionMsgFromYaw(closest_wp_odom.orientation);
+                follower_.getVisualizer().drawArrow("/odom", 0, avoiding_closest_pose, "avoiding_pose", 1.0, 0.0, 0.0, 0.0, 3.0);
 
-                if(distance < 0.1) {
+
+                Eigen::Vector3d pose_map = transformPose(pose_odom, map_to_odom);
+                std::size_t closest_local_wp_index = findClosestWaypoint(pose_map, waypoints_map);
+
+                const Waypoint& first_wp = waypoints_map.at(std::max(0, (int) closest_local_wp_odom_index - look_back));
+                avoiding_closest_pose.position.x = first_wp.x;
+                avoiding_closest_pose.position.y = first_wp.y;
+                avoiding_closest_pose.orientation = tf::createQuaternionMsgFromYaw(first_wp.orientation);
+                follower_.getVisualizer().drawArrow("/odom", 1, avoiding_closest_pose, "avoiding_pose", 0.0, 1.0, 0.0, 0.0, 2.0);
+
+                const Waypoint& last_wp = waypoints_map.at(std::min(waypoints_map.size() - 1, closest_local_wp_odom_index + look_forward));
+                avoiding_closest_pose.position.x = last_wp.x;
+                avoiding_closest_pose.position.y = last_wp.y;
+                avoiding_closest_pose.orientation = tf::createQuaternionMsgFromYaw(last_wp.orientation);
+                follower_.getVisualizer().drawArrow("/odom", 2, avoiding_closest_pose, "avoiding_pose", 0.0, 0.0, 1.0, 0.0, 2.0);
+
+                if(distance < 0.33 && !isPathObstructed(waypoints_map, closest_local_wp_index - look_back, closest_local_wp_index + look_forward, radius)) {
                     ROS_INFO_STREAM("switch back to planned path");
                     avoiding = false;
-                    std::size_t closest_local_wp_index = findClosestWaypoint(pose, waypoints_now);
-                    local_wps.assign(waypoints_now.begin() + closest_local_wp_index, waypoints_now.end());
+                    local_wps.assign(waypoints_odom.begin() + closest_local_wp_index, waypoints_odom.end());
 
-                } else {
-                    ROS_INFO_STREAM("plan new avoidance path");
+                } else  if(closest_current_subpath_index > current_subpath_odom.size() - look_forward / 2) {
+                    ROS_INFO_STREAM("plan new avoidance path, distance to global path: " << distance);
                     try {
                         avoiding_path_map_ = calculateAvoidingPath(odom_pose_v, odom_to_map);
                         local_wps = transformPath(avoiding_path_map_, odom_to_map);
 
                     } catch(const std::runtime_error& e) {
-                        ROS_ERROR("planning failed, keep last plan");
+                        ROS_ERROR("planning failed");
+                        local_wps.clear();
+                        return true;
                     }
                 }
             }
-        }
-    }
-
-    if(local_wps.empty()) {
-        ROS_WARN("local path is empty");
-        return false;
+//        }
     }
 
     return true;
@@ -351,36 +426,71 @@ SubPath LocalPlannerAStarDynamic::calculateAvoidingPath(const Eigen::Vector3d& o
     tf::Pose map_pose = odom_to_map.inverse() * odom_pose;
 
     // find path
-    lib_path::Pose2d pose_cell = convertToCell(map_info.get(), map_pose);
+    Pose2d pose_cell = convertToCell(map_info.get(), map_pose);
+    DirectionalNode<SteeringNode<HeuristicNode<Pose2d>>> start_config;
+    DirectionalNode<SteeringNode<HeuristicNode<Pose2d>>>::init(start_config, start_config);
+    start_config.x = pose_cell.x;
+    start_config.y = pose_cell.y;
+    start_config.theta = pose_cell.theta;
+
+    if(!transformer_.canTransform("/base_link", "/trailer_link", ros::Time(0))) {
+        ROS_ERROR_STREAM("cannot get latest transform between base_link and trailer_link") ;
+        return {};
+    }
+    tf::StampedTransform base_link_to_trailer_link;
+    transformer_.lookupTransform("/base_link", "/trailer_link", ros::Time(0), base_link_to_trailer_link);
+    start_config.steering_angle = -tf::getYaw(base_link_to_trailer_link.getRotation()) / M_PI * 180.;
+
+    ROS_WARN_STREAM("theta is " << start_config.theta );
+    ROS_WARN_STREAM("starting with a steering angle of " << start_config.steering_angle );
 
     typedef
-    lib_path::AStarSearch<lib_path::SteeringNeighborhood<60, 4, 15, lib_path::SteeringMoves::FORWARD_HALFSTEPS, false>, lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 >
+    AStarSearch<SteeringNeighborhood<50, 5, 10, 70, 100, SteeringMoves::FORWARD, false>, NoExpansion, Pose2d, GridMap2d, 500 >
             AStarPatsyForward;
 
     AStarPatsyForward algo_forward;
     algo_forward.setMap(map_info.get());
+    algo_forward.setTimeLimit(2.0);
 
     algo_forward.setPathCandidateCallback([this](const typename AStarPatsyForward::PathT& path) {
         std::cout << "path candidate found: " << path.size() << std::endl;
         return false;
     });
 
-    NearPathTest<AStarPatsyForward> goal_test_forward(*this, waypoints_map, algo_forward, pose_cell, map, map_info.get());
+    NearPathTest<AStarPatsyForward> goal_test_forward(*this, waypoints_map, algo_forward, start_config, map, map_info.get());
 
-    ROS_INFO_STREAM("start: " << map_pose.getOrigin().getX() << ", " << map_pose.getOrigin().getY() << " -> node " << pose_cell.x << " / " << pose_cell.y << " / " << pose_cell.theta);
-    auto path_start = algo_forward.findPath(pose_cell, goal_test_forward);
-    if(path_start.empty()) {
+
+    Pose2d hgoal = *goal_test_forward.getHeuristicGoal();
+    geometry_msgs::Pose arrow;
+    map_info->cell2pointSubPixel(hgoal.x, hgoal.y, arrow.position.x, arrow.position.y);
+    arrow.position.z = 0;
+    arrow.orientation = tf::createQuaternionMsgFromYaw(hgoal.theta);
+
+    follower_.getVisualizer().drawArrow("/map", 0, arrow, "heuristic_goal", 0.0, 0.0, 0.0, 0.0);
+
+    ROS_INFO_STREAM("start: " << map_pose.getOrigin().getX() << ", " << map_pose.getOrigin().getY() << " -> node " << start_config.x << " / " << start_config.y << " / " << start_config.theta);
+    ROS_INFO_STREAM("heuristic goal: " << arrow.position.x << " / " << arrow.position.y <<  " / " << hgoal.theta);
+    ROS_INFO_STREAM(" -> arrow = " << arrow);
+
+    AStarPatsyForward::PathT path;
+    try {
+        path = algo_forward.findPathWithStartConfiguration(start_config, goal_test_forward);
+    } catch(const std::exception& e) {
+        ROS_ERROR_STREAM("path search failed: " << e.what());
+        throw std::runtime_error("found no local path");
+    }
+
+    if(path.empty()) {
         ROS_ERROR("found no local path");
         throw std::runtime_error("found no local path");
     }
 
-    ROS_WARN_STREAM("found a local path of length " << path_start.size());
+    ROS_WARN_STREAM("found a local path of length " << path.size());
 
     SubPath avoiding_path_map;
-    avoiding = true;
 
-    for (std::size_t i = 0, total = path_start.size(); i < total; ++i) {
-        auto pt = path_start.at(i);
+    for (std::size_t i = 0, total = path.size(); i < total; ++i) {
+        auto pt = path.at(i);
 
         Waypoint wp_map;
         map_info->cell2pointSubPixel(pt.x, pt.y, wp_map.x, wp_map.y);
@@ -412,7 +522,7 @@ void LocalPlannerAStarDynamic::updateMap()
     unsigned h = map.info.height;
 
 
-    map_info_static.reset(new lib_path::CollisionGridMap2d(map.info.width, map.info.height, tf::getYaw(map.info.origin.orientation), map.info.resolution, size_forward, size_backward, size_width));
+    map_info_static.reset(new CollisionGridMap2d(map.info.width, map.info.height, tf::getYaw(map.info.origin.orientation), map.info.resolution, size_forward, size_backward, size_width));
 
     std::vector<uint8_t> data(w*h);
     int i = 0;
@@ -429,7 +539,7 @@ void LocalPlannerAStarDynamic::updateMap()
     map_info_static->setNoInformationValue(-1);
 
     map_info_static->set(data, w, h, 0.0);
-    map_info_static->setOrigin(lib_path::Point2d(map.info.origin.position.x, map.info.origin.position.y));
+    map_info_static->setOrigin(Point2d(map.info.origin.position.x, map.info.origin.position.y));
 }
 
 bool LocalPlannerAStarDynamic::integrateObstacles()
@@ -445,7 +555,7 @@ bool LocalPlannerAStarDynamic::integrateObstacles()
 
     int OBSTACLE = 100;
 
-    map_info.reset(new lib_path::CollisionGridMap2d(*map_info_static));
+    map_info.reset(new CollisionGridMap2d(*map_info_static));
 
     nav_msgs::OccupancyGrid local_map = map;
     local_map.header.frame_id = "/map";
