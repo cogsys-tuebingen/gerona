@@ -174,7 +174,6 @@ void RobotController_ICR_CCW::WheelVelocities(const std_msgs::Float64MultiArray:
         ekf_.predict(array, dt);
         pose_ekf_ << ekf_.x_(0), ekf_.x_(1), ekf_.x_(2);
         ICR_ekf_  << ekf_.x_(3), ekf_.x_(4), ekf_.x_(5);
-        ROS_INFO("Predicting...");
     }
 
 }
@@ -235,7 +234,6 @@ void RobotController_ICR_CCW::setCurrentPose(const Eigen::Vector3d& pose) {
     ekf_.correct(pose);
     pose_ekf_ << ekf_.x_(0), ekf_.x_(1), ekf_.x_(2);
     ICR_ekf_  << ekf_.x_(3), ekf_.x_(4), ekf_.x_(5);
-    ROS_INFO("Correcting...");
 }
 
 RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(MoveCommand *cmd)
