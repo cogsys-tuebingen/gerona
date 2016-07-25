@@ -56,6 +56,9 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     nnodes = 1;
 
     HNode* current;
+    //
+    ROS_INFO_STREAM("v = " << velocity_);
+    //
 
     while(!openSet.empty() && (openSet.empty()?nodes.at(nnodes - 1).level_:(*openSet.begin())->level_) <= li_level){
         current = *openSet.begin();
@@ -73,7 +76,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                 continue;
             }
 
-            double tentative_gScore = current->gScore_ + 0.15;//vllt tat. Abstand?
+            double tentative_gScore = current->gScore_ + step_;
 
             if(tentative_gScore >= successors[i]->gScore_){
                 continue;
@@ -84,6 +87,9 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
             successors[i]->computeDiff();
 
             heuristic = Score(*(successors[i]), dis2last, scorer, wscorer);
+            //
+            ROS_INFO_STREAM("heuristic = " << heuristic);
+            //
 
             successors[i]->fScore_ = heuristic;
 
@@ -100,6 +106,9 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                 obj = successors[i];
             }
         }
+        //
+        ROS_INFO_STREAM("#nodes = " << nnodes);
+        //
     }
 
     if(obj != nullptr){

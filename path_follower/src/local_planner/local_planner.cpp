@@ -2,7 +2,7 @@
 #include <path_follower/local_planner/local_planner.h>
 
 LocalPlanner::LocalPlanner(PathFollower &follower, tf::Transformer &transformer)
-    : follower_(follower), transformer_(transformer)
+    : follower_(follower), transformer_(transformer),velocity_(0.0),fvel_(false)
 {
 
 }
@@ -33,8 +33,14 @@ void LocalPlanner::setGlobalPath(Path::Ptr path)
 
 void LocalPlanner::setVelocity(geometry_msgs::Twist::_linear_type vector)
 {
-    double v = sqrt(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z);
-    ROS_INFO_STREAM("v = " << v);
+    if(!fvel_){
+        velocity_  = sqrt(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z);
+    }
+}
+
+void LocalPlanner::setVelocity(double velocity){
+    velocity_ = velocity;
+    fvel_ = true;
 }
 
 bool LocalPlanner::isNull() const

@@ -70,7 +70,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     pending_error_(-1),
     last_beep_(ros::Time::now()),
     beep_pause_(2.0),
-    is_running_(false)
+    is_running_(false),
+    vel_(0.0)
 {
 
 	// Init. action server
@@ -240,6 +241,7 @@ void PathFollower::followPathGoalCB()
     // stop current goal
     stop();
 
+    vel_ = goalptr->velocity;
     controller_->setVelocity(goalptr->velocity);
     setGoal(*goalptr);
 
@@ -585,7 +587,8 @@ void PathFollower::start()
     controller_->start();
 
     local_planner_->setGlobalPath(path_);
-    local_planner_->setVelocity(getVelocity().linear);
+    //local_planner_->setVelocity(getVelocity().linear);
+    local_planner_->setVelocity(vel_);
 
     is_running_ = true;
 }

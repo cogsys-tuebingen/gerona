@@ -142,6 +142,8 @@ private:
 
     bool is_running_;
 
+    //! Velocity for the Local Planner
+    double vel_;
 
     //! Callback for new follow_path action goals.
     void followPathGoalCB();

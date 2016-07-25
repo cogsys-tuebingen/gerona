@@ -13,6 +13,10 @@ public:
 
     virtual void setGlobalPath(Path::Ptr path) override;
 
+    virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
+
+    virtual void setVelocity(double velocity) override;
+
 protected:
     template <typename NodeT>
     void getSuccessors(NodeT*& current, int& nsize, std::vector<NodeT*>& successors,
@@ -39,8 +43,8 @@ protected:
                 break;
             }
 
-            double x = ox + 0.15*std::cos(theta);
-            double y = oy + 0.15*std::sin(theta);
+            double x = ox + step_*std::cos(theta);
+            double y = oy + step_*std::sin(theta);
             NodeT succ(x,y,theta,current,current->level_+1);
             setDistances(succ,(fconstraints.at(1) || wscorer.at(4) != 0));
 
@@ -130,7 +134,7 @@ protected:
     void retrieveContinuity(NodeT& wpose){
         if(last_local_path_.n()>0){
             std::size_t index = -1;
-            double s_new = last_local_path_.s_new() + 0.7;
+            double s_new = last_local_path_.s_new() + velocity_;
             double closest_point = std::numeric_limits<double>::infinity();
             for(std::size_t i = 0; i < last_local_path_.n(); ++i){
                 double dist = std::abs(s_new - last_local_path_.s(i));
@@ -150,7 +154,7 @@ protected:
     template <typename NodeT>
     void processPath(NodeT* obj,SubPath& local_wps){
         retrievePath(obj, local_wps);
-        global_path_.set_s_new(local_wps.at(4).s);
+        global_path_.set_s_new(local_wps.at(local_wps.size()/2).s);
         smoothAndInterpolate(local_wps);
         savePath(local_wps);
     }
@@ -175,6 +179,8 @@ protected:
 
     void savePath(SubPath& local_wps);
 
+    void setStep();
+
     SubPath interpolatePath(const SubPath& path, double max_distance);
     void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
     SubPath smoothPath(const SubPath& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
@@ -193,6 +199,8 @@ protected:
     std::vector<double> c_dist;
 
     PathInterpolated last_local_path_;
+
+    double step_;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H

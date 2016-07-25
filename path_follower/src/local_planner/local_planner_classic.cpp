@@ -8,7 +8,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
-      d2p(0.0),index1(-1), index2(-1), c_dist(),last_local_path_()
+      d2p(0.0),index1(-1), index2(-1), c_dist(),last_local_path_(),step_(0.0)
 {
 
 }
@@ -16,6 +16,21 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
 void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
     LocalPlannerImplemented::setGlobalPath(path);
     last_local_path_ = PathInterpolated();
+}
+
+void LocalPlannerClassic::setVelocity(geometry_msgs::Twist::_linear_type vector){
+    LocalPlanner::setVelocity(vector);
+    setStep();
+}
+
+void LocalPlannerClassic::setVelocity(double velocity){
+    LocalPlanner::setVelocity(velocity);
+    setStep();
+}
+
+void LocalPlannerClassic::setStep(){
+    step_ = velocity_/5.0;
+    LNode::h = step_;
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -226,7 +241,7 @@ bool LocalPlannerClassic::isNearEnough(const Waypoint& current, const Waypoint& 
 }
 
 void LocalPlannerClassic::initIndexes(){
-    double s_new = global_path_.s_new() + 1.5;
+    double s_new = global_path_.s_new() + 2.0 * velocity_;
     double closest_dist1 = std::numeric_limits<double>::infinity();
     double closest_dist2 = std::numeric_limits<double>::infinity();
     for(std::size_t i = 0; i < global_path_.n(); ++i){
@@ -259,7 +274,7 @@ void LocalPlannerClassic::initScorers(const std::vector<Scorer::Ptr>& scorer,
 void LocalPlannerClassic::initConstraints(const std::vector<Constraint::Ptr>& constraints,
                                           const std::vector<bool>& fconstraints){
     if(fconstraints.at(0)){
-        std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setLimit(d2p);
+        std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setParams(d2p, step_);
     }
 }
 

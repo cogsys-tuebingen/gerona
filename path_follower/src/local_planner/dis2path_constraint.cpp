@@ -1,6 +1,8 @@
 /// HEADER
 #include <path_follower/local_planner/dis2path_constraint.h>
 
+double Dis2Path_Constraint::D_RATE = Dis2Path_Constraint::COS_A;
+
 Dis2Path_Constraint::Dis2Path_Constraint():
     Constraint(),limit(0.3),level(-1)
 {
@@ -12,11 +14,12 @@ Dis2Path_Constraint::~Dis2Path_Constraint()
 
 }
 
-void Dis2Path_Constraint::setLimit(double new_limit){
+void Dis2Path_Constraint::setParams(double new_limit, double step){
     if(new_limit > limit){
         limit = new_limit;
         level = 0;
     }
+    D_RATE = step * COS_A;
 }
 
 bool Dis2Path_Constraint::isSatisfied(const LNode& point){

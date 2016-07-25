@@ -38,7 +38,7 @@ double Dis2Start_Scorer::score(const LNode& point){
         }
     }
 
-    if(closest_index == 0){
+    if(closest_index == index1_){
         const Waypoint& p0 = currentPath[0];
         const Waypoint& p1 = currentPath[1];
         double x = p1.x - p0.x;
@@ -50,10 +50,11 @@ double Dis2Start_Scorer::score(const LNode& point){
         double adiff = a_next - a_point;
         adiff += (adiff > M_PI) ? - 2.0*M_PI : (adiff < -M_PI) ? 2.0*M_PI : 0;
         adiff = abs(adiff);
+        ROS_INFO_STREAM("adiff = " << adiff);
         if(adiff > M_PI_2){
-            double dis = std::hypot(p0.x - point.x, p0.y - point.y);;
+            double dis = std::hypot(p0.x - point.x, p0.y - point.y);
             sw.stop();
-            return -dis;
+            return distances[closest_index-index1_] - dis;
         }
     }
     sw.stop();
