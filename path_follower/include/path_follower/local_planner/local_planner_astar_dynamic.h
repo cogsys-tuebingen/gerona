@@ -21,6 +21,8 @@ public:
 
     virtual void setGlobalPath(Path::Ptr path) override;
 
+    virtual void reset() override;
+
 private:
     virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
                      const std::vector<Constraint::Ptr>& constraints,

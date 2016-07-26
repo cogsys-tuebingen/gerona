@@ -54,8 +54,8 @@ struct NearPathTest
 
           candidates(0)
     {
-        min_dist = 2.5;
-        desired_dist = 4.0;
+        min_dist = 3.5;
+        desired_dist = 5.0;
 
         updateHeuristicGoal();
     }
@@ -74,7 +74,7 @@ struct NearPathTest
             const Waypoint& wp = map_path[i];
             dist_accum += wp.distanceTo(*last_wp);
 
-            if(dist_accum >= min_dist * 2) {
+            if(dist_accum >= desired_dist * 2) {
                 map_info->point2cellSubPixel(wp.x, wp.y, heuristic_goal.x,heuristic_goal.y);
                 heuristic_goal.theta = wp.orientation;
                 return;
@@ -140,7 +140,7 @@ struct NearPathTest
                 return false;
             }
         } else {
-            if(closest_dist > 1.5) {
+            if(closest_dist > 2 * distance_tolerance) {
                 return false;
             }
         }
@@ -210,9 +210,9 @@ LocalPlannerAStarDynamic::LocalPlannerAStarDynamic(PathFollower &follower,
       pnh_("~"),
       avoiding(false)
 {
-    pnh_.param("size/forward", size_forward, 0.2);
-    pnh_.param("size/backward", size_backward, -0.6);
-    pnh_.param("size/width", size_width, 0.6);
+    pnh_.param("size/forward", size_forward, 0.15);
+    pnh_.param("size/backward", size_backward, -0.8);
+    pnh_.param("size/width", size_width, 0.60);
 
     std::string map_service = "/static_map";
     pnh_.param("map_service",map_service, map_service);
@@ -239,7 +239,7 @@ bool LocalPlannerAStarDynamic::isPathObstructed(const SubPath &path, int start, 
                 int nx = wpx + dx;
                 int ny = wpy + dy;
 
-                if(!map_info->isInMap(nx, ny) || map_info->isOccupied(nx, ny)) {
+                if(!map_info->isInMap(nx, ny) || map_info->isOccupied(nx, ny, wp.orientation)) {
                     geometry_msgs::Point c;
                     c.x = wp.x + dx * res;
                     c.y = wp.y + dy * res;
@@ -252,11 +252,17 @@ bool LocalPlannerAStarDynamic::isPathObstructed(const SubPath &path, int start, 
     return obstacle_count > 0;
 }
 
-void LocalPlannerAStarDynamic::setGlobalPath(Path::Ptr path)
+void LocalPlannerAStarDynamic::reset()
 {
     avoiding = false;
     avoiding_path_map_.clear();
 
+    tooClose = true;
+}
+
+void LocalPlannerAStarDynamic::setGlobalPath(Path::Ptr path)
+{
+    reset();
     LocalPlannerImplemented::setGlobalPath(path);
 }
 
@@ -267,7 +273,7 @@ bool LocalPlannerAStarDynamic::algo(Eigen::Vector3d& odom_pose_v, SubPath& local
                                     const std::vector<double>& wscorer,
                                     int& nnodes){
 
-
+    tooClose = false;
 
     // calculate the corrective transformation to map from world coordinates to odom
     ros::Time time(0);
@@ -302,6 +308,7 @@ bool LocalPlannerAStarDynamic::algo(Eigen::Vector3d& odom_pose_v, SubPath& local
 
     int cell_width = size_width / map_info->getResolution();
     int radius = std::ceil(cell_width / 2.);
+    radius = 2;
 
     double look_back_distance = 1.0;
     double look_forward_distance = 5.0;
@@ -367,7 +374,7 @@ bool LocalPlannerAStarDynamic::algo(Eigen::Vector3d& odom_pose_v, SubPath& local
                     avoiding = false;
                     local_wps.assign(waypoints_odom.begin() + closest_local_wp_index, waypoints_odom.end());
 
-                } else  if(closest_current_subpath_index > current_subpath_odom.size() - look_forward / 2) {
+                } else if(closest_current_subpath_index + look_forward / 2 > current_subpath_odom.size()) {
                     ROS_INFO_STREAM("plan new avoidance path, distance to global path: " << distance);
                     try {
                         avoiding_path_map_ = calculateAvoidingPath(odom_pose_v, odom_to_map);
@@ -378,6 +385,8 @@ bool LocalPlannerAStarDynamic::algo(Eigen::Vector3d& odom_pose_v, SubPath& local
                         local_wps.clear();
                         return true;
                     }
+                } else {
+                    ROS_INFO_STREAM("keep current path " << closest_current_subpath_index + look_forward / 2 << " > " << current_subpath_odom.size());
                 }
             }
 //        }
@@ -445,12 +454,15 @@ SubPath LocalPlannerAStarDynamic::calculateAvoidingPath(const Eigen::Vector3d& o
     ROS_WARN_STREAM("starting with a steering angle of " << start_config.steering_angle );
 
     typedef
-    AStarDynamicSearch<SteeringNeighborhood<40, 6, 5, 75, 120, SteeringMoves::FORWARD, false>, NoExpansion, Pose2d, GridMap2d, 500 >
+    AStarDynamicSearch<SteeringNeighborhood<40, 4, 15, 60, 120, SteeringMoves::FORWARD, false>, NoExpansion, Pose2d, GridMap2d, 500 >
             AStarPatsyForward;
 
     AStarPatsyForward algo_forward;
     algo_forward.setMap(map_info.get());
     algo_forward.setTimeLimit(2.0);
+
+    Stopwatch sw;
+    sw.restart();
 
     algo_forward.setPathCandidateCallback([this](const typename AStarPatsyForward::PathT& path) {
         std::cout << "path candidate found: " << path.size() << std::endl;
@@ -471,7 +483,9 @@ SubPath LocalPlannerAStarDynamic::calculateAvoidingPath(const Eigen::Vector3d& o
     ROS_INFO_STREAM("start: " << map_pose.getOrigin().getX() << ", " << map_pose.getOrigin().getY() << " -> node " << start_config.x << " / " << start_config.y << " / " << start_config.theta);
     ROS_INFO_STREAM("heuristic goal: " << arrow.position.x << " / " << arrow.position.y <<  " / " << hgoal.theta);
     ROS_INFO_STREAM(" -> arrow = " << arrow);
+    ROS_INFO_STREAM("Search preparation took " << sw.usElapsed()/1000.0 << "ms");
 
+    sw.restart();
     AStarPatsyForward::PathT path;
     try {
         path = algo_forward.findPathWithStartConfiguration(start_config, goal_test_forward);
@@ -479,6 +493,7 @@ SubPath LocalPlannerAStarDynamic::calculateAvoidingPath(const Eigen::Vector3d& o
         ROS_ERROR_STREAM("path search failed: " << e.what());
         throw std::runtime_error("found no local path");
     }
+    ROS_INFO_STREAM("Search took " << sw.usElapsed()/1000.0 << "ms for " << algo_forward.getExpansions() << " expansions (" << algo_forward.getMultiExpansions() << " multiply expanded and " << algo_forward.getTouchedNodes() << " touched nodes).");
 
     if(path.empty()) {
         ROS_ERROR("found no local path");

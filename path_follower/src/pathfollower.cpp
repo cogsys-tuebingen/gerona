@@ -199,6 +199,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
     // register callback for new waypoint event.
     path_->registerNextWaypointCallback([this]() { supervisors_.notifyNewWaypoint(); });
+    path_->registerNextWaypointCallback([this]() { local_planner_->reset(); });
 
     if (opt_.supervisor_use_path_lookout()) {
         supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );
@@ -684,8 +685,13 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
     switch(status)
     {
     case RobotController::ControlStatus::REACHED_GOAL:
-        result.status = FollowPathResult::RESULT_STATUS_SUCCESS;
-        return DONE;
+        if(!local_planner_->isNull()) {
+            feedback.status = FollowPathFeedback::MOTION_STATUS_OBSTACLE;
+            return MOVING;
+        } else {
+            result.status = FollowPathResult::RESULT_STATUS_SUCCESS;
+            return DONE;
+        }
 
     case RobotController::ControlStatus::OBSTACLE:
         if (opt_.abort_if_obstacle_ahead()) {

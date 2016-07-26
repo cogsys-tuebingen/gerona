@@ -21,16 +21,17 @@ void LocalPlannerImplemented::setGlobalPath(Path::Ptr path)
 
 bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
     // calculate the corrective transformation to map from world coordinates to odom
-    Stopwatch sw;
-    sw.restart();
-    if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
-        ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
-        return false;
-    }
-    ROS_INFO_STREAM("Time Leak here: " << sw.usElapsed()/1000.0 << "ms");
+//    Stopwatch sw;
+//    sw.restart();
+//    if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
+//        ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
+//        return false;
+//    }
+//    ROS_INFO_STREAM("Time Leak here: " << sw.usElapsed()/1000.0 << "ms");
 
     tf::StampedTransform now_map_to_odom;
-    transformer_.lookupTransform("map", "odom", now, now_map_to_odom);
+//    transformer_.lookupTransform("map", "odom", now, now_map_to_odom);
+    transformer_.lookupTransform("map", "odom", ros::Time(0), now_map_to_odom);
 
     tf::Transform transform_correction = now_map_to_odom.inverse();
     /*
