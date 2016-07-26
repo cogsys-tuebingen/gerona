@@ -2,7 +2,9 @@
 #define SCORER_H
 
 #include <memory>
+#include <cmath>
 #include <path_follower/utils/path.h>
+#include <utils_general/MathHelper.h>
 #include <utils_general/Stopwatch.h>
 
 class Scorer

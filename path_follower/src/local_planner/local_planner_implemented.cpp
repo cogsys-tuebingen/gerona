@@ -121,6 +121,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         setPath(local_path, local_wps, now);
         int end_t = gsw.usElapsed();
 
+        ROS_INFO_STREAM("v = " << velocity_);
         printNodeUsage(nnodes);
         printSCTimeUsage(constraints, scorer, fconstraints, wscorer);
         if(fvel_){
