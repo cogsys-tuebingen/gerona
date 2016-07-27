@@ -38,7 +38,7 @@ RobotControllerTrailer::RobotControllerTrailer(PathFollower *path_driver, ros::N
 
 
     // initialize
-   std::string agv_vel_topic("/agv_vel");
+    std::string agv_vel_topic("/agv_vel");
 
     agv_vel_sub_ = nh_->subscribe<geometry_msgs::Twist> (agv_vel_topic, 10, boost::bind(&RobotControllerTrailer::updateAgvCb, this, _1));
 
@@ -51,6 +51,14 @@ RobotControllerTrailer::RobotControllerTrailer(PathFollower *path_driver, ros::N
         path_ctrl_= new PathSimplePid();
     }
 
+    obstacle_pub_ = nh->advertise<pcl::PointCloud<pcl::PointXYZRGBA>> ("path_obstacles", 1);
+
+    double kp = 0.93;
+    double ki = 0.1;
+    double kd = 0.0;
+    pid_psi_ = PidController<1, double>(kp, ki, kd, 0.01);
+
+    narrow_travel_distance_ = 1.0;
 }
 
 
@@ -73,7 +81,6 @@ void RobotControllerTrailer::reset()
     behaviour_ = ON_PATH;
 }
 
-
 RobotController::MoveCommandStatus RobotControllerTrailer::computeMoveCommand(MoveCommand *cmd)
 {
     /* This is a reimplemented, simplified version of the old behaviour based Ackermann
@@ -93,46 +100,110 @@ RobotController::MoveCommandStatus RobotControllerTrailer::computeMoveCommand(Mo
      */
 
     ROS_INFO_STREAM_THROTTLE(1, "state is " << behaviour_);
-    // If wait_for_stop_ is set, do nothing, until the actual velocity fell below a given
-    // threshold.
-    // When the robot has finally stopped, go to the next subpath or quit, if goal is reached.
 
-    if (behaviour_ == WAIT_FOR_STOP) {
-        stopMotion(); //< probably not necessary to repeat this, but be on the save side.
+    if(behaviour_ != NARROW_PASSAGE) {
+        // If wait_for_stop_ is set, do nothing, until the actual velocity fell below a given
+        // threshold.
+        // When the robot has finally stopped, go to the next subpath or quit, if goal is reached.
 
-        // do nothing until robot has realy stopped.
-        geometry_msgs::Twist current_vel = path_driver_->getVelocity();
-        if((std::abs(current_vel.linear.x) > 0.01) ||
-           (std::abs(current_vel.linear.y) > 0.01) ||
-           (std::abs(current_vel.angular.z) > 0.01)) {
-            ROS_INFO_THROTTLE_NAMED(1, MODULE, "WAITING until no more motion");
-            stopMotion();
-            return MoveCommandStatus::OKAY;
-        } else {
-            ROS_INFO_NAMED(MODULE, "Done at waypoint -> reset");
+        if (behaviour_ == WAIT_FOR_STOP) {
+            stopMotion(); //< probably not necessary to repeat this, but be on the save side.
 
-            path_->switchToNextSubPath();
-            if(path_->isDone()) {
-                return MoveCommandStatus::REACHED_GOAL;
+            // do nothing until robot has realy stopped.
+            geometry_msgs::Twist current_vel = path_driver_->getVelocity();
+            if((std::abs(current_vel.linear.x) > 0.01) ||
+                    (std::abs(current_vel.linear.y) > 0.01) ||
+                    (std::abs(current_vel.angular.z) > 0.01)) {
+                ROS_INFO_THROTTLE_NAMED(1, MODULE, "WAITING until no more motion");
+                stopMotion();
+                return MoveCommandStatus::OKAY;
+            } else {
+                ROS_INFO_NAMED(MODULE, "Done at waypoint -> reset");
+
+                path_->switchToNextSubPath();
+                if(path_->isDone()) {
+                    return MoveCommandStatus::REACHED_GOAL;
+                }
+                behaviour_ = ON_PATH; // not necessary to set this explicitly, but it is more clear.
             }
-            behaviour_ = ON_PATH; // not necessary to set this explicitly, but it is more clear.
+        }
+
+
+        // choose waypoint for this step
+        selectWaypoint();
+
+        // check if done (if last step was ATP and the direction sign flipped)
+        float dir_sign = sign<double>(next_wp_local_.x());
+        if(behaviour_ == APPROACH_SUBPATH_END && dir_sign != getDirSign()) {
+            stopMotion();
+            behaviour_ = WAIT_FOR_STOP;
+            return MoveCommandStatus::OKAY;
+        }
+        setDirSign(dir_sign);
+
+
+        // check for obstacles for reactive driving
+        analyzePathObstacles();
+
+        if(behaviour_ == ON_PATH) {
+            int oa_size_threshold = 2;
+
+            int l = left.size();
+            int r = right.size();
+            int c = center.size();
+
+            ROS_INFO_STREAM("obstacle count (l,c,r): " << l << "\t, " << c << "\t, " << r);
+
+            if(c > oa_size_threshold) {
+                // blocked
+                stopMotion();
+                return MoveCommandStatus::OKAY;
+            }
+
+            if(l > oa_size_threshold && r > oa_size_threshold) {
+                // narrow passage
+                behaviour_ = NARROW_PASSAGE;
+
+                tf::Vector3 closest_l(closest_left.x, closest_left.y, 0.0);
+                tf::Vector3 closest_r(closest_right.x, closest_right.y, 0.0);
+                tf::Vector3 nearest_l(nearest_left.x, nearest_left.y, 0.0);
+                tf::Vector3 nearest_r(nearest_right.x, nearest_right.y, 0.0);
+
+                tf::Vector3 pivot = (closest_l + closest_r) * 0.5;
+
+                tf::Vector3 dir_y = (nearest_r - nearest_l);
+                tf::Vector3 dir_x(-dir_y.y(), dir_y.x(), 0.0);
+
+                odom_to_base_goal_ = tf::Transform(tf::createQuaternionFromYaw(std::atan2(dir_x.y(), dir_x.x())), pivot + (narrow_travel_distance_ * dir_x).normalized());
+
+                Line2d target_line;
+                target_line = Line2d( Eigen::Vector2d(pivot.x(), pivot.y()), Eigen::Vector2d(odom_to_base_goal_.getOrigin().x(), odom_to_base_goal_.getOrigin().y()) );
+                visualizer_->visualizeLine(target_line);
+
+
+
+            } else {
+                behaviour_ = ON_PATH;
+            }
         }
     }
 
+    if(behaviour_ == NARROW_PASSAGE) {
+        ROS_WARN_THROTTLE(1, "driving through a narrow passage");
+        last_error_pos_ = std::numeric_limits<double>::infinity();
+        narrowPassage();
 
-    // choose waypoint for this step
-    selectWaypoint();
-
-    // check if done (if last step was ATP and the direction sign flipped)
-    float dir_sign = sign<double>(next_wp_local_.x());
-    if(behaviour_ == APPROACH_SUBPATH_END && dir_sign != getDirSign()) {
-        stopMotion();
-        behaviour_ = WAIT_FOR_STOP;
-        return MoveCommandStatus::OKAY;
+    } else {
+        onPath();
     }
-    setDirSign(dir_sign);
 
+    *cmd = cmd_;
 
+    return MoveCommandStatus::OKAY;
+}
+
+void RobotControllerTrailer::onPath()
+{
     float e_dist;
     if (path_->isLastWaypoint()) {
         behaviour_ = APPROACH_SUBPATH_END;
@@ -144,11 +215,270 @@ RobotController::MoveCommandStatus RobotControllerTrailer::computeMoveCommand(Mo
     float e_angle = calculateAngleError();
 
     updateCommand(e_dist, e_angle);
-    *cmd = cmd_;
-
-    return MoveCommandStatus::OKAY;
 }
 
+void RobotControllerTrailer::narrowPassage()
+{
+    double trailer_length_ = 1.2;
+    double min_offset_distance_ = narrow_travel_distance_ * 2;
+    double min_distance_to_robot_ = 0.8;
+
+
+    double min_speed_ = 0.15;
+    double max_speed_ = 0.3;
+
+    double error_okay_ = 0.06;
+    double error_max_ = 0.16;
+
+    double max_psi_ = M_PI/2;
+
+    double trailer_angle = agv_vel_.angular.z;
+    tf::Transform base_to_trailer_link_(tf::createQuaternionFromYaw(trailer_angle), tf::Vector3(std::cos(trailer_angle) * trailer_length_, std::sin(trailer_angle) * trailer_length_, 0.0));
+
+    tf::Transform trailer_link_to_trailer_back(tf::createIdentityQuaternion(), tf::Vector3(-trailer_length_, 0, 0));
+    tf::Pose base_to_trailer_back = base_to_trailer_link_ * trailer_link_to_trailer_back;
+
+    Eigen::Vector3d pose = path_driver_->getRobotPose();
+    tf::Transform odom_to_base_link(tf::createQuaternionFromYaw(pose(2)), tf::Vector3(pose(0), pose(1), 0.0));
+    tf::Transform goal_offset(tf::createIdentityQuaternion(), tf::Vector3(narrow_travel_distance_, 0, 0));
+    tf::Pose base_link_to_goal = odom_to_base_link.inverse() * odom_to_base_goal_ * goal_offset;
+
+    // offset_moves
+    double offset_distance = narrow_travel_distance_;
+
+
+    tf::Pose base_link_to_base_goal = base_link_to_goal;
+    while(offset_distance > -min_offset_distance_) {
+        tf::Transform offset(tf::createIdentityQuaternion(), tf::Vector3(offset_distance, 0, 0));
+        base_link_to_base_goal = base_link_to_goal * offset;
+        if(base_link_to_base_goal.getOrigin().length() < min_distance_to_robot_) {
+            break;
+        }
+
+        offset_distance -= 0.05;
+    }
+
+    tf::Pose base_link_to_trailer_goal = base_link_to_base_goal * trailer_link_to_trailer_back;
+
+    //        tf::Transform trailer_error = trailer_back_pose.inverse() * trailer_goal_pose;
+    tf::Transform trailer_back_to_trailer_goal = base_to_trailer_back.inverse() * base_link_to_trailer_goal;
+
+    //base_link_to_base_goal.setRotation(tf::createQuaternionFromYaw(std::atan2(base_link_to_base_goal.getOrigin().y(), base_link_to_base_goal.getOrigin().x())));
+
+
+    tf::Pose error;
+
+    tf::Transform goal_to_base_link = base_link_to_goal.inverse();
+    double goal_ex = std::abs(goal_to_base_link.getOrigin().x());
+
+    tf::Transform trailer_goal_t_trailer_back = trailer_back_to_trailer_goal.inverse();
+
+    bool position_trailer = goal_ex > trailer_length_ && std::abs(trailer_goal_t_trailer_back.getOrigin().y()) > trailer_length_ * 0.2;
+
+    if(position_trailer) {
+        error = trailer_back_to_trailer_goal;
+        double error_yaw = std::atan2(error.getOrigin().y(), error.getOrigin().x());
+        ROS_INFO_STREAM("trailer error yaw: " << error_yaw);
+    } else {
+        error = base_link_to_base_goal;
+    }
+
+    geometry_msgs::Twist twist;
+    //    double error_yaw = tf::getYaw(error.getRotation());
+
+    bool pos_good = goal_ex < error_okay_ || (goal_ex < error_max_ && goal_ex > last_error_pos_);
+    last_error_pos_ = goal_ex;
+
+    double error_yaw;
+    if(goal_ex  >= min_offset_distance_) {
+        error_yaw = std::atan2(error.getOrigin().y(), error.getOrigin().x());
+        if(!position_trailer) {
+            error_yaw *= 1.5;
+        } else {
+            double tey = trailer_goal_t_trailer_back.getOrigin().y();
+            if(std::abs(tey) > trailer_length_ / 2.0) {
+                error_yaw = 2.0 * std::atan2(trailer_back_to_trailer_goal.getOrigin().y(), trailer_back_to_trailer_goal.getOrigin().x());
+            } else {
+                error_yaw = 0.5 * tey;
+            }
+            ROS_INFO_STREAM("trailer error: " << error_yaw);
+        }
+    } else {
+        ROS_INFO_STREAM("ey: " << goal_to_base_link.getOrigin().y());
+        error_yaw = 4.0 * goal_to_base_link.getOrigin().y();
+    }
+
+    if(pos_good) {
+        ROS_WARN_STREAM("done");
+        behaviour_ = ON_PATH;
+
+    } else {
+        double ex = error.getOrigin().x();
+        twist.linear.x = ex * 0.6;
+        twist.linear.y = 0;
+        double speed = std::abs(twist.linear.x);
+
+        if(speed > max_speed_) {
+            twist.linear.x *= max_speed_ / speed;
+        } else if(speed < min_speed_) {
+            twist.linear.x *= min_speed_ / speed;
+        }
+
+        //            double psi = std::pow(1.75 * error_yaw, 2) * (error_yaw >= 0 ? 1.0 : -1.0);
+        double psi = error_yaw;
+
+
+        if(std::abs(psi) > max_psi_) {
+            psi = psi / std::abs(psi) * max_psi_;
+        }
+
+        pid_psi_.execute(psi, &twist.angular.z);
+    }
+
+    cmd_.setDirection(twist.angular.z );
+    cmd_.setVelocity(twist.linear.x);
+}
+
+
+void RobotControllerTrailer::analyzePathObstacles()
+{
+    left.clear();
+    center.clear();
+    right.clear();
+
+    double oa_max_range = 3.0;
+    double oa_core_width = 0.2;
+    double oa_corridor_width = 1.2;
+
+    const SubPath& path = path_->getCurrentSubPath();
+    int current_wp_idx = path_->getWaypointIndex();
+    int n = path.size();
+
+    double line_dist_l = std::numeric_limits<double>::infinity();
+    double line_dist_r = std::numeric_limits<double>::infinity();
+    double robot_dist_l = std::numeric_limits<double>::infinity();
+    double robot_dist_r = std::numeric_limits<double>::infinity();
+
+    Eigen::Vector3d pose = path_driver_->getRobotPose();
+    tf::Transform odom_to_base_link(tf::createQuaternionFromYaw(pose(2)), tf::Vector3(pose(0), pose(1), 0.0));
+
+    ObstacleCloud::ConstPtr obstacle_cloud = path_driver_->getObstacleCloud();
+    for(pcl::PointCloud<pcl::PointXYZ>::const_iterator it = obstacle_cloud->begin(); it != obstacle_cloud->end(); ++it) {
+        const pcl::PointXYZ& pt = *it;
+        tf::Vector3 obstacle_odom = odom_to_base_link * tf::Vector3(pt.x, pt.y, 0.0);
+        Eigen::Vector2d obstacle(obstacle_odom.x(), obstacle_odom.y());
+
+        double dist = std::hypot(pt.x, pt.y);
+        if(dist < oa_max_range) {
+            double min_dist = oa_corridor_width;
+            int closest_wp_idx = 0;
+            for(int idx = current_wp_idx; idx < n; ++idx) {
+                const Waypoint& wp = path[idx];
+                double pt_dist = std::hypot(wp.x - obstacle(0), wp.y - obstacle(1));
+                if(pt_dist < min_dist) {
+                    min_dist = pt_dist;
+                    closest_wp_idx = idx;
+                }
+            }
+
+            if(min_dist < oa_corridor_width) {
+                const Waypoint& prev = path[std::max(0, closest_wp_idx - 1)];
+                const Waypoint& next = path[std::min(n - 1, closest_wp_idx + 1)];
+
+                Line2d line(prev, next);
+
+                double sd = line.GetSignedDistance(obstacle);
+                double abs_sd = std::abs(sd);
+                if(abs_sd < oa_corridor_width / 2.0) {
+                    if(abs_sd < oa_core_width / 2.0) {
+                        center.push_back(pt);
+                    } else {
+                        if(sd > 0)  {
+                            right.push_back(pt);
+                            if(abs_sd < line_dist_r) {
+                                line_dist_r = abs_sd;
+                                closest_right = pt;
+                            }
+
+                            if(dist < robot_dist_r) {
+                                robot_dist_r = dist;
+                                nearest_right = pt;
+                            }
+                        } else {
+                            left.push_back(pt);
+                            if(abs_sd < line_dist_l) {
+                                line_dist_l = abs_sd;
+                                closest_left = pt;
+                            }
+
+                            if(dist < robot_dist_l) {
+                                robot_dist_l = dist;
+                                nearest_left = pt;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+    }
+
+    if(obstacle_pub_.getNumSubscribers() > 0) {
+        pcl::PointCloud<pcl::PointXYZRGBA> cloud;
+        cloud.header = obstacle_cloud->header;
+
+        double A = 20;
+
+        pcl::PointXYZRGBA rgb;
+        rgb.a = A;
+
+        rgb.r = 0;
+        rgb.g = 255;
+        rgb.b = 0;
+        for(const pcl::PointXYZ& pt : left) {
+            rgb.x = pt.x;
+            rgb.y = pt.y;
+            rgb.z = pt.z;
+            cloud.push_back(rgb);
+        }
+
+        rgb.a = 255;
+        rgb.x = closest_left.x;
+        rgb.y = closest_left.y;
+        rgb.z = closest_left.z;
+        cloud.push_back(rgb);
+        rgb.a = A;
+
+        rgb.r = 255;
+        rgb.g = 0;
+        rgb.b = 0;
+        for(const pcl::PointXYZ& pt : center) {
+            rgb.x = pt.x;
+            rgb.y = pt.y;
+            rgb.z = pt.z;
+            cloud.push_back(rgb);
+        }
+
+        rgb.r = 0;
+        rgb.g = 0;
+        rgb.b = 255;
+        for(const pcl::PointXYZ& pt : right) {
+            rgb.x = pt.x;
+            rgb.y = pt.y;
+            rgb.z = pt.z;
+            cloud.push_back(rgb);
+        }
+
+        rgb.a = 255;
+        rgb.x = closest_right.x;
+        rgb.y = closest_right.y;
+        rgb.z = closest_right.z;
+        cloud.push_back(rgb);
+
+        obstacle_pub_.publish(cloud);
+    }
+}
 
 void RobotControllerTrailer::publishMoveCommand(const MoveCommand &cmd) const
 {
@@ -159,7 +489,7 @@ void RobotControllerTrailer::publishMoveCommand(const MoveCommand &cmd) const
         last_velocity_ = cmd.getVelocity();
     }
     // else (=not valid): dont modify msg --> all set to zero, that is robot will stop.
-   // ROS_INFO_STREAM_THROTTLE(0.3,"desired steer angle "<<msg.angular.z*180.0/M_PI);
+    // ROS_INFO_STREAM_THROTTLE(0.3,"desired steer angle "<<msg.angular.z*180.0/M_PI);
     cmd_pub_.publish(msg);
 }
 
@@ -223,13 +553,13 @@ double RobotControllerTrailer::calculateAngleError()
     geometry_msgs::Pose robot_pose = path_driver_->getRobotPoseMsg();
     double trailer_angle;
 
-/*
+    /*
     bool status=getTrailerAngle("/base_link","/trailer_link",trailer_angle);
     if (!status) {
         trailer_angle=0.0;
     }*/
     trailer_angle =  agv_vel_.angular.z;
-//    return MathHelper::AngleClamp(e);
+    //    return MathHelper::AngleClamp(e);
     return MathHelper::AngleClamp(tf::getYaw(waypoint.orientation) - tf::getYaw(robot_pose.orientation) + trailer_angle);
 }
 
@@ -300,16 +630,16 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
 
     float steer = dir_sign_* std::max(-opt_.max_steer(), std::min(u_val, opt_.max_steer()));
 
-  //  ROS_INFO_STREAM_THROTTLE(0.3,"max steer "<<opt_.max_steer()*180.0/M_PI<<" direction "<<dir_sign_);
-  //  ROS_INFO_STREAM_THROTTLE(0.3,"updateval steer angle "<<steer*180.0/M_PI<< " u "<<u_val*180.0/M_PI);
+    //  ROS_INFO_STREAM_THROTTLE(0.3,"max steer "<<opt_.max_steer()*180.0/M_PI<<" direction "<<dir_sign_);
+    //  ROS_INFO_STREAM_THROTTLE(0.3,"updateval steer angle "<<steer*180.0/M_PI<< " u "<<u_val*180.0/M_PI);
 
-//    ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
+    //    ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
 
-//    ROS_WARN_STREAM_NAMED(MODULE, "==========");
+    //    ROS_WARN_STREAM_NAMED(MODULE, "==========");
 
-//    ROS_WARN_STREAM_NAMED(MODULE, "dist_error = " << dist_error << ", angle_error = " << angle_error << ", v = " << v << ", dir_sign_ = " << dir_sign_);
-//    ROS_WARN_STREAM_NAMED(MODULE, "u_val = " << u_val << ", v = " << v);
-//    ROS_WARN_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
+    //    ROS_WARN_STREAM_NAMED(MODULE, "dist_error = " << dist_error << ", angle_error = " << angle_error << ", v = " << v << ", dir_sign_ = " << dir_sign_);
+    //    ROS_WARN_STREAM_NAMED(MODULE, "u_val = " << u_val << ", v = " << v);
+    //    ROS_WARN_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
 
     // Control velocity
     float velocity = controlVelocity(steer);
@@ -350,10 +680,10 @@ float RobotControllerTrailer::controlVelocity(float steer_angle) const
         //ROS_INFO_STREAM_THROTTLE_NAMED(2, MODULE, "slowing down");
         velocity *= 0.75;
     }
-//***todo rewrite
+    //***todo rewrite
 
     // Reduce maximal velocity, when driving backwards.
-  /*  if(dir_sign_ < 0) {
+    /*  if(dir_sign_ < 0) {
         velocity = min(velocity, 0.4f * path_driver_opt.max_velocity());
     }*/
 
@@ -394,7 +724,7 @@ void RobotControllerTrailer::predictPose(Vector2d &front_pred, Vector2d &rear_pr
 
 
     double trailer_angle = agv_vel_.angular.z;
-   /* bool status=getTrailerAngle("/trailer_link","/base_link",trailer_angle);
+    /* bool status=getTrailerAngle("/trailer_link","/base_link",trailer_angle);
     if (!status) {
         trailer_angle = 0.0;
         // ***todo error handling
@@ -437,7 +767,7 @@ void RobotControllerTrailer::predictPose(Vector2d &front_pred, Vector2d &rear_pr
 
 
 
-  //  ROS_DEBUG_STREAM_NAMED(MODULE, "predict pose. front: " << front_pred << ", rear: " << rear_pred);
+    //  ROS_DEBUG_STREAM_NAMED(MODULE, "predict pose. front: " << front_pred << ", rear: " << rear_pred);
 }
 
 double RobotControllerTrailer::calculateLineError() const
@@ -513,7 +843,7 @@ double RobotControllerTrailer::calculateLineError() const
     }
 
     Line2d target_line;
-    ROS_INFO_STREAM("line : " << next_wp_local << " -> " << followup_next_wp_local << " :  " << (followup_next_wp_local - next_wp_local).norm());
+    //    ROS_INFO_STREAM("line : " << next_wp_local << " -> " << followup_next_wp_local << " :  " << (followup_next_wp_local - next_wp_local).norm());
     target_line = Line2d( next_wp_local.head<2>(), followup_next_wp_local.head<2>());
     visualizer_->visualizeLine(target_line);
 
@@ -535,8 +865,6 @@ double RobotControllerTrailer::calculateLineError() const
     if(dir_sign_ >= 0) {
         return -target_line.GetSignedDistance(main_carrot) - 0.25 * target_line.GetSignedDistance(alt_carrot);
     } else {
-        double trailer_dist = target_line.GetSignedDistance(main_carrot);
-//        return -target_line.GetSignedDistance(alt_carrot) - 0.25 * trailer_dist;
         return -1.25 * target_line.GetSignedDistance(main_carrot) - 0.3 * target_line.GetSignedDistance(alt_carrot);
     }
 }
@@ -573,7 +901,7 @@ double RobotControllerTrailer::calculateSidewaysDistanceError() const
 }
 
 void RobotControllerTrailer::visualizeCarrot(const Vector2d &carrot,
-                                                    int id, float r, float g, float b) const
+                                             int id, float r, float g, float b) const
 {
     geometry_msgs::PoseStamped carrot_local;
     carrot_local.pose.position.x = carrot[0];
@@ -634,7 +962,7 @@ void RobotControllerTrailer::precomputeSteerCommand(Waypoint &wp_now,  Waypoint 
             wp_next.actuator_cmds_[1] = steer_bwd;
         }
     }
- /*   std::cout << "wp steer fwd "<<wp_next.actuator_cmds_[0]*180.0/M_PI
+    /*   std::cout << "wp steer fwd "<<wp_next.actuator_cmds_[0]*180.0/M_PI
               << " steer bwd "<<wp_next.actuator_cmds_[1]*180.0/M_PI << std::endl;
 */
 }

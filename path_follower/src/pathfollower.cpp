@@ -627,6 +627,11 @@ ros::NodeHandle& PathFollower::getNodeHandle()
     return node_handle_;
 }
 
+ObstacleCloud::ConstPtr PathFollower::getObstacleCloud() const
+{
+    return obstacle_cloud_;
+}
+
 void PathFollower::start()
 {
     //path_idx_.reset();
@@ -831,7 +836,9 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
             visualizer_->drawMark(id++, ((geometry_msgs::Pose)current_point).position, "paths", 0.2,0.2,0.2);
 
             current_segment.pop_back();
-            subpaths.push_back(current_segment);
+            if(current_segment.size() > 1) {
+                subpaths.push_back(current_segment);
+            }
             current_segment.clear();
 
             if(!is_the_last_node) {

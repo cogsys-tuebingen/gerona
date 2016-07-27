@@ -212,7 +212,7 @@ LocalPlannerAStarDynamic::LocalPlannerAStarDynamic(PathFollower &follower,
 {
     pnh_.param("size/forward", size_forward, 0.15);
     pnh_.param("size/backward", size_backward, -0.8);
-    pnh_.param("size/width", size_width, 0.60);
+    pnh_.param("size/width", size_width, 0.75);
 
     std::string map_service = "/static_map";
     pnh_.param("map_service",map_service, map_service);
@@ -224,7 +224,6 @@ LocalPlannerAStarDynamic::LocalPlannerAStarDynamic(PathFollower &follower,
 
 bool LocalPlannerAStarDynamic::isPathObstructed(const SubPath &path, int start, size_t end, int radius)
 {
-    return false;
     int obstacle_count = 0;
     double res = map_info->getResolution();
     double r = radius * res;
@@ -318,10 +317,10 @@ bool LocalPlannerAStarDynamic::algo(Eigen::Vector3d& odom_pose_v, SubPath& local
 
 
     typedef
-    AStarDynamicSearch<SteeringNeighborhood<40, 4, 15, 60, 120, SteeringMoves::FORWARD, false>, NoExpansion, Pose2d, GridMap2d, 500 >
+    AStarDynamicSearch<SteeringNeighborhood<30, 4, 15, 60, 120, SteeringMoves::FORWARD, false>, NoExpansion, Pose2d, GridMap2d, 500 >
             AStarPatsyForward;
     typedef
-    AStarDynamicSearch<SteeringNeighborhood<40, 4, 15, 60, 120, SteeringMoves::FORWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 >
+    AStarDynamicSearch<SteeringNeighborhood<30, 4, 15, 60, 120, SteeringMoves::FORWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 >
             AStarPatsyReverse;
 
     ROS_ASSERT(current_subpath_odom.size() >= 2);

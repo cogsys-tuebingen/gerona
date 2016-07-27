@@ -76,6 +76,8 @@ public:
 
     ros::NodeHandle& getNodeHandle();
 
+    ObstacleCloud::ConstPtr getObstacleCloud() const;
+
 private:
     bool getWorldPose(Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = nullptr) const;
 
