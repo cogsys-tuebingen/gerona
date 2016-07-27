@@ -21,6 +21,11 @@ demonstrating the navigation framework.
     <arg name="s5" default="0.0" />
     <arg name="s6" default="0.0" />
 
+    <arg name="nnodes" default="300" />
+    <arg name="dis2p" default="0.3" />
+    <arg name="dis2o" default="0.85" />
+    <arg name="s_angle" default="25.0" />
+
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
     <arg name="use_planner_static" default="true" />
@@ -52,6 +57,11 @@ demonstrating the navigation framework.
       <arg name="s4" value="$(arg s4)" />
       <arg name="s5" value="$(arg s5)" />
       <arg name="s6" value="$(arg s6)" />
+
+      <arg name="nnodes" value="$(arg nnodes)" />
+      <arg name="dis2p" value="$(arg dis2p)" />
+      <arg name="dis2o" value="$(arg dis2o)" />
+      <arg name="s_angle" value="$(arg s_angle)" />
 
       <arg name="use_karto" value="$(arg use_karto)" />
       <arg name="use_karto_segmented" value="$(arg use_karto_segmented)" />

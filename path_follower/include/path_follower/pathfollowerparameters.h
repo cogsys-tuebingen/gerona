@@ -21,6 +21,8 @@ struct PathFollowerParameters : public Parameters
     P<std::string> algo;
     P<bool> c1, c2;
     P<double> s1, s2, s3, s4, s5, s6;
+    P<int> nnodes;
+    P<double> dis2p, dis2o, s_angle;
 
     // obstacle avoider
     P<bool> obstacle_avoider_use_collision_box;
@@ -76,6 +78,14 @@ struct PathFollowerParameters : public Parameters
            "Determines whether the fifth scorer is used or not. (Distance to nearest obstacle)"),
         s6(this, "~s6", 1.0,
            "Determines whether the sixth scorer is used or not. (Curvature of the point)"),
+        nnodes(this, "~nnodes", 300,
+               "Determines the maximum number of nodes used by the local planner"),
+        dis2p(this, "~dis2p", 0.3,
+              "Determines how far from the path should the local planner perform"),
+        dis2o(this, "~dis2o", 0.85,
+              "Determines how far from the obstacles should the local planner perform"),
+        s_angle(this, "~s_angle", 25,
+                "Determines the steering angle (in degrees) for the local planner"),
 
         obstacle_avoider_use_collision_box(this, "~obstacle_avoider/use_collision_box", true,
                                            "Use the collision box obstacle avoider ('ObstacleDetector')"),

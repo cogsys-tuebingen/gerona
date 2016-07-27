@@ -37,7 +37,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     d2p = wpose.d2p;
     initConstraints(constraints,fconstraints);
 
-    std::vector<HNode> nodes(300);
+    std::vector<HNode> nodes(nnodes_);
     HNode* obj = nullptr;
 
     double heuristic = Score(wpose, dis2last, scorer, wscorer);

@@ -190,8 +190,6 @@ protected:
 private:
     virtual void printNodeUsage(int& nnodes) const override;
 protected:
-    static constexpr double D_THETA = 5.0*M_PI/36.0;//Assume like the global planner 25° turn
-
     double d2p;
 
     std::size_t index1;

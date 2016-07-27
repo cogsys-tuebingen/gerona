@@ -39,6 +39,7 @@ public:
     virtual bool isNull() const;
 
     void setObstacleCloud(const ObstacleCloud::ConstPtr &msg);
+    void setParams(int nnodes, double dis2p, double dis2o, double s_angle);
 
 protected:
     LocalPlanner(PathFollower& controller,
@@ -49,6 +50,8 @@ protected:
     tf::Transformer &transformer_;
     double velocity_;
     double fvel_;
+    static int nnodes_;
+    static double D_THETA;
 
     PathInterpolated global_path_;
 

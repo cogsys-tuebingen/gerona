@@ -1,6 +1,9 @@
 /// HEADER
 #include <path_follower/local_planner/local_planner.h>
 
+int LocalPlanner::nnodes_ = 300;
+double LocalPlanner::D_THETA = 5.0*M_PI/36.0;
+
 LocalPlanner::LocalPlanner(PathFollower &follower, tf::Transformer &transformer)
     : follower_(follower), transformer_(transformer),velocity_(0.0),fvel_(false)
 {
@@ -60,4 +63,12 @@ void LocalPlanner::setObstacleCloud(const ObstacleCloud::ConstPtr &msg)
     }
     transformer_.lookupTransform("odom", "base_link", now, base_to_odom);
     odom_to_base = base_to_odom.inverse();
+}
+
+void LocalPlanner::setParams(int nnodes, double dis2p, double dis2o, double s_angle){
+    nnodes_ = nnodes;
+    D_THETA = s_angle*M_PI/180.0;
+    Dis2Path_Constraint::setAngle(D_THETA);
+    Dis2Path_Constraint::setLimits(dis2p,dis2o);
+    Dis2Obst_Constraint::setLimit(dis2o);
 }

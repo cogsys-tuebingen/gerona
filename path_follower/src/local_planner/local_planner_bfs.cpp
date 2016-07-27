@@ -37,7 +37,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     d2p = wpose.d2p;
     initConstraints(constraints,fconstraints);
 
-    std::vector<LNode> nodes(300);
+    std::vector<LNode> nodes(nnodes_);
     LNode* obj = nullptr;
 
     nodes.at(0) = wpose;

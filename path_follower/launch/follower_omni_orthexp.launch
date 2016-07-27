@@ -13,6 +13,11 @@ Launch the path follower with the "OrthExp" controller and omnidirectional kinem
   <arg name="s4" default="1.0" />
   <arg name="s5" default="1.0" />
   <arg name="s6" default="1.0" />
+
+  <arg name="nnodes" default="300" />
+  <arg name="dis2p" default="0.3" />
+  <arg name="dis2o" default="0.85" />
+  <arg name="s_angle" default="25.0" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
     <param name="controller" value="omnidrive_orthexp" />
     
@@ -68,6 +73,11 @@ Launch the path follower with the "OrthExp" controller and omnidirectional kinem
     <param name="s4" value="$(arg s4)"/>
     <param name="s5" value="$(arg s5)"/>
     <param name="s6" value="$(arg s6)"/>
+    <!-- planner params-->
+    <param name="nnodes" value="$(arg nnodes)" />
+    <param name="dis2p" value="$(arg dis2p)" />
+    <param name="dis2o" value="$(arg dis2o)" />
+    <param name="s_angle" value="$(arg s_angle)" />
 
     <remap from="scan" to="scan/front/filtered" />
   </node>
