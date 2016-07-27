@@ -132,6 +132,7 @@ protected:
 
     template <typename NodeT>
     void retrieveContinuity(NodeT& wpose){
+        global_path_.set_s_new(c_dist.at(0));
         if(last_local_path_.n()>0){
             std::size_t index = -1;
             double closest_point = std::numeric_limits<double>::infinity();
@@ -155,6 +156,7 @@ protected:
     template <typename NodeT>
     void processPath(NodeT* obj,SubPath& local_wps){
         retrievePath(obj, local_wps);
+        last_s = global_path_.s_new();
         global_path_.set_s_new(local_wps.at(local_wps.size()/2).s);
         smoothAndInterpolate(local_wps);
         savePath(local_wps);
@@ -190,7 +192,7 @@ protected:
 private:
     virtual void printNodeUsage(int& nnodes) const override;
 protected:
-    double d2p;
+    double d2p, last_s;
 
     std::size_t index1;
     std::size_t index2;

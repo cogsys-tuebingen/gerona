@@ -8,7 +8,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
-      d2p(0.0),index1(-1), index2(-1), c_dist(),last_local_path_(),step_(0.0)
+      d2p(0.0),last_s(0.0),index1(-1), index2(-1), c_dist(),last_local_path_(),step_(0.0)
 {
 
 }
@@ -16,6 +16,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
 void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
     LocalPlannerImplemented::setGlobalPath(path);
     last_local_path_ = PathInterpolated();
+    last_s = 0.0;
 }
 
 void LocalPlannerClassic::setVelocity(geometry_msgs::Twist::_linear_type vector){
@@ -246,12 +247,14 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
     double c_s = global_path_.s(j);
     double closest_dist = std::numeric_limits<double>::infinity();
     while(c_s <= global_path_.s_new()){
-        double x = global_path_.p(j) - pose(0);
-        double y = global_path_.q(j) - pose(1);
-        double dist = std::hypot(x, y);
-        if(dist < closest_dist) {
-            closest_dist = dist;
-            index1 = j;
+        if(c_s >= last_s){
+            double x = global_path_.p(j) - pose(0);
+            double y = global_path_.q(j) - pose(1);
+            double dist = std::hypot(x, y);
+            if(dist < closest_dist) {
+                closest_dist = dist;
+                index1 = j;
+            }
         }
         ++j;
         c_s = global_path_.s(j);
