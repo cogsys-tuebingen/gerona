@@ -846,6 +846,22 @@ void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segmen
 
     std::cout << "split the path into " << subpaths.size() << " sub paths" << std::endl;
 
+    for(const SubPath& sp : subpaths) {
+        const Waypoint& first = sp.at(0);
+        const Waypoint& second = sp.at(1);
+
+        Eigen::Vector2d first_p = first;
+        Eigen::Vector2d second_p = second;
+
+        Eigen::Vector2d dir = second_p - first_p;
+        double dir_angle = std::atan2(dir(1), dir(0));
+        double delta = MathHelper::AngleDelta(dir_angle, first.orientation);
+        bool forward = std::abs(delta) < M_PI / 2.0;
+
+        std::cout << (forward ? " > " : " < ");
+    }
+    std::cout << std::endl;
+
     path_->setPath(subpaths);
 }
 

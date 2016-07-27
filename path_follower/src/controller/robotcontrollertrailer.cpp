@@ -92,10 +92,11 @@ RobotController::MoveCommandStatus RobotControllerTrailer::computeMoveCommand(Mo
      *    path, until the end of the last sub path (= the goal) is reached
      */
 
-   // ROS_INFO_STREAM_THROTTLE(1, "state is " << behaviour_);
+    ROS_INFO_STREAM_THROTTLE(1, "state is " << behaviour_);
     // If wait_for_stop_ is set, do nothing, until the actual velocity fell below a given
     // threshold.
     // When the robot has finally stopped, go to the next subpath or quit, if goal is reached.
+
     if (behaviour_ == WAIT_FOR_STOP) {
         stopMotion(); //< probably not necessary to repeat this, but be on the save side.
 
@@ -329,7 +330,6 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
     }
 
 
-
     cmd_.setDirection(steer);
     cmd_.setVelocity(dir_sign_ * velocity);
     std_msgs::Float32 msg;
@@ -442,36 +442,78 @@ void RobotControllerTrailer::predictPose(Vector2d &front_pred, Vector2d &rear_pr
 
 double RobotControllerTrailer::calculateLineError() const
 {
-
     Vector3d next_wp_local;
     Vector3d followup_next_wp_local;
-    if(path_->getWaypointIndex() + 1 == path_->getCurrentSubPath().size()) {
-        geometry_msgs::PoseStamped prev_wp_map;
-        prev_wp_map.header.stamp = ros::Time::now();
-        prev_wp_map.pose = path_->getWaypoint(path_->getWaypointIndex()-1);
-        if (!path_driver_->transformToLocal( prev_wp_map, next_wp_local)) {
-            throw EmergencyBreakException("Cannot transform next waypoint",
-                                          path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
-        }
-        prev_wp_map.pose = path_->getWaypoint(path_->getWaypointIndex());
-        if (!path_driver_->transformToLocal( prev_wp_map, followup_next_wp_local)) {
-            throw EmergencyBreakException("Cannot transform next waypoint",
-                                          path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
-        }
 
-    } else {
-        geometry_msgs::PoseStamped followup_next_wp_map;
-        followup_next_wp_map.header.stamp = ros::Time::now();
-        followup_next_wp_map.pose = path_->getWaypoint(path_->getWaypointIndex() + 1);
-        if (!path_driver_->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
-            throw EmergencyBreakException("Cannot transform next waypoint",
-                                          path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
-        }
+    bool has_line_points = false;
+    geometry_msgs::PoseStamped tmp_pt;
+    tmp_pt.header.stamp = ros::Time::now();
 
+    // search forwards from current, if not at the end
+    if(path_->getWaypointIndex() + 1 < path_->getCurrentSubPath().size()){
         next_wp_local = next_wp_local_;
+
+        int wpi = path_->getWaypointIndex() + 1;
+        while(!has_line_points) {
+            Vector3d next;
+            tmp_pt.pose = path_->getWaypoint(wpi);
+            if (!path_driver_->transformToLocal( tmp_pt, next)) {
+                throw EmergencyBreakException("Cannot transform next waypoint",
+                                              path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
+            }
+
+            if((next - next_wp_local).head<2>().norm() > 1e-2) {
+                followup_next_wp_local = next;
+                has_line_points = true;
+            } else {
+                ++wpi;
+                if(wpi >= path_->getCurrentSubPath().size()) {
+                    break;
+                }
+            }
+        }
+    }
+
+    // search backwards from goal
+    if(!has_line_points) {
+        if(path_->getWaypointIndex() + 1 == path_->getCurrentSubPath().size()) {
+            tmp_pt.pose = path_->getWaypoint(path_->getWaypointIndex());
+            if (!path_driver_->transformToLocal( tmp_pt, followup_next_wp_local)) {
+                throw EmergencyBreakException("Cannot transform next waypoint",
+                                              path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
+            }
+
+            int wpi = path_->getWaypointIndex() - 1;
+            while(!has_line_points) {
+                Vector3d next;
+                tmp_pt.pose = path_->getWaypoint(wpi);
+                if (!path_driver_->transformToLocal( tmp_pt, next)) {
+                    throw EmergencyBreakException("Cannot transform next waypoint",
+                                                  path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
+                }
+
+                if((next - followup_next_wp_local).head<2>().norm() > 1e-2) {
+                    next_wp_local = next;
+                    has_line_points = true;
+                } else {
+                    --wpi;
+                    if(wpi < 0) {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+
+    if((followup_next_wp_local - next_wp_local).head<2>().norm() < 1e-2 || !has_line_points) {
+        ROS_ERROR_STREAM("cannot determine line");
+        throw EmergencyBreakException("cannot determine line",
+                                      path_msgs::FollowPathResult::RESULT_STATUS_INTERNAL_ERROR);
     }
 
     Line2d target_line;
+    ROS_INFO_STREAM("line : " << next_wp_local << " -> " << followup_next_wp_local << " :  " << (followup_next_wp_local - next_wp_local).norm());
     target_line = Line2d( next_wp_local.head<2>(), followup_next_wp_local.head<2>());
     visualizer_->visualizeLine(target_line);
 

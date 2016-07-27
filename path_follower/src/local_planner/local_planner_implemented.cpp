@@ -106,6 +106,22 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         waypoints_map = (SubPath) global_path_;
         waypoints = (SubPath) global_path_;
 
+//        for(const SubPath& sp : subpaths) {
+//            const Waypoint& first = waypoints_map.at(0);
+//            const Waypoint& second = waypoints_map.at(1);
+
+//            Eigen::Vector2d first_p = first;
+//            Eigen::Vector2d second_p = second;
+
+//            Eigen::Vector2d dir = second_p - first_p;
+//            double dir_angle = std::atan2(dir(1), dir(0));
+//            double delta = MathHelper::AngleDelta(dir_angle, first.orientation);
+//            bool forward = std::abs(delta) < M_PI / 2.0;
+
+//            std::cout << (forward ? " > " : " < ");
+//        }
+//        std::cout << std::endl;
+
         if(!transform2Odo(now)){
             return nullptr;
         }

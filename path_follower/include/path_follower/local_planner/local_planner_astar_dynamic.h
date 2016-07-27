@@ -31,7 +31,8 @@ private:
                      const std::vector<double>& wscorer,
                      int& nnodes) override;
 
-    SubPath calculateAvoidingPath(const Vector3d &odom_pose_v, const tf::Transform &odom_to_map);
+    template <typename Algorithm>
+    SubPath calculateAvoidingPath(bool forward, const Vector3d &odom_pose_v, const tf::Transform &odom_to_map);
     SubPath transformPath(const SubPath& path_map, const tf::Transform& trafo);
     Waypoint transformWaypoint(const Waypoint& wp, const tf::Transform& trafo);
     Eigen::Vector3d transformPose(const Eigen::Vector3d& wp, const tf::Transform& trafo);

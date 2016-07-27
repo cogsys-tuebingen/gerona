@@ -224,6 +224,7 @@ LocalPlannerAStarDynamic::LocalPlannerAStarDynamic(PathFollower &follower,
 
 bool LocalPlannerAStarDynamic::isPathObstructed(const SubPath &path, int start, size_t end, int radius)
 {
+    return false;
     int obstacle_count = 0;
     double res = map_info->getResolution();
     double r = radius * res;
@@ -315,12 +316,38 @@ bool LocalPlannerAStarDynamic::algo(Eigen::Vector3d& odom_pose_v, SubPath& local
 
     double path_resolution = 0.1;
 
+
+    typedef
+    AStarDynamicSearch<SteeringNeighborhood<40, 4, 15, 60, 120, SteeringMoves::FORWARD, false>, NoExpansion, Pose2d, GridMap2d, 500 >
+            AStarPatsyForward;
+    typedef
+    AStarDynamicSearch<SteeringNeighborhood<40, 4, 15, 60, 120, SteeringMoves::FORWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 >
+            AStarPatsyReverse;
+
+    ROS_ASSERT(current_subpath_odom.size() >= 2);
+    const Waypoint& first = current_subpath_odom.at(0);
+    const Waypoint& second = current_subpath_odom.at(1);
+
+    Eigen::Vector2d first_p = first;
+    Eigen::Vector2d second_p = second;
+
+    Eigen::Vector2d dir = second_p - first_p;
+    double dir_angle = std::atan2(dir(1), dir(0));
+    double delta = MathHelper::AngleDelta(dir_angle, first.orientation);
+    bool forward = std::abs(delta) < M_PI / 2.0;
+
+    ROS_INFO_STREAM(dir_angle << " / " << first.orientation << " / " << second.orientation << " / " << delta << " -> " << forward);
+
     int look_back = look_back_distance / path_resolution;
     int look_forward = look_forward_distance / path_resolution;;
     if(isPathObstructed(current_subpath_map, closest_wp_map_index - look_back, closest_wp_map_index + look_forward, radius)) {
         ROS_WARN("new avoiding plan");
         try {
-            avoiding_path_map_ = calculateAvoidingPath(odom_pose_v, odom_to_map);
+            if(forward) {
+                avoiding_path_map_ = calculateAvoidingPath<AStarPatsyForward>(forward, odom_pose_v, odom_to_map);
+            } else {
+                avoiding_path_map_ = calculateAvoidingPath<AStarPatsyReverse>(forward, odom_pose_v, odom_to_map);
+            }
             local_wps = transformPath(avoiding_path_map_, odom_to_map);
             avoiding = true;
 
@@ -377,7 +404,11 @@ bool LocalPlannerAStarDynamic::algo(Eigen::Vector3d& odom_pose_v, SubPath& local
                 } else if(closest_current_subpath_index + look_forward / 2 > current_subpath_odom.size()) {
                     ROS_INFO_STREAM("plan new avoidance path, distance to global path: " << distance);
                     try {
-                        avoiding_path_map_ = calculateAvoidingPath(odom_pose_v, odom_to_map);
+                        if(forward) {
+                            avoiding_path_map_ = calculateAvoidingPath<AStarPatsyForward>(forward, odom_pose_v, odom_to_map);
+                        } else {
+                            avoiding_path_map_ = calculateAvoidingPath<AStarPatsyReverse>(forward, odom_pose_v, odom_to_map);
+                        }
                         local_wps = transformPath(avoiding_path_map_, odom_to_map);
 
                     } catch(const std::runtime_error& e) {
@@ -429,7 +460,8 @@ Eigen::Vector3d LocalPlannerAStarDynamic::transformPose(const Eigen::Vector3d &p
     return pose_trans;
 }
 
-SubPath LocalPlannerAStarDynamic::calculateAvoidingPath(const Eigen::Vector3d& odom_pose_v, const tf::Transform& odom_to_map)
+template <typename Algorithm>
+SubPath LocalPlannerAStarDynamic::calculateAvoidingPath(bool forward, const Eigen::Vector3d& odom_pose_v, const tf::Transform& odom_to_map)
 {
     tf::Pose odom_pose(tf::createQuaternionFromYaw(odom_pose_v(2)), tf::Vector3(odom_pose_v(0), odom_pose_v(1), 0.0));
     tf::Pose map_pose = odom_to_map.inverse() * odom_pose;
@@ -453,23 +485,19 @@ SubPath LocalPlannerAStarDynamic::calculateAvoidingPath(const Eigen::Vector3d& o
     ROS_WARN_STREAM("theta is " << start_config.theta );
     ROS_WARN_STREAM("starting with a steering angle of " << start_config.steering_angle );
 
-    typedef
-    AStarDynamicSearch<SteeringNeighborhood<40, 4, 15, 60, 120, SteeringMoves::FORWARD, false>, NoExpansion, Pose2d, GridMap2d, 500 >
-            AStarPatsyForward;
-
-    AStarPatsyForward algo_forward;
-    algo_forward.setMap(map_info.get());
-    algo_forward.setTimeLimit(2.0);
+    Algorithm algo;
+    algo.setMap(map_info.get());
+    algo.setTimeLimit(2.0);
 
     Stopwatch sw;
     sw.restart();
 
-    algo_forward.setPathCandidateCallback([this](const typename AStarPatsyForward::PathT& path) {
+    algo.setPathCandidateCallback([this](const typename Algorithm::PathT& path) {
         std::cout << "path candidate found: " << path.size() << std::endl;
         return false;
     });
 
-    NearPathTest<AStarPatsyForward> goal_test_forward(*this, waypoints_map, algo_forward, start_config, map, map_info.get());
+    NearPathTest<Algorithm> goal_test_forward(*this, waypoints_map, algo, start_config, map, map_info.get());
 
 
     Pose2d hgoal = *goal_test_forward.getHeuristicGoal();
@@ -486,14 +514,14 @@ SubPath LocalPlannerAStarDynamic::calculateAvoidingPath(const Eigen::Vector3d& o
     ROS_INFO_STREAM("Search preparation took " << sw.usElapsed()/1000.0 << "ms");
 
     sw.restart();
-    AStarPatsyForward::PathT path;
+    typename Algorithm::PathT path;
     try {
-        path = algo_forward.findPathWithStartConfiguration(start_config, goal_test_forward);
+        path = algo.findPathWithStartConfiguration(start_config, goal_test_forward);
     } catch(const std::exception& e) {
         ROS_ERROR_STREAM("path search failed: " << e.what());
         throw std::runtime_error("found no local path");
     }
-    ROS_INFO_STREAM("Search took " << sw.usElapsed()/1000.0 << "ms for " << algo_forward.getExpansions() << " expansions (" << algo_forward.getMultiExpansions() << " multiply expanded and " << algo_forward.getTouchedNodes() << " touched nodes).");
+    ROS_INFO_STREAM("Search took " << sw.usElapsed()/1000.0 << "ms for " << algo.getExpansions() << " expansions (" << algo.getMultiExpansions() << " multiply expanded and " << algo.getTouchedNodes() << " touched nodes).");
 
     if(path.empty()) {
         ROS_ERROR("found no local path");
@@ -509,8 +537,11 @@ SubPath LocalPlannerAStarDynamic::calculateAvoidingPath(const Eigen::Vector3d& o
 
         Waypoint wp_map;
         map_info->cell2pointSubPixel(pt.x, pt.y, wp_map.x, wp_map.y);
-        wp_map.orientation = pt.theta;
-
+        if(forward) {
+            wp_map.orientation = pt.theta;
+        } else {
+            wp_map.orientation = MathHelper::AngleClamp(M_PI + pt.theta);
+        }
         avoiding_path_map.push_back(wp_map);
 
         ROS_INFO_STREAM(pt.x << ", " << pt.y << " -> node " << wp_map.x << " / " << wp_map.y << " / " << pt.theta);
