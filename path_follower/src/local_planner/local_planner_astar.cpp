@@ -19,7 +19,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                   const std::vector<double>& wscorer,
                                   int& nnodes){
     // this planner uses the A* search algorithm
-    initIndexes();
+    initIndexes(pose);
     initScorers(scorer, wscorer);
 
     const Waypoint& last = waypoints.back();

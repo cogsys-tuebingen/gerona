@@ -134,10 +134,11 @@ protected:
     void retrieveContinuity(NodeT& wpose){
         if(last_local_path_.n()>0){
             std::size_t index = -1;
-            double s_new = last_local_path_.s_new() + velocity_;
             double closest_point = std::numeric_limits<double>::infinity();
             for(std::size_t i = 0; i < last_local_path_.n(); ++i){
-                double dist = std::abs(s_new - last_local_path_.s(i));
+                double x = last_local_path_.p(i) - wpose.x;
+                double y = last_local_path_.q(i) - wpose.y;
+                double dist = std::hypot(x, y);
                 if(dist < closest_point) {
                     closest_point = dist;
                     index = i;
@@ -168,7 +169,7 @@ protected:
     void initConstraints(const std::vector<Constraint::Ptr>& constraints,
                                               const std::vector<bool>& fconstraints);
 
-    void initIndexes();
+    void initIndexes(Eigen::Vector3d& pose);
 
     void smoothAndInterpolate(SubPath& local_wps);
 

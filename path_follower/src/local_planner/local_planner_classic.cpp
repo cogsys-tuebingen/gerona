@@ -240,19 +240,28 @@ bool LocalPlannerClassic::isNearEnough(const Waypoint& current, const Waypoint& 
     return false;
 }
 
-void LocalPlannerClassic::initIndexes(){
-    double s_new = global_path_.s_new() + 2.0 * velocity_;
-    double closest_dist1 = std::numeric_limits<double>::infinity();
-    double closest_dist2 = std::numeric_limits<double>::infinity();
-    for(std::size_t i = 0; i < global_path_.n(); ++i){
-        double dist1 = std::abs(global_path_.s_new() - global_path_.s(i));
-        double dist2 = std::abs(s_new - global_path_.s(i));
-        if(dist1 < closest_dist1) {
-            closest_dist1 = dist1;
-            index1 = i;
+void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
+    std::size_t j = 0;
+    index1 = j;
+    double c_s = global_path_.s(j);
+    double closest_dist = std::numeric_limits<double>::infinity();
+    while(c_s <= global_path_.s_new()){
+        double x = global_path_.p(j) - pose(0);
+        double y = global_path_.q(j) - pose(1);
+        double dist = std::hypot(x, y);
+        if(dist < closest_dist) {
+            closest_dist = dist;
+            index1 = j;
         }
-        if(dist2 < closest_dist2) {
-            closest_dist2 = dist2;
+        ++j;
+        c_s = global_path_.s(j);
+    }
+    double s_new = global_path_.s(index1) + 2.0 * velocity_;
+    closest_dist = std::numeric_limits<double>::infinity();
+    for(std::size_t i = index1; i < global_path_.n(); ++i){
+        double dist = std::abs(s_new - global_path_.s(i));
+        if(dist < closest_dist) {
+            closest_dist = dist;
             index2 = i;
         }
     }
