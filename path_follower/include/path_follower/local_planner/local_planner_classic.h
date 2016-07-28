@@ -157,7 +157,7 @@ protected:
     void processPath(NodeT* obj,SubPath& local_wps){
         retrievePath(obj, local_wps);
         last_s = global_path_.s_new();
-        global_path_.set_s_new(local_wps.at(local_wps.size()/2).s);
+        global_path_.set_s_new(local_wps.at(min((int)local_wps.size(),5)).s);
         smoothAndInterpolate(local_wps);
         savePath(local_wps);
     }

@@ -22,7 +22,7 @@ demonstrating the navigation framework.
     <arg name="s6" default="0.0" />
 
     <arg name="nnodes" default="300" />
-    <arg name="dis2p" default="0.3" />
+    <arg name="dis2p" default="0.4" />
     <arg name="dis2o" default="0.85" />
     <arg name="s_angle" default="25.0" />
 
