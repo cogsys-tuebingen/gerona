@@ -257,6 +257,9 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
             }
         }
         ++j;
+        if(j >= global_path_.n()){
+            break;
+        }
         c_s = global_path_.s(j);
     }
     double s_new = global_path_.s(index1) + 2.0 * velocity_;
