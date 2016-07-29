@@ -332,3 +332,13 @@ void LocalPlannerClassic::savePath(SubPath& local_wps){
     tmpPath->setPath(tmpV);
     last_local_path_.interpolatePath(tmpPath);
 }
+
+void LocalPlannerClassic::setLLP(std::size_t index){
+    SubPath tmp_p = (SubPath)last_local_path_;
+    wlp_.clear();
+    wlp_.assign(tmp_p.begin(),tmp_p.begin() + index);
+}
+
+void LocalPlannerClassic::setLLP(){
+    setLLP(last_local_path_.n());
+}

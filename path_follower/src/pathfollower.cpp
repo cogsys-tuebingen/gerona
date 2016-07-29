@@ -81,6 +81,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 	speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
 	beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
     local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("local_path", 1, true);
+    whole_local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("whole_local_path", 1, true);
 
 	odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
@@ -249,7 +250,7 @@ void PathFollower::followPathGoalCB()
     stop();
 
     vel_ = goalptr->velocity;
-    controller_->setVelocity(goalptr->velocity);
+    controller_->setVelocity(vel_);
     setGoal(*goalptr);
 
     supervisors_.notifyNewGoal();
@@ -465,7 +466,8 @@ void PathFollower::update()
                 local_planner_->setObstacleCloud(obstacle_cloud_);
             }
             local_planner_->setVelocity(getVelocity().linear);
-            Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, wscorer);
+            Path::Ptr local_path_whole(new Path("/odom"));
+            Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, wscorer, local_path_whole);
             if(local_path) {
                 nav_msgs::Path path;
                 path.header.stamp = ros::Time::now();
@@ -481,6 +483,22 @@ void PathFollower::update()
                     }
                 }
                 local_path_pub_.publish(path);
+            }
+            if(local_path_whole->subPathCount() > 0){
+                nav_msgs::Path wpath;
+                wpath.header.stamp = ros::Time::now();
+                wpath.header.frame_id = local_path_whole->getFrameId();
+                for(int i = 0, sub = local_path_whole->subPathCount(); i < sub; ++i) {
+                    const SubPath& p = local_path_whole->getSubPath(i);
+                    for(const Waypoint& wp : p) {
+                        geometry_msgs::PoseStamped pose;
+                        pose.pose.position.x = wp.x;
+                        pose.pose.position.y = wp.y;
+                        pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
+                        wpath.poses.push_back(pose);
+                    }
+                }
+                whole_local_path_pub_.publish(wpath);
             }
 
             is_running_ = execute(feedback, result);

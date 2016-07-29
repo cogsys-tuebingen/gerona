@@ -34,7 +34,8 @@ public:
     virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                       const std::vector<Scorer::Ptr>& scorer,
                                       const std::vector<bool>& fconstraints,
-                                      const std::vector<double>& wscorer) = 0;
+                                      const std::vector<double>& wscorer,
+                                      Path::Ptr& wlp) = 0;
 
     virtual bool isNull() const;
 

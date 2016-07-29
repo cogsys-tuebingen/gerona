@@ -8,7 +8,7 @@ LocalPlannerImplemented::LocalPlannerImplemented(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval),
-      waypoints(), tooClose(false)
+      waypoints(), wlp_(), tooClose(false)
 {
 
 }
@@ -50,8 +50,11 @@ void LocalPlannerImplemented::transform2Odo(){
     */
 }
 
-void LocalPlannerImplemented::setPath(Path::Ptr& local_path, SubPath& local_wps, ros::Time& now){
+void LocalPlannerImplemented::setPath(Path::Ptr& local_path, Path::Ptr& wlp, SubPath& local_wps, ros::Time& now){
     local_path->setPath({local_wps});
+    if(!wlp_.empty()){
+        wlp->setPath({wlp_});
+    }
 
     follower_.getController()->reset();
     follower_.getController()->setPath(local_path);
@@ -78,7 +81,8 @@ void LocalPlannerImplemented::printSCTimeUsage(const std::vector<Constraint::Ptr
 Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                                    const std::vector<Scorer::Ptr>& scorer,
                                                    const std::vector<bool>& fconstraints,
-                                                   const std::vector<double>& wscorer)
+                                                   const std::vector<double>& wscorer,
+                                                   Path::Ptr& wlp)
 {
     ros::Time now = ros::Time::now();
     Stopwatch gsw;
@@ -88,6 +92,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
 
         // only look at the first sub path for now
         waypoints = (SubPath) global_path_;
+        wlp_.clear();
 
         transform2Odo();
         /*
@@ -104,11 +109,14 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         std::vector<Waypoint> local_wps;
 
         if(!algo(pose, local_wps, constraints, scorer, fconstraints, wscorer, nnodes)){
+            if(!wlp_.empty()){
+                wlp->setPath({wlp_});
+            }
             return nullptr;
         }
 
         Path::Ptr local_path(new Path("/odom"));
-        setPath(local_path, local_wps, now);
+        setPath(local_path, wlp, local_wps, now);
         int end_t = gsw.usElapsed();
 
         ROS_INFO_STREAM("v = " << velocity_);

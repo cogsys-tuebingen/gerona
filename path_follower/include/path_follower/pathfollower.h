@@ -94,6 +94,8 @@ private:
     ros::Publisher beep_pub_;
     //! Publisher for local paths
     ros::Publisher local_path_pub_;
+    //! Publisher for all local paths
+    ros::Publisher whole_local_path_pub_;
 
     //! Subscriber for odometry messages.
     ros::Subscriber odom_sub_;

@@ -150,6 +150,8 @@ protected:
 
             wpose.xs = last_local_path_.p_sek(index);
             wpose.ys = last_local_path_.q_sek(index);
+
+            setLLP(index + 1);
         }
     }
 
@@ -183,6 +185,10 @@ protected:
     void savePath(SubPath& local_wps);
 
     void setStep();
+
+    void setLLP(std::size_t index);
+
+    void setLLP();
 
     SubPath interpolatePath(const SubPath& path, double max_distance);
     void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
