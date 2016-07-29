@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <path_follower/utils/path.h>
+#include <utils_general/MathHelper.h>
 #include <utils_general/Stopwatch.h>
 
 class Constraint

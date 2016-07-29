@@ -37,6 +37,23 @@ double Dis2Start_Scorer::score(const LNode& point){
             closest_index = i;
         }
     }
+
+    if(closest_index == index1_){
+        const Waypoint& p0 = currentPath[index1_];
+        const Waypoint& p1 = currentPath[index1_+1];
+        double x = p1.x - p0.x;
+        double y = p1.y - p0.y;
+        double a_next = atan2(y,x);
+        x = point.x - p0.x;
+        y = point.y - p0.y;
+        double a_point = atan2(y,x);
+        double adiff = std::abs(MathHelper::AngleClamp(a_next - a_point));
+        if(adiff > M_PI_2){
+            double dis = std::hypot(p0.x - point.x, p0.y - point.y);
+            sw.stop();
+            return distances[closest_index-index1_] - dis;
+        }
+    }
     sw.stop();
     return distances[closest_index-index1_];
 }

@@ -27,14 +27,20 @@ public:
 
     virtual void setGlobalPath(Path::Ptr path);
 
+    virtual void setVelocity(geometry_msgs::Twist::_linear_type vector);
+
+    virtual void setVelocity(double velocity);
+
     virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                       const std::vector<Scorer::Ptr>& scorer,
                                       const std::vector<bool>& fconstraints,
-                                      const std::vector<double>& wscorer) = 0;
+                                      const std::vector<double>& wscorer,
+                                      Path::Ptr& wlp) = 0;
 
     virtual bool isNull() const;
 
     void setObstacleCloud(const ObstacleCloud::ConstPtr &msg);
+    void setParams(int nnodes, double dis2p, double dis2o, double s_angle);
 
 protected:
     LocalPlanner(PathFollower& controller,
@@ -43,6 +49,10 @@ protected:
 protected:
     PathFollower& follower_;
     tf::Transformer &transformer_;
+    double velocity_;
+    double fvel_;
+    static int nnodes_;
+    static double D_THETA;
 
     PathInterpolated global_path_;
 

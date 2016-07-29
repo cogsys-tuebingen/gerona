@@ -33,6 +33,8 @@
 		<!--rosparam param="segments">[[-5.0]]</rosparam-->
 		<!-- figure eight course -->
 		<!-- rosparam param="segments">[[6.28318530718, 1.0], [-6.28318530718, 1.0]]</rosparam -->
+		<!-- To infinity and beyond! -->
+                <!-- rosparam param="segments">[[25.0],[1.57, 2.0], [15.0], [1.57, 2.0], [25.0], [1.57, 2.0], [15.0], [2.25, 2.0], [28.5], [-2.25, 2.0], [15.0], [-1.57, 2.0], [15.0]]</rosparam-->
 		<!-- circle forward -->
 		<!--rosparam param="segments">[[3.14, 0.8]]</rosparam-->
 		<!-- circle backward -->

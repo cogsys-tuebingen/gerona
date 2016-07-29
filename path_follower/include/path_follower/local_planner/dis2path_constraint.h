@@ -11,11 +11,13 @@ public:
 public:
     Dis2Path_Constraint();
     virtual ~Dis2Path_Constraint();
-    void setLimit(double new_limit);
+    void setParams(double new_limit, double step);
+    static void setAngle(double angle);
+    static void setLimits(double dis2p, double dis2o);
 
     virtual bool isSatisfied(const LNode& point) override;
 private:
-    static constexpr double D_RATE = 0.15*std::cos(5.0*M_PI/36.0);
+    static double SIN_A, D_RATE, DIS2P_, DIS2O_;
     double limit;
     int level;
 };

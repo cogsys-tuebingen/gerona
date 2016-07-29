@@ -19,7 +19,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                   const std::vector<double>& wscorer,
                                   int& nnodes){
     // this planner uses the A* search algorithm
-    initIndexes();
+    initIndexes(pose);
     initScorers(scorer, wscorer);
 
     const Waypoint& last = waypoints.back();
@@ -29,6 +29,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     if(dis2last + ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wpose)):0.0) < 0.8){
         tooClose = true;
+        setLLP();
         return false;
     }
 
@@ -37,7 +38,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     d2p = wpose.d2p;
     initConstraints(constraints,fconstraints);
 
-    std::vector<HNode> nodes(300);
+    std::vector<HNode> nodes(nnodes_);
     HNode* obj = nullptr;
 
     double heuristic = Score(wpose, dis2last, scorer, wscorer);
@@ -57,7 +58,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     HNode* current;
 
-    while(!openSet.empty() && (openSet.empty()?nodes.back().level_:(*openSet.begin())->level_) <= li_level){
+    while(!openSet.empty() && (openSet.empty()?nodes.at(nnodes - 1).level_:(*openSet.begin())->level_) <= li_level){
         current = *openSet.begin();
         openSet.erase(openSet.begin());
         if(isNearEnough(*current,last)){
@@ -73,7 +74,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                 continue;
             }
 
-            double tentative_gScore = current->gScore_ + 0.15;//vllt tat. Abstand?
+            double tentative_gScore = current->gScore_ + step_;
 
             if(tentative_gScore >= successors[i]->gScore_){
                 continue;

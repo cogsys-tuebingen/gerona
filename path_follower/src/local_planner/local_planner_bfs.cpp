@@ -19,7 +19,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                   const std::vector<double>& wscorer,
                                   int& nnodes){
     // this planner uses the Breadth-first search algorithm
-    initIndexes();
+    initIndexes(pose);
     initScorers(scorer, wscorer);
 
     const Waypoint& last = waypoints.back();
@@ -29,6 +29,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     if(dis2last + ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wpose)):0.0) < 0.8){
         tooClose = true;
+        setLLP();
         return false;
     }
 
@@ -37,7 +38,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     d2p = wpose.d2p;
     initConstraints(constraints,fconstraints);
 
-    std::vector<LNode> nodes(300);
+    std::vector<LNode> nodes(nnodes_);
     LNode* obj = nullptr;
 
     nodes.at(0) = wpose;
@@ -50,7 +51,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     LNode* current;
 
-    while(!fifo.empty() && (fifo.empty()?nodes.back().level_:fifo.front()->level_) <= li_level){
+    while(!fifo.empty() && (fifo.empty()?nodes.at(nnodes - 1).level_:fifo.front()->level_) <= li_level){
         current = fifo.front();
         fifo.pop();
         if(isNearEnough(*current,last)){

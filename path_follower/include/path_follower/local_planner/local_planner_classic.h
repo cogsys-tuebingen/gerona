@@ -13,6 +13,10 @@ public:
 
     virtual void setGlobalPath(Path::Ptr path) override;
 
+    virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
+
+    virtual void setVelocity(double velocity) override;
+
 protected:
     template <typename NodeT>
     void getSuccessors(NodeT*& current, int& nsize, std::vector<NodeT*>& successors,
@@ -39,8 +43,8 @@ protected:
                 break;
             }
 
-            double x = ox + 0.15*std::cos(theta);
-            double y = oy + 0.15*std::sin(theta);
+            double x = ox + step_*std::cos(theta);
+            double y = oy + step_*std::sin(theta);
             NodeT succ(x,y,theta,current,current->level_+1);
             setDistances(succ,(fconstraints.at(1) || wscorer.at(4) != 0));
 
@@ -128,12 +132,14 @@ protected:
 
     template <typename NodeT>
     void retrieveContinuity(NodeT& wpose){
+        global_path_.set_s_new(c_dist.at(0));
         if(last_local_path_.n()>0){
             std::size_t index = -1;
-            double s_new = last_local_path_.s_new() + 0.7;
             double closest_point = std::numeric_limits<double>::infinity();
             for(std::size_t i = 0; i < last_local_path_.n(); ++i){
-                double dist = std::abs(s_new - last_local_path_.s(i));
+                double x = last_local_path_.p(i) - wpose.x;
+                double y = last_local_path_.q(i) - wpose.y;
+                double dist = std::hypot(x, y);
                 if(dist < closest_point) {
                     closest_point = dist;
                     index = i;
@@ -144,13 +150,16 @@ protected:
 
             wpose.xs = last_local_path_.p_sek(index);
             wpose.ys = last_local_path_.q_sek(index);
+
+            setLLP(index + 1);
         }
     }
 
     template <typename NodeT>
     void processPath(NodeT* obj,SubPath& local_wps){
         retrievePath(obj, local_wps);
-        global_path_.set_s_new(local_wps.at(4).s);
+        last_s = global_path_.s_new();
+        global_path_.set_s_new(local_wps.at(min((int)local_wps.size(),5)).s);
         smoothAndInterpolate(local_wps);
         savePath(local_wps);
     }
@@ -164,7 +173,7 @@ protected:
     void initConstraints(const std::vector<Constraint::Ptr>& constraints,
                                               const std::vector<bool>& fconstraints);
 
-    void initIndexes();
+    void initIndexes(Eigen::Vector3d& pose);
 
     void smoothAndInterpolate(SubPath& local_wps);
 
@@ -175,6 +184,12 @@ protected:
 
     void savePath(SubPath& local_wps);
 
+    void setStep();
+
+    void setLLP(std::size_t index);
+
+    void setLLP();
+
     SubPath interpolatePath(const SubPath& path, double max_distance);
     void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
     SubPath smoothPath(const SubPath& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
@@ -183,9 +198,7 @@ protected:
 private:
     virtual void printNodeUsage(int& nnodes) const override;
 protected:
-    static constexpr double D_THETA = 5.0*M_PI/36.0;//Assume like the global planner 25° turn
-
-    double d2p;
+    double d2p, last_s;
 
     std::size_t index1;
     std::size_t index2;
@@ -193,6 +206,8 @@ protected:
     std::vector<double> c_dist;
 
     PathInterpolated last_local_path_;
+
+    double step_;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H

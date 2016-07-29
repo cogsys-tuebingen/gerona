@@ -8,7 +8,7 @@ LocalPlannerImplemented::LocalPlannerImplemented(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval),
-      waypoints(), tooClose(false)
+      waypoints(), wlp_(), tooClose(false)
 {
 
 }
@@ -19,18 +19,11 @@ void LocalPlannerImplemented::setGlobalPath(Path::Ptr path)
     tooClose = false;
 }
 
-bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
+void LocalPlannerImplemented::transform2Odo(){
     // calculate the corrective transformation to map from world coordinates to odom
-    Stopwatch sw;
-    sw.restart();
-    if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
-        ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
-        return false;
-    }
-    ROS_INFO_STREAM("Time Leak here: " << sw.usElapsed()/1000.0 << "ms");
-
     tf::StampedTransform now_map_to_odom;
-    transformer_.lookupTransform("map", "odom", now, now_map_to_odom);
+    //Get the latest avaiable Transform
+    transformer_.lookupTransform("map", "odom", ros::Time(0), now_map_to_odom);
 
     tf::Transform transform_correction = now_map_to_odom.inverse();
     /*
@@ -55,11 +48,13 @@ bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
     /*
     myfile.close();
     */
-    return true;
 }
 
-void LocalPlannerImplemented::setPath(Path::Ptr& local_path, SubPath& local_wps, ros::Time& now){
+void LocalPlannerImplemented::setPath(Path::Ptr& local_path, Path::Ptr& wlp, SubPath& local_wps, ros::Time& now){
     local_path->setPath({local_wps});
+    if(!wlp_.empty()){
+        wlp->setPath({wlp_});
+    }
 
     follower_.getController()->reset();
     follower_.getController()->setPath(local_path);
@@ -86,7 +81,8 @@ void LocalPlannerImplemented::printSCTimeUsage(const std::vector<Constraint::Ptr
 Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                                    const std::vector<Scorer::Ptr>& scorer,
                                                    const std::vector<bool>& fconstraints,
-                                                   const std::vector<double>& wscorer)
+                                                   const std::vector<double>& wscorer,
+                                                   Path::Ptr& wlp)
 {
     ros::Time now = ros::Time::now();
     Stopwatch gsw;
@@ -96,10 +92,9 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
 
         // only look at the first sub path for now
         waypoints = (SubPath) global_path_;
+        wlp_.clear();
 
-        if(!transform2Odo(now)){
-            return nullptr;
-        }
+        transform2Odo();
         /*
         ofstream myfile;
         myfile.open ("/tmp/pose.txt");
@@ -114,15 +109,22 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         std::vector<Waypoint> local_wps;
 
         if(!algo(pose, local_wps, constraints, scorer, fconstraints, wscorer, nnodes)){
+            if(!wlp_.empty()){
+                wlp->setPath({wlp_});
+            }
             return nullptr;
         }
 
         Path::Ptr local_path(new Path("/odom"));
-        setPath(local_path, local_wps, now);
+        setPath(local_path, wlp, local_wps, now);
         int end_t = gsw.usElapsed();
 
+        ROS_INFO_STREAM("v = " << velocity_);
         printNodeUsage(nnodes);
         printSCTimeUsage(constraints, scorer, fconstraints, wscorer);
+        if(fvel_){
+            fvel_ = false;
+        }
         ROS_INFO_STREAM("Local Planner duration: " << (end_t/1000.0) << " ms");
 
         return local_path;

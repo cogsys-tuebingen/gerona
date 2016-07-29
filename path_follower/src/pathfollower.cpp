@@ -70,7 +70,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     pending_error_(-1),
     last_beep_(ros::Time::now()),
     beep_pause_(2.0),
-    is_running_(false)
+    is_running_(false),
+    vel_(0.0)
 {
 
 	// Init. action server
@@ -80,6 +81,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 	speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
 	beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
     local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("local_path", 1, true);
+    whole_local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("whole_local_path", 1, true);
 
 	odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
@@ -179,6 +181,13 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         exit(1);
     }
 
+    local_planner_->setParams(opt_.nnodes(), opt_.dis2p(), opt_.dis2o(), opt_.s_angle());
+
+    ROS_INFO("Maximum number of allowed nodes: %d", opt_.nnodes());
+    ROS_INFO("Maximal distance from path: %.3f", opt_.dis2p());
+    ROS_INFO("Minimal distance to an obstacle: %.3f", opt_.dis2o());
+    ROS_INFO("Steering angle: %.3f", opt_.s_angle());
+
     ROS_INFO("Constraint usage [%s, %s]", opt_.c1() ? "true" : "false",
              opt_.c2() ? "true" : "false");
     ROS_INFO("Scorer usage [%s, %s, %s, %s, %s, %s]", (opt_.s1() != 0.0) ? "true" : "false",
@@ -240,7 +249,8 @@ void PathFollower::followPathGoalCB()
     // stop current goal
     stop();
 
-    controller_->setVelocity(goalptr->velocity);
+    vel_ = goalptr->velocity;
+    controller_->setVelocity(vel_);
     setGoal(*goalptr);
 
     supervisors_.notifyNewGoal();
@@ -455,7 +465,9 @@ void PathFollower::update()
             if(obstacle_cloud_ != nullptr){
                 local_planner_->setObstacleCloud(obstacle_cloud_);
             }
-            Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, wscorer);
+            local_planner_->setVelocity(getVelocity().linear);
+            Path::Ptr local_path_whole(new Path("/odom"));
+            Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, wscorer, local_path_whole);
             if(local_path) {
                 nav_msgs::Path path;
                 path.header.stamp = ros::Time::now();
@@ -471,6 +483,22 @@ void PathFollower::update()
                     }
                 }
                 local_path_pub_.publish(path);
+            }
+            if(local_path_whole->subPathCount() > 0){
+                nav_msgs::Path wpath;
+                wpath.header.stamp = ros::Time::now();
+                wpath.header.frame_id = local_path_whole->getFrameId();
+                for(int i = 0, sub = local_path_whole->subPathCount(); i < sub; ++i) {
+                    const SubPath& p = local_path_whole->getSubPath(i);
+                    for(const Waypoint& wp : p) {
+                        geometry_msgs::PoseStamped pose;
+                        pose.pose.position.x = wp.x;
+                        pose.pose.position.y = wp.y;
+                        pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
+                        wpath.poses.push_back(pose);
+                    }
+                }
+                whole_local_path_pub_.publish(wpath);
             }
 
             is_running_ = execute(feedback, result);
@@ -584,6 +612,8 @@ void PathFollower::start()
     controller_->start();
 
     local_planner_->setGlobalPath(path_);
+    //local_planner_->setVelocity(getVelocity().linear);
+    local_planner_->setVelocity(vel_);
 
     is_running_ = true;
 }

@@ -87,7 +87,7 @@ struct LNode: Waypoint
         }
     }
 
-    static constexpr double h = 0.15;
+    static double h;
     //!first derivative
     double xp;
     double yp;

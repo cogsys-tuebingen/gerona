@@ -15,7 +15,8 @@ public:
     virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                       const std::vector<Scorer::Ptr>& scorer,
                                       const std::vector<bool>& fconstraints,
-                                      const std::vector<double>& wscorer) override;
+                                      const std::vector<double>& wscorer,
+                                      Path::Ptr& wlp) override;
     virtual bool isNull() const override;
 };
 
