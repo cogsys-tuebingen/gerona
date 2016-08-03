@@ -28,6 +28,11 @@ Path::Ptr LocalPlannerNull::updateLocalPath(const std::vector<Constraint::Ptr>& 
                                             const std::vector<double>& wscorer,
                                             Path::Ptr& wlp)
 {
+    (void) constraints;
+    (void) scorer;
+    (void) fconstraints;
+    (void) wscorer;
+    (void) wlp;
     // do nothing
     return nullptr;
 }
@@ -35,4 +40,19 @@ Path::Ptr LocalPlannerNull::updateLocalPath(const std::vector<Constraint::Ptr>& 
 bool LocalPlannerNull::isNull() const
 {
     return true;
+}
+
+void LocalPlannerNull::setParams(int nnodes, double dis2p, double dis2o, double s_angle){
+    (void) nnodes;
+    (void) dis2p;
+    (void) dis2o;
+    (void) s_angle;
+}
+
+void LocalPlannerNull::setVelocity(geometry_msgs::Twist::_linear_type vector){
+    (void) vector;
+}
+
+void LocalPlannerNull::setVelocity(double velocity){
+    (void) velocity;
 }

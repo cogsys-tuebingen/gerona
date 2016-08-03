@@ -4,11 +4,16 @@
 /// PROJECT
 #include <path_follower/pathfollower.h>
 
+int LocalPlannerClassic::nnodes_ = 300;
+double LocalPlannerClassic::RT = std::numeric_limits<double>::infinity();
+double LocalPlannerClassic::D_THETA = 0.0;
+
 LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
-      d2p(0.0),last_s(0.0),index1(-1), index2(-1), c_dist(),last_local_path_(),step_(0.0)
+      d2p(0.0),last_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
+      c_dist(),last_local_path_(),step_(0.0)
 {
 
 }
@@ -20,18 +25,23 @@ void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
 }
 
 void LocalPlannerClassic::setVelocity(geometry_msgs::Twist::_linear_type vector){
-    LocalPlanner::setVelocity(vector);
+    if(!fvel_){
+        velocity_  = sqrt(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z);
+    }
     setStep();
 }
 
 void LocalPlannerClassic::setVelocity(double velocity){
-    LocalPlanner::setVelocity(velocity);
+    velocity_ = velocity;
+    fvel_ = true;
     setStep();
 }
 
 void LocalPlannerClassic::setStep(){
     step_ = velocity_/5.0;
     LNode::h = step_;
+    D_THETA = step_/RT;
+    Dis2Path_Constraint::setAngle(D_THETA);
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -342,3 +352,19 @@ void LocalPlannerClassic::setLLP(std::size_t index){
 void LocalPlannerClassic::setLLP(){
     setLLP(last_local_path_.n());
 }
+
+void LocalPlannerClassic::setParams(int nnodes, double dis2p, double dis2o, double s_angle){
+    nnodes_ = nnodes;
+    double th = s_angle*M_PI/180.0;
+    RT = L/std::tan(th);
+    Dis2Path_Constraint::setLimits(dis2p,dis2o);
+    Dis2Obst_Constraint::setLimit(dis2o);
+}
+
+void LocalPlannerClassic::printVelocity(){
+    ROS_INFO_STREAM("v = " << velocity_);
+    if(fvel_){
+        fvel_ = false;
+    }
+}
+

@@ -67,3 +67,20 @@ bool LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     // here we just use the subpath without planning and checking constraints / scorerers
     return true;
 }
+
+void LocalPlannerTransformer::setParams(int nnodes, double dis2p, double dis2o, double s_angle){
+    (void) nnodes;
+    (void) dis2p;
+    (void) dis2o;
+    (void) s_angle;
+}
+
+void LocalPlannerTransformer::setVelocity(geometry_msgs::Twist::_linear_type vector){
+    (void) vector;
+}
+
+void LocalPlannerTransformer::setVelocity(double velocity){
+    (void) velocity;
+}
+
+void LocalPlannerTransformer::printVelocity(){}
