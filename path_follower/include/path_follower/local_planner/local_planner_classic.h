@@ -163,10 +163,12 @@ protected:
 
     template <typename NodeT>
     void setD2P(NodeT& wpose){
-        //double x = wpose.y - wpose.npp.x;
-        //double y = wpose.y - wpose.npp.y;
-        //double gamma = std::atan2(y,x);
-        d2p = wpose.d2p;
+        double x = wpose.y - wpose.npp.x;
+        double y = wpose.y - wpose.npp.y;
+        double gamma = std::atan2(y,x);
+        double diff = MathHelper::AngleClamp(std::abs(wpose.orientation-gamma));
+        double beta = M_PI - diff;
+        d2p = max(wpose.d2p,sqrt(step_*step_ + wpose.d2p*wpose.d2p - 2*step_*wpose.d2p*std::cos(beta)));
     }
 
     template <typename NodeT>
