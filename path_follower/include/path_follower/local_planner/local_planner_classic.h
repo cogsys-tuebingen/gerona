@@ -14,8 +14,8 @@ public:
     virtual void setGlobalPath(Path::Ptr path) override;
 
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
-
     virtual void setVelocity(double velocity) override;
+    virtual void setParams(int nnodes, double dis2p, double dis2o, double s_angle) override;
 
 protected:
     template <typename NodeT>
@@ -24,27 +24,33 @@ protected:
                        const std::vector<bool>& fconstraints,const std::vector<double>& wscorer
                        /*, bool repeat = false*/){
         successors.clear();
-        double theta;
         double ori = current->orientation;
         double ox = current->x;
         double oy = current->y;
         for(int i = 0; i < 3; ++i){
-            switch (i) {
-            case 0:// straight
+            double x,y,theta;
+            if(i == 0){// straight
                 theta = ori;
-                break;
-            case 1:// right
-                theta = ori - D_THETA;
-                break;
-            case 2:// left
-                theta = ori + D_THETA;
-                break;
-            default:
-                break;
+                x = ox + step_*std::cos(theta);
+                y = oy + step_*std::sin(theta);
+            }else{
+                double rt;
+                switch (i) {
+                case 1:// right
+                    rt = -RT;
+                    theta = -D_THETA;
+                    break;
+                case 2:// left
+                    rt = RT;
+                    theta = D_THETA;
+                    break;
+                default:
+                    break;
+                }
+                x = ox + rt*(std::sin(ori+theta)-std::sin(ori));
+                y = oy + rt*(-std::cos(ori+theta)+std::cos(ori));
+                theta = MathHelper::AngleClamp(ori + theta);
             }
-
-            double x = ox + step_*std::cos(theta);
-            double y = oy + step_*std::sin(theta);
             NodeT succ(x,y,theta,current,current->level_+1);
             setDistances(succ,(fconstraints.at(1) || wscorer.at(4) != 0));
 
@@ -67,7 +73,7 @@ protected:
     bool isInGraph(const NodeT& current, std::vector<NodeT>& nodes, int& asize, int& position){
         for(std::size_t i = 0; i < asize; ++i){
             double dis = current.distanceTo(nodes[i]);
-            if(dis < 0.05){
+            if(dis < 0.009){
                 position = i;
                 return true;
             }
@@ -156,10 +162,18 @@ protected:
     }
 
     template <typename NodeT>
+    void setD2P(NodeT& wpose){
+        //double x = wpose.y - wpose.npp.x;
+        //double y = wpose.y - wpose.npp.y;
+        //double gamma = std::atan2(y,x);
+        d2p = wpose.d2p;
+    }
+
+    template <typename NodeT>
     void processPath(NodeT* obj,SubPath& local_wps){
         retrievePath(obj, local_wps);
         last_s = global_path_.s_new();
-        global_path_.set_s_new(local_wps.at(min((int)local_wps.size(),5)).s);
+        global_path_.set_s_new(local_wps.at(min((int)local_wps.size() - 1, 5)).s);
         smoothAndInterpolate(local_wps);
         savePath(local_wps);
     }
@@ -176,8 +190,6 @@ protected:
     void initIndexes(Eigen::Vector3d& pose);
 
     void smoothAndInterpolate(SubPath& local_wps);
-
-    bool isNearEnough(const Waypoint& current, const Waypoint& last);
 
     double Score(const LNode& current, const double& dis2last,
                         const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer);
@@ -197,8 +209,15 @@ protected:
     SubPath smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance);
 private:
     virtual void printNodeUsage(int& nnodes) const override;
+    virtual void printVelocity() override;
 protected:
-    double d2p, last_s;
+    static constexpr double L = 0.46;
+
+    static int nnodes_;
+    static double D_THETA, RT;
+
+    double d2p, last_s, velocity_;
+    bool fvel_;
 
     std::size_t index1;
     std::size_t index2;

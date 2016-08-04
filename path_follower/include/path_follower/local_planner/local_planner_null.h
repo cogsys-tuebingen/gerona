@@ -18,6 +18,9 @@ public:
                                       const std::vector<double>& wscorer,
                                       Path::Ptr& wlp) override;
     virtual bool isNull() const override;
+    virtual void setParams(int nnodes, double dis2p, double dis2o, double s_angle) override;
+    virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
+    virtual void setVelocity(double velocity) override;
 };
 
 #endif // LOCAL_PLANNER_NULL_H

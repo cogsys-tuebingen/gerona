@@ -48,10 +48,10 @@ bool Dis2Path_Constraint::isSatisfied(const LNode& point){
         if(point.d2o < std::numeric_limits<double>::infinity()){
             double x = point.nop.x - point.x;
             double y = point.nop.y - point.y;
-            double orio = atan2(y,x);
+            double orio = std::atan2(y,x);
             x = point.npp.x - point.x;
             y = point.npp.y - point.y;
-            double orip = atan2(y,x);
+            double orip = std::atan2(y,x);
             double adiff = std::abs(MathHelper::AngleClamp(orio - orip));
             if(adiff <= M_PI/6.0){
                 double d_diff = (point.d2o - cos(adiff)*point.d2p);
