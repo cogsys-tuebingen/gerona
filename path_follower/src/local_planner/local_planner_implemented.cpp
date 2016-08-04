@@ -19,17 +19,18 @@ void LocalPlannerImplemented::setGlobalPath(Path::Ptr path)
     tooClose = false;
 }
 
-void LocalPlannerImplemented::transform2Odo(ros::Time& now){
-    Stopwatch sw;
-    sw.restart();
-    if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))) {
-        ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
-    }
-    ROS_INFO_STREAM("Time Leak here: " << sw.usElapsed()/1000.0 << "ms");
-    // calculate the corrective transformation to map from world coordinates to odom
+bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
     tf::StampedTransform now_map_to_odom;
-    //Get the latest avaiable Transform
-    transformer_.lookupTransform("map", "odom", now, now_map_to_odom);
+    try{//Try to get the latest avaiable Transform
+        transformer_.lookupTransform("map", "odom", ros::Time(0), now_map_to_odom);
+    }catch(tf::TransformException ex){//If not avaiable, then wait
+        (void) ex;
+        if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))){
+            ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
+            return false;
+        }
+        transformer_.lookupTransform("map", "odom", now, now_map_to_odom);
+    }
 
     tf::Transform transform_correction = now_map_to_odom.inverse();
     /*
@@ -54,6 +55,7 @@ void LocalPlannerImplemented::transform2Odo(ros::Time& now){
     /*
     myfile.close();
     */
+    return true;
 }
 
 void LocalPlannerImplemented::setPath(Path::Ptr& local_path, Path::Ptr& wlp, SubPath& local_wps, ros::Time& now){
@@ -100,7 +102,9 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         waypoints = (SubPath) global_path_;
         wlp_.clear();
 
-        transform2Odo(now);
+        if(!transform2Odo(now)){
+            return nullptr;
+        }
         /*
         ofstream myfile;
         myfile.open ("/tmp/pose.txt");
