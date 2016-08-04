@@ -162,6 +162,14 @@ protected:
     }
 
     template <typename NodeT>
+    void setD2P(NodeT& wpose){
+        //double x = wpose.y - wpose.npp.x;
+        //double y = wpose.y - wpose.npp.y;
+        //double gamma = std::atan2(y,x);
+        d2p = wpose.d2p;
+    }
+
+    template <typename NodeT>
     void processPath(NodeT* obj,SubPath& local_wps){
         retrievePath(obj, local_wps);
         last_s = global_path_.s_new();

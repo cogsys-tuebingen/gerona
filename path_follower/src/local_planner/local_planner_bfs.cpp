@@ -34,7 +34,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     retrieveContinuity(wpose);
     setDistances(wpose,(fconstraints.at(1) || wscorer.at(4) != 0));
-    d2p = wpose.d2p;
+    setD2P(wpose);
     initConstraints(constraints,fconstraints);
 
     std::vector<LNode> nodes(nnodes_);
