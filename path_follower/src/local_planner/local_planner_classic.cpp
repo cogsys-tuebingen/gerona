@@ -41,7 +41,7 @@ void LocalPlannerClassic::setStep(){
     step_ = velocity_/5.0;
     LNode::h = step_;
     D_THETA = step_/RT;
-    Dis2Path_Constraint::setAngle(D_THETA);
+    Dis2Path_Constraint::setAngle(D_THETA/2.0);
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -242,13 +242,6 @@ SubPath LocalPlannerClassic::smoothPathSegment(const SubPath& path, double weigh
     }
 
     return new_path;
-}
-
-bool LocalPlannerClassic::isNearEnough(const Waypoint& current, const Waypoint& last){
-    if(current.distanceTo(last) <= 0.05){
-        return true;
-    }
-    return false;
 }
 
 void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){

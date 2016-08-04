@@ -183,8 +183,6 @@ protected:
 
     void smoothAndInterpolate(SubPath& local_wps);
 
-    bool isNearEnough(const Waypoint& current, const Waypoint& last);
-
     double Score(const LNode& current, const double& dis2last,
                         const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer);
 
