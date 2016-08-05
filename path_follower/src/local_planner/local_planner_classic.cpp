@@ -40,7 +40,7 @@ void LocalPlannerClassic::setVelocity(double velocity){
 void LocalPlannerClassic::setStep(){
     step_ = velocity_/5.0;
     LNode::h = step_;
-    D_THETA = step_/RT;
+    D_THETA = MathHelper::AngleClamp(step_/RT);
     Dis2Path_Constraint::setAngle(D_THETA/2.0);
 }
 

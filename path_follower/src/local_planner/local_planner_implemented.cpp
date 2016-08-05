@@ -95,7 +95,6 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
     ros::Time now = ros::Time::now();
     Stopwatch gsw;
     gsw.restart();
-
     if(last_update_ + update_interval_ < now && !tooClose) {
 
         // only look at the first sub path for now

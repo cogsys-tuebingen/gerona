@@ -172,12 +172,16 @@ protected:
     }
 
     template <typename NodeT>
-    void processPath(NodeT* obj,SubPath& local_wps){
+    bool processPath(NodeT* obj,SubPath& local_wps){
         retrievePath(obj, local_wps);
+        if(local_wps.size() < 3){
+            return false;
+        }
         last_s = global_path_.s_new();
         global_path_.set_s_new(local_wps.at(min((int)local_wps.size() - 1, 5)).s);
         smoothAndInterpolate(local_wps);
         savePath(local_wps);
+        return true;
     }
 
     bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,

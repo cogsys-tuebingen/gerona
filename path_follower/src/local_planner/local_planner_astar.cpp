@@ -103,8 +103,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     }
 
     if(obj != nullptr){
-        processPath(obj, local_wps);
-        return true;
+        return processPath(obj, local_wps);
     }else{
         return false;
     }
