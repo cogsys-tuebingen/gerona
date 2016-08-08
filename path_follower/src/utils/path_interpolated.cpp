@@ -61,8 +61,6 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
 			break;
 
 		path->switchToNextSubPath();
-        if(path->isDone())
-            break;
 	}
 
 	//copy the waypoints to arrays X_arr and Y_arr, and introduce a new array l_arr_unif required for the interpolation
