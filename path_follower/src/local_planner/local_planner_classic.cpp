@@ -116,7 +116,7 @@ std::vector<SubPath> LocalPlannerClassic::segmentPath(const std::vector<Waypoint
                                    const Waypoint * last_point = &path[0];
                                    current_segment.push_back(*last_point);
 
-                                   for(int i = 0; i < n; ++i){
+                                   for(int i = 1; i < n; ++i){
                                        const Waypoint* current_point = &path[i];
 
                                        // append to current segment
@@ -333,7 +333,7 @@ void LocalPlannerClassic::savePath(SubPath& local_wps){
     tmpV.push_back(local_wps);
     Path::Ptr tmpPath(new Path("/odom"));
     tmpPath->setPath(tmpV);
-    last_local_path_.interpolatePath(tmpPath);
+    last_local_path_.interpolatePath(tmpPath,false);
 }
 
 void LocalPlannerClassic::setLLP(std::size_t index){

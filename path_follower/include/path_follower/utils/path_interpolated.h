@@ -16,7 +16,7 @@ public:
 	PathInterpolated();
 	virtual ~PathInterpolated();
 
-    void interpolatePath(const Path::Ptr path);
+    void interpolatePath(const Path::Ptr path, const bool hack = true);
 
     inline double s(const unsigned int i) const {
         return s_[i];

@@ -14,7 +14,7 @@ LocalPlanner::~LocalPlanner()
 
 void LocalPlanner::setGlobalPath(Path::Ptr path)
 {
-    global_path_.interpolatePath(path);
+    global_path_.interpolatePath(path,false);
 
     ros::Time now = ros::Time::now();
 
