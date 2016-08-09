@@ -158,7 +158,6 @@ protected:
             wpose.ys = last_local_path_.q_sek(index);
 
             setLLP(index + 1);
-            ROS_INFO_STREAM(index << "/" << last_local_path_.n());
         }
     }
 

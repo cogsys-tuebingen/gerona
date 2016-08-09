@@ -346,6 +346,7 @@ void LocalPlannerClassic::setLLP(std::size_t index){
     SubPath tmp_p = (SubPath)last_local_path_;
     wlp_.clear();
     wlp_.assign(tmp_p.begin(),tmp_p.begin() + index);
+    ROS_INFO_STREAM(index << "/" << tmp_p.size());
 }
 
 void LocalPlannerClassic::setLLP(){
@@ -361,7 +362,7 @@ void LocalPlannerClassic::setParams(int nnodes, double dis2p, double dis2o, doub
 }
 
 void LocalPlannerClassic::printVelocity(){
-    ROS_INFO_STREAM("v = " << velocity_);
+    ROS_INFO_STREAM("v = " << velocity_ << " m/s");
     if(fvel_){
         fvel_ = false;
     }
