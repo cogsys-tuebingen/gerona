@@ -469,6 +469,7 @@ void PathFollower::update()
             Path::Ptr local_path_whole(new Path("/odom"));
             Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, wscorer, local_path_whole);
             if(local_path) {
+                ROS_INFO_STREAM("Planned");
                 nav_msgs::Path path;
                 path.header.stamp = ros::Time::now();
                 path.header.frame_id = local_path->getFrameId();
@@ -479,12 +480,14 @@ void PathFollower::update()
                         pose.pose.position.x = wp.x;
                         pose.pose.position.y = wp.y;
                         pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
+                        ROS_INFO_STREAM("(" << wp.x <<"," << wp.y << "," << wp.orientation << ")");
                         path.poses.push_back(pose);
                     }
                 }
                 local_path_pub_.publish(path);
             }
             if(local_path_whole->subPathCount() > 0){
+                ROS_INFO_STREAM("USED");
                 nav_msgs::Path wpath;
                 wpath.header.stamp = ros::Time::now();
                 wpath.header.frame_id = local_path_whole->getFrameId();
@@ -495,6 +498,7 @@ void PathFollower::update()
                         pose.pose.position.x = wp.x;
                         pose.pose.position.y = wp.y;
                         pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
+                        ROS_INFO_STREAM("(" << wp.x <<"," << wp.y << "," << wp.orientation << ")");
                         wpath.poses.push_back(pose);
                     }
                 }
