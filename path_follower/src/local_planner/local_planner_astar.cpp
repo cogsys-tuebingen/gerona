@@ -51,7 +51,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     prio_queue openSet;
     openSet.insert(&nodes[0]);
-    double go_dist = std::numeric_limits<double>::infinity();
+    double go_dist = heuristic;
     int li_level = 10;
     nnodes = 1;
 

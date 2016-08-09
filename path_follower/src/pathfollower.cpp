@@ -452,12 +452,12 @@ void PathFollower::update()
             wscorer.at(3) = opt_.s4();
 
             if(opt_.s5() != 0.0){
-                scorer.at(4) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
+                scorer.at(4) = Curvature_Scorer::Ptr(new Curvature_Scorer);
             }
             wscorer.at(4) = opt_.s5();
 
             if(opt_.s6() != 0.0){
-                scorer.at(5) = Curvature_Scorer::Ptr(new Curvature_Scorer);
+                scorer.at(5) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
             }
             wscorer.at(5) = opt_.s6();
 
