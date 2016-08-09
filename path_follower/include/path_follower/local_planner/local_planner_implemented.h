@@ -22,7 +22,7 @@ public:
 
     virtual void setGlobalPath(Path::Ptr path) override;
 protected:
-    void transform2Odo(ros::Time& now);
+    bool transform2Odo(ros::Time& now);
 
     void setPath(Path::Ptr& local_path, Path::Ptr& wlp, SubPath& local_wps, ros::Time& now);
 

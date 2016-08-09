@@ -163,21 +163,35 @@ protected:
 
     template <typename NodeT>
     void setD2P(NodeT& wpose){
-        double x = wpose.y - wpose.npp.x;
-        double y = wpose.y - wpose.npp.y;
-        double gamma = std::atan2(y,x);
-        double diff = MathHelper::AngleClamp(std::abs(wpose.orientation-gamma));
-        double beta = M_PI - diff;
-        d2p = max(wpose.d2p,sqrt(step_*step_ + wpose.d2p*wpose.d2p - 2*step_*wpose.d2p*std::cos(beta)));
+        double px = wpose.x - wpose.npp.x;
+        double py = wpose.y - wpose.npp.y;
+
+        double x = px + step_*std::cos(wpose.orientation);
+        double y = py + step_*std::sin(wpose.orientation);
+        double d1 = std::hypot(x, y);
+
+        x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation + D_THETA/2.0));
+        x = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation + D_THETA/2.0));
+        double d2 = std::hypot(x, y);
+
+        x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation - D_THETA/2.0));
+        x = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation - D_THETA/2.0));
+        double d3 = std::hypot(x, y);
+
+        d2p = max(max(wpose.d2p,d1),max(d2,d3));
     }
 
     template <typename NodeT>
-    void processPath(NodeT* obj,SubPath& local_wps){
+    bool processPath(NodeT* obj,SubPath& local_wps){
         retrievePath(obj, local_wps);
+        if(local_wps.size() < 3){
+            return false;
+        }
         last_s = global_path_.s_new();
-        global_path_.set_s_new(local_wps.at(min((int)local_wps.size() - 1, 5)).s);
+        global_path_.set_s_new(local_wps.at(min((int)local_wps.size() - 1, 3)).s);
         smoothAndInterpolate(local_wps);
         savePath(local_wps);
+        return true;
     }
 
     bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
@@ -228,7 +242,7 @@ protected:
 
     PathInterpolated last_local_path_;
 
-    double step_;
+    double step_,stepc_;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H

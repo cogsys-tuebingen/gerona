@@ -14,7 +14,7 @@ LocalPlanner::~LocalPlanner()
 
 void LocalPlanner::setGlobalPath(Path::Ptr path)
 {
-    global_path_.interpolatePath(path);
+    global_path_.interpolatePath(path,false);
 
     ros::Time now = ros::Time::now();
 
@@ -42,7 +42,7 @@ void LocalPlanner::setObstacleCloud(const ObstacleCloud::ConstPtr &msg)
 
     ros::Time now = ros::Time::now();
 
-    if(!transformer_.waitForTransform("odom", "base_link", now, ros::Duration(0.005))) {
+    if(!transformer_.waitForTransform("odom", "base_link", now, ros::Duration(0.01))) {
         ROS_WARN_THROTTLE_NAMED(1, "global_path", "cannot transform base_link to odom");
         return;
     }
