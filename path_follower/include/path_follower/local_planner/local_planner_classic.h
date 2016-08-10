@@ -57,7 +57,7 @@ protected:
                 
             }
             NodeT succ(x,y,theta,current,current->level_+1);
-            setDistances(succ,(fconstraints.at(1) || wscorer.at(4) != 0));
+            setDistances(succ,(fconstraints.back() || wscorer.back() != 0));
 
             if(areConstraintsSAT(succ,constraints,fconstraints)){
                 int wo = -1;
@@ -189,7 +189,7 @@ protected:
     template <typename NodeT>
     bool processPath(NodeT* obj,SubPath& local_wps){
         retrievePath(obj, local_wps);
-        if(local_wps.size() < 3 || (local_wps.back().s - local_wps.front().s) < 0.1){
+        if((local_wps.back().s - local_wps.front().s) < 0.1){
             return false;
         }
         last_s = global_path_.s_new();

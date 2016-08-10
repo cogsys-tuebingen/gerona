@@ -339,14 +339,17 @@ void LocalPlannerClassic::savePath(SubPath& local_wps){
     tmpV.push_back(local_wps);
     Path::Ptr tmpPath(new Path("/odom"));
     tmpPath->setPath(tmpV);
+    //ROS_INFO_STREAM("local_wps(0)(" << local_wps.front().x << "," << local_wps.front().y << ")");
+    //ROS_INFO_STREAM("tmpv(0)(" << tmpPath->getCurrentSubPath().front().x << "," << tmpPath->getCurrentSubPath().front().y << ")");
+    //std::cerr << "tmpv(0)(" << tmpPath->getCurrentSubPath().front().x << "," << tmpPath->getCurrentSubPath().front().y << ")" << std::endl;
     last_local_path_.interpolatePath(tmpPath,false);
+    //ROS_INFO_STREAM("last_local_path_(0)(" << last_local_path_.p(0) << "," << last_local_path_.q(0) << ")");
 }
 
 void LocalPlannerClassic::setLLP(std::size_t index){
     SubPath tmp_p = (SubPath)last_local_path_;
     wlp_.clear();
     wlp_.assign(tmp_p.begin(),tmp_p.begin() + index);
-    ROS_INFO_STREAM(index << "/" << tmp_p.size());
 }
 
 void LocalPlannerClassic::setLLP(){
