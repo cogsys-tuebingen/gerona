@@ -195,7 +195,9 @@ protected:
         last_s = global_path_.s_new();
         global_path_.set_s_new(local_wps.at(min((int)local_wps.size() - 1, 3)).s);
         smoothAndInterpolate(local_wps);
-        savePath(local_wps);
+        //ROS_INFO_STREAM("local_wps(0)(" << local_wps.front().x << "," << local_wps.front().y << ")");
+        last_local_path_.interpolatePath(local_wps,"/odom");
+        //ROS_INFO_STREAM("last_local_path_(0)(" << last_local_path_.p(0) << "," << last_local_path_.q(0) << ")");
         return true;
     }
 
@@ -214,8 +216,6 @@ protected:
 
     double Score(const LNode& current, const double& dis2last,
                         const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer);
-
-    void savePath(SubPath& local_wps);
 
     void setStep();
 

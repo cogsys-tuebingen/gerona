@@ -13,14 +13,13 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
       d2p(0.0),last_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
-      c_dist(),last_local_path_(),step_(0.0),stepc_(0.0)
+      c_dist(),step_(0.0),stepc_(0.0)
 {
 
 }
 
 void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
     LocalPlannerImplemented::setGlobalPath(path);
-    last_local_path_ = PathInterpolated();
     last_s = 0.0;
 }
 
@@ -333,17 +332,6 @@ double LocalPlannerClassic::Score(const LNode& current, const double& dis2last,
     }
     score2 += ((wscorer.back() != 0.0)?(wscorer.back()*scorer.back()->score(current)):0.0);
     return max(score1,score2);
-}
-void LocalPlannerClassic::savePath(SubPath& local_wps){
-    std::vector<SubPath> tmpV;
-    tmpV.push_back(local_wps);
-    Path::Ptr tmpPath(new Path("/odom"));
-    tmpPath->setPath(tmpV);
-    //ROS_INFO_STREAM("local_wps(0)(" << local_wps.front().x << "," << local_wps.front().y << ")");
-    //ROS_INFO_STREAM("tmpv(0)(" << tmpPath->getCurrentSubPath().front().x << "," << tmpPath->getCurrentSubPath().front().y << ")");
-    //std::cerr << "tmpv(0)(" << tmpPath->getCurrentSubPath().front().x << "," << tmpPath->getCurrentSubPath().front().y << ")" << std::endl;
-    last_local_path_.interpolatePath(tmpPath,false);
-    //ROS_INFO_STREAM("last_local_path_(0)(" << last_local_path_.p(0) << "," << last_local_path_.q(0) << ")");
 }
 
 void LocalPlannerClassic::setLLP(std::size_t index){

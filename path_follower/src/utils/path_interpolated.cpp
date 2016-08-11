@@ -65,8 +65,24 @@ void PathInterpolated::interpolatePath(const Path::Ptr path, const bool hack) {
         }else{
             break;
         }
-	}
+    }
 
+    interpolatePath(waypoints);
+}
+
+void PathInterpolated::interpolatePath(const SubPath& path, const std::string& frame_id){
+
+    clearBuffers();
+
+    frame_id_ = frame_id;
+
+    std::deque<Waypoint> waypoints;
+    waypoints.insert(waypoints.end(),path.begin(),path.end());
+
+    interpolatePath(waypoints);
+}
+
+void PathInterpolated::interpolatePath(const std::deque<Waypoint>& waypoints){
 	//copy the waypoints to arrays X_arr and Y_arr, and introduce a new array l_arr_unif required for the interpolation
 	//as an intermediate step, calculate the arclength of the curve, and do the reparameterization with respect to arclength
 

@@ -18,6 +18,8 @@ public:
 
     void interpolatePath(const Path::Ptr path, const bool hack = true);
 
+    void interpolatePath(const SubPath& path, const std::string& frame_id);
+
     inline double s(const unsigned int i) const {
         return s_[i];
     }
@@ -79,6 +81,8 @@ public:
 
 private:
 	void clearBuffers();
+
+    void interpolatePath(const std::deque<Waypoint>& waypoints);
 
     //number of path elements
     uint N_;
