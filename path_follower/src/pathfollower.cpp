@@ -474,7 +474,6 @@ void PathFollower::update()
                 path.header.frame_id = local_path->getFrameId();
                 for(int i = 0, sub = local_path->subPathCount(); i < sub; ++i) {
                     const SubPath& p = local_path->getSubPath(i);
-                    ROS_INFO_STREAM("local_path(0)(" << p.front().x << "," << p.front().y << ")");
                     for(const Waypoint& wp : p) {
                         geometry_msgs::PoseStamped pose;
                         pose.pose.position.x = wp.x;
@@ -491,7 +490,6 @@ void PathFollower::update()
                 wpath.header.frame_id = local_path_whole->getFrameId();
                 for(int i = 0, sub = local_path_whole->subPathCount(); i < sub; ++i) {
                     const SubPath& p = local_path_whole->getSubPath(i);
-                    ROS_INFO_STREAM("local_path_whole(0)(" << p.front().x << "," << p.front().y << ")");
                     for(const Waypoint& wp : p) {
                         geometry_msgs::PoseStamped pose;
                         pose.pose.position.x = wp.x;
