@@ -33,7 +33,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     }
 
     retrieveContinuity(wpose);
-    setDistances(wpose,(fconstraints.at(1) || wscorer.at(4) != 0));
+    setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
     setD2P(wpose);
     initConstraints(constraints,fconstraints);
 

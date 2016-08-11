@@ -64,7 +64,7 @@ struct PathFollowerParameters : public Parameters
         c1(this, "~c1", true,
            "Determines whether the first constraint is used or not. (Distance to global path)"),
         c2(this, "~c2", true,
-           "Determines whether the third constraint is used or not. (Distance to nearest obstacle)"),
+           "Determines whether the second constraint is used or not. (Distance to nearest obstacle)"),
         //Scorers
         s1(this, "~s1", -1.0,
            "Determines whether the first scorer is used or not. (Distance to start position)"),
