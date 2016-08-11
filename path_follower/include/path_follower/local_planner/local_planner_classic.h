@@ -134,11 +134,16 @@ protected:
     template <typename NodeT>
     void retrievePath(NodeT* obj, SubPath& local_wps){
         LNode* cu = obj;
-        while(cu != nullptr){
-            local_wps.push_back(*cu);
+        local_wps.resize(cu->level_ + 1);
+        const std::size_t length = local_wps.size();
+        for(std::size_t i = 0; i < length; ++i){
+            const std::size_t index = (length - 1) - i;
+            local_wps.at(index).x = cu->x;
+            local_wps.at(index).y = cu->y;
+            local_wps.at(index).orientation = cu->orientation;
+            local_wps.at(index).s = cu->s;
             cu = cu->parent_;
         }
-        std::reverse(local_wps.begin(),local_wps.end());
     }
 
     template <typename NodeT>
@@ -194,10 +199,8 @@ protected:
         }
         last_s = global_path_.s_new();
         global_path_.set_s_new(local_wps.at(min((int)local_wps.size() - 1, 3)).s);
-        smoothAndInterpolate(local_wps);
-        //ROS_INFO_STREAM("local_wps(0)(" << local_wps.front().x << "," << local_wps.front().y << ")");
-        last_local_path_.interpolatePath(local_wps,"/odom");
-        //ROS_INFO_STREAM("last_local_path_(0)(" << last_local_path_.p(0) << "," << last_local_path_.q(0) << ")");
+        //smoothAndInterpolate(local_wps);
+        last_local_path_.interpolatePath(local_wps, "/odom");
         return true;
     }
 

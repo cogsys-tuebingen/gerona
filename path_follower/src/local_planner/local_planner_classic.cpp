@@ -311,9 +311,11 @@ bool LocalPlannerClassic::areConstraintsSAT(const LNode& current, const std::vec
 }
 
 void LocalPlannerClassic::smoothAndInterpolate(SubPath& local_wps){
+    //interpolate
+    local_wps = interpolatePath(local_wps, 0.5);
     //smoothing
     local_wps = smoothPath(local_wps, 0.6, 0.15);
-    //interpolate
+    //final interpolate
     local_wps = interpolatePath(local_wps, 0.1);
     //final smoothing
     local_wps = smoothPath(local_wps, 2.0, 0.4);
