@@ -116,7 +116,7 @@ void PathInterpolated::interpolatePath(const std::deque<Waypoint>& waypoints){
 
 	double f = std::max(0.0001, L / (double) (N_-1));
 
-	for(std::size_t i = 1; i < N_; i++){
+    for(std::size_t i = 0; i < N_; i++){
 
 		l_arr_unif[i] = i * f;
 
