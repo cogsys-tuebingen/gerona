@@ -39,6 +39,7 @@ demonstrating the navigation framework.
     <arg name="s6" default="0.0" / -->
 
     <arg name="nnodes" default="400" />
+    <arg name="uinterval" default="0.5" />
     <arg name="dis2p" default="0.4" />
     <arg name="dis2o" default="0.85" />
     <arg name="s_angle" default="45.0" />
@@ -76,6 +77,7 @@ demonstrating the navigation framework.
       <arg name="s6" value="$(arg s6)" />
 
       <arg name="nnodes" value="$(arg nnodes)" />
+      <arg name="uinterval" value="$(arg uinterval)" />
       <arg name="dis2p" value="$(arg dis2p)" />
       <arg name="dis2o" value="$(arg dis2o)" />
       <arg name="s_angle" value="$(arg s_angle)" />

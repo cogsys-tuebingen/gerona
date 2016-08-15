@@ -169,11 +169,11 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // Choose Local Planner Algorithm
     ROS_INFO("Use local planner algorithm '%s'", opt_.algo().c_str());
     if(opt_.algo() == "AStar"){
-        local_planner_ = std::make_shared<LocalPlannerAStar>(*this, pose_listener_,ros::Duration(1.0));
+        local_planner_ = std::make_shared<LocalPlannerAStar>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "BFS"){
-        local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(1.0));
+        local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "Transformer"){
-        local_planner_ = std::make_shared<LocalPlannerTransformer>(*this, pose_listener_,ros::Duration(1.0));
+        local_planner_ = std::make_shared<LocalPlannerTransformer>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "NULL"){
         local_planner_ = std::make_shared<LocalPlannerNull>(*this, pose_listener_);
     }else {
@@ -184,6 +184,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     local_planner_->setParams(opt_.nnodes(), opt_.dis2p(), opt_.dis2o(), opt_.s_angle());
 
     ROS_INFO("Maximum number of allowed nodes: %d", opt_.nnodes());
+    ROS_INFO("Update Interval: %.3f", opt_.uinterval());
     ROS_INFO("Maximal distance from path: %.3f", opt_.dis2p());
     ROS_INFO("Minimal distance to an obstacle: %.3f", opt_.dis2o());
     ROS_INFO("Steering angle: %.3f", opt_.s_angle());

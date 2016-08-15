@@ -40,11 +40,13 @@ void LocalPlannerClassic::setVelocity(double velocity){
 }
 
 void LocalPlannerClassic::setStep(){
-    step_ = 3.0*velocity_/10.0;
+    double dis = velocity_ * update_interval_.toSec();
+    step_ = 3.0*dis/10.0;
     LNode::h = step_;
     D_THETA = MathHelper::AngleClamp(step_/RT);
-    stepc_ = RT*sqrt(2.0*(1-std::cos(D_THETA)));
-    Dis2Path_Constraint::setAngle(D_THETA/2.0);
+    double H_D_THETA = D_THETA/2.0;
+    stepc_ = 2.0*RT*std::sin(H_D_THETA);
+    Dis2Path_Constraint::setAngle(H_D_THETA);
 }
 
 //borrowed from path_planner/planner_node.cpp

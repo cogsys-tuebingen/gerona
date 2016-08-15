@@ -22,7 +22,7 @@ struct PathFollowerParameters : public Parameters
     P<bool> c1, c2;
     P<double> s1, s2, s3, s4, s5, s6;
     P<int> nnodes;
-    P<double> dis2p, dis2o, s_angle;
+    P<double> uinterval,dis2p, dis2o, s_angle;
 
     // obstacle avoider
     P<bool> obstacle_avoider_use_collision_box;
@@ -80,6 +80,8 @@ struct PathFollowerParameters : public Parameters
            "Determines whether the sixth scorer is used or not. (Distance to nearest obstacle)"),
         nnodes(this, "~nnodes", 300,
                "Determines the maximum number of nodes used by the local planner"),
+        uinterval(this, "~uinterval", 1.0,
+                  "Determines the update interval in seconds of the local planner"),
         dis2p(this, "~dis2p", 0.3,
               "Determines how far from the path should the local planner perform"),
         dis2o(this, "~dis2o", 0.85,
