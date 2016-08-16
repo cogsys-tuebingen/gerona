@@ -25,14 +25,16 @@ protected:
                        /*, bool repeat = false*/){
         successors.clear();
         double ori = current->orientation;
-        double ox = current->x;
-        double oy = current->y;
+        double trax = L*std::cos(ori)/2.0;
+        double tray = L*std::sin(ori)/2.0;
+        double ox = current->x - trax;
+        double oy = current->y - tray;
         for(int i = 0; i < 3; ++i){
             double x,y,theta;
             if(i == 0){// straight
                 theta = ori;
-                x = ox + step_*std::cos(theta);
-                y = oy + step_*std::sin(theta);
+                x = ox + step_*std::cos(theta) + trax;
+                y = oy + step_*std::sin(theta) + tray;
             }else{
                 double rt;
                 switch (i) {
@@ -47,12 +49,15 @@ protected:
                 default:
                     break;
                 }
-                x = ox + rt*(std::sin(ori+theta)-std::sin(ori));
-                y = oy + rt*(-std::cos(ori+theta)+std::cos(ori));
                 theta = MathHelper::AngleClamp(ori + theta);
+                trax = L*std::cos(theta)/2.0;
+                tray = L*std::sin(theta)/2.0;
+                x = ox + rt*(std::sin(theta)-std::sin(ori)) + trax;
+                y = oy + rt*(-std::cos(theta)+std::cos(ori)) + tray;
+                
             }
             NodeT succ(x,y,theta,current,current->level_+1);
-            setDistances(succ,(fconstraints.at(1) || wscorer.at(4) != 0));
+            setDistances(succ,(fconstraints.back() || wscorer.back() != 0));
 
             if(areConstraintsSAT(succ,constraints,fconstraints)){
                 int wo = -1;
@@ -129,11 +134,16 @@ protected:
     template <typename NodeT>
     void retrievePath(NodeT* obj, SubPath& local_wps){
         LNode* cu = obj;
-        while(cu != nullptr){
-            local_wps.push_back(*cu);
+        local_wps.resize(cu->level_ + 1);
+        const std::size_t length = local_wps.size();
+        for(std::size_t i = 0; i < length; ++i){
+            const std::size_t index = (length - 1) - i;
+            local_wps.at(index).x = cu->x;
+            local_wps.at(index).y = cu->y;
+            local_wps.at(index).orientation = cu->orientation;
+            local_wps.at(index).s = cu->s;
             cu = cu->parent_;
         }
-        std::reverse(local_wps.begin(),local_wps.end());
     }
 
     template <typename NodeT>
@@ -184,13 +194,13 @@ protected:
     template <typename NodeT>
     bool processPath(NodeT* obj,SubPath& local_wps){
         retrievePath(obj, local_wps);
-        if(local_wps.size() < 3){
+        if((local_wps.back().s - local_wps.front().s) < 0.1){
             return false;
         }
         last_s = global_path_.s_new();
         global_path_.set_s_new(local_wps.at(min((int)local_wps.size() - 1, 3)).s);
         smoothAndInterpolate(local_wps);
-        savePath(local_wps);
+        last_local_path_.interpolatePath(local_wps, "/odom");
         return true;
     }
 
@@ -209,8 +219,6 @@ protected:
 
     double Score(const LNode& current, const double& dis2last,
                         const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer);
-
-    void savePath(SubPath& local_wps);
 
     void setStep();
 

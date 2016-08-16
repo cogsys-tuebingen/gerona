@@ -13,14 +13,13 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
       d2p(0.0),last_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
-      c_dist(),last_local_path_(),step_(0.0),stepc_(0.0)
+      c_dist(),step_(0.0),stepc_(0.0)
 {
 
 }
 
 void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
     LocalPlannerImplemented::setGlobalPath(path);
-    last_local_path_ = PathInterpolated();
     last_s = 0.0;
 }
 
@@ -312,9 +311,11 @@ bool LocalPlannerClassic::areConstraintsSAT(const LNode& current, const std::vec
 }
 
 void LocalPlannerClassic::smoothAndInterpolate(SubPath& local_wps){
+    //interpolate
+    local_wps = interpolatePath(local_wps, 0.5);
     //smoothing
     local_wps = smoothPath(local_wps, 0.6, 0.15);
-    //interpolate
+    //final interpolate
     local_wps = interpolatePath(local_wps, 0.1);
     //final smoothing
     local_wps = smoothPath(local_wps, 2.0, 0.4);
@@ -334,19 +335,11 @@ double LocalPlannerClassic::Score(const LNode& current, const double& dis2last,
     score2 += ((wscorer.back() != 0.0)?(wscorer.back()*scorer.back()->score(current)):0.0);
     return max(score1,score2);
 }
-void LocalPlannerClassic::savePath(SubPath& local_wps){
-    std::vector<SubPath> tmpV;
-    tmpV.push_back(local_wps);
-    Path::Ptr tmpPath(new Path("/odom"));
-    tmpPath->setPath(tmpV);
-    last_local_path_.interpolatePath(tmpPath,false);
-}
 
 void LocalPlannerClassic::setLLP(std::size_t index){
     SubPath tmp_p = (SubPath)last_local_path_;
     wlp_.clear();
     wlp_.assign(tmp_p.begin(),tmp_p.begin() + index);
-    ROS_INFO_STREAM(index << "/" << tmp_p.size());
 }
 
 void LocalPlannerClassic::setLLP(){

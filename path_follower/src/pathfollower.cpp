@@ -612,7 +612,6 @@ void PathFollower::start()
     controller_->start();
 
     local_planner_->setGlobalPath(path_);
-    //local_planner_->setVelocity(getVelocity().linear);
     local_planner_->setVelocity(vel_);
 
     is_running_ = true;
