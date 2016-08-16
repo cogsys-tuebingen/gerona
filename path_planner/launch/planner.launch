@@ -3,6 +3,7 @@
    <node name="path_planner" type="path_planner_node" pkg="path_planner"
     		output="screen" respawn="true">
         <param name="use_map_topic" value="false" />
+        <param name="use_map_service" value="false" />
         <param name="map_service" value="/dynamic_map" />
         <param name="map_topic" value="/global_cost_map" />
         <param name="use_unknown_cells" value="true" />

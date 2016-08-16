@@ -29,7 +29,7 @@ Planner::Planner()
     //            (target_topic, 2, boost::bind(&Planner::updateGoalCallback, this, _1));
 
     nh_priv.param("use_map_topic", use_map_topic_, false);
-    use_map_service_ = !use_map_topic_;
+    nh_priv.param("use_map_service", use_map_service_, !use_map_topic_);
 
     if(use_map_topic_) {
         std::string map_topic = "/map";
@@ -393,6 +393,24 @@ nav_msgs::Path Planner::findPath(const path_msgs::PlanPathGoal& request)
             return nav_msgs::Path();
         }
         ROS_INFO_STREAM("map service lookup took " << sw.msElapsed() << "ms");
+
+    } else {
+        nav_msgs::OccupancyGrid empty_map;
+        empty_map.header.frame_id = "/map";
+        empty_map.header.stamp = ros::Time::now();
+        empty_map.info.resolution = 0.05;
+
+        double w = 30.0;
+        double h = 30.0;
+        empty_map.info.width = w / empty_map.info.resolution;
+        empty_map.info.height = h / empty_map.info.resolution;
+        empty_map.info.origin.position.x = -w / 2.0;
+        empty_map.info.origin.position.y = -h / 2.0;
+        empty_map.info.origin.orientation.w = 1.0;
+        empty_map.data.resize(empty_map.info.width * empty_map.info.height, 0);
+
+        ROS_INFO_STREAM("no map to use, generate empty map");
+        updateMap(empty_map, false);
     }
 
     if(map_info == NULL) {

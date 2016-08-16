@@ -87,7 +87,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES path_control
-#  CATKIN_DEPENDS geometry_msgs roscpp
+  CATKIN_DEPENDS geometry_msgs roscpp path_msgs tf actionlib
 #  DEPENDS system_lib
 )
 

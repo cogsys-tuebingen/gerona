@@ -360,18 +360,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
             + opt_.lambda()*trig_ratio*ye_*opt_.x_ICR()*omega_meas*cos(theta_e)
             - opt_.k2()*trig_ratio*(theta_e-delta_)*(theta_e-delta_);
 
-
-    ROS_INFO("First: %f, second: %f, third: %f", - opt_.lambda()*trig_ratio*ye_*v_meas*sin(theta_e),
-             opt_.lambda()*trig_ratio*ye_*opt_.x_ICR()*omega_meas*cos(theta_e),
-             - opt_.k2()*trig_ratio*(theta_e-delta_)*(theta_e-delta_));
-    ROS_INFO("Lambda: %f, x_ICR: %f, delta_prim %f", opt_.lambda(), opt_.x_ICR(), delta_prim);
-    ROS_INFO("Omega_cmd: %f, theta_e: %f, xe: %f, ye: %f", omega, theta_e, xe_, ye_);
     omega = boost::algorithm::clamp(omega, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
     cmd_.rotation = omega + path_interpol.curvature(ind_)*path_interpol.s_prim();
-    ROS_INFO("omega_meas: %f, v_meas: %f", omega_meas, v_meas);
-    ROS_INFO("Omega_cmd clamped: %f", omega);
-    ROS_INFO("Cumulative curvature: %f", curv_sum_);
-
     ///***///
 
 

@@ -288,10 +288,12 @@ struct PathPlanner : public Planner
     typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD> > AStarPatsyForward;
     typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD>,
     ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
-    //    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStarOmnidrive; // Omnidrive
+    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStarOmnidrive; // Omnidrive
+    //typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD> > AStarOmnidrive;
 
     typedef AStarAckermannReversed AStarAckermann;
     typedef AStarSummitReversed AStarSummit;
+    typedef AStarOmnidrive AStar2D;
     //    typedef AStarOmnidrive AStar;
 
     typedef AStarAckermann::PathT PathT;
@@ -299,7 +301,8 @@ struct PathPlanner : public Planner
     enum class Algo {
         ACKERMANN = 0,
         SUMMIT = 1,
-        SUMMIT_FORWARD = 2
+        SUMMIT_FORWARD = 2,
+        OMNI = 3
     };
 
     PathPlanner()
@@ -337,11 +340,14 @@ struct PathPlanner : public Planner
             return Algo::SUMMIT;
         } else if(algo == "summit_forward") {
             return Algo::SUMMIT_FORWARD;
+        } else if(algo == "omni" || algo == "2d") {
+            return Algo::OMNI;
         }
 
         throw std::runtime_error(std::string("unknown algorithm ") + algo);
     }
 
+    template <typename PathT>
     nav_msgs::Path path2msg(const PathT& path, const ros::Time &goal_timestamp)
     {
         nav_msgs::Path path_out;
@@ -393,7 +399,7 @@ struct PathPlanner : public Planner
         initSearch(algo, request.goal.pose.header);
 
         try {
-            PathT path;
+            typename Algorithm::PathT path;
             if(render_open_cells_) {
                 path = algo.findPath(from_map, to_map,
                                      boost::bind(&PathPlanner::renderCells, this, algo_id),
@@ -421,7 +427,7 @@ struct PathPlanner : public Planner
         initSearch(algo, request.goal.map.header);
 
         try {
-            PathT path;
+            typename Algorithm::PathT path;
             MapGoalTest<Algorithm> goal_test(algo, from_world,
                                              request.goal.min_dist,
                                              request.goal.map, map_info);
@@ -470,6 +476,8 @@ struct PathPlanner : public Planner
             return planMapInstance(algorithm, algo_summit, request, from_world, from_map);
         case Algo::SUMMIT_FORWARD:
             return planMapInstance(algorithm, algo_summit_forward, request, from_world, from_map);
+        case Algo::OMNI:
+            return planMapInstance(algorithm, algo_omni, request, from_world, from_map);
 
         default:
             throw std::runtime_error("unknown algorithm selected");
@@ -494,6 +502,8 @@ struct PathPlanner : public Planner
             return planInstance(algorithm, algo_summit, goal, from_world, to_world, from_map, to_map);
         case Algo::SUMMIT_FORWARD:
             return planInstance(algorithm, algo_summit_forward, goal, from_world, to_world, from_map, to_map);
+        case Algo::OMNI:
+            return planInstance(algorithm, algo_omni, goal, from_world, to_world, from_map, to_map);
 
         default:
             throw std::runtime_error("unknown algorithm selected");
@@ -528,6 +538,8 @@ struct PathPlanner : public Planner
             return renderCellsInstance(algo_summit);
         case Algo::SUMMIT_FORWARD:
             return renderCellsInstance(algo_summit_forward);
+        case Algo::OMNI:
+            return renderCellsInstance(algo_omni);
 
         default:
             throw std::runtime_error("unknown algorithm selected");
@@ -539,6 +551,7 @@ private:
     AStarAckermann algo_ackermann;
     AStarSummit algo_summit;
     AStarSummitForward algo_summit_forward;
+    AStar2D algo_omni;
 
     Algo algo_to_use;
     double oversearch_distance_;
