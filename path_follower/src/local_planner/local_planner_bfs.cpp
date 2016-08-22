@@ -22,7 +22,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     initIndexes(pose);
     initScorers(scorer, wscorer);
 
-    LNode wpose(pose(0),pose(1),pose(2),nullptr,0);
+    LNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
 
     float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
 

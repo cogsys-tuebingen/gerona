@@ -42,7 +42,6 @@ void LocalPlannerClassic::setVelocity(double velocity){
 void LocalPlannerClassic::setStep(){
     double dis = velocity_ * update_interval_.toSec();
     step_ = 3.0*dis/10.0;
-    LNode::h = step_;
     D_THETA = MathHelper::AngleClamp(step_/RT);
     double H_D_THETA = D_THETA/2.0;
     stepc_ = 2.0*RT*std::sin(H_D_THETA);
@@ -329,13 +328,11 @@ void LocalPlannerClassic::printNodeUsage(int& nnodes) const{
 
 double LocalPlannerClassic::Score(const LNode& current, const double& dis2last,
                         const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer){
-    double score1 = dis2last + ((wscorer.front() != 0.0)?(wscorer.front()*scorer.front()->score(current)):0.0);
-    double score2 = score1;
-    for(std::size_t i = 1; i < scorer.size() - 1; ++i){
-        score1 += ((wscorer.at(i) != 0.0)?(wscorer.at(i)*scorer.at(i)->score(current)):0.0);
+    double score = dis2last;
+    for(std::size_t i = 0; i < scorer.size(); ++i){
+        score += ((wscorer.at(i) != 0.0)?(wscorer.at(i)*scorer.at(i)->score(current)):0.0);
     }
-    score2 += ((wscorer.back() != 0.0)?(wscorer.back()*scorer.back()->score(current)):0.0);
-    return max(score1,score2);
+    return score;
 }
 
 void LocalPlannerClassic::setLLP(std::size_t index){

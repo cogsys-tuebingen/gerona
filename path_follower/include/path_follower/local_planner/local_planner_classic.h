@@ -30,13 +30,13 @@ protected:
         double ox = current->x - trax;
         double oy = current->y - tray;
         for(int i = 0; i < 3; ++i){
-            double x,y,theta;
+            double x,y,theta,rt;
             if(i == 0){// straight
                 theta = ori;
                 x = ox + step_*std::cos(theta) + trax;
                 y = oy + step_*std::sin(theta) + tray;
+                rt = std::numeric_limits<double>::infinity();
             }else{
-                double rt;
                 switch (i) {
                 case 1:// right
                     rt = -RT;
@@ -56,7 +56,7 @@ protected:
                 y = oy + rt*(-std::cos(theta)+std::cos(ori)) + tray;
                 
             }
-            NodeT succ(x,y,theta,current,current->level_+1);
+            NodeT succ(x,y,theta,current,rt,current->level_+1);
             setDistances(succ,(fconstraints.back() || wscorer.back() != 0));
 
             if(areConstraintsSAT(succ,constraints,fconstraints)){
@@ -160,12 +160,14 @@ protected:
                     closest_point = dist;
                     index = i;
                 }
-            }
-            wpose.xp = last_local_path_.p_prim(index);
-            wpose.yp = last_local_path_.q_prim(index);
+            }            
+            double curv = last_local_path_.curvature(index);
 
-            wpose.xs = last_local_path_.p_sek(index);
-            wpose.ys = last_local_path_.q_sek(index);
+            if(curv == 0.0){
+                wpose.radius_ = std::numeric_limits<double>::infinity();
+            }else{
+                wpose.radius_ = 1.0/curv;
+            }
 
             setLLP(index + 1);
         }

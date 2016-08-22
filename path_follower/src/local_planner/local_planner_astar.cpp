@@ -22,7 +22,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     initIndexes(pose);
     initScorers(scorer, wscorer);
 
-    HNode wpose(pose(0),pose(1),pose(2),nullptr,0);
+    HNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
 
     float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
 
@@ -81,7 +81,6 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
             successors[i]->parent_ = current;
             successors[i]->gScore_ = tentative_gScore;
-            successors[i]->computeDiff();
 
             heuristic = Score(*(successors[i]), dis2last, scorer, wscorer);
 
