@@ -13,7 +13,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
       d2p(0.0),last_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
-      c_dist(),step_(0.0),stepc_(0.0)
+      c_dist(),step_(0.0),stepc_(0.0),neig_s(0.0)
 {
 
 }
@@ -45,6 +45,7 @@ void LocalPlannerClassic::setStep(){
     D_THETA = MathHelper::AngleClamp(step_/RT);
     double H_D_THETA = D_THETA/2.0;
     stepc_ = 2.0*RT*std::sin(H_D_THETA);
+    neig_s = stepc_*sin(H_D_THETA);
     Dis2Path_Constraint::setAngle(H_D_THETA);
 }
 

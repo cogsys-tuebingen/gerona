@@ -78,7 +78,7 @@ protected:
     bool isInGraph(const NodeT& current, std::vector<NodeT>& nodes, int& asize, int& position){
         for(std::size_t i = 0; i < asize; ++i){
             double dis = current.distanceTo(nodes[i]);
-            if(dis < 0.009){
+            if(dis <= neig_s){
                 position = i;
                 return true;
             }
@@ -183,11 +183,11 @@ protected:
         double d1 = std::hypot(x, y);
 
         x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation + D_THETA/2.0));
-        x = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation + D_THETA/2.0));
+        y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation + D_THETA/2.0));
         double d2 = std::hypot(x, y);
 
         x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation - D_THETA/2.0));
-        x = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation - D_THETA/2.0));
+        y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation - D_THETA/2.0));
         double d3 = std::hypot(x, y);
 
         d2p = max(max(wpose.d2p,d1),max(d2,d3));
@@ -252,7 +252,7 @@ protected:
 
     PathInterpolated last_local_path_;
 
-    double step_,stepc_;
+    double step_,stepc_,neig_s;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H
