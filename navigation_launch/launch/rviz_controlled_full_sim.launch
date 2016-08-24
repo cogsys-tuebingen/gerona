@@ -16,23 +16,30 @@ demonstrating the navigation framework.
 
     <arg name="s1" default="-1.0" />
 
-    <!-- Default -->
-    <!-- arg name="s2" default="0.0" />
+    <!-- Config 0: Pure Algorithm -->
+    <arg name="s2" default="0.0" />
     <arg name="s3" default="0.0" />
     <arg name="s4" default="0.0" />
     <arg name="s5" default="0.0" />
-    <arg name="s6" default="0.0" / -->
-
-    <!-- Config 1 -->
-    <arg name="s2" default="0.999999999999999" />
-    <arg name="s3" default="0.0" />
-    <arg name="s4" default="0.0" />
-    <arg name="s5" default="6.485073211958249e-04" />
     <arg name="s6" default="0.0" />
 
-    <!-- Config 2 -->
-    <!-- arg name="s2" default="0.007855167211279" />
-    <arg name="s3" default="0.496362423595087" />
+    <!-- Config 1: Curvature + Distance Sint -->
+    <!-- arg name="s2" default="0.460650259627024" />
+    <arg name="s3" default="0.348678440100000" />
+    <arg name="s4" default="0.313810596090000" />
+    <arg name="s5" default="0.999999999999999" />
+    <arg name="s6" default="0.0" / -->
+
+    <!-- Config 2: Distance Sint -->
+    <!-- arg name="s2" default="0.999999999999999" />
+    <arg name="s3" default="0.0" />
+    <arg name="s4" default="0.0" />
+    <arg name="s5" default="5.910282799343574e-04" />
+    <arg name="s6" default="0.0" / -->
+
+    <!-- Config 3: Curvature Sint -->
+    <!-- arg name="s2" default="0.0" />
+    <arg name="s3" default="0.0" />
     <arg name="s4" default="0.0" />
     <arg name="s5" default="0.999999999999999" />
     <arg name="s6" default="0.0" / -->

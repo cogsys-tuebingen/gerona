@@ -279,10 +279,6 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
             index2 = i;
         }
     }
-    /**/
-    ROS_INFO_STREAM("s(index1): " << global_path_.s(index1));
-    ROS_INFO_STREAM("s(index2): " << global_path_.s(index2));
-    /**/
 
     c_dist.clear();
     for(std::size_t i = index1; i <= index2; ++i){

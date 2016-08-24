@@ -44,7 +44,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     std::queue<LNode*> fifo;
     fifo.push(&nodes[0]);
-    double go_dist = Score(wpose, dis2last, scorer, wscorer);
+    double go_dist = std::numeric_limits<double>::infinity();
     int li_level = 10;
     nnodes = 1;
 

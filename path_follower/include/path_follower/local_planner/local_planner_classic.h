@@ -201,10 +201,6 @@ protected:
         }
         last_s = global_path_.s_new();
         global_path_.set_s_new(local_wps.at(min((int)local_wps.size() - 1, 3)).s);
-        /**/
-        ROS_INFO_STREAM("last_s: " << last_s);
-        ROS_INFO_STREAM("s_new: " << global_path_.s_new());
-        /**/
         smoothAndInterpolate(local_wps);
         last_local_path_.interpolatePath(local_wps, "/odom");
         return true;
