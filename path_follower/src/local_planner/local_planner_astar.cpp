@@ -87,12 +87,10 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
             successors[i]->fScore_ = heuristic;
 
             prio_queue::const_iterator inOpen = std::find(openSet.begin(), openSet.end(), successors[i]);
-            if(inOpen == openSet.end()){
-                openSet.insert(successors[i]);
-            }else{
+            if(inOpen != openSet.end()){
                 openSet.erase(inOpen);
-                openSet.insert(successors[i]);
             }
+            openSet.insert(successors[i]);
 
             if(heuristic < go_dist){
                 go_dist = heuristic;

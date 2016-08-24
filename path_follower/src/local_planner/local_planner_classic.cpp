@@ -270,7 +270,7 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
         }
         c_s = global_path_.s(j);
     }
-    double s_new = global_path_.s(index1) + 3.0 * velocity_;
+    double s_new = global_path_.s(index1) + 3.0 * velocity_ * update_interval_.toSec();
     closest_dist = std::numeric_limits<double>::infinity();
     for(std::size_t i = index1; i < global_path_.n(); ++i){
         double dist = std::abs(s_new - global_path_.s(i));
@@ -279,6 +279,10 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
             index2 = i;
         }
     }
+    /**/
+    ROS_INFO_STREAM("s(index1): " << global_path_.s(index1));
+    ROS_INFO_STREAM("s(index2): " << global_path_.s(index2));
+    /**/
 
     c_dist.clear();
     for(std::size_t i = index1; i <= index2; ++i){

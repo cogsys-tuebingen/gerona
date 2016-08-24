@@ -14,28 +14,27 @@ demonstrating the navigation framework.
     <arg name="c1" default="true" />
     <arg name="c2" default="true" />
 
-    <!-- Default -->
     <arg name="s1" default="-1.0" />
-    <arg name="s2" default="0.0" />
+
+    <!-- Default -->
+    <!-- arg name="s2" default="0.0" />
     <arg name="s3" default="0.0" />
     <arg name="s4" default="0.0" />
     <arg name="s5" default="0.0" />
-    <arg name="s6" default="0.0" />
-
-    <!-- Config 1 -->
-    <!-- arg name="s1" default="-1.0" />
-    <arg name="s2" default="1.385507100000003" />
-    <arg name="s3" default="0.399273279030736" />
-    <arg name="s4" default="-0.568778791690001" />
-    <arg name="s5" default="0.999999999999999" />
     <arg name="s6" default="0.0" / -->
 
+    <!-- Config 1 -->
+    <arg name="s2" default="0.999999999999999" />
+    <arg name="s3" default="0.0" />
+    <arg name="s4" default="0.0" />
+    <arg name="s5" default="6.485073211958249e-04" />
+    <arg name="s6" default="0.0" />
+
     <!-- Config 2 -->
-    <!-- arg name="s1" default="-1.0" />
-    <arg name="s2" default="0.063360258208040" />
-    <arg name="s3" default="-0.842431760366990" />
-    <arg name="s4" default="1.046630274102737" />
-    <arg name="s5" default="0.030820909140357" />
+    <!-- arg name="s2" default="0.007855167211279" />
+    <arg name="s3" default="0.496362423595087" />
+    <arg name="s4" default="0.0" />
+    <arg name="s5" default="0.999999999999999" />
     <arg name="s6" default="0.0" / -->
 
     <arg name="nnodes" default="400" />
