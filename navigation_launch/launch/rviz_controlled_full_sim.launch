@@ -14,35 +14,33 @@ demonstrating the navigation framework.
     <arg name="c1" default="true" />
     <arg name="c2" default="true" />
 
-    <arg name="s1" default="-1.0" />
-
     <!-- Config 0: Pure Algorithm -->
+    <arg name="s1" default="0.0" />
     <arg name="s2" default="0.0" />
     <arg name="s3" default="0.0" />
     <arg name="s4" default="0.0" />
     <arg name="s5" default="0.0" />
-    <arg name="s6" default="0.0" />
 
     <!-- Config 1: Curvature + Distance Sint -->
-    <!-- arg name="s2" default="0.460650259627024" />
-    <arg name="s3" default="0.348678440100000" />
-    <arg name="s4" default="0.313810596090000" />
-    <arg name="s5" default="0.999999999999999" />
-    <arg name="s6" default="0.0" / -->
+    <!-- arg name="s1" default="0.460650259627024" />
+    <arg name="s2" default="0.348678440100000" />
+    <arg name="s3" default="0.313810596090000" />
+    <arg name="s4" default="0.999999999999999" />
+    <arg name="s5" default="0.0" / -->
 
     <!-- Config 2: Distance Sint -->
-    <!-- arg name="s2" default="0.999999999999999" />
+    <!-- arg name="s1" default="0.999999999999999" />
+    <arg name="s2" default="0.0" />
     <arg name="s3" default="0.0" />
-    <arg name="s4" default="0.0" />
-    <arg name="s5" default="5.910282799343574e-04" />
-    <arg name="s6" default="0.0" / -->
+    <arg name="s4" default="5.910282799343574e-04" />
+    <arg name="s5" default="0.0" / -->
 
     <!-- Config 3: Curvature Sint -->
-    <!-- arg name="s2" default="0.0" />
+    <!-- arg name="s1" default="0.0" />
+    <arg name="s2" default="0.0" />
     <arg name="s3" default="0.0" />
-    <arg name="s4" default="0.0" />
-    <arg name="s5" default="0.999999999999999" />
-    <arg name="s6" default="0.0" / -->
+    <arg name="s4" default="0.999999999999999" />
+    <arg name="s5" default="0.0" / -->
 
     <arg name="nnodes" default="400" />
     <arg name="uinterval" default="0.5" />
@@ -80,7 +78,6 @@ demonstrating the navigation framework.
       <arg name="s3" value="$(arg s3)" />
       <arg name="s4" value="$(arg s4)" />
       <arg name="s5" value="$(arg s5)" />
-      <arg name="s6" value="$(arg s6)" />
 
       <arg name="nnodes" value="$(arg nnodes)" />
       <arg name="uinterval" value="$(arg uinterval)" />

@@ -15,12 +15,11 @@ Please make sure, you add an according launch file, if you implement a new contr
 	<arg name="c1" default="true" />
 	<arg name="c2" default="true" />
 
-	<arg name="s1" default="-1.0" />
-	<arg name="s2" default="1.0" />
-	<arg name="s3" default="1.0" />
-        <arg name="s4" default="1.0" />
-        <arg name="s5" default="1.0" />
-        <arg name="s6" default="1.0" />
+	<arg name="s1" default="0.0" />
+	<arg name="s2" default="0.0" />
+	<arg name="s3" default="0.0" />
+        <arg name="s4" default="0.0" />
+        <arg name="s5" default="0.0" />
 
         <arg name="nnodes" default="300" />
         <arg name="uinterval" default="1.0" />
@@ -38,7 +37,6 @@ Please make sure, you add an according launch file, if you implement a new contr
 		<arg name="s3" value="$(arg s3)" />
                 <arg name="s4" value="$(arg s4)" />
                 <arg name="s5" value="$(arg s5)" />
-                <arg name="s6" value="$(arg s6)" />
 
                 <arg name="nnodes" value="$(arg nnodes)" />
                 <arg name="uinterval" value="$(arg uinterval)" />

@@ -191,10 +191,9 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
     ROS_INFO("Constraint usage [%s, %s]", opt_.c1() ? "true" : "false",
              opt_.c2() ? "true" : "false");
-    ROS_INFO("Scorer usage [%s, %s, %s, %s, %s, %s]", (opt_.s1() != 0.0) ? "true" : "false",
+    ROS_INFO("Scorer usage [%s, %s, %s, %s, %s]", (opt_.s1() != 0.0) ? "true" : "false",
              (opt_.s2() != 0.0) ? "true" : "false", (opt_.s3() != 0.0) ? "true" : "false",
-             (opt_.s4() != 0.0) ? "true" : "false",(opt_.s5() != 0.0) ? "true" : "false",
-             (opt_.s6() != 0.0) ? "true" : "false");
+             (opt_.s4() != 0.0) ? "true" : "false",(opt_.s5() != 0.0) ? "true" : "false");
 
     obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
 																					&PathFollower::obstacleCloudCB, this);
@@ -418,6 +417,8 @@ void PathFollower::update()
         Supervisor::Result s_res = supervisors_.supervise(state);
         if (s_res.can_continue) {
             //Begin Constraints and Scorers Construction
+            //In case that more constraints or scorers need to added, please add them
+            //before Dis2Obst_Constraint/Scorer
             std::vector<Constraint::Ptr> constraints(2);
             std::vector<bool> fconstraints(2);
             if(opt_.c1()){
@@ -432,35 +433,34 @@ void PathFollower::update()
 
             std::vector<Scorer::Ptr> scorer(6);
             std::vector<double> wscorer(6);
-            if(opt_.s1() != 0.0){
-                scorer.at(0) = Dis2Start_Scorer::Ptr(new Dis2Start_Scorer);
-            }
-            wscorer.at(0) = opt_.s1();
 
-            if(opt_.s2() != 0.0){
+            scorer.at(0) = Dis2Start_Scorer::Ptr(new Dis2Start_Scorer);
+            wscorer.at(0) = -1.0;
+
+            if(opt_.s1() != 0.0){
                 scorer.at(1) = Dis2PathP_Scorer::Ptr(new Dis2PathP_Scorer);
             }
-            wscorer.at(1) = opt_.s2();
+            wscorer.at(1) = opt_.s1();
 
-            if(opt_.s3() != 0.0){
+            if(opt_.s2() != 0.0){
                 scorer.at(2) = Dis2PathI_Scorer::Ptr(new Dis2PathI_Scorer);
             }
-            wscorer.at(2) = opt_.s3();
+            wscorer.at(2) = opt_.s2();
 
-            if(opt_.s4() != 0.0){
+            if(opt_.s3() != 0.0){
                 scorer.at(3) = Dis2PathD_Scorer::Ptr(new Dis2PathD_Scorer);
             }
-            wscorer.at(3) = opt_.s4();
+            wscorer.at(3) = opt_.s3();
 
-            if(opt_.s5() != 0.0){
+            if(opt_.s4() != 0.0){
                 scorer.at(4) = Curvature_Scorer::Ptr(new Curvature_Scorer);
             }
-            wscorer.at(4) = opt_.s5();
+            wscorer.at(4) = opt_.s4();
 
-            if(opt_.s6() != 0.0){
+            if(opt_.s5() != 0.0){
                 scorer.at(5) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
             }
-            wscorer.at(5) = opt_.s6();
+            wscorer.at(5) = opt_.s5();
 
             //End Constraints and Scorers Construction
             if(obstacle_cloud_ != nullptr){
