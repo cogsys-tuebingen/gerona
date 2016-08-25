@@ -23,9 +23,9 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     HNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
 
-    float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
+    float dis2last = global_path_.s(global_path_.n()-1);
 
-    if(dis2last + ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wpose)):0.0) < 0.8){
+    if(std::abs(dis2last - wpose.s) < 0.8){
         tooClose = true;
         setLLP();
         return false;
@@ -61,6 +61,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         openSet.erase(openSet.begin());
         if(std::abs(current->s - dis2last) <= 0.05){
             obj = current;
+            tooClose = true;
             break;
         }
         closedSet.push_back(current);

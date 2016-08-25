@@ -431,36 +431,32 @@ void PathFollower::update()
             }
             fconstraints.at(1) = opt_.c2();
 
-            std::vector<Scorer::Ptr> scorer(6);
-            std::vector<double> wscorer(6);
-
-            scorer.at(0) = Dis2Start_Scorer::Ptr(new Dis2Start_Scorer);
-            wscorer.at(0) = -1.0;
-
+            std::vector<Scorer::Ptr> scorer(5);
+            std::vector<double> wscorer(5);
             if(opt_.s1() != 0.0){
-                scorer.at(1) = Dis2PathP_Scorer::Ptr(new Dis2PathP_Scorer);
+                scorer.at(0) = Dis2PathP_Scorer::Ptr(new Dis2PathP_Scorer);
             }
-            wscorer.at(1) = opt_.s1();
+            wscorer.at(0) = opt_.s1();
 
             if(opt_.s2() != 0.0){
-                scorer.at(2) = Dis2PathI_Scorer::Ptr(new Dis2PathI_Scorer);
+                scorer.at(1) = Dis2PathI_Scorer::Ptr(new Dis2PathI_Scorer);
             }
-            wscorer.at(2) = opt_.s2();
+            wscorer.at(1) = opt_.s2();
 
             if(opt_.s3() != 0.0){
-                scorer.at(3) = Dis2PathD_Scorer::Ptr(new Dis2PathD_Scorer);
+                scorer.at(2) = Dis2PathD_Scorer::Ptr(new Dis2PathD_Scorer);
             }
-            wscorer.at(3) = opt_.s3();
+            wscorer.at(2) = opt_.s3();
 
             if(opt_.s4() != 0.0){
-                scorer.at(4) = Curvature_Scorer::Ptr(new Curvature_Scorer);
+                scorer.at(3) = Curvature_Scorer::Ptr(new Curvature_Scorer);
             }
-            wscorer.at(4) = opt_.s4();
+            wscorer.at(3) = opt_.s4();
 
             if(opt_.s5() != 0.0){
-                scorer.at(5) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
+                scorer.at(4) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
             }
-            wscorer.at(5) = opt_.s5();
+            wscorer.at(4) = opt_.s5();
 
             //End Constraints and Scorers Construction
             if(obstacle_cloud_ != nullptr){

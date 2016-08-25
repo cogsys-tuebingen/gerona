@@ -232,6 +232,9 @@ protected:
         last_s = global_path_.s_new();
         global_path_.set_s_new(local_wps.at(min((int)local_wps.size() - 1, 3)).s);
         smoothAndInterpolate(local_wps);
+        if(tooClose){
+            wlp_.insert(wlp_.end(),local_wps.begin(),local_wps.end());
+        }
         last_local_path_.interpolatePath(local_wps, "/odom");
         return true;
     }

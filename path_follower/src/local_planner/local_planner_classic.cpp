@@ -319,7 +319,7 @@ void LocalPlannerClassic::printNodeUsage(int& nnodes) const{
 
 double LocalPlannerClassic::Score(const LNode& current, const double& dis2last,
                         const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer){
-    double score = dis2last;
+    double score = dis2last - current.s;
     for(std::size_t i = 0; i < scorer.size(); ++i){
         score += ((wscorer.at(i) != 0.0)?(wscorer.at(i)*scorer.at(i)->score(current)):0.0);
     }
