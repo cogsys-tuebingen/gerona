@@ -12,8 +12,8 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
-      d2p(0.0),last_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
-      c_dist(),step_(0.0),stepc_(0.0),neig_s(0.0)
+      d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
+      step_(0.0),stepc_(0.0),neig_s(0.0)
 {
 
 }
@@ -21,6 +21,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
 void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
     LocalPlannerImplemented::setGlobalPath(path);
     last_s = 0.0;
+    new_s = 0.0;
 }
 
 void LocalPlannerClassic::setVelocity(geometry_msgs::Twist::_linear_type vector){
@@ -280,18 +281,7 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
         }
     }
 
-    c_dist.clear();
-    for(std::size_t i = index1; i <= index2; ++i){
-        c_dist.push_back(global_path_.s(i));
-    }
-}
-
-void LocalPlannerClassic::initScorers(const std::vector<Scorer::Ptr>& scorer,
-                                      const std::vector<double>& wscorer){
-    if(wscorer.at(0) != 0.0){
-        std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setPath(waypoints, c_dist,
-                                                                           index1, index2);
-    }
+    new_s = global_path_.s(index1);
 }
 
 void LocalPlannerClassic::initConstraints(const std::vector<Constraint::Ptr>& constraints,

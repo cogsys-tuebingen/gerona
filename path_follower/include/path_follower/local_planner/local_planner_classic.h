@@ -101,9 +101,39 @@ protected:
                 closest_index = i;
             }
         }
+
+        double dis = 0.0;
+        if(closest_index == index1){
+            const Waypoint& p0 = waypoints[index1];
+            const Waypoint& p1 = waypoints[index1+1];
+            double x = p1.x - p0.x;
+            double y = p1.y - p0.y;
+            double a_next = std::atan2(y,x);
+            x = current.x - p0.x;
+            y = current.y - p0.y;
+            double a_point = std::atan2(y,x);
+            double adiff = std::abs(MathHelper::AngleClamp(a_next - a_point));
+            if(adiff > M_PI_2){
+                dis = -std::hypot(p0.x - current.x, p0.y - current.y);
+            }
+        }
+        if(closest_index == index2){
+            const Waypoint& p0 = waypoints[index2];
+            const Waypoint& p1 = waypoints[index2-1];
+            double x = p1.x - p0.x;
+            double y = p1.y - p0.y;
+            double a_prev = std::atan2(y,x);
+            x = current.x - p0.x;
+            y = current.y - p0.y;
+            double a_point = std::atan2(y,x);
+            double adiff = std::abs(MathHelper::AngleClamp(a_prev - a_point));
+            if(adiff > M_PI_2){
+                dis = std::hypot(p0.x - current.x, p0.y - current.y);
+            }
+        }
         current.d2p = closest_dist;
         current.npp = waypoints[closest_index];
-        current.s = global_path_.s(closest_index);
+        current.s = current.npp.s + dis;
 
         if(b_obst){
             tf::Point pt(current.x, current.y, current.orientation);
@@ -148,7 +178,7 @@ protected:
 
     template <typename NodeT>
     void retrieveContinuity(NodeT& wpose){
-        global_path_.set_s_new(c_dist.at(0));
+        global_path_.set_s_new(new_s);
         if(last_local_path_.n()>0){
             std::size_t index = -1;
             double closest_point = std::numeric_limits<double>::infinity();
@@ -209,9 +239,6 @@ protected:
     bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
                            const std::vector<bool>& fconstraints);
 
-    void initScorers(const std::vector<Scorer::Ptr>& scorer,
-                     const std::vector<double>& wscorer);
-
     void initConstraints(const std::vector<Constraint::Ptr>& constraints,
                                               const std::vector<bool>& fconstraints);
 
@@ -242,13 +269,11 @@ protected:
     static int nnodes_;
     static double D_THETA, RT;
 
-    double d2p, last_s, velocity_;
+    double d2p, last_s, new_s, velocity_;
     bool fvel_;
 
     std::size_t index1;
     std::size_t index2;
-
-    std::vector<double> c_dist;
 
     PathInterpolated last_local_path_;
 

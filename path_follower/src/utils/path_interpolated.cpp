@@ -213,6 +213,7 @@ PathInterpolated::operator SubPath() const {
         path.at(i).x = p_[i];
         path.at(i).y = q_[i];
         path.at(i).orientation = std::atan2(q_prim_[i],p_prim_[i]);
+        path.at(i).s = s_[i];
     }
 
     return path;
