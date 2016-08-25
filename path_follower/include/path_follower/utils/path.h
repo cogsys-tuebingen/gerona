@@ -101,7 +101,7 @@ struct HNode: LNode
     double fScore_;
 };
 
-struct CompareLNode : public std::binary_function<HNode*, HNode*, bool> {
+struct CompareHNode : public std::binary_function<HNode*, HNode*, bool> {
     bool operator()(const HNode* lhs, const HNode* rhs) const {
         return lhs->fScore_ < rhs->fScore_;
     }

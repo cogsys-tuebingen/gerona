@@ -19,7 +19,7 @@ private:
                      int& nnodes) override;
 
 private:
-    typedef std::multiset<HNode*,CompareLNode> prio_queue;
+    typedef std::multiset<HNode*,CompareHNode> prio_queue;
 };
 
 #endif // LOCAL_PLANNER_ASTAR_H
