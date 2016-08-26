@@ -65,6 +65,9 @@ protected:
                     nodes.at(nsize) = succ;
                     successors.push_back(&nodes.at(nsize));
                     nsize++;
+                    if(nsize >= nnodes_){
+                        return;
+                    }
                 }/*else{
                     if(repeat){
                         successors.push_back(&nodes[wo]);
@@ -90,9 +93,6 @@ protected:
     void setDistances(NodeT& current, bool b_obst){
         double closest_dist = std::numeric_limits<double>::infinity();
         int closest_index = 0;
-        if(waypoints.empty()){
-            return;
-        }
         for(std::size_t i = index1; i <= index2; ++i) {
             const Waypoint& wp = waypoints[i];
             double dist = std::hypot(wp.x - current.x, wp.y - current.y);

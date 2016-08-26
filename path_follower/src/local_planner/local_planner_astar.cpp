@@ -22,6 +22,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     initIndexes(pose);
 
     HNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
+    setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
 
     float dis2last = global_path_.s(global_path_.n()-1);
 
@@ -32,7 +33,6 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     }
 
     retrieveContinuity(wpose);
-    setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
     setD2P(wpose);
     initConstraints(constraints,fconstraints);
 
@@ -56,7 +56,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     HNode* current;
 
-    while(!openSet.empty() && (openSet.empty()?nodes.at(nnodes - 1).level_:(*openSet.begin())->level_) <= li_level){
+    while(!openSet.empty() && (openSet.empty()?nodes.at(nnodes - 1).level_:(*openSet.begin())->level_) <= li_level && nnodes < nnodes_){
         current = *openSet.begin();
         openSet.erase(openSet.begin());
         if(std::abs(current->s - dis2last) <= 0.05){

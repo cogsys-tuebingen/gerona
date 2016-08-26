@@ -22,6 +22,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     initIndexes(pose);
 
     LNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
+    setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
 
     float dis2last = global_path_.s(global_path_.n()-1);
 
@@ -32,7 +33,6 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     }
 
     retrieveContinuity(wpose);
-    setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
     setD2P(wpose);
     initConstraints(constraints,fconstraints);
 
@@ -49,7 +49,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     LNode* current;
 
-    while(!fifo.empty() && (fifo.empty()?nodes.at(nnodes - 1).level_:fifo.front()->level_) <= li_level){
+    while(!fifo.empty() && (fifo.empty()?nodes.at(nnodes - 1).level_:fifo.front()->level_) <= li_level && nnodes < nnodes_){
         current = fifo.front();
         fifo.pop();
         if(std::abs(current->s - dis2last) <= 0.05){
