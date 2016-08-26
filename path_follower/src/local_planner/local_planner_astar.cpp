@@ -20,20 +20,19 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                   int& nnodes){
     // this planner uses the A* search algorithm
     initIndexes(pose);
-    initScorers(scorer, wscorer);
 
-    HNode wpose(pose(0),pose(1),pose(2),nullptr,0);
+    HNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
+    setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
 
-    float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
+    float dis2last = global_path_.s(global_path_.n()-1);
 
-    if(dis2last + ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wpose)):0.0) < 0.8){
+    if(std::abs(dis2last - wpose.s) < 0.8){
         tooClose = true;
         setLLP();
         return false;
     }
 
     retrieveContinuity(wpose);
-    setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
     setD2P(wpose);
     initConstraints(constraints,fconstraints);
 
@@ -51,17 +50,18 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     prio_queue openSet;
     openSet.insert(&nodes[0]);
-    double go_dist = heuristic;
+    double go_dist = std::numeric_limits<double>::infinity();
     int li_level = 10;
     nnodes = 1;
 
     HNode* current;
 
-    while(!openSet.empty() && (openSet.empty()?nodes.at(nnodes - 1).level_:(*openSet.begin())->level_) <= li_level){
+    while(!openSet.empty() && (openSet.empty()?nodes.at(nnodes - 1).level_:(*openSet.begin())->level_) <= li_level && nnodes < nnodes_){
         current = *openSet.begin();
         openSet.erase(openSet.begin());
         if(std::abs(current->s - dis2last) <= 0.05){
             obj = current;
+            tooClose = true;
             break;
         }
         closedSet.push_back(current);
@@ -81,19 +81,16 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
             successors[i]->parent_ = current;
             successors[i]->gScore_ = tentative_gScore;
-            successors[i]->computeDiff();
 
             heuristic = Score(*(successors[i]), dis2last, scorer, wscorer);
 
             successors[i]->fScore_ = heuristic;
 
             prio_queue::const_iterator inOpen = std::find(openSet.begin(), openSet.end(), successors[i]);
-            if(inOpen == openSet.end()){
-                openSet.insert(successors[i]);
-            }else{
+            if(inOpen != openSet.end()){
                 openSet.erase(inOpen);
-                openSet.insert(successors[i]);
             }
+            openSet.insert(successors[i]);
 
             if(heuristic < go_dist){
                 go_dist = heuristic;

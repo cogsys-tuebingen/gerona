@@ -30,13 +30,13 @@ protected:
         double ox = current->x - trax;
         double oy = current->y - tray;
         for(int i = 0; i < 3; ++i){
-            double x,y,theta;
+            double x,y,theta,rt;
             if(i == 0){// straight
                 theta = ori;
                 x = ox + step_*std::cos(theta) + trax;
                 y = oy + step_*std::sin(theta) + tray;
+                rt = std::numeric_limits<double>::infinity();
             }else{
-                double rt;
                 switch (i) {
                 case 1:// right
                     rt = -RT;
@@ -56,7 +56,7 @@ protected:
                 y = oy + rt*(-std::cos(theta)+std::cos(ori)) + tray;
                 
             }
-            NodeT succ(x,y,theta,current,current->level_+1);
+            NodeT succ(x,y,theta,current,rt,current->level_+1);
             setDistances(succ,(fconstraints.back() || wscorer.back() != 0));
 
             if(areConstraintsSAT(succ,constraints,fconstraints)){
@@ -65,6 +65,9 @@ protected:
                     nodes.at(nsize) = succ;
                     successors.push_back(&nodes.at(nsize));
                     nsize++;
+                    if(nsize >= nnodes_){
+                        return;
+                    }
                 }/*else{
                     if(repeat){
                         successors.push_back(&nodes[wo]);
@@ -78,7 +81,7 @@ protected:
     bool isInGraph(const NodeT& current, std::vector<NodeT>& nodes, int& asize, int& position){
         for(std::size_t i = 0; i < asize; ++i){
             double dis = current.distanceTo(nodes[i]);
-            if(dis < 0.009){
+            if(dis < neig_s){
                 position = i;
                 return true;
             }
@@ -90,9 +93,6 @@ protected:
     void setDistances(NodeT& current, bool b_obst){
         double closest_dist = std::numeric_limits<double>::infinity();
         int closest_index = 0;
-        if(waypoints.empty()){
-            return;
-        }
         for(std::size_t i = index1; i <= index2; ++i) {
             const Waypoint& wp = waypoints[i];
             double dist = std::hypot(wp.x - current.x, wp.y - current.y);
@@ -101,9 +101,39 @@ protected:
                 closest_index = i;
             }
         }
+
+        double dis = 0.0;
+        if(closest_index == index1){
+            const Waypoint& p0 = waypoints[index1];
+            const Waypoint& p1 = waypoints[index1+1];
+            double x = p1.x - p0.x;
+            double y = p1.y - p0.y;
+            double a_next = std::atan2(y,x);
+            x = current.x - p0.x;
+            y = current.y - p0.y;
+            double a_point = std::atan2(y,x);
+            double adiff = std::abs(MathHelper::AngleClamp(a_next - a_point));
+            if(adiff > M_PI_2){
+                dis = -std::hypot(p0.x - current.x, p0.y - current.y);
+            }
+        }
+        if(closest_index == index2){
+            const Waypoint& p0 = waypoints[index2];
+            const Waypoint& p1 = waypoints[index2-1];
+            double x = p1.x - p0.x;
+            double y = p1.y - p0.y;
+            double a_prev = std::atan2(y,x);
+            x = current.x - p0.x;
+            y = current.y - p0.y;
+            double a_point = std::atan2(y,x);
+            double adiff = std::abs(MathHelper::AngleClamp(a_prev - a_point));
+            if(adiff > M_PI_2){
+                dis = std::hypot(p0.x - current.x, p0.y - current.y);
+            }
+        }
         current.d2p = closest_dist;
         current.npp = waypoints[closest_index];
-        current.s = global_path_.s(closest_index);
+        current.s = current.npp.s + dis;
 
         if(b_obst){
             tf::Point pt(current.x, current.y, current.orientation);
@@ -148,7 +178,7 @@ protected:
 
     template <typename NodeT>
     void retrieveContinuity(NodeT& wpose){
-        global_path_.set_s_new(c_dist.at(0));
+        global_path_.set_s_new(new_s);
         if(last_local_path_.n()>0){
             std::size_t index = -1;
             double closest_point = std::numeric_limits<double>::infinity();
@@ -160,12 +190,14 @@ protected:
                     closest_point = dist;
                     index = i;
                 }
-            }
-            wpose.xp = last_local_path_.p_prim(index);
-            wpose.yp = last_local_path_.q_prim(index);
+            }            
+            double curv = last_local_path_.curvature(index);
 
-            wpose.xs = last_local_path_.p_sek(index);
-            wpose.ys = last_local_path_.q_sek(index);
+            if(curv == 0.0){
+                wpose.radius_ = std::numeric_limits<double>::infinity();
+            }else{
+                wpose.radius_ = 1.0/curv;
+            }
 
             setLLP(index + 1);
         }
@@ -181,11 +213,11 @@ protected:
         double d1 = std::hypot(x, y);
 
         x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation + D_THETA/2.0));
-        x = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation + D_THETA/2.0));
+        y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation + D_THETA/2.0));
         double d2 = std::hypot(x, y);
 
         x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation - D_THETA/2.0));
-        x = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation - D_THETA/2.0));
+        y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation - D_THETA/2.0));
         double d3 = std::hypot(x, y);
 
         d2p = max(max(wpose.d2p,d1),max(d2,d3));
@@ -200,15 +232,15 @@ protected:
         last_s = global_path_.s_new();
         global_path_.set_s_new(local_wps.at(min((int)local_wps.size() - 1, 3)).s);
         smoothAndInterpolate(local_wps);
+        if(tooClose){
+            wlp_.insert(wlp_.end(),local_wps.begin(),local_wps.end());
+        }
         last_local_path_.interpolatePath(local_wps, "/odom");
         return true;
     }
 
     bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
                            const std::vector<bool>& fconstraints);
-
-    void initScorers(const std::vector<Scorer::Ptr>& scorer,
-                     const std::vector<double>& wscorer);
 
     void initConstraints(const std::vector<Constraint::Ptr>& constraints,
                                               const std::vector<bool>& fconstraints);
@@ -240,17 +272,15 @@ protected:
     static int nnodes_;
     static double D_THETA, RT;
 
-    double d2p, last_s, velocity_;
+    double d2p, last_s, new_s, velocity_;
     bool fvel_;
 
     std::size_t index1;
     std::size_t index2;
 
-    std::vector<double> c_dist;
-
     PathInterpolated last_local_path_;
 
-    double step_,stepc_;
+    double step_,stepc_,neig_s;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H

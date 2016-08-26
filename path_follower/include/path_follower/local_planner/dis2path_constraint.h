@@ -17,7 +17,7 @@ public:
 
     virtual bool isSatisfied(const LNode& point) override;
 private:
-    static double SIN_A, D_RATE, DIS2P_, DIS2O_;
+    static double SC_A, D_RATE, DIS2P_, DIS2O_;
     double limit;
     int level;
 };

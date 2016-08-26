@@ -1,8 +1,8 @@
 /// HEADER
 #include <path_follower/local_planner/dis2path_constraint.h>
 
-double Dis2Path_Constraint::SIN_A = std::sin(5.0*M_PI/36.0);
-double Dis2Path_Constraint::D_RATE = Dis2Path_Constraint::SIN_A;
+double Dis2Path_Constraint::SC_A = std::sin(5.0*M_PI/36.0);
+double Dis2Path_Constraint::D_RATE = Dis2Path_Constraint::SC_A;
 double Dis2Path_Constraint::DIS2P_ = 0.3;
 double Dis2Path_Constraint::DIS2O_ = 0.85;
 
@@ -22,11 +22,15 @@ void Dis2Path_Constraint::setParams(double new_limit, double step){
         limit = new_limit;
         level = 0;
     }
-    D_RATE = step * SIN_A;
+    D_RATE = step * SC_A;
 }
 
 void Dis2Path_Constraint::setAngle(double angle){
-    SIN_A = std::sin(angle);
+    if(angle <= M_PI_4){
+        SC_A = std::sin(angle);
+    }else{
+        SC_A = std::cos(angle);
+    }
 }
 
 void Dis2Path_Constraint::setLimits(double dis2p, double dis2o){
@@ -39,7 +43,11 @@ bool Dis2Path_Constraint::isSatisfied(const LNode& point){
     if(point.level_ > level && level > -1){
         double tmplimit = limit - D_RATE;
         limit = tmplimit < DIS2P_?DIS2P_:tmplimit;
-        level = -1;
+        if(limit == DIS2P_){
+            level = -1;
+        }else{
+            level = point.level_;
+        }
     }
     if(point.d2p <= limit){
         sw.stop();

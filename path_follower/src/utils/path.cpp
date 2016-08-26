@@ -3,8 +3,6 @@
 //TODO: add unit test for this class
 #include <path_follower/controller/robotcontroller.h>
 
-double LNode::h = 1.0;
-
 void Path::clear()
 {
     path_.clear();

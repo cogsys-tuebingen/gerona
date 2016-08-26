@@ -70,31 +70,11 @@ struct LNode: Waypoint
     LNode():Waypoint(){
 
     }
-    LNode(double x, double y, double orientation, LNode* parent, int level):
-        Waypoint(x,y,orientation),xp(0.0),yp(0.0),xs(0.0),ys(0.0),
-        parent_(parent),level_(level),d2p(0.0),d2o(0.0),npp(),nop()
-    {
-        computeDiff();
-    }
+    LNode(double x, double y, double orientation, LNode* parent, double radius, int level):
+        Waypoint(x,y,orientation),radius_(radius),parent_(parent),level_(level),
+        d2p(0.0),d2o(0.0),npp(),nop(){}
 
-    void computeDiff(){
-        if(parent_ != nullptr){
-            xp = (x - parent_->x)/h;
-            yp = (y - parent_->y)/h;
-
-            xs = (xp - parent_->xp)/h;
-            ys = (yp - parent_->yp)/h;
-        }
-    }
-
-    static double h;
-    //!first derivative
-    double xp;
-    double yp;
-
-    //!second derivative
-    double xs;
-    double ys;
+    double radius_;
 
     LNode* parent_;
     int level_;
@@ -111,8 +91,8 @@ struct HNode: LNode
     HNode():LNode(){
 
     }
-    HNode(double x, double y, double orientation, HNode* parent, int level):
-        LNode(x,y,orientation,parent,level),gScore_(std::numeric_limits<double>::infinity()),
+    HNode(double x, double y, double orientation, HNode* parent, double radius, int level):
+        LNode(x,y,orientation,parent,radius,level),gScore_(std::numeric_limits<double>::infinity()),
         fScore_(std::numeric_limits<double>::infinity())
     {
 
@@ -121,7 +101,7 @@ struct HNode: LNode
     double fScore_;
 };
 
-struct CompareLNode : public std::binary_function<HNode*, HNode*, bool> {
+struct CompareHNode : public std::binary_function<HNode*, HNode*, bool> {
     bool operator()(const HNode* lhs, const HNode* rhs) const {
         return lhs->fScore_ < rhs->fScore_;
     }

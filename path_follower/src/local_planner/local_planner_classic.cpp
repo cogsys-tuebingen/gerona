@@ -12,8 +12,8 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
-      d2p(0.0),last_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
-      c_dist(),step_(0.0),stepc_(0.0)
+      d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
+      step_(0.0),stepc_(0.0),neig_s(0.0)
 {
 
 }
@@ -21,6 +21,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
 void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
     LocalPlannerImplemented::setGlobalPath(path);
     last_s = 0.0;
+    new_s = 0.0;
 }
 
 void LocalPlannerClassic::setVelocity(geometry_msgs::Twist::_linear_type vector){
@@ -40,11 +41,13 @@ void LocalPlannerClassic::setVelocity(double velocity){
 }
 
 void LocalPlannerClassic::setStep(){
-    step_ = 3.0*velocity_/10.0;
-    LNode::h = step_;
+    double dis = velocity_ * update_interval_.toSec();
+    step_ = 3.0*dis/10.0;
     D_THETA = MathHelper::AngleClamp(step_/RT);
-    stepc_ = RT*sqrt(2.0*(1-std::cos(D_THETA)));
-    Dis2Path_Constraint::setAngle(D_THETA/2.0);
+    double H_D_THETA = D_THETA/2.0;
+    stepc_ = 2.0*RT*std::sin(H_D_THETA);
+    neig_s = stepc_*sin(H_D_THETA);
+    Dis2Path_Constraint::setAngle(H_D_THETA);
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -268,7 +271,7 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
         }
         c_s = global_path_.s(j);
     }
-    double s_new = global_path_.s(index1) + 3.0 * velocity_;
+    double s_new = global_path_.s(index1) + 3.0 * velocity_ * update_interval_.toSec();
     closest_dist = std::numeric_limits<double>::infinity();
     for(std::size_t i = index1; i < global_path_.n(); ++i){
         double dist = std::abs(s_new - global_path_.s(i));
@@ -278,18 +281,7 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
         }
     }
 
-    c_dist.clear();
-    for(std::size_t i = index1; i <= index2; ++i){
-        c_dist.push_back(global_path_.s(i));
-    }
-}
-
-void LocalPlannerClassic::initScorers(const std::vector<Scorer::Ptr>& scorer,
-                                      const std::vector<double>& wscorer){
-    if(wscorer.at(0) != 0.0){
-        std::dynamic_pointer_cast<Dis2Start_Scorer>(scorer.at(0))->setPath(waypoints, c_dist,
-                                                                           index1, index2);
-    }
+    new_s = global_path_.s(index1);
 }
 
 void LocalPlannerClassic::initConstraints(const std::vector<Constraint::Ptr>& constraints,
@@ -327,13 +319,11 @@ void LocalPlannerClassic::printNodeUsage(int& nnodes) const{
 
 double LocalPlannerClassic::Score(const LNode& current, const double& dis2last,
                         const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer){
-    double score1 = dis2last + ((wscorer.front() != 0.0)?(wscorer.front()*scorer.front()->score(current)):0.0);
-    double score2 = score1;
-    for(std::size_t i = 1; i < scorer.size() - 1; ++i){
-        score1 += ((wscorer.at(i) != 0.0)?(wscorer.at(i)*scorer.at(i)->score(current)):0.0);
+    double score = dis2last - current.s;
+    for(std::size_t i = 0; i < scorer.size(); ++i){
+        score += ((wscorer.at(i) != 0.0)?(wscorer.at(i)*scorer.at(i)->score(current)):0.0);
     }
-    score2 += ((wscorer.back() != 0.0)?(wscorer.back()*scorer.back()->score(current)):0.0);
-    return max(score1,score2);
+    return score;
 }
 
 void LocalPlannerClassic::setLLP(std::size_t index){

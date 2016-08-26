@@ -20,20 +20,19 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                   int& nnodes){
     // this planner uses the Breadth-first search algorithm
     initIndexes(pose);
-    initScorers(scorer, wscorer);
 
-    LNode wpose(pose(0),pose(1),pose(2),nullptr,0);
+    LNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
+    setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
 
-    float dis2last = (wscorer.at(0) != 0.0)?global_path_.s(global_path_.n()-1):0.0;
+    float dis2last = global_path_.s(global_path_.n()-1);
 
-    if(dis2last + ((wscorer.at(0) != 0.0)?(wscorer.at(0)*scorer.at(0)->score(wpose)):0.0) < 0.8){
+    if(std::abs(dis2last - wpose.s) < 0.8){
         tooClose = true;
         setLLP();
         return false;
     }
 
     retrieveContinuity(wpose);
-    setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
     setD2P(wpose);
     initConstraints(constraints,fconstraints);
 
@@ -44,17 +43,18 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     std::queue<LNode*> fifo;
     fifo.push(&nodes[0]);
-    double go_dist = Score(wpose, dis2last, scorer, wscorer);
+    double go_dist = std::numeric_limits<double>::infinity();
     int li_level = 10;
     nnodes = 1;
 
     LNode* current;
 
-    while(!fifo.empty() && (fifo.empty()?nodes.at(nnodes - 1).level_:fifo.front()->level_) <= li_level){
+    while(!fifo.empty() && (fifo.empty()?nodes.at(nnodes - 1).level_:fifo.front()->level_) <= li_level && nnodes < nnodes_){
         current = fifo.front();
         fifo.pop();
         if(std::abs(current->s - dis2last) <= 0.05){
             obj = current;
+            tooClose = true;
             break;
         }
 
