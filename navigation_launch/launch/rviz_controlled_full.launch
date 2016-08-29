@@ -43,6 +43,7 @@ demonstrating the navigation framework.
     <arg name="s5" default="0.0" / -->
 
     <arg name="nnodes" default="400" />
+    <arg name="ic" default="3" />
     <arg name="uinterval" default="0.5" />
     <arg name="dis2p" default="0.4" />
     <arg name="dis2o" default="0.85" />
@@ -80,6 +81,7 @@ demonstrating the navigation framework.
       <arg name="s5" value="$(arg s5)" />
 
       <arg name="nnodes" value="$(arg nnodes)" />
+      <arg name="ic" value="$(arg ic)" />
       <arg name="uinterval" value="$(arg uinterval)" />
       <arg name="dis2p" value="$(arg dis2p)" />
       <arg name="dis2o" value="$(arg dis2o)" />

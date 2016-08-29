@@ -68,8 +68,9 @@ bool LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     return true;
 }
 
-void LocalPlannerTransformer::setParams(int nnodes, double dis2p, double dis2o, double s_angle){
+void LocalPlannerTransformer::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle){
     (void) nnodes;
+    (void) ic;
     (void) dis2p;
     (void) dis2o;
     (void) s_angle;

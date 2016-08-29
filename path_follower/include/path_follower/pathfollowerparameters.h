@@ -21,7 +21,7 @@ struct PathFollowerParameters : public Parameters
     P<std::string> algo;
     P<bool> c1, c2;
     P<double> s1, s2, s3, s4, s5;
-    P<int> nnodes;
+    P<int> nnodes,ic;
     P<double> uinterval,dis2p, dis2o, s_angle;
 
     // obstacle avoider
@@ -78,6 +78,8 @@ struct PathFollowerParameters : public Parameters
            "Determines whether the sixth scorer is used or not. (Distance to nearest obstacle)"),
         nnodes(this, "~nnodes", 300,
                "Determines the maximum number of nodes used by the local planner"),
+        ic(this, "~ic", 3,
+               "Determines the number of intermediate configurations in a curve"),
         uinterval(this, "~uinterval", 1.0,
                   "Determines the update interval in seconds of the local planner"),
         dis2p(this, "~dis2p", 0.3,

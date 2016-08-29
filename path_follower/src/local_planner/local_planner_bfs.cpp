@@ -52,7 +52,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     while(!fifo.empty() && (fifo.empty()?nodes.at(nnodes - 1).level_:fifo.front()->level_) <= li_level && nnodes < nnodes_){
         current = fifo.front();
         fifo.pop();
-        if(std::abs(current->s - dis2last) <= 0.05){
+        if(std::abs(dis2last - current->s) <= 0.05){
             obj = current;
             tooClose = true;
             break;

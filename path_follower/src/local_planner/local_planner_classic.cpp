@@ -5,6 +5,7 @@
 #include <path_follower/pathfollower.h>
 
 int LocalPlannerClassic::nnodes_ = 300;
+int LocalPlannerClassic::ic_ = 3;
 double LocalPlannerClassic::RT = std::numeric_limits<double>::infinity();
 double LocalPlannerClassic::D_THETA = 0.0;
 
@@ -336,8 +337,9 @@ void LocalPlannerClassic::setLLP(){
     setLLP(last_local_path_.n());
 }
 
-void LocalPlannerClassic::setParams(int nnodes, double dis2p, double dis2o, double s_angle){
+void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle){
     nnodes_ = nnodes;
+    ic_ = ic;
     double th = s_angle*M_PI/180.0;
     RT = L/std::tan(th);
     Dis2Path_Constraint::setLimits(dis2p,dis2o);

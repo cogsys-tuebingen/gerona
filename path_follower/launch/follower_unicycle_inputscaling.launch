@@ -14,6 +14,7 @@ Launch the path follower with the kinematic controller for a unicycle robot.
   <arg name="s5" default="0.0" />
 
   <arg name="nnodes" default="300" />
+  <arg name="ic" default="3" />
   <arg name="uinterval" default="1.0" />
   <arg name="dis2p" default="0.3" />
   <arg name="dis2o" default="0.85" />
@@ -67,6 +68,7 @@ Launch the path follower with the kinematic controller for a unicycle robot.
     <param name="s5" value="$(arg s5)"/>
     <!-- planner params-->
     <param name="nnodes" value="$(arg nnodes)" />
+    <param name="ic" value="$(arg ic)" />
     <param name="uinterval" value="$(arg uinterval)" />
     <param name="dis2p" value="$(arg dis2p)" />
     <param name="dis2o" value="$(arg dis2o)" />

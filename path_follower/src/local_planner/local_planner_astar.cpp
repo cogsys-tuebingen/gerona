@@ -59,7 +59,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     while(!openSet.empty() && (openSet.empty()?nodes.at(nnodes - 1).level_:(*openSet.begin())->level_) <= li_level && nnodes < nnodes_){
         current = *openSet.begin();
         openSet.erase(openSet.begin());
-        if(std::abs(current->s - dis2last) <= 0.05){
+        if(std::abs(dis2last - current->s) <= 0.05){
             obj = current;
             tooClose = true;
             break;

@@ -15,34 +15,35 @@ demonstrating the navigation framework.
     <arg name="c2" default="true" />
 
     <!-- Config 0: Pure Algorithm -->
-    <arg name="s1" default="0.0" />
+    <!-- arg name="s1" default="0.0" />
     <arg name="s2" default="0.0" />
     <arg name="s3" default="0.0" />
     <arg name="s4" default="0.0" />
-    <arg name="s5" default="0.0" />
+    <arg name="s5" default="0.0" / -->
 
     <!-- Config 1: Curvature + Distance Sint -->
-    <!-- arg name="s1" default="0.460650259627024" />
-    <arg name="s2" default="0.348678440100000" />
-    <arg name="s3" default="0.313810596090000" />
+    <!-- arg name="s1" default="0.0" />
+    <arg name="s2" default="0.353501437262494" />
+    <arg name="s3" default="0.0" />
     <arg name="s4" default="0.999999999999999" />
     <arg name="s5" default="0.0" / -->
 
     <!-- Config 2: Distance Sint -->
-    <!-- arg name="s1" default="0.999999999999999" />
+    <!-- arg name="s1" default="-1.0" />
     <arg name="s2" default="0.0" />
-    <arg name="s3" default="0.0" />
-    <arg name="s4" default="5.910282799343574e-04" />
-    <arg name="s5" default="0.0" / -->
-
-    <!-- Config 3: Curvature Sint -->
-    <!-- arg name="s1" default="0.0" />
-    <arg name="s2" default="0.0" />
-    <arg name="s3" default="0.0" />
+    <arg name="s3" default="-1.0" />
     <arg name="s4" default="0.999999999999999" />
     <arg name="s5" default="0.0" / -->
 
+    <!-- Config 3: Curvature Sint -->
+    <arg name="s1" default="0.0" />
+    <arg name="s2" default="0.0" />
+    <arg name="s3" default="0.0" />
+    <arg name="s4" default="0.999999999999999" />
+    <arg name="s5" default="0.0" />
+
     <arg name="nnodes" default="400" />
+    <arg name="ic" default="3" />
     <arg name="uinterval" default="0.5" />
     <arg name="dis2p" default="0.4" />
     <arg name="dis2o" default="0.85" />
@@ -80,6 +81,7 @@ demonstrating the navigation framework.
       <arg name="s5" value="$(arg s5)" />
 
       <arg name="nnodes" value="$(arg nnodes)" />
+      <arg name="ic" value="$(arg ic)" />
       <arg name="uinterval" value="$(arg uinterval)" />
       <arg name="dis2p" value="$(arg dis2p)" />
       <arg name="dis2o" value="$(arg dis2o)" />
