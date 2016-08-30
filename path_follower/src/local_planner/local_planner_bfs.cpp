@@ -43,13 +43,13 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     std::queue<LNode*> fifo;
     fifo.push(&nodes[0]);
-    double go_dist = std::numeric_limits<double>::infinity();
+    double best_p = std::numeric_limits<double>::infinity();
     int li_level = 10;
     nnodes = 1;
 
     LNode* current;
 
-    while(!fifo.empty() && (fifo.empty()?nodes.at(nnodes - 1).level_:fifo.front()->level_) <= li_level && nnodes < nnodes_){
+    while(!fifo.empty() && (fifo.empty()?nodes.at(nnodes - 1).level_:fifo.front()->level_) < li_level && nnodes < nnodes_){
         current = fifo.front();
         fifo.pop();
         if(std::abs(dis2last - current->s) <= 0.05){
@@ -61,9 +61,9 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         std::vector<LNode*> successors;
         getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints, wscorer);
         for(std::size_t i = 0; i < successors.size(); ++i){
-            double new_dist = Score(*(successors[i]), dis2last, scorer, wscorer);
-            if(new_dist < go_dist){
-                go_dist = new_dist;
+            double current_p = Heuristic(*(successors[i]), dis2last) + Score(*(successors[i]), scorer, wscorer);
+            if(current_p < best_p){
+                best_p = current_p;
                 obj = successors[i];
             }
             fifo.push(successors[i]);

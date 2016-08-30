@@ -318,9 +318,28 @@ void LocalPlannerClassic::printNodeUsage(int& nnodes) const{
     ROS_INFO_STREAM("# Nodes: " << nnodes);
 }
 
-double LocalPlannerClassic::Score(const LNode& current, const double& dis2last,
-                        const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer){
-    double score = dis2last - current.s;
+double LocalPlannerClassic::Heuristic(const LNode& current, const double& dis2last){
+    return dis2last - current.s;
+}
+
+double LocalPlannerClassic::Cost(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
+                                 const std::vector<double>& wscorer){
+    double cost = 0.0;
+    if(current.parent_ != nullptr){
+        if(current.radius_ == std::numeric_limits<double>::infinity()){
+            cost += step_;
+        }else{
+            const double theta = MathHelper::AngleClamp(current.orientation - current.parent_->orientation);
+            cost += current.radius_*theta;
+        }
+    }
+    cost += Score(current,scorer,wscorer);
+    return cost;
+}
+
+double LocalPlannerClassic::Score(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
+                                  const std::vector<double>& wscorer){
+    double score = 0.0;
     for(std::size_t i = 0; i < scorer.size(); ++i){
         score += ((wscorer.at(i) != 0.0)?(wscorer.at(i)*scorer.at(i)->score(current)):0.0);
     }

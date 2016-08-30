@@ -104,9 +104,7 @@ protected:
 
         double dis = 0.0;
         if(closest_index == index1){
-            double wflag = false;
             while(closest_index != 0){
-                wflag = true;
                 const int c_i = closest_index - 1;
                 const Waypoint& wp = waypoints[c_i];
                 double dist = std::hypot(wp.x - current.x, wp.y - current.y);
@@ -117,7 +115,7 @@ protected:
                     break;
                 }
             }
-            if(!wflag || closest_index == 0){
+            if(closest_index == 0){
                 const Waypoint& p0 = waypoints[0];
                 const Waypoint& p1 = waypoints[1];
                 double x = p1.x - p0.x;
@@ -135,10 +133,8 @@ protected:
             }
         }
         if(closest_index == index2){
-            double wflag = false;
             std::size_t last_p = waypoints.size() - 1;
             while(closest_index != last_p){
-                wflag = true;
                 const int c_i = closest_index + 1;
                 const Waypoint& wp = waypoints[c_i];
                 double dist = std::hypot(wp.x - current.x, wp.y - current.y);
@@ -149,7 +145,7 @@ protected:
                     break;
                 }
             }
-            if(!wflag || closest_index == last_p){
+            if(closest_index == last_p){
                 const Waypoint& p0 = waypoints[last_p];
                 const Waypoint& p1 = waypoints[last_p - 1];
                 double x = p1.x - p0.x;
@@ -279,6 +275,8 @@ protected:
     template <typename NodeT>
     bool processPath(NodeT* obj,SubPath& local_wps){
         retrievePath(obj, local_wps);
+        //TODO iterate local_wps to become the length(evtl in retrieve path)
+        ROS_INFO_STREAM(local_wps.size());
         if((local_wps.back().s - local_wps.front().s) < 0.1){
             return false;
         }
@@ -310,8 +308,13 @@ protected:
 
     void smoothAndInterpolate(SubPath& local_wps);
 
-    double Score(const LNode& current, const double& dis2last,
-                        const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer);
+    double Heuristic(const LNode& current, const double& dis2last);
+
+    double Cost(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
+                const std::vector<double>& wscorer);
+
+    double Score(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
+                 const std::vector<double>& wscorer);
 
     void setStep();
 
