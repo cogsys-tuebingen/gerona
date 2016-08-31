@@ -33,6 +33,7 @@ protected:
 private:
     virtual void printNodeUsage(int& nnodes) const = 0;
     virtual void printVelocity() = 0;
+    virtual void printLevelReached() const = 0;
     virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
                      const std::vector<Constraint::Ptr>& constraints,
                      const std::vector<Scorer::Ptr>& scorer,

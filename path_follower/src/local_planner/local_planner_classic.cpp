@@ -14,7 +14,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
       d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
-      step_(0.0),stepc_(0.0),neig_s(0.0)
+      r_level(0), step_(0.0),stepc_(0.0),neig_s(0.0)
 {
 
 }
@@ -323,7 +323,7 @@ double LocalPlannerClassic::Heuristic(const LNode& current, const double& dis2la
 }
 
 double LocalPlannerClassic::Cost(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
-                                 const std::vector<double>& wscorer){
+                                 const std::vector<double>& wscorer, double& score){
     double cost = 0.0;
     if(current.parent_ != nullptr){
         if(current.radius_ == std::numeric_limits<double>::infinity()){
@@ -333,7 +333,8 @@ double LocalPlannerClassic::Cost(const LNode& current, const std::vector<Scorer:
             cost += current.radius_*theta;
         }
     }
-    cost += Score(current,scorer,wscorer);
+    score = Score(current,scorer,wscorer);
+    cost += score;
     return cost;
 }
 
@@ -372,3 +373,6 @@ void LocalPlannerClassic::printVelocity(){
     }
 }
 
+void LocalPlannerClassic::printLevelReached() const{
+    ROS_INFO_STREAM("Reached Level: " << r_level << "/10");
+}

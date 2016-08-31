@@ -85,3 +85,5 @@ void LocalPlannerTransformer::setVelocity(double velocity){
 }
 
 void LocalPlannerTransformer::printVelocity(){}
+
+void LocalPlannerTransformer::printLevelReached() const{}

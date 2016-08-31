@@ -15,11 +15,11 @@ demonstrating the navigation framework.
     <arg name="c2" default="true" />
 
     <!-- Config 0: Pure Algorithm -->
-    <arg name="s1" default="0.0" />
+    <!-- arg name="s1" default="0.0" />
     <arg name="s2" default="0.0" />
     <arg name="s3" default="0.0" />
     <arg name="s4" default="0.0" />
-    <arg name="s5" default="0.0" />
+    <arg name="s5" default="0.0" / -->
 
     <!-- Config 1: Curvature + Distance Sint -->
     <!-- arg name="s1" default="0.0" />
@@ -29,18 +29,18 @@ demonstrating the navigation framework.
     <arg name="s5" default="0.0" / -->
 
     <!-- Config 2: Distance Sint -->
-    <!-- arg name="s1" default="-1.0" />
+    <!-- arg name="s1" default="0.783990000000000" />
     <arg name="s2" default="0.0" />
-    <arg name="s3" default="0.999999999999999" />
-    <arg name="s4" default="0.999999999999999" />
+    <arg name="s3" default="1.833692355227812" />
+    <arg name="s4" default="-0.023129082048042" />
     <arg name="s5" default="0.0" / -->
 
     <!-- Config 3: Curvature Sint -->
-    <!-- arg name="s1" default="0.0" />
+    <arg name="s1" default="-0.809999999999999" />
     <arg name="s2" default="0.0" />
     <arg name="s3" default="0.0" />
-    <arg name="s4" default="0.999999999999999" />
-    <arg name="s5" default="0.0" / -->
+    <arg name="s4" default="0.573837462100000" />
+    <arg name="s5" default="0.0" />
 
     <arg name="nnodes" default="400" />
     <arg name="ic" default="3" />

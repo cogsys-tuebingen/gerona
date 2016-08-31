@@ -39,8 +39,10 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     std::vector<HNode> nodes(nnodes_);
     HNode* obj = nullptr;
 
-    wpose.gScore_ = Cost(wpose, scorer, wscorer);
-    wpose.fScore_ = wpose.gScore_ + Heuristic(wpose, dis2last);
+    double score;
+    wpose.gScore_ = Cost(wpose, scorer, wscorer, score);
+    double heuristic = Heuristic(wpose, dis2last);
+    wpose.fScore_ = wpose.gScore_ + heuristic;
 
     nodes.at(0) = wpose;
 
@@ -71,7 +73,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                 continue;
             }
 
-            double tentative_gScore = current->gScore_ + Cost(*(successors[i]), scorer, wscorer);
+            double tentative_gScore = current->gScore_ + Cost(*(successors[i]), scorer, wscorer, score);
 
             if(tentative_gScore >= successors[i]->gScore_){
                 continue;
@@ -79,7 +81,9 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
             successors[i]->parent_ = current;
             successors[i]->gScore_ = tentative_gScore;
-            successors[i]->fScore_ = successors[i]->gScore_ + Heuristic(*(successors[i]), dis2last);
+
+            heuristic = Heuristic(*(successors[i]), dis2last);
+            successors[i]->fScore_ = successors[i]->gScore_ + heuristic;
 
             prio_queue::const_iterator inOpen = std::find(openSet.begin(), openSet.end(), successors[i]);
             if(inOpen != openSet.end()){
@@ -87,8 +91,9 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
             }
             openSet.insert(successors[i]);
 
-            if(successors[i]->fScore_ < best_p){
-                best_p = successors[i]->fScore_;
+            double current_p = heuristic + score;
+            if(current_p < best_p){
+                best_p = current_p;
                 obj = successors[i];
             }
         }

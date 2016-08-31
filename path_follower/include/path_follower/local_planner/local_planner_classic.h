@@ -193,10 +193,15 @@ protected:
     }
 
     template <typename NodeT>
-    void retrievePath(NodeT* obj, SubPath& local_wps){
+    void retrievePath(NodeT* obj, SubPath& local_wps, double& l){
         LNode* cu = obj;
+        r_level = cu->level_;
+        l = 0.0;
         while(cu != nullptr){
             local_wps.push_back(*cu);
+            if(local_wps.size() != 1){
+                l += local_wps.back().distanceTo(local_wps.at(local_wps.size()-2));
+            }
             if(cu->parent_ != nullptr){
                 if(cu->radius_ != std::numeric_limits<double>::infinity()){
                     const LNode* parent = cu->parent_;
@@ -217,6 +222,7 @@ protected:
                         Waypoint bc(x,y,theta);
                         bc.s = parent->s + ((double)i)*step*rt;
                         local_wps.push_back(bc);
+                        l += local_wps.back().distanceTo(local_wps.at(local_wps.size()-2));
                     }
                 }
             }
@@ -274,10 +280,9 @@ protected:
 
     template <typename NodeT>
     bool processPath(NodeT* obj,SubPath& local_wps){
-        retrievePath(obj, local_wps);
-        //TODO iterate local_wps to become the length(evtl in retrieve path)
-        ROS_INFO_STREAM(local_wps.size());
-        if((local_wps.back().s - local_wps.front().s) < 0.1){
+        double length;
+        retrievePath(obj, local_wps,length);
+        if(length < 0.12){
             return false;
         }
         last_s = global_path_.s_new();
@@ -311,7 +316,7 @@ protected:
     double Heuristic(const LNode& current, const double& dis2last);
 
     double Cost(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
-                const std::vector<double>& wscorer);
+                const std::vector<double>& wscorer, double& score);
 
     double Score(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
                  const std::vector<double>& wscorer);
@@ -330,6 +335,7 @@ protected:
 private:
     virtual void printNodeUsage(int& nnodes) const override;
     virtual void printVelocity() override;
+    virtual void printLevelReached() const override;
 protected:
     static constexpr double L = 0.46;
 
@@ -341,6 +347,7 @@ protected:
 
     std::size_t index1;
     std::size_t index2;
+    int r_level;
 
     PathInterpolated last_local_path_;
 
