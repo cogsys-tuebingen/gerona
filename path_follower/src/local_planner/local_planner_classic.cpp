@@ -255,9 +255,18 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
     std::size_t j = 0;
     index1 = j;
     double c_s = global_path_.s(j);
+    double g1,g2;
+    if(last_s > global_path_.s_new()){
+        g1 = global_path_.s_new();
+        g2 = last_s;
+    }else{
+        g1 = last_s;
+        g2 = global_path_.s_new();
+    }
+    ROS_INFO_STREAM("last_s: " << last_s << ", s_new: " << global_path_.s_new());
     double closest_dist = std::numeric_limits<double>::infinity();
-    while(c_s <= global_path_.s_new()){
-        if(c_s >= last_s){
+    while(c_s <= g2){
+        if(c_s >= g1){
             double x = global_path_.p(j) - pose(0);
             double y = global_path_.q(j) - pose(1);
             double dist = std::hypot(x, y);
@@ -283,6 +292,7 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
     }
 
     new_s = global_path_.s(index1);
+    ROS_INFO_STREAM("Indexes: " << index1 << ", " << index2);
 }
 
 void LocalPlannerClassic::initConstraints(const std::vector<Constraint::Ptr>& constraints,
