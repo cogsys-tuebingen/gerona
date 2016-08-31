@@ -42,7 +42,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     double score;
     wpose.gScore_ = Cost(wpose, scorer, wscorer, score);
     double heuristic = Heuristic(wpose, dis2last);
-    wpose.fScore_ = wpose.gScore_ + heuristic;
+    wpose.fScore_ = f(wpose.gScore_,score,heuristic);
 
     nodes.at(0) = wpose;
 
@@ -83,7 +83,8 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
             successors[i]->gScore_ = tentative_gScore;
 
             heuristic = Heuristic(*(successors[i]), dis2last);
-            successors[i]->fScore_ = successors[i]->gScore_ + heuristic;
+
+            successors[i]->fScore_ = f(successors[i]->gScore_, score, heuristic);
 
             prio_queue::const_iterator inOpen = std::find(openSet.begin(), openSet.end(), successors[i]);
             if(inOpen != openSet.end()){

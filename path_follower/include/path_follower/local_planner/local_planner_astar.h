@@ -17,6 +17,7 @@ private:
                      const std::vector<bool>& fconstraints,
                      const std::vector<double>& wscorer,
                      int& nnodes) override;
+    virtual double f(double& g, double& score, double& heuristic) = 0;
 
 private:
     typedef std::multiset<HNode*,CompareHNode> prio_queue;

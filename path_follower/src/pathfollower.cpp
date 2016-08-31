@@ -44,7 +44,8 @@
 #include <path_follower/local_planner/local_planner_null.h>
 #include <path_follower/local_planner/local_planner_transformer.h>
 #include <path_follower/local_planner/local_planner_bfs.h>
-#include <path_follower/local_planner/local_planner_astar.h>
+#include <path_follower/local_planner/local_planner_astar_n.h>
+#include <path_follower/local_planner/local_planner_astar_g.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -169,7 +170,9 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // Choose Local Planner Algorithm
     ROS_INFO("Use local planner algorithm '%s'", opt_.algo().c_str());
     if(opt_.algo() == "AStar"){
-        local_planner_ = std::make_shared<LocalPlannerAStar>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+        local_planner_ = std::make_shared<LocalPlannerAStarN>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+    }else if(opt_.algo() == "AStarG"){
+        local_planner_ = std::make_shared<LocalPlannerAStarG>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "BFS"){
         local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "Transformer"){

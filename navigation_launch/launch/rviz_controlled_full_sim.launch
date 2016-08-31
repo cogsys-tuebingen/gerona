@@ -27,16 +27,16 @@ demonstrating the navigation framework.
     <arg name="s4" default="0.0" / -->
 
     <!-- Config 2: Distance Sint -->
-    <arg name="s1" default="-0.809999999999999" />
+    <!-- arg name="s1" default="-0.809999999999999" />
     <arg name="s2" default="3.727681903395792" />
     <arg name="s3" default="0.002022372810599" />
-    <arg name="s4" default="0.0" />
+    <arg name="s4" default="0.0" / -->
 
     <!-- Config 3: Curvature Sint -->
-    <!-- arg name="s1" default="-0.809999999999999" />
-    <arg name="s2" default="0.0" />
-    <arg name="s3" default="0.573837462100000" />
-    <arg name="s4" default="0.0" / -->
+    <arg name="s1" default="0.034745140165474" />
+    <arg name="s2" default="0.348678440100000" />
+    <arg name="s3" default="2.100000000000000" />
+    <arg name="s4" default="0.0" />
 
     <arg name="nnodes" default="400" />
     <arg name="ic" default="3" />
