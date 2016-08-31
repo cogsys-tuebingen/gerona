@@ -8,7 +8,6 @@
   <arg name="s2" default="0.0" />
   <arg name="s3" default="0.0" />
   <arg name="s4" default="0.0" />
-  <arg name="s5" default="0.0" />
 
   <arg name="nnodes" default="300" />
   <arg name="ic" default="3" />
@@ -77,7 +76,6 @@
     <param name="s2" value="$(arg s2)"/>
     <param name="s3" value="$(arg s3)"/>
     <param name="s4" value="$(arg s4)"/>
-    <param name="s5" value="$(arg s5)"/>
     <!-- planner params-->
     <param name="nnodes" value="$(arg nnodes)" />
     <param name="ic" value="$(arg ic)" />

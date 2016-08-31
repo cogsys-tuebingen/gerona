@@ -123,7 +123,6 @@ add_executable(path_follower_node
   src/local_planner/scorer.cpp
   src/local_planner/curvature_scorer.cpp
   src/local_planner/dis2pathd_scorer.cpp
-  src/local_planner/dis2pathi_scorer.cpp
   src/local_planner/dis2pathp_scorer.cpp
   src/local_planner/dis2obst_scorer.cpp
 

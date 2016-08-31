@@ -20,7 +20,7 @@ struct PathFollowerParameters : public Parameters
     //Parameters for the Local Planner
     P<std::string> algo;
     P<bool> c1, c2;
-    P<double> s1, s2, s3, s4, s5;
+    P<double> s1, s2, s3, s4;
     P<int> nnodes,ic;
     P<double> uinterval,dis2p, dis2o, s_angle;
 
@@ -67,15 +67,13 @@ struct PathFollowerParameters : public Parameters
            "Determines whether the second constraint is used or not. (Distance to nearest obstacle)"),
         //Scorers
         s1(this, "~s1", 1.0,
-           "Determines whether the second scorer is used or not. (Distance to global path (P))"),
+           "Determines whether the first scorer is used or not. (Distance to global path (P))"),
         s2(this, "~s2", 1.0,
-           "Determines whether the third  scorer is used or not. (Distance to global path (I))"),
+           "Determines whether the second  scorer is used or not. (Distance to global path (D))"),
         s3(this, "~s3", 1.0,
-           "Determines whether the fourth  scorer is used or not. (Distance to global path (D))"),
+           "Determines whether the third scorer is used or not. (Curvature of the point)"),
         s4(this, "~s4", 1.0,
-           "Determines whether the fifth scorer is used or not. (Curvature of the point)"),
-        s5(this, "~s5", 1.0,
-           "Determines whether the sixth scorer is used or not. (Distance to nearest obstacle)"),
+           "Determines whether the fourth scorer is used or not. (Distance to nearest obstacle)"),
         nnodes(this, "~nnodes", 300,
                "Determines the maximum number of nodes used by the local planner"),
         ic(this, "~ic", 3,
