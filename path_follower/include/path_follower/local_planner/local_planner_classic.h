@@ -21,9 +21,11 @@ protected:
     template <typename NodeT>
     void getSuccessors(NodeT*& current, int& nsize, std::vector<NodeT*>& successors,
                        std::vector<NodeT>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                       const std::vector<bool>& fconstraints,const std::vector<double>& wscorer
-                       /*, bool repeat = false*/){
+                       const std::vector<bool>& fconstraints,const std::vector<double>& wscorer,
+                       std::vector<NodeT>& twins = EMPTYTWINS, bool repeat = false){
         successors.clear();
+        twins.clear();
+        bool add_n = true;
         double ori = current->orientation;
         double trax = L*std::cos(ori)/2.0;
         double tray = L*std::sin(ori)/2.0;
@@ -62,17 +64,21 @@ protected:
             if(areConstraintsSAT(succ,constraints,fconstraints)){
                 int wo = -1;
                 if(!isInGraph(succ,nodes,nsize,wo)){
-                    nodes.at(nsize) = succ;
-                    successors.push_back(&nodes.at(nsize));
-                    nsize++;
-                    if(nsize >= nnodes_){
-                        return;
+                    if(add_n){
+                        nodes.at(nsize) = succ;
+                        successors.push_back(&nodes.at(nsize));
+                        nsize++;
+                        if(nsize >= nnodes_){
+                            add_n = false;
+                        }
                     }
-                }/*else{
+                }else{
                     if(repeat){
+                        twins.push_back(succ);
+                        nodes[wo].twin_ = &twins.back();
                         successors.push_back(&nodes[wo]);
                     }
-                }*/
+                }
             }
         }
     }
@@ -322,6 +328,7 @@ private:
     virtual void printLevelReached() const override;
 protected:
     static constexpr double L = 0.46;
+    static std::vector<LNode> EMPTYTWINS;
 
     static int nnodes_,ic_;
     static double D_THETA, RT;

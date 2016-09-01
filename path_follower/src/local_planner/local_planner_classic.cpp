@@ -8,6 +8,7 @@ int LocalPlannerClassic::nnodes_ = 300;
 int LocalPlannerClassic::ic_ = 3;
 double LocalPlannerClassic::RT = std::numeric_limits<double>::infinity();
 double LocalPlannerClassic::D_THETA = 0.0;
+std::vector<LNode> LocalPlannerClassic::EMPTYTWINS;
 
 LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  tf::Transformer& transformer,
@@ -303,7 +304,6 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
     }
 
     new_s = global_path_.s(index1);
-    ROS_INFO_STREAM("Indexes: " << index1 << ", " << index2);
 }
 
 void LocalPlannerClassic::initConstraints(const std::vector<Constraint::Ptr>& constraints,

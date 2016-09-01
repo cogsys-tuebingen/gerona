@@ -67,16 +67,28 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         closedSet.push_back(current);
 
         std::vector<HNode*> successors;
-        getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints, wscorer/*, true*/);
+        std::vector<HNode> twins;
+        getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints, wscorer, twins, true);
         for(std::size_t i = 0; i < successors.size(); ++i){
             if(std::find(closedSet.begin(), closedSet.end(), successors[i]) != closedSet.end()){
+                successors[i]->twin_ = nullptr;
                 continue;
             }
 
-            double tentative_gScore = current->gScore_ + Cost(*(successors[i]), scorer, wscorer, score);
+            double tentative_gScore = current->gScore_ ;
+            if(successors[i]->twin_ != nullptr){
+                tentative_gScore += Cost(*(successors[i]->twin_), scorer, wscorer, score);
+            }else{
+                tentative_gScore += Cost(*(successors[i]), scorer, wscorer, score);
+            }
 
             if(tentative_gScore >= successors[i]->gScore_){
+                successors[i]->twin_ = nullptr;
                 continue;
+            }
+
+            if(successors[i]->twin_ != nullptr){
+                successors[i]->InfoFromTwin();
             }
 
             successors[i]->parent_ = current;

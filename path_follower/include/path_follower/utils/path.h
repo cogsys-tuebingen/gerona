@@ -71,12 +71,27 @@ struct LNode: Waypoint
 
     }
     LNode(double x, double y, double orientation, LNode* parent, double radius, int level):
-        Waypoint(x,y,orientation),radius_(radius),parent_(parent),level_(level),
+        Waypoint(x,y,orientation),radius_(radius),parent_(parent),twin_(nullptr),level_(level),
         d2p(0.0),d2o(0.0),npp(),nop(){}
+
+    void InfoFromTwin(){
+        x = twin_->x;
+        y = twin_->y;
+        orientation = twin_->orientation;
+        s = twin_->s;
+        radius_ = twin_->radius_;
+        level_ = twin_->level_;
+        d2p = twin_->d2p;
+        d2o = twin_->d2o;
+        npp = twin_->npp;
+        nop = twin_->nop;
+        twin_ = nullptr;
+    }
 
     double radius_;
 
     LNode* parent_;
+    LNode* twin_;
     int level_;
 
     //!distance to path and obstacle
@@ -97,6 +112,7 @@ struct HNode: LNode
     {
 
     }
+
     double gScore_;
     double fScore_;
 };
