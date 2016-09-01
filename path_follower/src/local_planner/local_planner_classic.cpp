@@ -252,34 +252,45 @@ SubPath LocalPlannerClassic::smoothPathSegment(const SubPath& path, double weigh
 }
 
 void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
-    std::size_t j = 0;
-    index1 = j;
-    double c_s = global_path_.s(j);
-    double g1,g2;
-    if(last_s > global_path_.s_new()){
-        g1 = global_path_.s_new();
-        g2 = last_s;
-    }else{
-        g1 = last_s;
-        g2 = global_path_.s_new();
-    }
-    ROS_INFO_STREAM("last_s: " << last_s << ", s_new: " << global_path_.s_new());
     double closest_dist = std::numeric_limits<double>::infinity();
-    while(c_s <= g2){
-        if(c_s >= g1){
-            double x = global_path_.p(j) - pose(0);
-            double y = global_path_.q(j) - pose(1);
-            double dist = std::hypot(x, y);
-            if(dist < closest_dist) {
-                closest_dist = dist;
-                index1 = j;
+    if(last_s == global_path_.s_new()){
+        for(std::size_t i = 0; i < global_path_.n(); ++i){
+            if(global_path_.s(i) > last_s){
+                index1 = i == 0?0:i-1;
+                double x = global_path_.p(index1) - pose(0);
+                double y = global_path_.q(index1) - pose(1);
+                closest_dist = std::hypot(x, y);
+                break;
             }
         }
-        ++j;
-        if(j >= global_path_.n()){
-            break;
+    }else{
+        std::size_t j = 0;
+        index1 = j;
+        double c_s = global_path_.s(j);
+        double g1,g2;
+        if(last_s > global_path_.s_new()){
+            g1 = global_path_.s_new();
+            g2 = last_s;
+        }else{
+            g1 = last_s;
+            g2 = global_path_.s_new();
         }
-        c_s = global_path_.s(j);
+        while(c_s <= g2){
+            if(c_s >= g1){
+                double x = global_path_.p(j) - pose(0);
+                double y = global_path_.q(j) - pose(1);
+                double dist = std::hypot(x, y);
+                if(dist < closest_dist) {
+                    closest_dist = dist;
+                    index1 = j;
+                }
+            }
+            ++j;
+            if(j >= global_path_.n()){
+                break;
+            }
+            c_s = global_path_.s(j);
+        }
     }
     double s_new = global_path_.s(index1) + 3.0 * velocity_ * update_interval_.toSec();
     closest_dist = std::numeric_limits<double>::infinity();

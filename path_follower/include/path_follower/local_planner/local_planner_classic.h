@@ -145,22 +145,6 @@ protected:
                     break;
                 }
             }
-            if(closest_index == last_p){
-                const Waypoint& p0 = waypoints[last_p];
-                const Waypoint& p1 = waypoints[last_p - 1];
-                double x = p1.x - p0.x;
-                double y = p1.y - p0.y;
-                double a_prev = std::atan2(y,x);
-                x = current.x - p0.x;
-                y = current.y - p0.y;
-                double a_point = std::atan2(y,x);
-                double adiff = std::abs(MathHelper::AngleClamp(a_prev - a_point));
-                if(adiff > M_PI_2){
-                    double h = std::hypot(p0.x - current.x, p0.y - current.y);
-                    dis = -h*std::cos(adiff);
-                    closest_dist = h*std::sin(adiff);
-                }
-            }
         }
         current.d2p = closest_dist;
         current.npp = waypoints[closest_index];
