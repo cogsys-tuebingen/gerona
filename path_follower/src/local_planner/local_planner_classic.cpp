@@ -5,6 +5,7 @@
 #include <path_follower/pathfollower.h>
 
 int LocalPlannerClassic::nnodes_ = 300;
+int LocalPlannerClassic::ic_ = 3;
 double LocalPlannerClassic::RT = std::numeric_limits<double>::infinity();
 double LocalPlannerClassic::D_THETA = 0.0;
 
@@ -13,7 +14,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
       d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
-      step_(0.0),stepc_(0.0),neig_s(0.0)
+      r_level(0), step_(0.0),stepc_(0.0),neig_s(0.0)
 {
 
 }
@@ -251,25 +252,45 @@ SubPath LocalPlannerClassic::smoothPathSegment(const SubPath& path, double weigh
 }
 
 void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
-    std::size_t j = 0;
-    index1 = j;
-    double c_s = global_path_.s(j);
     double closest_dist = std::numeric_limits<double>::infinity();
-    while(c_s <= global_path_.s_new()){
-        if(c_s >= last_s){
-            double x = global_path_.p(j) - pose(0);
-            double y = global_path_.q(j) - pose(1);
-            double dist = std::hypot(x, y);
-            if(dist < closest_dist) {
-                closest_dist = dist;
-                index1 = j;
+    if(last_s == global_path_.s_new()){
+        for(std::size_t i = 0; i < global_path_.n(); ++i){
+            if(global_path_.s(i) > last_s){
+                index1 = i == 0?0:i-1;
+                double x = global_path_.p(index1) - pose(0);
+                double y = global_path_.q(index1) - pose(1);
+                closest_dist = std::hypot(x, y);
+                break;
             }
         }
-        ++j;
-        if(j >= global_path_.n()){
-            break;
+    }else{
+        std::size_t j = 0;
+        index1 = j;
+        double c_s = global_path_.s(j);
+        double g1,g2;
+        if(last_s > global_path_.s_new()){
+            g1 = global_path_.s_new();
+            g2 = last_s;
+        }else{
+            g1 = last_s;
+            g2 = global_path_.s_new();
         }
-        c_s = global_path_.s(j);
+        while(c_s <= g2){
+            if(c_s >= g1){
+                double x = global_path_.p(j) - pose(0);
+                double y = global_path_.q(j) - pose(1);
+                double dist = std::hypot(x, y);
+                if(dist < closest_dist) {
+                    closest_dist = dist;
+                    index1 = j;
+                }
+            }
+            ++j;
+            if(j >= global_path_.n()){
+                break;
+            }
+            c_s = global_path_.s(j);
+        }
     }
     double s_new = global_path_.s(index1) + 3.0 * velocity_ * update_interval_.toSec();
     closest_dist = std::numeric_limits<double>::infinity();
@@ -282,6 +303,7 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
     }
 
     new_s = global_path_.s(index1);
+    ROS_INFO_STREAM("Indexes: " << index1 << ", " << index2);
 }
 
 void LocalPlannerClassic::initConstraints(const std::vector<Constraint::Ptr>& constraints,
@@ -317,9 +339,29 @@ void LocalPlannerClassic::printNodeUsage(int& nnodes) const{
     ROS_INFO_STREAM("# Nodes: " << nnodes);
 }
 
-double LocalPlannerClassic::Score(const LNode& current, const double& dis2last,
-                        const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer){
-    double score = dis2last - current.s;
+double LocalPlannerClassic::Heuristic(const LNode& current, const double& dis2last){
+    return dis2last - current.s;
+}
+
+double LocalPlannerClassic::Cost(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
+                                 const std::vector<double>& wscorer, double& score){
+    double cost = 0.0;
+    if(current.parent_ != nullptr){
+        if(current.radius_ == std::numeric_limits<double>::infinity()){
+            cost += step_;
+        }else{
+            const double theta = MathHelper::AngleClamp(current.orientation - current.parent_->orientation);
+            cost += current.radius_*theta;
+        }
+    }
+    score = Score(current,scorer,wscorer);
+    cost += score;
+    return cost;
+}
+
+double LocalPlannerClassic::Score(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
+                                  const std::vector<double>& wscorer){
+    double score = 0.0;
     for(std::size_t i = 0; i < scorer.size(); ++i){
         score += ((wscorer.at(i) != 0.0)?(wscorer.at(i)*scorer.at(i)->score(current)):0.0);
     }
@@ -336,8 +378,9 @@ void LocalPlannerClassic::setLLP(){
     setLLP(last_local_path_.n());
 }
 
-void LocalPlannerClassic::setParams(int nnodes, double dis2p, double dis2o, double s_angle){
+void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle){
     nnodes_ = nnodes;
+    ic_ = ic;
     double th = s_angle*M_PI/180.0;
     RT = L/std::tan(th);
     Dis2Path_Constraint::setLimits(dis2p,dis2o);
@@ -351,3 +394,6 @@ void LocalPlannerClassic::printVelocity(){
     }
 }
 
+void LocalPlannerClassic::printLevelReached() const{
+    ROS_INFO_STREAM("Reached Level: " << r_level << "/10");
+}

@@ -10,12 +10,13 @@ public:
     LocalPlannerTransformer(PathFollower& controller,
                             tf::Transformer &transformer,
                             const ros::Duration& update_interval);
-    virtual void setParams(int nnodes, double dis2p, double dis2o, double s_angle) override;
+    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle) override;
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
     virtual void setVelocity(double velocity) override;
 private:
     virtual void printNodeUsage(int& nnodes) const override;
     virtual void printVelocity() override;
+    virtual void printLevelReached() const override;
     virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
                      const std::vector<Constraint::Ptr>& constraints,
                      const std::vector<Scorer::Ptr>& scorer,

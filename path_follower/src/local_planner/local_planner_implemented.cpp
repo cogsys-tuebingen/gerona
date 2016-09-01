@@ -130,6 +130,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
 
         printVelocity();
         printNodeUsage(nnodes);
+        printLevelReached();
         printSCTimeUsage(constraints, scorer, fconstraints, wscorer);
         ROS_INFO_STREAM("Local Planner duration: " << (end_t/1000.0) << " ms");
 

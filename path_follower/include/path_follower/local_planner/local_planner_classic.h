@@ -15,7 +15,7 @@ public:
 
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
     virtual void setVelocity(double velocity) override;
-    virtual void setParams(int nnodes, double dis2p, double dis2o, double s_angle) override;
+    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle) override;
 
 protected:
     template <typename NodeT>
@@ -104,31 +104,46 @@ protected:
 
         double dis = 0.0;
         if(closest_index == index1){
-            const Waypoint& p0 = waypoints[index1];
-            const Waypoint& p1 = waypoints[index1+1];
-            double x = p1.x - p0.x;
-            double y = p1.y - p0.y;
-            double a_next = std::atan2(y,x);
-            x = current.x - p0.x;
-            y = current.y - p0.y;
-            double a_point = std::atan2(y,x);
-            double adiff = std::abs(MathHelper::AngleClamp(a_next - a_point));
-            if(adiff > M_PI_2){
-                dis = -std::hypot(p0.x - current.x, p0.y - current.y);
+            while(closest_index != 0){
+                const int c_i = closest_index - 1;
+                const Waypoint& wp = waypoints[c_i];
+                double dist = std::hypot(wp.x - current.x, wp.y - current.y);
+                if(dist < closest_dist) {
+                    closest_dist = dist;
+                    closest_index = c_i;
+                }else{
+                    break;
+                }
+            }
+            if(closest_index == 0){
+                const Waypoint& p0 = waypoints[0];
+                const Waypoint& p1 = waypoints[1];
+                double x = p1.x - p0.x;
+                double y = p1.y - p0.y;
+                double a_next = std::atan2(y,x);
+                x = current.x - p0.x;
+                y = current.y - p0.y;
+                double a_point = std::atan2(y,x);
+                double adiff = std::abs(MathHelper::AngleClamp(a_next - a_point));
+                if(adiff > M_PI_2){
+                    double h = std::hypot(p0.x - current.x, p0.y - current.y);
+                    dis = h*std::cos(adiff);
+                    closest_dist = h*std::sin(adiff);
+                }
             }
         }
         if(closest_index == index2){
-            const Waypoint& p0 = waypoints[index2];
-            const Waypoint& p1 = waypoints[index2-1];
-            double x = p1.x - p0.x;
-            double y = p1.y - p0.y;
-            double a_prev = std::atan2(y,x);
-            x = current.x - p0.x;
-            y = current.y - p0.y;
-            double a_point = std::atan2(y,x);
-            double adiff = std::abs(MathHelper::AngleClamp(a_prev - a_point));
-            if(adiff > M_PI_2){
-                dis = std::hypot(p0.x - current.x, p0.y - current.y);
+            std::size_t last_p = waypoints.size() - 1;
+            while(closest_index != last_p){
+                const int c_i = closest_index + 1;
+                const Waypoint& wp = waypoints[c_i];
+                double dist = std::hypot(wp.x - current.x, wp.y - current.y);
+                if(dist < closest_dist) {
+                    closest_dist = dist;
+                    closest_index = c_i;
+                }else{
+                    break;
+                }
             }
         }
         current.d2p = closest_dist;
@@ -162,18 +177,42 @@ protected:
     }
 
     template <typename NodeT>
-    void retrievePath(NodeT* obj, SubPath& local_wps){
+    void retrievePath(NodeT* obj, SubPath& local_wps, double& l){
         LNode* cu = obj;
-        local_wps.resize(cu->level_ + 1);
-        const std::size_t length = local_wps.size();
-        for(std::size_t i = 0; i < length; ++i){
-            const std::size_t index = (length - 1) - i;
-            local_wps.at(index).x = cu->x;
-            local_wps.at(index).y = cu->y;
-            local_wps.at(index).orientation = cu->orientation;
-            local_wps.at(index).s = cu->s;
+        r_level = cu->level_;
+        l = 0.0;
+        while(cu != nullptr){
+            local_wps.push_back(*cu);
+            if(local_wps.size() != 1){
+                l += local_wps.back().distanceTo(local_wps.at(local_wps.size()-2));
+            }
+            if(cu->parent_ != nullptr){
+                if(cu->radius_ != std::numeric_limits<double>::infinity()){
+                    const LNode* parent = cu->parent_;
+                    double theta = MathHelper::AngleClamp(cu->orientation - parent->orientation);
+                    const double rt = cu->radius_;
+                    const double step = theta/((double)(ic_ + 1));
+                    double ori = parent->orientation;
+                    double trax = L*std::cos(ori)/2.0;
+                    double tray = L*std::sin(ori)/2.0;
+                    double ox = parent->x - trax;
+                    double oy = parent->y - tray;
+                    for(int i = ic_; i >= 1; --i){
+                        theta = MathHelper::AngleClamp(ori + ((double)i)*step);
+                        trax = L*std::cos(theta)/2.0;
+                        tray = L*std::sin(theta)/2.0;
+                        double x = ox + rt*(std::sin(theta)-std::sin(ori)) + trax;
+                        double y = oy + rt*(-std::cos(theta)+std::cos(ori)) + tray;
+                        Waypoint bc(x,y,theta);
+                        bc.s = parent->s + ((double)i)*step*rt;
+                        local_wps.push_back(bc);
+                        l += local_wps.back().distanceTo(local_wps.at(local_wps.size()-2));
+                    }
+                }
+            }
             cu = cu->parent_;
         }
+        std::reverse(local_wps.begin(),local_wps.end());
     }
 
     template <typename NodeT>
@@ -225,12 +264,21 @@ protected:
 
     template <typename NodeT>
     bool processPath(NodeT* obj,SubPath& local_wps){
-        retrievePath(obj, local_wps);
-        if((local_wps.back().s - local_wps.front().s) < 0.1){
+        double length;
+        retrievePath(obj, local_wps,length);
+        if(length < 0.12){
             return false;
         }
         last_s = global_path_.s_new();
-        global_path_.set_s_new(local_wps.at(min((int)local_wps.size() - 1, 3)).s);
+        std::size_t i_new = local_wps.size() - 1;
+        double dis = velocity_ * update_interval_.toSec();
+        for(std::size_t i = 1; i < local_wps.size(); ++i){
+            if(local_wps.at(i).s - local_wps.at(0).s >= dis){
+                i_new = i;
+                break;
+            }
+        }
+        global_path_.set_s_new(local_wps.at(i_new).s);
         smoothAndInterpolate(local_wps);
         if(tooClose){
             wlp_.insert(wlp_.end(),local_wps.begin(),local_wps.end());
@@ -249,8 +297,13 @@ protected:
 
     void smoothAndInterpolate(SubPath& local_wps);
 
-    double Score(const LNode& current, const double& dis2last,
-                        const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer);
+    double Heuristic(const LNode& current, const double& dis2last);
+
+    double Cost(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
+                const std::vector<double>& wscorer, double& score);
+
+    double Score(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
+                 const std::vector<double>& wscorer);
 
     void setStep();
 
@@ -266,10 +319,11 @@ protected:
 private:
     virtual void printNodeUsage(int& nnodes) const override;
     virtual void printVelocity() override;
+    virtual void printLevelReached() const override;
 protected:
     static constexpr double L = 0.46;
 
-    static int nnodes_;
+    static int nnodes_,ic_;
     static double D_THETA, RT;
 
     double d2p, last_s, new_s, velocity_;
@@ -277,6 +331,7 @@ protected:
 
     std::size_t index1;
     std::size_t index2;
+    int r_level;
 
     PathInterpolated last_local_path_;
 

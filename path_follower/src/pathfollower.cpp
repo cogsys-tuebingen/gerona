@@ -44,7 +44,8 @@
 #include <path_follower/local_planner/local_planner_null.h>
 #include <path_follower/local_planner/local_planner_transformer.h>
 #include <path_follower/local_planner/local_planner_bfs.h>
-#include <path_follower/local_planner/local_planner_astar.h>
+#include <path_follower/local_planner/local_planner_astar_n.h>
+#include <path_follower/local_planner/local_planner_astar_g.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -169,7 +170,9 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // Choose Local Planner Algorithm
     ROS_INFO("Use local planner algorithm '%s'", opt_.algo().c_str());
     if(opt_.algo() == "AStar"){
-        local_planner_ = std::make_shared<LocalPlannerAStar>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+        local_planner_ = std::make_shared<LocalPlannerAStarN>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+    }else if(opt_.algo() == "AStarG"){
+        local_planner_ = std::make_shared<LocalPlannerAStarG>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "BFS"){
         local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "Transformer"){
@@ -181,19 +184,20 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         exit(1);
     }
 
-    local_planner_->setParams(opt_.nnodes(), opt_.dis2p(), opt_.dis2o(), opt_.s_angle());
+    local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.dis2o(), opt_.s_angle());
 
     ROS_INFO("Maximum number of allowed nodes: %d", opt_.nnodes());
     ROS_INFO("Update Interval: %.3f", opt_.uinterval());
     ROS_INFO("Maximal distance from path: %.3f", opt_.dis2p());
     ROS_INFO("Minimal distance to an obstacle: %.3f", opt_.dis2o());
     ROS_INFO("Steering angle: %.3f", opt_.s_angle());
+    ROS_INFO("Intermediate Configurations: %d",opt_.ic());
 
     ROS_INFO("Constraint usage [%s, %s]", opt_.c1() ? "true" : "false",
              opt_.c2() ? "true" : "false");
-    ROS_INFO("Scorer usage [%s, %s, %s, %s, %s]", (opt_.s1() != 0.0) ? "true" : "false",
+    ROS_INFO("Scorer usage [%s, %s, %s, %s]", (opt_.s1() != 0.0) ? "true" : "false",
              (opt_.s2() != 0.0) ? "true" : "false", (opt_.s3() != 0.0) ? "true" : "false",
-             (opt_.s4() != 0.0) ? "true" : "false",(opt_.s5() != 0.0) ? "true" : "false");
+             (opt_.s4() != 0.0) ? "true" : "false");
 
     obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
 																					&PathFollower::obstacleCloudCB, this);
@@ -431,32 +435,27 @@ void PathFollower::update()
             }
             fconstraints.at(1) = opt_.c2();
 
-            std::vector<Scorer::Ptr> scorer(5);
-            std::vector<double> wscorer(5);
+            std::vector<Scorer::Ptr> scorer(4);
+            std::vector<double> wscorer(4);
             if(opt_.s1() != 0.0){
                 scorer.at(0) = Dis2PathP_Scorer::Ptr(new Dis2PathP_Scorer);
             }
             wscorer.at(0) = opt_.s1();
 
             if(opt_.s2() != 0.0){
-                scorer.at(1) = Dis2PathI_Scorer::Ptr(new Dis2PathI_Scorer);
+                scorer.at(1) = Dis2PathD_Scorer::Ptr(new Dis2PathD_Scorer);
             }
             wscorer.at(1) = opt_.s2();
 
             if(opt_.s3() != 0.0){
-                scorer.at(2) = Dis2PathD_Scorer::Ptr(new Dis2PathD_Scorer);
+                scorer.at(2) = Curvature_Scorer::Ptr(new Curvature_Scorer);
             }
             wscorer.at(2) = opt_.s3();
 
             if(opt_.s4() != 0.0){
-                scorer.at(3) = Curvature_Scorer::Ptr(new Curvature_Scorer);
+                scorer.at(3) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
             }
             wscorer.at(3) = opt_.s4();
-
-            if(opt_.s5() != 0.0){
-                scorer.at(4) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
-            }
-            wscorer.at(4) = opt_.s5();
 
             //End Constraints and Scorers Construction
             if(obstacle_cloud_ != nullptr){
