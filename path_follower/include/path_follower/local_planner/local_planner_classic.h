@@ -24,7 +24,7 @@ protected:
                        const std::vector<bool>& fconstraints,const std::vector<double>& wscorer,
                        std::vector<NodeT>& twins = EMPTYTWINS, bool repeat = false){
         successors.clear();
-        twins.clear();
+        twins.resize(3);
         bool add_n = true;
         double ori = current->orientation;
         double trax = L*std::cos(ori)/2.0;
@@ -74,8 +74,8 @@ protected:
                     }
                 }else{
                     if(repeat){
-                        twins.push_back(succ);
-                        nodes[wo].twin_ = &twins.back();
+                        twins.at(i) = succ;
+                        nodes[wo].twin_ = &twins.at(i);
                         successors.push_back(&nodes[wo]);
                     }
                 }
