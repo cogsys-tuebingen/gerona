@@ -15,7 +15,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
       d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
-      r_level(0), step_(0.0),stepc_(0.0),neig_s(0.0)
+      r_level(0), n_v(0), step_(0.0),stepc_(0.0),neig_s(0.0)
 {
 
 }
@@ -29,8 +29,9 @@ void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
 void LocalPlannerClassic::setVelocity(geometry_msgs::Twist::_linear_type vector){
     if(!fvel_){
         double tmpv = sqrt(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z);
-        if(tmpv > 0.05){
-            velocity_ = tmpv;
+        if(tmpv > 0.2){
+            n_v++;
+            velocity_ += (tmpv - velocity_)/(double)n_v;
         }
     }
     setStep();
@@ -38,6 +39,7 @@ void LocalPlannerClassic::setVelocity(geometry_msgs::Twist::_linear_type vector)
 
 void LocalPlannerClassic::setVelocity(double velocity){
     velocity_ = velocity;
+    n_v = 1;
     fvel_ = true;
     setStep();
 }
@@ -388,7 +390,7 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis
 }
 
 void LocalPlannerClassic::printVelocity(){
-    ROS_INFO_STREAM("v = " << velocity_ << " m/s");
+    ROS_INFO_STREAM("Mean velocity: " << velocity_ << " m/s");
     if(fvel_){
         fvel_ = false;
     }

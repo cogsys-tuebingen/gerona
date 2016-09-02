@@ -338,7 +338,7 @@ protected:
 
     std::size_t index1;
     std::size_t index2;
-    int r_level;
+    int r_level,n_v;
 
     PathInterpolated last_local_path_;
 
