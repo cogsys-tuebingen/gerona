@@ -50,8 +50,8 @@ void LocalPlannerClassic::setStep(){
     D_THETA = MathHelper::AngleClamp(step_/RT);
     double H_D_THETA = D_THETA/2.0;
     stepc_ = 2.0*RT*std::sin(H_D_THETA);
-    neig_s = stepc_*sin(H_D_THETA);
-    Dis2Path_Constraint::setAngle(H_D_THETA);
+    neig_s = stepc_*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
+    Dis2Path_Constraint::setDRate(neig_s);
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -311,7 +311,7 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
 void LocalPlannerClassic::initConstraints(const std::vector<Constraint::Ptr>& constraints,
                                           const std::vector<bool>& fconstraints){
     if(fconstraints.at(0)){
-        std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setParams(d2p, stepc_);
+        std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setParams(d2p);
     }
 }
 
