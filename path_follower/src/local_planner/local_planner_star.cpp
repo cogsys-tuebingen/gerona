@@ -75,7 +75,8 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                 continue;
             }
 
-            double tentative_gScore = G(current,i,successors,scorer,wscorer,score);
+            HNode* for_current = current;
+            double tentative_gScore = G(for_current,i,successors,scorer,wscorer,score);
 
             if(tentative_gScore >= successors[i]->gScore_){
                 successors[i]->twin_ = nullptr;
@@ -86,7 +87,7 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                 successors[i]->InfoFromTwin();
             }
 
-            successors[i]->parent_ = current;
+            successors[i]->parent_ = for_current;
             successors[i]->gScore_ = tentative_gScore;
 
             heuristic = Heuristic(*(successors[i]), dis2last);

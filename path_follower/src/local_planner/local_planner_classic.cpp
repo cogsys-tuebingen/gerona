@@ -8,6 +8,7 @@ int LocalPlannerClassic::nnodes_ = 300;
 int LocalPlannerClassic::ic_ = 3;
 double LocalPlannerClassic::RT = std::numeric_limits<double>::infinity();
 double LocalPlannerClassic::D_THETA = 0.0;
+double LocalPlannerClassic::TH = 0.0;
 std::vector<LNode> LocalPlannerClassic::EMPTYTWINS;
 
 LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
@@ -383,8 +384,8 @@ void LocalPlannerClassic::setLLP(){
 void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle){
     nnodes_ = nnodes;
     ic_ = ic;
-    double th = s_angle*M_PI/180.0;
-    RT = L/std::tan(th);
+    TH = s_angle*M_PI/180.0;
+    RT = L/std::tan(TH);
     Dis2Path_Constraint::setLimits(dis2p,dis2o);
     Dis2Obst_Constraint::setLimit(dis2o);
 }

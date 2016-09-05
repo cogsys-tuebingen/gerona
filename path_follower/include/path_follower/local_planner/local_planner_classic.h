@@ -331,7 +331,7 @@ protected:
     static std::vector<LNode> EMPTYTWINS;
 
     static int nnodes_,ic_;
-    static double D_THETA, RT;
+    static double D_THETA, RT, TH;
 
     double d2p, last_s, new_s, velocity_;
     bool fvel_;
