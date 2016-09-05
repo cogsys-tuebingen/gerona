@@ -116,7 +116,10 @@ add_executable(path_follower_node
   src/local_planner/local_planner_classic.cpp
   src/local_planner/local_planner_transformer.cpp
   src/local_planner/local_planner_bfs.cpp
+  src/local_planner/local_planner_star.cpp
   src/local_planner/local_planner_astar.cpp
+  src/local_planner/local_planner_star_n.cpp
+  src/local_planner/local_planner_star_g.cpp
   src/local_planner/local_planner_astar_n.cpp
   src/local_planner/local_planner_astar_g.cpp
   src/local_planner/constraint.cpp

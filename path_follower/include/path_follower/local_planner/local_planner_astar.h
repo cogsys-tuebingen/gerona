@@ -2,29 +2,17 @@
 #define LOCAL_PLANNER_ASTAR_H
 
 /// PROJECT
-#include <path_follower/local_planner/local_planner_classic.h>
+#include <path_follower/local_planner/local_planner_star.h>
 
-class LocalPlannerAStar : public LocalPlannerClassic
+class LocalPlannerAStar : virtual public LocalPlannerStar
 {
 public:
-    LocalPlannerAStar(PathFollower& controller,
-                            tf::Transformer &transformer,
-                            const ros::Duration& update_interval);
+    LocalPlannerAStar(PathFollower& controller, tf::Transformer &transformer,
+                      const ros::Duration& update_interval);
 private:
-    virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
-                     const std::vector<Constraint::Ptr>& constraints,
-                     const std::vector<Scorer::Ptr>& scorer,
-                     const std::vector<bool>& fconstraints,
-                     const std::vector<double>& wscorer,
-                     int& nnodes) override;
-    virtual double f(double& g, double& score, double& heuristic) = 0;
-
-    double G(HNode*& current, std::size_t& index, std::vector<HNode*>& successors,
+    virtual double G(HNode*& current, std::size_t& index, std::vector<HNode*>& successors,
              const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer,
-             double& score);
-
-private:
-    typedef std::multiset<HNode*,CompareHNode> prio_queue;
+             double& score) override;
 };
 
 #endif // LOCAL_PLANNER_ASTAR_H
