@@ -20,23 +20,11 @@ demonstrating the navigation framework.
     <arg name="s3" default="0.0" />
     <arg name="s4" default="0.0" / -->
 
-    <!-- Config 1: Curvature + Distance Sint -->
+    <!-- Config 1: Worked well with 10° in sim -->
     <arg name="s1" default="0.758386981520999" />
     <arg name="s2" default="0.0" />
     <arg name="s3" default="2.100000000000000" />
     <arg name="s4" default="0.0" />
-
-    <!-- Config 2: Distance Sint -->
-    <!-- arg name="s1" default="-0.806987179805051" />
-    <arg name="s2" default="4.976165989302292" />
-    <arg name="s3" default="0.002676964121986" />
-    <arg name="s4" default="0.0" / -->
-
-    <!-- Config 3: Curvature Sint -->
-    <!-- arg name="s1" default="0.758386981520999" />
-    <arg name="s2" default="0.0" />
-    <arg name="s3" default="2.100000000000000" />
-    <arg name="s4" default="0.0" / -->
 
     <arg name="nnodes" default="400" />
     <arg name="ic" default="3" />

@@ -75,12 +75,7 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                 continue;
             }
 
-            double tentative_gScore = current->gScore_ ;
-            if(successors[i]->twin_ != nullptr){
-                tentative_gScore += Cost(*(successors[i]->twin_), scorer, wscorer, score);
-            }else{
-                tentative_gScore += Cost(*(successors[i]), scorer, wscorer, score);
-            }
+            double tentative_gScore = G(current,i,successors,scorer,wscorer,score);
 
             if(tentative_gScore >= successors[i]->gScore_){
                 successors[i]->twin_ = nullptr;
@@ -117,4 +112,16 @@ bool LocalPlannerAStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     }else{
         return false;
     }
+}
+
+double LocalPlannerAStar::G(HNode*& current, std::size_t& index, std::vector<HNode*>& successors,
+                            const std::vector<Scorer::Ptr>& scorer,
+                            const std::vector<double>& wscorer,double& score){
+    double tentative_gScore = current->gScore_ ;
+    if(successors[index]->twin_ != nullptr){
+        tentative_gScore += Cost(*(successors[index]->twin_), scorer, wscorer, score);
+    }else{
+        tentative_gScore += Cost(*(successors[index]), scorer, wscorer, score);
+    }
+    return tentative_gScore;
 }
