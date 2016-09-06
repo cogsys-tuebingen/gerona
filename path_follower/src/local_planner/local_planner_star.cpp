@@ -87,6 +87,8 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                 successors[i]->InfoFromTwin();
             }
 
+            updateSucc(current,for_current,*(successors[i]));
+
             successors[i]->parent_ = for_current;
             successors[i]->gScore_ = tentative_gScore;
 

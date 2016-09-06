@@ -22,3 +22,9 @@ double LocalPlannerAStar::G(LNode*& current, std::size_t& index, std::vector<LNo
     }
     return tentative_gScore;
 }
+
+void LocalPlannerAStar::updateSucc(LNode *&current, LNode *&f_current, LNode &succ){
+    (void) current;
+    (void) f_current;
+    (void) succ;
+}

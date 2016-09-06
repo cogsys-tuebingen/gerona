@@ -20,11 +20,35 @@ demonstrating the navigation framework.
     <arg name="s3" default="0.0" />
     <arg name="s4" default="0.0" / -->
 
-    <!-- Config 1: Worked well with 10° in sim -->
-    <arg name="s1" default="0.758386981520999" />
+    <!-- Config 1: Distance Sintonization (ThetaStar) -->
+    <!-- arg name="s1" default="0.999999999999999" />
+    <arg name="s2" default="0.999999999999999" />
+    <arg name="s3" default="-1.000000000000000" />
+    <arg name="s4" default="0.0" / -->
+
+    <!-- Config 2: Curvature Sintonization (ThetaStar) -->
+    <!-- arg name="s1" default="-4.050399000000001" />
+    <arg name="s2" default="0.999999999999999" />
+    <arg name="s3" default="0.999999999999999" />
+    <arg name="s4" default="0.0" / -->
+
+    <!-- Config 3: Distance + Curvature Sintonization (ThetaStar) -->
+    <!-- arg name="s1" default="-2.100000000000000" />
+    <arg name="s2" default="0.999999999999999" />
+    <arg name="s3" default="0.851406311055970" />
+    <arg name="s4" default="0.0" / -->
+
+    <!-- Config 4: Curvature and Distance + Curvature Sintonization (AStar) -->
+    <arg name="s1" default="3.329896365316150e-04" />
+    <arg name="s2" default="0.088290000000000" />
+    <arg name="s3" default="0.999999999999999" />
+    <arg name="s4" default="0.0" />
+
+    <!-- Config 6: Worked well with 10° in sim (AStar) -->
+    <!-- arg name="s1" default="0.758386981520999" />
     <arg name="s2" default="0.0" />
     <arg name="s3" default="2.100000000000000" />
-    <arg name="s4" default="0.0" />
+    <arg name="s4" default="0.0" / -->
 
     <arg name="nnodes" default="400" />
     <arg name="ic" default="3" />

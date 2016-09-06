@@ -23,6 +23,8 @@ private:
              const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer,
              double& score) = 0;
 
+    virtual void updateSucc(LNode*& current, LNode*& f_current, LNode& succ) = 0;
+
 private:
     typedef std::multiset<LNode*,CompareHNode> prio_queue;
 };

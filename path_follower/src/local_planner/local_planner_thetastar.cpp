@@ -23,10 +23,13 @@ double LocalPlannerThetaStar::G(LNode*& current, std::size_t& index, std::vector
     }
     tentative_gScore += Cost(*(succ), scorer, wscorer, score);
     if(tryForAlternative(succ)){
-        /*double score1;
-        double tentative_gScore1 = current->parent_->gScore_;*/
-        ROS_INFO_STREAM("succ = (" << succ->x << "," << succ->y << "," << succ->orientation << ")");
-        ROS_INFO_STREAM("alt = (" << alt.x << "," << alt.y << "," << alt.orientation << ")");
+        double score1;
+        double tentative_gScore1 = current->parent_->gScore_ + Cost(alt,scorer,wscorer,score1);
+        if(tentative_gScore1 < tentative_gScore){
+            score = score1;
+            tentative_gScore = tentative_gScore1;
+            current = current->parent_;
+        }
     }
     return tentative_gScore;
 }
@@ -66,4 +69,10 @@ bool LocalPlannerThetaStar::tryForAlternative(LNode*& s_p){
     alt.parent_ = parent;
     alt.radius_ = R;
     return true;
+}
+
+void LocalPlannerThetaStar::updateSucc(LNode *&current, LNode *&f_current, LNode &succ){
+    if(current != f_current){
+        succ = alt;
+    }
 }
