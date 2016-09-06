@@ -21,7 +21,7 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     // this planner templates the A*/Theta* search algorithms
     initIndexes(pose);
 
-    HNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
+    LNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
     setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
 
     float dis2last = global_path_.s(global_path_.n()-1);
@@ -36,8 +36,8 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     setD2P(wpose);
     initConstraints(constraints,fconstraints);
 
-    std::vector<HNode> nodes(nnodes_);
-    HNode* obj = nullptr;
+    std::vector<LNode> nodes(nnodes_);
+    LNode* obj = nullptr;
 
     double score;
     wpose.gScore_ = Cost(wpose, scorer, wscorer, score);
@@ -46,7 +46,7 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     nodes.at(0) = wpose;
 
-    std::vector<HNode*> closedSet;
+    std::vector<LNode*> closedSet;
 
     prio_queue openSet;
     openSet.insert(&nodes[0]);
@@ -54,7 +54,7 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     int li_level = 10;
     nnodes = 1;
 
-    HNode* current;
+    LNode* current;
 
     while(!openSet.empty() && (openSet.empty()?nodes.at(nnodes - 1).level_:(*openSet.begin())->level_) < li_level && nnodes < nnodes_){
         current = *openSet.begin();
@@ -66,8 +66,8 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         }
         closedSet.push_back(current);
 
-        std::vector<HNode*> successors;
-        std::vector<HNode> twins;
+        std::vector<LNode*> successors;
+        std::vector<LNode> twins;
         getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints, wscorer, twins, true);
         for(std::size_t i = 0; i < successors.size(); ++i){
             if(std::find(closedSet.begin(), closedSet.end(), successors[i]) != closedSet.end()){
@@ -75,7 +75,7 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                 continue;
             }
 
-            HNode* for_current = current;
+            LNode* for_current = current;
             double tentative_gScore = G(for_current,i,successors,scorer,wscorer,score);
 
             if(tentative_gScore >= successors[i]->gScore_){

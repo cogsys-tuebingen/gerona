@@ -11,7 +11,7 @@ LocalPlannerAStar::LocalPlannerAStar(PathFollower &controller, tf::Transformer &
 
 }
 
-double LocalPlannerAStar::G(HNode*& current, std::size_t& index, std::vector<HNode*>& successors,
+double LocalPlannerAStar::G(LNode*& current, std::size_t& index, std::vector<LNode*>& successors,
                             const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer,
                             double& score){
     double tentative_gScore = current->gScore_ ;

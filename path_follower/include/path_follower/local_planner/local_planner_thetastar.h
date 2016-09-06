@@ -11,7 +11,7 @@ public:
                       const ros::Duration& update_interval);
 private:
     bool tryForAlternative(LNode *&s_p);
-    virtual double G(HNode*& current, std::size_t& index, std::vector<HNode*>& successors,
+    virtual double G(LNode*& current, std::size_t& index, std::vector<LNode*>& successors,
              const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer,
              double& score) override;
 private:

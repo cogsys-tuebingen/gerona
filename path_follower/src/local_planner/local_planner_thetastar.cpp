@@ -11,7 +11,7 @@ LocalPlannerThetaStar::LocalPlannerThetaStar(PathFollower &controller, tf::Trans
 
 }
 
-double LocalPlannerThetaStar::G(HNode*& current, std::size_t& index, std::vector<HNode*>& successors,
+double LocalPlannerThetaStar::G(LNode*& current, std::size_t& index, std::vector<LNode*>& successors,
                             const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer,
                             double& score){
     double tentative_gScore = current->gScore_ ;
@@ -23,8 +23,8 @@ double LocalPlannerThetaStar::G(HNode*& current, std::size_t& index, std::vector
     }
     tentative_gScore += Cost(*(succ), scorer, wscorer, score);
     if(tryForAlternative(succ)){
-        double score1;
-        //double tentative_gScore1 = (HNode*)(current->parent_)->gScore;
+        /*double score1;
+        double tentative_gScore1 = current->parent_->gScore_;*/
         ROS_INFO_STREAM("succ = (" << succ->x << "," << succ->y << "," << succ->orientation << ")");
         ROS_INFO_STREAM("alt = (" << alt.x << "," << alt.y << "," << alt.orientation << ")");
     }

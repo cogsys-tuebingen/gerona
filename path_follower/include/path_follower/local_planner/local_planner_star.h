@@ -19,12 +19,12 @@ private:
                      int& nnodes) override;
     virtual double f(double& g, double& score, double& heuristic) = 0;
 
-    virtual double G(HNode*& current, std::size_t& index, std::vector<HNode*>& successors,
+    virtual double G(LNode*& current, std::size_t& index, std::vector<LNode*>& successors,
              const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer,
              double& score) = 0;
 
 private:
-    typedef std::multiset<HNode*,CompareHNode> prio_queue;
+    typedef std::multiset<LNode*,CompareHNode> prio_queue;
 };
 
 #endif // LOCAL_PLANNER_STAR_H

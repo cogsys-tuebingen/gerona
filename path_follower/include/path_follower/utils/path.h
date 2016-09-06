@@ -64,7 +64,7 @@ struct Waypoint
     std::vector<double> actuator_cmds_;
 };
 
-//!Local Node for the local tree (BFS)
+//!Local Node for the local planner tree
 struct LNode: Waypoint
 {
     LNode():Waypoint(){
@@ -72,7 +72,8 @@ struct LNode: Waypoint
     }
     LNode(double x, double y, double orientation, LNode* parent, double radius, int level):
         Waypoint(x,y,orientation),radius_(radius),parent_(parent),twin_(nullptr),level_(level),
-        d2p(0.0),d2o(0.0),npp(),nop(){}
+        d2p(0.0),d2o(0.0),npp(),nop(),gScore_(std::numeric_limits<double>::infinity()),
+        fScore_(std::numeric_limits<double>::infinity()){}
 
     void InfoFromTwin(){
         x = twin_->x;
@@ -98,27 +99,11 @@ struct LNode: Waypoint
     double d2p, d2o;
     //!nearest path point and obstacle point
     Waypoint npp, nop;
+    double gScore_, fScore_;
 };
 
-//!Heuristic Node for the local tree (A*)
-struct HNode: LNode
-{
-    HNode():LNode(){
-
-    }
-    HNode(double x, double y, double orientation, HNode* parent, double radius, int level):
-        LNode(x,y,orientation,parent,radius,level),gScore_(std::numeric_limits<double>::infinity()),
-        fScore_(std::numeric_limits<double>::infinity())
-    {
-
-    }
-
-    double gScore_;
-    double fScore_;
-};
-
-struct CompareHNode : public std::binary_function<HNode*, HNode*, bool> {
-    bool operator()(const HNode* lhs, const HNode* rhs) const {
+struct CompareHNode : public std::binary_function<LNode*, LNode*, bool> {
+    bool operator()(const LNode* lhs, const LNode* rhs) const {
         return lhs->fScore_ < rhs->fScore_;
     }
 };

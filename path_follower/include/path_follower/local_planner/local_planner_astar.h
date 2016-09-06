@@ -10,7 +10,7 @@ public:
     LocalPlannerAStar(PathFollower& controller, tf::Transformer &transformer,
                       const ros::Duration& update_interval);
 private:
-    virtual double G(HNode*& current, std::size_t& index, std::vector<HNode*>& successors,
+    virtual double G(LNode*& current, std::size_t& index, std::vector<LNode*>& successors,
              const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer,
              double& score) override;
 };
