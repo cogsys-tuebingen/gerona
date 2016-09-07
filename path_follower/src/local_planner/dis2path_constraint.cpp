@@ -23,6 +23,10 @@ void Dis2Path_Constraint::setParams(double new_limit){
     }
 }
 
+double Dis2Path_Constraint::getLimit(){
+    return limit;
+}
+
 void Dis2Path_Constraint::setDRate(double d_rate){
     D_RATE = d_rate;
 }

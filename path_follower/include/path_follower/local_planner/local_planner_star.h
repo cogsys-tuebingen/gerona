@@ -16,7 +16,7 @@ private:
                      const std::vector<Scorer::Ptr>& scorer,
                      const std::vector<bool>& fconstraints,
                      const std::vector<double>& wscorer,
-                     int& nnodes) override;
+                     std::size_t& nnodes) override;
     virtual double f(double& g, double& score, double& heuristic) = 0;
 
     virtual double G(LNode*& current, std::size_t& index, std::vector<LNode*>& successors,

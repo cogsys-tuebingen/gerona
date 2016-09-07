@@ -31,7 +31,7 @@ protected:
                           const std::vector<bool>& fconstraints,
                           const std::vector<double>& wscorer);
 private:
-    virtual void printNodeUsage(int& nnodes) const = 0;
+    virtual void printNodeUsage(std::size_t& nnodes) const = 0;
     virtual void printVelocity() = 0;
     virtual void printLevelReached() const = 0;
     virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
@@ -39,7 +39,7 @@ private:
                      const std::vector<Scorer::Ptr>& scorer,
                      const std::vector<bool>& fconstraints,
                      const std::vector<double>& wscorer,
-                     int& nnodes) = 0;
+                     std::size_t& nnodes) = 0;
 protected:
     ros::Time last_update_;
     ros::Duration update_interval_;

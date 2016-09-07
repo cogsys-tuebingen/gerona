@@ -17,7 +17,7 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                   const std::vector<Scorer::Ptr>& scorer,
                                   const std::vector<bool>& fconstraints,
                                   const std::vector<double>& wscorer,
-                                  int& nnodes){
+                                  std::size_t& nnodes){
     // this planner templates the A*/Theta* search algorithms
     initIndexes(pose);
 
@@ -38,6 +38,8 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     std::vector<LNode> nodes(nnodes_);
     LNode* obj = nullptr;
+
+    setNormalizer(constraints,fconstraints);
 
     double score;
     wpose.gScore_ = Cost(wpose, scorer, wscorer, score);
@@ -69,6 +71,7 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         std::vector<LNode*> successors;
         std::vector<LNode> twins;
         getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints, wscorer, twins, true);
+        setNormalizer(constraints,fconstraints);
         for(std::size_t i = 0; i < successors.size(); ++i){
             if(std::find(closedSet.begin(), closedSet.end(), successors[i]) != closedSet.end()){
                 successors[i]->twin_ = nullptr;

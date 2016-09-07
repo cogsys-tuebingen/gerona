@@ -113,7 +113,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         myfile << pose(0) << ", " << pose(1) << ", " << pose(2)<< std::endl;
         myfile.close();
         */
-        int nnodes = 0;
+        std::size_t nnodes = 0;
 
         std::vector<Waypoint> local_wps;
 

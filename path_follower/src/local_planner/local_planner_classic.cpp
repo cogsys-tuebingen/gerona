@@ -4,7 +4,7 @@
 /// PROJECT
 #include <path_follower/pathfollower.h>
 
-int LocalPlannerClassic::nnodes_ = 300;
+std::size_t LocalPlannerClassic::nnodes_ = 300;
 int LocalPlannerClassic::ic_ = 3;
 double LocalPlannerClassic::RT = std::numeric_limits<double>::infinity();
 double LocalPlannerClassic::D_THETA = 0.0;
@@ -27,7 +27,7 @@ void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
     new_s = 0.0;
 }
 
-void LocalPlannerClassic::getSuccessors(LNode*& current, int& nsize, std::vector<LNode*>& successors,
+void LocalPlannerClassic::getSuccessors(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
                                         std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
                                         const std::vector<bool>& fconstraints,const std::vector<double>& wscorer,
                                         std::vector<LNode>& twins, bool repeat){
@@ -91,7 +91,7 @@ void LocalPlannerClassic::getSuccessors(LNode*& current, int& nsize, std::vector
     }
 }
 
-bool LocalPlannerClassic::isInGraph(const LNode& current, std::vector<LNode>& nodes, int& asize, int& position){
+bool LocalPlannerClassic::isInGraph(const LNode& current, std::vector<LNode>& nodes, std::size_t& asize, int& position){
     for(std::size_t i = 0; i < asize; ++i){
         double dis = current.distanceTo(nodes[i]);
         if(dis < neig_s){
@@ -104,7 +104,7 @@ bool LocalPlannerClassic::isInGraph(const LNode& current, std::vector<LNode>& no
 
 void LocalPlannerClassic::setDistances(LNode& current, bool b_obst){
     double closest_dist = std::numeric_limits<double>::infinity();
-    int closest_index = 0;
+    std::size_t closest_index = 0;
     for(std::size_t i = index1; i <= index2; ++i) {
         const Waypoint& wp = waypoints[i];
         double dist = std::hypot(wp.x - current.x, wp.y - current.y);
@@ -201,23 +201,25 @@ void LocalPlannerClassic::retrievePath(LNode* obj, SubPath& local_wps, double& l
             if(cu->radius_ != std::numeric_limits<double>::infinity()){
                 const LNode* parent = cu->parent_;
                 double theta = MathHelper::AngleClamp(cu->orientation - parent->orientation);
-                const double rt = cu->radius_;
-                const double step = theta/((double)(ic_ + 1));
-                double ori = parent->orientation;
-                double trax = L*std::cos(ori)/2.0;
-                double tray = L*std::sin(ori)/2.0;
-                double ox = parent->x - trax;
-                double oy = parent->y - tray;
-                for(int i = ic_; i >= 1; --i){
-                    theta = MathHelper::AngleClamp(ori + ((double)i)*step);
-                    trax = L*std::cos(theta)/2.0;
-                    tray = L*std::sin(theta)/2.0;
-                    double x = ox + rt*(std::sin(theta)-std::sin(ori)) + trax;
-                    double y = oy + rt*(-std::cos(theta)+std::cos(ori)) + tray;
-                    Waypoint bc(x,y,theta);
-                    bc.s = parent->s + ((double)i)*step*rt;
-                    local_wps.push_back(bc);
-                    l += local_wps.back().distanceTo(local_wps.at(local_wps.size()-2));
+                if(std::abs(theta) > std::numeric_limits<double>::epsilon()){
+                    const double rt = cu->radius_;
+                    const double step = theta/((double)(ic_ + 1));
+                    double ori = parent->orientation;
+                    double trax = L*std::cos(ori)/2.0;
+                    double tray = L*std::sin(ori)/2.0;
+                    double ox = parent->x - trax;
+                    double oy = parent->y - tray;
+                    for(int i = ic_; i >= 1; --i){
+                        theta = MathHelper::AngleClamp(ori + ((double)i)*step);
+                        trax = L*std::cos(theta)/2.0;
+                        tray = L*std::sin(theta)/2.0;
+                        double x = ox + rt*(std::sin(theta)-std::sin(ori)) + trax;
+                        double y = oy + rt*(-std::cos(theta)+std::cos(ori)) + tray;
+                        Waypoint bc(x,y,theta);
+                        bc.s = parent->s + ((double)i)*step*rt;
+                        local_wps.push_back(bc);
+                        l += local_wps.back().distanceTo(local_wps.at(local_wps.size()-2));
+                    }
                 }
             }
         }
@@ -287,7 +289,7 @@ bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
         }
     }
     global_path_.set_s_new(local_wps.at(i_new).s);
-    smoothAndInterpolate(local_wps);
+    //smoothAndInterpolate(local_wps);
     if(tooClose){
         wlp_.insert(wlp_.end(),local_wps.begin(),local_wps.end());
     }
@@ -298,7 +300,7 @@ bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
 void LocalPlannerClassic::setVelocity(geometry_msgs::Twist::_linear_type vector){
     if(!fvel_){
         double tmpv = sqrt(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z);
-        if(tmpv > 0.2){
+        if(tmpv > 0.3){
             n_v++;
             velocity_ += (tmpv - velocity_)/(double)n_v;
         }
@@ -584,6 +586,15 @@ void LocalPlannerClassic::initConstraints(const std::vector<Constraint::Ptr>& co
     }
 }
 
+void LocalPlannerClassic::setNormalizer(const std::vector<Constraint::Ptr>& constraints,
+                                        const std::vector<bool>& fconstraints){
+    if(fconstraints.at(0)){
+        double n_limit = std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->getLimit();
+        Dis2PathP_Scorer::setMaxD(n_limit);
+        Dis2PathD_Scorer::setMaxD(n_limit);
+    }
+}
+
 bool LocalPlannerClassic::areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
                                             const std::vector<bool>& fconstraints){
     bool rval = true;
@@ -606,7 +617,7 @@ void LocalPlannerClassic::smoothAndInterpolate(SubPath& local_wps){
     local_wps = smoothPath(local_wps, 2.0, 0.4);
 }
 
-void LocalPlannerClassic::printNodeUsage(int& nnodes) const{
+void LocalPlannerClassic::printNodeUsage(std::size_t& nnodes) const{
     ROS_INFO_STREAM("# Nodes: " << nnodes);
 }
 
@@ -654,6 +665,7 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis
     ic_ = ic;
     TH = s_angle*M_PI/180.0;
     RT = L/std::tan(TH);
+    Curvature_Scorer::setMaxC(RT);
     Dis2Path_Constraint::setLimits(dis2p,dis2o);
     Dis2Obst_Constraint::setLimit(dis2o);
 }

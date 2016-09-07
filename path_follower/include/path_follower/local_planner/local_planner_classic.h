@@ -18,12 +18,12 @@ public:
     virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle) override;
 
 protected:
-    void getSuccessors(LNode*& current, int& nsize, std::vector<LNode*>& successors,
+    void getSuccessors(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
                        std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
                        const std::vector<bool>& fconstraints,const std::vector<double>& wscorer,
                        std::vector<LNode>& twins = EMPTYTWINS, bool repeat = false);
 
-    bool isInGraph(const LNode& current, std::vector<LNode>& nodes, int& asize, int& position);
+    bool isInGraph(const LNode& current, std::vector<LNode>& nodes, std::size_t& asize, int& position);
 
     void setDistances(LNode& current, bool b_obst);
 
@@ -39,7 +39,10 @@ protected:
                            const std::vector<bool>& fconstraints);
 
     void initConstraints(const std::vector<Constraint::Ptr>& constraints,
-                                              const std::vector<bool>& fconstraints);
+                         const std::vector<bool>& fconstraints);
+
+    void setNormalizer(const std::vector<Constraint::Ptr>& constraints,
+                         const std::vector<bool>& fconstraints);
 
     void initIndexes(Eigen::Vector3d& pose);
 
@@ -70,7 +73,7 @@ protected:
     SubPath smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance);
 
 private:
-    virtual void printNodeUsage(int& nnodes) const override;
+    virtual void printNodeUsage(std::size_t& nnodes) const override;
 
     virtual void printVelocity() override;
 
@@ -80,7 +83,8 @@ protected:
     static constexpr double L = 0.46;
     static std::vector<LNode> EMPTYTWINS;
 
-    static int nnodes_,ic_;
+    static std::size_t nnodes_;
+    static int ic_;
     static double D_THETA, RT, TH;
 
     double d2p, last_s, new_s, velocity_;

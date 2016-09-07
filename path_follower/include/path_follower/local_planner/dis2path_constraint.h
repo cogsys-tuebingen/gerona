@@ -14,6 +14,7 @@ public:
     void setParams(double new_limit);
     static void setDRate(double d_rate);
     static void setLimits(double dis2p, double dis2o);
+    double getLimit();
 
     virtual bool isSatisfied(const LNode& point) override;
 private:

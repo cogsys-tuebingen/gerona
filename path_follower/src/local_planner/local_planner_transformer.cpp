@@ -12,7 +12,7 @@ LocalPlannerTransformer::LocalPlannerTransformer(PathFollower &follower,
 
 }
 
-void LocalPlannerTransformer::printNodeUsage(int& nnodes) const{
+void LocalPlannerTransformer::printNodeUsage(std::size_t& nnodes) const{
     (void)nnodes;
 }
 
@@ -21,7 +21,7 @@ bool LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                   const std::vector<Scorer::Ptr>& scorer,
                                   const std::vector<bool>& fconstraints,
                                   const std::vector<double>& wscorer,
-                                  int& nnodes){
+                                  std::size_t& nnodes){
     (void) constraints;
     (void) scorer;
     (void) fconstraints;

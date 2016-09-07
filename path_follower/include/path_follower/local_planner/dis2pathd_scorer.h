@@ -11,8 +11,12 @@ public:
 public:
     Dis2PathD_Scorer();
     virtual ~Dis2PathD_Scorer();
+    static void setMaxD(double& dis);
 
     virtual double score(const LNode& point) override;
+
+private:
+    static double MAX_DIS;
 };
 
 #endif // DIS2PATHD_SCORER_H
