@@ -289,11 +289,12 @@ bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
         }
     }
     global_path_.set_s_new(local_wps.at(i_new).s);
-    //smoothAndInterpolate(local_wps);
+    smoothAndInterpolate(local_wps);
+    last_local_path_.interpolatePath(local_wps, "/odom");
+    local_wps = (SubPath)last_local_path_;
     if(tooClose){
         wlp_.insert(wlp_.end(),local_wps.begin(),local_wps.end());
     }
-    last_local_path_.interpolatePath(local_wps, "/odom");
     return true;
 }
 
@@ -374,10 +375,18 @@ SubPath LocalPlannerClassic::smoothPath(const SubPath& path, double weight_data,
     }
     // find segments
     std::vector<SubPath> segments = segmentPath(path);
+    bool first = true;
     // smooth segments and merge results
     for(const SubPath& segment : segments) {
         SubPath smoothed_segment = smoothPathSegment(segment, weight_data, weight_smooth, tolerance);
-        result.insert(result.end(), smoothed_segment.begin(), smoothed_segment.end());
+        if(first){
+            first = false;
+            result.insert(result.end(), smoothed_segment.begin(), smoothed_segment.end());
+        }else{
+            if(smoothed_segment.size() > 1){
+                result.insert(result.end(), smoothed_segment.begin() + 1, smoothed_segment.end());
+            }
+        }
     }
 
     return result;
