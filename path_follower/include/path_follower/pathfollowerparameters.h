@@ -23,6 +23,7 @@ struct PathFollowerParameters : public Parameters
     P<double> s1, s2, s3, s4;
     P<int> nnodes,ic;
     P<double> uinterval,dis2p, dis2o, s_angle;
+    P<bool> use_v;
 
     // obstacle avoider
     P<bool> obstacle_avoider_use_collision_box;
@@ -86,6 +87,9 @@ struct PathFollowerParameters : public Parameters
               "Determines how far from the obstacles should the local planner perform"),
         s_angle(this, "~s_angle", 25,
                 "Determines the steering angle (in degrees) for the local planner"),
+
+        use_v(this, "~use_v", true,
+              "Determines if the current velocity is used by the local planner"),
 
         obstacle_avoider_use_collision_box(this, "~obstacle_avoider/use_collision_box", true,
                                            "Use the collision box obstacle avoider ('ObstacleDetector')"),
