@@ -198,6 +198,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     ROS_INFO("Minimal distance to an obstacle: %.3f", opt_.dis2o());
     ROS_INFO("Steering angle: %.3f", opt_.s_angle());
     ROS_INFO("Intermediate Configurations: %d",opt_.ic());
+    ROS_INFO("Using current velocity: %s",opt_.use_v() ? "true" : "false");
 
     ROS_INFO("Constraint usage [%s, %s]", opt_.c1() ? "true" : "false",
              opt_.c2() ? "true" : "false");
@@ -467,7 +468,9 @@ void PathFollower::update()
             if(obstacle_cloud_ != nullptr){
                 local_planner_->setObstacleCloud(obstacle_cloud_);
             }
-            local_planner_->setVelocity(getVelocity().linear);
+            if(opt_.use_v()){
+                local_planner_->setVelocity(getVelocity().linear);
+            }
             Path::Ptr local_path_whole(new Path("/odom"));
             Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, wscorer, local_path_whole);
             if(local_path) {

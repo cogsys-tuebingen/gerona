@@ -23,6 +23,7 @@ This is a complete setup and enought to actually navigate the robot.
     <arg name="dis2p" default="0.3" />
     <arg name="dis2o" default="0.85" />
     <arg name="s_angle" default="25.0" />
+    <arg name="use_v" default="true" />
 
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
@@ -65,6 +66,7 @@ This is a complete setup and enought to actually navigate the robot.
       <arg name="dis2p" value="$(arg dis2p)" />
       <arg name="dis2o" value="$(arg dis2o)" />
       <arg name="s_angle" value="$(arg s_angle)" />
+      <arg name="use_v" value="$(arg use_v)" />
 
       <arg name="use_planner_cost" value="$(arg use_planner_cost)" />
       <arg name="use_planner_dynamic" value="$(arg use_planner_dynamic)" />
