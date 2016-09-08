@@ -14,7 +14,7 @@ public:
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
     virtual void setVelocity(double velocity) override;
 private:
-    virtual void printNodeUsage(int& nnodes) const override;
+    virtual void printNodeUsage(std::size_t& nnodes) const override;
     virtual void printVelocity() override;
     virtual void printLevelReached() const override;
     virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
@@ -22,7 +22,7 @@ private:
                      const std::vector<Scorer::Ptr>& scorer,
                      const std::vector<bool>& fconstraints,
                      const std::vector<double>& wscorer,
-                     int& nnodes) override;
+                     std::size_t& nnodes) override;
 };
 
 #endif // LOCAL_PLANNER_TRANSFORMER_H

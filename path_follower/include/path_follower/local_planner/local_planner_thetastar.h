@@ -1,20 +1,23 @@
-#ifndef LOCAL_PLANNER_ASTAR_H
-#define LOCAL_PLANNER_ASTAR_H
+#ifndef LOCAL_PLANNER_THETASTAR_H
+#define LOCAL_PLANNER_THETASTAR_H
 
 /// PROJECT
 #include <path_follower/local_planner/local_planner_star.h>
 
-class LocalPlannerAStar : virtual public LocalPlannerStar
+class LocalPlannerThetaStar : virtual public LocalPlannerStar
 {
 public:
-    LocalPlannerAStar(PathFollower& controller, tf::Transformer &transformer,
+    LocalPlannerThetaStar(PathFollower& controller, tf::Transformer &transformer,
                       const ros::Duration& update_interval);
 private:
+    bool tryForAlternative(LNode *&s_p);
     virtual double G(LNode*& current, std::size_t& index, std::vector<LNode*>& successors,
              const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer,
              double& score) override;
 
     virtual void updateSucc(LNode*& current, LNode*& f_current, LNode& succ) override;
+private:
+    LNode alt;
 };
 
-#endif // LOCAL_PLANNER_ASTAR_H
+#endif // LOCAL_PLANNER_THETASTAR_H

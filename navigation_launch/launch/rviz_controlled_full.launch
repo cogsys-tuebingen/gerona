@@ -9,37 +9,61 @@ demonstrating the navigation framework.
 -->
 <launch>
     <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_SSG)" />
-    <arg name="algo" default="AStar" />
+    <arg name="algo" default="ThetaStar" />
 
     <arg name="c1" default="true" />
     <arg name="c2" default="true" />
 
     <!-- Config 0: Pure Algorithm -->
-    <arg name="s1" default="0.0" />
-    <arg name="s2" default="0.0" />
-    <arg name="s3" default="0.0" />
-    <arg name="s4" default="0.0" />
-
-    <!-- Config 1: Curvature + Distance Sint -->
     <!-- arg name="s1" default="0.0" />
     <arg name="s2" default="0.0" />
-    <arg name="s3" default="0.999999999999999" />
+    <arg name="s3" default="0.0" />
     <arg name="s4" default="0.0" / -->
 
-    <!-- Config 2: Distance Sint -->
-    <!-- arg name="s1" default="0.783990000000000" />
-    <arg name="s2" default="1.833692355227812" />
-    <arg name="s3" default="-0.023129082048042" />
+    <!-- Config 1: Distance + Curvature Sintonization (ThetaStar Oval v=0.6) -->
+    <arg name="s1" default="-0.809999999999999" />
+    <arg name="s2" default="-0.900000000000000" />
+    <arg name="s3" default="1.890000000000001" />
+    <arg name="s4" default="0.0" />
+
+    <!-- Config 2: Distance + Curvature Sintonization (ThetaStar Long Path v=0.6) -->
+    <!-- arg name="s1" default="-1.267835508710000" />
+    <arg name="s2" default="1.990000000000000" />
+    <arg name="s3" default="2.893880999999999" />
     <arg name="s4" default="0.0" / -->
 
-    <!-- Config 3: Curvature Sint -->
-    <!-- arg name="s1" default="-0.809999999999999" />
+    <!-- Config 3: Distance + Curvature Sintonization (ThetaStar Circles v=0.6) -->
+    <!-- arg name="s1" default="1.183448998696332" />
+    <arg name="s2" default="-0.999999999999999" />
+    <arg name="s3" default="0.331465091835208" />
+    <arg name="s4" default="0.0" / -->
+
+    <!-- Config 4: Distance + Curvature Sintonization (ThetaStar Oval v=1.0) -->
+    <!-- arg name="s1" default="-0.250461000000000" />
+    <arg name="s2" default="0.904459437900000" />
+    <arg name="s3" default="1.698561556635183" />
+    <arg name="s4" default="0.0" / -->
+
+    <!-- Config 5: Distance + Curvature Sintonization (ThetaStar Long Path v=1.0) -->
+    <!-- arg name="s1" default="2.442973919601638" />
+    <arg name="s2" default="-1.869863023027178" />
+    <arg name="s3" default="2.100000000000000" />
+    <arg name="s4" default="0.0" / -->
+
+    <!-- Config 6: Distance + Curvature Sintonization (ThetaStar Circles v=1.0) -->
+    <!-- arg name="s1" default="0.962229477976781" />
+    <arg name="s2" default="0.999999999999999" />
+    <arg name="s3" default="-0.033931520271644" />
+    <arg name="s4" default="0.0" / -->
+
+    <!-- Config 7: Worked well with 10° in sim (AStar Oval) -->
+    <!-- arg name="s1" default="0.758386981520999" />
     <arg name="s2" default="0.0" />
-    <arg name="s3" default="0.573837462100000" />
+    <arg name="s3" default="2.100000000000000" />
     <arg name="s4" default="0.0" / -->
 
     <arg name="nnodes" default="400" />
-    <arg name="ic" default="3" />
+    <arg name="ic" default="5" />
     <arg name="uinterval" default="0.5" />
     <arg name="dis2p" default="0.4" />
     <arg name="dis2o" default="0.85" />

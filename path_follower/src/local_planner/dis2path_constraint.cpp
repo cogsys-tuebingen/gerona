@@ -1,8 +1,7 @@
 /// HEADER
 #include <path_follower/local_planner/dis2path_constraint.h>
 
-double Dis2Path_Constraint::SC_A = std::sin(5.0*M_PI/36.0);
-double Dis2Path_Constraint::D_RATE = Dis2Path_Constraint::SC_A;
+double Dis2Path_Constraint::D_RATE = std::sin(5.0*M_PI/36.0);
 double Dis2Path_Constraint::DIS2P_ = 0.3;
 double Dis2Path_Constraint::DIS2O_ = 0.85;
 
@@ -17,20 +16,19 @@ Dis2Path_Constraint::~Dis2Path_Constraint()
 
 }
 
-void Dis2Path_Constraint::setParams(double new_limit, double step){
+void Dis2Path_Constraint::setParams(double new_limit){
     if(new_limit > limit){
         limit = new_limit;
         level = 0;
     }
-    D_RATE = step * SC_A;
 }
 
-void Dis2Path_Constraint::setAngle(double angle){
-    if(angle <= M_PI_4){
-        SC_A = std::sin(angle);
-    }else{
-        SC_A = std::cos(angle);
-    }
+double Dis2Path_Constraint::getLimit(){
+    return limit;
+}
+
+void Dis2Path_Constraint::setDRate(double d_rate){
+    D_RATE = d_rate;
 }
 
 void Dis2Path_Constraint::setLimits(double dis2p, double dis2o){

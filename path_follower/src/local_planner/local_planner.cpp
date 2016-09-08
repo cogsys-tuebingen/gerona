@@ -42,7 +42,7 @@ void LocalPlanner::setObstacleCloud(const ObstacleCloud::ConstPtr &msg)
 
     ros::Time now = ros::Time::now();
 
-    if(!transformer_.waitForTransform("odom", "base_link", now, ros::Duration(0.01))) {
+    if(!transformer_.waitForTransform("odom", "base_link", now, ros::Duration(0.1))) {
         ROS_WARN_THROTTLE_NAMED(1, "global_path", "cannot transform base_link to odom");
         return;
     }

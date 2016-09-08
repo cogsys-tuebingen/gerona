@@ -17,7 +17,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                   const std::vector<Scorer::Ptr>& scorer,
                                   const std::vector<bool>& fconstraints,
                                   const std::vector<double>& wscorer,
-                                  int& nnodes){
+                                  std::size_t& nnodes){
     // this planner uses the Breadth-first search algorithm
     initIndexes(pose);
 
@@ -38,6 +38,8 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     std::vector<LNode> nodes(nnodes_);
     LNode* obj = nullptr;
+
+    setNormalizer(constraints,fconstraints);
 
     nodes.at(0) = wpose;
 
@@ -60,6 +62,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
         std::vector<LNode*> successors;
         getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints, wscorer);
+        setNormalizer(constraints,fconstraints);
         for(std::size_t i = 0; i < successors.size(); ++i){
             double current_p = Heuristic(*(successors[i]), dis2last) + Score(*(successors[i]), scorer, wscorer);
             if(current_p < best_p){

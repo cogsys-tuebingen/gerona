@@ -16,7 +16,7 @@ private:
                      const std::vector<Scorer::Ptr>& scorer,
                      const std::vector<bool>& fconstraints,
                      const std::vector<double>& wscorer,
-                     int& nnodes) override;
+                     std::size_t& nnodes) override;
 };
 
 #endif // LOCAL_PLANNER_BFS_H

@@ -5,14 +5,11 @@
 #include <path_follower/pathfollower.h>
 
 LocalPlannerAStarN::LocalPlannerAStarN(PathFollower &follower,
-                                 tf::Transformer& transformer,
-                                 const ros::Duration& update_interval)
-    : LocalPlannerAStar(follower, transformer, update_interval)
+                                       tf::Transformer& transformer,
+                                       const ros::Duration& update_interval)
+    : LocalPlannerStar(follower, transformer, update_interval),
+      LocalPlannerAStar(follower, transformer, update_interval),
+      LocalPlannerStarN(follower, transformer, update_interval)
 {
 
-}
-
-double LocalPlannerAStarN::f(double& g, double& score, double& heuristic){
-    (void) score;
-    return g + heuristic;
 }
