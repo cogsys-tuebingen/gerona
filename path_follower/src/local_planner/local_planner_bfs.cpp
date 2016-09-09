@@ -45,6 +45,10 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     std::queue<LNode*> fifo;
     fifo.push(&nodes[0]);
+    /**/
+    std::vector<LNode*> leaves;
+    leaves.push_back(&nodes[0]);
+    /**/
     double best_p = std::numeric_limits<double>::infinity();
     int li_level = 10;
     nnodes = 1;
@@ -63,15 +67,51 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         std::vector<LNode*> successors;
         getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints, wscorer);
         setNormalizer(constraints,fconstraints);
+        /**/
+        if(!successors.empty()){
+            std::vector<LNode*>::iterator current_i = std::find(leaves.begin(),leaves.end(), current);
+            leaves.erase(current_i);
+        }
+        /**/
         for(std::size_t i = 0; i < successors.size(); ++i){
-            double current_p = Heuristic(*(successors[i]), dis2last) + Score(*(successors[i]), scorer, wscorer);
+            /*double current_p = Heuristic(*(successors[i]), dis2last) + Score(*(successors[i]), scorer, wscorer);
             if(current_p < best_p){
                 best_p = current_p;
                 obj = successors[i];
-            }
+            }*/
             fifo.push(successors[i]);
+            /**/
+            leaves.push_back(successors[i]);
+            /**/
         }
     }
+    /**/
+    std::vector<LNode*> alts;
+    for(LNode* leaf: leaves){
+        if(leaf->parent_ != nullptr){
+            LNode tParent = *(leaf->parent_);
+            leaf->parent_ = &tParent;
+            if(tParent.parent_ != nullptr){
+                tParent.parent_ = &nodes[0];
+                LNode alternative;
+                if(createAlternative(leaf,alternative)){
+                    *leaf = alternative;
+                    alts.push_back(leaf);
+                }
+            }
+        }
+    }
+    if(alts.empty()){
+        return false;
+    }
+    for(LNode* altern: alts){
+        double current_p = Score(*altern, scorer, wscorer);
+        if(current_p < best_p){
+            best_p = current_p;
+            obj = altern;
+        }
+    }
+    /**/
 
     if(obj != nullptr){
         return processPath(obj, local_wps);
