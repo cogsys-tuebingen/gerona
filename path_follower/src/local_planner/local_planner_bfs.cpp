@@ -86,29 +86,47 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         }
     }
     /**/
-    std::vector<LNode*> alts;
-    for(LNode* leaf: leaves){
-        if(leaf->parent_ != nullptr){
-            LNode tParent = *(leaf->parent_);
-            leaf->parent_ = &tParent;
+    if(obj != nullptr){
+        if(obj->parent_ != nullptr){
+            LNode tParent = *(obj->parent_);
+            obj->parent_ = &tParent;
             if(tParent.parent_ != nullptr){
                 tParent.parent_ = &nodes[0];
                 LNode alternative;
-                if(createAlternative(leaf,alternative)){
-                    *leaf = alternative;
-                    alts.push_back(leaf);
+                if(createAlternative(obj,alternative)){
+                    *obj = alternative;
+                }else{//TMP
+                    return false;
+                }
+            }
+        }else{
+            return false;
+        }
+    }else{
+        std::vector<LNode*> alts;
+        for(LNode* leaf: leaves){
+            if(leaf->parent_ != nullptr){
+                LNode tParent = *(leaf->parent_);
+                leaf->parent_ = &tParent;
+                if(tParent.parent_ != nullptr){
+                    tParent.parent_ = &nodes[0];
+                    LNode alternative;
+                    if(createAlternative(leaf,alternative)){
+                        *leaf = alternative;
+                        alts.push_back(leaf);
+                    }
                 }
             }
         }
-    }
-    if(alts.empty()){
-        return false;
-    }
-    for(LNode* altern: alts){
-        double current_p = Score(*altern, scorer, wscorer);
-        if(current_p < best_p){
-            best_p = current_p;
-            obj = altern;
+        if(alts.empty()){
+            return false;
+        }
+        for(LNode* altern: alts){
+            double current_p = Score(*altern, scorer, wscorer);
+            if(current_p < best_p){
+                best_p = current_p;
+                obj = altern;
+            }
         }
     }
     /**/

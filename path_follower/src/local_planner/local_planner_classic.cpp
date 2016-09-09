@@ -714,6 +714,10 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt){
     x = s_p->x - parent->x;
     y = s_p->y - parent->y;
     double a = std::hypot(x,y);
+    double theta_dir = std::atan2(y,x);
+    if(std::abs(MathHelper::AngleClamp(theta_dir - parent->orientation)) > M_PI_2){
+        return false;
+    }
     double R = (a*a)/divisor;
     double psi_v = atan2(L,std::abs(R));
     if (psi_v > TH){
