@@ -93,7 +93,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
             if(tParent.parent_ != nullptr){
                 tParent.parent_ = &nodes[0];
                 LNode alternative;
-                if(createAlternative(obj,alternative)){
+                if(createAlternative(obj,alternative,true)){
                     *obj = alternative;
                 }else{//TMP
                     return false;
@@ -111,7 +111,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                 if(tParent.parent_ != nullptr){
                     tParent.parent_ = &nodes[0];
                     LNode alternative;
-                    if(createAlternative(leaf,alternative)){
+                    if(createAlternative(leaf,alternative,true)){
                         *leaf = alternative;
                         alts.push_back(leaf);
                     }

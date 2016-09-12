@@ -72,7 +72,7 @@ protected:
 
     SubPath smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance);
 
-    bool createAlternative(LNode*& s_p, LNode& alt);
+    bool createAlternative(LNode*& s_p, LNode& alt, bool allow_lines = false);
 
 private:
     virtual void printNodeUsage(std::size_t& nnodes) const override;

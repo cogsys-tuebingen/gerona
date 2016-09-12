@@ -690,33 +690,51 @@ void LocalPlannerClassic::printLevelReached() const{
     ROS_INFO_STREAM("Reached Level: " << r_level << "/10");
 }
 
-bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt){
+bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_lines){
     LNode* s = s_p->parent_;
+    bool line = false;
     if(s->parent_ == nullptr){
         return false;
     }
     LNode* parent = s->parent_;
-    double x = s->x - parent->x;
-    double y = s->y - parent->y;
+    double trx1 = L*std::cos(s->orientation)/2.0;
+    double try1 = L*std::sin(s->orientation)/2.0;
+    double trx2 = L*std::cos(parent->orientation)/2.0;
+    double try2 = L*std::sin(parent->orientation)/2.0;
+    double x = (s->x - trx1) - (parent->x - trx2);
+    double y = (s->y - try1) - (parent->y - try2);
     double d = std::hypot(x,y);
     double theta_b = std::atan2(y,x);
-    x = s_p->x - s->x;
-    y = s_p->y - s->y;
+    double trx3 = L*std::cos(s_p->orientation)/2.0;
+    double try3 = L*std::sin(s_p->orientation)/2.0;
+    x = (s_p->x - trx3) - (s->x - trx1);
+    y = (s_p->y - try3) - (s->y - try1);
     double c = std::hypot(x,y);
     double theta_r = std::atan2(y,x);
     double gamma  = MathHelper::AngleClamp(theta_r - theta_b);
     double theta_p = MathHelper::AngleClamp(theta_b - parent->orientation);
     double divisor = c*std::sin(MathHelper::AngleClamp(gamma + theta_p)) + d*std::sin(theta_p);
     if(std::abs(divisor) <= std::numeric_limits<double>::epsilon()){
-        return false;
+        if(!allow_lines){
+            return false;
+        }else{
+            line = true;
+        }
     }
     divisor *= 2.0;
-    x = s_p->x - parent->x;
-    y = s_p->y - parent->y;
+    x = (s_p->x - trx3) - (parent->x - trx2);
+    y = (s_p->y - try3) - (parent->y - try2);
     double a = std::hypot(x,y);
     double theta_dir = std::atan2(y,x);
     if(std::abs(MathHelper::AngleClamp(theta_dir - parent->orientation)) > M_PI_2){
         return false;
+    }
+    if(line){
+        alt = *s_p;
+        alt.orientation = parent->orientation;
+        alt.parent_ = parent;
+        alt.radius_ = std::numeric_limits<double>::infinity();;
+        return true;
     }
     double R = (a*a)/divisor;
     double psi_v = atan2(L,std::abs(R));
@@ -725,7 +743,11 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt){
     }
     double theta_n = (R >= 0.0?1.0:-1.0)*std::acos(1-(0.5*a*a)/(R*R));
     alt = *s_p;
+    alt.x -= trx3;
+    alt.y -= try3;
     alt.orientation = MathHelper::AngleClamp(parent->orientation + theta_n);
+    alt.x += L*std::cos(alt.orientation)/2.0;
+    alt.y += L*std::sin(alt.orientation)/2.0;
     alt.parent_ = parent;
     alt.radius_ = R;
     return true;
