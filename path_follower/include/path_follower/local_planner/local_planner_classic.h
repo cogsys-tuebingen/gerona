@@ -74,6 +74,18 @@ protected:
 
     bool createAlternative(LNode*& s_p, LNode& alt, bool allow_lines = false);
 
+    virtual void initLeaves(LNode& root) = 0;
+
+    virtual void updateLeaves(std::vector<LNode*>& successors, LNode*& current) = 0;
+
+    virtual void updateBest(double& current_p, double& best_p, LNode*& obj, LNode*& succ) = 0;
+
+    virtual void addLeaf(LNode*& node) = 0;
+
+    virtual void reconfigureTree(LNode*& obj, std::vector<LNode>& nodes, double& best_p,
+                                 const std::vector<Scorer::Ptr>& scorer,
+                                 const std::vector<double>& wscorer) = 0;
+
 private:
     virtual void printNodeUsage(std::size_t& nnodes) const override;
 

@@ -43,7 +43,8 @@
 
 #include <path_follower/local_planner/local_planner_null.h>
 #include <path_follower/local_planner/local_planner_transformer.h>
-#include <path_follower/local_planner/local_planner_bfs.h>
+#include <path_follower/local_planner/local_planner_bfs_static.h>
+#include <path_follower/local_planner/local_planner_bfs_reconf.h>
 #include <path_follower/local_planner/local_planner_astar_n.h>
 #include <path_follower/local_planner/local_planner_astar_g.h>
 #include <path_follower/local_planner/local_planner_thetastar_n.h>
@@ -180,7 +181,9 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     }else if(opt_.algo() == "ThetaStarG"){
         local_planner_ = std::make_shared<LocalPlannerThetaStarG>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "BFS"){
-        local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+        local_planner_ = std::make_shared<LocalPlannerBFSStatic>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+    }else if(opt_.algo() == "BFSR"){
+        local_planner_ = std::make_shared<LocalPlannerBFSReconf>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "Transformer"){
         local_planner_ = std::make_shared<LocalPlannerTransformer>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "NULL"){

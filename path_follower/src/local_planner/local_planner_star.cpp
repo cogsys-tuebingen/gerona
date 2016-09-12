@@ -119,3 +119,34 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         return false;
     }
 }
+
+//TMP
+void LocalPlannerStar::initLeaves(LNode& root){
+    (void) root;
+}
+
+void LocalPlannerStar::updateLeaves(std::vector<LNode*>& successors, LNode*& current){
+    (void) successors;
+    (void) current;
+}
+
+void LocalPlannerStar::updateBest(double& current_p, double& best_p, LNode*& obj, LNode*& succ){
+    (void) current_p;
+    (void) best_p;
+    (void) obj;
+    (void) succ;
+}
+
+void LocalPlannerStar::addLeaf(LNode*& node){
+    (void) node;
+}
+
+void LocalPlannerStar::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes, double& best_p,
+                                       const std::vector<Scorer::Ptr>& scorer,
+                                       const std::vector<double>& wscorer){
+    (void) obj;
+    (void) nodes;
+    (void) best_p;
+    (void) scorer;
+    (void) wscorer;
+}

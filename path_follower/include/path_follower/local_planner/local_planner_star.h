@@ -27,6 +27,19 @@ private:
 
 private:
     typedef std::multiset<LNode*,CompareHNode> prio_queue;
+
+protected://TMP
+    virtual void initLeaves(LNode& root) override;
+
+    virtual void updateLeaves(std::vector<LNode*>& successors, LNode*& current) override;
+
+    virtual void updateBest(double& current_p, double& best_p, LNode*& obj, LNode*& succ) override;
+
+    virtual void addLeaf(LNode*& node) override;
+
+    virtual void reconfigureTree(LNode*& obj, std::vector<LNode>& nodes,  double& best_p,
+                                 const std::vector<Scorer::Ptr>& scorer,
+                                 const std::vector<double>& wscorer) override;
 };
 
 #endif // LOCAL_PLANNER_STAR_H
