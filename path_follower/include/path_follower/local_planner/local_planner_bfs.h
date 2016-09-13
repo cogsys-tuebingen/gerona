@@ -17,6 +17,9 @@ private:
                      const std::vector<bool>& fconstraints,
                      const std::vector<double>& wscorer,
                      std::size_t& nnodes) override;
+    virtual void evaluate(double& current_p, LNode*& succ, double& dis2last,
+                          const std::vector<Scorer::Ptr>& scorer,
+                          const std::vector<double>& wscorer) = 0;
 };
 
 #endif // LOCAL_PLANNER_BFS_H

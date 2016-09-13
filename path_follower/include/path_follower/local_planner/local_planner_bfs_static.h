@@ -10,6 +10,10 @@ class LocalPlannerBFSStatic : public LocalPlannerBFS, public LocalPlannerStatic
 public:
     LocalPlannerBFSStatic(PathFollower& controller, tf::Transformer &transformer,
                        const ros::Duration& update_interval);
+private:
+    virtual void evaluate(double& current_p, LNode*& succ, double& dis2last,
+                          const std::vector<Scorer::Ptr>& scorer,
+                          const std::vector<double>& wscorer) override;
 };
 
 #endif // LOCAL_PLANNER_BFS_STATIC_H

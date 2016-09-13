@@ -23,11 +23,7 @@ protected:
                        const std::vector<bool>& fconstraints,const std::vector<double>& wscorer,
                        std::vector<LNode>& twins = EMPTYTWINS, bool repeat = false);
 
-    bool isInGraph(const LNode& current, std::vector<LNode>& nodes, std::size_t& asize, int& position);
-
     void setDistances(LNode& current, bool b_obst);
-
-    void retrievePath(LNode* obj, SubPath& local_wps, double& l);
 
     void retrieveContinuity(LNode& wpose);
 
@@ -46,8 +42,6 @@ protected:
 
     void initIndexes(Eigen::Vector3d& pose);
 
-    void smoothAndInterpolate(SubPath& local_wps);
-
     double Heuristic(const LNode& current, const double& dis2last);
 
     double Cost(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
@@ -56,21 +50,9 @@ protected:
     double Score(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
                  const std::vector<double>& wscorer);
 
-    void setStep();
-
     void setLLP(std::size_t index);
 
     void setLLP();
-
-    SubPath interpolatePath(const SubPath& path, double max_distance);
-
-    void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
-
-    SubPath smoothPath(const SubPath& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
-
-    std::vector<SubPath> segmentPath(const SubPath &path);
-
-    SubPath smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance);
 
     bool createAlternative(LNode*& s_p, LNode& alt, bool allow_lines = false);
 
@@ -87,6 +69,24 @@ protected:
                                  const std::vector<double>& wscorer) = 0;
 
 private:
+    bool isInGraph(const LNode& current, std::vector<LNode>& nodes, std::size_t& asize, int& position);
+
+    void retrievePath(LNode* obj, SubPath& local_wps, double& l);
+
+    void smoothAndInterpolate(SubPath& local_wps);
+
+    SubPath interpolatePath(const SubPath& path, double max_distance);
+
+    void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
+
+    SubPath smoothPath(const SubPath& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
+
+    std::vector<SubPath> segmentPath(const SubPath &path);
+
+    SubPath smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance);
+
+    void setStep();
+
     virtual void printNodeUsage(std::size_t& nnodes) const override;
 
     virtual void printVelocity() override;

@@ -13,3 +13,13 @@ LocalPlannerBFSReconf::LocalPlannerBFSReconf(PathFollower &follower,
 {
 
 }
+
+void LocalPlannerBFSReconf::evaluate(double& current_p, LNode*& succ, double& dis2last,
+              const std::vector<Scorer::Ptr>& scorer,
+              const std::vector<double>& wscorer){
+    (void) current_p;
+    (void) succ;
+    (void) dis2last;
+    (void) scorer;
+    (void) wscorer;
+}

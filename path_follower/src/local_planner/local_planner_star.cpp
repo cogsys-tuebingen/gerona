@@ -24,7 +24,7 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     LNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
     setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
 
-    float dis2last = global_path_.s(global_path_.n()-1);
+    double dis2last = global_path_.s(global_path_.n()-1);
 
     if(std::abs(dis2last - wpose.s) < 0.8){
         tooClose = true;

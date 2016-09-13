@@ -24,7 +24,7 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     LNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
     setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
 
-    float dis2last = global_path_.s(global_path_.n()-1);
+    double dis2last = global_path_.s(global_path_.n()-1);
 
     if(std::abs(dis2last - wpose.s) < 0.8){
         tooClose = true;
@@ -66,8 +66,8 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         setNormalizer(constraints,fconstraints);
         updateLeaves(successors, current);
         for(std::size_t i = 0; i < successors.size(); ++i){
-            // TODO: avoid to compute current_p if the tree is reconfigurable
-            double current_p = Heuristic(*(successors[i]), dis2last) + Score(*(successors[i]), scorer, wscorer);
+            double current_p;
+            evaluate(current_p, successors[i], dis2last, scorer, wscorer);
             updateBest(current_p,best_p,obj,successors[i]);
             fifo.push(successors[i]);
             addLeaf(successors[i]);
