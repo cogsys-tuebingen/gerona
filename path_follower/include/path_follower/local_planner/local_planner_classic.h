@@ -15,7 +15,7 @@ public:
 
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
     virtual void setVelocity(double velocity) override;
-    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle) override;
+    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia) override;
 
 protected:
     void getSuccessors(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
@@ -98,8 +98,9 @@ protected:
     static std::vector<LNode> EMPTYTWINS;
 
     static std::size_t nnodes_;
-    static int ic_;
-    static double D_THETA, RT, TH;
+    static int ic_, nsucc_;
+    static double TH;
+    static std::vector<double> D_THETA, RT;
 
     double d2p, last_s, new_s, velocity_;
     bool fvel_;
