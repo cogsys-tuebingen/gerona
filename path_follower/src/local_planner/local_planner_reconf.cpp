@@ -41,8 +41,8 @@ void LocalPlannerReconf::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes,
     if(obj != nullptr){
         if(obj->parent_ != nullptr){
             LNode tParent = *(obj->parent_);
-            obj->parent_ = &tParent;
             if(tParent.parent_ != nullptr){
+                obj->parent_ = &tParent;
                 tParent.parent_ = &nodes[0];
                 LNode alternative;
                 if(createAlternative(obj,alternative,true)){
@@ -61,14 +61,16 @@ void LocalPlannerReconf::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes,
         for(LNode* leaf: leaves){
             if(leaf->parent_ != nullptr){
                 LNode tParent = *(leaf->parent_);
-                leaf->parent_ = &tParent;
                 if(tParent.parent_ != nullptr){
+                    leaf->parent_ = &tParent;
                     tParent.parent_ = &nodes[0];
                     LNode alternative;
                     if(createAlternative(leaf,alternative,true)){
                         *leaf = alternative;
                         alts.push_back(leaf);
                     }
+                }else{
+                    alts.push_back(leaf);
                 }
             }
         }

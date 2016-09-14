@@ -6,7 +6,8 @@
 
 LocalPlannerStarN::LocalPlannerStarN(PathFollower &controller, tf::Transformer &transformer,
                                      const ros::Duration &update_interval)
-    :LocalPlannerStar(controller,transformer,update_interval)
+    : LocalPlannerClassic(controller,transformer,update_interval),
+      LocalPlannerStar(controller,transformer,update_interval)
 {
 
 }

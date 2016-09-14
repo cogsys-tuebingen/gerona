@@ -45,10 +45,14 @@
 #include <path_follower/local_planner/local_planner_transformer.h>
 #include <path_follower/local_planner/local_planner_bfs_static.h>
 #include <path_follower/local_planner/local_planner_bfs_reconf.h>
-#include <path_follower/local_planner/local_planner_astar_n.h>
-#include <path_follower/local_planner/local_planner_astar_g.h>
-#include <path_follower/local_planner/local_planner_thetastar_n.h>
-#include <path_follower/local_planner/local_planner_thetastar_g.h>
+#include <path_follower/local_planner/local_planner_astar_n_static.h>
+#include <path_follower/local_planner/local_planner_astar_g_static.h>
+#include <path_follower/local_planner/local_planner_astar_n_reconf.h>
+#include <path_follower/local_planner/local_planner_astar_g_reconf.h>
+#include <path_follower/local_planner/local_planner_thetastar_n_static.h>
+#include <path_follower/local_planner/local_planner_thetastar_g_static.h>
+#include <path_follower/local_planner/local_planner_thetastar_n_reconf.h>
+#include <path_follower/local_planner/local_planner_thetastar_g_reconf.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -173,13 +177,21 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // Choose Local Planner Algorithm
     ROS_INFO("Use local planner algorithm '%s'", opt_.algo().c_str());
     if(opt_.algo() == "AStar"){
-        local_planner_ = std::make_shared<LocalPlannerAStarN>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+        local_planner_ = std::make_shared<LocalPlannerAStarNStatic>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "AStarG"){
-        local_planner_ = std::make_shared<LocalPlannerAStarG>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+        local_planner_ = std::make_shared<LocalPlannerAStarGStatic>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "ThetaStar"){
-        local_planner_ = std::make_shared<LocalPlannerThetaStarN>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+        local_planner_ = std::make_shared<LocalPlannerThetaStarNStatic>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "ThetaStarG"){
-        local_planner_ = std::make_shared<LocalPlannerThetaStarG>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+        local_planner_ = std::make_shared<LocalPlannerThetaStarGStatic>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+    }else if(opt_.algo() == "AStarR"){
+        local_planner_ = std::make_shared<LocalPlannerAStarNReconf>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+    }else if(opt_.algo() == "AStarGR"){
+        local_planner_ = std::make_shared<LocalPlannerAStarGReconf>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+    }else if(opt_.algo() == "ThetaStarR"){
+        local_planner_ = std::make_shared<LocalPlannerThetaStarNReconf>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+    }else if(opt_.algo() == "ThetaStarGR"){
+        local_planner_ = std::make_shared<LocalPlannerThetaStarGReconf>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "BFS"){
         local_planner_ = std::make_shared<LocalPlannerBFSStatic>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "BFSR"){
