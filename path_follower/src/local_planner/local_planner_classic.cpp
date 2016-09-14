@@ -6,8 +6,9 @@
 
 std::size_t LocalPlannerClassic::nnodes_ = 300;
 int LocalPlannerClassic::ic_ = 3;
-double LocalPlannerClassic::RT = std::numeric_limits<double>::infinity();
-double LocalPlannerClassic::D_THETA = 0.0;
+int LocalPlannerClassic::nsucc_ = 3;
+std::vector<double> LocalPlannerClassic::RT;
+std::vector<double> LocalPlannerClassic::D_THETA;
 double LocalPlannerClassic::TH = 0.0;
 std::vector<LNode> LocalPlannerClassic::EMPTYTWINS;
 
@@ -32,14 +33,15 @@ void LocalPlannerClassic::getSuccessors(LNode*& current, std::size_t& nsize, std
                                         const std::vector<bool>& fconstraints,const std::vector<double>& wscorer,
                                         std::vector<LNode>& twins, bool repeat){
     successors.clear();
-    twins.resize(3);
+    twins.resize(nsucc_);
     bool add_n = true;
     double ori = current->orientation;
     double trax = L*std::cos(ori)/2.0;
     double tray = L*std::sin(ori)/2.0;
     double ox = current->x - trax;
     double oy = current->y - tray;
-    for(int i = 0; i < 3; ++i){
+    int j = 0;
+    for(int i = 0; i < nsucc_; ++i){
         double x,y,theta,rt;
         if(i == 0){// straight
             theta = ori;
@@ -47,17 +49,13 @@ void LocalPlannerClassic::getSuccessors(LNode*& current, std::size_t& nsize, std
             y = oy + step_*std::sin(theta) + tray;
             rt = std::numeric_limits<double>::infinity();
         }else{
-            switch (i) {
-            case 1:// right
-                rt = -RT;
-                theta = -D_THETA;
-                break;
-            case 2:// left
-                rt = RT;
-                theta = D_THETA;
-                break;
-            default:
-                break;
+            if(i % 2 == 1){// right
+                rt = -RT[j];
+                theta = -D_THETA[j];
+            }else{// left
+                rt = RT[j];
+                theta = D_THETA[j];
+                j++;
             }
             theta = MathHelper::AngleClamp(ori + theta);
             trax = L*std::cos(theta)/2.0;
@@ -262,12 +260,12 @@ void LocalPlannerClassic::setD2P(LNode& wpose){
     double y = py + step_*std::sin(wpose.orientation);
     double d1 = std::hypot(x, y);
 
-    x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation + D_THETA/2.0));
-    y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation + D_THETA/2.0));
+    x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation + D_THETA.back()/2.0));
+    y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation + D_THETA.back()/2.0));
     double d2 = std::hypot(x, y);
 
-    x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation - D_THETA/2.0));
-    y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation - D_THETA/2.0));
+    x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation - D_THETA.back()/2.0));
+    y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation - D_THETA.back()/2.0));
     double d3 = std::hypot(x, y);
 
     d2p = max(max(wpose.d2p,d1),max(d2,d3));
@@ -319,11 +317,15 @@ void LocalPlannerClassic::setVelocity(double velocity){
 void LocalPlannerClassic::setStep(){
     double dis = velocity_ * update_interval_.toSec();
     step_ = 3.0*dis/10.0;
-    D_THETA = MathHelper::AngleClamp(step_/RT);
-    double H_D_THETA = D_THETA/2.0;
-    stepc_ = 2.0*RT*std::sin(H_D_THETA);
-    neig_s = stepc_*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
+    D_THETA.clear();
+    for(std::size_t i = 0; i < RT.size(); ++i){
+        D_THETA.push_back(MathHelper::AngleClamp(step_/RT[i]));
+    }
+    double H_D_THETA = D_THETA.front()/2.0;
+    double l_step = 2.0*RT.front()*std::sin(H_D_THETA);
+    neig_s = l_step*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
     Dis2Path_Constraint::setDRate(neig_s);
+    stepc_ = 2.0*RT.back()*std::sin(D_THETA.back()/2.0);
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -669,12 +671,16 @@ void LocalPlannerClassic::setLLP(){
     setLLP(last_local_path_.n());
 }
 
-void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle){
+void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia){
     nnodes_ = nnodes;
     ic_ = ic;
     TH = s_angle*M_PI/180.0;
-    RT = L/std::tan(TH);
-    Curvature_Scorer::setMaxC(RT);
+    RT.clear();
+    for(int i = 0; i <= ia; ++i){
+        RT.push_back(L/std::tan(((double)(i + 1)/(ia + 1))*TH));
+    }
+    nsucc_ = 2*RT.size() + 1;
+    Curvature_Scorer::setMaxC(RT.back());
     Dis2Path_Constraint::setLimits(dis2p,dis2o);
     Dis2Obst_Constraint::setLimit(dis2o);
 }
@@ -690,30 +696,52 @@ void LocalPlannerClassic::printLevelReached() const{
     ROS_INFO_STREAM("Reached Level: " << r_level << "/10");
 }
 
-bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt){
+bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_lines){
     LNode* s = s_p->parent_;
+    bool line = false;
     if(s->parent_ == nullptr){
         return false;
     }
     LNode* parent = s->parent_;
-    double x = s->x - parent->x;
-    double y = s->y - parent->y;
+    double trx1 = L*std::cos(s->orientation)/2.0;
+    double try1 = L*std::sin(s->orientation)/2.0;
+    double trx2 = L*std::cos(parent->orientation)/2.0;
+    double try2 = L*std::sin(parent->orientation)/2.0;
+    double x = (s->x - trx1) - (parent->x - trx2);
+    double y = (s->y - try1) - (parent->y - try2);
     double d = std::hypot(x,y);
     double theta_b = std::atan2(y,x);
-    x = s_p->x - s->x;
-    y = s_p->y - s->y;
+    double trx3 = L*std::cos(s_p->orientation)/2.0;
+    double try3 = L*std::sin(s_p->orientation)/2.0;
+    x = (s_p->x - trx3) - (s->x - trx1);
+    y = (s_p->y - try3) - (s->y - try1);
     double c = std::hypot(x,y);
     double theta_r = std::atan2(y,x);
     double gamma  = MathHelper::AngleClamp(theta_r - theta_b);
     double theta_p = MathHelper::AngleClamp(theta_b - parent->orientation);
     double divisor = c*std::sin(MathHelper::AngleClamp(gamma + theta_p)) + d*std::sin(theta_p);
     if(std::abs(divisor) <= std::numeric_limits<double>::epsilon()){
-        return false;
+        if(!allow_lines){
+            return false;
+        }else{
+            line = true;
+        }
     }
     divisor *= 2.0;
-    x = s_p->x - parent->x;
-    y = s_p->y - parent->y;
+    x = (s_p->x - trx3) - (parent->x - trx2);
+    y = (s_p->y - try3) - (parent->y - try2);
     double a = std::hypot(x,y);
+    double theta_dir = std::atan2(y,x);
+    if(std::abs(MathHelper::AngleClamp(theta_dir - parent->orientation)) > M_PI_2){
+        return false;
+    }
+    if(line){
+        alt = *s_p;
+        alt.orientation = parent->orientation;
+        alt.parent_ = parent;
+        alt.radius_ = std::numeric_limits<double>::infinity();;
+        return true;
+    }
     double R = (a*a)/divisor;
     double psi_v = atan2(L,std::abs(R));
     if (psi_v > TH){
@@ -721,7 +749,11 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt){
     }
     double theta_n = (R >= 0.0?1.0:-1.0)*std::acos(1-(0.5*a*a)/(R*R));
     alt = *s_p;
+    alt.x -= trx3;
+    alt.y -= try3;
     alt.orientation = MathHelper::AngleClamp(parent->orientation + theta_n);
+    alt.x += L*std::cos(alt.orientation)/2.0;
+    alt.y += L*std::sin(alt.orientation)/2.0;
     alt.parent_ = parent;
     alt.radius_ = R;
     return true;

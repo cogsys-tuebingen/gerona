@@ -11,9 +11,11 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
   <arg name="s2" default="0.0" />
   <arg name="s3" default="0.0" />
   <arg name="s4" default="0.0" />
+  <arg name="s5" default="0.0" />
 
   <arg name="nnodes" default="300" />
   <arg name="ic" default="3" />
+  <arg name="ia" default="0" />
   <arg name="uinterval" default="1.0" />
   <arg name="dis2p" default="0.3" />
   <arg name="dis2o" default="0.85" />
@@ -66,9 +68,11 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
     <param name="s2" value="$(arg s2)"/>
     <param name="s3" value="$(arg s3)"/>
     <param name="s4" value="$(arg s4)"/>
+    <param name="s5" value="$(arg s5)"/>
     <!-- planner params-->
     <param name="nnodes" value="$(arg nnodes)" />
     <param name="ic" value="$(arg ic)" />
+    <param name="ia" value="$(arg ia)" />
     <param name="uinterval" value="$(arg uinterval)" />
     <param name="dis2p" value="$(arg dis2p)" />
     <param name="dis2o" value="$(arg dis2o)" />

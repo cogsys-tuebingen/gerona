@@ -14,6 +14,7 @@
 #include <path_follower/local_planner/dis2pathd_scorer.h>
 #include <path_follower/local_planner/dis2pathp_scorer.h>
 #include <path_follower/local_planner/dis2obst_scorer.h>
+#include <path_follower/local_planner/level_scorer.h>
 #include <path_follower/local_planner/curvature_scorer.h>
 
 class PathFollower;
@@ -36,7 +37,7 @@ public:
                                       Path::Ptr& wlp) = 0;
 
     virtual bool isNull() const;
-    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle) = 0;
+    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia) = 0;
 
     void setObstacleCloud(const ObstacleCloud::ConstPtr &msg);
 

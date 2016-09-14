@@ -4,7 +4,7 @@
 /// PROJECT
 #include <path_follower/local_planner/local_planner_classic.h>
 
-class LocalPlannerStar : public LocalPlannerClassic
+class LocalPlannerStar : virtual public LocalPlannerClassic
 {
 public:
     LocalPlannerStar(PathFollower& controller,
@@ -24,6 +24,8 @@ private:
              double& score) = 0;
 
     virtual void updateSucc(LNode*& current, LNode*& f_current, LNode& succ) = 0;
+
+    virtual void evaluate(double& current_p, double& heuristic, double& score) = 0;
 
 private:
     typedef std::multiset<LNode*,CompareHNode> prio_queue;
