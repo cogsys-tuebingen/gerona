@@ -10,7 +10,7 @@ public:
     LocalPlannerThetaStar(PathFollower& controller, tf::Transformer &transformer,
                       const ros::Duration& update_interval);
 private:
-    bool tryForAlternative(LNode *&s_p);
+    bool tryForAlternative(LNode*& s_p);
     virtual double G(LNode*& current, std::size_t& index, std::vector<LNode*>& successors,
              const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer,
              double& score) override;

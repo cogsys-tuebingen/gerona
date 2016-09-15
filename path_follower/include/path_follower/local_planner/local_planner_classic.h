@@ -15,7 +15,7 @@ public:
 
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
     virtual void setVelocity(double velocity) override;
-    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle) override;
+    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia) override;
 
 protected:
     void getSuccessors(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
@@ -23,11 +23,7 @@ protected:
                        const std::vector<bool>& fconstraints,const std::vector<double>& wscorer,
                        std::vector<LNode>& twins = EMPTYTWINS, bool repeat = false);
 
-    bool isInGraph(const LNode& current, std::vector<LNode>& nodes, std::size_t& asize, int& position);
-
     void setDistances(LNode& current, bool b_obst);
-
-    void retrievePath(LNode* obj, SubPath& local_wps, double& l);
 
     void retrieveContinuity(LNode& wpose);
 
@@ -46,8 +42,6 @@ protected:
 
     void initIndexes(Eigen::Vector3d& pose);
 
-    void smoothAndInterpolate(SubPath& local_wps);
-
     double Heuristic(const LNode& current, const double& dis2last);
 
     double Cost(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
@@ -56,11 +50,30 @@ protected:
     double Score(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
                  const std::vector<double>& wscorer);
 
-    void setStep();
-
     void setLLP(std::size_t index);
 
     void setLLP();
+
+    bool createAlternative(LNode*& s_p, LNode& alt, bool allow_lines = false);
+
+    virtual void initLeaves(LNode& root) = 0;
+
+    virtual void updateLeaves(std::vector<LNode*>& successors, LNode*& current) = 0;
+
+    virtual void updateBest(double& current_p, double& best_p, LNode*& obj, LNode*& succ) = 0;
+
+    virtual void addLeaf(LNode*& node) = 0;
+
+    virtual void reconfigureTree(LNode*& obj, std::vector<LNode>& nodes, double& best_p,
+                                 const std::vector<Scorer::Ptr>& scorer,
+                                 const std::vector<double>& wscorer) = 0;
+
+private:
+    bool isInGraph(const LNode& current, std::vector<LNode>& nodes, std::size_t& asize, int& position);
+
+    void retrievePath(LNode* obj, SubPath& local_wps, double& l);
+
+    void smoothAndInterpolate(SubPath& local_wps);
 
     SubPath interpolatePath(const SubPath& path, double max_distance);
 
@@ -72,7 +85,8 @@ protected:
 
     SubPath smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance);
 
-private:
+    void setStep();
+
     virtual void printNodeUsage(std::size_t& nnodes) const override;
 
     virtual void printVelocity() override;
@@ -84,8 +98,9 @@ protected:
     static std::vector<LNode> EMPTYTWINS;
 
     static std::size_t nnodes_;
-    static int ic_;
-    static double D_THETA, RT, TH;
+    static int ic_, nsucc_;
+    static double TH;
+    static std::vector<double> D_THETA, RT;
 
     double d2p, last_s, new_s, velocity_;
     bool fvel_;

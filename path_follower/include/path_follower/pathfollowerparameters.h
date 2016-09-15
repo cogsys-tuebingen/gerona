@@ -20,8 +20,8 @@ struct PathFollowerParameters : public Parameters
     //Parameters for the Local Planner
     P<std::string> algo;
     P<bool> c1, c2;
-    P<double> s1, s2, s3, s4;
-    P<int> nnodes,ic;
+    P<double> s1, s2, s3, s4, s5;
+    P<int> nnodes,ic,ia;
     P<double> uinterval,dis2p, dis2o, s_angle;
     P<bool> use_v;
 
@@ -74,11 +74,15 @@ struct PathFollowerParameters : public Parameters
         s3(this, "~s3", 1.0,
            "Determines whether the third scorer is used or not. (Curvature of the point)"),
         s4(this, "~s4", 1.0,
-           "Determines whether the fourth scorer is used or not. (Distance to nearest obstacle)"),
+           "Determines whether the fourth scorer is used or not. (Tree level reached)"),
+        s5(this, "~s5", 1.0,
+           "Determines whether the fifth scorer is used or not. (Distance to nearest obstacle)"),
         nnodes(this, "~nnodes", 300,
                "Determines the maximum number of nodes used by the local planner"),
         ic(this, "~ic", 3,
                "Determines the number of intermediate configurations in a curve"),
+        ia(this, "~ia", 0,
+               "Determines the number of intermediate angles between 0 and +-s_angle"),
         uinterval(this, "~uinterval", 1.0,
                   "Determines the update interval in seconds of the local planner"),
         dis2p(this, "~dis2p", 0.3,

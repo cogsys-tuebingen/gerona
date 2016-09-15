@@ -24,7 +24,7 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     LNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
     setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
 
-    float dis2last = global_path_.s(global_path_.n()-1);
+    double dis2last = global_path_.s(global_path_.n()-1);
 
     if(std::abs(dis2last - wpose.s) < 0.8){
         tooClose = true;
@@ -52,6 +52,7 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     prio_queue openSet;
     openSet.insert(&nodes[0]);
+    initLeaves(nodes[0]);
     double best_p = std::numeric_limits<double>::infinity();
     int li_level = 10;
     nnodes = 1;
@@ -72,6 +73,7 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         std::vector<LNode> twins;
         getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints, wscorer, twins, true);
         setNormalizer(constraints,fconstraints);
+        updateLeaves(successors, current);
         for(std::size_t i = 0; i < successors.size(); ++i){
             if(std::find(closedSet.begin(), closedSet.end(), successors[i]) != closedSet.end()){
                 successors[i]->twin_ = nullptr;
@@ -104,15 +106,14 @@ bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                 openSet.erase(inOpen);
             }
             openSet.insert(successors[i]);
+            addLeaf(successors[i]);
 
-            double current_p = heuristic + score;
-            if(current_p < best_p){
-                best_p = current_p;
-                obj = successors[i];
-            }
+            double current_p;
+            evaluate(current_p, heuristic, score);
+            updateBest(current_p,best_p,obj,successors[i]);
         }
     }
-
+    reconfigureTree(obj, nodes, best_p, scorer, wscorer);
     if(obj != nullptr){
         return processPath(obj, local_wps);
     }else{

@@ -43,11 +43,16 @@
 
 #include <path_follower/local_planner/local_planner_null.h>
 #include <path_follower/local_planner/local_planner_transformer.h>
-#include <path_follower/local_planner/local_planner_bfs.h>
-#include <path_follower/local_planner/local_planner_astar_n.h>
-#include <path_follower/local_planner/local_planner_astar_g.h>
-#include <path_follower/local_planner/local_planner_thetastar_n.h>
-#include <path_follower/local_planner/local_planner_thetastar_g.h>
+#include <path_follower/local_planner/local_planner_bfs_static.h>
+#include <path_follower/local_planner/local_planner_bfs_reconf.h>
+#include <path_follower/local_planner/local_planner_astar_n_static.h>
+#include <path_follower/local_planner/local_planner_astar_g_static.h>
+#include <path_follower/local_planner/local_planner_astar_n_reconf.h>
+#include <path_follower/local_planner/local_planner_astar_g_reconf.h>
+#include <path_follower/local_planner/local_planner_thetastar_n_static.h>
+#include <path_follower/local_planner/local_planner_thetastar_g_static.h>
+#include <path_follower/local_planner/local_planner_thetastar_n_reconf.h>
+#include <path_follower/local_planner/local_planner_thetastar_g_reconf.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -172,15 +177,25 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // Choose Local Planner Algorithm
     ROS_INFO("Use local planner algorithm '%s'", opt_.algo().c_str());
     if(opt_.algo() == "AStar"){
-        local_planner_ = std::make_shared<LocalPlannerAStarN>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+        local_planner_ = std::make_shared<LocalPlannerAStarNStatic>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "AStarG"){
-        local_planner_ = std::make_shared<LocalPlannerAStarG>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+        local_planner_ = std::make_shared<LocalPlannerAStarGStatic>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "ThetaStar"){
-        local_planner_ = std::make_shared<LocalPlannerThetaStarN>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+        local_planner_ = std::make_shared<LocalPlannerThetaStarNStatic>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "ThetaStarG"){
-        local_planner_ = std::make_shared<LocalPlannerThetaStarG>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+        local_planner_ = std::make_shared<LocalPlannerThetaStarGStatic>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+    }else if(opt_.algo() == "AStarR"){
+        local_planner_ = std::make_shared<LocalPlannerAStarNReconf>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+    }else if(opt_.algo() == "AStarGR"){
+        local_planner_ = std::make_shared<LocalPlannerAStarGReconf>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+    }else if(opt_.algo() == "ThetaStarR"){
+        local_planner_ = std::make_shared<LocalPlannerThetaStarNReconf>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+    }else if(opt_.algo() == "ThetaStarGR"){
+        local_planner_ = std::make_shared<LocalPlannerThetaStarGReconf>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "BFS"){
-        local_planner_ = std::make_shared<LocalPlannerBFS>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+        local_planner_ = std::make_shared<LocalPlannerBFSStatic>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
+    }else if(opt_.algo() == "BFSR"){
+        local_planner_ = std::make_shared<LocalPlannerBFSReconf>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "Transformer"){
         local_planner_ = std::make_shared<LocalPlannerTransformer>(*this, pose_listener_,ros::Duration(opt_.uinterval()));
     }else if(opt_.algo() == "NULL"){
@@ -190,7 +205,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         exit(1);
     }
 
-    local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.dis2o(), opt_.s_angle());
+    local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.dis2o(), opt_.s_angle(), opt_.ia());
 
     ROS_INFO("Maximum number of allowed nodes: %d", opt_.nnodes());
     ROS_INFO("Update Interval: %.3f", opt_.uinterval());
@@ -198,13 +213,14 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     ROS_INFO("Minimal distance to an obstacle: %.3f", opt_.dis2o());
     ROS_INFO("Steering angle: %.3f", opt_.s_angle());
     ROS_INFO("Intermediate Configurations: %d",opt_.ic());
+    ROS_INFO("Intermediate Angles: %d",opt_.ia());
     ROS_INFO("Using current velocity: %s",opt_.use_v() ? "true" : "false");
 
     ROS_INFO("Constraint usage [%s, %s]", opt_.c1() ? "true" : "false",
              opt_.c2() ? "true" : "false");
-    ROS_INFO("Scorer usage [%s, %s, %s, %s]", (opt_.s1() != 0.0) ? "true" : "false",
+    ROS_INFO("Scorer usage [%s, %s, %s, %s, %s]", (opt_.s1() != 0.0) ? "true" : "false",
              (opt_.s2() != 0.0) ? "true" : "false", (opt_.s3() != 0.0) ? "true" : "false",
-             (opt_.s4() != 0.0) ? "true" : "false");
+             (opt_.s4() != 0.0) ? "true" : "false", (opt_.s5() != 0.0) ? "true" : "false");
 
     obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
 																					&PathFollower::obstacleCloudCB, this);
@@ -428,7 +444,7 @@ void PathFollower::update()
         Supervisor::Result s_res = supervisors_.supervise(state);
         if (s_res.can_continue) {
             //Begin Constraints and Scorers Construction
-            //In case that more constraints or scorers need to added, please add them
+            //In case that more constraints or scorers need to be added, please add them
             //before Dis2Obst_Constraint/Scorer
             std::vector<Constraint::Ptr> constraints(2);
             std::vector<bool> fconstraints(2);
@@ -442,8 +458,8 @@ void PathFollower::update()
             }
             fconstraints.at(1) = opt_.c2();
 
-            std::vector<Scorer::Ptr> scorer(4);
-            std::vector<double> wscorer(4);
+            std::vector<Scorer::Ptr> scorer(5);
+            std::vector<double> wscorer(5);
             if(opt_.s1() != 0.0){
                 scorer.at(0) = Dis2PathP_Scorer::Ptr(new Dis2PathP_Scorer);
             }
@@ -460,9 +476,14 @@ void PathFollower::update()
             wscorer.at(2) = opt_.s3();
 
             if(opt_.s4() != 0.0){
-                scorer.at(3) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
+                scorer.at(3) = Level_Scorer::Ptr(new Level_Scorer);
             }
             wscorer.at(3) = opt_.s4();
+
+            if(opt_.s5() != 0.0){
+                scorer.at(4) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
+            }
+            wscorer.at(4) = opt_.s5();
 
             //End Constraints and Scorers Construction
             if(obstacle_cloud_ != nullptr){

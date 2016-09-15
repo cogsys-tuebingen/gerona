@@ -114,16 +114,26 @@ add_executable(path_follower_node
   src/local_planner/local_planner_implemented.cpp
   src/local_planner/local_planner_classic.cpp
   src/local_planner/local_planner_transformer.cpp
+  src/local_planner/local_planner_static.cpp
+  src/local_planner/local_planner_reconf.cpp
   src/local_planner/local_planner_bfs.cpp
+  src/local_planner/local_planner_bfs_static.cpp
+  src/local_planner/local_planner_bfs_reconf.cpp
   src/local_planner/local_planner_star.cpp
   src/local_planner/local_planner_astar.cpp
   src/local_planner/local_planner_thetastar.cpp
   src/local_planner/local_planner_star_n.cpp
   src/local_planner/local_planner_star_g.cpp
-  src/local_planner/local_planner_astar_n.cpp
-  src/local_planner/local_planner_astar_g.cpp
-  src/local_planner/local_planner_thetastar_n.cpp
-  src/local_planner/local_planner_thetastar_g.cpp
+  src/local_planner/local_planner_star_static.cpp
+  src/local_planner/local_planner_star_reconf.cpp
+  src/local_planner/local_planner_astar_n_static.cpp
+  src/local_planner/local_planner_astar_g_static.cpp
+  src/local_planner/local_planner_astar_n_reconf.cpp
+  src/local_planner/local_planner_astar_g_reconf.cpp
+  src/local_planner/local_planner_thetastar_n_static.cpp
+  src/local_planner/local_planner_thetastar_g_static.cpp
+  src/local_planner/local_planner_thetastar_n_reconf.cpp
+  src/local_planner/local_planner_thetastar_g_reconf.cpp
   src/local_planner/constraint.cpp
   src/local_planner/dis2path_constraint.cpp
   src/local_planner/dis2obst_constraint.cpp
@@ -131,6 +141,7 @@ add_executable(path_follower_node
   src/local_planner/curvature_scorer.cpp
   src/local_planner/dis2pathd_scorer.cpp
   src/local_planner/dis2pathp_scorer.cpp
+  src/local_planner/level_scorer.cpp
   src/local_planner/dis2obst_scorer.cpp
 
   src/supervisor/supervisorchain.cpp
