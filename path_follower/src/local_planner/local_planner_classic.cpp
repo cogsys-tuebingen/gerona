@@ -16,7 +16,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
-      d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
+      d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),length_MF(0.0),fvel_(false),index1(-1), index2(-1),
       r_level(0), n_v(0), step_(0.0),stepc_(0.0),neig_s(0.0)
 {
 
@@ -316,7 +316,7 @@ void LocalPlannerClassic::setVelocity(double velocity){
 
 void LocalPlannerClassic::setStep(){
     double dis = velocity_ * update_interval_.toSec();
-    step_ = 3.0*dis/10.0;
+    step_ = length_MF*dis/10.0;
     D_THETA.clear();
     for(std::size_t i = 0; i < RT.size(); ++i){
         D_THETA.push_back(MathHelper::AngleClamp(step_/RT[i]));
@@ -577,7 +577,7 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
             c_s = global_path_.s(j);
         }
     }
-    double s_new = global_path_.s(index1) + 3.0 * velocity_ * update_interval_.toSec();
+    double s_new = global_path_.s(index1) + length_MF * velocity_ * update_interval_.toSec();
     closest_dist = std::numeric_limits<double>::infinity();
     for(std::size_t i = index1; i < global_path_.n(); ++i){
         double dist = std::abs(s_new - global_path_.s(i));
@@ -671,10 +671,11 @@ void LocalPlannerClassic::setLLP(){
     setLLP(last_local_path_.n());
 }
 
-void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia){
+void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia, double lmf){
     nnodes_ = nnodes;
     ic_ = ic;
     TH = s_angle*M_PI/180.0;
+    length_MF = lmf;
     RT.clear();
     for(int i = 0; i <= ia; ++i){
         RT.push_back(L/std::tan(((double)(i + 1)/(ia + 1))*TH));

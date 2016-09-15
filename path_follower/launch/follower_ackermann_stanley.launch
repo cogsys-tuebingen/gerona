@@ -17,6 +17,7 @@ Launch the path follower with the stanley controller for a car-like (Ackermann) 
   <arg name="ic" default="3" />
   <arg name="ia" default="0" />
   <arg name="uinterval" default="1.0" />
+  <arg name="lmf" default="1.0" />
   <arg name="dis2p" default="0.3" />
   <arg name="dis2o" default="0.85" />
   <arg name="s_angle" default="25.0" />
@@ -83,6 +84,7 @@ Launch the path follower with the stanley controller for a car-like (Ackermann) 
     <param name="ic" value="$(arg ic)" />
     <param name="ia" value="$(arg ia)" />
     <param name="uinterval" value="$(arg uinterval)" />
+    <param name="lmf" value="$(arg lmf)" />
     <param name="dis2p" value="$(arg dis2p)" />
     <param name="dis2o" value="$(arg dis2o)" />
     <param name="s_angle" value="$(arg s_angle)" />

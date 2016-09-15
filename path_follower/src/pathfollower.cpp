@@ -205,7 +205,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         exit(1);
     }
 
-    local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.dis2o(), opt_.s_angle(), opt_.ia());
+    local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.dis2o(), opt_.s_angle(), opt_.ia(), opt_.lmf());
 
     ROS_INFO("Maximum number of allowed nodes: %d", opt_.nnodes());
     ROS_INFO("Update Interval: %.3f", opt_.uinterval());
@@ -215,6 +215,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     ROS_INFO("Intermediate Configurations: %d",opt_.ic());
     ROS_INFO("Intermediate Angles: %d",opt_.ia());
     ROS_INFO("Using current velocity: %s",opt_.use_v() ? "true" : "false");
+    ROS_INFO("Length multiplying factor: %.3f",opt_.lmf());
 
     ROS_INFO("Constraint usage [%s, %s]", opt_.c1() ? "true" : "false",
              opt_.c2() ? "true" : "false");

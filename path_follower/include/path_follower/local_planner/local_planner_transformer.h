@@ -10,7 +10,7 @@ public:
     LocalPlannerTransformer(PathFollower& controller,
                             tf::Transformer &transformer,
                             const ros::Duration& update_interval);
-    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia) override;
+    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia, double lmf) override;
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
     virtual void setVelocity(double velocity) override;
 private:

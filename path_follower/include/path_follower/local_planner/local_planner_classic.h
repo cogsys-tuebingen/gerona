@@ -15,7 +15,7 @@ public:
 
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
     virtual void setVelocity(double velocity) override;
-    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia) override;
+    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia, double lmf) override;
 
 protected:
     void getSuccessors(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
@@ -94,7 +94,7 @@ private:
     virtual void printLevelReached() const override;
 
 protected:
-    static constexpr double L = 0.46;
+    static constexpr double L = 0.458;//(L of Summit XL)
     static std::vector<LNode> EMPTYTWINS;
 
     static std::size_t nnodes_;
@@ -102,7 +102,7 @@ protected:
     static double TH;
     static std::vector<double> D_THETA, RT;
 
-    double d2p, last_s, new_s, velocity_;
+    double d2p, last_s, new_s, velocity_, length_MF;
     bool fvel_;
 
     std::size_t index1;

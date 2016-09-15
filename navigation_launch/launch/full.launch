@@ -22,6 +22,7 @@ This is a complete setup and enought to actually navigate the robot.
     <arg name="ic" default="3" />
     <arg name="ia" default="0" />
     <arg name="uinterval" default="1.0" />
+    <arg name="lmf" default="1.0" />
     <arg name="dis2p" default="0.3" />
     <arg name="dis2o" default="0.85" />
     <arg name="s_angle" default="25.0" />
@@ -67,6 +68,7 @@ This is a complete setup and enought to actually navigate the robot.
       <arg name="ic" value="$(arg ic)" />
       <arg name="ia" value="$(arg ia)" />
       <arg name="uinterval" value="$(arg uinterval)" />
+      <arg name="lmf" value="$(arg lmf)" />
       <arg name="dis2p" value="$(arg dis2p)" />
       <arg name="dis2o" value="$(arg dis2o)" />
       <arg name="s_angle" value="$(arg s_angle)" />
