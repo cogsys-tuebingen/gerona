@@ -690,6 +690,11 @@ void Planner::transformPose(const geometry_msgs::PoseStamped& pose, lib_path::Po
     world.x = pose.pose.position.x;
     world.y = pose.pose.position.y;
     world.theta = tf::getYaw(pose.pose.orientation);
+
+    if(std::isnan(world.theta)) {
+        world.theta = 0.0;
+    }
+
     visualizeOutline(pose.pose, 0, "/map");
 
     unsigned fx, fy;
@@ -697,6 +702,10 @@ void Planner::transformPose(const geometry_msgs::PoseStamped& pose, lib_path::Po
     map.x = fx;
     map.y = fy;
     map.theta = world.theta - map_rotation_yaw_;
+
+    if(std::isnan(map.theta)) {
+        map.theta = 0.0;
+    }
 }
 
 void Planner::subdividePath(nav_msgs::Path& result, geometry_msgs::PoseStamped low, geometry_msgs::PoseStamped up, double max_distance) {

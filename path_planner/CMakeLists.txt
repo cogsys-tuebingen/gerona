@@ -18,7 +18,6 @@ endif()
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS nav_msgs path_msgs utils_path roscpp std_msgs tf roslib cmake_modules pcl_ros)
 
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
 add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
