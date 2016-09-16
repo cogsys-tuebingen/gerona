@@ -21,7 +21,7 @@ struct PathFollowerParameters : public Parameters
     P<std::string> algo;
     P<bool> c1, c2;
     P<double> s1, s2, s3, s4, s5;
-    P<int> nnodes,ic,ia;
+    P<int> nnodes,depth,ic,ia;
     P<double> uinterval,dis2p, dis2o, s_angle, lmf;
     P<bool> use_v;
 
@@ -80,6 +80,8 @@ struct PathFollowerParameters : public Parameters
         //Other local planner parameters
         nnodes(this, "~nnodes", 300,
                "Determines the maximum number of nodes used by the local planner"),
+        depth(this, "~depth", 10,
+               "Determines the maximum depth of the tree used by the local planner"),
         ic(this, "~ic", 3,
                "Determines the number of intermediate configurations in a curve"),
         ia(this, "~ia", 0,

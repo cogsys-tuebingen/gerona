@@ -205,9 +205,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         exit(1);
     }
 
-    local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.dis2o(), opt_.s_angle(), opt_.ia(), opt_.lmf());
+    local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.dis2o(), opt_.s_angle(), opt_.ia(), opt_.lmf(),opt_.depth());
 
     ROS_INFO("Maximum number of allowed nodes: %d", opt_.nnodes());
+    ROS_INFO("Maximum tree depth: %d", opt_.depth());
     ROS_INFO("Update Interval: %.3f", opt_.uinterval());
     ROS_INFO("Maximal distance from path: %.3f", opt_.dis2p());
     ROS_INFO("Minimal distance to an obstacle: %.3f", opt_.dis2o());

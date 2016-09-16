@@ -14,6 +14,7 @@ Launch the path follower with the pure pursuit controller for a car-like (Ackerm
   <arg name="s5" default="0.0" />
 
   <arg name="nnodes" default="300" />
+  <arg name="depth" default="10" />
   <arg name="ic" default="3" />
   <arg name="ia" default="0" />
   <arg name="uinterval" default="1.0" />
@@ -72,6 +73,7 @@ Launch the path follower with the pure pursuit controller for a car-like (Ackerm
     <param name="s5" value="$(arg s5)"/>
     <!-- planner params-->
     <param name="nnodes" value="$(arg nnodes)" />
+    <param name="depth" value="$(arg depth)" />
     <param name="ic" value="$(arg ic)" />
     <param name="ia" value="$(arg ia)" />
     <param name="uinterval" value="$(arg uinterval)" />

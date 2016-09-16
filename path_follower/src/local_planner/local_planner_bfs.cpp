@@ -47,7 +47,6 @@ bool LocalPlannerBFS::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     fifo.push(&nodes[0]);
     initLeaves(nodes[0]);
     double best_p = std::numeric_limits<double>::infinity();
-    int li_level = 10;
     nnodes = 1;
 
     LNode* current;

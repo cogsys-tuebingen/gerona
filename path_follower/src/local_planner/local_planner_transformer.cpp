@@ -68,7 +68,7 @@ bool LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     return true;
 }
 
-void LocalPlannerTransformer::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia, double lmf){
+void LocalPlannerTransformer::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia, double lmf, int max_level){
     (void) nnodes;
     (void) ic;
     (void) dis2p;
@@ -76,6 +76,7 @@ void LocalPlannerTransformer::setParams(int nnodes, int ic, double dis2p, double
     (void) s_angle;
     (void) ia;
     (void) lmf;
+    (void) max_level;
 }
 
 void LocalPlannerTransformer::setVelocity(geometry_msgs::Twist::_linear_type vector){

@@ -29,6 +29,7 @@ demonstrating the navigation framework.
     <arg name="s5" default="0.0" />
 
     <arg name="nnodes" default="400" />
+    <arg name="depth" default="10" />
     <arg name="ic" default="7" />
     <arg name="ia" default="0" />
     <arg name="uinterval" default="0.5" />
@@ -70,6 +71,7 @@ demonstrating the navigation framework.
       <arg name="s5" value="$(arg s5)" />
 
       <arg name="nnodes" value="$(arg nnodes)" />
+      <arg name="depth" value="$(arg depth)" />
       <arg name="ic" value="$(arg ic)" />
       <arg name="ia" value="$(arg ia)" />
       <arg name="uinterval" value="$(arg uinterval)" />

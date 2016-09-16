@@ -7,16 +7,18 @@
 std::size_t LocalPlannerClassic::nnodes_ = 300;
 int LocalPlannerClassic::ic_ = 3;
 int LocalPlannerClassic::nsucc_ = 3;
+int LocalPlannerClassic::li_level = 10;
 std::vector<double> LocalPlannerClassic::RT;
 std::vector<double> LocalPlannerClassic::D_THETA;
 double LocalPlannerClassic::TH = 0.0;
+double LocalPlannerClassic::length_MF = 1.0;
 std::vector<LNode> LocalPlannerClassic::EMPTYTWINS;
 
 LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
-      d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),length_MF(0.0),fvel_(false),index1(-1), index2(-1),
+      d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
       r_level(0), n_v(0), step_(0.0),stepc_(0.0),neig_s(0.0)
 {
 
@@ -316,7 +318,7 @@ void LocalPlannerClassic::setVelocity(double velocity){
 
 void LocalPlannerClassic::setStep(){
     double dis = velocity_ * update_interval_.toSec();
-    step_ = length_MF*dis/10.0;
+    step_ = length_MF*dis/(double)li_level;
     D_THETA.clear();
     for(std::size_t i = 0; i < RT.size(); ++i){
         D_THETA.push_back(MathHelper::AngleClamp(step_/RT[i]));
@@ -671,17 +673,19 @@ void LocalPlannerClassic::setLLP(){
     setLLP(last_local_path_.n());
 }
 
-void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia, double lmf){
+void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia, double lmf, int max_level){
     nnodes_ = nnodes;
     ic_ = ic;
     TH = s_angle*M_PI/180.0;
     length_MF = lmf;
+    li_level = max_level;
     RT.clear();
     for(int i = 0; i <= ia; ++i){
         RT.push_back(L/std::tan(((double)(i + 1)/(ia + 1))*TH));
     }
     nsucc_ = 2*RT.size() + 1;
     Curvature_Scorer::setMaxC(RT.back());
+    Level_Scorer::setLevel(li_level);
     Dis2Path_Constraint::setLimits(dis2p,dis2o);
     Dis2Obst_Constraint::setLimit(dis2o);
 }
@@ -694,7 +698,7 @@ void LocalPlannerClassic::printVelocity(){
 }
 
 void LocalPlannerClassic::printLevelReached() const{
-    ROS_INFO_STREAM("Reached Level: " << r_level << "/10");
+    ROS_INFO_STREAM("Reached Level: " << r_level << "/" << li_level);
 }
 
 bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_lines){
