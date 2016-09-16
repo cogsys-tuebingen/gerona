@@ -76,6 +76,7 @@ add_library(${PROJECT_NAME} SHARED
     src/utils/path.cpp
     src/utils/movecommand.cpp
     src/utils/path_interpolated.cpp
+    src/utils/extended_kalman_filter.cpp
 
     src/obstacle_avoidance/obstacledetector.cpp
     src/obstacle_avoidance/obstacledetectorpolygon.cpp
@@ -89,6 +90,7 @@ add_library(${PROJECT_NAME} SHARED
     src/controller/robotcontrollertrailer.cpp
     src/controller/path_simple_pid.cpp
     src/controller/path_cascade_pid.cpp
+    src/controller/robotcontroller_ICR_CCW.cpp
 
     src/legacy/robotcontroller_ackermann_orthexp.cpp
     src/legacy/robotcontroller_ackermann_purepursuit.cpp

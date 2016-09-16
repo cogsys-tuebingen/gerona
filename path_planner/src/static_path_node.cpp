@@ -116,7 +116,34 @@ struct StaticPathPlanner : public Planner
 
         }
 
+
+        ///////////////////////////////////////////////////////////////////////
+        /// This is just a hacked solution to plan a lemniscate
+        //////////////////////////////////////////////////////////////////////
+        /*double a = 3.0;
+
+        path_raw.poses.clear();
+
+        geometry_msgs::PoseStamped first_pose = goal->goal.pose;
+
+        double N_lem = 900;
+        double f = 10*M_PI / (double) (N_lem-1);
+
+        for(std::size_t i = 0; i < N_lem-1; i++){
+
+            double t = i*f;
+            geometry_msgs::PoseStamped curr_pose;
+
+            curr_pose.pose.position.x = a*sqrt(2)*std::cos(t)/(pow(std::sin(t),2) + 1) + first_pose.pose.position.x - a*sqrt(2);
+            curr_pose.pose.position.y = a*sqrt(2)*std::cos(t)*std::sin(t)/(pow(std::sin(t),2) + 1) + first_pose.pose.position.y;
+
+            path_raw.poses.push_back(curr_pose);
+        }*/
+
+        ///////////////////////////////////////////////////////////////////////
+
         path_ = postprocess(path_raw);
+
         publish(path_, path_raw);
         for (vector<geometry_msgs::PoseStamped>::iterator pose_it=path_.poses.begin();pose_it!=path_.poses.end();++pose_it) {
             geometry_msgs::Pose pose;

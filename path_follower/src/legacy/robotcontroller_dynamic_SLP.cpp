@@ -191,7 +191,7 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
             double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
                                           y_meas - path_interpol.q(path_interpol.n()-1));
 
-            ROS_INFO("Final positioning error: %f m", distance_to_goal_eucl);
+            ROS_INFO_THROTTLE(1, "Final positioning error: %f m", distance_to_goal_eucl);
 
             return RobotController::MoveCommandStatus::REACHED_GOAL;
 

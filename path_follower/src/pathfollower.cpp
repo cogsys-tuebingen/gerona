@@ -15,6 +15,7 @@
 // Controller/Models
 #include <path_follower/controller/robotcontroller_ackermann_pid.h>
 #include <path_follower/controller/robotcontrollertrailer.h>
+#include <path_follower/controller/robotcontroller_ICR_CCW.h>
 
 #include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
 #include <path_follower/legacy/robotcontroller_ackermann_purepursuit.h>
@@ -169,6 +170,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
         controller_ = std::make_shared<RobotController_Kinematic_SSG>(this);
+    } else if (opt_.controller() == "ICR_CCW") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_ICR_CCW>(this);
     } else {
         ROS_FATAL("Unknown robot controller. Shutdown.");
         exit(1);
@@ -310,6 +315,7 @@ bool PathFollower::updateRobotPose()
 {
     if (getWorldPose(&robot_pose_world_, &robot_pose_world_msg_)) {
         course_predictor_.update();
+        controller_->setCurrentPose(robot_pose_world_);
         return true;
     } else {
         return false;
