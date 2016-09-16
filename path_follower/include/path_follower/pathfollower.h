@@ -72,8 +72,11 @@ public:
     bool callObstacleAvoider(MoveCommand *cmd);
 
     const PathFollowerParameters &getOptions() const;
+    Visualizer& getVisualizer() const;
 
     ros::NodeHandle& getNodeHandle();
+
+    ObstacleCloud::ConstPtr getObstacleCloud() const;
 
 private:
     bool getWorldPose(Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = nullptr) const;

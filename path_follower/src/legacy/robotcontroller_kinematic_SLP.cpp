@@ -9,7 +9,7 @@
 // PROJECT
 #include <path_follower/pathfollower.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
-#include "../alglib/interpolation.h"
+#include <interpolation.h>
 #include <utils_general/MathHelper.h>
 #include <cmath>
 

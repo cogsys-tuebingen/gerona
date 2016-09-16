@@ -67,7 +67,10 @@ struct Waypoint
 //!Local Node for the local planner tree
 struct LNode: Waypoint
 {
-    LNode():Waypoint(){
+    LNode():
+        Waypoint(0.0, 0.0, 0.0),
+        parent_(nullptr), level_(0),d2p(0.0),d2o(0.0)
+    {
 
     }
     LNode(double x, double y, double orientation, LNode* parent, double radius, int level):

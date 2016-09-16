@@ -5,7 +5,7 @@
 #include <path_follower/pathfollower.h>
 
 /// THIRD PARTY
-#include "../alglib/interpolation.h"
+#include <interpolation.h>
 
 RobotController_Interpolation::RobotController_Interpolation(PathFollower *path_driver)
     : RobotController(path_driver),

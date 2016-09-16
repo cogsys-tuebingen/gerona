@@ -5,7 +5,12 @@ MoveCommand::MoveCommand(bool can_rotate, bool torque_mode):
     velocity_(0),
     rot_velocity_(0),
     use_rotation_(can_rotate),
-    use_torque_(torque_mode)
+    use_torque_(torque_mode),
+
+    fl_torque_(0.0),
+    fr_torque_(0.0),
+    br_torque_(0.0),
+    bl_torque_(0.0)
 {
 }
 

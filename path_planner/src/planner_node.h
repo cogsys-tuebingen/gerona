@@ -140,6 +140,10 @@ protected:
 protected:
     virtual bool supportsGoalType(int type) const = 0;
 
+    void visualizeOutline(const geometry_msgs::Pose &at, int id, const std::string &frame);
+    void visualizePath(const nav_msgs::Path& path, int id = 0, double alpha = 0.5);
+    void visualizePathLine(const nav_msgs::Path &path, int id);
+
 private:
     void laserCallback(const sensor_msgs::LaserScanConstPtr& scan, bool front);
     void integrateLaserScan(const sensor_msgs::LaserScan &scan);
@@ -162,9 +166,6 @@ private:
     nav_msgs::Path smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance);
 
     void subdividePath(nav_msgs::Path& result, geometry_msgs::PoseStamped low, geometry_msgs::PoseStamped up, double max_distance);
-
-    void visualizeOutline(const geometry_msgs::Pose &at, int id, const std::string &frame);
-    void visualizePath(const nav_msgs::Path& path);
 
 protected:
     ros::NodeHandle nh;
@@ -203,7 +204,6 @@ protected:
     ros::Publisher viz_pub;
     ros::Publisher viz_array_pub;
     ros::Publisher cost_pub;
-
     tf::TransformListener tfl;
 
     std::string base_frame_;
@@ -225,9 +225,9 @@ protected:
     boost::thread* thread_;
     boost::mutex thread_mutex;
 
-private:
-    ros::Publisher path_publisher;
-    ros::Publisher raw_path_publisher;
+protected:
+    ros::Publisher path_publisher_;
+    ros::Publisher raw_path_publisher_;
 };
 
 #endif // PLANNER_NODE_H

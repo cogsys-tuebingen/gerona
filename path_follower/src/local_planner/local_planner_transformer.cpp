@@ -30,39 +30,55 @@ bool LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     // this planner does not "plan" locally, but transforms the global path to the odometry frame
     // to eliminate odometry drift
 
-    // find the subpath that starts closest to the robot
-    double closest_dist = std::numeric_limits<double>::infinity();
-    std::size_t start = 0;
-    for(std::size_t i = 0; i < waypoints.size(); ++i) {
-        const Waypoint& wp = waypoints[i];
-        double dist = std::hypot(wp.x - pose(0), wp.y - pose(1));
-        if(dist < closest_dist) {
-            closest_dist = dist;
-            start = i;
+    ros::Time now = ros::Time::now();
+
+    // only calculate a new local path, if enough time has passed.
+    // TODO: also replan for other reasons, e.g. the global path has changed, ...
+    if(last_update_ + update_interval_ < now) {
+        //ROS_INFO("updating local path");
+        // only look at the first sub path for now
+
+        // calculate the corrective transformation to map from world coordinates to odom
+        if(!transformer_.waitForTransform("map", "odom", ros::Time(0), ros::Duration(0.1))) {
+            ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
+            return nullptr;
+        }
+
+        tf::StampedTransform now_map_to_odom;
+        transformer_.lookupTransform("map", "odom", ros::Time(0), now_map_to_odom);
+
+        tf::Transform transform_correction = now_map_to_odom.inverse();
+
+        // transform the waypoints from world to odom
+        for(Waypoint& wp : waypoints) {
+            tf::Point pt(wp.x, wp.y, 0);
+            pt = transform_correction * pt;
+            wp.x = pt.x();
+            wp.y = pt.y();
+
+            tf::Quaternion rot = tf::createQuaternionFromYaw(wp.orientation);
+            rot = transform_correction * rot;
+            wp.orientation = tf::getYaw(rot);
+        }
+
+        // find the subpath that starts closest to the robot
+        Eigen::Vector3d pose = follower_.getRobotPose();
+
+        double closest_dist = std::numeric_limits<double>::infinity();
+        std::size_t start = 0;
+        for(std::size_t i = 0; i < waypoints.size(); ++i) {
+            const Waypoint& wp = waypoints[i];
+            double dist = std::hypot(wp.x - pose(0), wp.y - pose(1));
+            if(dist < closest_dist) {
+                closest_dist = dist;
+                start = i;
+            }
+        }
+        std::vector<Waypoint> local_wps;
+        for(std::size_t i = start, n = std::min(start + 100, waypoints.size()); i < n; ++i) {
+            local_wps.push_back(waypoints[i]);
         }
     }
-    for(std::size_t i = start, n = std::min(start + 20, waypoints.size()); i < n; ++i) {
-        local_wps.push_back(waypoints[i]);
-    }
-
-    //        // example use of scorers
-    //        // (return the path with the lowest score.)
-    //        double score = 0;
-    //        for(tf::Point& pt : local_path) {
-    //            for(Scorer& scorer : scorers) {
-    //                score += scorer.score(pt);
-    //            }
-    //        }
-
-    //        // example use of constraints to check for goal conditions
-    //        bool is_goal = true;
-    //        tf::Point point = ....;
-    //        for(Constraint& constraint : constraints) {
-    //            if(!constraint.isSatisfied(point)) {
-    //               is_goal = false;
-    //               break;
-    //            }
-    //        }
 
     // here we just use the subpath without planning and checking constraints / scorerers
     return true;

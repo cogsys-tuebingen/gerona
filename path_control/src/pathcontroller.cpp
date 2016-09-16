@@ -4,10 +4,9 @@
 using namespace path_msgs;
 
 PathController::PathController(ros::NodeHandle &nh):
-    node_handle_(nh),
+    node_handle_(nh), private_node_handle_("~"),
     navigate_to_goal_server_(nh, "navigate_to_goal", boost::bind(&PathController::navToGoalActionCallback, this, _1), false),
-    follow_path_client_("follow_path"),
-    path_planner_client_("plan_path")
+    follow_path_client_("follow_path")
 {
     ros::param::param<int>("~num_replan_attempts", opt_.num_replan_attempts, 5);
 
@@ -23,7 +22,7 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
     ROS_INFO_STREAM("Start Action! Requested velocity: " << goal->velocity);
 
     follow_path_client_.cancelAllGoals();
-	ros::spinOnce(); ros::Duration(0.1).sleep();
+    ros::spinOnce(); ros::Duration(0.1).sleep();
 
     current_goal_ = goal;
 
@@ -106,7 +105,7 @@ bool PathController::processGoal()
 
     ROS_INFO("Wait for follow_path action server...");
     follow_path_client_.waitForServer();
-//    follow_path_client_.cancelAllGoals();
+    follow_path_client_.cancelAllGoals();
 
     publishGoalMessage();
 
@@ -116,8 +115,15 @@ bool PathController::processGoal()
     ros::spinOnce();
 
     // check, if path has been found
-    if ( requested_path_->poses.size() < 2 ) {
-        ROS_WARN("Got an invalid path with less than two poses. Abort goal.");
+    if ( requested_path_->poses.size() == 1 ) {
+        ROS_WARN("path has only one pose, assuming that start and goal are equal");
+        path_msgs::FollowPathResultPtr follow_path_result(new path_msgs::FollowPathResult);
+        follow_path_result->status = FollowPathResult::RESULT_STATUS_SUCCESS;
+        follow_path_result_ = follow_path_result;
+        return true;
+    }
+    if ( requested_path_->poses.empty() ) {
+        ROS_WARN("No path found. Abort goal.");
 
         NavigateToGoalResult result;
         result.reached_goal = false;
@@ -335,28 +341,48 @@ void PathController::findPath()
     ros::Duration timeout(20.0);
     ros::Time start = ros::Time::now();
 
-    ROS_INFO("waiting for planner");
-    path_planner_client_.waitForServer();
-    path_planner_client_.cancelAllGoals();
+    std::string planner_topic = goal.channel.data;
+    if(planner_topic.empty()) {
+        planner_topic = private_node_handle_.resolveName("plan_path", true);
+    }
+
+    // is this a new planner?
+    auto it = path_planner_client_.find(planner_topic);
+    if(it == path_planner_client_.end()) {
+        path_planner_client_[planner_topic] = boost::make_shared<PlanPathClient>(planner_topic);
+    }
+
+    PlanPathClient& planner = *path_planner_client_.at(planner_topic);
+    ROS_INFO_STREAM("waiting for planner @ " << planner_topic);
+    planner.waitForServer();
+    planner.cancelAllGoals();
     ros::spinOnce(); ros::Duration(0.1).sleep();
 
-    path_planner_client_.sendGoal(goal_msg);
+    planner.sendGoal(goal_msg);
 
     ROS_INFO("waiting for path");
     while(ros::Time::now() < start + timeout) {
-        if(path_planner_client_.waitForResult(ros::Duration(0.5))) {
+        if(planner.waitForResult(ros::Duration(0.5))) {
             break;
         }
+
+        if(navigate_to_goal_server_.isPreemptRequested()) {
+            ROS_WARN("preempting");
+            planner.cancelAllGoals();
+            navigate_to_goal_server_.setPreempted();
+            return;
+        }
+
         ROS_INFO_THROTTLE(2, "still waiting for path");
         ros::spinOnce();
     }
 
-    actionlib::SimpleClientGoalState state = path_planner_client_.getState();
+    actionlib::SimpleClientGoalState state = planner.getState();
     if(state == actionlib::SimpleClientGoalState::SUCCEEDED) {
 
 
         ROS_INFO("Got a path, continue");
-        nav_msgs::PathPtr path(new nav_msgs::Path(path_planner_client_.getResult()->path));
+        nav_msgs::PathPtr path(new nav_msgs::Path(planner.getResult()->path));
 
         requested_path_ = path;
 
@@ -364,7 +390,7 @@ void PathController::findPath()
         say("no path found!");
 
         ROS_ERROR_STREAM("Path planner failed. Final state: " << state.toString());
-        path_planner_client_.cancelAllGoals();
+        planner.cancelAllGoals();
         ros::spinOnce(); ros::Duration(0.1).sleep();
         requested_path_ = nav_msgs::PathPtr(new nav_msgs::Path);
     }

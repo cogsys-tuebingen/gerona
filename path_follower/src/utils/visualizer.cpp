@@ -29,7 +29,7 @@ bool Visualizer::MarrayhasSubscriber()
     return marray_vis_pub_.getNumSubscribers() > 0;
 }
 
-void Visualizer::drawArrow(const std::string& frame, int id, const geometry_msgs::Pose &pose, const std::string &ns, float r, float g, float b, double live) const
+void Visualizer::drawArrow(const std::string& frame, int id, const geometry_msgs::Pose &pose, const std::string &ns, float r, float g, float b, double live, double scale) const
 {
     visualization_msgs::Marker marker;
     marker.pose = pose;
@@ -43,9 +43,9 @@ void Visualizer::drawArrow(const std::string& frame, int id, const geometry_msgs
     marker.color.g = g;
     marker.color.b = b;
     marker.color.a = 1.0;
-    marker.scale.x = 0.75;
-    marker.scale.y = 0.05;
-    marker.scale.z = 0.05;
+    marker.scale.x = 0.75 * scale;
+    marker.scale.y = 0.05 * scale;
+    marker.scale.z = 0.05 * scale;
     marker.type = visualization_msgs::Marker::ARROW;
 
     vis_pub_.publish(marker);

@@ -6,7 +6,7 @@
 
 // PROJECT
 #include <path_follower/utils/cubic_spline_interpolation.h>
-#include "../alglib/interpolation.h"
+#include <interpolation.h>
 #include <utils_general/MathHelper.h>
 
 // SYSTEM
@@ -36,7 +36,7 @@ void PathInterpolated::interpolatePath(const Path::Ptr path, const bool hack) {
     frame_id_ = path->getFrameId();
 
 	std::deque<Waypoint> waypoints;
-	while (true) {
+    while (!path->isDone()) {
 		waypoints.insert(waypoints.end(), path->getCurrentSubPath().begin(), path->getCurrentSubPath().end());
 
         if(hack){

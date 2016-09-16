@@ -71,6 +71,7 @@ Planner::Planner()
     nh_priv.param("use_scan_back", use_scan_back_, true);
 
     if(use_cloud_) {
+        ROS_INFO_STREAM("subscribing to obstacle cloud topic " << nh.resolveName(std::string("obstacles")));
         sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("obstacles", 0, boost::bind(&Planner::cloudCallback, this, _1));
         //        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("/obstacle_cloud", 0, boost::bind(&Planner::cloudCallback, this, _1));
     }
@@ -96,8 +97,8 @@ Planner::Planner()
     nh_priv.param("size/backward", size_backward, -0.6);
     nh_priv.param("size/width", size_width, 0.5);
 
-    path_publisher = nh_priv.advertise<nav_msgs::Path> ("/path", 10);
-    raw_path_publisher = nh_priv.advertise<nav_msgs::Path> ("/path_raw", 10);
+    path_publisher_ = nh_priv.advertise<nav_msgs::Path> ("/path", 10);
+    raw_path_publisher_ = nh_priv.advertise<nav_msgs::Path> ("/path_raw", 10);
 
     server_.registerPreemptCallback(boost::bind(&Planner::preempt, this));
     server_.start();
@@ -269,20 +270,24 @@ void Planner::visualizeOutline(const geometry_msgs::Pose& at, int id, const std:
     viz_pub.publish(marker);
 }
 
-void Planner::visualizePath(const nav_msgs::Path &path)
+void Planner::visualizePath(const nav_msgs::Path &path, int id, double alpha)
 {
+    if(path.poses.size() > 30000) {
+       ROS_WARN_STREAM("don't visualze path with " << path.poses.size() << " to avoid RVIZ crashes.") ;
+       return;
+    }
     visualization_msgs::Marker marker;
     marker.header.frame_id = "/map";
     marker.header.stamp = ros::Time();
     marker.ns = "planning/steps";
-    marker.id = 0;
+    marker.id = id;
     marker.type = visualization_msgs::Marker::LINE_LIST;
     marker.action = visualization_msgs::Marker::ADD;
     marker.pose.orientation.w = 1.0;
-    marker.scale.x = 0.01;
-    marker.scale.y = 0.01;
-    marker.scale.z = 0.01;
-    marker.color.a = 0.5;
+    marker.scale.x = 0.05;
+    marker.scale.y = 0.05;
+    marker.scale.z = 0.05;
+    marker.color.a = alpha;
     marker.color.r = 0.0;
     marker.color.g = 1.0;
     marker.color.b = 1.0;
@@ -323,6 +328,24 @@ void Planner::visualizePath(const nav_msgs::Path &path)
         marker.points.push_back(fl);
     }
 
+    viz_pub.publish(marker);
+
+    marker.ns = "planning/lines";
+    marker.id = id;
+    marker.type = visualization_msgs::Marker::LINE_STRIP;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.points.clear();
+    marker.color.r = 1.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.0;
+
+    for(unsigned i = 0; i < path.poses.size(); i+=4) {
+        const geometry_msgs::Pose& pose = path.poses[i].pose;
+        geometry_msgs::Point pt;
+        pt.x = pose.position.x;
+        pt.y = pose.position.y;
+        marker.points.push_back(pt);
+    }
     viz_pub.publish(marker);
 }
 
@@ -444,6 +467,7 @@ nav_msgs::Path Planner::findPath(const path_msgs::PlanPathGoal& request)
     nav_msgs::Path path;
     if(post_process_) {
         sw.reset();
+        ROS_INFO_STREAM("postprocessing path of size " << path_raw.poses.size());
         path = postprocess(path_raw);
         ROS_INFO_STREAM("postprocessing took " << sw.msElapsed() << "ms");
     } else {
@@ -454,6 +478,7 @@ nav_msgs::Path Planner::findPath(const path_msgs::PlanPathGoal& request)
     publish(path, path_raw);
     ROS_INFO_STREAM("publish took " << sw.msElapsed() << "ms");
 
+    ROS_INFO_STREAM("returning a path of size " << path.poses.size());
 
     return path;
 }
@@ -471,8 +496,8 @@ void Planner::preprocess(const path_msgs::PlanPathGoal& request)
     cv::Mat working;
     map.copyTo(working);
 
-    int erosion_size = 4;
-    int iterations = 3;
+    int erosion_size = 2;
+    int iterations = 0;
     cv::Mat element = cv::getStructuringElement( cv::MORPH_ELLIPSE,
                                                  cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
                                                  cv::Point( erosion_size, erosion_size ) );
@@ -699,8 +724,8 @@ void Planner::transformPose(const geometry_msgs::PoseStamped& pose, lib_path::Po
 
     unsigned fx, fy;
     map_info->point2cell(world.x, world.y, fx, fy);
-    map.x = fx;
-    map.y = fy;
+    map.x = (int) fx;
+    map.y = (int) fy;
     map.theta = world.theta - map_rotation_yaw_;
 
     if(std::isnan(map.theta)) {
@@ -788,7 +813,7 @@ nav_msgs::Path Planner::interpolatePath(const nav_msgs::Path& path, double max_d
     result.header = path.header;
 
     if(n < 2) {
-        return result;
+        return path;
     }
 
     result.poses.push_back(path.poses[0]);
@@ -811,6 +836,7 @@ std::vector<nav_msgs::Path> Planner::segmentPath(const nav_msgs::Path &path)
 
     int n = path.poses.size();
     if(n < 2) {
+        result.push_back(path);
         return result;
     }
 
@@ -876,7 +902,7 @@ nav_msgs::Path Planner::smoothPath(const nav_msgs::Path& path, double weight_dat
 
     int n = path.poses.size();
     if(n < 2) {
-        return result;
+        return path;
     }
 
     // find segments
@@ -1015,6 +1041,9 @@ void Planner::calculateGradient(cv::Mat &gx, cv::Mat &gy)
 }
 
 nav_msgs::Path Planner::optimizePathCost(const nav_msgs::Path& path) {
+    if(!map_info) {
+        return path;
+    }
     double weight_data = 0.9;
     double weight_smooth = 0.3;
     double weight_cost = 0.75;
@@ -1210,13 +1239,12 @@ void Planner::integratePointCloud(const sensor_msgs::PointCloud2 &cloud)
 void Planner::publish(const nav_msgs::Path &path, const nav_msgs::Path &path_raw)
 {
     if(!path_raw.poses.empty()) {
-        raw_path_publisher.publish(path_raw);
+        raw_path_publisher_.publish(path_raw);
     }
     if(!path.poses.empty()) {
-        path_publisher.publish(path);
+        path_publisher_.publish(path);
         visualizePath(path);
     }
-
 }
 
 nav_msgs::Path Planner::smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance) {
