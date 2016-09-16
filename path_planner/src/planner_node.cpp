@@ -423,8 +423,8 @@ nav_msgs::Path Planner::findPath(const path_msgs::PlanPathGoal& request)
         empty_map.header.stamp = ros::Time::now();
         empty_map.info.resolution = 0.05;
 
-        double w = 30.0;
-        double h = 30.0;
+        double w = 80.0;
+        double h = 80.0;
         empty_map.info.width = w / empty_map.info.resolution;
         empty_map.info.height = h / empty_map.info.resolution;
         empty_map.info.origin.position.x = -w / 2.0;

@@ -3,12 +3,8 @@
    <node name="path_planner" type="path_planner_node" pkg="path_planner"
     		output="screen" respawn="true">
         <param name="use_map_topic" value="false" />
-<<<<<<< HEAD
         <param name="use_map_service" value="false" />
         <param name="map_service" value="/dynamic_map" />
-=======
-        <param name="map_service" value="/static_map" />
->>>>>>> patsy/patsy_local
         <param name="map_topic" value="/global_cost_map" />
         <param name="map_cloud" value="true" />
         <param name="use_unknown_cells" value="true" />
@@ -24,7 +20,7 @@
         <param name="preprocess" value="false" />
         <param name="postprocess" value="true" />
 
-        <param name="use_cloud" value="true" />
+        <param name="use_cloud" value="false" />
         <param name="use_scan_front" value="true" />
         <param name="use_scan_back" value="false" />
 
