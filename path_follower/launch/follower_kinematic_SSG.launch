@@ -70,12 +70,8 @@
     <param name="y_ICR_l" value="0.38178" />
     <param name="y_ICR_r" value="-0.487" />
     <param name="alpha_l" value="0.9" />
-<<<<<<< HEAD
     <param name="alpha_r" value="0.9128" />
-=======
-    <param name="alpha_r" value="0.9128" / -->
-    
->>>>>>> origin/motion_control
+
     <!-- corridor -->
     <!-- param name="x_ICR" value="0.259"/>
     <param name="y_ICR_l" value="0.4786" />

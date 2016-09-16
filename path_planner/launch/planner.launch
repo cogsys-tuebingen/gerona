@@ -13,14 +13,14 @@
 
         <param name="render_open_cells" value="false"/>
 
-        <param name="oversearch_distance" value="0.5" />
+        <param name="oversearch_distance" value="0.0" />
 
         <param name="algorithm" value="patsy_forward" />
 
         <param name="preprocess" value="false" />
         <param name="postprocess" value="true" />
 
-        <param name="use_cloud" value="false" />
+        <param name="use_cloud" value="true" />
         <param name="use_scan_front" value="true" />
         <param name="use_scan_back" value="false" />
 

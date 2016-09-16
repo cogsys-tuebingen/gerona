@@ -746,8 +746,10 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
     {
     case RobotController::ControlStatus::REACHED_GOAL:
         if(!local_planner_->isNull()) {
-            feedback.status = FollowPathFeedback::MOTION_STATUS_OBSTACLE;
-            return MOVING;
+            result.status = FollowPathResult::RESULT_STATUS_SUCCESS;
+            return DONE;
+            //feedback.status = FollowPathFeedback::MOTION_STATUS_OBSTACLE;
+            ////return MOVING;
         } else {
             result.status = FollowPathResult::RESULT_STATUS_SUCCESS;
             return DONE;
