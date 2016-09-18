@@ -108,7 +108,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         // only look at the first sub path for now
         waypoints_map = (SubPath) global_path_;
         waypoints = (SubPath) global_path_;
-        wlp_.clear();
+        wlp_.wps.clear();
 
 //        for(const SubPath& sp : subpaths) {
 //            const Waypoint& first = waypoints_map.at(0);
@@ -146,7 +146,8 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         */
         std::size_t nnodes = 0;
 
-        std::vector<Waypoint> local_wps;
+        SubPath local_wps;
+        local_wps.forward = true;
 
         if(!algo(pose, local_wps, constraints, scorer, fconstraints, wscorer, nnodes)){
             if(!wlp_.empty()){

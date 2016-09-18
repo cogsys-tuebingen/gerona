@@ -522,7 +522,7 @@ void PathFollower::update()
                         path.header.frame_id = getFixedFrameId();
                         for(int i = 0, sub = local_path->subPathCount(); i < sub; ++i) {
                             const SubPath& p = local_path->getSubPath(i);
-                            for(const Waypoint& wp : p) {
+                            for(const Waypoint& wp : p.wps) {
                                 geometry_msgs::PoseStamped pose;
                                 pose.pose.position.x = wp.x;
                                 pose.pose.position.y = wp.y;
@@ -561,7 +561,7 @@ void PathFollower::update()
                         wpath.header.frame_id = local_path_whole->getFrameId();
                         for(int i = 0, sub = local_path_whole->subPathCount(); i < sub; ++i) {
                             const SubPath& p = local_path_whole->getSubPath(i);
-                            for(const Waypoint& wp : p) {
+                            for(const Waypoint& wp : p.wps) {
                                 geometry_msgs::PoseStamped pose;
                                 pose.pose.position.x = wp.x;
                                 pose.pose.position.y = wp.y;
@@ -779,8 +779,8 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
 {
     pending_error_ = -1;
 
-    if ( goal.path.poses.size() < 2 ) {
-        ROS_ERROR("Got an invalid path with less than two poses.");
+    if (goal.path.paths.empty()) {
+        ROS_ERROR("Got an invalid path.");
         stop();
         pending_error_ = FollowPathResult::RESULT_STATUS_INTERNAL_ERROR;
         return;
@@ -794,10 +794,10 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
 
     setPath(goal.path);
 
-    ROS_INFO_STREAM("Following path with " << goal.path.poses.size() << " poses.");
+    ROS_INFO_STREAM("Following path with " << goal.path.paths.size() << " segments.");
 }
 
-void PathFollower::setPath(const nav_msgs::Path& path)
+void PathFollower::setPath(const path_msgs::PathSequence& path)
 {
     path_->clear();
 
@@ -815,116 +815,22 @@ double angleDifference(double s1, double s2) {
 }
 }
 
-void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segment)
+void PathFollower::findSegments(const path_msgs::PathSequence& path, bool only_one_segment)
 {
-    unsigned n = path.poses.size();
-    if(n < 2) {
-        return;
-    }
-
     vector<SubPath> subpaths;
-    SubPath current_segment;
 
-    Waypoint last_point(path.poses[0]);
-    current_segment.push_back(last_point);
-
-    int id = 0;
-    bool is_duplicate_wp ;
-
-    // TODO: does this really do what we think it does?
-    // FIXME: refactor this method
-    for(unsigned i = 1; i < n; ++i){
-        const Waypoint current_point(path.poses[i]);
-
-        // filter identical points that lead to the "unsorted" alglib exception
-        const bool is_identical = std::abs(current_point.x - last_point.x) < 1e-4
-                && std::abs(current_point.y - last_point.y) < 1e-4;
-        if(!is_identical) {
-            // append to current segment if not in "filter" mode
-            current_segment.push_back(current_point);
+    for(const path_msgs::DirectionalPath& dp : path.paths) {
+        SubPath sp(dp.forward);
+        for(const geometry_msgs::PoseStamped& ps : dp.poses) {
+            sp.wps.emplace_back(ps);
         }
-
-        double diff_last_x = current_point.x - last_point.x;
-        double diff_last_y = current_point.y - last_point.y;
-        double diff_last_angle = MathHelper::AngleDelta(current_point.orientation, last_point.orientation);
-        if (diff_last_x*diff_last_x+diff_last_y*diff_last_y<WAYPOINT_POS_DIFF_TOL*WAYPOINT_POS_DIFF_TOL
-                && fabs(diff_last_angle)<WAYPOINT_ANGLE_DIFF_TOL) {
-            // duplicate waypoint
-            is_duplicate_wp = true;
-        } else {
-            is_duplicate_wp = false;
-        }
-
-        bool is_the_last_node = i == n-1;
-        bool segment_ends_with_this_node = false;
-
-        if(is_the_last_node) {
-            // this is the last node
-            segment_ends_with_this_node = true;
-
-        } else if (!is_identical) {
-            const Waypoint next_point(path.poses[i+1]);
-
-            // if angle between last direction and next direction to large -> segment ends
-            double diff_last_x = current_point.x - last_point.x;
-            double diff_last_y = current_point.y - last_point.y;
-            double last_angle = std::atan2(diff_last_y, diff_last_x);
-
-            double diff_next_x = next_point.x - current_point.x;
-            double diff_next_y = next_point.y - current_point.y;
-            double next_angle = std::atan2(diff_next_y, diff_next_x);
-
-            double angle = angleDifference(last_angle, next_angle);//MathHelper::AngleClamp(last_angle - next_angle);
-
-            std::cerr << angle << std::endl;
-
-            bool split_segment = std::abs(angle) > M_PI / 3.0;
-
-            if(!only_one_segment && split_segment && !is_duplicate_wp) {
-                // new segment!
-                // current node is the last one of the old segment
-                segment_ends_with_this_node = true;
-            }
-        }
-
-        visualizer_->drawArrow(path.header.frame_id, id++, current_point, "paths", 0, 0, 0);
-        if(segment_ends_with_this_node) {
-            // Marker for subpaths
-            visualizer_->drawMark(id++, ((geometry_msgs::Pose)current_point).position, "paths", 0.2,0.2,0.2);
-
-            current_segment.pop_back();
-            if(current_segment.size() > 1) {
-                subpaths.push_back(current_segment);
-            }
-            current_segment.clear();
-
-            if(!is_the_last_node) {
-                // begin new segment
-                // current node is also the first one of the new segment
-                current_segment.push_back(current_point);
-            }
-        }
-
-        last_point = current_point;
+        subpaths.push_back(sp);
     }
 
     std::cout << "split the path into " << subpaths.size() << " sub paths" << std::endl;
-
     for(const SubPath& sp : subpaths) {
-        const Waypoint& first = sp.at(0);
-        const Waypoint& second = sp.at(1);
-
-        Eigen::Vector2d first_p = first;
-        Eigen::Vector2d second_p = second;
-
-        Eigen::Vector2d dir = second_p - first_p;
-        double dir_angle = std::atan2(dir(1), dir(0));
-        double delta = MathHelper::AngleDelta(dir_angle, first.orientation);
-        bool forward = std::abs(delta) < M_PI / 2.0;
-
-        std::cout << (forward ? " > " : " < ");
+        std::cout << " - " << (sp.forward ? "forward" : "backward" ) << std::endl;
     }
-    std::cout << std::endl;
 
     path_->setPath(subpaths);
 }

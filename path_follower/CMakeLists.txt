@@ -157,7 +157,7 @@ add_executable(${PROJECT_NAME}_node
   src/follower_node.cpp
 )
 
-add_dependencies(${PROJECT_NAME}_node path_msgs_generate_messages_cpp control_msgs_generate_messages_cpp)
+add_dependencies(${PROJECT_NAME}_node ${path_msgs_EXPORTED_TARGETS} ${control_msgs_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}_node
     ${PROJECT_NAME}
 )

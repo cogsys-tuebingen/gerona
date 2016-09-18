@@ -115,14 +115,14 @@ bool PathController::processGoal()
     ros::spinOnce();
 
     // check, if path has been found
-    if ( requested_path_->poses.size() == 1 ) {
+    if ( requested_path_->paths.size() == 1 && requested_path_->paths.front().poses.size() == 1) {
         ROS_WARN("path has only one pose, assuming that start and goal are equal");
         path_msgs::FollowPathResultPtr follow_path_result(new path_msgs::FollowPathResult);
         follow_path_result->status = FollowPathResult::RESULT_STATUS_SUCCESS;
         follow_path_result_ = follow_path_result;
         return true;
     }
-    if ( requested_path_->poses.empty() ) {
+    if ( requested_path_->paths.empty() ) {
         ROS_WARN("No path found. Abort goal.");
 
         NavigateToGoalResult result;
@@ -342,8 +342,10 @@ void PathController::findPath()
     ros::Time start = ros::Time::now();
 
     std::string planner_topic = goal.channel.data;
+    ROS_INFO_STREAM("got request with channel " << planner_topic);
     if(planner_topic.empty()) {
-        planner_topic = private_node_handle_.resolveName("plan_path", true);
+        planner_topic = node_handle_.resolveName("plan_path", true);
+        ROS_INFO_STREAM("remapped channel to " << planner_topic);
     }
 
     // is this a new planner?
@@ -382,7 +384,7 @@ void PathController::findPath()
 
 
         ROS_INFO("Got a path, continue");
-        nav_msgs::PathPtr path(new nav_msgs::Path(planner.getResult()->path));
+        path_msgs::PathSequencePtr path(new path_msgs::PathSequence(planner.getResult()->path));
 
         requested_path_ = path;
 
@@ -392,7 +394,7 @@ void PathController::findPath()
         ROS_ERROR_STREAM("Path planner failed. Final state: " << state.toString());
         planner.cancelAllGoals();
         ros::spinOnce(); ros::Duration(0.1).sleep();
-        requested_path_ = nav_msgs::PathPtr(new nav_msgs::Path);
+        requested_path_ = path_msgs::PathSequencePtr(new path_msgs::PathSequence);
     }
 
 

@@ -40,13 +40,13 @@ void PathLookout::setObstacleCloud(const ObstacleCloud::ConstPtr &cloud)
 void PathLookout::setPath(Path::ConstPtr path)
 {
     // only use path from the last waypoint on ("do not look behind")
-    path_.clear();
+    path_.wps.clear();
     if (path->getWaypointIndex() == 0) {
         path_ = path->getCurrentSubPath();
     } else {
-        SubPath::const_iterator start = path->getCurrentSubPath().begin();
+        std::vector<Waypoint>::const_iterator start = path->getCurrentSubPath().begin();
         start += (path->getWaypointIndex()-1);
-        path_.assign(start, (SubPath::const_iterator) path->getCurrentSubPath().end());
+        path_.wps.assign(start, (std::vector<Waypoint>::const_iterator) path->getCurrentSubPath().end());
     }
 }
 
@@ -175,7 +175,7 @@ vector<Obstacle> PathLookout::lookForObstacles()
 void PathLookout::reset()
 {
     // important! path has to be reseted, otherwise obstacles will be readded immediately.
-    path_.clear();
+    path_.wps.clear();
     tracker_.reset();
 }
 

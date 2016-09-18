@@ -55,7 +55,7 @@ private:
     //! Publisher for visualizing the current goal
     ros::Publisher goal_pub_;
 
-    nav_msgs::PathConstPtr requested_path_;
+    path_msgs::PathSequenceConstPtr requested_path_;
 
     //! Final state of the last finished follow_path action.
     actionlib::SimpleClientGoalState::StateEnum follow_path_final_state_;

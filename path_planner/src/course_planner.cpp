@@ -26,7 +26,7 @@ CoursePlanner::CoursePlanner()
 {
     posearray_pub_ = nh.advertise<geometry_msgs::PoseArray>("static_poses",1000);
 
-    avoidance_pub_ = nh.advertise<nav_msgs::Path>("avoidance_path",1000);
+    avoidance_pub_ = nh.advertise<path_msgs::PathSequence>("avoidance_path",1000);
 
     start_pose_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal2", 0, &CoursePlanner::startPoseCb, this);
 
@@ -57,8 +57,13 @@ bool CoursePlanner::supportsGoalType(int type) const
 }
 
 
-void CoursePlanner::addGeomPoses(const PathPoseVec &gposes, nav_msgs::Path &path)
+void CoursePlanner::addGeomPoses(const PathPoseVec &gposes, path_msgs::PathSequence &path_sequence)
 {
+    if(path_sequence.paths.empty()) {
+        path_sequence.paths.emplace_back();
+    }
+
+    auto& path = path_sequence.paths.back();
     for (auto& gp : gposes) {
         path.poses.push_back(pathPose2Pose(gp));
     }
@@ -76,7 +81,7 @@ void CoursePlanner::obstaclePoseCb(const geometry_msgs::PoseWithCovarianceStampe
     }
 
     PathPose robot_gp=pose2PathPose(robot_pose.pose);
-    nav_msgs::Path smoothed_path;
+    path_msgs::PathSequence smoothed_path;
     processPlanAvoidance(obstacle_gp, robot_gp, smoothed_path);
 
 
@@ -106,7 +111,7 @@ void CoursePlanner::planAvoidanceCb(const path_msgs::PlanAvoidanceGoalConstPtr &
 
 
 
-    nav_msgs::Path path;
+    path_msgs::PathSequence path;
     processPlanAvoidance(obstacle_gp, robot_gp, path);
     path_msgs::PlanAvoidanceResult success;
     success.path = path;
@@ -118,7 +123,7 @@ void CoursePlanner::planAvoidanceCb(const path_msgs::PlanAvoidanceGoalConstPtr &
 
 
 void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const PathPose &robot_gp,
-                                         nav_msgs::Path& path)
+                                         path_msgs::PathSequence& path)
 {
 
     Circle obstacle(obstacle_gp.pos_,obstacle_radius_);
@@ -179,7 +184,7 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
         return;
     }
     ROS_INFO(" path size found %ld ",avoidance_path2.size());
-    nav_msgs::Path path_raw;
+    path_msgs::PathSequence path_raw;
     // remove last elememnt from first path part as it is contained in second path
     avoidance_path1.pop_back();
 
@@ -222,7 +227,7 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
         s->toPoses(resolution_,gposes,path_geom::FORWARD,false);
         addGeomPoses(gposes, path_raw);
     }
-    ROS_INFO("generated path has %lu poses",path_raw.poses.size());
+
     path_raw.header.frame_id = "map";
     path_raw.header.stamp = ros::Time::now();
     path = postprocess(path_raw);
@@ -231,7 +236,7 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
 
 void CoursePlanner::createCourse(XmlRpc::XmlRpcValue &segment_array, const geometry_msgs::Pose& start_pose,
                                  vector<shared_ptr<Shape>>& segments,
-                                 nav_msgs::Path &path)
+                                 path_msgs::PathSequence &path)
 {
     if(segment_array.getType() != XmlRpc::XmlRpcValue::TypeArray) {
         ROS_ERROR_STREAM("segments type is not array: " << segment_array.toXml());
@@ -239,7 +244,7 @@ void CoursePlanner::createCourse(XmlRpc::XmlRpcValue &segment_array, const geome
     }
     // clean up
     segments.clear();
-    path.poses.clear();
+    path.paths.clear();
 
     path_geom::PathPose gp=pose2PathPose(start_pose);
     for(int i =0; i < segment_array.size(); i++) {
@@ -306,7 +311,7 @@ void CoursePlanner::createCourse(XmlRpc::XmlRpcValue &segment_array, const geome
 
 
 void CoursePlanner::segments2Path(const vector<shared_ptr<Shape> > &segments,
-                                  double angle_offset, int direction,nav_msgs::Path &path)
+                                  double angle_offset, int direction,path_msgs::PathSequence &path)
 {
    PathPoseVec gposes;
    for (auto& segment : segments) {
@@ -319,7 +324,7 @@ void CoursePlanner::segments2Path(const vector<shared_ptr<Shape> > &segments,
 void CoursePlanner::startPoseCb(const geometry_msgs::PoseStampedConstPtr &pose_stamped)
 {
 
-    nav_msgs::Path path_raw = nav_msgs::Path();
+    path_msgs::PathSequence path_raw = path_msgs::PathSequence();
 
 
     path_raw.header.frame_id = "map";
@@ -331,12 +336,10 @@ void CoursePlanner::startPoseCb(const geometry_msgs::PoseStampedConstPtr &pose_s
     active_segments_ = course_segments_;
     path_ = postprocess(path_raw);
     publish(path_, path_raw);
-    for (vector<geometry_msgs::PoseStamped>::iterator pose_it=path_.poses.begin();pose_it!=path_.poses.end();++pose_it) {
-        geometry_msgs::Pose pose;
-        pose.position = pose_it->pose.position;
-        pose.orientation = pose_it->pose.orientation;
-
-        poses.poses.push_back(pose);
+    for(const path_msgs::DirectionalPath& path : path_raw.paths) {
+        for (const geometry_msgs::PoseStamped& spose : path.poses) {
+            poses.poses.push_back(spose.pose);
+        }
     }
     poses.header.frame_id="/map";
     posearray_pub_.publish(poses);
@@ -347,7 +350,7 @@ void CoursePlanner::startPoseCb(const geometry_msgs::PoseStampedConstPtr &pose_s
 
 void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
 {
-    nav_msgs::Path path_raw = nav_msgs::Path();
+    path_msgs::PathSequence path_raw = path_msgs::PathSequence();
 
     if(course_.hasSegments()) {
         path_raw = planWithMap(goal);
@@ -362,12 +365,10 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
 
     publish(path_, path_raw);
     geometry_msgs::PoseArray poses;
-    for (vector<geometry_msgs::PoseStamped>::iterator pose_it=path_.poses.begin();pose_it!=path_.poses.end();++pose_it) {
-        geometry_msgs::Pose pose;
-        pose.position = pose_it->pose.position;
-        pose.orientation = pose_it->pose.orientation;
-
-        poses.poses.push_back(pose);
+    for(const path_msgs::DirectionalPath& path : path_raw.paths) {
+        for (const geometry_msgs::PoseStamped& spose : path.poses) {
+            poses.poses.push_back(spose.pose);
+        }
     }
     poses.header.frame_id="/map";
     posearray_pub_.publish(poses);
@@ -382,9 +383,9 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
 
 
 
-nav_msgs::Path CoursePlanner::planWithMap(const path_msgs::PlanPathGoalConstPtr &goal)
+path_msgs::PathSequence CoursePlanner::planWithMap(const path_msgs::PlanPathGoalConstPtr &goal)
 {
-    nav_msgs::Path path_raw = nav_msgs::Path();
+    path_msgs::PathSequence path_raw = path_msgs::PathSequence();
 
     geometry_msgs::PoseStamped robot_pose;
     bool has_pose = getWorldPose("/map","/base_link",robot_pose);
@@ -394,8 +395,11 @@ nav_msgs::Path CoursePlanner::planWithMap(const path_msgs::PlanPathGoalConstPtr 
     }
 
     std::vector<path_geom::PathPose> pts = course_search_.findPath(pose2PathPose(robot_pose.pose), pose2PathPose(goal->goal.pose.pose));
+
+    path_raw.paths.emplace_back();
+    auto& path = path_raw.paths.back();
     for(const path_geom::PathPose& pose : pts) {
-        path_raw.poses.push_back(pathPose2Pose(pose));
+        path.poses.push_back(pathPose2Pose(pose));
     }
 
     return path_raw;
@@ -403,9 +407,9 @@ nav_msgs::Path CoursePlanner::planWithMap(const path_msgs::PlanPathGoalConstPtr 
 
 
 
-nav_msgs::Path CoursePlanner::planWithStaticPath(const path_msgs::PlanPathGoalConstPtr &goal)
+path_msgs::PathSequence CoursePlanner::planWithStaticPath(const path_msgs::PlanPathGoalConstPtr &goal)
 {
-    nav_msgs::Path path_raw = nav_msgs::Path();
+    path_msgs::PathSequence path_raw = path_msgs::PathSequence();
 
     path_geom::PathPose goal_gp = pose2PathPose(goal->goal.pose.pose);
     int nearest_idx;

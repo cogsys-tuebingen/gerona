@@ -8,7 +8,7 @@ geometry_msgs/PoseStamped goal
 ---
 #result definition
 
-nav_msgs/Path path
+path_msgs/PathSequence path
 
 ---
 #feedback

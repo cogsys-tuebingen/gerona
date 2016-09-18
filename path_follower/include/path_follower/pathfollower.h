@@ -182,10 +182,10 @@ private:
     bool execute(path_msgs::FollowPathFeedback& feedback, path_msgs::FollowPathResult& result);
 
     void setGoal(const path_msgs::FollowPathGoal& goal);
-    void setPath(const nav_msgs::Path& path);
+    void setPath(const path_msgs::PathSequence& path);
 
     //! Split path into subpaths at turning points.
-    void findSegments(const nav_msgs::Path& path, bool only_one_segment);
+    void findSegments(const path_msgs::PathSequence& path, bool only_one_segment);
 };
 
 #endif // PATHFOLLOWER_H

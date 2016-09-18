@@ -1,6 +1,6 @@
 # GOAL DEFINITION
 
-nav_msgs/Path path
+path_msgs/PathSequence path
 
 # driving speed of robot (interpreted as recommended value)
 float32 velocity

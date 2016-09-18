@@ -1,0 +1,10 @@
+<library path="lib/libpath_rviz">
+  <class name="rviz/PathSequence"
+         type="rviz::PathSequenceDisplay"
+         base_class_type="rviz::Display">
+    <description>
+      Displays  a path sequence.
+    </description>
+    <message_type>path_msgs/PathSequence</message_type>
+  </class>
+</library>

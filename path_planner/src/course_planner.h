@@ -39,9 +39,9 @@ public:
 
     void execute(const path_msgs::PlanPathGoalConstPtr &goal);
 
-    virtual nav_msgs::Path plan (const path_msgs::PlanPathGoal &goal,
-                         const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-                         const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
+    virtual path_msgs::PathSequence plan (const path_msgs::PlanPathGoal &goal,
+                                          const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
+                                          const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
 
         throw std::logic_error("should not be called");
     }
@@ -75,9 +75,9 @@ private:
 
     vector<shared_ptr<Shape>> course_segments_;
     vector<shared_ptr<Shape>> active_segments_;
-    nav_msgs::Path avoidance_path_;
+    path_msgs::PathSequence avoidance_path_;
 
-    nav_msgs::Path path_;
+    path_msgs::PathSequence path_;
     tf::Transform pose_;
     ros::Publisher posearray_pub_;
     ros::Publisher avoidance_pub_;
@@ -91,7 +91,7 @@ private:
 
     void processPlanAvoidance(const path_geom::PathPose& obstacle,
                               const path_geom::PathPose& robot,
-                              nav_msgs::Path& path);
+                              path_msgs::PathSequence& path);
 
 
 
@@ -102,10 +102,10 @@ private:
      * @param path
      */
     void createCourse(XmlRpc::XmlRpcValue& segment_array, const geometry_msgs::Pose& pose,
-                      vector<shared_ptr<Shape>>& segments,nav_msgs::Path &path);
+                      vector<shared_ptr<Shape>>& segments,path_msgs::PathSequence &path);
 
     void segments2Path(const vector<shared_ptr<Shape>>& segments,double angle_offset, int direction ,
-                       nav_msgs::Path& path );
+                       path_msgs::PathSequence& path );
 
     path_geom::PathPose pose2PathPose(const geometry_msgs::Pose& pose) {
         return path_geom::PathPose(pose.position.x,pose.position.y,
@@ -121,7 +121,7 @@ private:
         pose.header.frame_id="/map";
         return pose;
     }
-    void addGeomPoses(const PathPoseVec& gposes, nav_msgs::Path& path);
+    void addGeomPoses(const PathPoseVec& gposes, path_msgs::PathSequence& path);
 
 
     /**
@@ -131,8 +131,8 @@ private:
     tf::TransformListener pose_listener_;
 
 
-    nav_msgs::Path planWithStaticPath(const path_msgs::PlanPathGoalConstPtr &goal);
-    nav_msgs::Path planWithMap(const path_msgs::PlanPathGoalConstPtr &goal);
+    path_msgs::PathSequence planWithStaticPath(const path_msgs::PlanPathGoalConstPtr &goal);
+    path_msgs::PathSequence planWithMap(const path_msgs::PlanPathGoalConstPtr &goal);
 };
 
 #endif // COURSE_PLANNER_H

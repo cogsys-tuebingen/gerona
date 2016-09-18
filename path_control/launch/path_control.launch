@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
     <node pkg="path_control" type="path_control_node" name="path_control_node"
-    		output="screen" respawn="true">
+    		output="screen" respawn="true" clear_params="true">
         <param name="nonaction_velocity" value="1.0" />
         <param name="num_replan_attempts" value="10" />
     </node>

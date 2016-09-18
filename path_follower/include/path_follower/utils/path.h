@@ -113,7 +113,86 @@ struct CompareHNode : public std::binary_function<LNode*, LNode*, bool> {
 
 
 //! A path is sequence of waypoints.
-typedef std::vector<Waypoint> SubPath;
+struct SubPath
+{
+    SubPath(bool forward = true)
+        : forward(forward)
+    {
+
+    }
+
+    std::size_t size() const
+    {
+        return wps.size();
+    }
+
+    bool empty() const
+    {
+        return wps.empty();
+    }
+
+    Waypoint& operator[] (const std::size_t& i)
+    {
+        return wps[i];
+    }
+    const Waypoint& operator[] (const std::size_t& i) const
+    {
+        return wps[i];
+    }
+
+    Waypoint& at (const std::size_t& i)
+    {
+        return wps.at(i);
+    }
+    const Waypoint& at (const std::size_t& i) const
+    {
+        return wps.at(i);
+    }
+
+    std::vector<Waypoint>::iterator begin()
+    {
+        return wps.begin();
+    }
+    std::vector<Waypoint>::const_iterator begin() const
+    {
+        return wps.begin();
+    }
+    std::vector<Waypoint>::iterator end()
+    {
+        return wps.end();
+    }
+    std::vector<Waypoint>::const_iterator end() const
+    {
+        return wps.end();
+    }
+
+    Waypoint& front()
+    {
+        return wps.front();
+    }
+    const Waypoint& front() const
+    {
+        return wps.front();
+    }
+
+    Waypoint& back()
+    {
+        return wps.back();
+    }
+    const Waypoint& back() const
+    {
+        return wps.back();
+    }
+
+    void push_back(const Waypoint& wp)
+    {
+        wps.push_back(wp);
+    }
+
+    std::vector<Waypoint> wps;
+    bool forward;
+};
+
 
 /**
  * @brief Wraps the path and manages the current sub path and waypoint.
