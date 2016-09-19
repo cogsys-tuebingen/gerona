@@ -90,6 +90,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 	beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
     local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("local_path", 1, true);
     whole_local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("whole_local_path", 1, true);
+    g_points_pub_ = node_handle_.advertise<visualization_msgs::Marker>("g_path_points", 10);
 
 	odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
@@ -257,6 +258,28 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     if (!obstacle_avoider_) {
         obstacle_avoider_ = std::make_shared<NoneAvoider>();
 	}
+
+    // path marker
+    g_robot_path_marker_.header.frame_id = "/odom";
+    g_robot_path_marker_.header.stamp = ros::Time();
+    g_robot_path_marker_.ns = "global robot path";
+    g_robot_path_marker_.id = 75;
+    g_robot_path_marker_.type = visualization_msgs::Marker::LINE_STRIP;
+    g_robot_path_marker_.action = visualization_msgs::Marker::ADD;
+    g_robot_path_marker_.pose.position.x = 0;
+    g_robot_path_marker_.pose.position.y = 0;
+    g_robot_path_marker_.pose.position.z = 0;
+    g_robot_path_marker_.pose.orientation.x = 0.0;
+    g_robot_path_marker_.pose.orientation.y = 0.0;
+    g_robot_path_marker_.pose.orientation.z = 0.0;
+    g_robot_path_marker_.pose.orientation.w = 1.0;
+    g_robot_path_marker_.scale.x = 0.01;
+    g_robot_path_marker_.scale.y = 0.0;
+    g_robot_path_marker_.scale.z = 0.0;
+    g_robot_path_marker_.color.a = 1.0;
+    g_robot_path_marker_.color.r = 1.0;
+    g_robot_path_marker_.color.g = 0.0;
+    g_robot_path_marker_.color.b = 0.0;
 
 	follow_path_server_.start();
 	ROS_INFO("Initialisation done.");
@@ -488,6 +511,7 @@ void PathFollower::update()
             wscorer.at(4) = opt_.s5();
 
             //End Constraints and Scorers Construction
+            publishPathMarker();
             if(obstacle_cloud_ != nullptr){
                 local_planner_->setObstacleCloud(obstacle_cloud_);
             }
@@ -845,4 +869,14 @@ void PathFollower::beep(const std::vector<int> &beeps)
     msg.data.insert(msg.data.begin(), beeps.begin(), beeps.end());
 
     beep_pub_.publish(msg);
+}
+
+void PathFollower::publishPathMarker(){
+    Eigen::Vector3d current_pose = getRobotPose();
+    geometry_msgs::Point pt;
+    pt.x = current_pose[0];
+    pt.y = current_pose[1];
+    g_robot_path_marker_.points.push_back(pt);
+
+    g_points_pub_.publish(g_robot_path_marker_);
 }
