@@ -763,3 +763,73 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_
     alt.radius_ = R;
     return true;
 }
+
+bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
+                                  const std::vector<Constraint::Ptr>& constraints,
+                                  const std::vector<Scorer::Ptr>& scorer,
+                                  const std::vector<bool>& fconstraints,
+                                  const std::vector<double>& wscorer,
+                                  std::size_t& nnodes){
+    initIndexes(pose);
+
+    LNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
+    setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
+
+    double dis2last = global_path_.s(global_path_.n()-1);
+
+    if(std::abs(dis2last - wpose.s) < 0.8){
+        tooClose = true;
+        setLLP();
+        return false;
+    }
+
+    retrieveContinuity(wpose);
+    setD2P(wpose);
+    initConstraints(constraints,fconstraints);
+
+    std::vector<LNode> nodes(nnodes_);
+    LNode* obj = nullptr;
+
+    setNormalizer(constraints,fconstraints);
+
+    setInitScores(wpose, scorer, wscorer, dis2last);
+
+    nodes.at(0) = wpose;
+
+    initQueue(nodes[0]);
+    initLeaves(nodes[0]);
+    double best_p = std::numeric_limits<double>::infinity();
+    nnodes = 1;
+
+    LNode* current;
+
+    while(!isQueueEmpty() && (isQueueEmpty()?nodes.at(nnodes - 1).level_:queueFront()->level_) < li_level && nnodes < nnodes_){
+        pop(current);
+        if(std::abs(dis2last - current->s) <= 0.05){
+            obj = current;
+            tooClose = true;
+            break;
+        }
+        push2Closed(current);
+
+        std::vector<LNode*> successors;
+        expandCurrent(current, nnodes, successors, nodes, constraints, fconstraints, wscorer);
+        setNormalizer(constraints,fconstraints);
+        updateLeaves(successors, current);
+        for(std::size_t i = 0; i < successors.size(); ++i){
+            double current_p;
+            if(!processSuccessor(successors[i], current, current_p, dis2last, scorer, wscorer)){
+                continue;
+            }
+            addLeaf(successors[i]);
+            updateBest(current_p,best_p,obj,successors[i]);
+        }
+    }
+    reconfigureTree(obj, nodes, best_p, scorer, wscorer);
+    if(obj != nullptr){
+        return processPath(obj, local_wps);
+    }else{
+        return false;
+    }
+}
+

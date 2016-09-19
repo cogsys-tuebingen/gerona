@@ -4,118 +4,88 @@
 /// PROJECT
 #include <path_follower/pathfollower.h>
 
+// this planner templates the A*/Theta* search algorithms
 LocalPlannerStar::LocalPlannerStar(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
-    : LocalPlannerClassic(follower, transformer, update_interval)
+    : LocalPlannerClassic(follower, transformer, update_interval), score(0.0), heuristic(0.0),
+      closedSet(), twins(), openSet()
 {
 
 }
 
-bool LocalPlannerStar::algo(Eigen::Vector3d& pose, SubPath& local_wps,
-                                  const std::vector<Constraint::Ptr>& constraints,
-                                  const std::vector<Scorer::Ptr>& scorer,
-                                  const std::vector<bool>& fconstraints,
-                                  const std::vector<double>& wscorer,
-                                  std::size_t& nnodes){
-    // this planner templates the A*/Theta* search algorithms
-    initIndexes(pose);
-
-    LNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
-    setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
-
-    double dis2last = global_path_.s(global_path_.n()-1);
-
-    if(std::abs(dis2last - wpose.s) < 0.8){
-        tooClose = true;
-        setLLP();
-        return false;
-    }
-
-    retrieveContinuity(wpose);
-    setD2P(wpose);
-    initConstraints(constraints,fconstraints);
-
-    std::vector<LNode> nodes(nnodes_);
-    LNode* obj = nullptr;
-
-    setNormalizer(constraints,fconstraints);
-
-    double score;
+void LocalPlannerStar::setInitScores(LNode& wpose, const std::vector<Scorer::Ptr>& scorer,
+                   const std::vector<double>& wscorer, double& dis2last){
     wpose.gScore_ = Cost(wpose, scorer, wscorer, score);
-    double heuristic = Heuristic(wpose, dis2last);
+    heuristic = Heuristic(wpose, dis2last);
     wpose.fScore_ = f(wpose.gScore_,score,heuristic);
+}
 
-    nodes.at(0) = wpose;
+void LocalPlannerStar::initQueue(LNode& root){
+    closedSet.clear();
+    openSet.clear();
+    openSet.insert(&root);
+}
 
-    std::vector<LNode*> closedSet;
+bool LocalPlannerStar::isQueueEmpty(){
+    return openSet.empty();
+}
 
-    prio_queue openSet;
-    openSet.insert(&nodes[0]);
-    initLeaves(nodes[0]);
-    double best_p = std::numeric_limits<double>::infinity();
-    nnodes = 1;
+LNode* LocalPlannerStar::queueFront(){
+    return *openSet.begin();
+}
 
-    LNode* current;
+void LocalPlannerStar::pop(LNode*& current){
+    current = *openSet.begin();
+    openSet.erase(openSet.begin());
+}
 
-    while(!openSet.empty() && (openSet.empty()?nodes.at(nnodes - 1).level_:(*openSet.begin())->level_) < li_level && nnodes < nnodes_){
-        current = *openSet.begin();
-        openSet.erase(openSet.begin());
-        if(std::abs(dis2last - current->s) <= 0.05){
-            obj = current;
-            tooClose = true;
-            break;
-        }
-        closedSet.push_back(current);
+void LocalPlannerStar::push2Closed(LNode*& current){
+    closedSet.push_back(current);
+}
 
-        std::vector<LNode*> successors;
-        std::vector<LNode> twins;
-        getSuccessors(current, nnodes, successors, nodes, constraints, fconstraints, wscorer, twins, true);
-        setNormalizer(constraints,fconstraints);
-        updateLeaves(successors, current);
-        for(std::size_t i = 0; i < successors.size(); ++i){
-            if(std::find(closedSet.begin(), closedSet.end(), successors[i]) != closedSet.end()){
-                successors[i]->twin_ = nullptr;
-                continue;
-            }
+void LocalPlannerStar::expandCurrent(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
+                           std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
+                           const std::vector<bool>& fconstraints,const std::vector<double>& wscorer){
+    twins.clear();
+    getSuccessors(current, nsize, successors, nodes, constraints, fconstraints, wscorer, twins, true);
+}
 
-            LNode* for_current = current;
-            double tentative_gScore = G(for_current,i,successors,scorer,wscorer,score);
-
-            if(tentative_gScore >= successors[i]->gScore_){
-                successors[i]->twin_ = nullptr;
-                continue;
-            }
-
-            if(successors[i]->twin_ != nullptr){
-                successors[i]->InfoFromTwin();
-            }
-
-            updateSucc(current,for_current,*(successors[i]));
-
-            successors[i]->parent_ = for_current;
-            successors[i]->gScore_ = tentative_gScore;
-
-            heuristic = Heuristic(*(successors[i]), dis2last);
-
-            successors[i]->fScore_ = f(successors[i]->gScore_, score, heuristic);
-
-            prio_queue::const_iterator inOpen = std::find(openSet.begin(), openSet.end(), successors[i]);
-            if(inOpen != openSet.end()){
-                openSet.erase(inOpen);
-            }
-            openSet.insert(successors[i]);
-            addLeaf(successors[i]);
-
-            double current_p;
-            evaluate(current_p, heuristic, score);
-            updateBest(current_p,best_p,obj,successors[i]);
-        }
-    }
-    reconfigureTree(obj, nodes, best_p, scorer, wscorer);
-    if(obj != nullptr){
-        return processPath(obj, local_wps);
-    }else{
+bool LocalPlannerStar::processSuccessor(LNode*& succ, LNode*& current,
+                                        double& current_p,double& dis2last,
+                                        const std::vector<Scorer::Ptr>& scorer,
+                                        const std::vector<double>& wscorer){
+    if(std::find(closedSet.begin(), closedSet.end(), succ) != closedSet.end()){
+        succ->twin_ = nullptr;
         return false;
     }
+
+    LNode* for_current = current;
+    double tentative_gScore = G(for_current,succ,scorer,wscorer,score);
+
+    if(tentative_gScore >= succ->gScore_){
+        succ->twin_ = nullptr;
+        return false;
+    }
+
+    if(succ->twin_ != nullptr){
+        succ->InfoFromTwin();
+    }
+
+    updateSucc(current,for_current,*succ);
+
+    succ->parent_ = for_current;
+    succ->gScore_ = tentative_gScore;
+
+    heuristic = Heuristic(*succ, dis2last);
+
+    succ->fScore_ = f(succ->gScore_, score, heuristic);
+
+    prio_queue::const_iterator inOpen = std::find(openSet.begin(), openSet.end(), succ);
+    if(inOpen != openSet.end()){
+        openSet.erase(inOpen);
+    }
+    openSet.insert(succ);
+    evaluate(current_p, heuristic, score);
+    return true;
 }

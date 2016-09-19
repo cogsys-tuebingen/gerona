@@ -12,14 +12,14 @@ LocalPlannerAStar::LocalPlannerAStar(PathFollower &controller, tf::Transformer &
 
 }
 
-double LocalPlannerAStar::G(LNode*& current, std::size_t& index, std::vector<LNode*>& successors,
+double LocalPlannerAStar::G(LNode*& current, LNode*& succ,
                             const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer,
                             double& score){
     double tentative_gScore = current->gScore_ ;
-    if(successors[index]->twin_ != nullptr){
-        tentative_gScore += Cost(*(successors[index]->twin_), scorer, wscorer, score);
+    if(succ->twin_ != nullptr){
+        tentative_gScore += Cost(*(succ->twin_), scorer, wscorer, score);
     }else{
-        tentative_gScore += Cost(*(successors[index]), scorer, wscorer, score);
+        tentative_gScore += Cost(*(succ), scorer, wscorer, score);
     }
     return tentative_gScore;
 }
