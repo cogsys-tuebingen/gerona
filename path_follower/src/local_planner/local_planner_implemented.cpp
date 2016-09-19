@@ -7,8 +7,8 @@
 LocalPlannerImplemented::LocalPlannerImplemented(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
-    : LocalPlanner(follower, transformer), last_update_(0), update_interval_(update_interval),
-      waypoints(), wlp_(), tooClose(false)
+    : LocalPlanner(follower, transformer), update_interval_(update_interval),
+      waypoints(), wlp_(), tooClose(false), last_update_(0)
 {
 
 }

@@ -23,24 +23,8 @@ protected:
                        const std::vector<bool>& fconstraints,const std::vector<double>& wscorer,
                        std::vector<LNode>& twins = EMPTYTWINS, bool repeat = false);
 
-    void setDistances(LNode& current, bool b_obst);
-
-    void retrieveContinuity(LNode& wpose);
-
-    void setD2P(LNode& wpose);
-
-    bool processPath(LNode* obj,SubPath& local_wps);
-
     bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
                            const std::vector<bool>& fconstraints);
-
-    void initConstraints(const std::vector<Constraint::Ptr>& constraints,
-                         const std::vector<bool>& fconstraints);
-
-    void setNormalizer(const std::vector<Constraint::Ptr>& constraints,
-                         const std::vector<bool>& fconstraints);
-
-    void initIndexes(Eigen::Vector3d& pose);
 
     double Heuristic(const LNode& current, const double& dis2last);
 
@@ -50,14 +34,30 @@ protected:
     double Score(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
                  const std::vector<double>& wscorer);
 
-    void setLLP(std::size_t index);
-
-    void setLLP();
-
     bool createAlternative(LNode*& s_p, LNode& alt, bool allow_lines = false);
 
 private:
+    void setDistances(LNode& current, bool b_obst);
+
+    void retrieveContinuity(LNode& wpose);
+
+    void setD2P(LNode& wpose);
+
+    bool processPath(LNode* obj,SubPath& local_wps);
+
     bool isInGraph(const LNode& current, std::vector<LNode>& nodes, std::size_t& asize, int& position);
+
+    void initConstraints(const std::vector<Constraint::Ptr>& constraints,
+                         const std::vector<bool>& fconstraints);
+
+    void setNormalizer(const std::vector<Constraint::Ptr>& constraints,
+                         const std::vector<bool>& fconstraints);
+
+    void initIndexes(Eigen::Vector3d& pose);
+
+    void setLLP(std::size_t index);
+
+    void setLLP();
 
     void retrievePath(LNode* obj, SubPath& local_wps, double& l);
 
@@ -122,7 +122,7 @@ private:
                                   const std::vector<Scorer::Ptr>& scorer,
                                   const std::vector<double>& wscorer) = 0;
 
-protected:
+private:
     static constexpr double L = 0.458;//(L of Summit XL)
     static std::vector<LNode> EMPTYTWINS;
 
