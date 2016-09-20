@@ -666,6 +666,9 @@ void PathFollower::start()
     local_planner_->setGlobalPath(path_);
     local_planner_->setVelocity(vel_);
 
+    g_robot_path_marker_.header.stamp = ros::Time();
+    g_robot_path_marker_.points.clear();
+
     is_running_ = true;
 }
 
