@@ -276,15 +276,17 @@ PathFollower::~PathFollower()
 
 void PathFollower::followPathGoalCB()
 {
-    FollowPathGoalConstPtr goalptr = follow_path_server_.acceptNewGoal();
+    latest_goal_ = follow_path_server_.acceptNewGoal();
     ROS_INFO("Start Action!");
 
     // stop current goal
-    stop();
+    if(latest_goal_->init_mode != FollowPathGoal::INIT_MODE_CONTINUE) {
+        stop();
+    }
 
-    vel_ = goalptr->velocity;
+    vel_ = latest_goal_->velocity;
     controller_->setVelocity(vel_);
-    setGoal(*goalptr);
+    setGoal(*latest_goal_);
 
     supervisors_.notifyNewGoal();
 }
@@ -435,7 +437,9 @@ void PathFollower::update()
         if(follow_path_server_.isPreemptRequested()) {
             if(is_running_) {
                 is_running_ = false;
-                stop();
+//                if(latest_goal_->init_mode != FollowPathGoal::INIT_MODE_CONTINUE) {
+                    stop();
+//                }
                 follow_path_server_.setPreempted();
                 return;
             }
@@ -787,8 +791,10 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
     }
 
     if(is_running_) {
-        ROS_ERROR("got a new goal, stopping");
-        stop();
+        if(goal.init_mode != FollowPathGoal::INIT_MODE_CONTINUE) {
+            ROS_ERROR("got a new goal, stopping");
+            stop();
+        }
         is_running_ = false;
     }
 

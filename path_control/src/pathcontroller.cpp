@@ -18,15 +18,17 @@ PathController::PathController(ros::NodeHandle &nh):
 }
 
 void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoalConstPtr &goal)
-{
-    ROS_INFO_STREAM("Start Action! Requested velocity: " << goal->velocity);
-
-    follow_path_client_.cancelAllGoals();
-    ros::spinOnce(); ros::Duration(0.1).sleep();
-
+{    
     current_goal_ = goal;
 
-    switch (goal->failure_mode) {
+    ROS_INFO_STREAM("Start Action! Requested velocity: " << current_goal_->velocity);
+
+    if(current_goal_->init_mode != NavigateToGoalGoal::INIT_MODE_CONTINUE) {
+        follow_path_client_.cancelAllGoals();
+    };
+
+    ros::spinOnce(); ros::Duration(0.1).sleep();
+    switch (current_goal_->failure_mode) {
     case NavigateToGoalGoal::FAILURE_MODE_ABORT:
         /// Abort mode. Simply process ones and abort, if some problem occurs.
         if (processGoal()) { // if processGoal returns false, this means, there is no result, which can be handled.
@@ -105,7 +107,10 @@ bool PathController::processGoal()
 
     ROS_INFO("Wait for follow_path action server...");
     follow_path_client_.waitForServer();
-    follow_path_client_.cancelAllGoals();
+
+    if(current_goal_->init_mode != NavigateToGoalGoal::INIT_MODE_CONTINUE) {
+        follow_path_client_.cancelAllGoals();
+    }
 
     publishGoalMessage();
 
@@ -152,6 +157,7 @@ bool PathController::processGoal()
     path_msgs::FollowPathGoal path_action_goal;
     path_action_goal.path = *requested_path_;
     path_action_goal.velocity = current_goal_->velocity;
+    path_action_goal.init_mode = current_goal_->init_mode;
 
     follow_path_client_.sendGoal(path_action_goal,
                                  boost::bind(&PathController::followPathDoneCB, this, _1, _2),
@@ -164,7 +170,9 @@ bool PathController::processGoal()
         ros::spinOnce();
         if (navigate_to_goal_server_.isPreemptRequested()) {
             ROS_INFO("Preempt goal.\n---------------------");
-            follow_path_client_.cancelAllGoals();
+            if(current_goal_->init_mode != NavigateToGoalGoal::INIT_MODE_CONTINUE) {
+                follow_path_client_.cancelAllGoals();
+            }
             // wait until the goal is really canceled (= done callback is called).
             //if (!waitForFollowPathDone(ros::Duration(10))) {
             //    ROS_WARN("follow_path_client does not react to cancelGoal() for 10 seconds.");

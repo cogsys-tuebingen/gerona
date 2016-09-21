@@ -146,6 +146,7 @@ private:
     ros::Duration beep_pause_;
 
     bool is_running_;
+    path_msgs::FollowPathGoalConstPtr latest_goal_;
 
     //! Velocity for the Local Planner
     double vel_;

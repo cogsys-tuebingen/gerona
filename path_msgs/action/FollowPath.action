@@ -1,5 +1,8 @@
 # GOAL DEFINITION
+uint8 INIT_MODE_STOP = 0
+uint8 INIT_MODE_CONTINUE = 1
 
+uint8 init_mode
 path_msgs/PathSequence path
 
 # driving speed of robot (interpreted as recommended value)

@@ -42,3 +42,7 @@ catkin_package(
 )
 
 
+
+
+file(GLOB_RECURSE message_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} FOLLOW_SYMLINKS msg/*.msg)
+add_custom_target(show_messages SOURCES ${message_files})

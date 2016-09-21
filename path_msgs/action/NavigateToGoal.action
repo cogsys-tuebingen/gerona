@@ -2,8 +2,12 @@
 uint8 FAILURE_MODE_ABORT = 0
 uint8 FAILURE_MODE_REPLAN = 1
 
+uint8 INIT_MODE_STOP = 0
+uint8 INIT_MODE_CONTINUE = 1
+
 path_msgs/Goal goal
 
+uint8 init_mode
 uint8 failure_mode
 float32 velocity
 
