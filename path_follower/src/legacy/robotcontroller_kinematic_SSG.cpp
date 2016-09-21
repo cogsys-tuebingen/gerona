@@ -241,11 +241,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
 
     //robot direction angle in path coordinates
     double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), theta_meas);
-    /////use velocity vector instead of the vehicle middle axle////////////////////////////////////
-    //double phi = atan2(path_driver_->getVelocity().linear.y, path_driver_->getVelocity().linear.x);
-    //theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), phi);
-    ////////////////////////////////////////////////////////////////////////////////////////////
-
 
     //robot position vector module
     double r = hypot(x_meas - path_interpol.p(ind_), y_meas - path_interpol.q(ind_));
@@ -424,8 +419,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
 
 
     if (visualizer_->hasSubscriber()) {   
-        //visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), theta_e-theta_meas, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
     ///***///
