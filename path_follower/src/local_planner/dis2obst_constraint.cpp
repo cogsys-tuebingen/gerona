@@ -25,10 +25,10 @@ void Dis2Obst_Constraint::setVel(double vel){
 
 bool Dis2Obst_Constraint::isSatisfied(const LNode& point){
     sw.resume();
-    double x = point.nop.x - point.x;
-    double y = point.nop.y - point.y;
-    double a_diff = MathHelper::AngleClamp(std::atan2(y,x) - point.orientation);
-    double closest_obst = ((3-std::cos(a_diff)) * point.d2o)/2.0;
+    //double x = point.nop.x - point.x;
+    //double y = point.nop.y - point.y;
+    //double a_diff = MathHelper::AngleClamp(std::atan2(y,x) - point.orientation);
+    //double closest_obst = ((3-std::cos(a_diff)) * point.d2o)/2.0;
     /*
     double W = 0.61;
     double L = 0.722;
@@ -44,7 +44,8 @@ bool Dis2Obst_Constraint::isSatisfied(const LNode& point){
     double c_limit = L/2.0 + c1*std::cos(a_diff/2.0) + c2*(1.0 - std::cos(4.0*a_diff))/2.0 + c3*(std::cos(2.0*a_diff) - 1.0)/2.0;
 
     if(point.d2o <= c_limit){*/
-    if(closest_obst <= DIS2O_){
+    if(point.d2o <= DIS2O_){
+    //if(closest_obst <= DIS2O_){
         sw.stop();
         return false;
     }

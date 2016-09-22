@@ -59,8 +59,9 @@ bool Dis2Path_Constraint::isSatisfied(const LNode& point){
             y = point.npp.y - point.y;
             double orip = std::atan2(y,x);
             double adiff = std::abs(MathHelper::AngleClamp(orio - orip));
-            if(adiff <= M_PI/6.0){
+            if(adiff <= 2.0*M_PI/9.0){
                 double d_diff = (point.d2o - cos(adiff)*point.d2p);
+                ROS_INFO_STREAM("d_diff = " << d_diff);
                 double tol = (DIS2O_ + DIS2P_) - (limit - DIS2P_) - d_diff;
                 if(tol > 0.0){
                     limit += tol;
