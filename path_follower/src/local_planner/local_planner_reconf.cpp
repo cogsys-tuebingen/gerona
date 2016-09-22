@@ -32,7 +32,9 @@ void LocalPlannerReconf::updateBest(double& current_p, double& best_p, LNode*& o
 }
 
 void LocalPlannerReconf::addLeaf(LNode*& node){
-    leaves.push_back(node);
+    if(std::find(leaves.begin(), leaves.end(), node) == leaves.end()){
+        leaves.push_back(node);
+    }
 }
 
 void LocalPlannerReconf::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes, double& best_p,

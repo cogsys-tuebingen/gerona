@@ -15,7 +15,7 @@ public:
 
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
     virtual void setVelocity(double velocity) override;
-    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia) override;
+    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia, double lmf, int max_level) override;
 
 protected:
     void getSuccessors(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
@@ -23,24 +23,8 @@ protected:
                        const std::vector<bool>& fconstraints,const std::vector<double>& wscorer,
                        std::vector<LNode>& twins = EMPTYTWINS, bool repeat = false);
 
-    void setDistances(LNode& current, bool b_obst);
-
-    void retrieveContinuity(LNode& wpose);
-
-    void setD2P(LNode& wpose);
-
-    bool processPath(LNode* obj,SubPath& local_wps);
-
     bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
                            const std::vector<bool>& fconstraints);
-
-    void initConstraints(const std::vector<Constraint::Ptr>& constraints,
-                         const std::vector<bool>& fconstraints);
-
-    void setNormalizer(const std::vector<Constraint::Ptr>& constraints,
-                         const std::vector<bool>& fconstraints);
-
-    void initIndexes(Eigen::Vector3d& pose);
 
     double Heuristic(const LNode& current, const double& dis2last);
 
@@ -50,26 +34,30 @@ protected:
     double Score(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
                  const std::vector<double>& wscorer);
 
+    bool createAlternative(LNode*& s_p, LNode& alt, bool allow_lines = false);
+
+private:
+    void setDistances(LNode& current, bool b_obst);
+
+    void retrieveContinuity(LNode& wpose);
+
+    void setD2P(LNode& wpose);
+
+    bool processPath(LNode* obj,SubPath& local_wps);
+
+    bool isInGraph(const LNode& current, std::vector<LNode>& nodes, std::size_t& asize, int& position);
+
+    void initConstraints(const std::vector<Constraint::Ptr>& constraints,
+                         const std::vector<bool>& fconstraints);
+
+    void setNormalizer(const std::vector<Constraint::Ptr>& constraints,
+                         const std::vector<bool>& fconstraints);
+
+    void initIndexes(Eigen::Vector3d& pose);
+
     void setLLP(std::size_t index);
 
     void setLLP();
-
-    bool createAlternative(LNode*& s_p, LNode& alt, bool allow_lines = false);
-
-    virtual void initLeaves(LNode& root) = 0;
-
-    virtual void updateLeaves(std::vector<LNode*>& successors, LNode*& current) = 0;
-
-    virtual void updateBest(double& current_p, double& best_p, LNode*& obj, LNode*& succ) = 0;
-
-    virtual void addLeaf(LNode*& node) = 0;
-
-    virtual void reconfigureTree(LNode*& obj, std::vector<LNode>& nodes, double& best_p,
-                                 const std::vector<Scorer::Ptr>& scorer,
-                                 const std::vector<double>& wscorer) = 0;
-
-private:
-    bool isInGraph(const LNode& current, std::vector<LNode>& nodes, std::size_t& asize, int& position);
 
     void retrievePath(LNode* obj, SubPath& local_wps, double& l);
 
@@ -87,19 +75,60 @@ private:
 
     void setStep();
 
+    virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
+                     const std::vector<Constraint::Ptr>& constraints,
+                     const std::vector<Scorer::Ptr>& scorer,
+                     const std::vector<bool>& fconstraints,
+                     const std::vector<double>& wscorer,
+                     std::size_t& nnodes) override;
+
     virtual void printNodeUsage(std::size_t& nnodes) const override;
 
     virtual void printVelocity() override;
 
     virtual void printLevelReached() const override;
 
-protected:
-    static constexpr double L = 0.46;
+    virtual void initLeaves(LNode& root) = 0;
+
+    virtual void updateLeaves(std::vector<LNode*>& successors, LNode*& current) = 0;
+
+    virtual void updateBest(double& current_p, double& best_p, LNode*& obj, LNode*& succ) = 0;
+
+    virtual void addLeaf(LNode*& node) = 0;
+
+    virtual void reconfigureTree(LNode*& obj, std::vector<LNode>& nodes, double& best_p,
+                                 const std::vector<Scorer::Ptr>& scorer,
+                                 const std::vector<double>& wscorer) = 0;
+
+    virtual void setInitScores(LNode& wpose, const std::vector<Scorer::Ptr>& scorer,
+                               const std::vector<double>& wscorer, double& dis2last) = 0;
+
+    virtual void initQueue(LNode& root) = 0;
+
+    virtual bool isQueueEmpty() = 0;
+
+    virtual LNode* queueFront() = 0;
+
+    virtual void pop(LNode*& current) = 0;
+
+    virtual void push2Closed(LNode*& current) = 0;
+
+    virtual void expandCurrent(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
+                               std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
+                               const std::vector<bool>& fconstraints,const std::vector<double>& wscorer) = 0;
+
+    virtual bool processSuccessor(LNode*& succ, LNode*& current,
+                                  double& current_p, double& dis2last,
+                                  const std::vector<Scorer::Ptr>& scorer,
+                                  const std::vector<double>& wscorer) = 0;
+
+private:
+    static constexpr double L = 0.458;//(L of Summit XL)
     static std::vector<LNode> EMPTYTWINS;
 
     static std::size_t nnodes_;
-    static int ic_, nsucc_;
-    static double TH;
+    static int ic_, nsucc_, li_level;
+    static double TH, length_MF;
     static std::vector<double> D_THETA, RT;
 
     double d2p, last_s, new_s, velocity_;

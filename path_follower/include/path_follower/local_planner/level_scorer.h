@@ -12,7 +12,12 @@ public:
     Level_Scorer();
     virtual ~Level_Scorer();
 
+    static void setLevel(const int& m_level);
+
     virtual double score(const LNode& point) override;
+
+private:
+    static int max_level;
 };
 
 #endif // LEVEL_SCORER_H

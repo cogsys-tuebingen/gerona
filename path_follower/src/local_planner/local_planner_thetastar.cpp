@@ -12,18 +12,18 @@ LocalPlannerThetaStar::LocalPlannerThetaStar(PathFollower &controller, tf::Trans
 
 }
 
-double LocalPlannerThetaStar::G(LNode*& current, std::size_t& index, std::vector<LNode*>& successors,
+double LocalPlannerThetaStar::G(LNode*& current, LNode*& succ,
                             const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer,
                             double& score){
     double tentative_gScore = current->gScore_ ;
-    LNode* succ;
-    if(successors[index]->twin_ != nullptr){
-        succ = successors[index]->twin_;
+    LNode* succg;
+    if(succ->twin_ != nullptr){
+        succg = succ->twin_;
     }else{
-        succ = successors[index];
+        succg = succ;
     }
-    tentative_gScore += Cost(*(succ), scorer, wscorer, score);
-    if(tryForAlternative(succ)){
+    tentative_gScore += Cost(*(succg), scorer, wscorer, score);
+    if(tryForAlternative(succg)){
         double score1;
         double tentative_gScore1 = current->parent_->gScore_ + Cost(alt,scorer,wscorer,score1);
         if(tentative_gScore1 < tentative_gScore){

@@ -96,6 +96,8 @@ private:
     ros::Publisher local_path_pub_;
     //! Publisher for all local paths
     ros::Publisher whole_local_path_pub_;
+    //! Publisher for the path points of the global path
+    ros::Publisher g_points_pub_;
 
     //! Subscriber for odometry messages.
     ros::Subscriber odom_sub_;
@@ -132,6 +134,8 @@ private:
     //! Current pose of the robot as geometry_msgs pose.
     geometry_msgs::Pose robot_pose_world_msg_;
     geometry_msgs::Pose robot_pose_odom_msg_;
+    //! Path driven by the robot
+    visualization_msgs::Marker g_robot_path_marker_;
 
     //! Path as a list of separated subpaths
     Path::Ptr path_;
@@ -183,6 +187,9 @@ private:
 
     //! Split path into subpaths at turning points.
     void findSegments(const nav_msgs::Path& path, bool only_one_segment);
+
+    //! Publish to the global path_points
+    void publishPathMarker();
 };
 
 #endif // PATHFOLLOWER_H

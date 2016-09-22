@@ -21,8 +21,8 @@ struct PathFollowerParameters : public Parameters
     P<std::string> algo;
     P<bool> c1, c2;
     P<double> s1, s2, s3, s4, s5;
-    P<int> nnodes,ic,ia;
-    P<double> uinterval,dis2p, dis2o, s_angle;
+    P<int> nnodes,depth,ic,ia;
+    P<double> uinterval,dis2p, dis2o, s_angle, lmf;
     P<bool> use_v;
 
     // obstacle avoider
@@ -77,8 +77,11 @@ struct PathFollowerParameters : public Parameters
            "Determines whether the fourth scorer is used or not. (Tree level reached)"),
         s5(this, "~s5", 1.0,
            "Determines whether the fifth scorer is used or not. (Distance to nearest obstacle)"),
+        //Other local planner parameters
         nnodes(this, "~nnodes", 300,
                "Determines the maximum number of nodes used by the local planner"),
+        depth(this, "~depth", 10,
+               "Determines the maximum depth of the tree used by the local planner"),
         ic(this, "~ic", 3,
                "Determines the number of intermediate configurations in a curve"),
         ia(this, "~ia", 0,
@@ -91,7 +94,8 @@ struct PathFollowerParameters : public Parameters
               "Determines how far from the obstacles should the local planner perform"),
         s_angle(this, "~s_angle", 25,
                 "Determines the steering angle (in degrees) for the local planner"),
-
+        lmf(this, "~lmf", 1.0,
+                "Determines the multiplying factor of the intended length of the local path"),
         use_v(this, "~use_v", true,
               "Determines if the current velocity is used by the local planner"),
 
