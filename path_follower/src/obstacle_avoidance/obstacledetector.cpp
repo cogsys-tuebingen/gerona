@@ -39,7 +39,7 @@ bool ObstacleDetector::avoid(MoveCommand * const cmd,
 
     //ROS_DEBUG_NAMED(MODULE, "Collision Box: v = %g -> len = %g", v, box_length);
 
-    double distance_to_goal = state.path->getCurrentSubPath().back().distanceTo(state.path->getCurrentWaypoint());
+    double distance_to_goal = state.path->getCurrentSubPath().wps.back().distanceTo(state.path->getCurrentWaypoint());
 
     if(box_length > distance_to_goal) {
         box_length = distance_to_goal + 0.2;

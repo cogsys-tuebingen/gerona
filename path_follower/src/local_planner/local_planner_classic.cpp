@@ -293,7 +293,7 @@ bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
     last_local_path_.interpolatePath(local_wps, "/odom");
     local_wps = (SubPath)last_local_path_;
     if(tooClose){
-        wlp_.insert(wlp_.end(),local_wps.begin(),local_wps.end());
+        wlp_.wps.insert(wlp_.wps.end(),local_wps.begin(),local_wps.end());
     }
     return true;
 }
@@ -335,7 +335,7 @@ void LocalPlannerClassic::setStep(){
 //borrowed from path_planner/planner_node.cpp
 SubPath LocalPlannerClassic::interpolatePath(const SubPath& path, double max_distance){
     unsigned n = path.size();
-    std::vector<Waypoint> result;
+    SubPath result;
     if(n < 2) {
         return result;
     }
@@ -387,10 +387,10 @@ SubPath LocalPlannerClassic::smoothPath(const SubPath& path, double weight_data,
         SubPath smoothed_segment = smoothPathSegment(segment, weight_data, weight_smooth, tolerance);
         if(first){
             first = false;
-            result.insert(result.end(), smoothed_segment.begin(), smoothed_segment.end());
+            result.wps.insert(result.end(), smoothed_segment.begin(), smoothed_segment.end());
         }else{
             if(smoothed_segment.size() > 1){
-                result.insert(result.end(), smoothed_segment.begin() + 1, smoothed_segment.end());
+                result.wps.insert(result.end(), smoothed_segment.begin() + 1, smoothed_segment.end());
             }
         }
     }
@@ -399,7 +399,7 @@ SubPath LocalPlannerClassic::smoothPath(const SubPath& path, double weight_data,
 }
 
 //borrowed from path_planner/planner_node.cpp
-std::vector<SubPath> LocalPlannerClassic::segmentPath(const std::vector<Waypoint> &path){
+std::vector<SubPath> LocalPlannerClassic::segmentPath(const SubPath &path){
                                    std::vector<SubPath> result;
 
                                    int n = path.size();
@@ -447,7 +447,7 @@ std::vector<SubPath> LocalPlannerClassic::segmentPath(const std::vector<Waypoint
                                        if(segment_ends_with_this_node) {
                                            result.push_back(current_segment);
 
-                                           current_segment.clear();
+                                           current_segment.wps.clear();
 
                                            if(!is_the_last_node) {
                                                // begin new segment
@@ -667,8 +667,8 @@ double LocalPlannerClassic::Score(const LNode& current, const std::vector<Scorer
 
 void LocalPlannerClassic::setLLP(std::size_t index){
     SubPath tmp_p = (SubPath)last_local_path_;
-    wlp_.clear();
-    wlp_.assign(tmp_p.begin(),tmp_p.begin() + index);
+    wlp_.wps.clear();
+    wlp_.wps.assign(tmp_p.begin(),tmp_p.begin() + index);
 }
 
 void LocalPlannerClassic::setLLP(){

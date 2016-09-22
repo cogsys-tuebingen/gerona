@@ -29,7 +29,7 @@ bool Visualizer::MarrayhasSubscriber()
     return marray_vis_pub_.getNumSubscribers() > 0;
 }
 
-void Visualizer::drawArrow(const std::string& frame, int id, const geometry_msgs::Pose &pose, const std::string &ns, float r, float g, float b, double live) const
+void Visualizer::drawArrow(const std::string& frame, int id, const geometry_msgs::Pose &pose, const std::string &ns, float r, float g, float b, double live, double scale) const
 {
     visualization_msgs::Marker marker;
     marker.pose = pose;
@@ -43,9 +43,9 @@ void Visualizer::drawArrow(const std::string& frame, int id, const geometry_msgs
     marker.color.g = g;
     marker.color.b = b;
     marker.color.a = 1.0;
-    marker.scale.x = 0.75;
-    marker.scale.y = 0.05;
-    marker.scale.z = 0.05;
+    marker.scale.x = 0.75 * scale;
+    marker.scale.y = 0.05 * scale;
+    marker.scale.z = 0.05 * scale;
     marker.type = visualization_msgs::Marker::ARROW;
 
     vis_pub_.publish(marker);
@@ -189,23 +189,33 @@ void Visualizer::drawFrenetSerretFrame(const std::string& frame, int id, Eigen::
     prototype.type = visualization_msgs::Marker::ARROW;
 
 
+    //robot position vector module
+    double r = hypot(robot_pose[0] - p_ind, robot_pose[1] - q_ind);
+
+    //robot position vector angle in world coordinates
+    double theta_r = atan2(robot_pose[1] - q_ind, robot_pose[0] - p_ind);
+
     visualization_msgs::Marker path_robot_marker = prototype;
     path_robot_marker.ns = "path_robot_vector";
     path_robot_marker.color.r = 1;
     path_robot_marker.color.g = 1;
     path_robot_marker.color.b = 0;
-    path_robot_marker.scale.x = 0.05;
+    path_robot_marker.scale.x = r;//0.05;
     path_robot_marker.scale.y = 0.02;
     path_robot_marker.scale.z = 0.02;
 
-    geometry_msgs::Point from, to;
-    from.x = robot_pose[0];
-    from.y = robot_pose[1];
-    to.x = p_ind;
-    to.y = q_ind;
+//    geometry_msgs::Point from, to;
+//    from.x = robot_pose[0];
+//    from.y = robot_pose[1];
+//    to.x = p_ind;
+//    to.y = q_ind;
 
-    path_robot_marker.points.push_back(to);
-    path_robot_marker.points.push_back(from);
+//    path_robot_marker.points.push_back(to);
+//    path_robot_marker.points.push_back(from);
+    path_robot_marker.pose.position.x = p_ind;
+    path_robot_marker.pose.position.y = q_ind;
+    path_robot_marker.pose.position.z = 0;
+    path_robot_marker.pose.orientation = tf::createQuaternionMsgFromYaw(theta_r);
 
 
     visualization_msgs::Marker path_abscissa_marker = prototype;

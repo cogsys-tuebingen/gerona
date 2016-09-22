@@ -19,15 +19,18 @@
   <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>libalglib-dev</build_depend>
+
+
   <build_depend>actionlib</build_depend>
   <build_depend>path_msgs</build_depend>
   <build_depend>control_msgs</build_depend>
   <build_depend>nav_msgs</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>utils_general</build_depend>
-  <build_depend>utils_robot</build_depend>
+  <build_depend>utils_path</build_depend>
   <build_depend>tf</build_depend>
-  <build_depend>cmake_modules</build_depend>
   <build_depend>laser_geometry</build_depend>
   <build_depend>pcl_ros</build_depend>
   <build_depend>pcl_conversions</build_depend>
@@ -38,19 +41,16 @@
   <run_depend>nav_msgs</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>utils_general</run_depend>
-  <run_depend>utils_robot</run_depend>
+  <run_depend>utils_path</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>laser_geometry</run_depend>
   <run_depend>pcl_ros</run_depend>
   <run_depend>pcl_conversions</run_depend>
 
+  <test_depend>rosunit</test_depend>
+  <test_depend>rostest</test_depend>
 
-  <!-- The export tag contains other, unspecified, tags -->
+
   <export>
-    <!-- You can specify that this package is a metapackage here: -->
-    <!-- <metapackage/> -->
-
-    <!-- Other tools can request additional information be placed here -->
-
   </export>
 </package>

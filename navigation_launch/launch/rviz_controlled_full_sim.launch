@@ -10,6 +10,7 @@ demonstrating the navigation framework.
 <launch>
     <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_SLP)" />
     <arg name="algo" default="AStarR" />
+    <!--arg name="algo" default="NULL" /-->
 
     <arg name="c1" default="true" />
     <arg name="c2" default="true" />

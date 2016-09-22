@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-	<node name="static_path" type="static_path_node" pkg="path_planner" output="screen" respawn="true">
+        <node name="static_path" type="static_path_node" pkg="path_planner" output="screen" respawn="true">
         <param name="use_map_topic" value="false" />
         <param name="use_cost_map" value="false" />
         <param name="map_service" value="/dynamic_map" />
@@ -8,40 +8,47 @@
 
         <param name="resolution" value="0.1" />
 
-		<!-- rosparam param="segments">[[0.7], [1.57, 1.0], [0.3], [-3.141592, 1.0], [0.7], [3.141592, 1.0], [1.0]]</rosparam-->
+                <!-- S-curve-->                 
+		<!-- rosparam param="segments">[[1.0], [1.57, 1.0], [0.3], [-3.141592, 1.0], [0.7], [3.141592, 1.0], [1.5]]</rosparam -->
+
+                <!-- U-curve -->
 		<!-- rosparam param="segments">[[4.5], [3.14, 1.0], [4.0]]</rosparam -->
+
 		<!-- typical turning maneuver -->
 		<!-- rosparam param="segments">[[1.57079632679, -1.2], [-1.57079632679, 1.2]]</rosparam -->
 
+                <!-- big path for the meadow behind the Sand building -->
+                <!-- rosparam param="segments">[[25.0],[1.57, 2.0], [15.0], [1.57, 2.0], [25.0], [1.57, 2.0], [15.0], [2.25, 2.0], [28.5], [-2.25, 2.0], [15.0], [-1.57, 2.0], [15.0]]</rosparam -->
 
 		<!-- forward-backward-forward -->
 		<!-- rosparam param="segments">[[1.57079632679, 1.2],[-1.57079632679, -1.2], [1.57079632679, -1.2], [-1.57079632679, 1.2]]</rosparam -->
 
 		<!-- circles -->
-		<!--rosparam param="segments">[[-4.71238898038, 1.0], [4.71238898038, 1.0]]</rosparam-->
+		<!--rosparam param="segments">[[-4.71238898038, 1.0], [4.71238898038, 1.0]]</rosparam -->
 
 		<!-- lane change -->
 		<!-- rosparam param="segments">[[3.5], [1.0471975512, 1.0], [-1.0471975512, 1.0], [3.5]]</rosparam -->
-
-		<!-- oval change -->
-		<!-- rosparam param="segments">[[3.141592, 6.0], [6.0], [3.141592, 6.0], [6.0]]</rosparam -->
 
 		<!-- little oval -->
 		<rosparam param="segments">[[3.141592, 4.0], [4.0], [3.141592, 4.0], [4.0]]</rosparam>
 
 		<!-- left-right-left -->
 		<!-- rosparam param="segments">[[2.0], [1.57079632679, 1.2],[-3.141592, 1.2], [3.141592], [3.141592, 1.2], [-1.57079632679, 1.2], [2.0]]</rosparam -->
+
 		<!-- straight line forward -->
-		<!--rosparam param="segments">[[5.0]]</rosparam-->
+		<!-- rosparam param="segments">[[5.0]]</rosparam -->
+
 		<!-- straight line backward -->
-		<!--rosparam param="segments">[[-5.0]]</rosparam-->
-		<!-- figure eight course -->
-		<!-- rosparam param="segments">[[6.28318530718, 1.0], [-6.28318530718, 1.0]]</rosparam -->
-		<!-- To infinity and beyond! -->
-                <!-- rosparam param="segments">[[25.0],[1.57, 2.0], [15.0], [1.57, 2.0], [25.0], [1.57, 2.0], [15.0], [2.25, 2.0], [28.5], [-2.25, 2.0], [15.0], [-1.57, 2.0], [15.0]]</rosparam-->
-		<!-- circle forward -->
-		<!--rosparam param="segments">[[3.14, 0.8]]</rosparam-->
+		<!-- rosparam param="segments">[[-5.0]]</rosparam -->
+
+		<!-- figure eight five times -->
+		<!-- rosparam param="segments">[[6.28318530718, 1.5],[-6.28318530718, 1.5],[6.28318530718, 1.5],[-6.28318530718, 1.5],[6.28318530718, 1.5],[-6.28318530718, 1.5],[6.28318530718, 1.5],[-6.28318530718, 1.5],[-6.28318530718, 1.5],[-6.28318530718, 1.5]]</rosparam -->
+
+		<!-- semicircle forward -->
+		<!-- rosparam param="segments">[[3.14, 0.8]]</rosparam -->
+
 		<!-- circle backward -->
-		<!--rosparam param="segments">[[5.0, -1.0]]</rosparam-->
+		<!-- rosparam param="segments">[[5.0, -1.0]]</rosparam -->
 	</node>
 </launch>
+

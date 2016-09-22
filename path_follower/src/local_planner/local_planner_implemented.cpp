@@ -65,7 +65,15 @@ void LocalPlannerImplemented::setPath(Path::Ptr& local_path, Path::Ptr& wlp, Sub
     }
 
     follower_.getController()->reset();
-    follower_.getController()->setPath(local_path);
+
+    if(local_wps.empty()) {
+        local_path->setPath({});
+        follower_.getController()->stopMotion();
+
+    } else {
+        local_path->setPath({local_wps});
+        follower_.getController()->setPath(local_path);
+    }
 
     last_update_ = now;
 }
@@ -98,12 +106,35 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
     if(last_update_ + update_interval_ < now && !tooClose) {
 
         // only look at the first sub path for now
+        waypoints_map = (SubPath) global_path_;
         waypoints = (SubPath) global_path_;
-        wlp_.clear();
+        wlp_.wps.clear();
+
+//        for(const SubPath& sp : subpaths) {
+//            const Waypoint& first = waypoints_map.at(0);
+//            const Waypoint& second = waypoints_map.at(1);
+
+//            Eigen::Vector2d first_p = first;
+//            Eigen::Vector2d second_p = second;
+
+//            Eigen::Vector2d dir = second_p - first_p;
+//            double dir_angle = std::atan2(dir(1), dir(0));
+//            double delta = MathHelper::AngleDelta(dir_angle, first.orientation);
+//            bool forward = std::abs(delta) < M_PI / 2.0;
+
+//            std::cout << (forward ? " > " : " < ");
+//        }
+//        std::cout << std::endl;
 
         if(!transform2Odo(now)){
             return nullptr;
         }
+
+        if(!obstacle_cloud_) {
+            ROS_WARN("cannot calculate local path, no obstacle cloud received yet");
+            return nullptr;
+        }
+
         /*
         ofstream myfile;
         myfile.open ("/tmp/pose.txt");
@@ -115,7 +146,8 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         */
         std::size_t nnodes = 0;
 
-        std::vector<Waypoint> local_wps;
+        SubPath local_wps;
+        local_wps.forward = true;
 
         if(!algo(pose, local_wps, constraints, scorer, fconstraints, wscorer, nnodes)){
             if(!wlp_.empty()){
@@ -132,6 +164,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         printNodeUsage(nnodes);
         printLevelReached();
         printSCTimeUsage(constraints, scorer, fconstraints, wscorer);
+
         ROS_INFO_STREAM("Local Planner duration: " << (end_t/1000.0) << " ms");
 
         return local_path;

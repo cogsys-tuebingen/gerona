@@ -1,4 +1,4 @@
-#include "scan2cloud.h"
+#include "../../include/scan2cloud/scan2cloud.h"
 
 ScanConverter::ScanConverter():node_("~"){
     // init parameter with a default value

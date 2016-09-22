@@ -51,8 +51,9 @@ public:
      * @param g     Marker color, green.
      * @param b     Marker color, blue.
      * @param live  Lifetime of the marker.
+     * @param scale Mutiplicative scale of the arrow
      */
-    void drawArrow(const std::string &frame, int id, const geometry_msgs::Pose &pose, const std::string& ns, float r, float g, float b, double live = 3) const;
+    void drawArrow(const std::string &frame, int id, const geometry_msgs::Pose &pose, const std::string& ns, float r, float g, float b, double live = 3, double scale = 1.0) const;
 
     /**
      * @brief Publish a line marker.

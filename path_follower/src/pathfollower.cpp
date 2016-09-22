@@ -15,6 +15,7 @@
 // Controller/Models
 #include <path_follower/controller/robotcontroller_ackermann_pid.h>
 #include <path_follower/controller/robotcontrollertrailer.h>
+#include <path_follower/controller/robotcontroller_ICR_CCW.h>
 
 #include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
 #include <path_follower/legacy/robotcontroller_ackermann_purepursuit.h>
@@ -82,17 +83,17 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     vel_(0.0)
 {
 
-	// Init. action server
-	follow_path_server_.registerGoalCallback([this]() { followPathGoalCB(); });
-	follow_path_server_.registerPreemptCallback([this]() {followPathPreemptCB(); });
+    // Init. action server
+    follow_path_server_.registerGoalCallback([this]() { followPathGoalCB(); });
+    follow_path_server_.registerPreemptCallback([this]() {followPathPreemptCB(); });
 
-	speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
-	beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
+    speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 0);
+    beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
     local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("local_path", 1, true);
     whole_local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("whole_local_path", 1, true);
     g_points_pub_ = node_handle_.advertise<visualization_msgs::Marker>("g_path_points", 10);
 
-	odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
+    odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
     // Choose robot controller
     ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
@@ -117,9 +118,9 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         controller_ = std::make_shared<RobotController_Ackermann_Stanley>(this);
 
     } else if (opt_.controller() == "4ws_purepursuit") {
-    if (opt_.obstacle_avoider_use_collision_box())
-        obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
-    controller_ = std::make_shared<RobotController_4WS_PurePursuit>(this);
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_4WS_PurePursuit>(this);
 
     } else if (opt_.controller() == "4ws_stanley") {
         if (opt_.obstacle_avoider_use_collision_box())
@@ -132,9 +133,9 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         controller_ = std::make_shared<RobotController_4WS_InputScaling>(this);
 
     } else if (opt_.controller() == "unicycle_inputscaling") {
-            if (opt_.obstacle_avoider_use_collision_box())
-                obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
-            controller_ = std::make_shared<RobotController_Unicycle_InputScaling>(this);
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_Unicycle_InputScaling>(this);
 
     } else if (opt_.controller() == "patsy_pid") {
         std::shared_ptr<RobotControllerTrailer> ctrl(new RobotControllerTrailer(this,&this->node_handle_));
@@ -170,6 +171,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
         controller_ = std::make_shared<RobotController_Kinematic_SSG>(this);
+    } else if (opt_.controller() == "ICR_CCW") {
+        if (opt_.obstacle_avoider_use_collision_box())
+            obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
+        controller_ = std::make_shared<RobotController_ICR_CCW>(this);
     } else {
         ROS_FATAL("Unknown robot controller. Shutdown.");
         exit(1);
@@ -226,38 +231,39 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
              (opt_.s4() != 0.0) ? "true" : "false", (opt_.s5() != 0.0) ? "true" : "false");
 
     obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
-																					&PathFollower::obstacleCloudCB, this);
+                                                                &PathFollower::obstacleCloudCB, this);
 
-	visualizer_ = Visualizer::getInstance();
-
-
-	/*** Initialize supervisors ***/
-
-	// register callback for new waypoint event.
-	path_->registerNextWaypointCallback([this]() { supervisors_.notifyNewWaypoint(); });
-
-	if (opt_.supervisor_use_path_lookout()) {
-		supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );
-	}
-
-	// Waypoint timeout
-	if (opt_.supervisor_use_waypoint_timeout()) {
-		Supervisor::Ptr waypoint_timeout(
-					new WaypointTimeout(ros::Duration( opt_.supervisor_waypoint_timeout_time())));
-		supervisors_.addSupervisor(waypoint_timeout);
-	}
-
-	// Distance to path
-	if (opt_.supervisor_use_distance_to_path()) {
-		supervisors_.addSupervisor(Supervisor::Ptr(
-												new DistanceToPathSupervisor(opt_.supervisor_distance_to_path_max_dist())));
-	}
+    visualizer_ = Visualizer::getInstance();
 
 
-	//  if no obstacle avoider was set, use the none-avoider
+    /*** Initialize supervisors ***/
+
+    // register callback for new waypoint event.
+    path_->registerNextWaypointCallback([this]() { supervisors_.notifyNewWaypoint(); });
+    path_->registerNextWaypointCallback([this]() { local_planner_->reset(); });
+
+    if (opt_.supervisor_use_path_lookout()) {
+        supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );
+    }
+
+    // Waypoint timeout
+    if (opt_.supervisor_use_waypoint_timeout()) {
+        Supervisor::Ptr waypoint_timeout(
+                    new WaypointTimeout(ros::Duration( opt_.supervisor_waypoint_timeout_time())));
+        supervisors_.addSupervisor(waypoint_timeout);
+    }
+
+    // Distance to path
+    if (opt_.supervisor_use_distance_to_path()) {
+        supervisors_.addSupervisor(Supervisor::Ptr(
+                                       new DistanceToPathSupervisor(opt_.supervisor_distance_to_path_max_dist())));
+    }
+
+
+    //  if no obstacle avoider was set, use the none-avoider
     if (!obstacle_avoider_) {
         obstacle_avoider_ = std::make_shared<NoneAvoider>();
-	}
+    }
 
     // path marker
     g_robot_path_marker_.header.frame_id = "/odom";
@@ -281,8 +287,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     g_robot_path_marker_.color.g = 0.0;
     g_robot_path_marker_.color.b = 0.0;
 
-	follow_path_server_.start();
-	ROS_INFO("Initialisation done.");
+    follow_path_server_.start();
+    ROS_INFO("Initialisation done.");
 
 }
 
@@ -295,15 +301,17 @@ PathFollower::~PathFollower()
 
 void PathFollower::followPathGoalCB()
 {
-    FollowPathGoalConstPtr goalptr = follow_path_server_.acceptNewGoal();
+    latest_goal_ = follow_path_server_.acceptNewGoal();
     ROS_INFO("Start Action!");
 
     // stop current goal
-    stop();
+    if(latest_goal_->init_mode != FollowPathGoal::INIT_MODE_CONTINUE) {
+        stop();
+    }
 
-    vel_ = goalptr->velocity;
+    vel_ = latest_goal_->velocity;
     controller_->setVelocity(vel_);
-    setGoal(*goalptr);
+    setGoal(*latest_goal_);
 
     supervisors_.notifyNewGoal();
 }
@@ -334,6 +342,7 @@ bool PathFollower::updateRobotPose()
 {
     if (getWorldPose(&robot_pose_world_, &robot_pose_world_msg_)) {
         course_predictor_.update();
+        controller_->setCurrentPose(robot_pose_world_);
         return true;
     } else {
         return false;
@@ -450,6 +459,17 @@ void PathFollower::update()
         FollowPathFeedback feedback;
         FollowPathResult result;
 
+        if(follow_path_server_.isPreemptRequested()) {
+            if(is_running_) {
+                is_running_ = false;
+//                if(latest_goal_->init_mode != FollowPathGoal::INIT_MODE_CONTINUE) {
+                    stop();
+//                }
+                follow_path_server_.setPreempted();
+                return;
+            }
+        }
+
         if(!is_running_) {
             start();
         }
@@ -468,92 +488,126 @@ void PathFollower::update()
 
         Supervisor::Result s_res = supervisors_.supervise(state);
         if (s_res.can_continue) {
-            //Begin Constraints and Scorers Construction
-            //In case that more constraints or scorers need to be added, please add them
-            //before Dis2Obst_Constraint/Scorer
-            std::vector<Constraint::Ptr> constraints(2);
-            std::vector<bool> fconstraints(2);
-            if(opt_.c1()){
-                constraints.at(0) = Dis2Path_Constraint::Ptr(new Dis2Path_Constraint);
-            }
-            fconstraints.at(0) = opt_.c1();
 
-            if(opt_.c2()){
-                constraints.at(1) = Dis2Obst_Constraint::Ptr(new Dis2Obst_Constraint);
-            }
-            fconstraints.at(1) = opt_.c2();
-
-            std::vector<Scorer::Ptr> scorer(5);
-            std::vector<double> wscorer(5);
-            if(opt_.s1() != 0.0){
-                scorer.at(0) = Dis2PathP_Scorer::Ptr(new Dis2PathP_Scorer);
-            }
-            wscorer.at(0) = opt_.s1();
-
-            if(opt_.s2() != 0.0){
-                scorer.at(1) = Dis2PathD_Scorer::Ptr(new Dis2PathD_Scorer);
-            }
-            wscorer.at(1) = opt_.s2();
-
-            if(opt_.s3() != 0.0){
-                scorer.at(2) = Curvature_Scorer::Ptr(new Curvature_Scorer);
-            }
-            wscorer.at(2) = opt_.s3();
-
-            if(opt_.s4() != 0.0){
-                scorer.at(3) = Level_Scorer::Ptr(new Level_Scorer);
-            }
-            wscorer.at(3) = opt_.s4();
-
-            if(opt_.s5() != 0.0){
-                scorer.at(4) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
-            }
-            wscorer.at(4) = opt_.s5();
-
-            //End Constraints and Scorers Construction
-            publishPathMarker();
-            if(obstacle_cloud_ != nullptr){
-                local_planner_->setObstacleCloud(obstacle_cloud_);
-            }
-            if(opt_.use_v()){
-                local_planner_->setVelocity(getVelocity().linear);
-            }
-            Path::Ptr local_path_whole(new Path("/odom"));
-            Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, wscorer, local_path_whole);
-            if(local_path) {
-                nav_msgs::Path path;
-                path.header.stamp = ros::Time::now();
-                path.header.frame_id = local_path->getFrameId();
-                for(int i = 0, sub = local_path->subPathCount(); i < sub; ++i) {
-                    const SubPath& p = local_path->getSubPath(i);
-                    for(const Waypoint& wp : p) {
-                        geometry_msgs::PoseStamped pose;
-                        pose.pose.position.x = wp.x;
-                        pose.pose.position.y = wp.y;
-                        pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
-                        path.poses.push_back(pose);
-                    }
+            if(local_planner_->isNull()) {
+                is_running_ = execute(feedback, result);
+            } else  {
+                //Begin Constraints and Scorers Construction
+                //In case that more constraints or scorers need to be added, please add them
+                //before Dis2Obst_Constraint/Scorer
+                std::vector<Constraint::Ptr> constraints(2);
+                std::vector<bool> fconstraints(2);
+                if(opt_.c1()){
+                    constraints.at(0) = Dis2Path_Constraint::Ptr(new Dis2Path_Constraint);
                 }
-                local_path_pub_.publish(path);
-            }
-            if(local_path_whole->subPathCount() > 0){
-                nav_msgs::Path wpath;
-                wpath.header.stamp = ros::Time::now();
-                wpath.header.frame_id = local_path_whole->getFrameId();
-                for(int i = 0, sub = local_path_whole->subPathCount(); i < sub; ++i) {
-                    const SubPath& p = local_path_whole->getSubPath(i);
-                    for(const Waypoint& wp : p) {
-                        geometry_msgs::PoseStamped pose;
-                        pose.pose.position.x = wp.x;
-                        pose.pose.position.y = wp.y;
-                        pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
-                        wpath.poses.push_back(pose);
-                    }
+                fconstraints.at(0) = opt_.c1();
+
+                if(opt_.c2()){
+                    constraints.at(1) = Dis2Obst_Constraint::Ptr(new Dis2Obst_Constraint);
                 }
-                whole_local_path_pub_.publish(wpath);
+                fconstraints.at(1) = opt_.c2();
+
+                std::vector<Scorer::Ptr> scorer(5);
+                std::vector<double> wscorer(5);
+                if(opt_.s1() != 0.0){
+                    scorer.at(0) = Dis2PathP_Scorer::Ptr(new Dis2PathP_Scorer);
+                }
+                wscorer.at(0) = opt_.s1();
+
+                if(opt_.s2() != 0.0){
+                    scorer.at(1) = Dis2PathD_Scorer::Ptr(new Dis2PathD_Scorer);
+                }
+                wscorer.at(1) = opt_.s2();
+
+                if(opt_.s3() != 0.0){
+                    scorer.at(2) = Curvature_Scorer::Ptr(new Curvature_Scorer);
+                }
+                wscorer.at(2) = opt_.s3();
+
+                if(opt_.s4() != 0.0){
+                    scorer.at(3) = Level_Scorer::Ptr(new Level_Scorer);
+                }
+                wscorer.at(3) = opt_.s4();
+
+                if(opt_.s5() != 0.0){
+                    scorer.at(4) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
+                }
+                wscorer.at(4) = opt_.s5();
+
+                //End Constraints and Scorers Construction
+                publishPathMarker();
+                if(obstacle_cloud_ != nullptr){
+                    local_planner_->setObstacleCloud(obstacle_cloud_);
+                }
+                if(opt_.use_v()){
+                    local_planner_->setVelocity(getVelocity().linear);
+                }
+
+                bool path_search_failure = false;
+                Path::Ptr local_path_whole(new Path("/odom"));
+                try {
+                    Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, wscorer, local_path_whole);
+                    path_search_failure = local_path && local_path->empty();
+                    if(local_path && !path_search_failure) {
+                        nav_msgs::Path path;
+                        path.header.stamp = ros::Time::now();
+                        path.header.frame_id = getFixedFrameId();
+                        for(int i = 0, sub = local_path->subPathCount(); i < sub; ++i) {
+                            const SubPath& p = local_path->getSubPath(i);
+                            for(const Waypoint& wp : p.wps) {
+                                geometry_msgs::PoseStamped pose;
+                                pose.pose.position.x = wp.x;
+                                pose.pose.position.y = wp.y;
+                                pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
+                                path.poses.push_back(pose);
+                            }
+                        }
+                        local_path_pub_.publish(path);
+                    }
+
+                    is_running_ = execute(feedback, result);
+
+                } catch(const std::runtime_error& e) {
+                    ROS_ERROR_STREAM("Cannot find local_path: " << e.what());
+                    path_search_failure = true;
+                }
+
+                if(path_search_failure) {
+                    ROS_ERROR_STREAM("no local path found. there is an obstacle.");
+                    feedback.status = path_msgs::FollowPathFeedback::MOTION_STATUS_OBSTACLE;
+                    controller_->stopMotion();
+
+                    // avoid RViz bug with empty paths!
+                    nav_msgs::Path path;
+                    path.header.stamp = ros::Time::now();
+                    path.header.frame_id = getFixedFrameId();
+                    geometry_msgs::PoseStamped pose;
+                    pose.pose.position.x = std::numeric_limits<double>::quiet_NaN();
+                    path.poses.push_back(pose);
+                    local_path_pub_.publish(path);
+
+                } else {
+                    if(local_path_whole->subPathCount() > 0){
+                        nav_msgs::Path wpath;
+                        wpath.header.stamp = ros::Time::now();
+                        wpath.header.frame_id = local_path_whole->getFrameId();
+                        for(int i = 0, sub = local_path_whole->subPathCount(); i < sub; ++i) {
+                            const SubPath& p = local_path_whole->getSubPath(i);
+                            for(const Waypoint& wp : p.wps) {
+                                geometry_msgs::PoseStamped pose;
+                                pose.pose.position.x = wp.x;
+                                pose.pose.position.y = wp.y;
+                                pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
+                                wpath.poses.push_back(pose);
+                            }
+                        }
+                        whole_local_path_pub_.publish(wpath);
+                    }
+
+                    is_running_ = execute(feedback, result);
+                }
             }
 
-            is_running_ = execute(feedback, result);
         } else {
             ROS_WARN("My supervisor told me to stop.");
             is_running_ = false;
@@ -650,9 +704,19 @@ const PathFollowerParameters& PathFollower::getOptions() const
     return opt_;
 }
 
+Visualizer& PathFollower::getVisualizer() const
+{
+    return *visualizer_;
+}
+
 ros::NodeHandle& PathFollower::getNodeHandle()
 {
     return node_handle_;
+}
+
+ObstacleCloud::ConstPtr PathFollower::getObstacleCloud() const
+{
+    return obstacle_cloud_;
 }
 
 void PathFollower::start()
@@ -716,8 +780,15 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
     switch(status)
     {
     case RobotController::ControlStatus::REACHED_GOAL:
-        result.status = FollowPathResult::RESULT_STATUS_SUCCESS;
-        return DONE;
+        if(!local_planner_->isNull()) {
+            result.status = FollowPathResult::RESULT_STATUS_SUCCESS;
+            return DONE;
+            //feedback.status = FollowPathFeedback::MOTION_STATUS_OBSTACLE;
+            ////return MOVING;
+        } else {
+            result.status = FollowPathResult::RESULT_STATUS_SUCCESS;
+            return DONE;
+        }
 
     case RobotController::ControlStatus::OBSTACLE:
         if (opt_.abort_if_obstacle_ahead()) {
@@ -743,19 +814,27 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
 {
     pending_error_ = -1;
 
-    if ( goal.path.poses.size() < 2 ) {
-        ROS_ERROR("Got an invalid path with less than two poses.");
+    if (goal.path.paths.empty()) {
+        ROS_ERROR("Got an invalid path.");
         stop();
         pending_error_ = FollowPathResult::RESULT_STATUS_INTERNAL_ERROR;
         return;
     }
 
+    if(is_running_) {
+        if(goal.init_mode != FollowPathGoal::INIT_MODE_CONTINUE) {
+            ROS_ERROR("got a new goal, stopping");
+            stop();
+        }
+        is_running_ = false;
+    }
+
     setPath(goal.path);
 
-    ROS_INFO_STREAM("Following path with " << goal.path.poses.size() << " poses.");
+    ROS_INFO_STREAM("Following path with " << goal.path.paths.size() << " segments.");
 }
 
-void PathFollower::setPath(const nav_msgs::Path& path)
+void PathFollower::setPath(const path_msgs::PathSequence& path)
 {
     path_->clear();
 
@@ -765,93 +844,29 @@ void PathFollower::setPath(const nav_msgs::Path& path)
     controller_->reset();
 }
 
-void PathFollower::findSegments(const nav_msgs::Path& path, bool only_one_segment)
+namespace {
+double angleDifference(double s1, double s2) {
+    double a1 = std::atan2(std::sin(s1), std::cos(s1));
+    double a2 = std::atan2(std::sin(s2), std::cos(s2));
+    return MathHelper::AngleClamp(a1 - a2);
+}
+}
+
+void PathFollower::findSegments(const path_msgs::PathSequence& path, bool only_one_segment)
 {
-    unsigned n = path.poses.size();
-    if(n < 2) {
-        return;
+    vector<SubPath> subpaths;
+
+    for(const path_msgs::DirectionalPath& dp : path.paths) {
+        SubPath sp(dp.forward);
+        for(const geometry_msgs::PoseStamped& ps : dp.poses) {
+            sp.wps.emplace_back(ps);
+        }
+        subpaths.push_back(sp);
     }
 
-    vector<SubPath> subpaths;
-    SubPath current_segment;
-
-    Waypoint last_point(path.poses[0]);
-    current_segment.push_back(last_point);
-
-    int id = 0;
-    bool is_duplicate_wp ;
-
-    // TODO: does this really do what we think it does?
-    // FIXME: refactor this method
-    for(unsigned i = 1; i < n; ++i){
-        const Waypoint current_point(path.poses[i]);
-
-        // filter identical points that lead to the "unsorted" alglib exception
-        const bool is_identical = std::abs(current_point.x - last_point.x) < 1e-4
-                && std::abs(current_point.y - last_point.y) < 1e-4;
-        if(!is_identical) {
-            // append to current segment if not in "filter" mode
-            current_segment.push_back(current_point);
-        }
-
-        double diff_last_x = current_point.x - last_point.x;
-        double diff_last_y = current_point.y - last_point.y;
-        double diff_last_angle = MathHelper::AngleClamp(current_point.orientation - last_point.orientation);
-        if (diff_last_x*diff_last_x+diff_last_y*diff_last_y<WAYPOINT_POS_DIFF_TOL*WAYPOINT_POS_DIFF_TOL
-                && fabs(diff_last_angle)<WAYPOINT_ANGLE_DIFF_TOL) {
-            // duplicate waypoint
-            is_duplicate_wp = true;
-        } else {
-            is_duplicate_wp = false;
-        }
-
-        bool is_the_last_node = i == n-1;
-        bool segment_ends_with_this_node = false;
-
-        if(is_the_last_node) {
-            // this is the last node
-            segment_ends_with_this_node = true;
-
-        } else if (!is_identical) {
-            const Waypoint next_point(path.poses[i+1]);
-
-            // if angle between last direction and next direction to large -> segment ends
-            double diff_last_x = current_point.x - last_point.x;
-            double diff_last_y = current_point.y - last_point.y;
-            double last_angle = std::atan2(diff_last_y, diff_last_x);
-
-            double diff_next_x = next_point.x - current_point.x;
-            double diff_next_y = next_point.y - current_point.y;
-            double next_angle = std::atan2(diff_next_y, diff_next_x);
-
-            double angle = MathHelper::AngleClamp(last_angle - next_angle);
-
-            bool split_segment = std::abs(angle) > M_PI / 3.0;
-
-            if(!only_one_segment && split_segment && !is_duplicate_wp) {
-                // new segment!
-                // current node is the last one of the old segment
-                segment_ends_with_this_node = true;
-            }
-        }
-
-        visualizer_->drawArrow(path.header.frame_id, id++, current_point, "paths", 0, 0, 0);
-        if(segment_ends_with_this_node) {
-            // Marker for subpaths
-            visualizer_->drawMark(id++, ((geometry_msgs::Pose)current_point).position, "paths", 0.2,0.2,0.2);
-
-            current_segment.pop_back();
-            subpaths.push_back(current_segment);
-            current_segment.clear();
-
-            if(!is_the_last_node) {
-                // begin new segment
-                // current node is also the first one of the new segment
-                current_segment.push_back(current_point);
-            }
-        }
-
-        last_point = current_point;
+    std::cout << "split the path into " << subpaths.size() << " sub paths" << std::endl;
+    for(const SubPath& sp : subpaths) {
+        std::cout << " - " << (sp.forward ? "forward" : "backward" ) << std::endl;
     }
 
     path_->setPath(subpaths);

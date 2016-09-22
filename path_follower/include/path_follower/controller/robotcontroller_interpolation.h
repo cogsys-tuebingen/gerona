@@ -22,10 +22,12 @@ protected:
 protected:
     virtual void setPath(Path::Ptr path);
     virtual void reset();
-
     virtual void initialize();    
 
     bool reachedGoal(const Eigen::Vector3d& pose) const;
+
+public:
+    virtual void setCurrentPose(const Eigen::Vector3d&) override {}
 
 protected:
     struct InterpolationParameters : public Parameters {

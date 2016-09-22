@@ -15,6 +15,8 @@
 #include <utils_path/generic/Algorithms.hpp>
 #include <utils_path/generic/ReedsSheppExpansion.hpp>
 #include <utils_path/common/Bresenham2d.h>
+#include <utils_path/generic/SteeringNode.hpp>
+#include <utils_path/generic/SteeringNeighborhood.hpp>
 
 /// SYSTEM
 #include <nav_msgs/Path.h>
@@ -24,10 +26,10 @@ using namespace lib_path;
 
 
 // IGNORE END ORIENTATION
-template <int n, int distance>
+template <int distance, int steerangle>
 struct NonHolonomicNeighborhoodNoEndOrientation :
-        public NonHolonomicNeighborhood<n, distance> {
-    typedef NonHolonomicNeighborhood<n, distance> Parent;
+        public NonHolonomicNeighborhood<distance, steerangle> {
+    typedef NonHolonomicNeighborhood<distance, steerangle> Parent;
 
     using Parent::distance_step_pixel;
 
@@ -40,66 +42,70 @@ struct NonHolonomicNeighborhoodNoEndOrientation :
 
 
 // MORE PRECISE END POSITION
-template <int n, int distance, int moves = NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, bool reversed = false>
+template <int distance, int steerangle, int moves = NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, bool reversed = false,
+          int straight_dir_switch = static_cast<int>(std::round(2.0 / (distance / 100.)))>
 struct NonHolonomicNeighborhoodPrecise :
-        public NonHolonomicNeighborhood<n, distance, moves, reversed> {
-    typedef NonHolonomicNeighborhood<n, distance, moves, reversed> Parent;
+        public NonHolonomicNeighborhood<distance, steerangle, moves, reversed, straight_dir_switch> {
+    typedef NonHolonomicNeighborhood<distance, steerangle, moves, reversed, straight_dir_switch> Parent;
 
     using Parent::distance_step_pixel;
 
     template <class NodeType>
     static bool isGoal(const NodeType* goal, const NodeType* reference) {
-        double angle_dist_ref = MathHelper::AngleClamp(goal->theta - reference->theta);
+        double delta_rot = std::atan2(std::sin(goal->theta - reference->theta),
+                                      std::cos(goal->theta - reference->theta));
         static const double angle_threshold = M_PI / 8;
-        if(std::abs(angle_dist_ref) > angle_threshold) {
+        if(std::abs(delta_rot) > angle_threshold) {
             return false;
         }
 
-        double dist = hypot(goal->x - reference->x, goal->y - reference->y);
+        int delta = 4 * distance;
+        if(std::abs(goal->x - reference->x) > delta ||
+                std::abs(goal->y - reference->y) > delta) {
+            return false;
+        }
 
+        double cell_dist = hypot(goal->x - reference->x, goal->y - reference->y);
+        double dist = cell_dist * Parent::resolution;
 
         // euclidean distance
-        int delta = 2;
-        if(dist < 5.0) return true;
-
-        if(std::abs(goal->x - reference->x) < delta &&
-                std::abs(goal->y - reference->y) < delta) {
+        if(dist < 0.05) {
             return true;
         }
 
-        return false;
-        // check, if goal is between reference an its predecessor
+
+        // check, if goal is near the segment through reference an its predecessor
         if(reference->prev) {
-            Pose2d v (*reference->prev);
-            Pose2d w (*reference);
-            Pose2d p (*goal);
+            Eigen::Vector2d p (reference->prev->x, reference->prev->y);
+            Eigen::Vector2d r (reference->x, reference->y);
+            Eigen::Vector2d g (goal->x, goal->y);
 
+            p *=  Parent::resolution;
+            r *=  Parent::resolution;
+            g *=  Parent::resolution;
+
+            // calculate distance of goal to the line segment through current and prev
+            //  if the projection of goal falls onto the segment, check if the distance is small enough
             double line_distance;
-            double l2 = (v-w).distance_to_origin();
+            double l2 = (p-r).squaredNorm();
             if(l2 <= 0.0001) { // v ~= w
-                line_distance = p.distance_to(v);
+                line_distance = (g - p).norm();
             } else {
-                double t = dot(p - v, w - v) / l2;
+                double t = (g - p).dot(r - p) / l2;
 
-                if(t < 0.0) {
-                    return false;
-                } else if(t > 1.0) {
-                    return false;
-                } else {
-                    Pose2d project = v + t * (w-v);
+                t = std::max(0.0, std::min(1.0, t));
 
-                    line_distance = p.distance_to(project);
-                }
+                Eigen::Vector2d project = p + t * (r-p);
+
+                line_distance = (g-project).norm();
             }
-
-            double threshold = 1.41;
-
-            return line_distance < threshold;
+            return line_distance < 0.1;
         }
 
         return false;
     }
 };
+
 
 
 struct LinearExpansion
@@ -276,30 +282,37 @@ struct PathPlanner : public Planner
     //    typedef AStarSearch<NonHolonomicNeighborhood<40, 360, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/> > AStarAckermann; // Ackermann
     //typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD>,
     //                    NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermann; // Ackermann
-    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
+    typedef AStarDynamicHybridHeuristicsSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD_BACKWARD, true>,
     NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermannReversed; // Ackermann
     typedef AStarSearch<NonHolonomicNeighborhoodPrecise<30, 600, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
     NoExpansion, Pose2d, GridMap2d, 100> AStarSummitReversed; // Summit
-    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 300, NonHolonomicNeighborhoodMoves::FORWARD, false>,
+
+    typedef AStarDynamicSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD, true>,
     NoExpansion, Pose2d, GridMap2d, 100> AStarSummitForward; // Summit Only Forward
 
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
-    typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD> > AStarPatsyForward;
-    typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD>,
-    ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
-    //    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStarOmnidrive; // Omnidrive
+
+    typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStarOmnidrive; // Omnidrive
+    //typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD> > AStarOmnidrive;
+
+    typedef AStarDynamicHybridHeuristicsSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD_BACKWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsy;
+    typedef AStarDynamicHybridHeuristicsSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsyForward;
+    //    typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhoodPrecise<30, 150, NonHolonomicNeighborhoodMoves::FORWARD>,
+    //    ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
 
     typedef AStarAckermannReversed AStarAckermann;
     typedef AStarSummitReversed AStarSummit;
+    typedef AStarOmnidrive AStar2D;
     //    typedef AStarOmnidrive AStar;
-
-    typedef AStarAckermann::PathT PathT;
 
     enum class Algo {
         ACKERMANN = 0,
         SUMMIT = 1,
-        SUMMIT_FORWARD = 2
+        SUMMIT_FORWARD = 2,
+        OMNI = 3,
+        PATSY = 4,
+        PATSY_FORWARD = 5
     };
 
     PathPlanner()
@@ -310,7 +323,14 @@ struct PathPlanner : public Planner
         std::string algo = "ackermann";
         nh_priv.param("algorithm", algo, algo);
 
-        nh_priv.param("oversearch_distance", oversearch_distance_, 2.0);
+        nh_priv.param("oversearch_distance", search_options.oversearch_distance, search_options.oversearch_distance);
+        ROS_INFO_STREAM("oversearch distance is " << search_options.oversearch_distance);
+        if(std::isnan(search_options.oversearch_distance) || search_options.oversearch_distance > 100) {
+            search_options.oversearch_distance = 0.;
+        }
+
+        nh_priv.param("penalty/backward", search_options.penalty_backward, search_options.penalty_backward);
+        nh_priv.param("penalty/turn", search_options.penalty_turn, search_options.penalty_turn);
 
         std::transform(algo.begin(), algo.end(), algo.begin(), ::tolower);
 
@@ -335,29 +355,86 @@ struct PathPlanner : public Planner
             return Algo::ACKERMANN;
         } else if(algo == "summit") {
             return Algo::SUMMIT;
+        } else if(algo == "patsy") {
+            return Algo::PATSY;
+        } else if(algo == "patsy_forward") {
+            return Algo::PATSY_FORWARD;
         } else if(algo == "summit_forward") {
             return Algo::SUMMIT_FORWARD;
+        } else if(algo == "omni" || algo == "2d") {
+            return Algo::OMNI;
         }
 
         throw std::runtime_error(std::string("unknown algorithm ") + algo);
     }
 
-    nav_msgs::Path path2msg(const PathT& path, const ros::Time &goal_timestamp)
+    // convert non-directional paths
+    path_msgs::PathSequence path2msg(const std::vector<lib_path::HeuristicNode<lib_path::Pose2d>>& path_raw, const ros::Time &goal_timestamp)
     {
-        nav_msgs::Path path_out;
+        path_msgs::PathSequence path_out;
+        path_out.paths.emplace_back();
+
         // set timestamp of the received goal for the path message, so they can be associated
         path_out.header.stamp = goal_timestamp;
         path_out.header.frame_id = "/map";
 
-        if(path.size() >= 2) {
-            for(const Pose2d& next_map : path) {
+        path_msgs::DirectionalPath* path = &path_out.paths.back();
+
+
+        if(path_raw.size() > 0) {
+            for(const auto& next_map : path_raw) {
                 geometry_msgs::PoseStamped pose;
                 map_info->cell2pointSubPixel(next_map.x,next_map.y,pose.pose.position.x,
                                              pose.pose.position.y);
 
                 pose.pose.orientation = tf::createQuaternionMsgFromYaw(next_map.theta);
 
-                path_out.poses.push_back(pose);
+                path->poses.push_back(pose);
+            }
+        }
+
+        return path_out;
+    }
+
+    // convert directional paths
+    template <typename PathT>
+    path_msgs::PathSequence path2msg(const PathT& path_raw, const ros::Time &goal_timestamp)
+    {
+        path_msgs::PathSequence path_out;
+        if(path_raw.empty()) {
+            return path_out;
+        }
+
+        path_out.paths.emplace_back();
+
+        // set timestamp of the received goal for the path message, so they can be associated
+        path_out.header.stamp = goal_timestamp;
+        path_out.header.frame_id = "/map";
+
+        path_msgs::DirectionalPath* path = &path_out.paths.back();
+
+        bool forward = path_raw.front().forward;
+        path->forward = forward;
+
+        if(path_raw.size() > 0) {
+            for(const auto& next_map : path_raw) {
+                geometry_msgs::PoseStamped pose;
+                map_info->cell2pointSubPixel(next_map.x,next_map.y,pose.pose.position.x,
+                                             pose.pose.position.y);
+
+                pose.pose.orientation = tf::createQuaternionMsgFromYaw(next_map.theta);
+
+                if(next_map.forward != forward) {
+                    // new segment needed
+                    forward = next_map.forward;
+
+                    path_out.paths.emplace_back();
+                    path = &path_out.paths.back();
+
+                    path->forward = forward;
+                }
+
+                path->poses.push_back(pose);
             }
         }
 
@@ -385,24 +462,36 @@ struct PathPlanner : public Planner
     }
 
     template <typename Algorithm>
-    nav_msgs::Path planInstance (Algo algo_id, Algorithm& algo,
-                                 const path_msgs::PlanPathGoal &request,
-                                 const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-                                 const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
+    path_msgs::PathSequence planInstance (Algo algo_id, Algorithm& algo,
+                                          const path_msgs::PlanPathGoal &request,
+                                          const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
+                                          const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
 
         initSearch(algo, request.goal.pose.header);
 
         try {
-            PathT path;
+            typename Algorithm::PathT path;
+
+            algo.setPathCandidateCallback([this, request](const typename Algorithm::PathT& path) {
+                path_msgs::PathSequence msg = path2msg(path, request.goal.pose.header.stamp);
+                visualizePath(msg, 0, 0.8);
+                return false;
+            });
+
             if(render_open_cells_) {
                 path = algo.findPath(from_map, to_map,
                                      boost::bind(&PathPlanner::renderCells, this, algo_id),
-                                     oversearch_distance_);
+                                     search_options);
 
                 // render cells once more -> remove the last ones
                 renderCells(algo_id);
             } else {
-                path = algo.findPath(from_map, to_map, oversearch_distance_);
+                path = algo.findPath(from_map, to_map, search_options);
+            }
+
+            int id = 1;
+            for(const typename Algorithm::PathT& path : algo.getPathCandidates()) {
+                visualizePath(path2msg(path, request.goal.pose.header.stamp), id++, 0.1);
             }
 
             return path2msg(path, request.goal.pose.header.stamp);
@@ -410,18 +499,19 @@ struct PathPlanner : public Planner
         }
         catch(const std::logic_error& e) {
             ROS_ERROR_STREAM("no path found: " << e.what());
-            return empty();
         }
+
+        return empty();
     }
     template <typename Algorithm>
-    nav_msgs::Path planMapInstance (Algo algo_id, Algorithm& algo,
-                                    const path_msgs::PlanPathGoal &request,
-                                    const Pose2d &from_world, const Pose2d &from_map) {
+    path_msgs::PathSequence planMapInstance (Algo algo_id, Algorithm& algo,
+                                             const path_msgs::PlanPathGoal &request,
+                                             const Pose2d &from_world, const Pose2d &from_map) {
 
         initSearch(algo, request.goal.map.header);
 
         try {
-            PathT path;
+            typename Algorithm::PathT path;
             MapGoalTest<Algorithm> goal_test(algo, from_world,
                                              request.goal.min_dist,
                                              request.goal.map, map_info);
@@ -437,12 +527,12 @@ struct PathPlanner : public Planner
             if(render_open_cells_) {
                 path = algo.findPath(from_map, goal_test,
                                      boost::bind(&PathPlanner::renderCells, this, algo_id),
-                                     oversearch_distance_);
+                                     search_options);
 
                 // render cells once more -> remove the last ones
                 renderCells(algo_id);
             } else {
-                path = algo.findPath(from_map, goal_test, oversearch_distance_);
+                path = algo.findPath(from_map, goal_test, search_options);
             }
 
             return path2msg(path, ros::Time::now());
@@ -450,12 +540,12 @@ struct PathPlanner : public Planner
         }
         catch(const std::logic_error& e) {
             ROS_ERROR_STREAM("no path found: " << e.what());
-            return empty();
         }
+        return empty();
     }
 
-    nav_msgs::Path planWithoutTargetPose (const path_msgs::PlanPathGoal &request,
-                                          const Pose2d &from_world, const Pose2d &from_map) {
+    path_msgs::PathSequence planWithoutTargetPose (const path_msgs::PlanPathGoal &request,
+                                                   const Pose2d &from_world, const Pose2d &from_map) {
 
         Algo algorithm = algo_to_use;
 
@@ -470,6 +560,8 @@ struct PathPlanner : public Planner
             return planMapInstance(algorithm, algo_summit, request, from_world, from_map);
         case Algo::SUMMIT_FORWARD:
             return planMapInstance(algorithm, algo_summit_forward, request, from_world, from_map);
+        case Algo::OMNI:
+            return planMapInstance(algorithm, algo_omni, request, from_world, from_map);
 
         default:
             throw std::runtime_error("unknown algorithm selected");
@@ -477,9 +569,9 @@ struct PathPlanner : public Planner
 
     }
 
-    nav_msgs::Path plan (const path_msgs::PlanPathGoal &goal,
-                         const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-                         const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
+    path_msgs::PathSequence plan (const path_msgs::PlanPathGoal &goal,
+                                  const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
+                                  const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
 
         Algo algorithm = algo_to_use;
 
@@ -492,8 +584,14 @@ struct PathPlanner : public Planner
             return planInstance(algorithm, algo_ackermann, goal, from_world, to_world, from_map, to_map);
         case Algo::SUMMIT:
             return planInstance(algorithm, algo_summit, goal, from_world, to_world, from_map, to_map);
+        case Algo::PATSY:
+            return planInstance(algorithm, algo_patsy, goal, from_world, to_world, from_map, to_map);
+        case Algo::PATSY_FORWARD:
+            return planInstance(algorithm, algo_patsy_forward, goal, from_world, to_world, from_map, to_map);
         case Algo::SUMMIT_FORWARD:
             return planInstance(algorithm, algo_summit_forward, goal, from_world, to_world, from_map, to_map);
+        case Algo::OMNI:
+            return planInstance(algorithm, algo_omni, goal, from_world, to_world, from_map, to_map);
 
         default:
             throw std::runtime_error("unknown algorithm selected");
@@ -526,8 +624,14 @@ struct PathPlanner : public Planner
             return renderCellsInstance(algo_ackermann);
         case Algo::SUMMIT:
             return renderCellsInstance(algo_summit);
+        case Algo::PATSY:
+            return renderCellsInstance(algo_patsy);
+        case Algo::PATSY_FORWARD:
+            return renderCellsInstance(algo_patsy_forward);
         case Algo::SUMMIT_FORWARD:
             return renderCellsInstance(algo_summit_forward);
+        case Algo::OMNI:
+            return renderCellsInstance(algo_omni);
 
         default:
             throw std::runtime_error("unknown algorithm selected");
@@ -536,12 +640,16 @@ struct PathPlanner : public Planner
 
 
 private:
+    SearchOptions search_options;
+
     AStarAckermann algo_ackermann;
     AStarSummit algo_summit;
+    AStarPatsy algo_patsy;
+    AStarPatsyForward algo_patsy_forward;
     AStarSummitForward algo_summit_forward;
+    AStar2D algo_omni;
 
     Algo algo_to_use;
-    double oversearch_distance_;
 
     bool render_open_cells_;
     nav_msgs::GridCells cells;

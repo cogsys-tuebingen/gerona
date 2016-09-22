@@ -6,7 +6,7 @@
 
 // PROJECT
 #include <path_follower/utils/cubic_spline_interpolation.h>
-#include "../alglib/interpolation.h"
+#include <interpolation.h>
 #include <utils_general/MathHelper.h>
 
 // SYSTEM
@@ -36,8 +36,8 @@ void PathInterpolated::interpolatePath(const Path::Ptr path, const bool hack) {
     frame_id_ = path->getFrameId();
 
 	std::deque<Waypoint> waypoints;
-	while (true) {
-		waypoints.insert(waypoints.end(), path->getCurrentSubPath().begin(), path->getCurrentSubPath().end());
+    while (!path->isDone()) {
+        waypoints.insert(waypoints.end(), path->getCurrentSubPath().wps.begin(), path->getCurrentSubPath().wps.end());
 
         if(hack){
             // (messy) hack!!!!!
@@ -77,7 +77,7 @@ void PathInterpolated::interpolatePath(const SubPath& path, const std::string& f
     frame_id_ = frame_id;
 
     std::deque<Waypoint> waypoints;
-    waypoints.insert(waypoints.end(),path.begin(),path.end());
+    waypoints.insert(waypoints.end(),path.wps.begin(),path.wps.end());
 
     interpolatePath(waypoints);
 }
@@ -206,14 +206,16 @@ PathInterpolated::operator nav_msgs::Path() const {
 
 PathInterpolated::operator SubPath() const {
 
-    SubPath path(p_.size());
+    SubPath path(true);
+    path.wps.resize(p_.size());
     const unsigned int length = p_.size();
 
     for (uint i = 0; i < length; ++i) {
-        path.at(i).x = p_[i];
-        path.at(i).y = q_[i];
-        path.at(i).orientation = std::atan2(q_prim_[i],p_prim_[i]);
-        path.at(i).s = s_[i];
+        auto& wp = path.wps.at(i);
+        wp.x = p_[i];
+        wp.y = q_[i];
+        wp.orientation = std::atan2(q_prim_[i],p_prim_[i]);
+        wp.s = s_[i];
     }
 
     return path;

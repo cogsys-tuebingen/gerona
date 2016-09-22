@@ -24,7 +24,7 @@ struct Segment
     {}
 
     virtual ~Segment() {}
-    virtual void add(tf::Transform& pose, nav_msgs::Path& path) = 0;
+    virtual void add(tf::Transform& pose, path_msgs::PathSequence& path) = 0;
 };
 
 struct Curve : public Segment
@@ -36,11 +36,17 @@ struct Curve : public Segment
         : Segment(resolution), angle(angle), radius(radius)
     {}
 
-    void add(tf::Transform& pose, nav_msgs::Path& path)
+    void add(tf::Transform& pose, path_msgs::PathSequence& path_seq)
     {
         double span = 0;
         double sign = angle > 0 ? 1.0 : -1.0;
         double sign_delta_theta = radius>=0?1.0 : -1.0;
+
+        if(path_seq.paths.empty()) {
+            path_seq.paths.emplace_back();
+        }
+
+        path_msgs::DirectionalPath* path = &path_seq.paths.back();
 
         do {
             double delta_theta = sign * std::min(std::abs(angle) - span, resolution);
@@ -54,7 +60,7 @@ struct Curve : public Segment
             pose.setOrigin(pose.getOrigin() + sign*delta_pos);
             pose.setRotation(tf::createQuaternionFromYaw(theta + sign_delta_theta*delta_theta));
 
-            path.poses.push_back(tf2pose(pose));
+            path->poses.push_back(tf2pose(pose));
 
         } while(span < std::abs(angle));
     }
@@ -70,8 +76,13 @@ struct Straight : public Segment
 
     }
 
-    void add(tf::Transform& pose, nav_msgs::Path& path)
+    void add(tf::Transform& pose, path_msgs::PathSequence& path_seq)
     {
+        if(path_seq.paths.empty()) {
+            path_seq.paths.emplace_back();
+        }
+
+        path_msgs::DirectionalPath* path = &path_seq.paths.back();
 
         double distance = 0;
         do {
@@ -81,7 +92,7 @@ struct Straight : public Segment
 
             pose = pose * delta;
 
-            path.poses.push_back(tf2pose(pose));
+            path->poses.push_back(tf2pose(pose));
 
         } while(distance < length_);
     }
@@ -102,10 +113,10 @@ struct StaticPathPlanner : public Planner
 
     void execute(const path_msgs::PlanPathGoalConstPtr &goal)
     {
-        nav_msgs::Path path_raw = nav_msgs::Path();
+        path_msgs::PathSequence path_raw = path_msgs::PathSequence();
 
         tf::poseMsgToTF(goal->goal.pose.pose, pose_);
-//        pose = tf::Transform(tf::createIdentityQuaternion(), tf::Vector3(0,0,0));
+        //        pose = tf::Transform(tf::createIdentityQuaternion(), tf::Vector3(0,0,0));
 
         path_raw.header.frame_id = "map";
         path_raw.header.stamp = ros::Time::now();
@@ -113,17 +124,15 @@ struct StaticPathPlanner : public Planner
         for(std::size_t i = 0, total = segments_.size(); i < total; ++i) {
             segments_[i]->add(pose_, path_raw);
 
-
         }
 
         path_ = postprocess(path_raw);
-        publish(path_, path_raw);
-        for (vector<geometry_msgs::PoseStamped>::iterator pose_it=path_.poses.begin();pose_it!=path_.poses.end();++pose_it) {
-            geometry_msgs::Pose pose;
-            pose.position = pose_it->pose.position;
-            pose.orientation = pose_it->pose.orientation;
 
-            poses.poses.push_back(pose);
+        publish(path_, path_raw);
+        for(const path_msgs::DirectionalPath& path : path_raw.paths) {
+            for (const geometry_msgs::PoseStamped& spose : path.poses) {
+                poses.poses.push_back(spose.pose);
+            }
         }
         poses.header.frame_id="/map";
         posearray_pub_.publish(poses);
@@ -134,9 +143,9 @@ struct StaticPathPlanner : public Planner
         server_.setSucceeded(success);
     }
 
-    nav_msgs::Path plan (const path_msgs::PlanPathGoal &goal,
-                         const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-                         const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
+    path_msgs::PathSequence plan (const path_msgs::PlanPathGoal &goal,
+                                  const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
+                                  const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
 
         throw std::logic_error("should not be called");
     }
@@ -160,7 +169,7 @@ private:
     double resolution_;
     std::vector< boost::shared_ptr<Segment> > segments_;
 
-    nav_msgs::Path path_;
+    path_msgs::PathSequence path_;
     tf::Transform pose_;
     ros::Publisher posearray_pub_;
 };

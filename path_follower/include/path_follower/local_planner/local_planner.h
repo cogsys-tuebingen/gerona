@@ -30,6 +30,8 @@ public:
 
     virtual void setVelocity(double velocity) = 0;
 
+    virtual void reset();
+
     virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                       const std::vector<Scorer::Ptr>& scorer,
                                       const std::vector<bool>& fconstraints,
