@@ -304,9 +304,9 @@ void LocalPlannerClassic::setVelocity(geometry_msgs::Twist::_linear_type vector)
         if(tmpv > 0.3){
             n_v++;
             velocity_ += (tmpv - velocity_)/(double)n_v;
+            setStep();
         }
     }
-    setStep();
 }
 
 void LocalPlannerClassic::setVelocity(double velocity){
@@ -328,6 +328,8 @@ void LocalPlannerClassic::setStep(){
     neig_s = l_step*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
     Dis2Path_Constraint::setDRate(neig_s);
     stepc_ = 2.0*RT.back()*std::sin(D_THETA.back()/2.0);
+    Dis2Obst_Constraint::setVel(velocity_);
+    Dis2Obst_Scorer::setVel(velocity_);
 }
 
 //borrowed from path_planner/planner_node.cpp
