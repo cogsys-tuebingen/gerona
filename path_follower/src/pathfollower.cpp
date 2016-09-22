@@ -284,8 +284,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     g_robot_path_marker_.scale.z = 0.0;
     g_robot_path_marker_.color.a = 1.0;
     g_robot_path_marker_.color.r = 1.0;
-    g_robot_path_marker_.color.g = 0.0;
-    g_robot_path_marker_.color.b = 0.0;
+    g_robot_path_marker_.color.g = 1.0;
+    g_robot_path_marker_.color.b = 1.0;
 
     follow_path_server_.start();
     ROS_INFO("Initialisation done.");

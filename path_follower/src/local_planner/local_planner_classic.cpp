@@ -328,6 +328,7 @@ void LocalPlannerClassic::setStep(){
     neig_s = l_step*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
     Dis2Path_Constraint::setDRate(neig_s);
     stepc_ = 2.0*RT.back()*std::sin(D_THETA.back()/2.0);
+    Dis2Path_Constraint::setVel(velocity_);
     Dis2Obst_Constraint::setVel(velocity_);
     Dis2Obst_Scorer::setVel(velocity_);
 }

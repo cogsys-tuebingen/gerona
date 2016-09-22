@@ -20,9 +20,9 @@ void Dis2Obst_Scorer::setVel(double vel){
 
 double Dis2Obst_Scorer::score(const LNode& point){
     sw.resume();
-    double x = point.nop.x - point.x;
+    /*double x = point.nop.x - point.x;
     double y = point.nop.y - point.y;
-    double a_diff = MathHelper::AngleClamp(std::atan2(y,x) - point.orientation);
+    double a_diff = MathHelper::AngleClamp(std::atan2(y,x) - point.orientation);*/
 
     /*double W = 0.61;
     double L = 0.722;
@@ -38,11 +38,14 @@ double Dis2Obst_Scorer::score(const LNode& point){
     double c_limit = L/2.0 + c1*std::cos(a_diff/2.0) + c2*(1.0 - std::cos(4.0*a_diff))/2.0 + c3*(std::cos(2.0*a_diff) - 1.0)/2.0;
 
     double score = std::exp(c_limit - point.d2o);*/
-    double closest_obst = ((3-std::cos(a_diff)) * point.d2o)/2.0;
+    //double closest_obst = ((3-std::cos(a_diff)) * point.d2o)/2.0;
     /*double a_diff = MathHelper::AngleClamp(std::atan2(-y,-x) - point.orientation);
     double closest_obst = point.d2o/(2 - std::cos(a_diff));*/
-    double partial = closest_obst * closest_obst;
+    //double partial = closest_obst * closest_obst;
+    double D = std::sqrt(0.61*0.61 + 0.722*0.722)/2.0;
+    double c1 = vel_*vel_/(2.0*9.81*1.0);
+    double score = std::exp((D + c1) - point.d2o);
     sw.stop();
-    //return score;
-    return 1.0/partial;
+    return score;
+    //return 1.0/partial;
 }

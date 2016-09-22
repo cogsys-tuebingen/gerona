@@ -44,7 +44,8 @@ bool Dis2Obst_Constraint::isSatisfied(const LNode& point){
     double c_limit = L/2.0 + c1*std::cos(a_diff/2.0) + c2*(1.0 - std::cos(4.0*a_diff))/2.0 + c3*(std::cos(2.0*a_diff) - 1.0)/2.0;
 
     if(point.d2o <= c_limit){*/
-    if(point.d2o <= DIS2O_){
+    double c1 = vel_*vel_/(2.0*9.81*1.0);
+    if(point.d2o <= DIS2O_ + c1){
     //if(closest_obst <= DIS2O_){
         sw.stop();
         return false;
