@@ -89,17 +89,14 @@ struct Straight : public Segment
     {
         path_msgs::DirectionalPath* path = &path_seq.paths.back();
 
-        double distance = 0;
-        do {
-            double step = std::min(length_ - distance, resolution);
-            tf::Transform delta(tf::createIdentityQuaternion(), tf::Vector3(dir_*step, 0, 0));
-            distance += step;
+        int steps = std::ceil(length_ / resolution);
+        double exact_step_length = length_ / steps;
+        tf::Transform delta(tf::createIdentityQuaternion(), tf::Vector3(dir_*exact_step_length, 0, 0));
 
+        for(int step = 0; step < steps; ++step) {
             pose = pose * delta;
-
             path->poses.push_back(tf2pose(pose));
-
-        } while(distance < length_);
+        }
     }
 };
 
