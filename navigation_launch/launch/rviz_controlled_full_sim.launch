@@ -40,7 +40,7 @@ demonstrating the navigation framework.
 
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
-    <arg name="use_planner_static" default="false" />
+    <arg name="use_planner_static" default="true" />
     <arg name="use_planner_default" default="true" />
     
     <arg name="use_karto" default="true" />

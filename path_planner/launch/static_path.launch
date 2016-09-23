@@ -8,6 +8,9 @@
 
         <param name="resolution" value="0.1" />
 
+		<!-- forward and backward test -->
+		<!-- <rosparam param="segments">[[1.0], [1.57, 1.0], [-2.0], [-1.57, -1.0]]</rosparam> -->
+
                 <!-- S-curve-->                 
 		<rosparam param="segments">[[1.0], [1.57, 1.0], [0.3], [-3.141592, 1.0], [0.7], [3.141592, 1.0], [1.5]]</rosparam>
 

@@ -6,6 +6,7 @@
 #include <geometry_msgs/PoseArray.h>
 #include <nav_msgs/Path.h>
 #include <tf/tf.h>
+#include <memory>
 
 namespace {
 geometry_msgs::PoseStamped tf2pose(const tf::Transform& pose)
@@ -22,8 +23,10 @@ struct Segment
     Segment(double resolution)
         : resolution(resolution)
     {}
-
     virtual ~Segment() {}
+
+    virtual bool isForward() const = 0;
+
     virtual void add(tf::Transform& pose, path_msgs::PathSequence& path) = 0;
 };
 
@@ -36,15 +39,16 @@ struct Curve : public Segment
         : Segment(resolution), angle(angle), radius(radius)
     {}
 
+    virtual bool isForward() const override
+    {
+        return radius >= 0.0;
+    }
+
     void add(tf::Transform& pose, path_msgs::PathSequence& path_seq)
     {
         double span = 0;
         double sign = angle > 0 ? 1.0 : -1.0;
         double sign_delta_theta = radius>=0?1.0 : -1.0;
-
-        if(path_seq.paths.empty()) {
-            path_seq.paths.emplace_back();
-        }
 
         path_msgs::DirectionalPath* path = &path_seq.paths.back();
 
@@ -76,12 +80,13 @@ struct Straight : public Segment
 
     }
 
+    virtual bool isForward() const override
+    {
+        return dir_ > 0;
+    }
+
     void add(tf::Transform& pose, path_msgs::PathSequence& path_seq)
     {
-        if(path_seq.paths.empty()) {
-            path_seq.paths.emplace_back();
-        }
-
         path_msgs::DirectionalPath* path = &path_seq.paths.back();
 
         double distance = 0;
@@ -121,8 +126,17 @@ struct StaticPathPlanner : public Planner
         path_raw.header.frame_id = "map";
         path_raw.header.stamp = ros::Time::now();
         geometry_msgs::PoseArray poses;
+
+        int last_dir = 0;
         for(std::size_t i = 0, total = segments_.size(); i < total; ++i) {
-            segments_[i]->add(pose_, path_raw);
+            std::shared_ptr<Segment> s = segments_[i];
+            int dir = s->isForward() ? 1 : -1;
+            if(dir != last_dir) {
+                path_raw.paths.emplace_back();
+                path_raw.paths.back().forward = s->isForward();
+            }
+
+            s->add(pose_, path_raw);
 
         }
 
@@ -152,22 +166,22 @@ struct StaticPathPlanner : public Planner
 
     void addCurve(double angle, double radius)
     {
-        add(boost::shared_ptr<Segment>(new Curve(angle, radius, resolution_)));
+        add(std::make_shared<Curve>(angle, radius, resolution_));
     }
 
     void addStraight(double length)
     {
-        add(boost::shared_ptr<Segment>(new Straight(length, resolution_)));
+        add(std::make_shared<Straight>(length, resolution_));
     }
 
-    void add(const boost::shared_ptr<Segment>& segment)
+    void add(const std::shared_ptr<Segment>& segment)
     {
         segments_.push_back(segment);
     }
 
 private:
     double resolution_;
-    std::vector< boost::shared_ptr<Segment> > segments_;
+    std::vector< std::shared_ptr<Segment> > segments_;
 
     path_msgs::PathSequence path_;
     tf::Transform pose_;
