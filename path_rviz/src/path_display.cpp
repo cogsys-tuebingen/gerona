@@ -220,7 +220,17 @@ void PathSequenceDisplay::processMessage( const path_msgs::PathSequence::ConstPt
     }
 
     if(msg->paths.empty()) {
+        // no warning, this case is allowed to signal that no path exists
         return;
+    }
+
+    // Verify the path message's integrity
+    for(const path_msgs::DirectionalPath& dp : msg->paths) {
+        if(dp.poses.empty()) {
+            // if there is at least one subpath, then all of them must be valid and have at least one way point
+            setStatus( StatusProperty::Error, "Topic", "Message contained invalid sub paths of length 0" );
+            return;
+        }
     }
 
     // Create new path objects
@@ -275,6 +285,10 @@ void PathSequenceDisplay::processMessage( const path_msgs::PathSequence::ConstPt
         for(std::size_t k = 0, n = msg->paths.size(); k < n; ++k) {
             Ogre::ManualObject* manual_object = manual_objects->at(k);
             uint32_t num_points = msg->paths[k].poses.size();
+            if(k > 0) {
+                // for later segments we need to re-render the last point of the preceeding path
+                ++num_points;
+            }
 
             manual_object->estimateVertexCount( num_points );
             manual_object->begin( "BaseWhiteNoLighting", Ogre::RenderOperation::OT_LINE_STRIP );
@@ -282,9 +296,17 @@ void PathSequenceDisplay::processMessage( const path_msgs::PathSequence::ConstPt
             bool forward = msg->paths[k].forward;
             const auto& color = forward ? color_forward : color_backward;
 
-            for( uint32_t i=0; i < num_points; ++i)
+            if(k > 0) {
+                // for later segments we need to re-render the last point of the preceeding path
+                const geometry_msgs::Point& pos = msg->paths[k-1].poses.back().pose.position;
+                Ogre::Vector3 xpos = transform * Ogre::Vector3( pos.x, pos.y, pos.z );
+                manual_object->position( xpos.x, xpos.y, xpos.z );
+                manual_object->colour(color);
+            }
+
+            for(const geometry_msgs::PoseStamped& pose : msg->paths[k].poses)
             {
-                const geometry_msgs::Point& pos = msg->paths[k].poses[ i ].pose.position;
+                const geometry_msgs::Point& pos = pose.pose.position;
                 Ogre::Vector3 xpos = transform * Ogre::Vector3( pos.x, pos.y, pos.z );
                 manual_object->position( xpos.x, xpos.y, xpos.z );
                 manual_object->colour(color);
@@ -297,6 +319,10 @@ void PathSequenceDisplay::processMessage( const path_msgs::PathSequence::ConstPt
         for(std::size_t k = 0, n = msg->paths.size(); k < n; ++k) {
             rviz::BillboardLine* billboard_line = billboard_lines->at(k);
             uint32_t num_points = msg->paths[k].poses.size();
+            if(k > 0) {
+                // for later segments we need to re-render the last point of the preceeding path
+                ++num_points;
+            }
 
             billboard_line->setNumLines( 1 );
             billboard_line->setMaxPointsPerLine( num_points );
@@ -305,9 +331,15 @@ void PathSequenceDisplay::processMessage( const path_msgs::PathSequence::ConstPt
             bool forward = msg->paths[k].forward;
             const auto& color = forward ? color_forward : color_backward;
 
-            for( uint32_t i=0; i < num_points; ++i)
+            if(k > 0) {
+                // for later segments we need to re-render the last point of the preceeding path
+                const geometry_msgs::Point& pos = msg->paths[k-1].poses.back().pose.position;
+                Ogre::Vector3 xpos = transform * Ogre::Vector3( pos.x, pos.y, pos.z );
+                billboard_line->addPoint( xpos, color );
+            }
+            for(const geometry_msgs::PoseStamped& pose : msg->paths[k].poses)
             {
-                const geometry_msgs::Point& pos = msg->paths[k].poses[ i ].pose.position;
+                const geometry_msgs::Point& pos = pose.pose.position;
                 Ogre::Vector3 xpos = transform * Ogre::Vector3( pos.x, pos.y, pos.z );
                 billboard_line->addPoint( xpos, color );
             }
