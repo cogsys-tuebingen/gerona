@@ -20,11 +20,8 @@ public:
 protected:
     void getSuccessors(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
                        std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                       const std::vector<bool>& fconstraints,const std::vector<double>& wscorer,
-                       std::vector<LNode>& twins = EMPTYTWINS, bool repeat = false);
-
-    bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
-                           const std::vector<bool>& fconstraints);
+                       const std::vector<bool>& fconstraints, std::vector<LNode>& twins = EMPTYTWINS,
+                       bool repeat = false);
 
     double Heuristic(const LNode& current, const double& dis2last);
 
@@ -34,10 +31,11 @@ protected:
     double Score(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
                  const std::vector<double>& wscorer);
 
-    bool createAlternative(LNode*& s_p, LNode& alt, bool allow_lines = false);
+    bool createAlternative(LNode*& s_p, LNode& alt, const std::vector<Constraint::Ptr>& constraints,
+                           const std::vector<bool>& fconstraints, bool allow_lines = false);
 
 private:
-    void setDistances(LNode& current, bool b_obst);
+    void setDistances(LNode& current);
 
     void retrieveContinuity(LNode& wpose);
 
@@ -46,6 +44,9 @@ private:
     bool processPath(LNode* obj,SubPath& local_wps);
 
     bool isInGraph(const LNode& current, std::vector<LNode>& nodes, std::size_t& asize, int& position);
+
+    bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
+                           const std::vector<bool>& fconstraints);
 
     void initConstraints(const std::vector<Constraint::Ptr>& constraints,
                          const std::vector<bool>& fconstraints);
@@ -97,7 +98,9 @@ private:
     virtual void addLeaf(LNode*& node) = 0;
 
     virtual void reconfigureTree(LNode*& obj, std::vector<LNode>& nodes, double& best_p,
+                                 const std::vector<Constraint::Ptr>& constraints,
                                  const std::vector<Scorer::Ptr>& scorer,
+                                 const std::vector<bool>& fconstraints,
                                  const std::vector<double>& wscorer) = 0;
 
     virtual void setInitScores(LNode& wpose, const std::vector<Scorer::Ptr>& scorer,
@@ -115,11 +118,13 @@ private:
 
     virtual void expandCurrent(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
                                std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                               const std::vector<bool>& fconstraints,const std::vector<double>& wscorer) = 0;
+                               const std::vector<bool>& fconstraints) = 0;
 
     virtual bool processSuccessor(LNode*& succ, LNode*& current,
                                   double& current_p, double& dis2last,
+                                  const std::vector<Constraint::Ptr>& constraints,
                                   const std::vector<Scorer::Ptr>& scorer,
+                                  const std::vector<bool>& fconstraints,
                                   const std::vector<double>& wscorer) = 0;
 
 private:
@@ -132,7 +137,7 @@ private:
     static std::vector<double> D_THETA, RT;
 
     double d2p, last_s, new_s, velocity_;
-    bool fvel_;
+    bool fvel_, b_obst;
 
     std::size_t index1;
     std::size_t index2;

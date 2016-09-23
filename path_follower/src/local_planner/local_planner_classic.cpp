@@ -18,7 +18,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
-      d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
+      d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),b_obst(false),index1(-1), index2(-1),
       r_level(0), n_v(0), step_(0.0),stepc_(0.0),neig_s(0.0)
 {
 
@@ -32,8 +32,7 @@ void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
 
 void LocalPlannerClassic::getSuccessors(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
                                         std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                                        const std::vector<bool>& fconstraints,const std::vector<double>& wscorer,
-                                        std::vector<LNode>& twins, bool repeat){
+                                        const std::vector<bool>& fconstraints, std::vector<LNode>& twins, bool repeat){
     successors.clear();
     twins.resize(nsucc_);
     bool add_n = true;
@@ -67,7 +66,7 @@ void LocalPlannerClassic::getSuccessors(LNode*& current, std::size_t& nsize, std
 
         }
         LNode succ(x,y,theta,current,rt,current->level_+1);
-        setDistances(succ,(fconstraints.back() || wscorer.back() != 0));
+        setDistances(succ);
 
         if(areConstraintsSAT(succ,constraints,fconstraints)){
             int wo = -1;
@@ -102,7 +101,7 @@ bool LocalPlannerClassic::isInGraph(const LNode& current, std::vector<LNode>& no
     return false;
 }
 
-void LocalPlannerClassic::setDistances(LNode& current, bool b_obst){
+void LocalPlannerClassic::setDistances(LNode& current){
     double closest_dist = std::numeric_limits<double>::infinity();
     std::size_t closest_index = 0;
     for(std::size_t i = index1; i <= index2; ++i) {
@@ -713,7 +712,8 @@ void LocalPlannerClassic::printLevelReached() const{
     ROS_INFO_STREAM("Reached Level: " << r_level << "/" << li_level);
 }
 
-bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_lines){
+bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::vector<Constraint::Ptr>& constraints,
+                                            const std::vector<bool>& fconstraints, bool allow_lines){
     LNode* s = s_p->parent_;
     bool line = false;
     if(s->parent_ == nullptr){
@@ -773,7 +773,8 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_
     alt.y += L*std::sin(alt.orientation)/2.0;
     alt.parent_ = parent;
     alt.radius_ = R;
-    return true;
+    setDistances(alt);
+    return areConstraintsSAT(alt,constraints,fconstraints);
 }
 
 bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
@@ -783,9 +784,10 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                   const std::vector<double>& wscorer,
                                   std::size_t& nnodes){
     initIndexes(pose);
+    b_obst = fconstraints.back() || wscorer.back() != 0;
 
     LNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
-    setDistances(wpose,(fconstraints.back() || wscorer.back() != 0));
+    setDistances(wpose);
 
     double dis2last = global_path_.s(global_path_.n()-1);
 
@@ -825,19 +827,19 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         push2Closed(current);
 
         std::vector<LNode*> successors;
-        expandCurrent(current, nnodes, successors, nodes, constraints, fconstraints, wscorer);
+        expandCurrent(current, nnodes, successors, nodes, constraints, fconstraints);
         setNormalizer(constraints,fconstraints);
         updateLeaves(successors, current);
         for(std::size_t i = 0; i < successors.size(); ++i){
             double current_p;
-            if(!processSuccessor(successors[i], current, current_p, dis2last, scorer, wscorer)){
+            if(!processSuccessor(successors[i], current, current_p, dis2last, constraints, scorer, fconstraints, wscorer)){
                 continue;
             }
             addLeaf(successors[i]);
             updateBest(current_p,best_p,obj,successors[i]);
         }
     }
-    reconfigureTree(obj, nodes, best_p, scorer, wscorer);
+    reconfigureTree(obj, nodes, best_p, constraints, scorer, fconstraints,wscorer);
     if(obj != nullptr){
         return processPath(obj, local_wps);
     }else{

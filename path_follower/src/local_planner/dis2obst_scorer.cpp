@@ -28,5 +28,4 @@ double Dis2Obst_Scorer::score(const LNode& point){
     double score = std::exp((DIS2O_ + vdis_) - point.d2o);
     sw.stop();
     return score;
-    //return 1.0/partial;
 }

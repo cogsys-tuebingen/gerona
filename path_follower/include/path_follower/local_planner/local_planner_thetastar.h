@@ -10,10 +10,14 @@ public:
     LocalPlannerThetaStar(PathFollower& controller, tf::Transformer &transformer,
                       const ros::Duration& update_interval);
 private:
-    bool tryForAlternative(LNode*& s_p);
+    bool tryForAlternative(LNode*& s_p, const std::vector<Constraint::Ptr>& constraints,
+                           const std::vector<bool>& fconstraints);
     virtual double G(LNode*& current, LNode*& succ,
-             const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer,
-             double& score) override;
+                     const std::vector<Constraint::Ptr>& constraints,
+                     const std::vector<Scorer::Ptr>& scorer,
+                     const std::vector<bool>& fconstraints,
+                     const std::vector<double>& wscorer,
+                     double& score) override;
 
     virtual void updateSucc(LNode*& current, LNode*& f_current, LNode& succ) override;
 private:

@@ -13,8 +13,11 @@ LocalPlannerThetaStar::LocalPlannerThetaStar(PathFollower &controller, tf::Trans
 }
 
 double LocalPlannerThetaStar::G(LNode*& current, LNode*& succ,
-                            const std::vector<Scorer::Ptr>& scorer, const std::vector<double>& wscorer,
-                            double& score){
+                                const std::vector<Constraint::Ptr>& constraints,
+                                const std::vector<Scorer::Ptr>& scorer,
+                                const std::vector<bool>& fconstraints,
+                                const std::vector<double>& wscorer,
+                                double& score){
     double tentative_gScore = current->gScore_ ;
     LNode* succg;
     if(succ->twin_ != nullptr){
@@ -23,7 +26,7 @@ double LocalPlannerThetaStar::G(LNode*& current, LNode*& succ,
         succg = succ;
     }
     tentative_gScore += Cost(*(succg), scorer, wscorer, score);
-    if(tryForAlternative(succg)){
+    if(tryForAlternative(succg, constraints, fconstraints)){
         double score1;
         double tentative_gScore1 = current->parent_->gScore_ + Cost(alt,scorer,wscorer,score1);
         if(tentative_gScore1 < tentative_gScore){
@@ -35,8 +38,9 @@ double LocalPlannerThetaStar::G(LNode*& current, LNode*& succ,
     return tentative_gScore;
 }
 
-bool LocalPlannerThetaStar::tryForAlternative(LNode*& s_p){
-    return createAlternative(s_p,alt);
+bool LocalPlannerThetaStar::tryForAlternative(LNode*& s_p, const std::vector<Constraint::Ptr>& constraints,
+                                              const std::vector<bool>& fconstraints){
+    return createAlternative(s_p,alt,constraints,fconstraints);
 }
 
 void LocalPlannerThetaStar::updateSucc(LNode *&current, LNode *&f_current, LNode &succ){

@@ -46,15 +46,19 @@ void LocalPlannerBFS::push2Closed(LNode*& current){
 
 void LocalPlannerBFS::expandCurrent(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
                                     std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                                    const std::vector<bool>& fconstraints,const std::vector<double>& wscorer){
-    getSuccessors(current, nsize, successors, nodes, constraints, fconstraints, wscorer);
+                                    const std::vector<bool>& fconstraints){
+    getSuccessors(current, nsize, successors, nodes, constraints, fconstraints);
 }
 
 bool LocalPlannerBFS::processSuccessor(LNode*& succ, LNode*& current,
                                        double& current_p,double& dis2last,
+                                       const std::vector<Constraint::Ptr>& constraints,
                                        const std::vector<Scorer::Ptr>& scorer,
+                                       const std::vector<bool>& fconstraints,
                                        const std::vector<double>& wscorer){
     (void) current;
+    (void) constraints;
+    (void) fconstraints;
     fifo.push(succ);
     evaluate(current_p, succ, dis2last, scorer, wscorer);
     return true;
