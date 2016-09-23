@@ -61,6 +61,8 @@ void LocalPlannerReconf::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes,
             return;
         }
     }else{
+        ROS_INFO_STREAM("Searching among the leaves");
+        ROS_INFO_STREAM("#leaves:" << leaves.size());
         std::vector<LNode*> alts;
         for(LNode* leaf: leaves){
             if(leaf->parent_ != nullptr){
@@ -79,15 +81,19 @@ void LocalPlannerReconf::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes,
             }
         }
         if(alts.empty()){
+            ROS_INFO_STREAM("I could not reconfigure any leaf :-(");
             obj = nullptr;
             return;
         }
+        ROS_INFO_STREAM("#reconfigured leaves: " << alts.size());
         for(LNode* altern: alts){
             double current_p = Score(*altern, scorer, wscorer);
+            ROS_INFO_STREAM("Score: " << current_p << ", level: " << altern->level_);
             if(current_p < best_p){
                 best_p = current_p;
                 obj = altern;
             }
         }
+        ROS_INFO_STREAM("Best Score: " << best_p << ", level: " << obj->level_);
     }
 }

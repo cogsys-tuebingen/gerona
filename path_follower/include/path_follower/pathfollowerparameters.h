@@ -22,7 +22,7 @@ struct PathFollowerParameters : public Parameters
     P<bool> c1, c2;
     P<double> s1, s2, s3, s4, s5;
     P<int> nnodes,depth,ic,ia;
-    P<double> uinterval,dis2p, dis2o, s_angle, lmf;
+    P<double> uinterval,dis2p, dis2o, s_angle, lmf, mu, ef;
     P<bool> use_v;
 
     // obstacle avoider
@@ -96,6 +96,10 @@ struct PathFollowerParameters : public Parameters
                 "Determines the steering angle (in degrees) for the local planner"),
         lmf(this, "~lmf", 1.0,
                 "Determines the multiplying factor of the intended length of the local path"),
+        mu(this, "~mu", 1.0,
+           "Determines the coefficient of friction"),
+        ef(this, "~ef", 1.0,
+           "Determines the multiplying factor for the argument of std::exp function in the dis2obst scorer"),
         use_v(this, "~use_v", true,
               "Determines if the current velocity is used by the local planner"),
 

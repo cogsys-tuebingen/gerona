@@ -211,7 +211,9 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         exit(1);
     }
 
-    local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.dis2o(), opt_.s_angle(), opt_.ia(), opt_.lmf(),opt_.depth());
+    local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.dis2o(),
+                              opt_.s_angle(), opt_.ia(), opt_.lmf(),opt_.depth(),
+                              opt_.mu(), opt_.ef());
 
     ROS_INFO("Maximum number of allowed nodes: %d", opt_.nnodes());
     ROS_INFO("Maximum tree depth: %d", opt_.depth());
@@ -223,12 +225,13 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     ROS_INFO("Intermediate Angles: %d",opt_.ia());
     ROS_INFO("Using current velocity: %s",opt_.use_v() ? "true" : "false");
     ROS_INFO("Length multiplying factor: %.3f",opt_.lmf());
+    ROS_INFO("Coefficient of friction: %.3f",opt_.mu());
+    ROS_INFO("Exponent factor: %.3f",opt_.ef());
 
     ROS_INFO("Constraint usage [%s, %s]", opt_.c1() ? "true" : "false",
              opt_.c2() ? "true" : "false");
-    ROS_INFO("Scorer usage [%s, %s, %s, %s, %s]", (opt_.s1() != 0.0) ? "true" : "false",
-             (opt_.s2() != 0.0) ? "true" : "false", (opt_.s3() != 0.0) ? "true" : "false",
-             (opt_.s4() != 0.0) ? "true" : "false", (opt_.s5() != 0.0) ? "true" : "false");
+    ROS_INFO("Scorer usage [%.3f, %.3f, %.3f, %.3f, %.3f]", opt_.s1(),opt_.s2(),
+             opt_.s3(), opt_.s4(), opt_.s5());
 
     obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
                                                                 &PathFollower::obstacleCloudCB, this);

@@ -42,7 +42,8 @@ bool LocalPlannerNull::isNull() const
     return true;
 }
 
-void LocalPlannerNull::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia, double lmf, int max_level){
+void LocalPlannerNull::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle,
+                                 int ia, double lmf, int max_level, double mu, double ef){
     (void) nnodes;
     (void) ic;
     (void) dis2p;
@@ -51,6 +52,8 @@ void LocalPlannerNull::setParams(int nnodes, int ic, double dis2p, double dis2o,
     (void) ia;
     (void) lmf;
     (void) max_level;
+    (void) mu;
+    (void) ef;
 }
 
 void LocalPlannerNull::setVelocity(geometry_msgs::Twist::_linear_type vector){

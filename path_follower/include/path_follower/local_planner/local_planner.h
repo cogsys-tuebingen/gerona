@@ -39,7 +39,8 @@ public:
                                       Path::Ptr& wlp) = 0;
 
     virtual bool isNull() const;
-    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia, double lmf, int max_level) = 0;
+    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle,
+                           int ia, double lmf, int max_level, double mu, double ef) = 0;
 
     void setObstacleCloud(const ObstacleCloud::ConstPtr &msg);
 

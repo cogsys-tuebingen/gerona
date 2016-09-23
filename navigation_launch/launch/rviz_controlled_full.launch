@@ -14,14 +14,6 @@ demonstrating the navigation framework.
     <arg name="c1" default="true" />
     <arg name="c2" default="true" />
 
-    <!-- Config 0: Pure Algorithm -->
-    <!-- arg name="s1" default="0.0" />
-    <arg name="s2" default="0.0" />
-    <arg name="s3" default="0.0" />
-    <arg name="s4" default="0.0" />
-    <arg name="s5" default="0.0" / -->
-
-    <!-- Config 1 -->
     <arg name="s1" default="1.0" />
     <arg name="s2" default="1.0" />
     <arg name="s3" default="1.0" />
@@ -37,6 +29,8 @@ demonstrating the navigation framework.
     <arg name="dis2p" default="0.4" />
     <arg name="dis2o" default="0.472595" />
     <arg name="s_angle" default="45.0" />
+    <arg name="mu" default="0.35" />    
+    <arg name="ef" default="2.0" />
     <arg name="use_v" default="true" />
 
     <arg name="use_planner_cost" default="false" />
@@ -79,6 +73,8 @@ demonstrating the navigation framework.
       <arg name="dis2p" value="$(arg dis2p)" />
       <arg name="dis2o" value="$(arg dis2o)" />
       <arg name="s_angle" value="$(arg s_angle)" />
+      <arg name="mu" value="$(arg mu)" />
+      <arg name="ef" value="$(arg ef)" />
       <arg name="use_v" value="$(arg use_v)" />
 
       <arg name="use_karto" value="$(arg use_karto)" />
