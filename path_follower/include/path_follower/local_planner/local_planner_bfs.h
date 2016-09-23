@@ -27,11 +27,13 @@ private:
 
     virtual void expandCurrent(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
                                std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                               const std::vector<bool>& fconstraints,const std::vector<double>& wscorer) override;
+                               const std::vector<bool>& fconstraints) override;
 
     virtual bool processSuccessor(LNode*& succ, LNode*& current,
                                   double& current_p,double& dis2last,
+                                  const std::vector<Constraint::Ptr>& constraints,
                                   const std::vector<Scorer::Ptr>& scorer,
+                                  const std::vector<bool>& fconstraints,
                                   const std::vector<double>& wscorer) override;
 
     virtual void evaluate(double& current_p, LNode*& succ, double& dis2last,

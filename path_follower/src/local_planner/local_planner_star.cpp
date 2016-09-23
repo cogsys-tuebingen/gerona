@@ -46,14 +46,16 @@ void LocalPlannerStar::push2Closed(LNode*& current){
 
 void LocalPlannerStar::expandCurrent(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
                            std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                           const std::vector<bool>& fconstraints,const std::vector<double>& wscorer){
+                           const std::vector<bool>& fconstraints){
     twins.clear();
-    getSuccessors(current, nsize, successors, nodes, constraints, fconstraints, wscorer, twins, true);
+    getSuccessors(current, nsize, successors, nodes, constraints, fconstraints, twins, true);
 }
 
 bool LocalPlannerStar::processSuccessor(LNode*& succ, LNode*& current,
                                         double& current_p,double& dis2last,
+                                        const std::vector<Constraint::Ptr>& constraints,
                                         const std::vector<Scorer::Ptr>& scorer,
+                                        const std::vector<bool>& fconstraints,
                                         const std::vector<double>& wscorer){
     if(std::find(closedSet.begin(), closedSet.end(), succ) != closedSet.end()){
         succ->twin_ = nullptr;
@@ -61,7 +63,7 @@ bool LocalPlannerStar::processSuccessor(LNode*& succ, LNode*& current,
     }
 
     LNode* for_current = current;
-    double tentative_gScore = G(for_current,succ,scorer,wscorer,score);
+    double tentative_gScore = G(for_current,succ,constraints,scorer,fconstraints,wscorer,score);
 
     if(tentative_gScore >= succ->gScore_){
         succ->twin_ = nullptr;

@@ -38,7 +38,9 @@ void LocalPlannerReconf::addLeaf(LNode*& node){
 }
 
 void LocalPlannerReconf::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes, double& best_p,
+                                         const std::vector<Constraint::Ptr>& constraints,
                                          const std::vector<Scorer::Ptr>& scorer,
+                                         const std::vector<bool>& fconstraints,
                                          const std::vector<double>& wscorer){
     if(obj != nullptr){
         if(obj->parent_ != nullptr){
@@ -47,7 +49,7 @@ void LocalPlannerReconf::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes,
                 obj->parent_ = &tParent;
                 tParent.parent_ = &nodes[0];
                 LNode alternative;
-                if(createAlternative(obj,alternative,true)){
+                if(createAlternative(obj,alternative,constraints,fconstraints,true)){
                     *obj = alternative;
                 }else{
                     obj = nullptr;
@@ -67,7 +69,7 @@ void LocalPlannerReconf::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes,
                     leaf->parent_ = &tParent;
                     tParent.parent_ = &nodes[0];
                     LNode alternative;
-                    if(createAlternative(leaf,alternative,true)){
+                    if(createAlternative(leaf,alternative,constraints,fconstraints,true)){
                         *leaf = alternative;
                         alts.push_back(leaf);
                     }
