@@ -258,16 +258,23 @@ void LocalPlannerClassic::setD2P(LNode& wpose){
     double px = wpose.x - wpose.npp.x;
     double py = wpose.y - wpose.npp.y;
 
+    double trax = L*std::cos(wpose.orientation)/2.0;
+    double tray = L*std::sin(wpose.orientation)/2.0;
+
     double x = px + step_*std::cos(wpose.orientation);
     double y = py + step_*std::sin(wpose.orientation);
     double d1 = std::hypot(x, y);
 
-    x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation + D_THETA.back()/2.0));
-    y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation + D_THETA.back()/2.0));
+    double nt_2 = MathHelper::AngleClamp(wpose.orientation + D_THETA.back()/2.0);
+    double nt = MathHelper::AngleClamp(wpose.orientation + D_THETA.back());
+    x = px + stepc_*std::cos(nt_2) - trax + L*std::cos(nt)/2.0;
+    y = py + stepc_*std::sin(nt_2) - tray + L*std::sin(nt)/2.0;
     double d2 = std::hypot(x, y);
 
-    x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation - D_THETA.back()/2.0));
-    y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation - D_THETA.back()/2.0));
+    nt_2 = MathHelper::AngleClamp(wpose.orientation - D_THETA.back()/2.0);
+    nt = MathHelper::AngleClamp(wpose.orientation - D_THETA.back());
+    x = px + stepc_*std::cos(nt_2) - tray + L*std::cos(nt)/2.0;
+    y = py + stepc_*std::sin(nt_2) - tray + L*std::sin(nt)/2.0;
     double d3 = std::hypot(x, y);
 
     d2p = max(max(wpose.d2p,d1),max(d2,d3));
