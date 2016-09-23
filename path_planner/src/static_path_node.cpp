@@ -135,6 +135,7 @@ struct StaticPathPlanner : public Planner
                 path_raw.paths.emplace_back();
                 path_raw.paths.back().forward = s->isForward();
             }
+            last_dir = dir;
 
             s->add(pose_, path_raw);
 

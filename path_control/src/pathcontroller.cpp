@@ -52,7 +52,7 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
             }
 
             // if follower reports success, we are done. If not, replan
-            if (follow_path_result_->status == FollowPathResult::RESULT_STATUS_SUCCESS) {
+            if (follow_path_result_ && follow_path_result_->status == FollowPathResult::RESULT_STATUS_SUCCESS) {
                 failed = false;
                 break;
             } else {

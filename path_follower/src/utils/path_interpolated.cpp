@@ -133,8 +133,14 @@ void PathInterpolated::interpolatePath(const std::deque<Waypoint>& waypoints){
 
 
 	//interpolate the path and find the derivatives
-	alglib::spline1dconvdiff2cubic(l_alg, X_alg, l_alg_unif, x_s, x_s_prim, x_s_sek);
-	alglib::spline1dconvdiff2cubic(l_alg, Y_alg, l_alg_unif, y_s, y_s_prim, y_s_sek);
+    try {
+        alglib::spline1dconvdiff2cubic(l_alg, X_alg, l_alg_unif, x_s, x_s_prim, x_s_sek);
+        alglib::spline1dconvdiff2cubic(l_alg, Y_alg, l_alg_unif, y_s, y_s_prim, y_s_sek);
+
+    } catch(const alglib::ap_error& error) {
+        ROS_FATAL_STREAM("alglib error: " << error.msg);
+        throw error;
+    }
 
 	//define path components, its derivatives, and curvilinear abscissa, then calculate the path curvature
 	for(uint i = 0; i < N_; ++i) {

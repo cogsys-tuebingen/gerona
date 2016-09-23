@@ -228,7 +228,7 @@ void PathSequenceDisplay::processMessage( const path_msgs::PathSequence::ConstPt
     for(const path_msgs::DirectionalPath& dp : msg->paths) {
         if(dp.poses.empty()) {
             // if there is at least one subpath, then all of them must be valid and have at least one way point
-            setStatus( StatusProperty::Error, "Topic", "Message contained invalid sub paths of lenght 0" );
+            setStatus( StatusProperty::Error, "Topic", "Message contained invalid sub paths of length 0" );
             return;
         }
     }
