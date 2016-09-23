@@ -12,10 +12,11 @@ public:
     Dis2Obst_Constraint();
     virtual ~Dis2Obst_Constraint();
     static void setLimit(double dis2o);
+    static void setVDis(double dis);
 
     virtual bool isSatisfied(const LNode& point) override;
 private:
-    static double DIS2O_;
+    static double DIS2O_, vdis_;
 };
 
 #endif // DIS2OBST_CONSTRAINT_H

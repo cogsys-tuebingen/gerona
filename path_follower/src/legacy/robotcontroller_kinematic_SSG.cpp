@@ -10,7 +10,7 @@
 // PROJECT
 #include <path_follower/pathfollower.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
-#include "../alglib/interpolation.h"
+#include <interpolation.h>
 #include <utils_general/MathHelper.h>
 #include <cmath>
 
@@ -140,18 +140,11 @@ void RobotController_Kinematic_SSG::reset()
 
 void RobotController_Kinematic_SSG::calculateMovingDirection()
 {
-    const std::vector<Waypoint> subp = path_->getCurrentSubPath();
-
-    const double theta_0 = subp[0].orientation;
-    Eigen::Vector2d looking_dir_normalized(std::cos(theta_0), std::sin(theta_0));
-    Eigen::Vector2d delta(subp[1].x - subp[0].x, subp[1].y - subp[0].y);
-    const double theta_diff = std::acos(delta.dot(looking_dir_normalized) / delta.norm());
-
     // decide whether to drive forward or backward
-    if (theta_diff > M_PI_2 || theta_diff < -M_PI_2) {
-        setDirSign(-1.f);
-    } else {
+    if (path_->getCurrentSubPath().forward) {
         setDirSign(1.f);
+    } else {
+        setDirSign(-1.f);
     }
 }
 
@@ -199,7 +192,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
             double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
                                           y_meas - path_interpol.q(path_interpol.n()-1));
 
-            ROS_INFO("Final positioning error: %f m", distance_to_goal_eucl);
+            ROS_INFO_THROTTLE(1, "Final positioning error: %f m", distance_to_goal_eucl);
 
             return RobotController::MoveCommandStatus::REACHED_GOAL;
 
@@ -217,7 +210,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
             calculateMovingDirection();
         }
     }
-
 
     //find the orthogonal projection to the curve and extract the corresponding index
 
@@ -323,7 +315,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
     ///Calculate the next point on the path
 
     double omega_meas = path_driver_->getVelocity().angular.z;
-    double v_meas = path_driver_->getVelocity().linear.x;
 
     double s_old = path_interpol.s_new();
 
@@ -351,9 +342,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
 
     cmd_.direction_angle = 0;
 
-    //omega_m = theta_e_prim + curv*s_prim
-    /*double omega = opt_.lambda()*ye_/theta_e*(opt_.x_ICR()*omega_meas*cos(theta_e) - v_meas*sin(theta_e))
-            - opt_.k2()*theta_e + path_interpol.curvature(ind_)*path_interpol.s_prim();*/
     double trig_ratio = (fabs(sin(theta_e-delta_)))/(sin(theta_e-delta_)*cos(theta_e-delta_));
     double omega = delta_prim
             - opt_.lambda()*trig_ratio*ye_*v*sin(theta_e)
@@ -362,6 +350,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
 
     omega = boost::algorithm::clamp(omega, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
     cmd_.rotation = omega + path_interpol.curvature(ind_)*path_interpol.s_prim();
+
     ///***///
 
 
@@ -378,8 +367,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
 
     //TODO: consider the minimum excitation speed
     v = v * exp(-exponent);
-
-   ROS_INFO("Linear vel cmd: %f", v);
 
     cmd_.speed = getDirSign()*std::max((double)path_driver_->getOptions().min_velocity(), fabs(v));
 
@@ -428,9 +415,9 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
 
     ///***///
 
-        *cmd = cmd_;
+    *cmd = cmd_;
 
-        return MoveCommandStatus::OKAY;
+    return MoveCommandStatus::OKAY;
 }
 
 void RobotController_Kinematic_SSG::publishMoveCommand(const MoveCommand &cmd) const

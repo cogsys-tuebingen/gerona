@@ -9,7 +9,7 @@
 // PROJECT
 #include <path_follower/pathfollower.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
-#include "../alglib/interpolation.h"
+#include <interpolation.h>
 #include <utils_general/MathHelper.h>
 #include <cmath>
 
@@ -123,19 +123,11 @@ void RobotController_Kinematic_SLP::reset()
 
 void RobotController_Kinematic_SLP::calculateMovingDirection()
 {
-    const std::vector<Waypoint> subp = path_->getCurrentSubPath();
-
-    const double theta_0 = subp[0].orientation;
-    Eigen::Vector2d looking_dir_normalized(std::cos(theta_0), std::sin(theta_0));
-    Eigen::Vector2d delta(subp[1].x - subp[0].x, subp[1].y - subp[0].y);
-    const double theta_diff = std::acos(delta.dot(looking_dir_normalized) / delta.norm());
-
-    std::cerr << "theta diff is " << theta_diff << ", theta_0: " << theta_0 << ", delta: " << delta << ", look: " << looking_dir_normalized << std::endl;
     // decide whether to drive forward or backward
-    if (theta_diff > M_PI_2 || theta_diff < -M_PI_2) {
-        setDirSign(-1.f);
-    } else {
+    if (path_->getCurrentSubPath().forward) {
         setDirSign(1.f);
+    } else {
+        setDirSign(-1.f);
     }
 }
 
@@ -183,7 +175,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
             double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
                                           y_meas - path_interpol.q(path_interpol.n()-1));
 
-            ROS_INFO("Final positioning error: %f m", distance_to_goal_eucl);
+            ROS_INFO_THROTTLE(1, "Final positioning error: %f m", distance_to_goal_eucl);
 
             return RobotController::MoveCommandStatus::REACHED_GOAL;
 

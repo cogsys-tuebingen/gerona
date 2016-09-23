@@ -3,7 +3,7 @@
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 
-#include "../alglib/interpolation.h"
+#include <interpolation.h>
 #include <utils_general/MathHelper.h>
 
 #include <visualization_msgs/Marker.h>

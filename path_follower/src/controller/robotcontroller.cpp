@@ -123,6 +123,10 @@ void RobotController::publishPathMarker()
 
 RobotController::ControlStatus RobotController::execute()
 {
+    if(!path_) {
+       return ControlStatus::OKAY;
+    }
+ 
     publishPathMarker();
 
     MoveCommand cmd;

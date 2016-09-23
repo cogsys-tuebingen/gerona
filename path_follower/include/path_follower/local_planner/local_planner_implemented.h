@@ -44,10 +44,10 @@ protected:
     ros::Duration update_interval_;
 
     SubPath waypoints, wlp_;
+    SubPath waypoints_map;
 
     bool tooClose;
 
-private:
     ros::Time last_update_;
 };
 

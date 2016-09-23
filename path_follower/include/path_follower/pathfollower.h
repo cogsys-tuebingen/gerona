@@ -72,8 +72,11 @@ public:
     bool callObstacleAvoider(MoveCommand *cmd);
 
     const PathFollowerParameters &getOptions() const;
+    Visualizer& getVisualizer() const;
 
     ros::NodeHandle& getNodeHandle();
+
+    ObstacleCloud::ConstPtr getObstacleCloud() const;
 
 private:
     bool getWorldPose(Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = nullptr) const;
@@ -147,6 +150,7 @@ private:
     ros::Duration beep_pause_;
 
     bool is_running_;
+    path_msgs::FollowPathGoalConstPtr latest_goal_;
 
     //! Velocity for the Local Planner
     double vel_;
@@ -183,10 +187,10 @@ private:
     bool execute(path_msgs::FollowPathFeedback& feedback, path_msgs::FollowPathResult& result);
 
     void setGoal(const path_msgs::FollowPathGoal& goal);
-    void setPath(const nav_msgs::Path& path);
+    void setPath(const path_msgs::PathSequence& path);
 
     //! Split path into subpaths at turning points.
-    void findSegments(const nav_msgs::Path& path, bool only_one_segment);
+    void findSegments(const path_msgs::PathSequence& path, bool only_one_segment);
 
     //! Publish to the global path_points
     void publishPathMarker();

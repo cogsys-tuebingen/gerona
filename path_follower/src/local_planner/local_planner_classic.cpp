@@ -182,7 +182,7 @@ void LocalPlannerClassic::setDistances(LNode& current, bool b_obst){
         current.d2o = closest_obst;
         tf::Point tmpnop(closest_x ,closest_y,0.0);
         tmpnop = base_to_odom * tmpnop;
-        current.nop = Waypoint(tmpnop.x(), tmpnop.x(), 0.0);
+        current.nop = Waypoint(tmpnop.x(), tmpnop.y(), 0.0);
     }else{
         current.d2o = std::numeric_limits<double>::infinity();
     }
@@ -258,16 +258,23 @@ void LocalPlannerClassic::setD2P(LNode& wpose){
     double px = wpose.x - wpose.npp.x;
     double py = wpose.y - wpose.npp.y;
 
+    double trax = L*std::cos(wpose.orientation)/2.0;
+    double tray = L*std::sin(wpose.orientation)/2.0;
+
     double x = px + step_*std::cos(wpose.orientation);
     double y = py + step_*std::sin(wpose.orientation);
     double d1 = std::hypot(x, y);
 
-    x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation + D_THETA.back()/2.0));
-    y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation + D_THETA.back()/2.0));
+    double nt_2 = MathHelper::AngleClamp(wpose.orientation + D_THETA.back()/2.0);
+    double nt = MathHelper::AngleClamp(wpose.orientation + D_THETA.back());
+    x = px + stepc_*std::cos(nt_2) - trax + L*std::cos(nt)/2.0;
+    y = py + stepc_*std::sin(nt_2) - tray + L*std::sin(nt)/2.0;
     double d2 = std::hypot(x, y);
 
-    x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation - D_THETA.back()/2.0));
-    y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation - D_THETA.back()/2.0));
+    nt_2 = MathHelper::AngleClamp(wpose.orientation - D_THETA.back()/2.0);
+    nt = MathHelper::AngleClamp(wpose.orientation - D_THETA.back());
+    x = px + stepc_*std::cos(nt_2) - tray + L*std::cos(nt)/2.0;
+    y = py + stepc_*std::sin(nt_2) - tray + L*std::sin(nt)/2.0;
     double d3 = std::hypot(x, y);
 
     d2p = max(max(wpose.d2p,d1),max(d2,d3));
@@ -293,7 +300,7 @@ bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
     last_local_path_.interpolatePath(local_wps, "/odom");
     local_wps = (SubPath)last_local_path_;
     if(tooClose){
-        wlp_.insert(wlp_.end(),local_wps.begin(),local_wps.end());
+        wlp_.wps.insert(wlp_.wps.end(),local_wps.begin(),local_wps.end());
     }
     return true;
 }
@@ -304,9 +311,9 @@ void LocalPlannerClassic::setVelocity(geometry_msgs::Twist::_linear_type vector)
         if(tmpv > 0.3){
             n_v++;
             velocity_ += (tmpv - velocity_)/(double)n_v;
+            setStep();
         }
     }
-    setStep();
 }
 
 void LocalPlannerClassic::setVelocity(double velocity){
@@ -328,12 +335,16 @@ void LocalPlannerClassic::setStep(){
     neig_s = l_step*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
     Dis2Path_Constraint::setDRate(neig_s);
     stepc_ = 2.0*RT.back()*std::sin(D_THETA.back()/2.0);
+    double vdis = velocity_*velocity_/(2.0*9.81*0.4);
+    Dis2Path_Constraint::setVDis(vdis);
+    Dis2Obst_Constraint::setVDis(vdis);
+    Dis2Obst_Scorer::setVDis(vdis);
 }
 
 //borrowed from path_planner/planner_node.cpp
 SubPath LocalPlannerClassic::interpolatePath(const SubPath& path, double max_distance){
     unsigned n = path.size();
-    std::vector<Waypoint> result;
+    SubPath result;
     if(n < 2) {
         return result;
     }
@@ -385,10 +396,10 @@ SubPath LocalPlannerClassic::smoothPath(const SubPath& path, double weight_data,
         SubPath smoothed_segment = smoothPathSegment(segment, weight_data, weight_smooth, tolerance);
         if(first){
             first = false;
-            result.insert(result.end(), smoothed_segment.begin(), smoothed_segment.end());
+            result.wps.insert(result.end(), smoothed_segment.begin(), smoothed_segment.end());
         }else{
             if(smoothed_segment.size() > 1){
-                result.insert(result.end(), smoothed_segment.begin() + 1, smoothed_segment.end());
+                result.wps.insert(result.end(), smoothed_segment.begin() + 1, smoothed_segment.end());
             }
         }
     }
@@ -397,7 +408,7 @@ SubPath LocalPlannerClassic::smoothPath(const SubPath& path, double weight_data,
 }
 
 //borrowed from path_planner/planner_node.cpp
-std::vector<SubPath> LocalPlannerClassic::segmentPath(const std::vector<Waypoint> &path){
+std::vector<SubPath> LocalPlannerClassic::segmentPath(const SubPath &path){
                                    std::vector<SubPath> result;
 
                                    int n = path.size();
@@ -445,7 +456,7 @@ std::vector<SubPath> LocalPlannerClassic::segmentPath(const std::vector<Waypoint
                                        if(segment_ends_with_this_node) {
                                            result.push_back(current_segment);
 
-                                           current_segment.clear();
+                                           current_segment.wps.clear();
 
                                            if(!is_the_last_node) {
                                                // begin new segment
@@ -665,8 +676,8 @@ double LocalPlannerClassic::Score(const LNode& current, const std::vector<Scorer
 
 void LocalPlannerClassic::setLLP(std::size_t index){
     SubPath tmp_p = (SubPath)last_local_path_;
-    wlp_.clear();
-    wlp_.assign(tmp_p.begin(),tmp_p.begin() + index);
+    wlp_.wps.clear();
+    wlp_.wps.assign(tmp_p.begin(),tmp_p.begin() + index);
 }
 
 void LocalPlannerClassic::setLLP(){
@@ -688,6 +699,7 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis
     Level_Scorer::setLevel(li_level);
     Dis2Path_Constraint::setLimits(dis2p,dis2o);
     Dis2Obst_Constraint::setLimit(dis2o);
+    Dis2Obst_Scorer::setLimit(dis2o);
 }
 
 void LocalPlannerClassic::printVelocity(){

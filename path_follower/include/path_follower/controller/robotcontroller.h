@@ -49,6 +49,8 @@ public:
     //! Is called at several points, if new path is set or movement is aborted.
     virtual void reset() {}
 
+    //! Set the robot pose
+    virtual void setCurrentPose(const Eigen::Vector3d&) {}
 
     virtual void precomputeSteerCommand(Waypoint& wp_now,  Waypoint& wp_next ) {}
 
