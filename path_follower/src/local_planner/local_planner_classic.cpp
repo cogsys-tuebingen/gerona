@@ -182,7 +182,7 @@ void LocalPlannerClassic::setDistances(LNode& current, bool b_obst){
         current.d2o = closest_obst;
         tf::Point tmpnop(closest_x ,closest_y,0.0);
         tmpnop = base_to_odom * tmpnop;
-        current.nop = Waypoint(tmpnop.x(), tmpnop.x(), 0.0);
+        current.nop = Waypoint(tmpnop.x(), tmpnop.y(), 0.0);
     }else{
         current.d2o = std::numeric_limits<double>::infinity();
     }
@@ -328,9 +328,10 @@ void LocalPlannerClassic::setStep(){
     neig_s = l_step*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
     Dis2Path_Constraint::setDRate(neig_s);
     stepc_ = 2.0*RT.back()*std::sin(D_THETA.back()/2.0);
-    Dis2Path_Constraint::setVel(velocity_);
-    Dis2Obst_Constraint::setVel(velocity_);
-    Dis2Obst_Scorer::setVel(velocity_);
+    double vdis = velocity_*velocity_/(2.0*9.81*0.4);
+    Dis2Path_Constraint::setVDis(vdis);
+    Dis2Obst_Constraint::setVDis(vdis);
+    Dis2Obst_Scorer::setVDis(vdis);
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -691,6 +692,7 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis
     Level_Scorer::setLevel(li_level);
     Dis2Path_Constraint::setLimits(dis2p,dis2o);
     Dis2Obst_Constraint::setLimit(dis2o);
+    Dis2Obst_Scorer::setLimit(dis2o);
 }
 
 void LocalPlannerClassic::printVelocity(){

@@ -11,12 +11,13 @@ public:
 public:
     Dis2Obst_Scorer();
     virtual ~Dis2Obst_Scorer();
-    static void setVel(double vel);
+    static void setLimit(double dis2o);
+    static void setVDis(double dis);
 
     virtual double score(const LNode& point) override;
 
 private:
-    static double vel_;
+    static double DIS2O_, vdis_;
 };
 
 #endif // DIS2PATH_SCORER_H

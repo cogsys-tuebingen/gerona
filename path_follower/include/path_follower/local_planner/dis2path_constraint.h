@@ -14,12 +14,12 @@ public:
     void setParams(double new_limit);
     static void setDRate(double d_rate);
     static void setLimits(double dis2p, double dis2o);
-    static void setVel(double vel);
+    static void setVDis(double dis);
     double getLimit();
 
     virtual bool isSatisfied(const LNode& point) override;
 private:
-    static double D_RATE, DIS2P_, DIS2O_, vel_;
+    static double D_RATE, DIS2P_, DIS2O_, vdis_;
     double limit;
     int level;
 };
