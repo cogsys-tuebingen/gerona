@@ -22,6 +22,7 @@ double Dis2PathP_Scorer::score(const LNode& point){
     sw.resume();
     double p = point.d2p/MAX_DIS;
     p = p > 1.0 ? 1.0 : p;
+    p *= p;
     sw.stop();
     return p;
 }

@@ -17,6 +17,7 @@ This is a complete setup and enought to actually navigate the robot.
     <arg name="s3" default="0.0" />
     <arg name="s4" default="0.0" />
     <arg name="s5" default="0.0" />
+    <arg name="s6" default="0.0" />
 
     <arg name="nnodes" default="300" />
     <arg name="depth" default="10" />
@@ -66,6 +67,7 @@ This is a complete setup and enought to actually navigate the robot.
       <arg name="s3" value="$(arg s3)" />
       <arg name="s4" value="$(arg s4)" />
       <arg name="s5" value="$(arg s5)" />
+      <arg name="s6" value="$(arg s6)" />
 
       <arg name="nnodes" value="$(arg nnodes)" />
       <arg name="depth" value="$(arg depth)" />

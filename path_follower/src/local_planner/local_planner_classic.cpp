@@ -676,6 +676,7 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis
     }
     nsucc_ = 2*RT.size() + 1;
     Curvature_Scorer::setMaxC(RT.back());
+    CurvatureD_Scorer::setMaxC(RT.back());
     Level_Scorer::setLevel(li_level);
     Dis2Path_Constraint::setLimits(dis2p,dis2o);
     Dis2Obst_Constraint::setLimit(dis2o);

@@ -16,6 +16,7 @@
 #include <path_follower/local_planner/dis2obst_scorer.h>
 #include <path_follower/local_planner/level_scorer.h>
 #include <path_follower/local_planner/curvature_scorer.h>
+#include <path_follower/local_planner/curvatured_scorer.h>
 
 class PathFollower;
 

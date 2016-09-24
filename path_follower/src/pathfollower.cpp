@@ -230,8 +230,8 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
     ROS_INFO("Constraint usage [%s, %s]", opt_.c1() ? "true" : "false",
              opt_.c2() ? "true" : "false");
-    ROS_INFO("Scorer usage [%.3f, %.3f, %.3f, %.3f, %.3f]", opt_.s1(),opt_.s2(),
-             opt_.s3(), opt_.s4(), opt_.s5());
+    ROS_INFO("Scorer usage [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f]", opt_.s1(),opt_.s2(),
+             opt_.s3(), opt_.s4(), opt_.s5(), opt_.s6());
 
     obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
                                                                 &PathFollower::obstacleCloudCB, this);
@@ -510,8 +510,8 @@ void PathFollower::update()
                 }
                 fconstraints.at(1) = opt_.c2();
 
-                std::vector<Scorer::Ptr> scorer(5);
-                std::vector<double> wscorer(5);
+                std::vector<Scorer::Ptr> scorer(6);
+                std::vector<double> wscorer(6);
                 if(opt_.s1() != 0.0){
                     scorer.at(0) = Dis2PathP_Scorer::Ptr(new Dis2PathP_Scorer);
                 }
@@ -528,14 +528,19 @@ void PathFollower::update()
                 wscorer.at(2) = opt_.s3();
 
                 if(opt_.s4() != 0.0){
-                    scorer.at(3) = Level_Scorer::Ptr(new Level_Scorer);
+                    scorer.at(3) = CurvatureD_Scorer::Ptr(new CurvatureD_Scorer);
                 }
                 wscorer.at(3) = opt_.s4();
 
                 if(opt_.s5() != 0.0){
-                    scorer.at(4) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
+                    scorer.at(4) = Level_Scorer::Ptr(new Level_Scorer);
                 }
                 wscorer.at(4) = opt_.s5();
+
+                if(opt_.s6() != 0.0){
+                    scorer.at(5) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
+                }
+                wscorer.at(5) = opt_.s6();
 
                 //End Constraints and Scorers Construction
                 publishPathMarker();
