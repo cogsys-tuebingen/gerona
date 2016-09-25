@@ -21,6 +21,7 @@ void Dis2Path_Constraint::setParams(double new_limit){
     if(new_limit > limit){
         limit = new_limit;
         level = 0;
+        ROS_INFO_STREAM("Set limit to " << limit << "m");
     }
 }
 
@@ -46,6 +47,7 @@ bool Dis2Path_Constraint::isSatisfied(const LNode& point){
     if(point.level_ > level && level > -1){
         double tmplimit = limit - D_RATE;
         limit = tmplimit < DIS2P_?DIS2P_:tmplimit;
+        ROS_INFO_STREAM("Decreasing to " << limit << "m");
         if(limit == DIS2P_){
             level = -1;
         }else{
@@ -68,6 +70,7 @@ bool Dis2Path_Constraint::isSatisfied(const LNode& point){
             double tol = ((DIS2O_ + vdis_) + DIS2P_) - (limit - DIS2P_) - d_diff;
             if(tol > 0.0){
                 limit += tol;
+                ROS_INFO_STREAM("Increasing limit to " << limit << "m");
                 level = point.level_;
                 if(point.d2p <= limit){
                     sw.stop();
