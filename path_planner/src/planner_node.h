@@ -144,6 +144,8 @@ private:
     void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud);
     void integratePointCloud(const sensor_msgs::PointCloud2 &cloud);
 
+    void growObstacles(const path_msgs::PlanPathGoal &request, double radius);
+
     void calculateGradient(cv::Mat& gx, cv::Mat& gy);
     void publishGradient(const cv::Mat &gx, const cv::Mat &gy);
 
@@ -199,6 +201,7 @@ protected:
     ros::Publisher viz_pub;
     ros::Publisher viz_array_pub;
     ros::Publisher cost_pub;
+    ros::Publisher map_pub;
     tf::TransformListener tfl;
 
     std::string base_frame_;

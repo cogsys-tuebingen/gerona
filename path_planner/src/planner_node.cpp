@@ -13,6 +13,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <opencv2/opencv.hpp>
 #include <pcl_ros/publisher.h>
+#include <string.h>
 
 using namespace lib_path;
 
@@ -90,6 +91,7 @@ Planner::Planner()
     viz_pub = nh_priv.advertise<visualization_msgs::Marker>("/viz_path_planner", 0);
     viz_array_pub = nh_priv.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 0);
     cost_pub = nh_priv.advertise<nav_msgs::OccupancyGrid>("cost", 1, true);
+    map_pub = nh_priv.advertise<nav_msgs::OccupancyGrid>("map", 1, true);
 
     base_frame_ = "/base_link";
     nh_priv.param("base_frame", base_frame_, base_frame_);
@@ -429,12 +431,56 @@ path_msgs::PathSequence Planner::findPath(const path_msgs::PlanPathGoal& request
         empty_map.header.stamp = ros::Time::now();
         empty_map.info.resolution = 0.05;
 
-        double w = 80.0;
-        double h = 80.0;
-        empty_map.info.width = w / empty_map.info.resolution;
-        empty_map.info.height = h / empty_map.info.resolution;
-        empty_map.info.origin.position.x = -w / 2.0;
-        empty_map.info.origin.position.y = -h / 2.0;
+        double w = 0.0;
+        double h = 0.0;
+
+        geometry_msgs::PoseStamped start = request.use_start ? request.start : lookupPose();
+
+        switch(request.goal.type) {
+        case path_msgs::Goal::GOAL_TYPE_POSE: {
+            lib_path::Pose2d from_map;
+            from_map.x  = start.pose.position.x / empty_map.info.resolution;
+            from_map.y  = start.pose.position.y / empty_map.info.resolution;
+            from_map.theta  = tf::getYaw(start.pose.orientation);
+
+            lib_path::Pose2d to_map;
+            to_map.x  = request.goal.pose.pose.position.x / empty_map.info.resolution;
+            to_map.y  = request.goal.pose.pose.position.y / empty_map.info.resolution;
+            to_map.theta  = tf::getYaw(request.goal.pose.pose.orientation);
+
+            int min_x = std::min(from_map.x, to_map.x);
+            int max_x = std::max(from_map.x, to_map.x);
+
+            int min_y = std::min(from_map.y, to_map.y);
+            int max_y = std::max(from_map.y, to_map.y);
+
+            int margin = 5.0 / empty_map.info.resolution;
+
+            empty_map.info.width = max_x - min_x + 2 * margin;
+            empty_map.info.height = max_y - min_y + 2 * margin;
+
+            w = empty_map.info.width * empty_map.info.resolution;
+            h = empty_map.info.height * empty_map.info.resolution;
+
+            empty_map.info.origin.position.x = (to_map.x + from_map.x) * empty_map.info.resolution / 2.0 - w/2.0;
+            empty_map.info.origin.position.y = (to_map.y + from_map.y) * empty_map.info.resolution / 2.0 - h/2.0;
+            break;
+        }
+        case path_msgs::Goal::GOAL_TYPE_MAP:
+            w = 80.0;
+            h = 80.0;
+            empty_map.info.width = w / empty_map.info.resolution;
+            empty_map.info.height = h / empty_map.info.resolution;
+            empty_map.info.origin.position.x = start.pose.position.x - w/2.0;
+            empty_map.info.origin.position.y = start.pose.position.y - h/2.0;
+
+            break;
+
+        default:
+            ROS_FATAL_STREAM("requested goal type " << request.goal.type << " is unknown.");
+            return empty();
+        }
+
         empty_map.info.origin.orientation.w = 1.0;
         empty_map.data.resize(empty_map.info.width * empty_map.info.height, 0);
 
@@ -450,21 +496,12 @@ path_msgs::PathSequence Planner::findPath(const path_msgs::PlanPathGoal& request
     //    cv::imshow("map_raw", map_raw);
     //    cv::waitKey(100);
 
-    if(use_cloud_ && !cloud_.data.empty()) {
-        integratePointCloud(cloud_);
-    }
-    if(use_scan_front_ && !scan_front.ranges.empty()) {
-        integrateLaserScan(scan_front);
-    }
-    if(use_scan_back_ && !scan_back.ranges.empty()) {
-        integrateLaserScan(scan_back);
-    }
 
-    if(pre_process_ || grow_obstacles_ != 0.0) {
-        sw.reset();
-        preprocess(request);
-        ROS_INFO_STREAM("preprocessing took " << sw.msElapsed() << "ms");
-    }
+
+    sw.reset();
+    preprocess(request);
+    ROS_INFO_STREAM("preprocessing took " << sw.msElapsed() << "ms");
+
 
     sw.reset();
     path_msgs::PathSequence path_raw = doPlan(request);
@@ -490,42 +527,41 @@ void Planner::preprocess(const path_msgs::PlanPathGoal& request)
 {
     feedback(path_msgs::PlanPathFeedback::STATUS_PRE_PROCESSING);
 
-    geometry_msgs::PoseStamped start = request.use_start ? request.start : lookupPose();
-    geometry_msgs::PoseStamped goal = request.goal.pose;
+    if(use_cloud_ && !cloud_.data.empty()) {
+        integratePointCloud(cloud_);
+    }
+    if(use_scan_front_ && !scan_front.ranges.empty()) {
+        integrateLaserScan(scan_front);
+    }
+    if(use_scan_back_ && !scan_back.ranges.empty()) {
+        integrateLaserScan(scan_back);
+    }
 
-    // growth
-    cv::Mat map(map_info->getHeight(), map_info->getWidth(), CV_8UC1, map_info->getData());
-    cv::Mat working;
-    map.copyTo(working);
+    if(grow_obstacles_ != 0.0) {
+        growObstacles(request, request.goal.grow_obstacles ? request.goal.obstacle_growth_radius : grow_obstacles_);
+    }
 
-    int erosion_size = grow_obstacles_ / map_info->getResolution();
-    int iterations = 1;
-    cv::Mat element = cv::getStructuringElement( cv::MORPH_ELLIPSE,
-                                                 cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
-                                                 cv::Point( erosion_size, erosion_size ) );
-    cv::dilate(working, working, element, cv::Point(-1,-1), iterations);
+    if(map_pub.getNumSubscribers() > 0) {
+        nav_msgs::OccupancyGrid map_viz;
+        map_viz.header.stamp = ros::Time::now();
+        map_viz.header.frame_id = "/map";
+        map_viz.info.origin.position.x = map_info->getOrigin().x;
+        map_viz.info.origin.position.y = map_info->getOrigin().y;
+        map_viz.info.resolution = map_info->getResolution();
+        map_viz.info.width = map_info->getWidth();
+        map_viz.info.height = map_info->getHeight();
 
+        std::size_t n = map_info->getWidth() * map_info->getHeight() * sizeof(unsigned char);
+        map_viz.data.resize(n);
+        std::memcpy(&map_viz.data.at(0), map_info->getData(), n);
+        map_pub.publish(map_viz);
+    }
 
-    cv::Mat mask(working.rows, working.cols, CV_8UC1, cv::Scalar::all(255));
-
-    unsigned sx, sy;
-    map_info->point2cell(start.pose.position.x, start.pose.position.y, sx, sy);
-    unsigned gx, gy;
-    map_info->point2cell(goal.pose.position.x, goal.pose.position.y, gx, gy);
-
-
-    int r = grow_obstacles_ / map_info->getResolution();
-    cv::circle(mask, cv::Point(sx,sy), r, cv::Scalar::all(0), CV_FILLED);
-    cv::circle(mask, cv::Point(gx,gy), r, cv::Scalar::all(0), CV_FILLED);
-
-
-    working.copyTo(map, mask);
-
-
-    // cost
     if(pre_process_) {
+        // cost
         int h = map_info->getHeight();
         int w = map_info->getWidth();
+        cv::Mat map(h, w, CV_8UC1, map_info->getData());
         cost_map.data.resize(h*w);
         cv::Mat costmap(h, w, CV_8UC1, cost_map.data.data());
         map.copyTo(costmap);
@@ -623,7 +659,10 @@ tf::StampedTransform Planner::lookupTransform(const std::string& from, const std
 
 path_msgs::PathSequence Planner::doPlan(const path_msgs::PlanPathGoal &request)
 {
-    feedback(path_msgs::PlanPathFeedback::STATUS_PLANNING);
+    if(!supportsGoalType(request.goal.type)) {
+        ROS_FATAL_STREAM("requested goal type " << request.goal.type << " is not supported.");
+        return empty();
+    }
 
     ROS_INFO("starting search");
 
@@ -687,11 +726,6 @@ path_msgs::PathSequence Planner::planImpl(const path_msgs::PlanPathGoal &request
     lib_path::Pose2d from_world, from_map;
     transformPose(start, from_world, from_map);
 
-    if(!supportsGoalType(request.goal.type)) {
-        ROS_FATAL_STREAM("requested goal type " << request.goal.type << " is not supported.");
-        return empty();
-    }
-
     switch(request.goal.type) {
     case path_msgs::Goal::GOAL_TYPE_POSE: {
         lib_path::Pose2d to_world, to_map;
@@ -717,6 +751,8 @@ path_msgs::PathSequence Planner::planWithoutTargetPose(const path_msgs::PlanPath
 
 void Planner::transformPose(const geometry_msgs::PoseStamped& pose, lib_path::Pose2d& world, lib_path::Pose2d& map)
 {
+    ROS_ASSERT(map_info != nullptr);
+
     world.x = pose.pose.position.x;
     world.y = pose.pose.position.y;
     world.theta = tf::getYaw(pose.pose.orientation);
@@ -1136,6 +1172,34 @@ void Planner::integrateLaserScan(const sensor_msgs::LaserScan &scan)
 
         angle += scan.angle_increment;
     }
+}
+
+void Planner::growObstacles(const path_msgs::PlanPathGoal& request, double radius)
+{
+    lib_path::Pose2d from_world, from_map;
+    transformPose(request.use_start ? request.start : lookupPose(), from_world, from_map);
+    lib_path::Pose2d to_world, to_map;
+    transformPose(request.goal.pose, to_world, to_map);
+
+    cv::Mat map(map_info->getHeight(), map_info->getWidth(), CV_8UC1, map_info->getData());
+    cv::Mat working;
+    map.copyTo(working);
+
+    int r = radius / map_info->getResolution();
+    int iterations = 1;
+    cv::Mat element = cv::getStructuringElement( cv::MORPH_ELLIPSE,
+                                                 cv::Size( 2*r + 1, 2*r+1 ),
+                                                 cv::Point( r, r ) );
+    cv::dilate(working, working, element, cv::Point(-1,-1), iterations);
+
+
+    cv::Mat mask(working.rows, working.cols, CV_8UC1, cv::Scalar::all(255));
+
+    cv::circle(mask, cv::Point(from_map.x, from_map.y), r, cv::Scalar::all(0), CV_FILLED);
+    cv::circle(mask, cv::Point(to_map.x, to_map.y), r, cv::Scalar::all(0), CV_FILLED);
+
+
+    working.copyTo(map, mask);
 }
 
 
