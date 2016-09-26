@@ -530,6 +530,7 @@ SubPath LocalPlannerClassic::smoothPathSegment(const SubPath& path, double weigh
 void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
     double closest_dist = std::numeric_limits<double>::infinity();
     if(last_s == global_path_.s_new()){
+        ROS_INFO_STREAM("Searching for a specific s: " <<  last_s);
         for(std::size_t i = 0; i < global_path_.n(); ++i){
             if(global_path_.s(i) > last_s){
                 index1 = i == 0?0:i-1;
@@ -541,6 +542,8 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
         }
     }else{
         std::size_t j = 0;
+        std::size_t last_i, first_i;
+        int first_c = -1;
         index1 = j;
         double c_s = global_path_.s(j);
         double g1,g2;
@@ -551,8 +554,12 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
             g1 = last_s;
             g2 = global_path_.s_new();
         }
+        ROS_INFO_STREAM("Searching limits between " << g1 << " and " << g2 );
         while(c_s <= g2){
             if(c_s >= g1){
+                if(first_c == -1){
+                    first_c = j;
+                }
                 double x = global_path_.p(j) - pose(0);
                 double y = global_path_.q(j) - pose(1);
                 double dist = std::hypot(x, y);
@@ -560,12 +567,45 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
                     closest_dist = dist;
                     index1 = j;
                 }
+                last_i = j;
             }
             ++j;
             if(j >= global_path_.n()){
                 break;
             }
             c_s = global_path_.s(j);
+        }
+        if(first_c != -1){
+            first_i = first_c;
+            if(index1 == first_i){
+                while(index1 != 0){
+                    const std::size_t c_i = index1 - 1;
+                    double x = global_path_.p(c_i) - pose(0);
+                    double y = global_path_.q(c_i) - pose(1);
+                    double dist = std::hypot(x, y);
+                    if(dist < closest_dist) {
+                        closest_dist = dist;
+                        index1 = c_i;
+                    }else{
+                        break;
+                    }
+                }
+            }
+            if(index1 == last_i){
+                std::size_t last_p = global_path_.n() - 1;
+                while(index1 != last_p){
+                    const std::size_t c_i = index1 + 1;
+                    double x = global_path_.p(c_i) - pose(0);
+                    double y = global_path_.q(c_i) - pose(1);
+                    double dist = std::hypot(x, y);
+                    if(dist < closest_dist) {
+                        closest_dist = dist;
+                        index1 = c_i;
+                    }else{
+                        break;
+                    }
+                }
+            }
         }
     }
     double s_new = global_path_.s(index1) + length_MF * velocity_ * update_interval_.toSec();
