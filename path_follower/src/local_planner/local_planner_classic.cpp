@@ -530,7 +530,6 @@ SubPath LocalPlannerClassic::smoothPathSegment(const SubPath& path, double weigh
 void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
     double closest_dist = std::numeric_limits<double>::infinity();
     if(last_s == global_path_.s_new()){
-        ROS_INFO_STREAM("Searching for a specific s: " <<  last_s);
         for(std::size_t i = 0; i < global_path_.n(); ++i){
             if(global_path_.s(i) > last_s){
                 index1 = i == 0?0:i-1;
@@ -554,7 +553,6 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
             g1 = last_s;
             g2 = global_path_.s_new();
         }
-        ROS_INFO_STREAM("Searching limits between " << g1 << " and " << g2 );
         while(c_s <= g2){
             if(c_s >= g1){
                 if(first_c == -1){

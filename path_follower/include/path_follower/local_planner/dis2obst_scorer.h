@@ -18,7 +18,7 @@ public:
     virtual double score(const LNode& point) override;
 
 private:
-    static double DIS2O_, vdis_, factor_;
+    static double DIS2O_, factor_, full_d;
 };
 
 #endif // DIS2PATH_SCORER_H

@@ -8,7 +8,7 @@ path_control using the action interface. It is thus good for testing and
 demonstrating the navigation framework.
 -->
 <launch>
-    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_SLP)" />
+    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_SSG)" />
     <arg name="algo" default="AStarR" />
     <!--arg name="algo" default="NULL" /-->
 
@@ -19,8 +19,8 @@ demonstrating the navigation framework.
     <arg name="s2" default="1.0" />
     <arg name="s3" default="1.0" />
     <arg name="s4" default="1.0" />
-    <arg name="s5" default="2.5" />
-    <arg name="s6" default="4.0" />
+    <arg name="s5" default="2.0" />
+    <arg name="s6" default="2.25" />
 
     <arg name="nnodes" default="400" />
     <arg name="depth" default="10" />
@@ -32,7 +32,7 @@ demonstrating the navigation framework.
     <arg name="dis2o" default="0.472595" />
     <arg name="s_angle" default="45.0" />
     <arg name="mu" default="0.35" />    
-    <arg name="ef" default="2.0" />
+    <arg name="ef" default="4.0" />
     <arg name="use_v" default="true" />
 
     <arg name="use_planner_cost" default="false" />

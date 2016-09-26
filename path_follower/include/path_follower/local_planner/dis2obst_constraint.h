@@ -16,7 +16,7 @@ public:
 
     virtual bool isSatisfied(const LNode& point) override;
 private:
-    static double DIS2O_, vdis_;
+    static double DIS2O_, full_d;
 };
 
 #endif // DIS2OBST_CONSTRAINT_H
