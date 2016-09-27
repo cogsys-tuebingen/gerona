@@ -20,7 +20,7 @@ demonstrating the navigation framework.
     <arg name="s3" default="1.0" />
     <arg name="s4" default="1.0" />
     <arg name="s5" default="2.0" />
-    <arg name="s6" default="2.25" />
+    <arg name="s6" default="-2.25" />
 
     <arg name="nnodes" default="400" />
     <arg name="depth" default="10" />

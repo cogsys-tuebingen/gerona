@@ -33,8 +33,13 @@ double Dis2Obst_Scorer::score(const LNode& point){
     double x = point.nop.x - point.x;
     double y = point.nop.y - point.y;
     double orio = std::atan2(y,x);
-    double adiff = std::abs(MathHelper::AngleClamp(orio - point.orientation));
-    double score = - std::exp(factor_*(full_d - point.d2o)) * std::sin(adiff);
+    x = point.npp.x - point.x;
+    y = point.npp.y - point.y;
+    double orip = std::atan2(y,x);
+    double adiff1 = std::abs(MathHelper::AngleClamp(orio - point.orientation));
+    double adiff2 = MathHelper::AngleClamp(orio - orip)/2.0;
+    double exponent = factor_*(point.d2o - full_d);
+    double score = std::sin(adiff1)*std::cos(adiff2)/std::exp(exponent);
     sw.stop();
     return score;
 }
