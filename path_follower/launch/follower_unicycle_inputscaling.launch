@@ -59,7 +59,7 @@ Launch the path follower with the kinematic controller for a unicycle robot.
     
     <!-- parameters that are dependent on the controller or the robot model -->
 	 <param name="vehicle_length" value="0.5" />
-	 <param name="k" value="2.5" />
+	 <param name="k" value="1.0" />
 	 <param name="max_angular_velocity" value="0.8" /> 
 
     <!-- local planner -->
