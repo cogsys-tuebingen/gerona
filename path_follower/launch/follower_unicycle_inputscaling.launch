@@ -12,6 +12,7 @@ Launch the path follower with the kinematic controller for a unicycle robot.
   <arg name="s3" default="0.0" />
   <arg name="s4" default="0.0" />
   <arg name="s5" default="0.0" />
+  <arg name="s6" default="0.0" />
 
   <arg name="nnodes" default="300" />
   <arg name="depth" default="10" />
@@ -22,6 +23,8 @@ Launch the path follower with the kinematic controller for a unicycle robot.
   <arg name="dis2p" default="0.3" />
   <arg name="dis2o" default="0.85" />
   <arg name="s_angle" default="25.0" />
+  <arg name="mu" default="0.6" />
+  <arg name="ef" default="1.0" />
   <arg name="use_v" default="true" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
 	 <param name="controller" value="unicycle_inputscaling" />
@@ -56,7 +59,7 @@ Launch the path follower with the kinematic controller for a unicycle robot.
     
     <!-- parameters that are dependent on the controller or the robot model -->
 	 <param name="vehicle_length" value="0.5" />
-	 <param name="k" value="2.5" />
+	 <param name="k" value="1.0" />
 	 <param name="max_angular_velocity" value="0.8" /> 
 
     <!-- local planner -->
@@ -70,6 +73,7 @@ Launch the path follower with the kinematic controller for a unicycle robot.
     <param name="s3" value="$(arg s3)"/>
     <param name="s4" value="$(arg s4)"/>
     <param name="s5" value="$(arg s5)"/>
+    <param name="s6" value="$(arg s6)"/>
     <!-- planner params-->
     <param name="nnodes" value="$(arg nnodes)" />
     <param name="depth" value="$(arg depth)" />
@@ -80,6 +84,8 @@ Launch the path follower with the kinematic controller for a unicycle robot.
     <param name="dis2p" value="$(arg dis2p)" />
     <param name="dis2o" value="$(arg dis2o)" />
     <param name="s_angle" value="$(arg s_angle)" />
+    <param name="mu" value="$(arg mu)" />
+    <param name="ef" value="$(arg ef)" />
     <param name="use_v" value="$(arg use_v)" />
 
     <remap from="scan" to="scan/filtered" />

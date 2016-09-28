@@ -25,7 +25,7 @@
         <param name="preprocess" value="true" />
         <param name="postprocess" value="true" />
 
-        <param name="use_cloud" value="true" />
+        <param name="use_cloud" value="false" />
         <param name="use_scan_front" value="true" />
         <param name="use_scan_back" value="false" />
 

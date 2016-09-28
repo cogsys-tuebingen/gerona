@@ -12,6 +12,7 @@ std::vector<double> LocalPlannerClassic::RT;
 std::vector<double> LocalPlannerClassic::D_THETA;
 double LocalPlannerClassic::TH = 0.0;
 double LocalPlannerClassic::length_MF = 1.0;
+double LocalPlannerClassic::mu_ = 1.0;
 std::vector<LNode> LocalPlannerClassic::EMPTYTWINS;
 
 LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
@@ -254,29 +255,7 @@ void LocalPlannerClassic::retrieveContinuity(LNode& wpose){
 }
 
 void LocalPlannerClassic::setD2P(LNode& wpose){
-    double px = wpose.x - wpose.npp.x;
-    double py = wpose.y - wpose.npp.y;
-
-    double trax = L*std::cos(wpose.orientation)/2.0;
-    double tray = L*std::sin(wpose.orientation)/2.0;
-
-    double x = px + step_*std::cos(wpose.orientation);
-    double y = py + step_*std::sin(wpose.orientation);
-    double d1 = std::hypot(x, y);
-
-    double nt_2 = MathHelper::AngleClamp(wpose.orientation + D_THETA.back()/2.0);
-    double nt = MathHelper::AngleClamp(wpose.orientation + D_THETA.back());
-    x = px + stepc_*std::cos(nt_2) - trax + L*std::cos(nt)/2.0;
-    y = py + stepc_*std::sin(nt_2) - tray + L*std::sin(nt)/2.0;
-    double d2 = std::hypot(x, y);
-
-    nt_2 = MathHelper::AngleClamp(wpose.orientation - D_THETA.back()/2.0);
-    nt = MathHelper::AngleClamp(wpose.orientation - D_THETA.back());
-    x = px + stepc_*std::cos(nt_2) - tray + L*std::cos(nt)/2.0;
-    y = py + stepc_*std::sin(nt_2) - tray + L*std::sin(nt)/2.0;
-    double d3 = std::hypot(x, y);
-
-    d2p = max(max(wpose.d2p,d1),max(d2,d3));
+    d2p = 2.0*wpose.d2p;
 }
 
 bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
@@ -334,7 +313,7 @@ void LocalPlannerClassic::setStep(){
     neig_s = l_step*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
     Dis2Path_Constraint::setDRate(neig_s);
     stepc_ = 2.0*RT.back()*std::sin(D_THETA.back()/2.0);
-    double vdis = velocity_*velocity_/(2.0*9.81*0.4);
+    double vdis = velocity_*velocity_/(2.0*9.81*mu_);
     Dis2Path_Constraint::setVDis(vdis);
     Dis2Obst_Constraint::setVDis(vdis);
     Dis2Obst_Scorer::setVDis(vdis);
@@ -562,6 +541,8 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
         }
     }else{
         std::size_t j = 0;
+        std::size_t last_i, first_i;
+        int first_c = -1;
         index1 = j;
         double c_s = global_path_.s(j);
         double g1,g2;
@@ -574,6 +555,9 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
         }
         while(c_s <= g2){
             if(c_s >= g1){
+                if(first_c == -1){
+                    first_c = j;
+                }
                 double x = global_path_.p(j) - pose(0);
                 double y = global_path_.q(j) - pose(1);
                 double dist = std::hypot(x, y);
@@ -581,12 +565,45 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
                     closest_dist = dist;
                     index1 = j;
                 }
+                last_i = j;
             }
             ++j;
             if(j >= global_path_.n()){
                 break;
             }
             c_s = global_path_.s(j);
+        }
+        if(first_c != -1){
+            first_i = first_c;
+            if(index1 == first_i){
+                while(index1 != 0){
+                    const std::size_t c_i = index1 - 1;
+                    double x = global_path_.p(c_i) - pose(0);
+                    double y = global_path_.q(c_i) - pose(1);
+                    double dist = std::hypot(x, y);
+                    if(dist < closest_dist) {
+                        closest_dist = dist;
+                        index1 = c_i;
+                    }else{
+                        break;
+                    }
+                }
+            }
+            if(index1 == last_i){
+                std::size_t last_p = global_path_.n() - 1;
+                while(index1 != last_p){
+                    const std::size_t c_i = index1 + 1;
+                    double x = global_path_.p(c_i) - pose(0);
+                    double y = global_path_.q(c_i) - pose(1);
+                    double dist = std::hypot(x, y);
+                    if(dist < closest_dist) {
+                        closest_dist = dist;
+                        index1 = c_i;
+                    }else{
+                        break;
+                    }
+                }
+            }
         }
     }
     double s_new = global_path_.s(index1) + length_MF * velocity_ * update_interval_.toSec();
@@ -683,11 +700,13 @@ void LocalPlannerClassic::setLLP(){
     setLLP(last_local_path_.n());
 }
 
-void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia, double lmf, int max_level){
+void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle,
+                                    int ia, double lmf, int max_level, double mu, double ef){
     nnodes_ = nnodes;
     ic_ = ic;
     TH = s_angle*M_PI/180.0;
     length_MF = lmf;
+    mu_ = mu;
     li_level = max_level;
     RT.clear();
     for(int i = 0; i <= ia; ++i){
@@ -695,10 +714,12 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis
     }
     nsucc_ = 2*RT.size() + 1;
     Curvature_Scorer::setMaxC(RT.back());
+    CurvatureD_Scorer::setMaxC(RT.back());
     Level_Scorer::setLevel(li_level);
     Dis2Path_Constraint::setLimits(dis2p,dis2o);
     Dis2Obst_Constraint::setLimit(dis2o);
     Dis2Obst_Scorer::setLimit(dis2o);
+    Dis2Obst_Scorer::setFactor(ef);
 }
 
 void LocalPlannerClassic::printVelocity(){

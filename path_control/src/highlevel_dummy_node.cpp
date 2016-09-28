@@ -142,6 +142,9 @@ private:
         goal.goal.channel.data = pnh_.param("channel", std::string(""));
         goal.goal.algorithm.data = pnh_.param("algorithm", std::string(""));
 
+        goal.goal.grow_obstacles = pnh_.param("grow_obstacles", true);
+        goal.goal.obstacle_growth_radius = pnh_.param("obstacle_radius", 1.0);
+
         ROS_INFO_STREAM("goal: " << goal.goal);
 
         if(pose->header.frame_id != target_frame_) {
@@ -181,7 +184,7 @@ private:
 
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "highlevel_dummy");
+    ros::init(argc, argv, "highlevel_dummy", ros::init_options::NoSigintHandler);
     ros::NodeHandle nh;
 
     HighDummy dummy(nh);

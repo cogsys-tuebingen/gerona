@@ -9,6 +9,7 @@
   <arg name="s3" default="0.0" />
   <arg name="s4" default="0.0" />
   <arg name="s5" default="0.0" />
+  <arg name="s6" default="0.0" />
 
   <arg name="nnodes" default="300" />
   <arg name="depth" default="10" />
@@ -19,6 +20,8 @@
   <arg name="dis2p" default="0.3" />
   <arg name="dis2o" default="0.85" />
   <arg name="s_angle" default="25.0" />
+  <arg name="mu" default="0.6" />
+  <arg name="ef" default="1.0" />
   <arg name="use_v" default="true" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
     <param name="supervisor/use_path_lookout" value="false" />
@@ -36,7 +39,7 @@
     <param name="goal_tolerance" value="0.05" />
     <param name="max_distance_to_path" value="2.0" />
     <param name="min_velocity" value="0.01" />
-    <param name="max_velocity" value="3.0" />
+    <param name="max_velocity" value="2.5" />
     <param name="collision_box/width" value="0.4" />
     <param name="collision_box/crit_length" value="0.6" />
     <param name="collision_box/min_length" value="1.0" />
@@ -111,6 +114,7 @@
     <param name="s3" value="$(arg s3)"/>
     <param name="s4" value="$(arg s4)"/>
     <param name="s5" value="$(arg s5)"/>
+    <param name="s6" value="$(arg s6)"/>
     <!-- planner params-->
     <param name="nnodes" value="$(arg nnodes)" />
     <param name="depth" value="$(arg depth)" />
@@ -121,6 +125,8 @@
     <param name="dis2p" value="$(arg dis2p)" />
     <param name="dis2o" value="$(arg dis2o)" />
     <param name="s_angle" value="$(arg s_angle)" />
+    <param name="mu" value="$(arg mu)" />
+    <param name="ef" value="$(arg ef)" />
     <param name="use_v" value="$(arg use_v)" />
 
     <remap from="scan" to="scan/front" />

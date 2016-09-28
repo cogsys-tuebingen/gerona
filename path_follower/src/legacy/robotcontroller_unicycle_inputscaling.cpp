@@ -72,23 +72,16 @@ void RobotController_Unicycle_InputScaling::setPath(Path::Ptr path) {
     //reset the index of the current point
     ind_ = 0;
 
-    Eigen::Vector3d pose = path_driver_->getRobotPose();
-
-    const double theta_diff = MathHelper::AngleDelta(path_interpol.theta_p(0), pose[2]);
-
     // decide whether to drive forward or backward
-    if (theta_diff > M_PI_2 || theta_diff < -M_PI_2) {
-        setDirSign(-1.f);
-    } else {
+    if (path_->getCurrentSubPath().forward) {
         setDirSign(1.f);
+    } else {
+        setDirSign(-1.f);
     }
 }
 
 RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::computeMoveCommand(
         MoveCommand* cmd) {
-
-    //TODO: solve the direction sign problem
-    dir_sign_ = 1.f;
 
     if(path_interpol.n() <= 2)
         return RobotController::MoveCommandStatus::ERROR;
@@ -104,13 +97,8 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
     double velocity_measured = dir_sign_ * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
             + v_meas_twist.linear.y * v_meas_twist.linear.y);
 
-    ROS_WARN_THROTTLE(1, "Direction sign: %f", dir_sign_);
-    ROS_WARN_THROTTLE(1, "desired velocity = %f, measured velocity = %f", velocity_, velocity_measured);
-    ROS_WARN_THROTTLE(1, "measured.linear.x = %f, measured.linear.y = %f, measured.linear.z = %f", v_meas_twist.linear.x,
-             v_meas_twist.linear.y, v_meas_twist.linear.z);
-
-    // TODO: switching between subpaths and testing if the goal is reached should be generalized!
-    /*if (reachedGoal(pose)) {
+    //check if the goal is reached
+    if (reachedGoal(pose)) {
         path_->switchToNextSubPath();
         // check if we reached the actual goal or just the end of a subpath
         if (path_->isDone()) {
@@ -134,7 +122,7 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
             // invert driving direction and set tuning parameters accordingly
             setDirSign(-getDirSign());
         }
-    }*/
+    }
 
     // compute the length of the orthogonal projection and the according path index
     double min_dist = std::numeric_limits<double>::max();
@@ -160,7 +148,7 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
     // distance to the path (path to the right -> positive)
     Eigen::Vector2d path_vehicle(pose[0] - path_interpol.p(ind_), pose[1] - path_interpol.q(ind_));
 
-    const double d =
+    double d =
             MathHelper::AngleDelta(path_interpol.theta_p(ind_), MathHelper::Angle(path_vehicle)) > 0. ?
                 min_dist : -min_dist;
 
@@ -169,8 +157,10 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
     double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), pose[2]);
 
     // if dir_sign is negative, we drive backwards and set theta_e to the complementary angle
-    if (getDirSign() < 0.)
+    if (getDirSign() < 0.) {
         theta_e = MathHelper::NormalizeAngle(M_PI + theta_e);
+        d = -d;
+    }
 
     // curvature and first two derivations
     const double c = path_interpol.curvature(ind_);
@@ -188,11 +178,6 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
 
     const double tan_theta_e = tan(theta_e);
 
-    //
-    // actual controller formulas begin here
-    //
-
-    // x1 - x3
     //	const double x1 = s;
     const double x2 = _1_dc * tan_theta_e;
 
@@ -216,11 +201,6 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
 
     v2 = boost::algorithm::clamp(v2, -params_.max_angular_velocity(), params_.max_angular_velocity());
 
-    // limit angle velocity
-   /* v2 = boost::algorithm::clamp(v2, -params_.max_steering_angle_speed(),
-                                            params_.max_steering_angle_speed());*/
-
-
     move_cmd_.setRotationalVelocity(v2);
     move_cmd_.setVelocity(getDirSign() * v1);
     *cmd = move_cmd_;
@@ -231,46 +211,9 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
 #endif
 
 
-    if(ind_ == path_interpol.n()-1){
-
-    ///calculate the control for the current point on the path
-
-    //robot direction angle in path coordinates
-    //double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), theta_meas);
-
-    //robot position vector module
-    double r = hypot(x_meas - path_interpol.p(ind_), y_meas - path_interpol.q(ind_));
-
-    //robot position vector angle in world coordinates
-    double theta_r = atan2(y_meas - path_interpol.q(ind_), x_meas - path_interpol.p(ind_));
-
-    //robot position vector angle in path coordinates
-    double delta_theta = MathHelper::AngleDelta(path_interpol.theta_p(ind_), theta_r);
-
-    //current robot position in path coordinates
-    double xe = r * cos(delta_theta);
-    //double ye = r * sin(delta_theta);
-
-    ///***///
-
-   if(xe > 0.0) {
-
-    double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
-                                        y_meas - path_interpol.q(path_interpol.n()-1));
-    ROS_WARN_THROTTLE(1,"distance to goal: %f", distance_to_goal_eucl);
-
-    return MoveCommandStatus::REACHED_GOAL;
-
-   } else {
-
     *cmd = move_cmd_;
 
     return RobotController::MoveCommandStatus::OKAY;
-
-   }
-
-
-   }
 
 }
 
