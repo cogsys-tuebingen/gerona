@@ -28,7 +28,7 @@ This is a complete setup and enought to actually navigate the robot.
     <arg name="dis2p" default="0.3" />
     <arg name="dis2o" default="0.85" />
     <arg name="s_angle" default="25.0" />
-    <arg name="mu" default="0.6" />    
+    <arg name="mu" default="0.6" />
     <arg name="ef" default="1.0" />
     <arg name="use_v" default="true" />
 

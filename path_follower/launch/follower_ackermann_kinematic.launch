@@ -23,7 +23,7 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
   <arg name="dis2p" default="0.3" />
   <arg name="dis2o" default="0.85" />
   <arg name="s_angle" default="25.0" />
-  <arg name="mu" default="0.6" />    
+  <arg name="mu" default="0.6" />
   <arg name="ef" default="1.0" />
   <arg name="use_v" default="true" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">

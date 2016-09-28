@@ -30,7 +30,7 @@ demonstrating the navigation framework.
     <arg name="dis2p" default="0.4" />
     <arg name="dis2o" default="0.472595" />
     <arg name="s_angle" default="45.0" />
-    <arg name="mu" default="0.35" />    
+    <arg name="mu" default="0.35" />
     <arg name="ef" default="2.0" />
     <arg name="use_v" default="true" />
 
