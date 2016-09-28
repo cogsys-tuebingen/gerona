@@ -32,7 +32,7 @@ demonstrating the navigation framework.
     <arg name="dis2o" default="0.472595" />
     <arg name="s_angle" default="45.0" />
     <arg name="mu" default="0.33" />
-    <arg name="ef" default="4.0" />
+    <arg name="ef" default="2.5" />
     <arg name="use_v" default="true" />
 
     <arg name="use_planner_cost" default="false" />

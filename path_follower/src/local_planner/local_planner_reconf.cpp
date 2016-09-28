@@ -82,15 +82,12 @@ void LocalPlannerReconf::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes,
             obj = nullptr;
             return;
         }
-        ROS_INFO_STREAM("#reconfigured leaves: " << alts.size());
         for(LNode* altern: alts){
             double current_p = Score(*altern, scorer, wscorer);
-            ROS_INFO_STREAM("Score: " << current_p << ", s: " << altern->level_);
             if(current_p < best_p){
                 best_p = current_p;
                 obj = altern;
             }
         }
-        ROS_INFO_STREAM("Best Score: " << best_p << ", s: " << obj->level_);
     }
 }
