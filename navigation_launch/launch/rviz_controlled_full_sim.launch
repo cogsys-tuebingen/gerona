@@ -27,14 +27,16 @@ demonstrating the navigation framework.
     <arg name="s2" default="1.0" />
     <arg name="s3" default="1.0" />
     <arg name="s4" default="1.0" />
-    <arg name="s5" default="0.0" />
+    <arg name="s5" default="4.0" />
 
     <arg name="nnodes" default="400" />
+    <arg name="depth" default="10" />
     <arg name="ic" default="7" />
     <arg name="ia" default="0" />
     <arg name="uinterval" default="0.5" />
+    <arg name="lmf" default="3.0" />
     <arg name="dis2p" default="0.4" />
-    <arg name="dis2o" default="0.85" />
+    <arg name="dis2o" default="0.472595" />
     <arg name="s_angle" default="45.0" />
     <arg name="use_v" default="true" />
 
@@ -70,9 +72,11 @@ demonstrating the navigation framework.
       <arg name="s5" value="$(arg s5)" />
 
       <arg name="nnodes" value="$(arg nnodes)" />
+      <arg name="depth" value="$(arg depth)" />
       <arg name="ic" value="$(arg ic)" />
       <arg name="ia" value="$(arg ia)" />
       <arg name="uinterval" value="$(arg uinterval)" />
+      <arg name="lmf" value="$(arg lmf)" />
       <arg name="dis2p" value="$(arg dis2p)" />
       <arg name="dis2o" value="$(arg dis2o)" />
       <arg name="s_angle" value="$(arg s_angle)" />

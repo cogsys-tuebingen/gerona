@@ -18,7 +18,7 @@ public:
                                       const std::vector<double>& wscorer,
                                       Path::Ptr& wlp) override;
     virtual bool isNull() const override;
-    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia) override;
+    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia, double lmf, int max_level) override;
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
     virtual void setVelocity(double velocity) override;
 };

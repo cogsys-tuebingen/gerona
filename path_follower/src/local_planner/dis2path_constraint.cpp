@@ -4,6 +4,7 @@
 double Dis2Path_Constraint::D_RATE = std::sin(5.0*M_PI/36.0);
 double Dis2Path_Constraint::DIS2P_ = 0.3;
 double Dis2Path_Constraint::DIS2O_ = 0.85;
+double Dis2Path_Constraint::vdis_ = 0.5;
 
 Dis2Path_Constraint::Dis2Path_Constraint():
     Constraint(),limit(DIS2P_),level(-1)
@@ -36,6 +37,10 @@ void Dis2Path_Constraint::setLimits(double dis2p, double dis2o){
     DIS2O_ = dis2o;
 }
 
+void Dis2Path_Constraint::setVDis(double dis){
+    vdis_ = dis;
+}
+
 bool Dis2Path_Constraint::isSatisfied(const LNode& point){
     sw.resume();
     if(point.level_ > level && level > -1){
@@ -59,16 +64,14 @@ bool Dis2Path_Constraint::isSatisfied(const LNode& point){
             y = point.npp.y - point.y;
             double orip = std::atan2(y,x);
             double adiff = std::abs(MathHelper::AngleClamp(orio - orip));
-            if(adiff <= M_PI/6.0){
-                double d_diff = (point.d2o - cos(adiff)*point.d2p);
-                double tol = (DIS2O_ + DIS2P_) - (limit - DIS2P_) - d_diff;
-                if(tol > 0.0){
-                    limit += tol;
-                    level = point.level_;
-                    if(point.d2p <= limit){
-                        sw.stop();
-                        return true;
-                    }
+            double d_diff = point.d2o - cos(adiff)*point.d2p;
+            double tol = ((DIS2O_ + vdis_) + DIS2P_) - (limit - DIS2P_) - d_diff;
+            if(tol > 0.0){
+                limit += tol;
+                level = point.level_;
+                if(point.d2p <= limit){
+                    sw.stop();
+                    return true;
                 }
             }
         }

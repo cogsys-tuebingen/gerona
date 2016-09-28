@@ -7,16 +7,18 @@
 std::size_t LocalPlannerClassic::nnodes_ = 300;
 int LocalPlannerClassic::ic_ = 3;
 int LocalPlannerClassic::nsucc_ = 3;
+int LocalPlannerClassic::li_level = 10;
 std::vector<double> LocalPlannerClassic::RT;
 std::vector<double> LocalPlannerClassic::D_THETA;
 double LocalPlannerClassic::TH = 0.0;
+double LocalPlannerClassic::length_MF = 1.0;
 std::vector<LNode> LocalPlannerClassic::EMPTYTWINS;
 
 LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  tf::Transformer& transformer,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
-      d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),index1(-1), index2(-1),
+      d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),b_obst(false),index1(-1), index2(-1),
       r_level(0), n_v(0), step_(0.0),stepc_(0.0),neig_s(0.0)
 {
 
@@ -30,8 +32,7 @@ void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
 
 void LocalPlannerClassic::getSuccessors(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
                                         std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                                        const std::vector<bool>& fconstraints,const std::vector<double>& wscorer,
-                                        std::vector<LNode>& twins, bool repeat){
+                                        const std::vector<bool>& fconstraints, std::vector<LNode>& twins, bool repeat){
     successors.clear();
     twins.resize(nsucc_);
     bool add_n = true;
@@ -65,7 +66,7 @@ void LocalPlannerClassic::getSuccessors(LNode*& current, std::size_t& nsize, std
 
         }
         LNode succ(x,y,theta,current,rt,current->level_+1);
-        setDistances(succ,(fconstraints.back() || wscorer.back() != 0));
+        setDistances(succ);
 
         if(areConstraintsSAT(succ,constraints,fconstraints)){
             int wo = -1;
@@ -100,7 +101,7 @@ bool LocalPlannerClassic::isInGraph(const LNode& current, std::vector<LNode>& no
     return false;
 }
 
-void LocalPlannerClassic::setDistances(LNode& current, bool b_obst){
+void LocalPlannerClassic::setDistances(LNode& current){
     double closest_dist = std::numeric_limits<double>::infinity();
     std::size_t closest_index = 0;
     for(std::size_t i = index1; i <= index2; ++i) {
@@ -180,7 +181,7 @@ void LocalPlannerClassic::setDistances(LNode& current, bool b_obst){
         current.d2o = closest_obst;
         tf::Point tmpnop(closest_x ,closest_y,0.0);
         tmpnop = base_to_odom * tmpnop;
-        current.nop = Waypoint(tmpnop.x(), tmpnop.x(), 0.0);
+        current.nop = Waypoint(tmpnop.x(), tmpnop.y(), 0.0);
     }else{
         current.d2o = std::numeric_limits<double>::infinity();
     }
@@ -256,16 +257,23 @@ void LocalPlannerClassic::setD2P(LNode& wpose){
     double px = wpose.x - wpose.npp.x;
     double py = wpose.y - wpose.npp.y;
 
+    double trax = L*std::cos(wpose.orientation)/2.0;
+    double tray = L*std::sin(wpose.orientation)/2.0;
+
     double x = px + step_*std::cos(wpose.orientation);
     double y = py + step_*std::sin(wpose.orientation);
     double d1 = std::hypot(x, y);
 
-    x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation + D_THETA.back()/2.0));
-    y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation + D_THETA.back()/2.0));
+    double nt_2 = MathHelper::AngleClamp(wpose.orientation + D_THETA.back()/2.0);
+    double nt = MathHelper::AngleClamp(wpose.orientation + D_THETA.back());
+    x = px + stepc_*std::cos(nt_2) - trax + L*std::cos(nt)/2.0;
+    y = py + stepc_*std::sin(nt_2) - tray + L*std::sin(nt)/2.0;
     double d2 = std::hypot(x, y);
 
-    x = px + stepc_*std::cos(MathHelper::AngleClamp(wpose.orientation - D_THETA.back()/2.0));
-    y = py + stepc_*std::sin(MathHelper::AngleClamp(wpose.orientation - D_THETA.back()/2.0));
+    nt_2 = MathHelper::AngleClamp(wpose.orientation - D_THETA.back()/2.0);
+    nt = MathHelper::AngleClamp(wpose.orientation - D_THETA.back());
+    x = px + stepc_*std::cos(nt_2) - tray + L*std::cos(nt)/2.0;
+    y = py + stepc_*std::sin(nt_2) - tray + L*std::sin(nt)/2.0;
     double d3 = std::hypot(x, y);
 
     d2p = max(max(wpose.d2p,d1),max(d2,d3));
@@ -302,9 +310,9 @@ void LocalPlannerClassic::setVelocity(geometry_msgs::Twist::_linear_type vector)
         if(tmpv > 0.3){
             n_v++;
             velocity_ += (tmpv - velocity_)/(double)n_v;
+            setStep();
         }
     }
-    setStep();
 }
 
 void LocalPlannerClassic::setVelocity(double velocity){
@@ -316,7 +324,7 @@ void LocalPlannerClassic::setVelocity(double velocity){
 
 void LocalPlannerClassic::setStep(){
     double dis = velocity_ * update_interval_.toSec();
-    step_ = 3.0*dis/10.0;
+    step_ = length_MF*dis/(double)li_level;
     D_THETA.clear();
     for(std::size_t i = 0; i < RT.size(); ++i){
         D_THETA.push_back(MathHelper::AngleClamp(step_/RT[i]));
@@ -326,6 +334,10 @@ void LocalPlannerClassic::setStep(){
     neig_s = l_step*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
     Dis2Path_Constraint::setDRate(neig_s);
     stepc_ = 2.0*RT.back()*std::sin(D_THETA.back()/2.0);
+    double vdis = velocity_*velocity_/(2.0*9.81*0.4);
+    Dis2Path_Constraint::setVDis(vdis);
+    Dis2Obst_Constraint::setVDis(vdis);
+    Dis2Obst_Scorer::setVDis(vdis);
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -577,7 +589,7 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
             c_s = global_path_.s(j);
         }
     }
-    double s_new = global_path_.s(index1) + 3.0 * velocity_ * update_interval_.toSec();
+    double s_new = global_path_.s(index1) + length_MF * velocity_ * update_interval_.toSec();
     closest_dist = std::numeric_limits<double>::infinity();
     for(std::size_t i = index1; i < global_path_.n(); ++i){
         double dist = std::abs(s_new - global_path_.s(i));
@@ -671,18 +683,22 @@ void LocalPlannerClassic::setLLP(){
     setLLP(last_local_path_.n());
 }
 
-void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia){
+void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle, int ia, double lmf, int max_level){
     nnodes_ = nnodes;
     ic_ = ic;
     TH = s_angle*M_PI/180.0;
+    length_MF = lmf;
+    li_level = max_level;
     RT.clear();
     for(int i = 0; i <= ia; ++i){
         RT.push_back(L/std::tan(((double)(i + 1)/(ia + 1))*TH));
     }
     nsucc_ = 2*RT.size() + 1;
     Curvature_Scorer::setMaxC(RT.back());
+    Level_Scorer::setLevel(li_level);
     Dis2Path_Constraint::setLimits(dis2p,dis2o);
     Dis2Obst_Constraint::setLimit(dis2o);
+    Dis2Obst_Scorer::setLimit(dis2o);
 }
 
 void LocalPlannerClassic::printVelocity(){
@@ -693,10 +709,11 @@ void LocalPlannerClassic::printVelocity(){
 }
 
 void LocalPlannerClassic::printLevelReached() const{
-    ROS_INFO_STREAM("Reached Level: " << r_level << "/10");
+    ROS_INFO_STREAM("Reached Level: " << r_level << "/" << li_level);
 }
 
-bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_lines){
+bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::vector<Constraint::Ptr>& constraints,
+                                            const std::vector<bool>& fconstraints, bool allow_lines){
     LNode* s = s_p->parent_;
     bool line = false;
     if(s->parent_ == nullptr){
@@ -756,5 +773,77 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_
     alt.y += L*std::sin(alt.orientation)/2.0;
     alt.parent_ = parent;
     alt.radius_ = R;
-    return true;
+    setDistances(alt);
+    return areConstraintsSAT(alt,constraints,fconstraints);
 }
+
+bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
+                                  const std::vector<Constraint::Ptr>& constraints,
+                                  const std::vector<Scorer::Ptr>& scorer,
+                                  const std::vector<bool>& fconstraints,
+                                  const std::vector<double>& wscorer,
+                                  std::size_t& nnodes){
+    initIndexes(pose);
+    b_obst = fconstraints.back() || wscorer.back() != 0;
+
+    LNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
+    setDistances(wpose);
+
+    double dis2last = global_path_.s(global_path_.n()-1);
+
+    if(std::abs(dis2last - wpose.s) < 0.8){
+        tooClose = true;
+        setLLP();
+        return false;
+    }
+
+    retrieveContinuity(wpose);
+    setD2P(wpose);
+    initConstraints(constraints,fconstraints);
+
+    std::vector<LNode> nodes(nnodes_);
+    LNode* obj = nullptr;
+
+    setNormalizer(constraints,fconstraints);
+
+    setInitScores(wpose, scorer, wscorer, dis2last);
+
+    nodes.at(0) = wpose;
+
+    initQueue(nodes[0]);
+    initLeaves(nodes[0]);
+    double best_p = std::numeric_limits<double>::infinity();
+    nnodes = 1;
+
+    LNode* current;
+
+    while(!isQueueEmpty() && (isQueueEmpty()?nodes.at(nnodes - 1).level_:queueFront()->level_) < li_level && nnodes < nnodes_){
+        pop(current);
+        if(std::abs(dis2last - current->s) <= 0.05){
+            obj = current;
+            tooClose = true;
+            break;
+        }
+        push2Closed(current);
+
+        std::vector<LNode*> successors;
+        expandCurrent(current, nnodes, successors, nodes, constraints, fconstraints);
+        setNormalizer(constraints,fconstraints);
+        updateLeaves(successors, current);
+        for(std::size_t i = 0; i < successors.size(); ++i){
+            double current_p;
+            if(!processSuccessor(successors[i], current, current_p, dis2last, constraints, scorer, fconstraints, wscorer)){
+                continue;
+            }
+            addLeaf(successors[i]);
+            updateBest(current_p,best_p,obj,successors[i]);
+        }
+    }
+    reconfigureTree(obj, nodes, best_p, constraints, scorer, fconstraints,wscorer);
+    if(obj != nullptr){
+        return processPath(obj, local_wps);
+    }else{
+        return false;
+    }
+}
+

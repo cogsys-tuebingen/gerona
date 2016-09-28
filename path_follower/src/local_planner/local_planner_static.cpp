@@ -33,11 +33,15 @@ void LocalPlannerStatic::addLeaf(LNode*& node){
 }
 
 void LocalPlannerStatic::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes, double& best_p,
+                                         const std::vector<Constraint::Ptr>& constraints,
                                          const std::vector<Scorer::Ptr>& scorer,
+                                         const std::vector<bool>& fconstraints,
                                          const std::vector<double>& wscorer){
     (void) obj;
     (void) nodes;
     (void) best_p;
+    (void) constraints;
     (void) scorer;
+    (void) fconstraints;
     (void) wscorer;
 }

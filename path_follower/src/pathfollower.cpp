@@ -91,6 +91,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     beep_pub_   = node_handle_.advertise<std_msgs::Int32MultiArray>("/cmd_beep", 100);
     local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("local_path", 1, true);
     whole_local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("whole_local_path", 1, true);
+    g_points_pub_ = node_handle_.advertise<visualization_msgs::Marker>("g_path_points", 10);
 
     odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
 
@@ -210,9 +211,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         exit(1);
     }
 
-    local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.dis2o(), opt_.s_angle(), opt_.ia());
+    local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.dis2o(), opt_.s_angle(), opt_.ia(), opt_.lmf(),opt_.depth());
 
     ROS_INFO("Maximum number of allowed nodes: %d", opt_.nnodes());
+    ROS_INFO("Maximum tree depth: %d", opt_.depth());
     ROS_INFO("Update Interval: %.3f", opt_.uinterval());
     ROS_INFO("Maximal distance from path: %.3f", opt_.dis2p());
     ROS_INFO("Minimal distance to an obstacle: %.3f", opt_.dis2o());
@@ -220,6 +222,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     ROS_INFO("Intermediate Configurations: %d",opt_.ic());
     ROS_INFO("Intermediate Angles: %d",opt_.ia());
     ROS_INFO("Using current velocity: %s",opt_.use_v() ? "true" : "false");
+    ROS_INFO("Length multiplying factor: %.3f",opt_.lmf());
 
     ROS_INFO("Constraint usage [%s, %s]", opt_.c1() ? "true" : "false",
              opt_.c2() ? "true" : "false");
@@ -261,6 +264,28 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     if (!obstacle_avoider_) {
         obstacle_avoider_ = std::make_shared<NoneAvoider>();
     }
+
+    // path marker
+    g_robot_path_marker_.header.frame_id = "/odom";
+    g_robot_path_marker_.header.stamp = ros::Time();
+    g_robot_path_marker_.ns = "global robot path";
+    g_robot_path_marker_.id = 75;
+    g_robot_path_marker_.type = visualization_msgs::Marker::LINE_STRIP;
+    g_robot_path_marker_.action = visualization_msgs::Marker::ADD;
+    g_robot_path_marker_.pose.position.x = 0;
+    g_robot_path_marker_.pose.position.y = 0;
+    g_robot_path_marker_.pose.position.z = 0;
+    g_robot_path_marker_.pose.orientation.x = 0.0;
+    g_robot_path_marker_.pose.orientation.y = 0.0;
+    g_robot_path_marker_.pose.orientation.z = 0.0;
+    g_robot_path_marker_.pose.orientation.w = 1.0;
+    g_robot_path_marker_.scale.x = 0.01;
+    g_robot_path_marker_.scale.y = 0.0;
+    g_robot_path_marker_.scale.z = 0.0;
+    g_robot_path_marker_.color.a = 1.0;
+    g_robot_path_marker_.color.r = 1.0;
+    g_robot_path_marker_.color.g = 1.0;
+    g_robot_path_marker_.color.b = 1.0;
 
     follow_path_server_.start();
     ROS_INFO("Initialisation done.");
@@ -510,10 +535,13 @@ void PathFollower::update()
                 wscorer.at(4) = opt_.s5();
 
                 //End Constraints and Scorers Construction
+                publishPathMarker();
                 if(obstacle_cloud_ != nullptr){
                     local_planner_->setObstacleCloud(obstacle_cloud_);
                 }
-                local_planner_->setVelocity(getVelocity().linear);
+                if(opt_.use_v()){
+                    local_planner_->setVelocity(getVelocity().linear);
+                }
 
                 bool path_search_failure = false;
                 Path::Ptr local_path_whole(new Path("/odom"));
@@ -702,6 +730,9 @@ void PathFollower::start()
     local_planner_->setGlobalPath(path_);
     local_planner_->setVelocity(vel_);
 
+    g_robot_path_marker_.header.stamp = ros::Time();
+    g_robot_path_marker_.points.clear();
+
     is_running_ = true;
 }
 
@@ -856,4 +887,14 @@ void PathFollower::beep(const std::vector<int> &beeps)
     msg.data.insert(msg.data.begin(), beeps.begin(), beeps.end());
 
     beep_pub_.publish(msg);
+}
+
+void PathFollower::publishPathMarker(){
+    Eigen::Vector3d current_pose = getRobotPose();
+    geometry_msgs::Point pt;
+    pt.x = current_pose[0];
+    pt.y = current_pose[1];
+    g_robot_path_marker_.points.push_back(pt);
+
+    g_points_pub_.publish(g_robot_path_marker_);
 }
