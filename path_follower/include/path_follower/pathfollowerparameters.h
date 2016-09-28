@@ -20,9 +20,9 @@ struct PathFollowerParameters : public Parameters
     //Parameters for the Local Planner
     P<std::string> algo;
     P<bool> c1, c2;
-    P<double> s1, s2, s3, s4, s5;
+    P<double> s1, s2, s3, s4, s5, s6;
     P<int> nnodes,depth,ic,ia;
-    P<double> uinterval,dis2p, dis2o, s_angle, lmf;
+    P<double> uinterval,dis2p, dis2o, s_angle, lmf, mu, ef;
     P<bool> use_v;
 
     // obstacle avoider
@@ -72,11 +72,13 @@ struct PathFollowerParameters : public Parameters
         s2(this, "~s2", 1.0,
            "Determines whether the second  scorer is used or not. (Distance to global path (D))"),
         s3(this, "~s3", 1.0,
-           "Determines whether the third scorer is used or not. (Curvature of the point)"),
+           "Determines whether the third scorer is used or not. (Curvature of the point (P))"),
         s4(this, "~s4", 1.0,
-           "Determines whether the fourth scorer is used or not. (Tree level reached)"),
+           "Determines whether the fouth scorer is used or not. (Curvature of the point (D))"),
         s5(this, "~s5", 1.0,
-           "Determines whether the fifth scorer is used or not. (Distance to nearest obstacle)"),
+           "Determines whether the fifth scorer is used or not. (Tree level reached)"),
+        s6(this, "~s6", 1.0,
+           "Determines whether the sixth scorer is used or not. (Distance to nearest obstacle)"),
         //Other local planner parameters
         nnodes(this, "~nnodes", 300,
                "Determines the maximum number of nodes used by the local planner"),
@@ -96,6 +98,10 @@ struct PathFollowerParameters : public Parameters
                 "Determines the steering angle (in degrees) for the local planner"),
         lmf(this, "~lmf", 1.0,
                 "Determines the multiplying factor of the intended length of the local path"),
+        mu(this, "~mu", 1.0,
+           "Determines the coefficient of friction"),
+        ef(this, "~ef", 1.0,
+           "Determines the multiplying factor for the argument of std::exp function in the dis2obst scorer"),
         use_v(this, "~use_v", true,
               "Determines if the current velocity is used by the local planner"),
 

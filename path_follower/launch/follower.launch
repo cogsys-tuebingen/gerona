@@ -20,6 +20,7 @@ Please make sure, you add an according launch file, if you implement a new contr
 	<arg name="s3" default="0.0" />
         <arg name="s4" default="0.0" />
         <arg name="s5" default="0.0" />
+        <arg name="s6" default="0.0" />
 
         <arg name="nnodes" default="300" />
         <arg name="depth" default="10" />
@@ -30,6 +31,8 @@ Please make sure, you add an according launch file, if you implement a new contr
         <arg name="dis2p" default="0.3" />
         <arg name="dis2o" default="0.85" />
         <arg name="s_angle" default="25.0" />
+        <arg name="mu" default="0.6" />
+        <arg name="ef" default="1.0" />
         <arg name="use_v" default="true" />
 
 	<include file="$(find path_follower)/launch/follower_$(arg controller).launch">
@@ -42,6 +45,7 @@ Please make sure, you add an according launch file, if you implement a new contr
 		<arg name="s3" value="$(arg s3)" />
                 <arg name="s4" value="$(arg s4)" />
                 <arg name="s5" value="$(arg s5)" />
+                <arg name="s6" value="$(arg s6)" />
 
                 <arg name="nnodes" value="$(arg nnodes)" />
                 <arg name="depth" value="$(arg depth)" />
@@ -52,6 +56,8 @@ Please make sure, you add an according launch file, if you implement a new contr
                 <arg name="dis2p" value="$(arg dis2p)" />
                 <arg name="dis2o" value="$(arg dis2o)" />
                 <arg name="s_angle" value="$(arg s_angle)" />
+                <arg name="mu" value="$(arg mu)" />
+                <arg name="ef" value="$(arg ef)" />
                 <arg name="use_v" value="$(arg use_v)" />
 	</include>
 </launch>
