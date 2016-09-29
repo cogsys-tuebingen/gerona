@@ -13,6 +13,7 @@ public:
     virtual ~Dis2Obst_Constraint();
     static void setLimit(double dis2o);
     static void setVDis(double dis);
+    double computeFrontier(double angle);
 
     virtual bool isSatisfied(const LNode& point) override;
 private:
