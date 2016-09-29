@@ -34,16 +34,14 @@ double Dis2Obst_Scorer::computeFrontier(double angle){
     double W = 0.61;
     double r;
     double vdis = full_d - DIS2O_;
-    if(angle <= beta - M_PI){
-        r = (L/2.0 + vdis)/std::cos(angle + M_PI);
+    if(angle <= beta - M_PI || angle > M_PI - beta){
+        r = -(L/2.0 + vdis)/std::cos(angle);
     }else if(angle > beta - M_PI && angle <= -beta){
-        r = (W/2.0 + vdis)/std::cos(angle + M_PI_2);
+        r = -(W/2.0 + vdis)/std::sin(angle);
     }else if(angle > -beta && angle <= beta){
         r = (L/2.0 + vdis)/std::cos(angle);
     }else if(angle > beta && angle <= M_PI - beta){
-        r = (W/2.0 + vdis)/std::cos(angle - M_PI_2);
-    }else if(angle > M_PI - beta){
-        r = (L/2.0 + vdis)/std::cos(angle - M_PI);
+        r = (W/2.0 + vdis)/std::sin(angle);
     }
     return r;
 }
