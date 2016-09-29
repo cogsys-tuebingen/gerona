@@ -14,6 +14,7 @@ public:
     static void setLimit(double dis2o);
     static void setVDis(double dis);
     static void setFactor(double factor);
+    double computeFrontier(double angle);
 
     virtual double score(const LNode& point) override;
 
