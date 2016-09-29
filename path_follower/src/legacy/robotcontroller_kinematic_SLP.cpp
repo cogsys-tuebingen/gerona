@@ -180,6 +180,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
             return RobotController::MoveCommandStatus::REACHED_GOAL;
 
         } else {
+            //reset the Frenet-Serret frame
+            ind_ = 0;
 
             ROS_INFO("Next subpath...");
             // interpolate the next subpath
