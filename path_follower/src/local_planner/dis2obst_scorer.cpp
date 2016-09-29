@@ -28,6 +28,26 @@ void Dis2Obst_Scorer::setFactor(double factor){
     factor_ = factor;
 }
 
+double Dis2Obst_Scorer::computeFrontier(double angle){
+    double beta = 0.70151140480816465482;//+-
+    double L = 0.722;
+    double W = 0.61;
+    double r;
+    double vdis = full_d - DIS2O_;
+    if(angle <= beta - M_PI){
+        r = (L/2.0 + vdis)/std::cos(angle + M_PI);
+    }else if(angle > beta - M_PI && angle <= -beta){
+        r = (W/2.0 + vdis)/std::cos(angle + M_PI_2);
+    }else if(angle > -beta && angle <= beta){
+        r = (L/2.0 + vdis)/std::cos(angle);
+    }else if(angle > beta && angle <= M_PI - beta){
+        r = (W/2.0 + vdis)/std::cos(angle - M_PI_2);
+    }else if(angle > M_PI - beta){
+        r = (L/2.0 + vdis)/std::cos(angle - M_PI);
+    }
+    return r;
+}
+
 double Dis2Obst_Scorer::score(const LNode& point){
     sw.resume();
     double score = 0;
@@ -39,7 +59,9 @@ double Dis2Obst_Scorer::score(const LNode& point){
     double orip = std::atan2(y,x);
     double adiff1;
     double adiff2 = MathHelper::AngleClamp(orio - orip)/2.0;
-    double exponent = factor_*(point.d2o - full_d);
+    //double exponent = factor_*(point.d2o - full_d);
+    double angle = MathHelper::AngleClamp(orio - point.orientation);
+    double exponent = factor_*(point.d2o - computeFrontier(angle));
     double factor = std::cos(adiff2)/std::exp(exponent);
     double adiff = MathHelper::AngleClamp(point.npp.orientation - orio)/2.0;
     double co = std::cos(adiff);

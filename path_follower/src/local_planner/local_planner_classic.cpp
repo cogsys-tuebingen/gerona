@@ -230,6 +230,7 @@ void LocalPlannerClassic::retrievePath(LNode* obj, SubPath& local_wps, double& l
 
 void LocalPlannerClassic::retrieveContinuity(LNode& wpose){
     global_path_.set_s_new(new_s);
+    double curv;
     if(last_local_path_.n()>0){
         std::size_t index = -1;
         double closest_point = std::numeric_limits<double>::infinity();
@@ -242,15 +243,15 @@ void LocalPlannerClassic::retrieveContinuity(LNode& wpose){
                 index = i;
             }
         }
-        double curv = last_local_path_.curvature(index);
-
-        if(curv == 0.0){
-            wpose.radius_ = std::numeric_limits<double>::infinity();
-        }else{
-            wpose.radius_ = 1.0/curv;
-        }
-
+        curv = last_local_path_.curvature(index);
         setLLP(index + 1);
+    }else{
+        curv = global_path_.curvature(index1);
+    }
+    if(curv == 0.0){
+        wpose.radius_ = std::numeric_limits<double>::infinity();
+    }else{
+        wpose.radius_ = 1.0/curv;
     }
 }
 
