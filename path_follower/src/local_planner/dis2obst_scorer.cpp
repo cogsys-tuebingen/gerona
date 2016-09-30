@@ -29,19 +29,19 @@ void Dis2Obst_Scorer::setFactor(double factor){
 }
 
 double Dis2Obst_Scorer::computeFrontier(double angle){
-    double beta = 0.70151140480816465482;//+-
-    double L = 0.722;
-    double W = 0.61;
-    double r;
     double vdis = full_d - DIS2O_;
+    double L = 0.722 + 2.0*vdis;
+    double W = 0.61 + 2.0*vdis;
+    double beta = std::acos(L/std::sqrt(L*L + W*W));
+    double r;
     if(angle <= beta - M_PI || angle > M_PI - beta){
-        r = -(L/2.0 + vdis)/std::cos(angle);
+        r = -L/(2.0*std::cos(angle));
     }else if(angle > beta - M_PI && angle <= -beta){
-        r = -(W/2.0 + vdis)/std::sin(angle);
+        r = -W/(2.0*std::sin(angle));
     }else if(angle > -beta && angle <= beta){
-        r = (L/2.0 + vdis)/std::cos(angle);
+        r = L/(2.0*std::cos(angle));
     }else if(angle > beta && angle <= M_PI - beta){
-        r = (W/2.0 + vdis)/std::sin(angle);
+        r = W/(2.0*std::sin(angle));
     }
     return r;
 }
