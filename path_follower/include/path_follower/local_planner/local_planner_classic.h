@@ -146,7 +146,7 @@ private:
 
     PathInterpolated last_local_path_;
 
-    double step_,stepc_,neig_s;
+    double step_,neig_s;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H

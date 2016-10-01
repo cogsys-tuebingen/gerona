@@ -20,7 +20,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
       d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),b_obst(false),index1(-1), index2(-1),
-      r_level(0), n_v(0), step_(0.0),stepc_(0.0),neig_s(0.0)
+      r_level(0), n_v(0), step_(0.0),neig_s(0.0)
 {
 
 }
@@ -313,7 +313,6 @@ void LocalPlannerClassic::setStep(){
     double l_step = 2.0*RT.front()*std::sin(H_D_THETA);
     neig_s = l_step*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
     Dis2Path_Constraint::setDRate(neig_s);
-    stepc_ = 2.0*RT.back()*std::sin(D_THETA.back()/2.0);
     double vdis = velocity_*velocity_/(2.0*9.81*mu_);
     Dis2Path_Constraint::setVDis(vdis);
     Dis2Obst_Constraint::setVDis(vdis);
