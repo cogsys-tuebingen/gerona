@@ -20,7 +20,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
       d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),b_obst(false),index1(-1), index2(-1),
-      r_level(0), n_v(0), step_(0.0),neig_s(0.0)
+      r_level(0), n_v(0), step_(0.0),neig_s(0.0),v_dis(0.0)
 {
 
 }
@@ -183,8 +183,13 @@ void LocalPlannerClassic::setDistances(LNode& current){
         tf::Point tmpnop(closest_x ,closest_y,0.0);
         tmpnop = base_to_odom * tmpnop;
         current.nop = Waypoint(tmpnop.x(), tmpnop.y(), 0.0);
+        double x = current.nop.x - current.x;
+        double y = current.nop.y - current.y;
+        double angle = MathHelper::AngleClamp(std::atan2(y,x) - current.orientation);
+        current.of = computeFrontier(angle);
     }else{
         current.d2o = std::numeric_limits<double>::infinity();
+        current.of = 0.0;
     }
 }
 
@@ -313,10 +318,7 @@ void LocalPlannerClassic::setStep(){
     double l_step = 2.0*RT.front()*std::sin(H_D_THETA);
     neig_s = l_step*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
     Dis2Path_Constraint::setDRate(neig_s);
-    double vdis = velocity_*velocity_/(2.0*9.81*mu_);
-    Dis2Path_Constraint::setVDis(vdis);
-    Dis2Obst_Constraint::setVDis(vdis);
-    Dis2Obst_Scorer::setVDis(vdis);
+    v_dis = velocity_*velocity_/(2.0*9.81*mu_);
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -702,6 +704,7 @@ void LocalPlannerClassic::setLLP(){
 
 void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle,
                                     int ia, double lmf, int max_level, double mu, double ef){
+    (void) dis2o;//TMP
     nnodes_ = nnodes;
     ic_ = ic;
     TH = s_angle*M_PI/180.0;
@@ -716,9 +719,9 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis
     Curvature_Scorer::setMaxC(RT.back());
     CurvatureD_Scorer::setMaxC(RT.back());
     Level_Scorer::setLevel(li_level);
-    Dis2Path_Constraint::setLimits(dis2p,dis2o);
-    Dis2Obst_Constraint::setLimit(dis2o);
-    Dis2Obst_Scorer::setLimit(dis2o);
+    Dis2Path_Constraint::setLimit(dis2p);
+    //Dis2Obst_Constraint::setLimit(dis2o);//TODO: use dis2o in other way
+    //Dis2Obst_Scorer::setLimit(dis2o);
     Dis2Obst_Scorer::setFactor(ef);
 }
 
@@ -798,12 +801,29 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     return areConstraintsSAT(alt,constraints,fconstraints);
 }
 
+double LocalPlannerClassic::computeFrontier(double& angle){
+    double L = GL + 2.0*v_dis;
+    double W = GW + 2.0*v_dis;
+    double beta = std::acos(L/std::sqrt(L*L + W*W));
+    double r;
+    if(angle <= beta - M_PI || angle > M_PI - beta){
+        r = -L/(2.0*std::cos(angle));
+    }else if(angle > beta - M_PI && angle <= -beta){
+        r = -W/(2.0*std::sin(angle));
+    }else if(angle > -beta && angle <= beta){
+        r = L/(2.0*std::cos(angle));
+    }else if(angle > beta && angle <= M_PI - beta){
+        r = W/(2.0*std::sin(angle));
+    }
+    return r;
+}
+
 bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
-                                  const std::vector<Constraint::Ptr>& constraints,
-                                  const std::vector<Scorer::Ptr>& scorer,
-                                  const std::vector<bool>& fconstraints,
-                                  const std::vector<double>& wscorer,
-                                  std::size_t& nnodes){
+                               const std::vector<Constraint::Ptr>& constraints,
+                               const std::vector<Scorer::Ptr>& scorer,
+                               const std::vector<bool>& fconstraints,
+                               const std::vector<double>& wscorer,
+                               std::size_t& nnodes){
     initIndexes(pose);
     b_obst = fconstraints.back() || wscorer.back() != 0;
 

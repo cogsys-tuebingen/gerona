@@ -77,6 +77,8 @@ private:
 
     void setStep();
 
+    double computeFrontier(double& angle);
+
     virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
                      const std::vector<Constraint::Ptr>& constraints,
                      const std::vector<Scorer::Ptr>& scorer,
@@ -129,7 +131,9 @@ private:
                                   const std::vector<double>& wscorer) = 0;
 
 private:
-    static constexpr double L = 0.458;//(L of Summit XL)
+    static constexpr double L = 0.458;//(Distance between front and rear axis of Summit XL)
+    static constexpr double GL = 0.722;
+    static constexpr double GW = 0.61;
     static std::vector<LNode> EMPTYTWINS;
 
     static std::size_t nnodes_;
@@ -146,7 +150,7 @@ private:
 
     PathInterpolated last_local_path_;
 
-    double step_,neig_s;
+    double step_,neig_s,v_dis;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H
