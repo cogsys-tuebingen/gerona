@@ -138,7 +138,8 @@ private:
 
     static std::size_t nnodes_;
     static int ic_, nsucc_, li_level;
-    static double TH, length_MF, mu_;
+    static double TH, length_MF, mudiv_;
+    static double GL, GW, FL, beta1;
     static std::vector<double> D_THETA, RT;
 
     double d2p, last_s, new_s, velocity_;
@@ -150,7 +151,7 @@ private:
 
     PathInterpolated last_local_path_;
 
-    double step_,neig_s,v_dis;
+    double step_, neig_s, FFL, beta2;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H

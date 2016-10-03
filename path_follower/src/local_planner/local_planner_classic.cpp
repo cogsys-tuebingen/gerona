@@ -12,7 +12,11 @@ std::vector<double> LocalPlannerClassic::RT;
 std::vector<double> LocalPlannerClassic::D_THETA;
 double LocalPlannerClassic::TH = 0.0;
 double LocalPlannerClassic::length_MF = 1.0;
-double LocalPlannerClassic::mu_ = 1.0;
+double LocalPlannerClassic::mudiv_ = 2.0*9.81;
+double LocalPlannerClassic::GL = LocalPlannerClassic::RL;
+double LocalPlannerClassic::GW = LocalPlannerClassic::RW;
+double LocalPlannerClassic::FL = LocalPlannerClassic::RL;
+double LocalPlannerClassic::beta1 = M_PI/4.0;
 std::vector<LNode> LocalPlannerClassic::EMPTYTWINS;
 
 LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
@@ -20,7 +24,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
       d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),b_obst(false),index1(-1), index2(-1),
-      r_level(0), n_v(0), step_(0.0),neig_s(0.0),v_dis(0.0)
+      r_level(0), n_v(0), step_(0.0),neig_s(0.0),FFL(FL)
 {
 
 }
@@ -318,7 +322,9 @@ void LocalPlannerClassic::setStep(){
     double l_step = 2.0*RT.front()*std::sin(H_D_THETA);
     neig_s = l_step*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
     Dis2Path_Constraint::setDRate(neig_s);
-    v_dis = velocity_*velocity_/(2.0*9.81*mu_);
+    double v_dis = velocity_*velocity_/mudiv_;
+    FFL = FL + 2.0*v_dis;
+    beta2 = std::acos(FFL/std::sqrt(FFL*FFL + GW*GW));
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -704,13 +710,11 @@ void LocalPlannerClassic::setLLP(){
 
 void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double adis, double fdis, double s_angle,
                                     int ia, double lmf, int max_level, double mu, double ef){
-    (void) adis;//TMP
-    (void) fdis;
     nnodes_ = nnodes;
     ic_ = ic;
     TH = s_angle*M_PI/180.0;
     length_MF = lmf;
-    mu_ = mu;
+    mudiv_ = 2.0*9.81*mu;
     li_level = max_level;
     RT.clear();
     for(int i = 0; i <= ia; ++i){
@@ -722,6 +726,10 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double adi
     Level_Scorer::setLevel(li_level);
     Dis2Path_Constraint::setLimit(dis2p);
     Dis2Obst_Scorer::setFactor(ef);
+    GL = RL + 2.0*adis;
+    FL = GL + 2.0*fdis;
+    GW = RW + 2.0*adis;
+    beta1 = std::acos(GL/std::sqrt(GL*GL + GW*GW));
 }
 
 void LocalPlannerClassic::printVelocity(){
@@ -801,18 +809,15 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
 }
 
 double LocalPlannerClassic::computeFrontier(double& angle){
-    double L = RL + 2.0*v_dis;
-    double W = RW + 2.0*v_dis;
-    double beta = std::acos(L/std::sqrt(L*L + W*W));
     double r;
-    if(angle <= beta - M_PI || angle > M_PI - beta){
-        r = -L/(2.0*std::cos(angle));
-    }else if(angle > beta - M_PI && angle <= -beta){
-        r = -W/(2.0*std::sin(angle));
-    }else if(angle > -beta && angle <= beta){
-        r = L/(2.0*std::cos(angle));
-    }else if(angle > beta && angle <= M_PI - beta){
-        r = W/(2.0*std::sin(angle));
+    if(angle <= beta1 - M_PI || angle > M_PI - beta1){
+        r = -GL/(2.0*std::cos(angle));
+    }else if(angle > beta1 - M_PI && angle <= -beta2){
+        r = -GW/(2.0*std::sin(angle));
+    }else if(angle > -beta2 && angle <= beta2){
+        r = FFL/(2.0*std::cos(angle));
+    }else if(angle > beta2 && angle <= M_PI - beta1){
+        r = GW/(2.0*std::sin(angle));
     }
     return r;
 }
