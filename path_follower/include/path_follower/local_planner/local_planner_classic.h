@@ -15,7 +15,7 @@ public:
 
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
     virtual void setVelocity(double velocity) override;
-    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle,
+    virtual void setParams(int nnodes, int ic, double dis2p, double adis, double fdis, double s_angle,
                            int ia, double lmf, int max_level, double mu, double ef) override;
 
 protected:
@@ -132,8 +132,8 @@ private:
 
 private:
     static constexpr double L = 0.458;//(Distance between front and rear axis of Summit XL)
-    static constexpr double GL = 0.722;
-    static constexpr double GW = 0.61;
+    static constexpr double RL = 0.722;
+    static constexpr double RW = 0.61;
     static std::vector<LNode> EMPTYTWINS;
 
     static std::size_t nnodes_;

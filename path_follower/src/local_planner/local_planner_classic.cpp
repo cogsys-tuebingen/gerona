@@ -702,9 +702,10 @@ void LocalPlannerClassic::setLLP(){
     setLLP(last_local_path_.n());
 }
 
-void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle,
+void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double adis, double fdis, double s_angle,
                                     int ia, double lmf, int max_level, double mu, double ef){
-    (void) dis2o;//TMP
+    (void) adis;//TMP
+    (void) fdis;
     nnodes_ = nnodes;
     ic_ = ic;
     TH = s_angle*M_PI/180.0;
@@ -720,8 +721,6 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis
     CurvatureD_Scorer::setMaxC(RT.back());
     Level_Scorer::setLevel(li_level);
     Dis2Path_Constraint::setLimit(dis2p);
-    //Dis2Obst_Constraint::setLimit(dis2o);//TODO: use dis2o in other way
-    //Dis2Obst_Scorer::setLimit(dis2o);
     Dis2Obst_Scorer::setFactor(ef);
 }
 
@@ -780,7 +779,7 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
         alt = *s_p;
         alt.orientation = parent->orientation;
         alt.parent_ = parent;
-        alt.radius_ = std::numeric_limits<double>::infinity();;
+        alt.radius_ = std::numeric_limits<double>::infinity();
         return true;
     }
     double R = (a*a)/divisor;
@@ -802,8 +801,8 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
 }
 
 double LocalPlannerClassic::computeFrontier(double& angle){
-    double L = GL + 2.0*v_dis;
-    double W = GW + 2.0*v_dis;
+    double L = RL + 2.0*v_dis;
+    double W = RW + 2.0*v_dis;
     double beta = std::acos(L/std::sqrt(L*L + W*W));
     double r;
     if(angle <= beta - M_PI || angle > M_PI - beta){
