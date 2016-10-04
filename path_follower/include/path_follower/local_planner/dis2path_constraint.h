@@ -13,13 +13,12 @@ public:
     virtual ~Dis2Path_Constraint();
     void setParams(double new_limit);
     static void setDRate(double d_rate);
-    static void setLimits(double dis2p, double dis2o);
-    static void setVDis(double dis);
+    static void setLimit(double dis2p);
     double getLimit();
 
     virtual bool isSatisfied(const LNode& point) override;
 private:
-    static double D_RATE, DIS2P_, DIS2O_, vdis_;
+    static double D_RATE, DIS2P_;
     double limit;
     int level;
 };

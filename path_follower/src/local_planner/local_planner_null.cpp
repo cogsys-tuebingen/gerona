@@ -42,12 +42,13 @@ bool LocalPlannerNull::isNull() const
     return true;
 }
 
-void LocalPlannerNull::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle,
+void LocalPlannerNull::setParams(int nnodes, int ic, double dis2p,  double adis, double fdis, double s_angle,
                                  int ia, double lmf, int max_level, double mu, double ef){
     (void) nnodes;
     (void) ic;
     (void) dis2p;
-    (void) dis2o;
+    (void) adis;
+    (void) fdis;
     (void) s_angle;
     (void) ia;
     (void) lmf;
