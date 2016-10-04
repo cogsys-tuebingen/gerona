@@ -1,5 +1,5 @@
-#ifndef ROBOTCONTROLLER_ACKERMANN_KINEMATIC_H
-#define ROBOTCONTROLLER_ACKERMANN_KINEMATIC_H
+#ifndef ROBOTCONTROLLER_ACKERMANN_INPUTSCALING_H
+#define ROBOTCONTROLLER_ACKERMANN_INPUTSCALING_H
 
 #include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
@@ -8,11 +8,11 @@
 
 #include <ros/ros.h>
 
-class RobotController_Ackermann_Kinematic : public RobotController_Interpolation
+class RobotController_Ackermann_Inputscaling : public RobotController_Interpolation
 {
 public:
-	RobotController_Ackermann_Kinematic(PathFollower* _path_follower);
-	virtual ~RobotController_Ackermann_Kinematic(){}
+    RobotController_Ackermann_Inputscaling(PathFollower* _path_follower);
+    virtual ~RobotController_Ackermann_Inputscaling(){}
 
 	virtual void stopMotion();
 	virtual void start();
@@ -67,23 +67,16 @@ private:
 
 	//! Tuning parameters
 	double k1_, k2_, k3_;
-	//! Last waypoint index
-//	unsigned int old_waypoint_;
+    //! Last waypoint index
 	unsigned int ind_;
 	//! Current steering angle
 	double phi_;
 	//! v1 longitudinal velocity, v2 (steering angle speed)
 	double v1_, v2_;
 	//! ds/dt (path velocity of the last frame)
-	double /*s_,*/ s_prim_;
-	//! Last and before last steering angle
-//	double old_phi_, old_old_phi_;
-//	//! Last values of d and theta_e, used to compute derivations
-//	double old_d_, old_theta_e_;
-//	//! Derivations of d, theta_e, phi_prim, are only updated every few frames
-//	double d_prim_, theta_e_prim_, phi_prim_;
+    double s_prim_;
 	//! The time of the last update (to compute the time that has passed since then)
 	ros::Time old_time_;
 };
 
-#endif // ROBOTCONTROLLER_ACKERMANN_KINEMATIC_H
+#endif // ROBOTCONTROLLER_ACKERMANN_INPUTSCALING_H

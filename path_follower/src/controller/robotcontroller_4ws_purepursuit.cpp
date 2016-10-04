@@ -4,7 +4,7 @@
  *      Author: Lukas Hollaender
  */
 
-#include <path_follower/legacy/robotcontroller_4ws_purepursuit.h>
+#include <path_follower/controller/robotcontroller_4ws_purepursuit.h>
 #include <path_follower/pathfollower.h>
 #include <ros/ros.h>
 
@@ -121,8 +121,6 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 
 	move_cmd_.setDirection(getDirSign() * (float) phi);
 	move_cmd_.setVelocity(getDirSign() * (float) velocity_);
-
-	ROS_INFO("Command: vel=%f, angle=%f", velocity_, phi);
 
 	*cmd = move_cmd_;
 

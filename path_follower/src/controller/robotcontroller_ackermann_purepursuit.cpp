@@ -5,7 +5,7 @@
  *      Author: Lukas Hollaender
  */
 
-#include <path_follower/legacy/robotcontroller_ackermann_purepursuit.h>
+#include <path_follower/controller/robotcontroller_ackermann_purepursuit.h>
 #include <path_follower/pathfollower.h>
 #include <ros/ros.h>
 

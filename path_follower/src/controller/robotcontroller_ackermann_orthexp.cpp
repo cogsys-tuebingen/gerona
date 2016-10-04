@@ -1,5 +1,5 @@
 // HEADER
-#include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
+#include <path_follower/controller/robotcontroller_ackermann_orthexp.h>
 
 // THIRD PARTY
 #include <nav_msgs/Path.h>

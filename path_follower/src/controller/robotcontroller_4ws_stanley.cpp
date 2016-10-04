@@ -1,4 +1,4 @@
-#include <path_follower/legacy/robotcontroller_ackermann_stanley.h>
+#include <path_follower/controller/robotcontroller_4ws_stanley.h>
 
 #include <path_follower/pathfollower.h>
 #include <ros/ros.h>
@@ -15,21 +15,28 @@
 #include <limits>
 #include <boost/algorithm/clamp.hpp>
 
-RobotController_Ackermann_Stanley::RobotController_Ackermann_Stanley(PathFollower* _path_follower) :
+
+#ifdef TEST_OUTPUT
+#include <std_msgs/Float64MultiArray.h>
+#endif
+
+RobotController_4WS_Stanley::RobotController_4WS_Stanley(PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower) {
 
 	ROS_INFO("Parameters: k_forward=%f, k_backward=%f\n"
 				"vehicle_length=%f\n"
-				"factor_steering_angle=%f\n"
 				"goal_tolerance=%f",
 				params_.k_forward(), params_.k_backward(),
 				params_.vehicle_length(),
-				params_.factor_steering_angle(),
 				params_.goal_tolerance());
+
+#ifdef TEST_OUTPUT
+	test_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/test_output", 100);
+#endif
 
 }
 
-void RobotController_Ackermann_Stanley::stopMotion() {
+void RobotController_4WS_Stanley::stopMotion() {
 
 	move_cmd_.setVelocity(0.f);
 	move_cmd_.setDirection(0.f);
@@ -38,21 +45,32 @@ void RobotController_Ackermann_Stanley::stopMotion() {
 	publishMoveCommand(cmd);
 }
 
-void RobotController_Ackermann_Stanley::start() {
+void RobotController_4WS_Stanley::start() {
 	path_driver_->getCoursePredictor().reset();
 }
 
-RobotController::MoveCommandStatus RobotController_Ackermann_Stanley::computeMoveCommand(
-		MoveCommand* cmd) {
+void RobotController_4WS_Stanley::setPath(Path::Ptr path) {
+	RobotController_Interpolation::setPath(path);
 
-	ROS_INFO("===============================");
+	Eigen::Vector3d pose = path_driver_->getRobotPose();
+	const double theta_diff = MathHelper::AngleDelta(path_interpol.theta_p(0), pose[2]);
+
+	// decide whether to drive forward or backward
+	if (theta_diff > M_PI_2 || theta_diff < -M_PI_2)
+		setDirSign(-1.f);
+	else
+		setDirSign(1.f);
+}
+
+RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveCommand(
+		MoveCommand* cmd) {
 
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
 	const Eigen::Vector3d pose = path_driver_->getRobotPose();
+	const geometry_msgs::Twist velocity_measured = path_driver_->getVelocity();
 
-	// TODO: theta should also be considered in goal test
 	// goal test
 	if (reachedGoal(pose)) {
 		path_->switchToNextSubPath();
@@ -74,6 +92,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Stanley::computeMov
 			} catch(const alglib::ap_error& error) {
 				throw std::runtime_error(error.msg);
 			}
+			// invert driving direction
+			setDirSign(-getDirSign());
 		}
 	}
 
@@ -109,35 +129,34 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Stanley::computeMov
 	// theta_e = theta_vehicle - theta_path (orientation error)
 	double theta_e = MathHelper::AngleDelta(pose[2], path_interpol.theta_p(ind));
 
-	// if |theta_e| > 90° we drive backwards
-	if (theta_e > M_PI_2) {
-		setDirSign(-1.f);
-		d = -d;
-		theta_e = M_PI - theta_e;
-	} else if (theta_e < -M_PI_2) {
-		setDirSign(-1.f);
-		d = -d;
-		theta_e = -M_PI - theta_e;
-	} else {
-		setDirSign(1.f);
-	}
+	// if we drive backwards invert d and set theta_e to the complementary angle
+	if (getDirSign() < 0.)
+		theta_e = theta_e > 0.? -M_PI + theta_e : M_PI + theta_e;
 
 	const double k = getDirSign() > 0. ? params_.k_forward() : params_.k_backward();
+	const double v = max(abs(velocity_measured.linear.x), 0.3);
 
-	const double phi = theta_e + atan2(k * d, velocity_);
+	// steering angle
+	double phi = theta_e + atan2(k * d, v);
 
-	// This is the accurate steering angle for 4 wheel steering
-	const float phi_actual = (float) asin(params_.factor_steering_angle() * sin(phi));
+	if (phi == NAN)
+		phi = 0.;
 
-	move_cmd_.setDirection(phi_actual);
+	phi = boost::algorithm::clamp(phi, -params_.max_steering_angle(), params_.max_steering_angle());
+
+	move_cmd_.setDirection(getDirSign() * (float) phi);
 	move_cmd_.setVelocity(getDirSign() * (float) velocity_);
+
+#ifdef TEST_OUTPUT
+	publishTestOutput(ind, d, theta_e, phi, v);
+#endif
 
 	*cmd = move_cmd_;
 
 	return RobotController::MoveCommandStatus::OKAY;
 }
 
-void RobotController_Ackermann_Stanley::publishMoveCommand(
+void RobotController_4WS_Stanley::publishMoveCommand(
 		const MoveCommand& cmd) const {
 
 	geometry_msgs::Twist msg;
@@ -147,3 +166,19 @@ void RobotController_Ackermann_Stanley::publishMoveCommand(
 
 	cmd_pub_.publish(msg);
 }
+
+#ifdef TEST_OUTPUT
+void RobotController_4WS_Stanley::publishTestOutput(const unsigned int waypoint, const double d,
+																	 const double theta_e,
+																	 const double phi, const double v) const {
+	std_msgs::Float64MultiArray msg;
+
+	msg.data.push_back((double) waypoint);
+	msg.data.push_back(d);
+	msg.data.push_back(theta_e);
+	msg.data.push_back(phi);
+	msg.data.push_back(v);
+
+	test_pub_.publish(msg);
+}
+#endif
