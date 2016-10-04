@@ -55,14 +55,14 @@ Launch the path follower with the stanley controller for a car-like (Ackermann) 
 
 
 	 <!-- simulation -->
-	 <!--param name="k_forward" value="1.0" />
+	 <param name="k_forward" value="1.0" />
 	 <param name="k_backward" value="3.0" />
-	 <param name="factor_steering_angle" value="1.0" /-->
+	 <param name="factor_steering_angle" value="1.0" />
 
 	 <!-- robot -->
-	 <param name="k_forward" value="0.7" />
+	 <!-- param name="k_forward" value="0.7" />
 	 <param name="k_backward" value="0.7" />
-	 <param name="factor_steering_angle" value="0.5" />
+	 <param name="factor_steering_angle" value="0.5" / -->
 
 
 	 <param name="vehicle_length" value="0.34" />

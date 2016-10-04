@@ -74,14 +74,12 @@ void RobotController_Ackermann_Inputscaling::reset() {
 void RobotController_Ackermann_Inputscaling::setPath(Path::Ptr path) {
 	RobotController_Interpolation::setPath(path);
 
-	Eigen::Vector3d pose = path_driver_->getRobotPose();
-	const double theta_diff = MathHelper::AngleDelta(path_interpol.theta_p(0), pose[2]);
-
-	// decide whether to drive forward or backward
-	if (theta_diff > M_PI_2 || theta_diff < -M_PI_2)
-		setDirSign(-1.f);
-	else
-		setDirSign(1.f);
+    // decide whether to drive forward or backward
+    if (path_->getCurrentSubPath().forward) {
+        setDirSign(1.f);
+    } else {
+        setDirSign(-1.f);
+    }
 }
 
 RobotController::MoveCommandStatus RobotController_Ackermann_Inputscaling::computeMoveCommand(
