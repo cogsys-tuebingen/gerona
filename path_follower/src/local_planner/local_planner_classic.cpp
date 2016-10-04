@@ -265,7 +265,7 @@ void LocalPlannerClassic::retrieveContinuity(LNode& wpose){
 }
 
 void LocalPlannerClassic::setD2P(LNode& wpose){
-    d2p = 2.0*wpose.d2p;
+    d2p = 1.5*wpose.d2p;
 }
 
 bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){

@@ -15,12 +15,12 @@ demonstrating the navigation framework.
     <arg name="c1" default="true" />
     <arg name="c2" default="true" />
 
-    <arg name="s1" default="1.0" />
+    <arg name="s1" default="3.0" />
     <arg name="s2" default="1.0" />
     <arg name="s3" default="1.0" />
     <arg name="s4" default="1.0" />
     <arg name="s5" default="2.25" />
-    <arg name="s6" default="-2.25" />
+    <arg name="s6" default="-3.25" />
 
     <arg name="nnodes" default="400" />
     <arg name="depth" default="10" />
@@ -28,7 +28,7 @@ demonstrating the navigation framework.
     <arg name="ia" default="0" />
     <arg name="uinterval" default="0.5" />
     <arg name="lmf" default="3.0" />
-    <arg name="dis2p" default="0.4" />
+    <arg name="dis2p" default="0.8" />
     <arg name="adis" default="0.1" />
     <arg name="fdis" default="0.2" />
     <arg name="s_angle" default="45.0" />
