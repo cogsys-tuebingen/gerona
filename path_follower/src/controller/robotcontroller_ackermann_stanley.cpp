@@ -42,10 +42,24 @@ void RobotController_Ackermann_Stanley::start() {
 	path_driver_->getCoursePredictor().reset();
 }
 
+void RobotController_Ackermann_Stanley::reset() {
+
+    RobotController_Interpolation::reset();
+}
+
+void RobotController_Ackermann_Stanley::setPath(Path::Ptr path) {
+    RobotController_Interpolation::setPath(path);
+
+    // decide whether to drive forward or backward
+    if (path_->getCurrentSubPath().forward) {
+        setDirSign(1.f);
+    } else {
+        setDirSign(-1.f);
+    }
+}
+
 RobotController::MoveCommandStatus RobotController_Ackermann_Stanley::computeMoveCommand(
 		MoveCommand* cmd) {
-
-	ROS_INFO("===============================");
 
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;

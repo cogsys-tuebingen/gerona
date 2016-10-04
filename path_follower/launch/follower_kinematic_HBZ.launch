@@ -34,7 +34,7 @@
     <param name="supervisor/path_lookout/path_width" value="0.5" />
     <param name="supervisor/distance_to_path/max_dist" value="2.0" />
     
-    <param name="controller" value="kinematic_SSG" />
+    <param name="controller" value="kinematic_HBZ" />
     
     <param name="waypoint_tolerance" value="2.0" />
     <param name="goal_tolerance" value="0.05" />
