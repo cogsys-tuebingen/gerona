@@ -1,5 +1,5 @@
 // HEADER
-#include <path_follower/controller/robotcontroller_kinematic_SSG.h>
+#include <path_follower/controller/robotcontroller_kinematic_HBZ.h>
 
 // THIRD PARTY
 #include <nav_msgs/Path.h>
@@ -23,7 +23,7 @@
 using namespace Eigen;
 
 
-RobotController_Kinematic_SSG::RobotController_Kinematic_SSG(PathFollower *path_driver):
+RobotController_Kinematic_HBZ::RobotController_Kinematic_HBZ(PathFollower *path_driver):
     RobotController_Interpolation(path_driver),
     cmd_(this),
     vn_(0),
@@ -41,10 +41,10 @@ RobotController_Kinematic_SSG::RobotController_Kinematic_SSG(PathFollower *path_
 {
 
     wheel_velocities_ = nh_.subscribe<std_msgs::Float64MultiArray>("/wheel_velocities", 10,
-                                                                   &RobotController_Kinematic_SSG::WheelVelocities, this);
+                                                                   &RobotController_Kinematic_HBZ::WheelVelocities, this);
 }
 
-void RobotController_Kinematic_SSG::stopMotion()
+void RobotController_Kinematic_HBZ::stopMotion()
 {
 
     cmd_.speed = 0;
@@ -55,7 +55,7 @@ void RobotController_Kinematic_SSG::stopMotion()
     publishMoveCommand(mcmd);
 }
 
-void RobotController_Kinematic_SSG::initialize()
+void RobotController_Kinematic_HBZ::initialize()
 {
     RobotController_Interpolation::initialize();
 
@@ -72,7 +72,7 @@ void RobotController_Kinematic_SSG::initialize()
 
 }
 
-void RobotController_Kinematic_SSG::WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array)
+void RobotController_Kinematic_HBZ::WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array)
 {
     double frw = array->data[0];
     double flw = array->data[1];
@@ -83,17 +83,17 @@ void RobotController_Kinematic_SSG::WheelVelocities(const std_msgs::Float64Multi
     Vr_ = (frw + brw)/2.0;
 }
 
-void RobotController_Kinematic_SSG::start()
+void RobotController_Kinematic_HBZ::start()
 {
     path_driver_->getCoursePredictor().reset();
 }
 
-void RobotController_Kinematic_SSG::reset()
+void RobotController_Kinematic_HBZ::reset()
 {
     RobotController_Interpolation::reset();
 }
 
-void RobotController_Kinematic_SSG::calculateMovingDirection()
+void RobotController_Kinematic_HBZ::calculateMovingDirection()
 {
     // decide whether to drive forward or backward
     if (path_->getCurrentSubPath().forward) {
@@ -103,14 +103,14 @@ void RobotController_Kinematic_SSG::calculateMovingDirection()
     }
 }
 
-void RobotController_Kinematic_SSG::setPath(Path::Ptr path)
+void RobotController_Kinematic_HBZ::setPath(Path::Ptr path)
 {
     RobotController_Interpolation::setPath(path);
 
     calculateMovingDirection();
 }
 
-RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCommand(MoveCommand *cmd)
+RobotController::MoveCommandStatus RobotController_Kinematic_HBZ::computeMoveCommand(MoveCommand *cmd)
 {
     // omni drive can rotate.
     *cmd = MoveCommand(true);
@@ -377,7 +377,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SSG::computeMoveCom
     return MoveCommandStatus::OKAY;
 }
 
-void RobotController_Kinematic_SSG::publishMoveCommand(const MoveCommand &cmd) const
+void RobotController_Kinematic_HBZ::publishMoveCommand(const MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
     msg.linear.x  = cmd.getVelocity();

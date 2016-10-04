@@ -29,7 +29,7 @@
 #include <path_follower/controller/robotcontroller_differential_orthexp.h>
 #include <path_follower/controller/robotcontroller_kinematic_SLP.h>
 #include <path_follower/controller/robotcontroller_dynamic_SLP.h>
-#include <path_follower/controller/robotcontroller_kinematic_SSG.h>
+#include <path_follower/controller/robotcontroller_kinematic_HBZ.h>
 // Supervisors
 #include <path_follower/supervisor/pathlookout.h>
 #include <path_follower/supervisor/waypointtimeout.h>
@@ -166,10 +166,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
         controller_ = std::make_shared<RobotController_Dynamic_SLP>(this);
-    } else if (opt_.controller() == "kinematic_SSG") {
+    } else if (opt_.controller() == "kinematic_HBZ") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
-        controller_ = std::make_shared<RobotController_Kinematic_SSG>(this);
+        controller_ = std::make_shared<RobotController_Kinematic_HBZ>(this);
     } else if (opt_.controller() == "ICR_CCW") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
