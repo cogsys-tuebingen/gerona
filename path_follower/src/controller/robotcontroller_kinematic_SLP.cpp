@@ -1,5 +1,5 @@
 // HEADER
-#include <path_follower/legacy/robotcontroller_kinematic_SLP.h>
+#include <path_follower/controller/robotcontroller_kinematic_SLP.h>
 
 // THIRD PARTY
 #include <nav_msgs/Path.h>

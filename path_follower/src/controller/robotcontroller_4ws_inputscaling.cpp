@@ -1,4 +1,4 @@
-#include <path_follower/legacy/robotcontroller_4ws_inputscaling.h>
+#include <path_follower/controller/robotcontroller_4ws_inputscaling.h>
 #include <path_follower/pathfollower.h>
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>

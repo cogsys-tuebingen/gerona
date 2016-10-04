@@ -4,7 +4,7 @@
  *      Author: Lukas Hollaender
  */
 
-#include <path_follower/legacy/robotcontroller_4ws_purepursuit.h>
+#include <path_follower/controller/robotcontroller_4ws_purepursuit.h>
 #include <path_follower/pathfollower.h>
 #include <ros/ros.h>
 

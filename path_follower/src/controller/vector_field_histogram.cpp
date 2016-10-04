@@ -1,5 +1,5 @@
 /// HEADER
-#include <path_follower/legacy/vector_field_histogram.h>
+#include <path_follower/controller/vector_field_histogram.h>
 
 /// SYSTEM
 #include <opencv2/opencv.hpp>

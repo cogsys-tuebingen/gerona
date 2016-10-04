@@ -1,5 +1,5 @@
 // HEADER
-#include <path_follower/legacy/robotcontroller_kinematic_SSG.h>
+#include <path_follower/controller/robotcontroller_kinematic_SSG.h>
 
 // THIRD PARTY
 #include <nav_msgs/Path.h>
@@ -39,10 +39,6 @@ RobotController_Kinematic_SSG::RobotController_Kinematic_SSG(PathFollower *path_
     distance_to_goal_(1e6),
     distance_to_obstacle_(1)
 {
-    laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
-                                                             &RobotController_Kinematic_SSG::laserFront, this);
-    laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
-                                                            &RobotController_Kinematic_SSG::laserBack, this);
 
     wheel_velocities_ = nh_.subscribe<std_msgs::Float64MultiArray>("/wheel_velocities", 10,
                                                                    &RobotController_Kinematic_SSG::WheelVelocities, this);
@@ -76,30 +72,6 @@ void RobotController_Kinematic_SSG::initialize()
 
 }
 
-void RobotController_Kinematic_SSG::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
-{
-    ranges_front_.clear();
-    for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
-        float range = scan->ranges[i];
-        if(range > scan->range_min && range < scan->range_max) {
-            ranges_front_.push_back(range);
-        }
-    }
-    findMinDistance();
-}
-
-void RobotController_Kinematic_SSG::laserBack(const sensor_msgs::LaserScanConstPtr &scan)
-{
-    ranges_back_.clear();
-    for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
-        float range = scan->ranges[i];
-        if(range > scan->range_min && range < scan->range_max) {
-            ranges_back_.push_back(range);
-        }
-    }
-    findMinDistance();
-}
-
 void RobotController_Kinematic_SSG::WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array)
 {
     double frw = array->data[0];
@@ -109,23 +81,6 @@ void RobotController_Kinematic_SSG::WheelVelocities(const std_msgs::Float64Multi
 
     Vl_ = (flw + blw)/2.0;
     Vr_ = (frw + brw)/2.0;
-}
-
-//TODO: work with the obstacle map!!!
-void RobotController_Kinematic_SSG::findMinDistance()
-{
-    std::vector<float> ranges;
-    ranges.insert(ranges.end(), ranges_front_.begin(), ranges_front_.end());
-    ranges.insert(ranges.end(), ranges_back_.begin(), ranges_back_.end());
-    std::sort(ranges.begin(), ranges.end());
-
-    if(ranges.size() <= 7) {
-       distance_to_obstacle_ = 0;
-        return;
-    }
-
-    distance_to_obstacle_ = ranges[0];
-
 }
 
 void RobotController_Kinematic_SSG::start()
