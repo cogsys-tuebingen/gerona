@@ -122,8 +122,6 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 	move_cmd_.setDirection(getDirSign() * (float) phi);
 	move_cmd_.setVelocity(getDirSign() * (float) velocity_);
 
-	ROS_INFO("Command: vel=%f, angle=%f", velocity_, phi);
-
 	*cmd = move_cmd_;
 
 #ifdef TEST_OUTPUT

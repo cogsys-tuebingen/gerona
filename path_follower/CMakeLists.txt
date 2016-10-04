@@ -94,7 +94,7 @@ add_library(${PROJECT_NAME} SHARED
 
     src/controller/robotcontroller_ackermann_orthexp.cpp
     src/controller/robotcontroller_ackermann_purepursuit.cpp
-    src/controller/robotcontroller_ackermann_kinematic.cpp
+    src/controller/robotcontroller_ackermann_inputscaling.cpp
     src/controller/robotcontroller_ackermann_stanley.cpp
     src/controller/robotcontroller_4ws_purepursuit.cpp
     src/controller/robotcontroller_4ws_stanley.cpp

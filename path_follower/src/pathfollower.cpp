@@ -19,7 +19,7 @@
 
 #include <path_follower/controller/robotcontroller_ackermann_orthexp.h>
 #include <path_follower/controller/robotcontroller_ackermann_purepursuit.h>
-#include <path_follower/controller/robotcontroller_ackermann_kinematic.h>
+#include <path_follower/controller/robotcontroller_ackermann_inputscaling.h>
 #include <path_follower/controller/robotcontroller_ackermann_stanley.h>
 #include <path_follower/controller/robotcontroller_4ws_purepursuit.h>
 #include <path_follower/controller/robotcontroller_4ws_stanley.h>
@@ -106,10 +106,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
         controller_ = std::make_shared<Robotcontroller_Ackermann_PurePursuit>(this);
 
-    } else if (opt_.controller() == "ackermann_kinematic") {
+    } else if (opt_.controller() == "ackermann_inputscaling") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
-        controller_ = std::make_shared<RobotController_Ackermann_Kinematic>(this);
+        controller_ = std::make_shared<RobotController_Ackermann_Inputscaling>(this);
 
     } else if (opt_.controller() == "ackermann_stanley") {
         if (opt_.obstacle_avoider_use_collision_box())

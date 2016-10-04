@@ -100,10 +100,6 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
     double velocity_measured = dir_sign_ * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
             + v_meas_twist.linear.y * v_meas_twist.linear.y);
 
-    ROS_INFO("desired velocity = %f, measured velocity = %f", velocity_, velocity_measured);
-    ROS_INFO("measured.linear.x = %f, measured.linear.y = %f, measured.linear.z = %f", v_meas_twist.linear.x,
-             v_meas_twist.linear.y, v_meas_twist.linear.z);
-
 	// goal test
 	if (reachedGoal(pose)) {
 		path_->switchToNextSubPath();
