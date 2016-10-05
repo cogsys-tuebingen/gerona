@@ -24,9 +24,14 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
       d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),b_obst(false),index1(-1), index2(-1),
-      r_level(0), n_v(0), step_(0.0),neig_s(0.0),FFL(FL)
+      r_level(0), n_v(0), step_(0.0),neig_s(0.0),FFL(FL),l_obstacle_cloud_(new ObstacleCloud)
 {
-
+    //DEBUG
+    local_obst_pub_ = follower_.getNodeHandle().advertise<ObstacleCloud>("local_obst_points", 10);
+    l_obstacle_cloud_->header.frame_id = "/odom";
+    const ros::Time time_st = ros::Time::now ();
+    l_obstacle_cloud_->header.stamp = time_st.toNSec()/1e3;
+    //
 }
 
 void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
@@ -187,6 +192,10 @@ void LocalPlannerClassic::setDistances(LNode& current){
         tf::Point tmpnop(closest_x ,closest_y,0.0);
         tmpnop = base_to_odom * tmpnop;
         current.nop = Waypoint(tmpnop.x(), tmpnop.y(), 0.0);
+        //! Debug
+        const ObstaclePoint op(tmpnop.x(),tmpnop.y(),0.0);
+        l_obstacle_cloud_->push_back(op);
+        //! Debug
         double x = current.nop.x - current.x;
         double y = current.nop.y - current.y;
         double angle = MathHelper::AngleClamp(std::atan2(y,x) - current.orientation);
@@ -828,6 +837,7 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
                                const std::vector<bool>& fconstraints,
                                const std::vector<double>& wscorer,
                                std::size_t& nnodes){
+    l_obstacle_cloud_->clear();
     initIndexes(pose);
     b_obst = fconstraints.back() || wscorer.back() != 0;
 
@@ -885,6 +895,9 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         }
     }
     reconfigureTree(obj, nodes, best_p, constraints, scorer, fconstraints,wscorer);
+    //! Debug
+    local_obst_pub_.publish(l_obstacle_cloud_);
+    //!
     if(obj != nullptr){
         return processPath(obj, local_wps);
     }else{

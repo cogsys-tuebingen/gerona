@@ -152,6 +152,11 @@ private:
     PathInterpolated last_local_path_;
 
     double step_, neig_s, FFL, beta2;
+
+    //! Debug Publisher
+    ros::Publisher local_obst_pub_;
+    //! The last received obstacle cloud
+    ObstacleCloud::Ptr l_obstacle_cloud_;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H
