@@ -1,5 +1,5 @@
 // HEADER
-#include <path_follower/legacy/robotcontroller_differential_orthexp.h>
+#include <path_follower/controller/robotcontroller_differential_orthexp.h>
 
 // THIRD PARTY
 #include <nav_msgs/Path.h>

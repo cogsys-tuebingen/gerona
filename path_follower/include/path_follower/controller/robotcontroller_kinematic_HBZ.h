@@ -1,5 +1,5 @@
-#ifndef ROBOTCONTROLLER_KINEMATIC_SSG_H
-#define ROBOTCONTROLLER_KINEMATIC_SSG_H
+#ifndef ROBOTCONTROLLER_KINEMATIC_HBZ_H
+#define ROBOTCONTROLLER_KINEMATIC_HBZ_H
 
 /// THIRD PARTY
 #include <Eigen/Core>
@@ -13,10 +13,10 @@
 #include <path_follower/utils/parameters.h>
 #include <path_follower/pathfollower.h>
 
-class RobotController_Kinematic_SSG : public RobotController_Interpolation
+class RobotController_Kinematic_HBZ : public RobotController_Interpolation
 {
 public:
-    RobotController_Kinematic_SSG(PathFollower *path_driver);
+    RobotController_Kinematic_HBZ(PathFollower *path_driver);
 
     //! Immediately stop any motion.
     virtual void stopMotion();
@@ -87,7 +87,7 @@ private:
 
     struct Command
     {
-        RobotController_Kinematic_SSG *parent_;
+        RobotController_Kinematic_HBZ *parent_;
 
         //! Speed of the movement.
         float speed;
@@ -98,7 +98,7 @@ private:
 
 
         // initialize all values to zero
-        Command(RobotController_Kinematic_SSG *parent):
+        Command(RobotController_Kinematic_HBZ *parent):
             parent_(parent),
             speed(0.0f), direction_angle(0.0f), rotation(0.0f)
         {}
@@ -181,4 +181,4 @@ private:
     double distance_to_obstacle_;
 };
 
-#endif // ROBOTCONTROLLER_KINEMATIC_SSG_H
+#endif // ROBOTCONTROLLER_KINEMATIC_HBZ_H

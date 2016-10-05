@@ -1,10 +1,11 @@
 // HEADER
-#include <path_follower/legacy/robotcontroller_kinematic_SLP.h>
+#include <path_follower/controller/robotcontroller_kinematic_HBZ.h>
 
 // THIRD PARTY
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+
 
 // PROJECT
 #include <path_follower/pathfollower.h>
@@ -22,27 +23,28 @@
 using namespace Eigen;
 
 
-RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_driver):
+RobotController_Kinematic_HBZ::RobotController_Kinematic_HBZ(PathFollower *path_driver):
     RobotController_Interpolation(path_driver),
     cmd_(this),
     vn_(0),
-    delta_(0),
     Ts_(0.02),
     ind_(0),
     proj_ind_(0),
     xe_(0),
     ye_(0),
+    Vl_(0),
+    Vr_(0),
+    delta_(0),
     curv_sum_(1e-3),
     distance_to_goal_(1e6),
     distance_to_obstacle_(1)
 {
-    laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
-                                                             &RobotController_Kinematic_SLP::laserFront, this);
-    laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
-                                                            &RobotController_Kinematic_SLP::laserBack, this);
+
+    wheel_velocities_ = nh_.subscribe<std_msgs::Float64MultiArray>("/wheel_velocities", 10,
+                                                                   &RobotController_Kinematic_HBZ::WheelVelocities, this);
 }
 
-void RobotController_Kinematic_SLP::stopMotion()
+void RobotController_Kinematic_HBZ::stopMotion()
 {
 
     cmd_.speed = 0;
@@ -53,7 +55,7 @@ void RobotController_Kinematic_SLP::stopMotion()
     publishMoveCommand(mcmd);
 }
 
-void RobotController_Kinematic_SLP::initialize()
+void RobotController_Kinematic_HBZ::initialize()
 {
     RobotController_Interpolation::initialize();
 
@@ -70,58 +72,28 @@ void RobotController_Kinematic_SLP::initialize()
 
 }
 
-void RobotController_Kinematic_SLP::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
+void RobotController_Kinematic_HBZ::WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array)
 {
-    ranges_front_.clear();
-    for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
-        float range = scan->ranges[i];
-        if(range > scan->range_min && range < scan->range_max) {
-            ranges_front_.push_back(range);
-        }
-    }
-    findMinDistance();
+    double frw = array->data[0];
+    double flw = array->data[1];
+    double brw = array->data[2];
+    double blw = array->data[3];
+
+    Vl_ = (flw + blw)/2.0;
+    Vr_ = (frw + brw)/2.0;
 }
 
-void RobotController_Kinematic_SLP::laserBack(const sensor_msgs::LaserScanConstPtr &scan)
-{
-    ranges_back_.clear();
-    for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
-        float range = scan->ranges[i];
-        if(range > scan->range_min && range < scan->range_max) {
-            ranges_back_.push_back(range);
-        }
-    }
-    findMinDistance();
-}
-
-//TODO: work with the obstacle map!!!
-void RobotController_Kinematic_SLP::findMinDistance()
-{
-    std::vector<float> ranges;
-    ranges.insert(ranges.end(), ranges_front_.begin(), ranges_front_.end());
-    ranges.insert(ranges.end(), ranges_back_.begin(), ranges_back_.end());
-    std::sort(ranges.begin(), ranges.end());
-
-    if(ranges.size() <= 7) {
-       distance_to_obstacle_ = 0;
-        return;
-    }
-
-    distance_to_obstacle_ = ranges[0];
-
-}
-
-void RobotController_Kinematic_SLP::start()
+void RobotController_Kinematic_HBZ::start()
 {
     path_driver_->getCoursePredictor().reset();
 }
 
-void RobotController_Kinematic_SLP::reset()
+void RobotController_Kinematic_HBZ::reset()
 {
     RobotController_Interpolation::reset();
 }
 
-void RobotController_Kinematic_SLP::calculateMovingDirection()
+void RobotController_Kinematic_HBZ::calculateMovingDirection()
 {
     // decide whether to drive forward or backward
     if (path_->getCurrentSubPath().forward) {
@@ -131,14 +103,14 @@ void RobotController_Kinematic_SLP::calculateMovingDirection()
     }
 }
 
-void RobotController_Kinematic_SLP::setPath(Path::Ptr path)
+void RobotController_Kinematic_HBZ::setPath(Path::Ptr path)
 {
     RobotController_Interpolation::setPath(path);
 
     calculateMovingDirection();
 }
 
-RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCommand(MoveCommand *cmd)
+RobotController::MoveCommandStatus RobotController_Kinematic_HBZ::computeMoveCommand(MoveCommand *cmd)
 {
     // omni drive can rotate.
     *cmd = MoveCommand(true);
@@ -196,7 +168,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
         }
     }
 
-
     //find the orthogonal projection to the curve and extract the corresponding index
 
     double dist = 0;
@@ -246,7 +217,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     ///***///
 
-    ///Calculate the parameters for exponential speed control
+
+    ///Calculate the parameters for the exponential speed control
 
     //calculate the curvature, and stop when the look-ahead distance is reached (w.r.t. orthogonal projection)
     double s_cum_sum = 0;
@@ -255,7 +227,9 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     for (unsigned int i = ind_ + 1; i < path_interpol.n(); i++){
 
         s_cum_sum = path_interpol.s(i) - path_interpol.s(ind_);
-        curv_sum_ += fabs(path_interpol.curvature(i));
+        //TODO: need two types of curv_sum_, one for the exponential, the other one for the Lyapunov speed control
+        //curv_sum_ += fabs(path_interpol.curvature(i));
+        curv_sum_ += path_interpol.curvature(i);
 
         if(s_cum_sum - opt_.look_ahead_dist() >= 0){
             break;
@@ -264,13 +238,52 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     //calculate the distance from the orthogonal projection to the goal, w.r.t. path
     distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(proj_ind_);
-    //A very dirty hack!!!!!!!!!!
-    distance_to_goal_ = 100.0;
 
     //get the robot's current angular velocity
     double angular_vel = path_driver_->getVelocity().angular.z;
     ///***///
 
+
+    ///Lyapunov-curvature speed control - skid steering
+
+    double v = vn_;
+    double V1 = 1.0/2.0*(std::pow(xe_,2) + std::pow(ye_,2) + 1.0/opt_.lambda()*fabs(sin(theta_e-delta_)));
+
+    if(angular_vel > 0){
+
+        if(V1 >= opt_.epsilon()){
+            v = (-opt_.alpha_r()*opt_.y_ICR_l()*vn_)/(opt_.y_ICR_r() - opt_.y_ICR_l());
+        }
+        else if(V1 < opt_.epsilon()){
+            v = (opt_.alpha_r()*vn_)/(1 + std::fabs(opt_.y_ICR_r()*path_interpol.curvature(ind_)));
+        }
+    }
+    else if(angular_vel <= 0){
+
+        if(V1 >= opt_.epsilon()){
+            v = (opt_.alpha_l()*opt_.y_ICR_r()*vn_)/(opt_.y_ICR_r() - opt_.y_ICR_l());
+        }
+        else if(V1 < opt_.epsilon()){
+            v = (opt_.alpha_l()*vn_)/(1 + std::fabs(opt_.y_ICR_l()*path_interpol.curvature(ind_)));
+        }
+    }
+
+
+    ///Calculate the next point on the path
+
+    double omega_meas = path_driver_->getVelocity().angular.z;
+
+    double s_old = path_interpol.s_new();
+
+    //calculate the speed of the "virtual vehicle"
+    double s_prim_tmp = v * cos(theta_e) + opt_.x_ICR()*omega_meas*sin(theta_e) + opt_.k1() * xe_;
+    path_interpol.set_s_prim(s_prim_tmp > 0 ? s_prim_tmp : 0);
+
+    //approximate the first derivative and calculate the next point
+    double s_temp = Ts_*path_interpol.s_prim() + s_old;
+    path_interpol.set_s_new(s_temp > 0 ? s_temp : 0);
+
+    ///***///
 
     ///Calculate the delta_ and its derivative
 
@@ -282,46 +295,18 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///***///
 
 
-    ///Lyapunov-curvature speed control
-
-    //Lyapunov function as a measure of the path following error
-    double v = vn_;
-    double V1 = 0.5*(std::pow(xe_,2) + std::pow(ye_,2)) + (0.5/opt_.gamma())*std::pow((theta_e - delta_),2);
-
-    //use v/2 as the minimum speed, and allow larger values when the error is small
-    if (V1 >= opt_.epsilon()) v = 0.5*v;
-
-    else if (V1 < opt_.epsilon()) v = v/(1 + opt_.b()*std::abs(path_interpol.curvature(ind_)));
-
-    ///***///
-
-
-    ///Calculate the next point on the path
-
-    double s_old = path_interpol.s_new();
-
-    //calculate the speed of the "virtual vehicle"
-    double s_prim_tmp = v * cos(theta_e) + opt_.k1() * xe_;
-    path_interpol.set_s_prim(s_prim_tmp > 0 ? s_prim_tmp : 0);
-
-    //approximate the first derivative and calculate the next point
-    double s_temp = Ts_*path_interpol.s_prim() + s_old;
-    path_interpol.set_s_new(s_temp > 0 ? s_temp : 0);
-
-    ///***///
-
-
     ///Direction control
 
     cmd_.direction_angle = 0;
 
-    //omega_m = theta_e_prim + curv*s_prim
-    double omega_m = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
-                    /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
+    double trig_ratio = (fabs(sin(theta_e-delta_)))/(sin(theta_e-delta_)*cos(theta_e-delta_));
+    double omega = delta_prim
+            - opt_.lambda()*trig_ratio*ye_*v*sin(theta_e)
+            + opt_.lambda()*trig_ratio*ye_*opt_.x_ICR()*omega_meas*cos(theta_e)
+            - opt_.k2()*trig_ratio*(theta_e-delta_)*(theta_e-delta_);
 
-
-    omega_m = boost::algorithm::clamp(omega_m, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
-    cmd_.rotation = omega_m;
+    omega = boost::algorithm::clamp(omega, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
+    cmd_.rotation = omega + path_interpol.curvature(ind_)*path_interpol.s_prim();
 
     ///***///
 
@@ -387,12 +372,12 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     ///***///
 
-        *cmd = cmd_;
+    *cmd = cmd_;
 
-        return MoveCommandStatus::OKAY;
+    return MoveCommandStatus::OKAY;
 }
 
-void RobotController_Kinematic_SLP::publishMoveCommand(const MoveCommand &cmd) const
+void RobotController_Kinematic_HBZ::publishMoveCommand(const MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
     msg.linear.x  = cmd.getVelocity();
@@ -401,3 +386,4 @@ void RobotController_Kinematic_SLP::publishMoveCommand(const MoveCommand &cmd) c
 
     cmd_pub_.publish(msg);
 }
+

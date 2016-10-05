@@ -5,7 +5,7 @@
  *      Author: Lukas Hollaender
  */
 
-#include <path_follower/legacy/robotcontroller_ackermann_purepursuit.h>
+#include <path_follower/controller/robotcontroller_ackermann_purepursuit.h>
 #include <path_follower/pathfollower.h>
 #include <ros/ros.h>
 
@@ -17,8 +17,6 @@
 #include <deque>
 #include <Eigen/Core>
 #include <Eigen/Dense>
-
-#define DEBUG
 
 Robotcontroller_Ackermann_PurePursuit::Robotcontroller_Ackermann_PurePursuit (PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower),
@@ -45,14 +43,12 @@ void Robotcontroller_Ackermann_PurePursuit::reset() {
 void Robotcontroller_Ackermann_PurePursuit::setPath(Path::Ptr path) {
 	RobotController_Interpolation::setPath(path);
 
-	Eigen::Vector3d pose = path_driver_->getRobotPose();
-	const double theta_diff = MathHelper::AngleDelta(path_interpol.theta_p(0), pose[2]);
-
-	// decide whether to drive forward or backward
-	if (theta_diff > M_PI_2 || theta_diff < -M_PI_2)
-		setDirSign(-1.f);
-	else
-		setDirSign(1.f);
+    // decide whether to drive forward or backward
+    if (path_->getCurrentSubPath().forward) {
+        setDirSign(1.f);
+    } else {
+        setDirSign(-1.f);
+    }
 }
 
 
@@ -74,8 +70,6 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
-
-	ROS_INFO("======================");
 
 	Eigen::Vector3d pose = path_driver_->getRobotPose();
 
@@ -111,10 +105,6 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 		}
 	}
 
-	/*
-	 * IDEAS:
-	 * - lookahead_distance depending on the curvature
-	 */
 	double lookahead_distance = velocity_;
 	if(getDirSign() >= 0.)
 		lookahead_distance *= params_.factor_lookahead_distance_forward();
@@ -126,16 +116,9 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 
 	const double delta = atan2(2. * params_.vehicle_length() * sin(alpha), lookahead_distance);
 
-	//	 const double delta = asin((VEHICLE_LENGTH * alpha) / lookahead_distance);
-
-	// TODO: this is more accurate
-	//	delta = asin(params_.factor_steering_angle() * sin(delta));
-	//	move_cmd_.setDirection((float) delta);
-
 	move_cmd_.setDirection(params_.factor_steering_angle() * (float) delta);
 	move_cmd_.setVelocity(getDirSign() * (float) velocity_);
 
-	ROS_INFO("Command: vel=%f, angle=%f", velocity_, delta);
 
 	*cmd = move_cmd_;
 
