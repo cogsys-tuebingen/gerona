@@ -300,7 +300,6 @@ bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
     double length;
     retrievePath(obj, local_wps,length);
     if(length < 0.12){
-        ROS_INFO_STREAM("Path was too short! :-(");
         return false;
     }
     last_s = global_path_.s_new();
@@ -680,9 +679,6 @@ bool LocalPlannerClassic::areConstraintsSAT(const LNode& current, const std::vec
             rval = rval && constraints.at(i)->isSatisfied(current);
         }
     }
-    if(!rval){
-        ROS_INFO_STREAM("Rejected by the constraints!");
-    }
     return rval;
 }
 
@@ -781,7 +777,6 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     LNode* s = s_p->parent_;
     bool line = false;
     if(s->parent_ == nullptr){
-        ROS_INFO_STREAM("UNCONFIGURABLE: Node has just one ancestor!");
         return false;
     }
     LNode* parent = s->parent_;
@@ -804,7 +799,6 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     double divisor = c*std::sin(MathHelper::AngleClamp(gamma + theta_p)) + d*std::sin(theta_p);
     if(std::abs(divisor) <= std::numeric_limits<double>::epsilon()){
         if(!allow_lines){
-            ROS_INFO_STREAM("UNCONFIGURABLE: Degenerated into a line! (in this case not allowed)");
             return false;
         }else{
             line = true;
@@ -816,7 +810,6 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     double a = std::hypot(x,y);
     double theta_dir = std::atan2(y,x);
     if(std::abs(MathHelper::AngleClamp(theta_dir - parent->orientation)) > M_PI_2){
-        ROS_INFO_STREAM("UNCONFIGURABLE: Backwards movement!");
         return false;
     }
     if(line){
@@ -829,7 +822,6 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     double R = (a*a)/divisor;
     double psi_v = atan2(L,std::abs(R));
     if (psi_v > TH){
-        ROS_INFO_STREAM("UNCONFIGURABLE: Turning angle not allowed!");
         return false;
     }
     double theta_n = (R >= 0.0?1.0:-1.0)*std::acos(1-(0.5*a*a)/(R*R));
