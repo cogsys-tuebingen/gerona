@@ -743,6 +743,7 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double adi
 
 void LocalPlannerClassic::printVelocity(){
     ROS_INFO_STREAM("Mean velocity: " << velocity_ << " m/s");
+    ROS_INFO_STREAM("Additional Front secure area: " << velocity_*velocity_/mudiv_);
     if(fvel_){
         fvel_ = false;
     }
