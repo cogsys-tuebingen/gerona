@@ -43,7 +43,6 @@ void LocalPlannerReconf::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes,
                                          const std::vector<bool>& fconstraints,
                                          const std::vector<double>& wscorer){
     if(obj != nullptr){
-        ROS_INFO_STREAM("Goal Found!");
         if(obj->parent_ != nullptr){
             LNode tParent = *(obj->parent_);
             if(tParent.parent_ != nullptr){
@@ -52,20 +51,16 @@ void LocalPlannerReconf::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes,
                 LNode alternative;
                 if(createAlternative(obj,alternative,constraints,fconstraints,true)){
                     *obj = alternative;
-                    ROS_INFO_STREAM("Reconfigured. :-)");
                 }else{
                     obj = nullptr;
-                    ROS_INFO_STREAM("Not Reconfigurable. :-(");
                     return;
                 }
             }
         }else{
-            ROS_INFO_STREAM("Is root. -_-");
             obj = nullptr;
             return;
         }
     }else{
-        ROS_INFO_STREAM(leaves.size() << " candidate(s) found!");
         std::vector<LNode*> alts;
         for(LNode* leaf: leaves){
             if(leaf->parent_ != nullptr){
@@ -84,11 +79,9 @@ void LocalPlannerReconf::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes,
             }
         }
         if(alts.empty()){
-            ROS_INFO_STREAM("All candidates were not reconfigurable. :-/");
             obj = nullptr;
             return;
         }
-        ROS_INFO_STREAM(alts.size() << " candidate(s) reconfigured!");
         for(LNode* altern: alts){
             double current_p = Score(*altern, scorer, wscorer);
             if(current_p < best_p){
@@ -96,6 +89,5 @@ void LocalPlannerReconf::reconfigureTree(LNode*& obj, std::vector<LNode>& nodes,
                 obj = altern;
             }
         }
-        ROS_INFO_STREAM("Best selected! :-)");
     }
 }

@@ -38,6 +38,8 @@ protected:
 private:
     void setDistances(LNode& current);
 
+    void iterateCloud(ObstacleCloud::ConstPtr& cloud, tf::Point& pt, double& closest_obst, double& closest_x, double& closest_y, bool& change);
+
     void retrieveContinuity(LNode& wpose);
 
     void setD2P(LNode& wpose);

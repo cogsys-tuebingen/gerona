@@ -172,56 +172,62 @@ void LocalPlannerClassic::setDistances(LNode& current){
     current.s = current.npp.s + dis;
 
     if(b_obst){
-        tf::Point pt(current.x, current.y, current.orientation);
-        pt = odom_to_base * pt;
-        bool lastcloud = false;
+        bool currentCloud = false;
+        bool lastCloud = false;
         double closest_obst = std::numeric_limits<double>::infinity();
         double closest_x = std::numeric_limits<double>::infinity();
         double closest_y = std::numeric_limits<double>::infinity();
-        ObstacleCloud::const_iterator point_it;
-        for (point_it = obstacle_cloud_->begin(); point_it != obstacle_cloud_->end(); ++point_it){
-            double x = (double)(point_it->x) - pt.x();
-            double y = (double)(point_it->y) - pt.y();
-            double dist = std::hypot(x, y);
-            if(dist < closest_obst) {
-                closest_obst = dist;
-                closest_x = (double)(point_it->x);
-                closest_y = (double)(point_it->y);
-            }
+        if(!obstacle_cloud_->empty()){
+            tf::Point pt(current.x, current.y, current.orientation);
+            pt = odom_to_base * pt;
+            iterateCloud(obstacle_cloud_, pt, closest_obst, closest_x, closest_y, currentCloud);
         }
         if(last_obstacle_cloud_){
-            pt = odom_to_lastbase * base_to_odom * pt;
-            for (point_it = last_obstacle_cloud_->begin(); point_it != last_obstacle_cloud_->end(); ++point_it){
-                double x = (double)(point_it->x) - pt.x();
-                double y = (double)(point_it->y) - pt.y();
-                double dist = std::hypot(x, y);
-                if(dist < closest_obst) {
-                    lastcloud = true;
-                    closest_obst = dist;
-                    closest_x = (double)(point_it->x);
-                    closest_y = (double)(point_it->y);
-                }
+            if(!last_obstacle_cloud_->empty()){
+                tf::Point pt(current.x, current.y, current.orientation);
+                pt = odom_to_lastbase * pt;
+                iterateCloud(obstacle_cloud_, pt, closest_obst, closest_x, closest_y, currentCloud);
             }
         }
-        current.d2o = closest_obst;
-        tf::Point tmpnop(closest_x ,closest_y,0.0);
-        if(lastcloud){
-            tmpnop = lastbase_to_odom * tmpnop;
+        if(currentCloud || lastCloud){
+            current.d2o = closest_obst;
+            tf::Point tmpnop(closest_x ,closest_y,0.0);
+            if(lastCloud){
+                tmpnop = lastbase_to_odom * tmpnop;
+            }else{
+                tmpnop = base_to_odom * tmpnop;
+            }
+            current.nop = Waypoint(tmpnop.x(), tmpnop.y(), 0.0);
+            //! Debug
+            const ObstaclePoint op(tmpnop.x(),tmpnop.y(),0.0);
+            l_obstacle_cloud_->push_back(op);
+            //! Debug
+            double x = current.nop.x - current.x;
+            double y = current.nop.y - current.y;
+            double angle = MathHelper::AngleClamp(std::atan2(y,x) - current.orientation);
+            current.of = computeFrontier(angle);
         }else{
-            tmpnop = base_to_odom * tmpnop;
+            current.d2o = std::numeric_limits<double>::infinity();
+            current.of = 0.0;
         }
-        current.nop = Waypoint(tmpnop.x(), tmpnop.y(), 0.0);
-        //! Debug
-        const ObstaclePoint op(tmpnop.x(),tmpnop.y(),0.0);
-        l_obstacle_cloud_->push_back(op);
-        //! Debug
-        double x = current.nop.x - current.x;
-        double y = current.nop.y - current.y;
-        double angle = MathHelper::AngleClamp(std::atan2(y,x) - current.orientation);
-        current.of = computeFrontier(angle);
     }else{
         current.d2o = std::numeric_limits<double>::infinity();
         current.of = 0.0;
+    }
+}
+
+void LocalPlannerClassic::iterateCloud(ObstacleCloud::ConstPtr& cloud, tf::Point& pt, double& closest_obst, double& closest_x, double& closest_y, bool& change){
+    ObstacleCloud::const_iterator point_it;
+    for (point_it = cloud->begin(); point_it != cloud->end(); ++point_it){
+        double x = (double)(point_it->x) - pt.x();
+        double y = (double)(point_it->y) - pt.y();
+        double dist = std::hypot(x, y);
+        if(dist < closest_obst) {
+            change = true;
+            closest_obst = dist;
+            closest_x = (double)(point_it->x);
+            closest_y = (double)(point_it->y);
+        }
     }
 }
 
@@ -300,7 +306,6 @@ bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
     double length;
     retrievePath(obj, local_wps,length);
     if(length < 0.12){
-        ROS_INFO_STREAM("Path was too short! :-(");
         return false;
     }
     last_s = global_path_.s_new();
@@ -680,9 +685,6 @@ bool LocalPlannerClassic::areConstraintsSAT(const LNode& current, const std::vec
             rval = rval && constraints.at(i)->isSatisfied(current);
         }
     }
-    if(!rval){
-        ROS_INFO_STREAM("Rejected by the constraints!");
-    }
     return rval;
 }
 
@@ -781,7 +783,6 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     LNode* s = s_p->parent_;
     bool line = false;
     if(s->parent_ == nullptr){
-        ROS_INFO_STREAM("UNCONFIGURABLE: Node has just one ancestor!");
         return false;
     }
     LNode* parent = s->parent_;
@@ -804,7 +805,6 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     double divisor = c*std::sin(MathHelper::AngleClamp(gamma + theta_p)) + d*std::sin(theta_p);
     if(std::abs(divisor) <= std::numeric_limits<double>::epsilon()){
         if(!allow_lines){
-            ROS_INFO_STREAM("UNCONFIGURABLE: Degenerated into a line! (in this case not allowed)");
             return false;
         }else{
             line = true;
@@ -816,7 +816,6 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     double a = std::hypot(x,y);
     double theta_dir = std::atan2(y,x);
     if(std::abs(MathHelper::AngleClamp(theta_dir - parent->orientation)) > M_PI_2){
-        ROS_INFO_STREAM("UNCONFIGURABLE: Backwards movement!");
         return false;
     }
     if(line){
@@ -829,7 +828,6 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     double R = (a*a)/divisor;
     double psi_v = atan2(L,std::abs(R));
     if (psi_v > TH){
-        ROS_INFO_STREAM("UNCONFIGURABLE: Turning angle not allowed!");
         return false;
     }
     double theta_n = (R >= 0.0?1.0:-1.0)*std::acos(1-(0.5*a*a)/(R*R));
