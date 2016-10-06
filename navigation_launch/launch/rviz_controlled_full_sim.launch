@@ -29,9 +29,9 @@ demonstrating the navigation framework.
     <arg name="uinterval" default="0.5" />
     <arg name="lmf" default="3.0" />
     <arg name="dis2p" default="0.8" />
-    <arg name="adis" default="0.1" />
-    <arg name="fdis" default="0.2" />
-    <arg name="s_angle" default="45.0" />
+    <arg name="adis" default="0.2" />
+    <arg name="fdis" default="0.3" />
+    <arg name="s_angle" default="35.0" />
     <arg name="mu" default="0.22" />
     <arg name="ef" default="0.8" />
     <arg name="use_v" default="true" />

@@ -174,6 +174,7 @@ void LocalPlannerClassic::setDistances(LNode& current){
     if(b_obst){
         tf::Point pt(current.x, current.y, current.orientation);
         pt = odom_to_base * pt;
+        bool lastcloud = false;
         double closest_obst = std::numeric_limits<double>::infinity();
         double closest_x = std::numeric_limits<double>::infinity();
         double closest_y = std::numeric_limits<double>::infinity();
@@ -188,9 +189,27 @@ void LocalPlannerClassic::setDistances(LNode& current){
                 closest_y = (double)(point_it->y);
             }
         }
+        if(last_obstacle_cloud_){
+            pt = odom_to_lastbase * base_to_odom * pt;
+            for (point_it = last_obstacle_cloud_->begin(); point_it != last_obstacle_cloud_->end(); ++point_it){
+                double x = (double)(point_it->x) - pt.x();
+                double y = (double)(point_it->y) - pt.y();
+                double dist = std::hypot(x, y);
+                if(dist < closest_obst) {
+                    lastcloud = true;
+                    closest_obst = dist;
+                    closest_x = (double)(point_it->x);
+                    closest_y = (double)(point_it->y);
+                }
+            }
+        }
         current.d2o = closest_obst;
         tf::Point tmpnop(closest_x ,closest_y,0.0);
-        tmpnop = base_to_odom * tmpnop;
+        if(lastcloud){
+            tmpnop = lastbase_to_odom * tmpnop;
+        }else{
+            tmpnop = base_to_odom * tmpnop;
+        }
         current.nop = Waypoint(tmpnop.x(), tmpnop.y(), 0.0);
         //! Debug
         const ObstaclePoint op(tmpnop.x(),tmpnop.y(),0.0);
@@ -281,6 +300,7 @@ bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
     double length;
     retrievePath(obj, local_wps,length);
     if(length < 0.12){
+        ROS_INFO_STREAM("Path was too short! :-(");
         return false;
     }
     last_s = global_path_.s_new();
@@ -660,6 +680,9 @@ bool LocalPlannerClassic::areConstraintsSAT(const LNode& current, const std::vec
             rval = rval && constraints.at(i)->isSatisfied(current);
         }
     }
+    if(!rval){
+        ROS_INFO_STREAM("Rejected by the constraints!");
+    }
     return rval;
 }
 
@@ -743,6 +766,7 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double adi
 
 void LocalPlannerClassic::printVelocity(){
     ROS_INFO_STREAM("Mean velocity: " << velocity_ << " m/s");
+    ROS_INFO_STREAM("Additional Front secure area: " << velocity_*velocity_/mudiv_);
     if(fvel_){
         fvel_ = false;
     }
@@ -757,6 +781,7 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     LNode* s = s_p->parent_;
     bool line = false;
     if(s->parent_ == nullptr){
+        ROS_INFO_STREAM("UNCONFIGURABLE: Node has just one ancestor!");
         return false;
     }
     LNode* parent = s->parent_;
@@ -779,6 +804,7 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     double divisor = c*std::sin(MathHelper::AngleClamp(gamma + theta_p)) + d*std::sin(theta_p);
     if(std::abs(divisor) <= std::numeric_limits<double>::epsilon()){
         if(!allow_lines){
+            ROS_INFO_STREAM("UNCONFIGURABLE: Degenerated into a line! (in this case not allowed)");
             return false;
         }else{
             line = true;
@@ -790,6 +816,7 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     double a = std::hypot(x,y);
     double theta_dir = std::atan2(y,x);
     if(std::abs(MathHelper::AngleClamp(theta_dir - parent->orientation)) > M_PI_2){
+        ROS_INFO_STREAM("UNCONFIGURABLE: Backwards movement!");
         return false;
     }
     if(line){
@@ -802,6 +829,7 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     double R = (a*a)/divisor;
     double psi_v = atan2(L,std::abs(R));
     if (psi_v > TH){
+        ROS_INFO_STREAM("UNCONFIGURABLE: Turning angle not allowed!");
         return false;
     }
     double theta_n = (R >= 0.0?1.0:-1.0)*std::acos(1-(0.5*a*a)/(R*R));
