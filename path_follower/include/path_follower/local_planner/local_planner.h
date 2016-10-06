@@ -56,11 +56,11 @@ protected:
 
     PathInterpolated global_path_;
 
-    tf::StampedTransform initial_map_to_odom_, base_to_odom;
+    tf::StampedTransform initial_map_to_odom_, base_to_odom, lastbase_to_odom;
 
-    tf::Transform odom_to_base;
+    tf::Transform odom_to_base, odom_to_lastbase;
 
-    ObstacleCloud::ConstPtr obstacle_cloud_;
+    ObstacleCloud::ConstPtr obstacle_cloud_, last_obstacle_cloud_;
 };
 
 #endif // LOCAL_PLANNER_H

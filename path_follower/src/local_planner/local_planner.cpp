@@ -43,11 +43,14 @@ bool LocalPlanner::isNull() const
 
 void LocalPlanner::setObstacleCloud(const ObstacleCloud::ConstPtr &msg)
 {
+    last_obstacle_cloud_ = obstacle_cloud_;
     obstacle_cloud_ = msg;
 
     ros::Time now;
     now.fromNSec(msg->header.stamp * 1e3);
 
+    lastbase_to_odom = base_to_odom;
+    odom_to_lastbase = odom_to_base;
     if(!transformer_.waitForTransform("odom", "base_link", now, ros::Duration(0.1))) {
         ROS_WARN_THROTTLE_NAMED(1, "global_path", "cannot transform base_link to odom");
         return;
