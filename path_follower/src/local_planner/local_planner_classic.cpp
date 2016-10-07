@@ -12,7 +12,11 @@ std::vector<double> LocalPlannerClassic::RT;
 std::vector<double> LocalPlannerClassic::D_THETA;
 double LocalPlannerClassic::TH = 0.0;
 double LocalPlannerClassic::length_MF = 1.0;
-double LocalPlannerClassic::mu_ = 1.0;
+double LocalPlannerClassic::mudiv_ = 2.0*9.81;
+double LocalPlannerClassic::GL = LocalPlannerClassic::RL;
+double LocalPlannerClassic::GW = LocalPlannerClassic::RW;
+double LocalPlannerClassic::FL = LocalPlannerClassic::RL;
+double LocalPlannerClassic::beta1 = M_PI/4.0;
 std::vector<LNode> LocalPlannerClassic::EMPTYTWINS;
 
 LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
@@ -20,9 +24,14 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
                                  const ros::Duration& update_interval)
     : LocalPlannerImplemented(follower, transformer, update_interval),
       d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),b_obst(false),index1(-1), index2(-1),
-      r_level(0), n_v(0), step_(0.0),stepc_(0.0),neig_s(0.0)
+      r_level(0), n_v(0), step_(0.0),neig_s(0.0),FFL(FL),l_obstacle_cloud_(new ObstacleCloud)
 {
-
+    //DEBUG
+    local_obst_pub_ = follower_.getNodeHandle().advertise<ObstacleCloud>("local_obst_points", 10);
+    l_obstacle_cloud_->header.frame_id = "/odom";
+    const ros::Time time_st = ros::Time::now ();
+    l_obstacle_cloud_->header.stamp = time_st.toNSec()/1e3;
+    //
 }
 
 void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
@@ -163,28 +172,62 @@ void LocalPlannerClassic::setDistances(LNode& current){
     current.s = current.npp.s + dis;
 
     if(b_obst){
-        tf::Point pt(current.x, current.y, current.orientation);
-        pt = odom_to_base * pt;
+        bool currentCloud = false;
+        bool lastCloud = false;
         double closest_obst = std::numeric_limits<double>::infinity();
         double closest_x = std::numeric_limits<double>::infinity();
         double closest_y = std::numeric_limits<double>::infinity();
-        ObstacleCloud::const_iterator point_it;
-        for (point_it = obstacle_cloud_->begin(); point_it != obstacle_cloud_->end(); ++point_it){
-            double x = (double)(point_it->x) - pt.x();
-            double y = (double)(point_it->y) - pt.y();
-            double dist = std::hypot(x, y);
-            if(dist < closest_obst) {
-                closest_obst = dist;
-                closest_x = (double)(point_it->x);
-                closest_y = (double)(point_it->y);
+        if(!obstacle_cloud_->empty()){
+            tf::Point pt(current.x, current.y, current.orientation);
+            pt = odom_to_base * pt;
+            iterateCloud(obstacle_cloud_, pt, closest_obst, closest_x, closest_y, currentCloud);
+        }
+        if(last_obstacle_cloud_){
+            if(!last_obstacle_cloud_->empty()){
+                tf::Point pt(current.x, current.y, current.orientation);
+                pt = odom_to_lastbase * pt;
+                iterateCloud(obstacle_cloud_, pt, closest_obst, closest_x, closest_y, currentCloud);
             }
         }
-        current.d2o = closest_obst;
-        tf::Point tmpnop(closest_x ,closest_y,0.0);
-        tmpnop = base_to_odom * tmpnop;
-        current.nop = Waypoint(tmpnop.x(), tmpnop.y(), 0.0);
+        if(currentCloud || lastCloud){
+            current.d2o = closest_obst;
+            tf::Point tmpnop(closest_x ,closest_y,0.0);
+            if(lastCloud){
+                tmpnop = lastbase_to_odom * tmpnop;
+            }else{
+                tmpnop = base_to_odom * tmpnop;
+            }
+            current.nop = Waypoint(tmpnop.x(), tmpnop.y(), 0.0);
+            //! Debug
+            const ObstaclePoint op(tmpnop.x(),tmpnop.y(),0.0);
+            l_obstacle_cloud_->push_back(op);
+            //! Debug
+            double x = current.nop.x - current.x;
+            double y = current.nop.y - current.y;
+            double angle = MathHelper::AngleClamp(std::atan2(y,x) - current.orientation);
+            current.of = computeFrontier(angle);
+        }else{
+            current.d2o = std::numeric_limits<double>::infinity();
+            current.of = 0.0;
+        }
     }else{
         current.d2o = std::numeric_limits<double>::infinity();
+        current.of = 0.0;
+    }
+}
+
+void LocalPlannerClassic::iterateCloud(ObstacleCloud::ConstPtr& cloud, tf::Point& pt, double& closest_obst, double& closest_x, double& closest_y, bool& change){
+    ObstacleCloud::const_iterator point_it;
+    for (point_it = cloud->begin(); point_it != cloud->end(); ++point_it){
+        double x = (double)(point_it->x) - pt.x();
+        double y = (double)(point_it->y) - pt.y();
+        double dist = std::hypot(x, y);
+        if(dist < closest_obst) {
+            change = true;
+            closest_obst = dist;
+            closest_x = (double)(point_it->x);
+            closest_y = (double)(point_it->y);
+        }
     }
 }
 
@@ -256,7 +299,7 @@ void LocalPlannerClassic::retrieveContinuity(LNode& wpose){
 }
 
 void LocalPlannerClassic::setD2P(LNode& wpose){
-    d2p = 2.0*wpose.d2p;
+    d2p = 1.5*wpose.d2p;
 }
 
 bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
@@ -313,11 +356,9 @@ void LocalPlannerClassic::setStep(){
     double l_step = 2.0*RT.front()*std::sin(H_D_THETA);
     neig_s = l_step*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
     Dis2Path_Constraint::setDRate(neig_s);
-    stepc_ = 2.0*RT.back()*std::sin(D_THETA.back()/2.0);
-    double vdis = velocity_*velocity_/(2.0*9.81*mu_);
-    Dis2Path_Constraint::setVDis(vdis);
-    Dis2Obst_Constraint::setVDis(vdis);
-    Dis2Obst_Scorer::setVDis(vdis);
+    double v_dis = velocity_*velocity_/mudiv_;
+    FFL = FL + 2.0*v_dis;
+    beta2 = std::acos(FFL/std::sqrt(FFL*FFL + GW*GW));
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -701,13 +742,13 @@ void LocalPlannerClassic::setLLP(){
     setLLP(last_local_path_.n());
 }
 
-void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle,
+void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double adis, double fdis, double s_angle,
                                     int ia, double lmf, int max_level, double mu, double ef){
     nnodes_ = nnodes;
     ic_ = ic;
     TH = s_angle*M_PI/180.0;
     length_MF = lmf;
-    mu_ = mu;
+    mudiv_ = 2.0*9.81*mu;
     li_level = max_level;
     RT.clear();
     for(int i = 0; i <= ia; ++i){
@@ -717,14 +758,17 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double dis
     Curvature_Scorer::setMaxC(RT.back());
     CurvatureD_Scorer::setMaxC(RT.back());
     Level_Scorer::setLevel(li_level);
-    Dis2Path_Constraint::setLimits(dis2p,dis2o);
-    Dis2Obst_Constraint::setLimit(dis2o);
-    Dis2Obst_Scorer::setLimit(dis2o);
+    Dis2Path_Constraint::setLimit(dis2p);
     Dis2Obst_Scorer::setFactor(ef);
+    GL = RL + 2.0*adis;
+    FL = GL + 2.0*fdis;
+    GW = RW + 2.0*adis;
+    beta1 = std::acos(GL/std::sqrt(GL*GL + GW*GW));
 }
 
 void LocalPlannerClassic::printVelocity(){
     ROS_INFO_STREAM("Mean velocity: " << velocity_ << " m/s");
+    ROS_INFO_STREAM("Additional Front secure area: " << velocity_*velocity_/mudiv_);
     if(fvel_){
         fvel_ = false;
     }
@@ -778,7 +822,7 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
         alt = *s_p;
         alt.orientation = parent->orientation;
         alt.parent_ = parent;
-        alt.radius_ = std::numeric_limits<double>::infinity();;
+        alt.radius_ = std::numeric_limits<double>::infinity();
         return true;
     }
     double R = (a*a)/divisor;
@@ -799,12 +843,27 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     return areConstraintsSAT(alt,constraints,fconstraints);
 }
 
+double LocalPlannerClassic::computeFrontier(double& angle){
+    double r;
+    if(angle <= beta1 - M_PI || angle > M_PI - beta1){
+        r = -GL/(2.0*std::cos(angle));
+    }else if(angle > beta1 - M_PI && angle <= -beta2){
+        r = -GW/(2.0*std::sin(angle));
+    }else if(angle > -beta2 && angle <= beta2){
+        r = FFL/(2.0*std::cos(angle));
+    }else if(angle > beta2 && angle <= M_PI - beta1){
+        r = GW/(2.0*std::sin(angle));
+    }
+    return r;
+}
+
 bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
-                                  const std::vector<Constraint::Ptr>& constraints,
-                                  const std::vector<Scorer::Ptr>& scorer,
-                                  const std::vector<bool>& fconstraints,
-                                  const std::vector<double>& wscorer,
-                                  std::size_t& nnodes){
+                               const std::vector<Constraint::Ptr>& constraints,
+                               const std::vector<Scorer::Ptr>& scorer,
+                               const std::vector<bool>& fconstraints,
+                               const std::vector<double>& wscorer,
+                               std::size_t& nnodes){
+    l_obstacle_cloud_->clear();
     initIndexes(pose);
     b_obst = fconstraints.back() || wscorer.back() != 0;
 
@@ -862,6 +921,9 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         }
     }
     reconfigureTree(obj, nodes, best_p, constraints, scorer, fconstraints,wscorer);
+    //! Debug
+    local_obst_pub_.publish(l_obstacle_cloud_);
+    //!
     if(obj != nullptr){
         return processPath(obj, local_wps);
     }else{

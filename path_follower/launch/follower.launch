@@ -29,7 +29,8 @@ Please make sure, you add an according launch file, if you implement a new contr
         <arg name="uinterval" default="1.0" />
         <arg name="lmf" default="1.0" />
         <arg name="dis2p" default="0.3" />
-        <arg name="dis2o" default="0.85" />
+        <arg name="adis" default="0.1" />
+        <arg name="fdis" default="0.2" />
         <arg name="s_angle" default="25.0" />
         <arg name="mu" default="0.6" />
         <arg name="ef" default="1.0" />
@@ -54,7 +55,8 @@ Please make sure, you add an according launch file, if you implement a new contr
                 <arg name="uinterval" value="$(arg uinterval)" />
                 <arg name="lmf" value="$(arg lmf)" />
                 <arg name="dis2p" value="$(arg dis2p)" />
-                <arg name="dis2o" value="$(arg dis2o)" />
+                <arg name="adis" value="$(arg adis)" />
+                <arg name="fdis" value="$(arg fdis)" />
                 <arg name="s_angle" value="$(arg s_angle)" />
                 <arg name="mu" value="$(arg mu)" />
                 <arg name="ef" value="$(arg ef)" />

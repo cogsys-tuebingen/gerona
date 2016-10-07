@@ -21,7 +21,8 @@ Launch the path follower with the stanley controller for a car-like (four wheel 
   <arg name="uinterval" default="1.0" />
   <arg name="lmf" default="1.0" />
   <arg name="dis2p" default="0.3" />
-  <arg name="dis2o" default="0.85" />
+  <arg name="adis" default="0.1" />
+  <arg name="fdis" default="0.2" />
   <arg name="s_angle" default="25.0" />
   <arg name="mu" default="0.6" />
   <arg name="ef" default="1.0" />
@@ -82,7 +83,8 @@ Launch the path follower with the stanley controller for a car-like (four wheel 
     <param name="uinterval" value="$(arg uinterval)" />
     <param name="lmf" value="$(arg lmf)" />
     <param name="dis2p" value="$(arg dis2p)" />
-    <param name="dis2o" value="$(arg dis2o)" />
+    <param name="adis" value="$(arg adis)" />
+    <param name="fdis" value="$(arg fdis)" />
     <param name="s_angle" value="$(arg s_angle)" />
     <param name="mu" value="$(arg mu)" />
     <param name="ef" value="$(arg ef)" />

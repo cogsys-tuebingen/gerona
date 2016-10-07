@@ -22,7 +22,7 @@ struct PathFollowerParameters : public Parameters
     P<bool> c1, c2;
     P<double> s1, s2, s3, s4, s5, s6;
     P<int> nnodes,depth,ic,ia;
-    P<double> uinterval,dis2p, dis2o, s_angle, lmf, mu, ef;
+    P<double> uinterval,dis2p, adis, fdis, s_angle, lmf, mu, ef;
     P<bool> use_v;
 
     // obstacle avoider
@@ -92,8 +92,10 @@ struct PathFollowerParameters : public Parameters
                   "Determines the update interval in seconds of the local planner"),
         dis2p(this, "~dis2p", 0.3,
               "Determines how far from the path should the local planner perform"),
-        dis2o(this, "~dis2o", 0.85,
-              "Determines how far from the obstacles should the local planner perform"),
+        adis(this, "~adis", 0.1,
+              "Determines the security distance around the robot"),
+        fdis(this, "~fdis", 0.3,
+              "Determines the extra security distance in front of the robot"),
         s_angle(this, "~s_angle", 25,
                 "Determines the steering angle (in degrees) for the local planner"),
         lmf(this, "~lmf", 1.0,

@@ -15,7 +15,7 @@ public:
 
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
     virtual void setVelocity(double velocity) override;
-    virtual void setParams(int nnodes, int ic, double dis2p, double dis2o, double s_angle,
+    virtual void setParams(int nnodes, int ic, double dis2p, double adis, double fdis, double s_angle,
                            int ia, double lmf, int max_level, double mu, double ef) override;
 
 protected:
@@ -37,6 +37,8 @@ protected:
 
 private:
     void setDistances(LNode& current);
+
+    void iterateCloud(ObstacleCloud::ConstPtr& cloud, tf::Point& pt, double& closest_obst, double& closest_x, double& closest_y, bool& change);
 
     void retrieveContinuity(LNode& wpose);
 
@@ -76,6 +78,8 @@ private:
     SubPath smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance);
 
     void setStep();
+
+    double computeFrontier(double& angle);
 
     virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
                      const std::vector<Constraint::Ptr>& constraints,
@@ -129,12 +133,15 @@ private:
                                   const std::vector<double>& wscorer) = 0;
 
 private:
-    static constexpr double L = 0.458;//(L of Summit XL)
+    static constexpr double L = 0.458;//(Distance between front and rear axis of Summit XL)
+    static constexpr double RL = 0.722;
+    static constexpr double RW = 0.61;
     static std::vector<LNode> EMPTYTWINS;
 
     static std::size_t nnodes_;
     static int ic_, nsucc_, li_level;
-    static double TH, length_MF, mu_;
+    static double TH, length_MF, mudiv_;
+    static double GL, GW, FL, beta1;
     static std::vector<double> D_THETA, RT;
 
     double d2p, last_s, new_s, velocity_;
@@ -146,7 +153,12 @@ private:
 
     PathInterpolated last_local_path_;
 
-    double step_,stepc_,neig_s;
+    double step_, neig_s, FFL, beta2;
+
+    //! Debug Publisher
+    ros::Publisher local_obst_pub_;
+    //! The last received obstacle cloud
+    ObstacleCloud::Ptr l_obstacle_cloud_;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H

@@ -69,13 +69,13 @@ struct LNode: Waypoint
 {
     LNode():
         Waypoint(0.0, 0.0, 0.0),
-        parent_(nullptr), level_(0),d2p(0.0),d2o(0.0)
+        parent_(nullptr), level_(0),d2p(0.0),d2o(0.0),of(0.0)
     {
 
     }
     LNode(double x, double y, double orientation, LNode* parent, double radius, int level):
         Waypoint(x,y,orientation),radius_(radius),parent_(parent),twin_(nullptr),level_(level),
-        d2p(0.0),d2o(0.0),npp(),nop(),gScore_(std::numeric_limits<double>::infinity()),
+        d2p(0.0),d2o(0.0),of(0.0),npp(),nop(),gScore_(std::numeric_limits<double>::infinity()),
         fScore_(std::numeric_limits<double>::infinity()){}
 
     void InfoFromTwin(){
@@ -87,6 +87,7 @@ struct LNode: Waypoint
         level_ = twin_->level_;
         d2p = twin_->d2p;
         d2o = twin_->d2o;
+        of = twin_->of;
         npp = twin_->npp;
         nop = twin_->nop;
         twin_ = nullptr;
@@ -98,10 +99,11 @@ struct LNode: Waypoint
     LNode* twin_;
     int level_;
 
-    //!distance to path and obstacle
-    double d2p, d2o;
+    //!distance to path and obstacle, and obstacle frontier
+    double d2p, d2o, of;
     //!nearest path point and obstacle point
     Waypoint npp, nop;
+    //!values used by the Star type algorithms
     double gScore_, fScore_;
 };
 
