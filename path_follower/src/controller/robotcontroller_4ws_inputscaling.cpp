@@ -1,4 +1,4 @@
-#include <path_follower/legacy/robotcontroller_4ws_inputscaling.h>
+#include <path_follower/controller/robotcontroller_4ws_inputscaling.h>
 #include <path_follower/pathfollower.h>
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
@@ -73,17 +73,14 @@ void RobotController_4WS_InputScaling::reset() {
 void RobotController_4WS_InputScaling::setPath(Path::Ptr path) {
 	RobotController_Interpolation::setPath(path);
 
-	Eigen::Vector3d pose = path_driver_->getRobotPose();
-	const double theta_diff = MathHelper::AngleDelta(path_interpol.theta_p(0), pose[2]);
-
-	// decide whether to drive forward or backward
-	if (theta_diff > M_PI_2 || theta_diff < -M_PI_2) {
-		setDirSign(-1.f);
-		setTuningParameters(params_.k_backward());
-	} else {
-		setDirSign(1.f);
-		setTuningParameters(params_.k_forward());
-	}
+    // decide whether to drive forward or backward
+    if (path_->getCurrentSubPath().forward) {
+        setDirSign(1.f);
+        setTuningParameters(params_.k_backward());
+    } else {
+        setDirSign(-1.f);
+        setTuningParameters(params_.k_forward());
+    }
 }
 
 RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMoveCommand(
@@ -99,10 +96,6 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 
     double velocity_measured = dir_sign_ * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
             + v_meas_twist.linear.y * v_meas_twist.linear.y);
-
-    ROS_INFO("desired velocity = %f, measured velocity = %f", velocity_, velocity_measured);
-    ROS_INFO("measured.linear.x = %f, measured.linear.y = %f, measured.linear.z = %f", v_meas_twist.linear.x,
-             v_meas_twist.linear.y, v_meas_twist.linear.z);
 
 	// goal test
 	if (reachedGoal(pose)) {
@@ -272,8 +265,6 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	ROS_DEBUG("dx2dd=%f, dx2dtheta_e=%f, dx2ds=%f", dx2_dd, dx2_dtheta_e, dx2_ds);
 	ROS_DEBUG("alpha1=%f, alpha2=%f, u1=%f, u2=%f", alpha1, alpha2, u1, u2);
 	ROS_DEBUG("frame time = %f", (((float) (std::clock() - begin)) / CLOCKS_PER_SEC));
-	ROS_INFO("Time passed: %fs, command: v1=%f, v2=%f, phi_=%f",
-				time_passed, v1, v2, phi_);
 
 	return RobotController::MoveCommandStatus::OKAY;
 }

@@ -17,19 +17,19 @@
 #include <path_follower/controller/robotcontrollertrailer.h>
 #include <path_follower/controller/robotcontroller_ICR_CCW.h>
 
-#include <path_follower/legacy/robotcontroller_ackermann_orthexp.h>
-#include <path_follower/legacy/robotcontroller_ackermann_purepursuit.h>
-#include <path_follower/legacy/robotcontroller_ackermann_kinematic.h>
-#include <path_follower/legacy/robotcontroller_ackermann_stanley.h>
-#include <path_follower/legacy/robotcontroller_4ws_purepursuit.h>
-#include <path_follower/legacy/robotcontroller_4ws_stanley.h>
-#include <path_follower/legacy/robotcontroller_4ws_inputscaling.h>
-#include <path_follower/legacy/robotcontroller_unicycle_inputscaling.h>
-#include <path_follower/legacy/robotcontroller_omnidrive_orthexp.h>
-#include <path_follower/legacy/robotcontroller_differential_orthexp.h>
-#include <path_follower/legacy/robotcontroller_kinematic_SLP.h>
-#include <path_follower/legacy/robotcontroller_dynamic_SLP.h>
-#include <path_follower/legacy/robotcontroller_kinematic_SSG.h>
+#include <path_follower/controller/robotcontroller_ackermann_orthexp.h>
+#include <path_follower/controller/robotcontroller_ackermann_purepursuit.h>
+#include <path_follower/controller/robotcontroller_ackermann_inputscaling.h>
+#include <path_follower/controller/robotcontroller_ackermann_stanley.h>
+#include <path_follower/controller/robotcontroller_4ws_purepursuit.h>
+#include <path_follower/controller/robotcontroller_4ws_stanley.h>
+#include <path_follower/controller/robotcontroller_4ws_inputscaling.h>
+#include <path_follower/controller/robotcontroller_unicycle_inputscaling.h>
+#include <path_follower/controller/robotcontroller_omnidrive_orthexp.h>
+#include <path_follower/controller/robotcontroller_differential_orthexp.h>
+#include <path_follower/controller/robotcontroller_kinematic_SLP.h>
+#include <path_follower/controller/robotcontroller_dynamic_SLP.h>
+#include <path_follower/controller/robotcontroller_kinematic_HBZ.h>
 // Supervisors
 #include <path_follower/supervisor/pathlookout.h>
 #include <path_follower/supervisor/waypointtimeout.h>
@@ -107,10 +107,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
         controller_ = std::make_shared<Robotcontroller_Ackermann_PurePursuit>(this);
 
-    } else if (opt_.controller() == "ackermann_kinematic") {
+    } else if (opt_.controller() == "ackermann_inputscaling") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
-        controller_ = std::make_shared<RobotController_Ackermann_Kinematic>(this);
+        controller_ = std::make_shared<RobotController_Ackermann_Inputscaling>(this);
 
     } else if (opt_.controller() == "ackermann_stanley") {
         if (opt_.obstacle_avoider_use_collision_box())
@@ -167,10 +167,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
         controller_ = std::make_shared<RobotController_Dynamic_SLP>(this);
-    } else if (opt_.controller() == "kinematic_SSG") {
+    } else if (opt_.controller() == "kinematic_HBZ") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
-        controller_ = std::make_shared<RobotController_Kinematic_SSG>(this);
+        controller_ = std::make_shared<RobotController_Kinematic_HBZ>(this);
     } else if (opt_.controller() == "ICR_CCW") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);

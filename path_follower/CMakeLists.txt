@@ -92,19 +92,19 @@ add_library(${PROJECT_NAME} SHARED
     src/controller/path_cascade_pid.cpp
     src/controller/robotcontroller_ICR_CCW.cpp
 
-    src/legacy/robotcontroller_ackermann_orthexp.cpp
-    src/legacy/robotcontroller_ackermann_purepursuit.cpp
-    src/legacy/robotcontroller_ackermann_kinematic.cpp
-    src/legacy/robotcontroller_ackermann_stanley.cpp
-    src/legacy/robotcontroller_4ws_purepursuit.cpp
-    src/legacy/robotcontroller_4ws_stanley.cpp
-    src/legacy/robotcontroller_4ws_inputscaling.cpp
-    src/legacy/robotcontroller_unicycle_inputscaling.cpp
-    src/legacy/robotcontroller_differential_orthexp.cpp
-    src/legacy/robotcontroller_omnidrive_orthexp.cpp
-    src/legacy/robotcontroller_kinematic_SLP.cpp
-    src/legacy/robotcontroller_dynamic_SLP.cpp
-    src/legacy/robotcontroller_kinematic_SSG.cpp
+    src/controller/robotcontroller_ackermann_orthexp.cpp
+    src/controller/robotcontroller_ackermann_purepursuit.cpp
+    src/controller/robotcontroller_ackermann_inputscaling.cpp
+    src/controller/robotcontroller_ackermann_stanley.cpp
+    src/controller/robotcontroller_4ws_purepursuit.cpp
+    src/controller/robotcontroller_4ws_stanley.cpp
+    src/controller/robotcontroller_4ws_inputscaling.cpp
+    src/controller/robotcontroller_unicycle_inputscaling.cpp
+    src/controller/robotcontroller_differential_orthexp.cpp
+    src/controller/robotcontroller_omnidrive_orthexp.cpp
+    src/controller/robotcontroller_kinematic_SLP.cpp
+    src/controller/robotcontroller_dynamic_SLP.cpp
+    src/controller/robotcontroller_kinematic_HBZ.cpp
 
     src/local_planner/local_planner.cpp
     src/local_planner/local_planner_null.cpp
@@ -147,7 +147,7 @@ add_library(${PROJECT_NAME} SHARED
     src/supervisor/obstacletracker.cpp
     src/supervisor/waypointtimeout.cpp
     src/supervisor/distancetopathsupervisor.cpp
-    src/legacy/vector_field_histogram.cpp
+    src/controller/vector_field_histogram.cpp
 )
 target_link_libraries(${PROJECT_NAME}
     ${ALGLIB_LIBRARIES} ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES} ${PCL_LIBRARIES}

@@ -41,6 +41,9 @@ private:
 		return params_;
 	}
 
+    void reset();
+    void setPath(Path::Ptr path);
+
 	//! The MoveCommand that is beeing published
 	MoveCommand move_cmd_;
 };
