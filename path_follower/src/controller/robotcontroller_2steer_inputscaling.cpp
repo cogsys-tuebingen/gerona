@@ -1,4 +1,4 @@
-#include <path_follower/controller/robotcontroller_4ws_inputscaling.h>
+#include <path_follower/controller/robotcontroller_2steer_inputscaling.h>
 #include <path_follower/pathfollower.h>
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
@@ -21,7 +21,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #endif
 
-RobotController_4WS_InputScaling::RobotController_4WS_InputScaling(PathFollower* _path_follower) :
+RobotController_2Steer_InputScaling::RobotController_2Steer_InputScaling(PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower),
 	phi_(0.)
 {
@@ -43,13 +43,13 @@ RobotController_4WS_InputScaling::RobotController_4WS_InputScaling(PathFollower*
 #endif
 }
 
-void RobotController_4WS_InputScaling::setTuningParameters(const double k) {
+void RobotController_2Steer_InputScaling::setTuningParameters(const double k) {
 	k1_ = 1. * k * k * k;
 	k2_ = 3. * k * k;
 	k3_ = 3. * k;
 }
 
-void RobotController_4WS_InputScaling::stopMotion() {
+void RobotController_2Steer_InputScaling::stopMotion() {
 
 	move_cmd_.setVelocity(0.f);
 	move_cmd_.setDirection(0.f);
@@ -60,17 +60,17 @@ void RobotController_4WS_InputScaling::stopMotion() {
 	publishMoveCommand(cmd);
 }
 
-void RobotController_4WS_InputScaling::start() {
+void RobotController_2Steer_InputScaling::start() {
 	path_driver_->getCoursePredictor().reset();
 }
 
-void RobotController_4WS_InputScaling::reset() {
+void RobotController_2Steer_InputScaling::reset() {
 	old_time_ = ros::Time::now();
 
 	RobotController_Interpolation::reset();
 }
 
-void RobotController_4WS_InputScaling::setPath(Path::Ptr path) {
+void RobotController_2Steer_InputScaling::setPath(Path::Ptr path) {
 	RobotController_Interpolation::setPath(path);
 
     // decide whether to drive forward or backward
@@ -83,7 +83,7 @@ void RobotController_4WS_InputScaling::setPath(Path::Ptr path) {
     }
 }
 
-RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMoveCommand(
+RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeMoveCommand(
 		MoveCommand* cmd) {
 
 	std::clock_t begin = std::clock();
@@ -269,7 +269,7 @@ RobotController::MoveCommandStatus RobotController_4WS_InputScaling::computeMove
 	return RobotController::MoveCommandStatus::OKAY;
 }
 
-void RobotController_4WS_InputScaling::publishMoveCommand(
+void RobotController_2Steer_InputScaling::publishMoveCommand(
 		const MoveCommand& cmd) const {
 
 	geometry_msgs::Twist msg;
@@ -280,7 +280,7 @@ void RobotController_4WS_InputScaling::publishMoveCommand(
 	cmd_pub_.publish(msg);
 }
 
-double RobotController_4WS_InputScaling::lookUpAngle(const double angle) const {
+double RobotController_2Steer_InputScaling::lookUpAngle(const double angle) const {
 
 	const double keys[11] = {0.,
 									 0.0872664626,
@@ -329,7 +329,7 @@ double RobotController_4WS_InputScaling::lookUpAngle(const double angle) const {
 }
 
 #ifdef TEST_OUTPUT
-void RobotController_4WS_InputScaling::publishTestOutput(const unsigned int waypoint, const double d,
+void RobotController_2Steer_InputScaling::publishTestOutput(const unsigned int waypoint, const double d,
 																			const double theta_e,
 																			const double phi, const double v) const {
 	std_msgs::Float64MultiArray msg;

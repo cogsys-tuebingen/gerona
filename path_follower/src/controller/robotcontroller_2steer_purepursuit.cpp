@@ -4,7 +4,7 @@
  *      Author: Lukas Hollaender
  */
 
-#include <path_follower/controller/robotcontroller_4ws_purepursuit.h>
+#include <path_follower/controller/robotcontroller_2steer_purepursuit.h>
 #include <path_follower/pathfollower.h>
 #include <ros/ros.h>
 
@@ -21,7 +21,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #endif
 
-RobotController_4WS_PurePursuit::RobotController_4WS_PurePursuit (PathFollower* _path_follower) :
+RobotController_2Steer_PurePursuit::RobotController_2Steer_PurePursuit (PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower),
 	waypoint_(0) {
 
@@ -35,12 +35,12 @@ RobotController_4WS_PurePursuit::RobotController_4WS_PurePursuit (PathFollower* 
 #endif
 }
 
-void RobotController_4WS_PurePursuit::reset() {
+void RobotController_2Steer_PurePursuit::reset() {
 	waypoint_ = 0;
 	RobotController_Interpolation::reset();
 }
 
-void RobotController_4WS_PurePursuit::setPath(Path::Ptr path) {
+void RobotController_2Steer_PurePursuit::setPath(Path::Ptr path) {
 	RobotController_Interpolation::setPath(path);
 
 	Eigen::Vector3d pose = path_driver_->getRobotPose();
@@ -54,7 +54,7 @@ void RobotController_4WS_PurePursuit::setPath(Path::Ptr path) {
 }
 
 
-void RobotController_4WS_PurePursuit::stopMotion() {
+void RobotController_2Steer_PurePursuit::stopMotion() {
 
 	move_cmd_.setVelocity(0.f);
 	move_cmd_.setDirection(0.f);
@@ -63,11 +63,11 @@ void RobotController_4WS_PurePursuit::stopMotion() {
 	publishMoveCommand(cmd);
 }
 
-void RobotController_4WS_PurePursuit::start() {
+void RobotController_2Steer_PurePursuit::start() {
 	path_driver_->getCoursePredictor().reset();
 }
 
-RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveCommand(
+RobotController::MoveCommandStatus RobotController_2Steer_PurePursuit::computeMoveCommand(
 		MoveCommand* cmd) {
 
 	if(path_interpol.n() <= 2)
@@ -156,7 +156,7 @@ RobotController::MoveCommandStatus RobotController_4WS_PurePursuit::computeMoveC
 	return RobotController::MoveCommandStatus::OKAY;
 }
 
-void RobotController_4WS_PurePursuit::publishMoveCommand(
+void RobotController_2Steer_PurePursuit::publishMoveCommand(
 		const MoveCommand& cmd) const {
 
 	geometry_msgs::Twist msg;
@@ -167,7 +167,7 @@ void RobotController_4WS_PurePursuit::publishMoveCommand(
 	cmd_pub_.publish(msg);
 }
 
-double RobotController_4WS_PurePursuit::computeAlpha(double& l_ah, const Eigen::Vector3d& pose) {
+double RobotController_2Steer_PurePursuit::computeAlpha(double& l_ah, const Eigen::Vector3d& pose) {
 
 	double distance, dx, dy;
 	for (unsigned int i = waypoint_; i < path_interpol.n(); ++i) {
@@ -200,7 +200,7 @@ double RobotController_4WS_PurePursuit::computeAlpha(double& l_ah, const Eigen::
 }
 
 #ifdef TEST_OUTPUT
-void RobotController_4WS_PurePursuit::publishTestOutput(const unsigned int waypoint, const double d,
+void RobotController_2Steer_PurePursuit::publishTestOutput(const unsigned int waypoint, const double d,
 																	 const double theta_e,
 																	 const double phi, const double v) const {
 	std_msgs::Float64MultiArray msg;

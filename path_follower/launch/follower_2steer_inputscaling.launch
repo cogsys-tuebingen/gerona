@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-Launch the path follower with the kinematic controller for a car-like (Ackermann) robot.
+Launch the path follower with the input scaling controller for a bi-steerable robot.
 -->
 <launch>
   <arg name="algo" default="AStar" />
@@ -22,7 +22,7 @@ Launch the path follower with the kinematic controller for a car-like (Ackermann
   <arg name="s_angle" default="25.0" />
   <arg name="use_v" default="true" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
-	 <param name="controller" value="4ws_inputscaling" />
+	 <param name="controller" value="2steer_inputscaling" />
 
     <!-- supervisors -->
     <param name="use_obstacle_map" value="false" />

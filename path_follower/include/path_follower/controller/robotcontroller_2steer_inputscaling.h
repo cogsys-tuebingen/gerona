@@ -1,5 +1,5 @@
-#ifndef ROBOTCONTROLLER_4WS_INPUTSCALING_H
-#define ROBOTCONTROLLER_4WS_INPUTSCALING_H
+#ifndef ROBOTCONTROLLER_2STEER_INPUTSCALING_H
+#define ROBOTCONTROLLER_2STEER_INPUTSCALING_H
 
 #include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
@@ -8,11 +8,11 @@
 
 #define TEST_OUTPUT
 
-class RobotController_4WS_InputScaling : public RobotController_Interpolation
+class RobotController_2Steer_InputScaling : public RobotController_Interpolation
 {
 public:
-	RobotController_4WS_InputScaling(PathFollower* _path_follower);
-	virtual ~RobotController_4WS_InputScaling(){}
+    RobotController_2Steer_InputScaling(PathFollower* _path_follower);
+    virtual ~RobotController_2Steer_InputScaling(){}
 
 	virtual void stopMotion();
 	virtual void start();
@@ -74,4 +74,4 @@ private:
 	ros::Time old_time_;
 };
 
-#endif // ROBOTCONTROLLER_4WS_INPUTSCALING_H
+#endif // ROBOTCONTROLLER_2STEER_INPUTSCALING_H
