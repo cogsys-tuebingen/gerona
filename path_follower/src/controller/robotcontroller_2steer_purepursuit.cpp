@@ -43,14 +43,12 @@ void RobotController_2Steer_PurePursuit::reset() {
 void RobotController_2Steer_PurePursuit::setPath(Path::Ptr path) {
 	RobotController_Interpolation::setPath(path);
 
-	Eigen::Vector3d pose = path_driver_->getRobotPose();
-	const double theta_diff = MathHelper::AngleDelta(path_interpol.theta_p(0), pose[2]);
-
-	// decide whether to drive forward or backward
-	if (theta_diff > M_PI_2 || theta_diff < -M_PI_2)
-		setDirSign(-1.f);
-	else
-		setDirSign(1.f);
+    // decide whether to drive forward or backward
+    if (path_->getCurrentSubPath().forward) {
+        setDirSign(1.f);
+    } else {
+        setDirSign(-1.f);
+    }
 }
 
 
@@ -107,7 +105,7 @@ RobotController::MoveCommandStatus RobotController_2Steer_PurePursuit::computeMo
 
 	const double v = velocity_measured.linear.x;
 	double l_ah = v * (getDirSign() > 0.? params_.k_forward() : params_.k_backward());
-	l_ah = max(l_ah, 0.4);
+    l_ah = max(l_ah, 0.4);
 
 	// angle between vehicle theta and the connection between the reference point and the look ahead point
 	const double alpha = computeAlpha(l_ah, pose);
