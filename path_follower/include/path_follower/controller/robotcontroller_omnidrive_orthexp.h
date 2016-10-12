@@ -38,8 +38,6 @@ protected:
 
     void lookAtCommand(const std_msgs::StringConstPtr& cmd);
     void lookAt(const geometry_msgs::PointStampedConstPtr& look_at);
-    void laserBack(const sensor_msgs::LaserScanConstPtr& scan_back);
-    void laserFront(const sensor_msgs::LaserScanConstPtr& scan_front);
 
 private:
     void initialize();

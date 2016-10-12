@@ -30,8 +30,6 @@ protected:
 
     virtual void initialize();
 
-    void laserBack(const sensor_msgs::LaserScanConstPtr& scan_back);
-    void laserFront(const sensor_msgs::LaserScanConstPtr& scan_front);
     void WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array);
 
 private:

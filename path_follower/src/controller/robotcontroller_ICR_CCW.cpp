@@ -36,16 +36,11 @@ RobotController_ICR_CCW::RobotController_ICR_CCW(PathFollower *path_driver):
     Vr_(0),
     curv_sum_(1e-3),
     distance_to_goal_(1e6),
-    distance_to_obstacle_(1.0)
+    distance_to_obstacle_(1e3)
 {
     pose_ekf_ = Eigen::Vector3d::Zero();
     ICR_ekf_  = Eigen::Vector3d::Zero();
     last_time_ = ros::Time::now();
-
-    laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
-                                                             &RobotController_ICR_CCW::laserFront, this);
-    laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
-                                                            &RobotController_ICR_CCW::laserBack, this);
 
     wheel_vel_sub_ = nh_.subscribe<std_msgs::Float64MultiArray>("/wheel_velocities", 10,
                                                                    &RobotController_ICR_CCW::WheelVelocities, this);
@@ -134,29 +129,6 @@ void RobotController_ICR_CCW::initialize()
     y_aug_.clear();
 }
 
-void RobotController_ICR_CCW::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
-{
-    ranges_front_.clear();
-    for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
-        float range = scan->ranges[i];
-        if(range > scan->range_min && range < scan->range_max) {
-            ranges_front_.push_back(range);
-        }
-    }
-    findMinDistance();
-}
-
-void RobotController_ICR_CCW::laserBack(const sensor_msgs::LaserScanConstPtr &scan)
-{
-    ranges_back_.clear();
-    for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
-        float range = scan->ranges[i];
-        if(range > scan->range_min && range < scan->range_max) {
-            ranges_back_.push_back(range);
-        }
-    }
-    findMinDistance();
-}
 
 void RobotController_ICR_CCW::WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array)
 {
@@ -177,23 +149,6 @@ void RobotController_ICR_CCW::WheelVelocities(const std_msgs::Float64MultiArray:
         pose_ekf_ << ekf_.x_(0), ekf_.x_(1), ekf_.x_(2);
         ICR_ekf_  << ekf_.x_(3), ekf_.x_(4), ekf_.x_(5);
     }
-
-}
-
-//TODO: work with the obstacle map!!!
-void RobotController_ICR_CCW::findMinDistance()
-{
-    std::vector<float> ranges;
-    ranges.insert(ranges.end(), ranges_front_.begin(), ranges_front_.end());
-    ranges.insert(ranges.end(), ranges_back_.begin(), ranges_back_.end());
-    std::sort(ranges.begin(), ranges.end());
-
-    if(ranges.size() <= 7) {
-       distance_to_obstacle_ = 0;
-        return;
-    }
-
-    distance_to_obstacle_ = ranges[0];
 
 }
 
