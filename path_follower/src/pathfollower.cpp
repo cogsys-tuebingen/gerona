@@ -21,9 +21,9 @@
 #include <path_follower/controller/robotcontroller_ackermann_purepursuit.h>
 #include <path_follower/controller/robotcontroller_ackermann_inputscaling.h>
 #include <path_follower/controller/robotcontroller_ackermann_stanley.h>
-#include <path_follower/controller/robotcontroller_4ws_purepursuit.h>
-#include <path_follower/controller/robotcontroller_4ws_stanley.h>
-#include <path_follower/controller/robotcontroller_4ws_inputscaling.h>
+#include <path_follower/controller/robotcontroller_2steer_purepursuit.h>
+#include <path_follower/controller/robotcontroller_2steer_stanley.h>
+#include <path_follower/controller/robotcontroller_2steer_inputscaling.h>
 #include <path_follower/controller/robotcontroller_unicycle_inputscaling.h>
 #include <path_follower/controller/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/controller/robotcontroller_differential_orthexp.h>
@@ -117,20 +117,20 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
         controller_ = std::make_shared<RobotController_Ackermann_Stanley>(this);
 
-    } else if (opt_.controller() == "4ws_purepursuit") {
+    } else if (opt_.controller() == "2steer_purepursuit") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
-        controller_ = std::make_shared<RobotController_4WS_PurePursuit>(this);
+        controller_ = std::make_shared<RobotController_2Steer_PurePursuit>(this);
 
-    } else if (opt_.controller() == "4ws_stanley") {
+    } else if (opt_.controller() == "2steer_stanley") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
-        controller_ = std::make_shared<RobotController_4WS_Stanley>(this);
+        controller_ = std::make_shared<RobotController_2Steer_Stanley>(this);
 
-    } else if (opt_.controller() == "4ws_inputscaling") {
+    } else if (opt_.controller() == "2steer_inputscaling") {
         if (opt_.obstacle_avoider_use_collision_box())
             obstacle_avoider_ = std::make_shared<ObstacleDetectorAckermann>(&pose_listener_);
-        controller_ = std::make_shared<RobotController_4WS_InputScaling>(this);
+        controller_ = std::make_shared<RobotController_2Steer_InputScaling>(this);
 
     } else if (opt_.controller() == "unicycle_inputscaling") {
         if (opt_.obstacle_avoider_use_collision_box())

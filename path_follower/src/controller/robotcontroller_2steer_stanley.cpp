@@ -1,4 +1,4 @@
-#include <path_follower/controller/robotcontroller_4ws_stanley.h>
+#include <path_follower/controller/robotcontroller_2steer_stanley.h>
 
 #include <path_follower/pathfollower.h>
 #include <ros/ros.h>
@@ -20,7 +20,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #endif
 
-RobotController_4WS_Stanley::RobotController_4WS_Stanley(PathFollower* _path_follower) :
+RobotController_2Steer_Stanley::RobotController_2Steer_Stanley(PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower) {
 
 	ROS_INFO("Parameters: k_forward=%f, k_backward=%f\n"
@@ -36,7 +36,7 @@ RobotController_4WS_Stanley::RobotController_4WS_Stanley(PathFollower* _path_fol
 
 }
 
-void RobotController_4WS_Stanley::stopMotion() {
+void RobotController_2Steer_Stanley::stopMotion() {
 
 	move_cmd_.setVelocity(0.f);
 	move_cmd_.setDirection(0.f);
@@ -45,24 +45,22 @@ void RobotController_4WS_Stanley::stopMotion() {
 	publishMoveCommand(cmd);
 }
 
-void RobotController_4WS_Stanley::start() {
+void RobotController_2Steer_Stanley::start() {
 	path_driver_->getCoursePredictor().reset();
 }
 
-void RobotController_4WS_Stanley::setPath(Path::Ptr path) {
+void RobotController_2Steer_Stanley::setPath(Path::Ptr path) {
 	RobotController_Interpolation::setPath(path);
 
-	Eigen::Vector3d pose = path_driver_->getRobotPose();
-	const double theta_diff = MathHelper::AngleDelta(path_interpol.theta_p(0), pose[2]);
-
-	// decide whether to drive forward or backward
-	if (theta_diff > M_PI_2 || theta_diff < -M_PI_2)
-		setDirSign(-1.f);
-	else
-		setDirSign(1.f);
+    // decide whether to drive forward or backward
+    if (path_->getCurrentSubPath().forward) {
+        setDirSign(1.f);
+    } else {
+        setDirSign(-1.f);
+    }
 }
 
-RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveCommand(
+RobotController::MoveCommandStatus RobotController_2Steer_Stanley::computeMoveCommand(
 		MoveCommand* cmd) {
 
 	if(path_interpol.n() <= 2)
@@ -156,7 +154,7 @@ RobotController::MoveCommandStatus RobotController_4WS_Stanley::computeMoveComma
 	return RobotController::MoveCommandStatus::OKAY;
 }
 
-void RobotController_4WS_Stanley::publishMoveCommand(
+void RobotController_2Steer_Stanley::publishMoveCommand(
 		const MoveCommand& cmd) const {
 
 	geometry_msgs::Twist msg;
@@ -168,7 +166,7 @@ void RobotController_4WS_Stanley::publishMoveCommand(
 }
 
 #ifdef TEST_OUTPUT
-void RobotController_4WS_Stanley::publishTestOutput(const unsigned int waypoint, const double d,
+void RobotController_2Steer_Stanley::publishTestOutput(const unsigned int waypoint, const double d,
 																	 const double theta_e,
 																	 const double phi, const double v) const {
 	std_msgs::Float64MultiArray msg;

@@ -34,12 +34,9 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_
     ye_(0),
     curv_sum_(1e-3),
     distance_to_goal_(1e6),
-    distance_to_obstacle_(1)
+    distance_to_obstacle_(1e3)
 {
-    laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
-                                                             &RobotController_Kinematic_SLP::laserFront, this);
-    laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
-                                                            &RobotController_Kinematic_SLP::laserBack, this);
+
 }
 
 void RobotController_Kinematic_SLP::stopMotion()
@@ -67,47 +64,6 @@ void RobotController_Kinematic_SLP::initialize()
     vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 
-
-}
-
-void RobotController_Kinematic_SLP::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
-{
-    ranges_front_.clear();
-    for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
-        float range = scan->ranges[i];
-        if(range > scan->range_min && range < scan->range_max) {
-            ranges_front_.push_back(range);
-        }
-    }
-    findMinDistance();
-}
-
-void RobotController_Kinematic_SLP::laserBack(const sensor_msgs::LaserScanConstPtr &scan)
-{
-    ranges_back_.clear();
-    for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
-        float range = scan->ranges[i];
-        if(range > scan->range_min && range < scan->range_max) {
-            ranges_back_.push_back(range);
-        }
-    }
-    findMinDistance();
-}
-
-//TODO: work with the obstacle map!!!
-void RobotController_Kinematic_SLP::findMinDistance()
-{
-    std::vector<float> ranges;
-    ranges.insert(ranges.end(), ranges_front_.begin(), ranges_front_.end());
-    ranges.insert(ranges.end(), ranges_back_.begin(), ranges_back_.end());
-    std::sort(ranges.begin(), ranges.end());
-
-    if(ranges.size() <= 7) {
-       distance_to_obstacle_ = 0;
-        return;
-    }
-
-    distance_to_obstacle_ = ranges[0];
 
 }
 

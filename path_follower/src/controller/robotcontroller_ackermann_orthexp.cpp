@@ -27,20 +27,14 @@ RobotController_Ackermann_OrthogonalExponential::RobotController_Ackermann_Ortho
     vn_(0.0),
     theta_des_(90.0*M_PI/180.0),
     Ts_(0.02),
-    curv_sum_(0),
-    distance_to_goal_(0),
-    distance_to_obstacle_(0)
+    curv_sum_(1e-3),
+    distance_to_goal_(1e6),
+    distance_to_obstacle_(1e3)
 {
     look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
                                                        &RobotController_Ackermann_OrthogonalExponential::lookAtCommand, this);
     look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
                                                               &RobotController_Ackermann_OrthogonalExponential::lookAt, this);
-
-    laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
-                                                             &RobotController_Ackermann_OrthogonalExponential::laserFront, this);
-    laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
-                                                            &RobotController_Ackermann_OrthogonalExponential::laserBack, this);
-
     lookInDrivingDirection();
 }
 
@@ -70,46 +64,6 @@ void RobotController_Ackermann_OrthogonalExponential::lookAt(const geometry_msgs
 {
     look_at_ = look_at->point;
     view_direction_ = LookAtPoint;
-}
-
-void RobotController_Ackermann_OrthogonalExponential::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
-{
-    ranges_front_.clear();
-    for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
-        float range = scan->ranges[i];
-        if(range > scan->range_min && range < scan->range_max) {
-            ranges_front_.push_back(range);
-        }
-    }
-    findMinDistance();
-}
-
-void RobotController_Ackermann_OrthogonalExponential::laserBack(const sensor_msgs::LaserScanConstPtr &scan)
-{
-    ranges_back_.clear();
-    for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
-        float range = scan->ranges[i];
-        if(range > scan->range_min && range < scan->range_max) {
-            ranges_back_.push_back(range);
-        }
-    }
-    findMinDistance();
-}
-
-void RobotController_Ackermann_OrthogonalExponential::findMinDistance()
-{
-    std::vector<float> ranges;
-    ranges.insert(ranges.end(), ranges_front_.begin(), ranges_front_.end());
-    ranges.insert(ranges.end(), ranges_back_.begin(), ranges_back_.end());
-    std::sort(ranges.begin(), ranges.end());
-
-    if(ranges.size() <= 7) {
-       distance_to_obstacle_ = 0;
-        return;
-    }
-
-    distance_to_obstacle_ = ranges[0];
-
 }
 
 void RobotController_Ackermann_OrthogonalExponential::keepHeading()

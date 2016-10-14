@@ -37,7 +37,7 @@ RobotController_Kinematic_HBZ::RobotController_Kinematic_HBZ(PathFollower *path_
     delta_(0),
     curv_sum_(1e-3),
     distance_to_goal_(1e6),
-    distance_to_obstacle_(1)
+    distance_to_obstacle_(1e3)
 {
 
     wheel_velocities_ = nh_.subscribe<std_msgs::Float64MultiArray>("/wheel_velocities", 10,
@@ -82,6 +82,7 @@ void RobotController_Kinematic_HBZ::WheelVelocities(const std_msgs::Float64Multi
     Vl_ = (flw + blw)/2.0;
     Vr_ = (frw + brw)/2.0;
 }
+
 
 void RobotController_Kinematic_HBZ::start()
 {
