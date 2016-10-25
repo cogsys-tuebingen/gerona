@@ -19,9 +19,9 @@ public:
     ROIMapNode(ros::NodeHandle &nh)
         : running_avg_(0), running_avg_ticks_(0)
     {
-        std::string map_topic ("/map/hector");
+        std::string map_topic ("map/hector");
         std::string map_service ("/dynamic_map/hector");
-        std::string map_topic_result ("/map");
+        std::string map_topic_result ("map");
         std::string map_service_result ("/dynamic_map");
         nh.param("topic_map", map_topic, map_topic);
         nh.param("map_service", map_service, map_service);

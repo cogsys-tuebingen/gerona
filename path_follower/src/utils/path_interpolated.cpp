@@ -20,7 +20,7 @@ using namespace Eigen;
 
 PathInterpolated::PathInterpolated()
 	: N_(0),
-      frame_id_("/map"),
+      frame_id_("map"),
 	  s_new_(0),
 	  s_prim_(0)
 {

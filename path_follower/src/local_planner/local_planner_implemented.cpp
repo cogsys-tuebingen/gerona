@@ -156,7 +156,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
             return nullptr;
         }
 
-        Path::Ptr local_path(new Path("/odom"));
+        Path::Ptr local_path(new Path("odom"));
         setPath(local_path, wlp, local_wps, now);
         int end_t = gsw.usElapsed();
 

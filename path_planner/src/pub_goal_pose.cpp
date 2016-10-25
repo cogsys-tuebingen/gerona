@@ -57,7 +57,7 @@ int main(int argc, char** argv)
     int counter =0;
     while(ros::ok()){
         ros::spinOnce();
-        bool status=getWorldPose(pose_listener,"/map","/base_link",pose);
+        bool status=getWorldPose(pose_listener,"map","base_link",pose);
         if (status) {
             ROS_INFO("publish pose\n");
             goal_pub.publish(pose);

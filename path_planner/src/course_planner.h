@@ -118,7 +118,7 @@ private:
         pose.pose.position.z=0.0;
         pose.pose.orientation=tf::createQuaternionMsgFromYaw(gp.theta_);
         // ***todo hack
-        pose.header.frame_id="/map";
+        pose.header.frame_id="map";
         return pose;
     }
     void addGeomPoses(const PathPoseVec& gposes, path_msgs::PathSequence& path);

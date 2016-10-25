@@ -20,7 +20,7 @@ const std::string MODULE = "s_pathlookout";
 }
 
 PathLookout::PathLookout(const tf::TransformListener *tf_listener):
-    obstacle_frame_("/map"),
+    obstacle_frame_("map"),
     tf_listener_(tf_listener)
 {
     #if DEBUG_PATHLOOKOUT

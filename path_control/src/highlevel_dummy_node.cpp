@@ -31,7 +31,7 @@ public:
 
         speech_pub_ = nh.advertise<std_msgs::String>("/speech", 0);
 
-        pnh_.param("target_frame", target_frame_, std::string("/map"));
+        pnh_.param("target_frame", target_frame_, std::string("map"));
         // target speed
         pnh_.param("target_speed", target_speed_, 1.0);
 

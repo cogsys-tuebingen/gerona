@@ -18,8 +18,8 @@ CostmapNode::CostmapNode(ros::NodeHandle &nh)
   nh.param<int> ("erode", erode_, 4);
   nh.param<int> ("sampling", sampling_, 1);
 
-  std::string map_topic ("/map");
-  std::string map_topic_result ("/map/inflated");
+  std::string map_topic ("map");
+  std::string map_topic_result ("map/inflated");
   std::string map_service ("/dynamic_map/inflated");
   nh.param("topic_map", map_topic, map_topic);
   nh.param("topic_map_result", map_topic_result, map_topic_result);

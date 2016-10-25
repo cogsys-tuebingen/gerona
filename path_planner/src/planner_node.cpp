@@ -33,9 +33,9 @@ Planner::Planner()
     nh_priv.param("use_map_service", use_map_service_, !use_map_topic_);
 
     if(use_map_topic_) {
-        std::string map_topic = "/map";
+        std::string map_topic = "map";
         nh_priv.param("map_topic",map_topic, map_topic);
-        map_sub = nh_priv.subscribe<nav_msgs::OccupancyGrid>
+        map_sub = nh.subscribe<nav_msgs::OccupancyGrid>
                 (map_topic, 1, boost::bind(&Planner::updateMapCallback, this, _1));
 
         std::cout << "using map topic " << map_topic << std::endl;
@@ -64,9 +64,9 @@ Planner::Planner()
 
     } else {
         use_cost_map_service_ = false;
-        if(pre_process_) {
-            use_cost_map_ = true;
-        }
+//        if(pre_process_) {
+//            use_cost_map_ = true;
+//        }
     }
 
     nh_priv.param("use_cloud", use_cloud_, false);
@@ -93,7 +93,7 @@ Planner::Planner()
     cost_pub = nh_priv.advertise<nav_msgs::OccupancyGrid>("cost", 1, true);
     map_pub = nh_priv.advertise<nav_msgs::OccupancyGrid>("map", 1, true);
 
-    base_frame_ = "/base_link";
+    base_frame_ = "base_link";
     nh_priv.param("base_frame", base_frame_, base_frame_);
 
 
@@ -127,6 +127,8 @@ void Planner::preempt()
     }
 
     server_.setPreempted();
+
+    ROS_WARN_STREAM("done preempting path planner");
 }
 
 void Planner::feedback(int status)
@@ -138,11 +140,15 @@ void Planner::feedback(int status)
     }
 }
 
-void Planner::updateMapCallback (const nav_msgs::OccupancyGridConstPtr &map) {
-    updateMap(*map, false);
+void Planner::updateMapCallback (const nav_msgs::OccupancyGridConstPtr &map)
+{
+    pending_map = map;
 }
 
-void Planner::updateMap (const nav_msgs::OccupancyGrid &map, bool is_cost_map) {
+void Planner::updateMap (const nav_msgs::OccupancyGrid &map, bool is_cost_map)
+{
+    boost::lock_guard<boost::mutex> lock(map_mutex);
+
     is_cost_map_ = is_cost_map;
 
     unsigned w = map.info.width;
@@ -277,7 +283,7 @@ void Planner::visualizeOutline(const geometry_msgs::Pose& at, int id, const std:
 void Planner::visualizePath(const path_msgs::PathSequence& path, int id, double alpha)
 {
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "/map";
+    marker.header.frame_id = "map";
     marker.header.stamp = ros::Time();
     marker.ns = "planning/steps";
     marker.id = id;
@@ -399,8 +405,10 @@ void Planner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
 path_msgs::PathSequence Planner::findPath(const path_msgs::PlanPathGoal& request)
 {
     Stopwatch sw;
+    if(use_map_topic_ && pending_map) {
+        updateMap(*pending_map, false);
 
-    if(use_cost_map_service_) {
+    } else if(use_cost_map_service_) {
         sw.reset();
         nav_msgs::GetMap map_service;
         if(!cost_map_service_client.exists()) {
@@ -427,7 +435,7 @@ path_msgs::PathSequence Planner::findPath(const path_msgs::PlanPathGoal& request
 
     } else {
         nav_msgs::OccupancyGrid empty_map;
-        empty_map.header.frame_id = "/map";
+        empty_map.header.frame_id = "map";
         empty_map.header.stamp = ros::Time::now();
         empty_map.info.resolution = 0.05;
 
@@ -508,7 +516,7 @@ path_msgs::PathSequence Planner::findPath(const path_msgs::PlanPathGoal& request
     ROS_INFO_STREAM("planning took " << sw.msElapsed() << "ms");
 
     path_msgs::PathSequence path;
-    if(post_process_) {
+    if(post_process_ && !path_raw.paths.empty()) {
         sw.reset();
         path = postprocess(path_raw);
         ROS_INFO_STREAM("postprocessing took " << sw.msElapsed() << "ms");
@@ -525,6 +533,8 @@ path_msgs::PathSequence Planner::findPath(const path_msgs::PlanPathGoal& request
 
 void Planner::preprocess(const path_msgs::PlanPathGoal& request)
 {
+    boost::lock_guard<boost::mutex> lock(map_mutex);
+
     feedback(path_msgs::PlanPathFeedback::STATUS_PRE_PROCESSING);
 
     if(use_cloud_ && !cloud_.data.empty()) {
@@ -544,7 +554,7 @@ void Planner::preprocess(const path_msgs::PlanPathGoal& request)
     if(map_pub.getNumSubscribers() > 0) {
         nav_msgs::OccupancyGrid map_viz;
         map_viz.header.stamp = ros::Time::now();
-        map_viz.header.frame_id = "/map";
+        map_viz.header.frame_id = "map";
         map_viz.info.origin.position.x = map_info->getOrigin().x;
         map_viz.info.origin.position.y = map_info->getOrigin().y;
         map_viz.info.resolution = map_info->getResolution();
@@ -593,6 +603,8 @@ void Planner::preprocess(const path_msgs::PlanPathGoal& request)
 
 path_msgs::PathSequence Planner::postprocess(const path_msgs::PathSequence& path)
 {
+    boost::lock_guard<boost::mutex> lock(map_mutex);
+
     Stopwatch sw;
 
     ROS_INFO("postprocessing");
@@ -616,12 +628,12 @@ path_msgs::PathSequence Planner::postprocess(const path_msgs::PathSequence& path
 
 
     sw.restart();
-    path_msgs::PathSequence smooted_path = smoothPath(interpolated_path, 0.6, 0.15);
+    path_msgs::PathSequence smoothed_path = smoothPath(interpolated_path, 0.6, 0.15);
     ROS_INFO_STREAM("smoothing took " << sw.msElapsed() << "ms");
 
 
     sw.restart();
-    path_msgs::PathSequence final_interpolated_path = interpolatePath(smooted_path, 0.1);
+    path_msgs::PathSequence final_interpolated_path = interpolatePath(smoothed_path, 0.1);
     ROS_INFO_STREAM("final interpolation took " << sw.msElapsed() << "ms");
 
 
@@ -636,7 +648,7 @@ path_msgs::PathSequence Planner::postprocess(const path_msgs::PathSequence& path
 geometry_msgs::PoseStamped Planner::lookupPose()
 {
     geometry_msgs::PoseStamped own_pose;
-    own_pose.header.frame_id = "/map";
+    own_pose.header.frame_id = "map";
     own_pose.header.stamp = ros::Time::now();
     tf::StampedTransform trafo = lookupTransform(own_pose.header.frame_id, base_frame_, own_pose.header.stamp);
     tf::poseTFToMsg(trafo, own_pose.pose);
@@ -671,7 +683,8 @@ path_msgs::PathSequence Planner::doPlan(const path_msgs::PlanPathGoal &request)
     boost::thread worker(boost::bind(&Planner::planThreaded, this, request));
     ros::Rate spin(10);
     ros::Time start_time = ros::Time::now();
-    ros::Duration max_search_time(40);
+    ros::Duration max_search_time(std::max(request.goal.max_search_duration, 40.f));
+
     while(ros::ok()) {
         ROS_INFO_STREAM_THROTTLE(2, "still planning");
         bool timeout = start_time + max_search_time < ros::Time::now();
@@ -712,7 +725,11 @@ void Planner::planThreaded(const path_msgs::PlanPathGoal &goal)
     thread_running = true;
     thread_mutex.unlock();
 
-    path_msgs::PathSequence path = planImpl(goal);
+    path_msgs::PathSequence path;
+    {
+        boost::lock_guard<boost::mutex> lock(map_mutex);
+        path = planImpl(goal);
+    }
 
     thread_mutex.lock();
     thread_result = path;
@@ -761,7 +778,7 @@ void Planner::transformPose(const geometry_msgs::PoseStamped& pose, lib_path::Po
         world.theta = 0.0;
     }
 
-    visualizeOutline(pose.pose, 0, "/map");
+    visualizeOutline(pose.pose, 0, "map");
 
     unsigned fx, fy;
     map_info->point2cell(world.x, world.y, fx, fy);
@@ -892,7 +909,7 @@ path_msgs::PathSequence Planner::smoothPath(const path_msgs::PathSequence& path_
 void Planner::publishGradient(const cv::Mat& gx, const cv::Mat& gy)
 {
     visualization_msgs::Marker gradient_arrow;
-    gradient_arrow.header.frame_id = "/map";
+    gradient_arrow.header.frame_id = "map";
     gradient_arrow.header.stamp = ros::Time();
     gradient_arrow.ns = "planning/gradient";
     gradient_arrow.id = 0;
@@ -1152,7 +1169,7 @@ void Planner::laserCallback(const sensor_msgs::LaserScanConstPtr &scan, bool fro
 
 void Planner::integrateLaserScan(const sensor_msgs::LaserScan &scan)
 {
-    tf::StampedTransform trafo = lookupTransform("/map", scan.header.frame_id, scan.header.stamp);
+    tf::StampedTransform trafo = lookupTransform("map", scan.header.frame_id, scan.header.stamp);
 
     int OBSTACLE = is_cost_map_ ? 254 : 100;
 
@@ -1210,7 +1227,7 @@ void Planner::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud)
 
 void Planner::integratePointCloud(const sensor_msgs::PointCloud2 &cloud)
 {
-    tf::StampedTransform trafo = lookupTransform("/map", cloud.header.frame_id, cloud.header.stamp);
+    tf::StampedTransform trafo = lookupTransform("map", cloud.header.frame_id, cloud.header.stamp);
 
     int OBSTACLE = is_cost_map_ ? 254 : 100;
 
@@ -1321,6 +1338,6 @@ path_msgs::PathSequence Planner::empty() const
 {
     path_msgs::PathSequence res;
     res.header.stamp = ros::Time::now();
-    res.header.frame_id = "/map";
+    res.header.frame_id = "map";
     return res;
 }

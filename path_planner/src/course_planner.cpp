@@ -74,7 +74,7 @@ void CoursePlanner::obstaclePoseCb(const geometry_msgs::PoseWithCovarianceStampe
 {
     PathPose obstacle_gp=pose2PathPose(pose->pose.pose);
     geometry_msgs::PoseStamped robot_pose;
-    bool has_pose = getWorldPose("/map","/base_link",robot_pose);
+    bool has_pose = getWorldPose("map","base_link",robot_pose);
     if (!has_pose) {
         ROS_ERROR("cannot find robot pose with TF");
         return;
@@ -101,7 +101,7 @@ void CoursePlanner::planAvoidanceCb(const path_msgs::PlanAvoidanceGoalConstPtr &
     obstacle_gp.pos_.y()=obstacle.position.y;
     //path_geom::PathPose robot_gp=pose2PathPose(current.pose);
     geometry_msgs::PoseStamped robot_pose;
-    bool has_pose = getWorldPose("/map","/base_link",robot_pose);
+    bool has_pose = getWorldPose("map","base_link",robot_pose);
     if (!has_pose) {
         ROS_ERROR("cannot find robot pose with TF");
         return;
@@ -341,7 +341,7 @@ void CoursePlanner::startPoseCb(const geometry_msgs::PoseStampedConstPtr &pose_s
             poses.poses.push_back(spose.pose);
         }
     }
-    poses.header.frame_id="/map";
+    poses.header.frame_id="map";
     posearray_pub_.publish(poses);
 
 
@@ -370,7 +370,7 @@ void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
             poses.poses.push_back(spose.pose);
         }
     }
-    poses.header.frame_id="/map";
+    poses.header.frame_id="map";
     posearray_pub_.publish(poses);
 
     feedback(path_msgs::PlanPathFeedback::STATUS_DONE);
@@ -388,7 +388,7 @@ path_msgs::PathSequence CoursePlanner::planWithMap(const path_msgs::PlanPathGoal
     path_msgs::PathSequence path_raw = path_msgs::PathSequence();
 
     geometry_msgs::PoseStamped robot_pose;
-    bool has_pose = getWorldPose("/map","/base_link",robot_pose);
+    bool has_pose = getWorldPose("map","base_link",robot_pose);
     if (!has_pose) {
         ROS_ERROR("cannot find robot pose with TF");
         return path_raw;
@@ -475,7 +475,7 @@ void CoursePlanner::findCircleOnCourse(const Circle &obstacle, const vector<shar
 
 
     geometry_msgs::PoseStamped here;
-    bool has_pose = getWorldPose("/map","/base_link",here);
+    bool has_pose = getWorldPose("map","base_link",here);
     if (!has_pose) {
         ROS_ERROR("no pose for robot found");
         return;

@@ -233,7 +233,7 @@ void CourseMap::addLineMarkers(visualization_msgs::MarkerArray& array) const
     templ.color.g = 0;
     templ.color.b = 1;
     templ.color.a = 1;
-    templ.header.frame_id = "/map";
+    templ.header.frame_id = "map";
     templ.header.stamp = ros::Time(0);
     templ.ns = "course/map/lines";
     templ.scale.x = 0.05;
@@ -288,7 +288,7 @@ void CourseMap::addTransitionMarkers(visualization_msgs::MarkerArray& array) con
     icr.color.g = 0;
     icr.color.b = 0;
     icr.color.a = 1;
-    icr.header.frame_id = "/map";
+    icr.header.frame_id = "map";
     icr.header.stamp = ros::Time(0);
     icr.ns = "course/map/icr";
     icr.scale.x = 0.025;
@@ -303,7 +303,7 @@ void CourseMap::addTransitionMarkers(visualization_msgs::MarkerArray& array) con
     curve.color.g = 1;
     curve.color.b = 0;
     curve.color.a = 1;
-    curve.header.frame_id = "/map";
+    curve.header.frame_id = "map";
     curve.header.stamp = ros::Time(0);
     curve.ns = "course/map/curves";
     curve.scale.x = 0.05;
@@ -363,7 +363,7 @@ void CourseMap::addIntersectionMarkers(visualization_msgs::MarkerArray& array) c
     templ.color.g = 0;
     templ.color.b = 1;
     templ.color.a = 0.25;
-    templ.header.frame_id = "/map";
+    templ.header.frame_id = "map";
     templ.header.stamp = ros::Time(0);
     templ.ns = "course/map/intersections";
     templ.scale.x = 0.5;

@@ -40,9 +40,9 @@ struct PathFollowerParameters : public Parameters
 
     PathFollowerParameters():
         controller(this, "~controller", "ackermann_purepursuit", "Defines, which controller is used."),
-        world_frame(this, "~world_frame",  "/map", "Name of the world frame."),
-        robot_frame(this, "~robot_frame",  "/base_link", "Name of the robot frame."),
-        odom_frame(this, "~odom_frame",  "/odom", "Name of the odometry frame."),
+        world_frame(this, "~world_frame",  "map", "Name of the world frame."),
+        robot_frame(this, "~robot_frame",  "base_link", "Name of the robot frame."),
+        odom_frame(this, "~odom_frame",  "odom", "Name of the odometry frame."),
         wp_tolerance(this,  "~waypoint_tolerance",  0.20 , ""),
         goal_tolerance(this,  "~goal_tolerance",  0.15 , ""),
         steer_slow_threshold(this,  "~steer_slow_threshold",  0.25 ,

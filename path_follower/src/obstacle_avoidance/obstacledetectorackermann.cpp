@@ -75,7 +75,7 @@ ObstacleDetectorPolygon::PolygonWithTfFrame ObstacleDetectorAckermann::getPolygo
     Vector2f s = q + dir * length * Vector2f(cos_angle, sin_angle);
 
     PolygonWithTfFrame pwf;
-    pwf.frame = "/base_link";
+    pwf.frame = "base_link";
 
     pwf.polygon.push_back( cv::Point2f(p[0], p[1]) );
     pwf.polygon.push_back( cv::Point2f(q[0], q[1]) );

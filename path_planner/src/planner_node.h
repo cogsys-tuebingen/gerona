@@ -209,6 +209,8 @@ protected:
     lib_path::SimpleGridMap2d * map_info;
     double map_rotation_yaw_;
 
+    nav_msgs::OccupancyGridConstPtr pending_map;
+
     nav_msgs::OccupancyGrid cost_map;
     std::vector<double> gradient_x;
     std::vector<double> gradient_y;
@@ -222,6 +224,8 @@ protected:
     bool thread_running;
     boost::thread* thread_;
     boost::mutex thread_mutex;
+
+    boost::mutex map_mutex;
 
 protected:
     ros::Publisher path_publisher_;

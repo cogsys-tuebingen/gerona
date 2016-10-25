@@ -75,7 +75,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     local_planner_(nullptr),
     obstacle_avoider_(nullptr),
     course_predictor_(this),
-    path_(new Path("/map")),
+    path_(new Path("map")),
     pending_error_(-1),
     last_beep_(ros::Time::now()),
     beep_pause_(2.0),
@@ -93,7 +93,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     whole_local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("whole_local_path", 1, true);
     g_points_pub_ = node_handle_.advertise<visualization_msgs::Marker>("g_path_points", 10);
 
-    odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("/odom", 1, &PathFollower::odometryCB, this);
+    odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("odom", 1, &PathFollower::odometryCB, this);
 
     // Choose robot controller
     ROS_INFO("Use robot controller '%s'", opt_.controller().c_str());
@@ -270,7 +270,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     }
 
     // path marker
-    g_robot_path_marker_.header.frame_id = "/odom";
+    g_robot_path_marker_.header.frame_id = "odom";
     g_robot_path_marker_.header.stamp = ros::Time();
     g_robot_path_marker_.ns = "global robot path";
     g_robot_path_marker_.id = 75;
@@ -384,7 +384,7 @@ geometry_msgs::Twist PathFollower::getVelocity() const
 {
     //    geometry_msgs::Twist twist;
     //    try {
-    //        pose_listener_.lookupTwist("/odom", robot_frame_, ros::Time(0), ros::Duration(0.01), twist);
+    //        pose_listener_.lookupTwist("odom", robot_frame_, ros::Time(0), ros::Duration(0.01), twist);
 
     //    } catch (tf::TransformException& ex) {
     //        ROS_ERROR("error with transform robot pose: %s", ex.what());
@@ -553,7 +553,7 @@ void PathFollower::update()
                 }
 
                 bool path_search_failure = false;
-                Path::Ptr local_path_whole(new Path("/odom"));
+                Path::Ptr local_path_whole(new Path("odom"));
                 try {
                     Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, wscorer, local_path_whole);
                     path_search_failure = local_path && local_path->empty();

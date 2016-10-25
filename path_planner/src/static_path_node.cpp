@@ -146,7 +146,7 @@ struct StaticPathPlanner : public Planner
                 poses.poses.push_back(spose.pose);
             }
         }
-        poses.header.frame_id="/map";
+        poses.header.frame_id="map";
         posearray_pub_.publish(poses);
         feedback(path_msgs::PlanPathFeedback::STATUS_DONE);
 

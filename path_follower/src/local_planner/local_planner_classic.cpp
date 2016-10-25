@@ -28,7 +28,7 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
 {
     //DEBUG
     local_obst_pub_ = follower_.getNodeHandle().advertise<ObstacleCloud>("local_obst_points", 10);
-    l_obstacle_cloud_->header.frame_id = "/odom";
+    l_obstacle_cloud_->header.frame_id = "odom";
     const ros::Time time_st = ros::Time::now ();
     l_obstacle_cloud_->header.stamp = time_st.toNSec()/1e3;
     //
@@ -319,7 +319,7 @@ bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
     }
     global_path_.set_s_new(local_wps.at(i_new).s);
     smoothAndInterpolate(local_wps);
-    last_local_path_.interpolatePath(local_wps, "/odom");
+    last_local_path_.interpolatePath(local_wps, "odom");
     local_wps = (SubPath)last_local_path_;
     if(tooClose){
         wlp_.wps.insert(wlp_.wps.end(),local_wps.begin(),local_wps.end());

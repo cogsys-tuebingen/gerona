@@ -554,7 +554,7 @@ double RobotControllerTrailer::calculateAngleError()
     double trailer_angle;
 
     /*
-    bool status=getTrailerAngle("/base_link","/trailer_link",trailer_angle);
+    bool status=getTrailerAngle("base_link","/trailer_link",trailer_angle);
     if (!status) {
         trailer_angle=0.0;
     }*/
@@ -724,7 +724,7 @@ void RobotControllerTrailer::predictPose(Vector2d &front_pred, Vector2d &rear_pr
 
 
     double trailer_angle = agv_vel_.angular.z;
-    /* bool status=getTrailerAngle("/trailer_link","/base_link",trailer_angle);
+    /* bool status=getTrailerAngle("/trailer_link","base_link",trailer_angle);
     if (!status) {
         trailer_angle = 0.0;
         // ***todo error handling

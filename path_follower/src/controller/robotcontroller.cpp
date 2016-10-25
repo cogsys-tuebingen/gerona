@@ -45,7 +45,7 @@ std::string RobotController::getFixedFrame() const
     if(path_) {
         return path_->getFrameId();
     } else {
-        return "/map";
+        return "map";
     }
 }
 
