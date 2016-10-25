@@ -135,6 +135,8 @@ void PathSequenceDisplay::destroyObjects()
                 manual_object = NULL; // ensure it doesn't get destroyed again
             }
         }
+
+        manual_objects.clear();
     }
 
     // Destroy all billboards, if any
@@ -150,6 +152,8 @@ void PathSequenceDisplay::destroyObjects()
                 billboard_line = NULL; // ensure it doesn't get destroyed again
             }
         }
+
+        billboard_lines.clear();
     }
 }
 
@@ -199,14 +203,14 @@ void PathSequenceDisplay::processMessage( const path_msgs::PathSequence::ConstPt
     switch(style)
     {
     case LINES:
-        manual_objects = &manual_objects_[ bufferIndex ];
+        manual_objects = &manual_objects_.at(bufferIndex );
         for(Ogre::ManualObject* mo : *manual_objects) {
             mo->clear();
         }
         break;
 
     case BILLBOARDS:
-        billboard_lines = &billboard_lines_[ bufferIndex ];
+        billboard_lines = &billboard_lines_.at(bufferIndex );
         for(rviz::BillboardLine* bi : *billboard_lines) {
             bi->clear();
         }
