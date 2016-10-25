@@ -284,11 +284,15 @@ struct PathPlanner : public Planner
     //                    NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermann; // Ackermann
     typedef AStarDynamicHybridHeuristicsSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD_BACKWARD, true>,
     NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermannReversed; // Ackermann
-    typedef AStarSearch<NonHolonomicNeighborhoodPrecise<30, 600, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
+    typedef AStarDynamicSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD_BACKWARD, false>,
+    NoExpansion, Pose2d, GridMap2d, 100> AStarSummit; // Summit
+    typedef AStarDynamicSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD_BACKWARD, true>,
     NoExpansion, Pose2d, GridMap2d, 100> AStarSummitReversed; // Summit
 
-    typedef AStarDynamicSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD, true>,
+    typedef AStarDynamicSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD, false>,
     NoExpansion, Pose2d, GridMap2d, 100> AStarSummitForward; // Summit Only Forward
+    typedef AStarDynamicSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD, true>,
+    NoExpansion, Pose2d, GridMap2d, 100> AStarSummitForwardReversed; // Summit Only Forward
 
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
     //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
@@ -302,7 +306,6 @@ struct PathPlanner : public Planner
     //    ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
 
     typedef AStarAckermannReversed AStarAckermann;
-    typedef AStarSummitReversed AStarSummit;
     typedef AStarOmnidrive AStar2D;
     //    typedef AStarOmnidrive AStar;
 
@@ -371,15 +374,20 @@ struct PathPlanner : public Planner
     // convert non-directional paths
     path_msgs::PathSequence path2msg(const std::vector<lib_path::HeuristicNode<lib_path::Pose2d>>& path_raw, const ros::Time &goal_timestamp)
     {
+        if(path_raw.empty()) {
+            return {};
+        }
+
         path_msgs::PathSequence path_out;
         path_out.paths.emplace_back();
 
         // set timestamp of the received goal for the path message, so they can be associated
         path_out.header.stamp = goal_timestamp;
-        path_out.header.frame_id = "/map";
+        path_out.header.frame_id = "map";
 
         path_msgs::DirectionalPath* path = &path_out.paths.back();
 
+        path->forward = true;
 
         if(path_raw.size() > 0) {
             for(const auto& next_map : path_raw) {
@@ -409,7 +417,7 @@ struct PathPlanner : public Planner
 
         // set timestamp of the received goal for the path message, so they can be associated
         path_out.header.stamp = goal_timestamp;
-        path_out.header.frame_id = "/map";
+        path_out.header.frame_id = "map";
 
         path_msgs::DirectionalPath* path = &path_out.paths.back();
 
@@ -443,9 +451,11 @@ struct PathPlanner : public Planner
 
     template <typename Algorithm>
     void initSearch (Algorithm& algo,
-                     const std_msgs::Header &header)
+                     const std_msgs::Header &header,
+                     double max_search_duration)
     {
         algo.setMap(map_info);
+        algo.setTimeLimit(max_search_duration);
 
         if(use_cost_map_) {
             cells.header = cost_map.header;
@@ -467,7 +477,7 @@ struct PathPlanner : public Planner
                                           const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                                           const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
 
-        initSearch(algo, request.goal.pose.header);
+        initSearch(algo, request.goal.pose.header, request.goal.max_search_duration);
 
         try {
             typename Algorithm::PathT path;
@@ -508,7 +518,7 @@ struct PathPlanner : public Planner
                                              const path_msgs::PlanPathGoal &request,
                                              const Pose2d &from_world, const Pose2d &from_map) {
 
-        initSearch(algo, request.goal.map.header);
+        initSearch(algo, request.goal.map.header, request.goal.max_search_duration);
 
         try {
             typename Algorithm::PathT path;
@@ -535,6 +545,11 @@ struct PathPlanner : public Planner
                 path = algo.findPath(from_map, goal_test, search_options);
             }
 
+            int id = 1;
+            for(const typename Algorithm::PathT& path : algo.getPathCandidates()) {
+                visualizePath(path2msg(path, request.goal.pose.header.stamp), id++, 0.1);
+            }
+
             return path2msg(path, ros::Time::now());
             ROS_INFO_STREAM("path with " << path.size() << " nodes found");
         }
@@ -557,9 +572,9 @@ struct PathPlanner : public Planner
         case Algo::ACKERMANN:
             return planMapInstance(algorithm, algo_ackermann, request, from_world, from_map);
         case Algo::SUMMIT:
-            return planMapInstance(algorithm, algo_summit, request, from_world, from_map);
+            return planMapInstance(algorithm, algo_summit_reversed, request, from_world, from_map);
         case Algo::SUMMIT_FORWARD:
-            return planMapInstance(algorithm, algo_summit_forward, request, from_world, from_map);
+            return planMapInstance(algorithm, algo_summit_forward_reversed, request, from_world, from_map);
         case Algo::OMNI:
             return planMapInstance(algorithm, algo_omni, request, from_world, from_map);
 
@@ -644,9 +659,11 @@ private:
 
     AStarAckermann algo_ackermann;
     AStarSummit algo_summit;
+    AStarSummit algo_summit_reversed;
+    AStarSummitForward algo_summit_forward;
+    AStarSummitForward algo_summit_forward_reversed;
     AStarPatsy algo_patsy;
     AStarPatsyForward algo_patsy_forward;
-    AStarSummitForward algo_summit_forward;
     AStar2D algo_omni;
 
     Algo algo_to_use;
