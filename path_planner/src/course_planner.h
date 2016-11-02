@@ -24,8 +24,8 @@
 #include <nav_msgs/Path.h>
 #include <tf/transform_listener.h>
 
-#include <utils_path/geometry/shape.h>
-#include <utils_path/geometry/circle.h>
+#include <cslibs_path_planning/geometry/shape.h>
+#include <cslibs_path_planning/geometry/circle.h>
 
 
 using namespace std;

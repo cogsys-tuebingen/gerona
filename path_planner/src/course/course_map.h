@@ -1,7 +1,7 @@
 #ifndef COURSE_MAP_H
 #define COURSE_MAP_H
 
-#include <utils_path/geometry/line.h>
+#include <cslibs_path_planning/geometry/line.h>
 #include <ros/publisher.h>
 #include <ros/node_handle.h>
 #include <visualization_msgs/MarkerArray.h>

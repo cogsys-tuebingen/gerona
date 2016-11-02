@@ -27,7 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   roscpp
   cslibs_utils
-  utils_path
+  cslibs_path_planning
   tf
   laser_geometry
   pcl_ros

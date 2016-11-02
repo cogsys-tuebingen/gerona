@@ -1,14 +1,14 @@
 #ifndef SEARCH_H
 #define SEARCH_H
 
-#include <utils_path/geometry/shape.h>
+#include <cslibs_path_planning/geometry/shape.h>
 #include <XmlRpcValue.h>
 #include <ros/node_handle.h>
-#include <utils_path/generic/Algorithms.hpp>
-#include <utils_path/common/SimpleGridMap2d.h>
+#include <cslibs_path_planning/generic/Algorithms.hpp>
+#include <cslibs_path_planning/common/SimpleGridMap2d.h>
 #include <nav_msgs/OccupancyGrid.h>
-#include <utils_path/generic/SteeringNode.hpp>
-#include <utils_path/generic/SteeringNeighborhood.hpp>
+#include <cslibs_path_planning/generic/SteeringNode.hpp>
+#include <cslibs_path_planning/generic/SteeringNeighborhood.hpp>
 
 #include "node.h"
 #include "path_builder.h"

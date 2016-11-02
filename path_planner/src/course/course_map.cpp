@@ -1,5 +1,5 @@
 #include "course_map.h"
-#include <utils_path/geometry/intersector.h>
+#include <cslibs_path_planning/geometry/intersector.h>
 #include <ros/console.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <XmlRpcValue.h>

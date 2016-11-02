@@ -1,7 +1,7 @@
 #ifndef SEGMENT_H
 #define SEGMENT_H
 
-#include <utils_path/geometry/line.h>
+#include <cslibs_path_planning/geometry/line.h>
 #include "transition.h"
 
 class Segment

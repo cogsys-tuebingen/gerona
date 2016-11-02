@@ -10,11 +10,11 @@
 
 */
 
-#include <utils_path/geometry/circle.h>
+#include <cslibs_path_planning/geometry/circle.h>
 
-#include <utils_path/geometry/line.h>
-#include <utils_path/geometry/intersector.h>
-#include <utils_path/geometry/tangentor.h>
+#include <cslibs_path_planning/geometry/line.h>
+#include <cslibs_path_planning/geometry/intersector.h>
+#include <cslibs_path_planning/geometry/tangentor.h>
 
 #include "course_planner.h"
 

@@ -2,9 +2,9 @@
 #include "planner_node.h"
 
 /// PROJECT
-#include <utils_path/common/CollisionGridMap2d.h>
-#include <utils_path/common/RotatedGridMap2d.h>
-#include <utils_path/common/Bresenham2d.h>
+#include <cslibs_path_planning/common/CollisionGridMap2d.h>
+#include <cslibs_path_planning/common/RotatedGridMap2d.h>
+#include <cslibs_path_planning/common/Bresenham2d.h>
 #include <cslibs_utils/Stopwatch.h>
 
 /// SYSTEM

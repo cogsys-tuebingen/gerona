@@ -5,7 +5,7 @@
 #include "node.h"
 #include <string>
 #include <ros/node_handle.h>
-#include <utils_path/geometry/shape.h>
+#include <cslibs_path_planning/geometry/shape.h>
 
 class Search;
 

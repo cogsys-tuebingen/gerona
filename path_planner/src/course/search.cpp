@@ -1,6 +1,6 @@
 #include "search.h"
 
-#include <utils_path/common/CollisionGridMap2d.h>
+#include <cslibs_path_planning/common/CollisionGridMap2d.h>
 #include <ros/console.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/GetMap.h>

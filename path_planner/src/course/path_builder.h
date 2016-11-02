@@ -1,7 +1,7 @@
 #ifndef PATH_BUILDER_H
 #define PATH_BUILDER_H
 
-#include <utils_path/geometry/shape.h>
+#include <cslibs_path_planning/geometry/shape.h>
 #include "node.h"
 
 class PathBuilder

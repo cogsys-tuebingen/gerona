@@ -2,8 +2,8 @@
 #define PLANNER_NODE_H
 
 /// PROJECT
-#include <utils_path/common/SimpleGridMap2d.h>
-#include <utils_path/common/Pose2d.h>
+#include <cslibs_path_planning/common/SimpleGridMap2d.h>
+#include <cslibs_path_planning/common/Pose2d.h>
 #include <path_msgs/PlanPathAction.h>
 
 /// SYSTEM

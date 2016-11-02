@@ -16,7 +16,7 @@ endif()
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS nav_msgs path_msgs utils_path roscpp std_msgs tf roslib pcl_ros)
+find_package(catkin REQUIRED COMPONENTS nav_msgs path_msgs cslibs_path_planning roscpp std_msgs tf roslib pcl_ros)
 
 add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -54,7 +54,7 @@ install(TARGETS ${PROJECT_NAME}
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 
-## Generic Search (utils_path)
+## Generic Search (cslibs_path_planning)
 add_executable(${PROJECT_NAME}_node src/path_planner_node.cpp)
 add_dependencies(${PROJECT_NAME}_node path_msgs_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_node

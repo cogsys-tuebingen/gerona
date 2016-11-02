@@ -3,7 +3,7 @@
 
 #include "course_map.h"
 #include <nav_msgs/OccupancyGrid.h>
-#include <utils_path/common/SimpleGridMap2d.h>
+#include <cslibs_path_planning/common/SimpleGridMap2d.h>
 
 
 template <typename Algorithm>
