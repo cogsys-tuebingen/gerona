@@ -5,7 +5,7 @@
 #include <utils_path/common/CollisionGridMap2d.h>
 #include <utils_path/common/RotatedGridMap2d.h>
 #include <utils_path/common/Bresenham2d.h>
-#include <utils_general/Stopwatch.h>
+#include <cslibs_utils/Stopwatch.h>
 
 /// SYSTEM
 #include <nav_msgs/GetMap.h>

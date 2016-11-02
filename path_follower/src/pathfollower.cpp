@@ -2,7 +2,7 @@
 
 /// SYSTEM
 #include <Eigen/Core>
-#include <utils_general/MathHelper.h>
+#include <cslibs_utils/MathHelper.h>
 #include <cmath>
 #include <boost/assign.hpp>
 

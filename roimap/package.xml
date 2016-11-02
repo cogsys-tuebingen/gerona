@@ -14,11 +14,9 @@
 
   <build_depend>nav_msgs</build_depend>
   <build_depend>roscpp</build_depend>
-  <build_depend>utils_general</build_depend>
 
   <run_depend>nav_msgs</run_depend>
   <run_depend>roscpp</run_depend>
-  <run_depend>utils_general</run_depend>
 
   <export>
   </export>

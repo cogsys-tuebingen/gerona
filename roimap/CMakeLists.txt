@@ -4,7 +4,6 @@ project(roimap)
 find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   roscpp
-  utils_general
 )
 
 find_package(OpenCV REQUIRED)
