@@ -61,12 +61,13 @@ include_directories(
 
 file(GLOB_RECURSE INCLUDE_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} FOLLOW_SYMLINKS include/*.hpp include/*.h)
 
-add_custom_target(${PROJECT_NAME}_include_headers SOURCES
-    ${INCLUDE_HEADERS}
-)
-
 add_library(${PROJECT_NAME} SHARED
+    ${INCLUDE_HEADERS}
+
+    src/path_follower_server.cpp
     src/pathfollower.cpp
+
+    src/factory/controller_factory.cpp
 
     src/utils/parameters.cpp
     src/utils/visualizer.cpp

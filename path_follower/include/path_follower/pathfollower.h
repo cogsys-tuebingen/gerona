@@ -5,10 +5,9 @@
 #include <Eigen/Core>
 /// ROS
 #include <ros/ros.h>
-#include <actionlib/server/simple_action_server.h>
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
-
+#include <path_msgs/FollowPathAction.h>
 #include <nav_msgs/Odometry.h>
 #include <std_msgs/String.h>
 #include <geometry_msgs/Pose.h>
@@ -16,8 +15,8 @@
 #include <nav_msgs/Path.h>
 
 /// PROJECT
+#include <path_follower/factory/controller_factory.h>
 #include <path_follower/local_planner/local_planner.h>
-#include <path_msgs/FollowPathAction.h>
 #include <cslibs_utils/Global.h>
 #include <path_follower/pathfollowerparameters.h>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
@@ -35,8 +34,6 @@
 
 class PathFollower
 {
-    friend class Behaviour;
-
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -50,20 +47,24 @@ public:
     bool transformToLocal(const geometry_msgs::PoseStamped& global, Vector3d& local );
     bool transformToGlobal(const geometry_msgs::PoseStamped& local, geometry_msgs::PoseStamped& global );
 
-    void spin();
+    boost::variant<path_msgs::FollowPathFeedback, path_msgs::FollowPathResult> update();
 
-    void update();
+    bool isRunning() const;
+    void start();
+    void stop(int status);
+    void emergencyStop();
+
+    void setGoal(const path_msgs::FollowPathGoal& goal);
 
     RobotController* getController();
+    const PathFollowerParameters &getOptions() const;
+    Visualizer& getVisualizer() const;
 
+    ros::NodeHandle& getNodeHandle();
+    ObstacleCloud::ConstPtr getObstacleCloud() const;
     CoursePredictor &getCoursePredictor();
-
-    //! Send 'text' to a text to speech processor.
-    void say(std::string text);
-
     Eigen::Vector3d getRobotPose() const;
     const geometry_msgs::Pose &getRobotPoseMsg() const;
-
     Path::Ptr getPath();
     std::string getFixedFrameId();
 
@@ -71,30 +72,41 @@ public:
 
     bool callObstacleAvoider(MoveCommand *cmd);
 
-    const PathFollowerParameters &getOptions() const;
-    Visualizer& getVisualizer() const;
-
-    ros::NodeHandle& getNodeHandle();
-
-    ObstacleCloud::ConstPtr getObstacleCloud() const;
-
 private:
     bool getWorldPose(Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = nullptr) const;
 
+
+    //! Callback for odometry messages
+    void odometryCB(const nav_msgs::OdometryConstPtr &odom);
+
+    void obstacleCloudCB(const ObstacleCloud::ConstPtr&);
+
+    //! Update the current pose of the robot.
+    /** @see robot_pose_, robot_pose_msg_ */
+    bool updateRobotPose();
+
+
+    /**
+     * @brief Execute one path following iteration
+     * @param feedback Feedback of the running path execution. Only meaningful, if return value is 1.
+     * @param result Result of the finished path execution. Only meaningful, if return value is 0.
+     * @return Returns `false` if the path execution is finished (no matter if successful or not) and `true` if it is still running.
+     */
+    bool execute(path_msgs::FollowPathFeedback& feedback, path_msgs::FollowPathResult& result);
+
+    void setPath(const path_msgs::PathSequence& path);
+
+    //! Split path into subpaths at turning points.
+    void findSegments(const path_msgs::PathSequence& path, bool only_one_segment);
+
+    //! Publish to the global path_points
+    void publishPathMarker();
+
 private:
-    typedef actionlib::SimpleActionServer<path_msgs::FollowPathAction> FollowPathServer;
-
     ros::NodeHandle node_handle_;
-
-    //! Action server that communicates with path_control (or who ever sends actions)
-    FollowPathServer follow_path_server_;
 
     //! Publisher for driving commands.
     ros::Publisher cmd_pub_;
-    //! Publisher for text to speech messages.
-    ros::Publisher speech_pub_;
-    //! Publisher for beeps.
-    ros::Publisher beep_pub_;
     //! Publisher for local paths
     ros::Publisher local_path_pub_;
     //! Publisher for all local paths
@@ -108,6 +120,8 @@ private:
     ros::Subscriber obstacle_cloud_sub_;
 
     tf::TransformListener pose_listener_;
+
+    ControllerFactory controller_factory_;
 
     //! The robot controller is responsible for everything that is dependend on robot model and controller type.
     std::shared_ptr<RobotController> controller_;
@@ -150,50 +164,9 @@ private:
     ros::Duration beep_pause_;
 
     bool is_running_;
-    path_msgs::FollowPathGoalConstPtr latest_goal_;
 
     //! Velocity for the Local Planner
     double vel_;
-
-    //! Callback for new follow_path action goals.
-    void followPathGoalCB();
-    //! Callback for follow_path action preemption.
-    void followPathPreemptCB();
-
-    //! Callback for odometry messages
-    void odometryCB(const nav_msgs::OdometryConstPtr &odom);
-
-    void obstacleCloudCB(const ObstacleCloud::ConstPtr&);
-
-    //! Publish beep commands.
-    void beep(const std::vector<int>& beeps);
-
-    //! Update the current pose of the robot.
-    /** @see robot_pose_, robot_pose_msg_ */
-    bool updateRobotPose();
-
-    //! Start driving on the path
-    void start();
-
-    //! Stop driving on the path
-    void stop();
-
-    /**
-     * @brief Execute one path following iteration
-     * @param feedback Feedback of the running path execution. Only meaningful, if return value is 1.
-     * @param result Result of the finished path execution. Only meaningful, if return value is 0.
-     * @return Returns `false` if the path execution is finished (no matter if successful or not) and `true` if it is still running.
-     */
-    bool execute(path_msgs::FollowPathFeedback& feedback, path_msgs::FollowPathResult& result);
-
-    void setGoal(const path_msgs::FollowPathGoal& goal);
-    void setPath(const path_msgs::PathSequence& path);
-
-    //! Split path into subpaths at turning points.
-    void findSegments(const path_msgs::PathSequence& path, bool only_one_segment);
-
-    //! Publish to the global path_points
-    void publishPathMarker();
 };
 
 #endif // PATHFOLLOWER_H

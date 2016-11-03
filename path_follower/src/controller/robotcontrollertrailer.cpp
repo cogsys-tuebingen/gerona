@@ -797,7 +797,7 @@ double RobotControllerTrailer::calculateLineError() const
                 has_line_points = true;
             } else {
                 ++wpi;
-                if(wpi >= path_->getCurrentSubPath().size()) {
+                if(wpi >= (int) path_->getCurrentSubPath().size()) {
                     break;
                 }
             }

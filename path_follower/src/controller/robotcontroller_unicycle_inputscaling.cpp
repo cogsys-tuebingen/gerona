@@ -88,9 +88,9 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
 
     const Eigen::Vector3d pose = path_driver_->getRobotPose();
 
-    double x_meas = pose[0];
-    double y_meas = pose[1];
-    double theta_meas = pose[2];
+//    double x_meas = pose[0];
+//    double y_meas = pose[1];
+//    double theta_meas = pose[2];
 
     const geometry_msgs::Twist v_meas_twist = path_driver_->getVelocity();
 

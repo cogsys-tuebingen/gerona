@@ -105,7 +105,7 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
     *cmd = MoveCommand(true);
 
     if(path_interpol.n() < 2) {
-        ROS_ERROR("[Line] path is too short (N = %d)", path_interpol.n());
+        ROS_ERROR("[Line] path is too short (N = %u)", path_interpol.n());
 
         stopMotion();
         return MoveCommandStatus::REACHED_GOAL;

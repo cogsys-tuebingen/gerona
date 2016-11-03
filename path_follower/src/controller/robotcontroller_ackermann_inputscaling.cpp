@@ -71,7 +71,8 @@ void RobotController_Ackermann_Inputscaling::reset() {
 	RobotController_Interpolation::reset();
 }
 
-void RobotController_Ackermann_Inputscaling::setPath(Path::Ptr path) {
+void RobotController_Ackermann_Inputscaling::setPath(Path::Ptr path)
+{
 	RobotController_Interpolation::setPath(path);
 
     // decide whether to drive forward or backward
@@ -83,11 +84,8 @@ void RobotController_Ackermann_Inputscaling::setPath(Path::Ptr path) {
 }
 
 RobotController::MoveCommandStatus RobotController_Ackermann_Inputscaling::computeMoveCommand(
-		MoveCommand* cmd) {
-
-
-	std::clock_t begin = std::clock();
-
+        MoveCommand* cmd)
+{
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
