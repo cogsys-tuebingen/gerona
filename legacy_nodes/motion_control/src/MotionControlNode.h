@@ -18,7 +18,7 @@ class CalibDriver;
 class PatternDriver;
 class FixedDriver;
 class SimpleGoalDriver;
-using namespace Eigen;
+
 class MotionControlNode
 {
 public:

@@ -4,6 +4,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <XmlRpcValue.h>
 
+using namespace Eigen;
 
 CourseMap::CourseMap(ros::NodeHandle &nh)
     : nh_(nh), pnh_("~")

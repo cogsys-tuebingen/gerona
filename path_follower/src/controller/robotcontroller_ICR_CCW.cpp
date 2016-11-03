@@ -12,6 +12,7 @@
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <path_follower/utils/extended_kalman_filter.h>
 #include <cslibs_utils/MathHelper.h>
+#include <path_follower/utils/coursepredictor.h>
 
 // ALGLIB
 #include <interpolation.h>

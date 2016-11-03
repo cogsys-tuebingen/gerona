@@ -15,8 +15,6 @@
 #include <pcl/point_cloud.h>
 #include "simbot4ws.h"
 
-using namespace std;
-
 class Path4wsSimulator
 {
 public:

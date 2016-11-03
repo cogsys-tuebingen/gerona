@@ -3,6 +3,7 @@
 
 /// PROJECT
 #include <path_follower/pathfollower.h>
+#include <path_follower/controller/robotcontroller.h>
 
 LocalPlannerNull::LocalPlannerNull(PathFollower &follower,
                                    tf::Transformer &transformer)

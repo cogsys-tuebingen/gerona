@@ -149,8 +149,6 @@ bool ObstacleDetectorPatsy::avoid(MoveCommand * const cmd,
 
 
     if(collision) {
-//        beep(beep::OBSTACLE_IN_PATH);
-
         // stop motion
         cmd->setVelocity(0);
     }

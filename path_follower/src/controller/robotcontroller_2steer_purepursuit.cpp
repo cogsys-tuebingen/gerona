@@ -6,6 +6,7 @@
 
 #include <path_follower/controller/robotcontroller_2steer_purepursuit.h>
 #include <path_follower/pathfollower.h>
+#include <path_follower/utils/coursepredictor.h>
 #include <ros/ros.h>
 
 #include <interpolation.h>
@@ -20,6 +21,9 @@
 #ifdef TEST_OUTPUT
 #include <std_msgs/Float64MultiArray.h>
 #endif
+
+using namespace std;
+using namespace Eigen;
 
 RobotController_2Steer_PurePursuit::RobotController_2Steer_PurePursuit (PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower),

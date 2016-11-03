@@ -18,6 +18,10 @@
 
 #include "course_planner.h"
 
+using namespace std;
+using namespace Eigen;
+using namespace path_geom;
+
 CoursePlanner::CoursePlanner()
 
     : course_(nh),

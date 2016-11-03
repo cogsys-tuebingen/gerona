@@ -12,6 +12,7 @@
 #include "path_cascade_pid.h"
 
 using namespace std;
+using namespace Eigen;
 
 namespace {
 //! Module name, that is used for ros console output

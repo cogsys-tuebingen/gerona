@@ -27,9 +27,6 @@
 #include <cslibs_path_planning/geometry/shape.h>
 #include <cslibs_path_planning/geometry/circle.h>
 
-
-using namespace std;
-using namespace path_geom;
 class CoursePlanner : public Planner
 {
 public:
@@ -58,9 +55,9 @@ public:
 
     void planAvoidanceCb (const path_msgs::PlanAvoidanceGoalConstPtr &goal);
 
-    void findCircleOnCourse(const Circle& obstacle, const vector<shared_ptr<Shape>>& course, vector<int>& indices );
+    void findCircleOnCourse(const path_geom::Circle& obstacle, const std::vector<std::shared_ptr<path_geom::Shape>>& course, std::vector<int>& indices );
 
-    void findPosOnCourse(const path_geom::PathPose& gp, const vector<shared_ptr<Shape>>& course,
+    void findPosOnCourse(const path_geom::PathPose& gp, const std::vector<std::shared_ptr<path_geom::Shape>>& course,
                         int& nearest_idx,Eigen::Vector2d& nearest);
 private:
     double resolution_ = 0.1;
@@ -73,8 +70,8 @@ private:
     CourseMap course_;
     Search course_search_;
 
-    vector<shared_ptr<Shape>> course_segments_;
-    vector<shared_ptr<Shape>> active_segments_;
+    std::vector<std::shared_ptr<path_geom::Shape>> course_segments_;
+    std::vector<std::shared_ptr<path_geom::Shape>> active_segments_;
     path_msgs::PathSequence avoidance_path_;
 
     path_msgs::PathSequence path_;
@@ -102,9 +99,9 @@ private:
      * @param path
      */
     void createCourse(XmlRpc::XmlRpcValue& segment_array, const geometry_msgs::Pose& pose,
-                      vector<shared_ptr<Shape>>& segments,path_msgs::PathSequence &path);
+                      std::vector<std::shared_ptr<path_geom::Shape>>& segments,path_msgs::PathSequence &path);
 
-    void segments2Path(const vector<shared_ptr<Shape>>& segments,double angle_offset, int direction ,
+    void segments2Path(const std::vector<std::shared_ptr<path_geom::Shape>>& segments,double angle_offset, int direction ,
                        path_msgs::PathSequence& path );
 
     path_geom::PathPose pose2PathPose(const geometry_msgs::Pose& pose) {
@@ -121,7 +118,7 @@ private:
         pose.header.frame_id="map";
         return pose;
     }
-    void addGeomPoses(const PathPoseVec& gposes, path_msgs::PathSequence& path);
+    void addGeomPoses(const path_geom::PathPoseVec& gposes, path_msgs::PathSequence& path);
 
 
     /**

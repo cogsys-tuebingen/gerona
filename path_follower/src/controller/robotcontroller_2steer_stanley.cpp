@@ -1,6 +1,7 @@
 #include <path_follower/controller/robotcontroller_2steer_stanley.h>
 
 #include <path_follower/pathfollower.h>
+#include <path_follower/utils/coursepredictor.h>
 #include <ros/ros.h>
 
 #include <interpolation.h>
@@ -19,6 +20,9 @@
 #ifdef TEST_OUTPUT
 #include <std_msgs/Float64MultiArray.h>
 #endif
+
+using namespace std;
+using namespace Eigen;
 
 RobotController_2Steer_Stanley::RobotController_2Steer_Stanley(PathFollower* _path_follower) :
 	RobotController_Interpolation(_path_follower) {

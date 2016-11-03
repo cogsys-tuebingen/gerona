@@ -23,14 +23,14 @@ public:
     const std::vector<Segment> &getSegments() const;
 
 private:
-    static Vector2d readPoint(const XmlRpc::XmlRpcValue& value, int index);
+    static Eigen::Vector2d readPoint(const XmlRpc::XmlRpcValue& value, int index);
     static Segment readSegment(const XmlRpc::XmlRpcValue& value, int index);
 
-    void addTransition(Segment &from, Segment &to, const Vector2d &intersection);
+    void addTransition(Segment &from, Segment &to, const Eigen::Vector2d &intersection);
 
     Eigen::Vector2d calculateICR(const Segment &from, const Segment &to, const Eigen::Vector2d& intersection) const;
-    double calculateSpan(const Segment &from, const Segment &to, const Vector2d &icr) const;
-    std::vector<Eigen::Vector2d> calculateCurvePoints(const Segment &from, const Segment &to, const Vector2d &icr, double dtheta) const;
+    double calculateSpan(const Segment &from, const Segment &to, const Eigen::Vector2d &icr) const;
+    std::vector<Eigen::Vector2d> calculateCurvePoints(const Segment &from, const Segment &to, const Eigen::Vector2d &icr, double dtheta) const;
 
     void addLineMarkers(visualization_msgs::MarkerArray &array) const;
     void addTransitionMarkers(visualization_msgs::MarkerArray &array) const;

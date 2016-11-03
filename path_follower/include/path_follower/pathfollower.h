@@ -13,24 +13,27 @@
 #include <geometry_msgs/Pose.h>
 #include <sensor_msgs/LaserScan.h>
 #include <nav_msgs/Path.h>
+#include <visualization_msgs/Marker.h>
 
 /// PROJECT
-#include <path_follower/factory/controller_factory.h>
-#include <path_follower/local_planner/local_planner.h>
-#include <cslibs_utils/Global.h>
 #include <path_follower/pathfollowerparameters.h>
-#include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
-#include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
-#include <path_follower/controller/robotcontroller.h>
-#include <path_follower/utils/visualizer.h>
-#include <path_follower/utils/path.h>
-#include <path_follower/utils/coursepredictor.h>
 #include <path_follower/utils/parameters.h>
-#include <path_follower/obstacle_avoidance/obstacleavoider.h>
-#include <path_follower/supervisor/supervisorchain.h>
+#include <path_follower/utils/obstaclecloud.hpp> // TODO: this includes pcl...
 
 /// SYSTEM
 #include <memory>
+
+class ControllerFactory;
+class CoursePredictor;
+class Visualizer;
+class SupervisorChain;
+class LocalPlanner;
+class RobotController;
+class Path;
+class ObstacleAvoider;
+
+//class ObstacleCloud;
+class MoveCommand;
 
 class PathFollower
 {
@@ -44,7 +47,7 @@ public:
 
     geometry_msgs::Twist getVelocity() const;
     bool transformToLocal(const geometry_msgs::PoseStamped& global, geometry_msgs::PoseStamped& local );
-    bool transformToLocal(const geometry_msgs::PoseStamped& global, Vector3d& local );
+    bool transformToLocal(const geometry_msgs::PoseStamped& global, Eigen::Vector3d& local );
     bool transformToGlobal(const geometry_msgs::PoseStamped& local, geometry_msgs::PoseStamped& global );
 
     boost::variant<path_msgs::FollowPathFeedback, path_msgs::FollowPathResult> update();
@@ -61,11 +64,11 @@ public:
     Visualizer& getVisualizer() const;
 
     ros::NodeHandle& getNodeHandle();
-    ObstacleCloud::ConstPtr getObstacleCloud() const;
+    boost::shared_ptr<ObstacleCloud const> getObstacleCloud() const;
     CoursePredictor &getCoursePredictor();
     Eigen::Vector3d getRobotPose() const;
     const geometry_msgs::Pose &getRobotPoseMsg() const;
-    Path::Ptr getPath();
+    std::shared_ptr<Path> getPath();
     std::string getFixedFrameId();
 
     ROS_DEPRECATED void setStatus(int status);
@@ -73,13 +76,13 @@ public:
     bool callObstacleAvoider(MoveCommand *cmd);
 
 private:
-    bool getWorldPose(Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = nullptr) const;
+    bool getWorldPose(Eigen::Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = nullptr) const;
 
 
     //! Callback for odometry messages
     void odometryCB(const nav_msgs::OdometryConstPtr &odom);
 
-    void obstacleCloudCB(const ObstacleCloud::ConstPtr&);
+    void obstacleCloudCB(const boost::shared_ptr<ObstacleCloud const>&);
 
     //! Update the current pose of the robot.
     /** @see robot_pose_, robot_pose_msg_ */
@@ -121,7 +124,7 @@ private:
 
     tf::TransformListener pose_listener_;
 
-    ControllerFactory controller_factory_;
+    std::unique_ptr<ControllerFactory> controller_factory_;
 
     //! The robot controller is responsible for everything that is dependend on robot model and controller type.
     std::shared_ptr<RobotController> controller_;
@@ -130,10 +133,10 @@ private:
 
     std::shared_ptr<ObstacleAvoider> obstacle_avoider_;
 
-    SupervisorChain supervisors_;
+    std::unique_ptr<SupervisorChain> supervisors_;
 
     //! Predict direction of movement for controlling and obstacle avoidance
-    CoursePredictor course_predictor_;
+    std::unique_ptr<CoursePredictor> course_predictor_;
 
     Visualizer* visualizer_;
 
@@ -143,7 +146,7 @@ private:
     nav_msgs::Odometry odometry_;
 
     //! The last received obstacle cloud
-    ObstacleCloud::ConstPtr obstacle_cloud_;
+    boost::shared_ptr<ObstacleCloud const> obstacle_cloud_;
 
     //! Current pose of the robot as Eigen vector (x,y,theta).
     Eigen::Vector3d robot_pose_world_;
@@ -155,13 +158,10 @@ private:
     visualization_msgs::Marker g_robot_path_marker_;
 
     //! Path as a list of separated subpaths
-    Path::Ptr path_;
+    std::shared_ptr<Path> path_;
 
     //! If set to a value >= 0, path execution is stopped in the next iteration. The value of pending_error_ is used as status code.
     int pending_error_;
-
-    ros::Time last_beep_;
-    ros::Duration beep_pause_;
 
     bool is_running_;
 

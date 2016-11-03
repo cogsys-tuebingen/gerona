@@ -13,8 +13,6 @@
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/PointCloud.h>
 
-using namespace Eigen;
-using namespace motion_control;
 class MotionControlNode;
 class MotionController
 {

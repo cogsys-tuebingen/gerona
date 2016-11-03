@@ -21,7 +21,7 @@ public:
     void insertCurveSegment(const Node* node);
     void extendAlongSourceSegment(const Node *node, double length);
     void extendAlongTargetSegment(const Node *node, double length);
-    void extendWithStraightTurningSegment(const Vector2d &pt, double length);
+    void extendWithStraightTurningSegment(const Eigen::Vector2d &pt, double length);
 
 private:
     std::vector<path_geom::PathPose> res;

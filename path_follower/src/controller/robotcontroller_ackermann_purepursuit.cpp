@@ -7,6 +7,7 @@
 
 #include <path_follower/controller/robotcontroller_ackermann_purepursuit.h>
 #include <path_follower/pathfollower.h>
+#include <path_follower/utils/coursepredictor.h>
 #include <ros/ros.h>
 
 #include <interpolation.h>

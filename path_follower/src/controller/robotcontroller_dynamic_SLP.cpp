@@ -8,6 +8,7 @@
 
 // PROJECT
 #include <path_follower/pathfollower.h>
+#include <path_follower/utils/coursepredictor.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>

@@ -5,6 +5,7 @@
 #include <path_follower/utils/path_exceptions.h>
 
 using namespace std;
+using namespace Eigen;
 
 namespace {
 //! Module name, that is used for ros console output

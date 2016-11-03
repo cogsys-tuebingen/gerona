@@ -12,12 +12,19 @@
 #include <tf_conversions/tf_eigen.h>
 
 /// PROJECT
+#include <path_follower/local_planner/local_planner.h>
+#include <path_follower/controller/robotcontroller.h>
 // Supervisors
 #include <path_follower/supervisor/pathlookout.h>
 #include <path_follower/supervisor/waypointtimeout.h>
 #include <path_follower/supervisor/distancetopathsupervisor.h>
 // Utils
 #include <path_follower/utils/path_exceptions.h>
+#include <path_follower/factory/controller_factory.h>
+#include <path_follower/utils/coursepredictor.h>
+#include <path_follower/utils/visualizer.h>
+#include <path_follower/supervisor/supervisorchain.h>
+
 using namespace path_msgs;
 using namespace std;
 using namespace Eigen;
@@ -27,21 +34,18 @@ const double WAYPOINT_POS_DIFF_TOL = 0.001;
 const double WAYPOINT_ANGLE_DIFF_TOL = 0.01*M_PI/180.0;
 
 
-namespace beep {
-static std::vector<int> OBSTACLE_IN_PATH = boost::assign::list_of(25)(25)(25);
-}
 
 PathFollower::PathFollower(ros::NodeHandle &nh):
     node_handle_(nh),
-    controller_factory_(*this),
+    controller_factory_(new ControllerFactory(*this)),
     controller_(nullptr),
     local_planner_(nullptr),
     obstacle_avoider_(nullptr),
-    course_predictor_(this),
+    supervisors_(new SupervisorChain()),
+    course_predictor_(new CoursePredictor(this)),
+    visualizer_(Visualizer::getInstance()),
     path_(new Path("map")),
     pending_error_(-1),
-    last_beep_(ros::Time::now()),
-    beep_pause_(2.0),
     is_running_(false),
     vel_(0.0)
 {
@@ -54,36 +58,35 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("odom", 1, &PathFollower::odometryCB, this);
 
     // Choose robot controller
-    controller_ = controller_factory_.makeController(opt_.controller());
-    obstacle_avoider_ = controller_factory_.makeObstacleAvoider(opt_.controller(), pose_listener_, controller_);
-    local_planner_ = controller_factory_.makeLocalPlanner(opt_.algo(), pose_listener_, ros::Duration(opt_.uinterval()));
+    controller_ = controller_factory_->makeController(opt_.controller());
+    obstacle_avoider_ = controller_factory_->makeObstacleAvoider(opt_.controller(), pose_listener_, controller_);
+    local_planner_ = controller_factory_->makeLocalPlanner(opt_.algo(), pose_listener_, ros::Duration(opt_.uinterval()));
 
     obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
                                                                 &PathFollower::obstacleCloudCB, this);
 
-    visualizer_ = Visualizer::getInstance();
 
 
     /*** Initialize supervisors ***/
 
     // register callback for new waypoint event.
-    path_->registerNextWaypointCallback([this]() { supervisors_.notifyNewWaypoint(); });
+    path_->registerNextWaypointCallback([this]() { supervisors_->notifyNewWaypoint(); });
     path_->registerNextWaypointCallback([this]() { local_planner_->reset(); });
 
     if (opt_.supervisor_use_path_lookout()) {
-        supervisors_.addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );
+        supervisors_->addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );
     }
 
     // Waypoint timeout
     if (opt_.supervisor_use_waypoint_timeout()) {
         Supervisor::Ptr waypoint_timeout(
                     new WaypointTimeout(ros::Duration( opt_.supervisor_waypoint_timeout_time())));
-        supervisors_.addSupervisor(waypoint_timeout);
+        supervisors_->addSupervisor(waypoint_timeout);
     }
 
     // Distance to path
     if (opt_.supervisor_use_distance_to_path()) {
-        supervisors_.addSupervisor(Supervisor::Ptr(
+        supervisors_->addSupervisor(Supervisor::Ptr(
                                        new DistanceToPathSupervisor(opt_.supervisor_distance_to_path_max_dist())));
     }
 
@@ -139,7 +142,7 @@ void PathFollower::obstacleCloudCB(const ObstacleCloud::ConstPtr &msg)
 bool PathFollower::updateRobotPose()
 {
     if (getWorldPose(&robot_pose_world_, &robot_pose_world_msg_)) {
-        course_predictor_.update();
+        course_predictor_->update();
         controller_->setCurrentPose(robot_pose_world_);
         return true;
     } else {
@@ -251,7 +254,7 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
                             obstacle_cloud_,
                             feedback);
 
-    Supervisor::Result s_res = supervisors_.supervise(state);
+    Supervisor::Result s_res = supervisors_->supervise(state);
     if (s_res.can_continue) {
 
         if(local_planner_->isNull()) {
@@ -419,7 +422,7 @@ RobotController *PathFollower::getController()
 
 CoursePredictor &PathFollower::getCoursePredictor()
 {
-    return course_predictor_;
+    return *course_predictor_;
 }
 
 Eigen::Vector3d PathFollower::getRobotPose() const
@@ -599,7 +602,7 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
 
     setPath(goal.path);
 
-    supervisors_.notifyNewGoal();
+    supervisors_->notifyNewGoal();
 
     ROS_INFO_STREAM("Following path with " << goal.path.paths.size() << " segments.");
 }
