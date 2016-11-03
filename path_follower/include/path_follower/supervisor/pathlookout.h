@@ -14,12 +14,12 @@
 /// PROJECT
 #include <path_follower/supervisor/supervisor.h>
 #include <path_follower/utils/path.h>
-#include <path_follower/utils/obstaclecloud.hpp>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/supervisor/obstacletracker.h>
 #include <path_msgs/FollowPathFeedback.h>
 
+class ObstacleCloud;
 
 /**
  * @brief Looks out for obstacles on the path.
@@ -44,7 +44,7 @@ public:
         return "PathLookout";
     }
 
-    void setObstacleCloud(const ObstacleCloud::ConstPtr &cloud);
+    void setObstacleCloud(const std::shared_ptr<ObstacleCloud const> &cloud);
 
     //! Check if there is an obstacle on the path ahead of the robot, that gives a reason to cancel the current path.
     virtual void supervise(State &state, Result *out);
@@ -145,7 +145,7 @@ private:
     Visualizer *visualizer_;
     const tf::TransformListener *tf_listener_;
 
-    ObstacleCloud::ConstPtr obstacle_cloud_;
+    std::shared_ptr<ObstacleCloud const> obstacle_cloud_;
 
     SubPath path_;
 
@@ -158,7 +158,7 @@ private:
     //! Compute weight for the given obstacle, depending on its distance to the robot and its lifetime.
     float weightObstacle(cv::Point2f robot_pos, ObstacleTracker::TrackedObstacle o) const;
 
-    std::list<cv::Point2f> findObstaclesInCloud(const ObstacleCloud::ConstPtr &cloud);
+    std::list<cv::Point2f> findObstaclesInCloud(const std::shared_ptr<ObstacleCloud const> &cloud);
 
     /**
      * @brief Cluster the given points along one axis.

@@ -3,6 +3,8 @@
 
 /// PROJECT
 #include <path_follower/pathfollower.h>
+#include <path_follower/utils/obstacle_cloud.h>
+#include <pcl_ros/point_cloud.h>
 
 std::size_t LocalPlannerClassic::nnodes_ = 300;
 int LocalPlannerClassic::ic_ = 3;
@@ -27,10 +29,10 @@ LocalPlannerClassic::LocalPlannerClassic(PathFollower &follower,
       r_level(0), n_v(0), step_(0.0),neig_s(0.0),FFL(FL),l_obstacle_cloud_(new ObstacleCloud)
 {
     //DEBUG
-    local_obst_pub_ = follower_.getNodeHandle().advertise<ObstacleCloud>("local_obst_points", 10);
-    l_obstacle_cloud_->header.frame_id = "odom";
+    local_obst_pub_ = follower_.getNodeHandle().advertise<ObstacleCloud::Cloud>("local_obst_points", 10);
+    l_obstacle_cloud_->cloud->header.frame_id = "odom";
     const ros::Time time_st = ros::Time::now ();
-    l_obstacle_cloud_->header.stamp = time_st.toNSec()/1e3;
+    l_obstacle_cloud_->cloud->header.stamp = time_st.toNSec()/1e3;
     //
 }
 
@@ -199,8 +201,8 @@ void LocalPlannerClassic::setDistances(LNode& current){
             }
             current.nop = Waypoint(tmpnop.x(), tmpnop.y(), 0.0);
             //! Debug
-            const ObstaclePoint op(tmpnop.x(),tmpnop.y(),0.0);
-            l_obstacle_cloud_->push_back(op);
+            const ObstacleCloud::ObstaclePoint op(tmpnop.x(),tmpnop.y(),0.0);
+            l_obstacle_cloud_->cloud->push_back(op);
             //! Debug
             double x = current.nop.x - current.x;
             double y = current.nop.y - current.y;
@@ -216,9 +218,9 @@ void LocalPlannerClassic::setDistances(LNode& current){
     }
 }
 
-void LocalPlannerClassic::iterateCloud(ObstacleCloud::ConstPtr& cloud, tf::Point& pt, double& closest_obst, double& closest_x, double& closest_y, bool& change){
-    ObstacleCloud::const_iterator point_it;
-    for (point_it = cloud->begin(); point_it != cloud->end(); ++point_it){
+void LocalPlannerClassic::iterateCloud(std::shared_ptr<ObstacleCloud const>& cloud_container, tf::Point& pt, double& closest_obst, double& closest_x, double& closest_y, bool& change){
+    const auto& cloud = cloud_container->cloud;
+    for (auto point_it = cloud->begin(); point_it != cloud->end(); ++point_it){
         double x = (double)(point_it->x) - pt.x();
         double y = (double)(point_it->y) - pt.y();
         double dist = std::hypot(x, y);
@@ -922,7 +924,7 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     }
     reconfigureTree(obj, nodes, best_p, constraints, scorer, fconstraints,wscorer);
     //! Debug
-    local_obst_pub_.publish(l_obstacle_cloud_);
+    local_obst_pub_.publish(l_obstacle_cloud_->cloud);
     //!
     if(obj != nullptr){
         return processPath(obj, local_wps);

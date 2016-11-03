@@ -38,7 +38,7 @@ protected:
 private:
     void setDistances(LNode& current);
 
-    void iterateCloud(ObstacleCloud::ConstPtr& cloud, tf::Point& pt, double& closest_obst, double& closest_x, double& closest_y, bool& change);
+    void iterateCloud(std::shared_ptr<ObstacleCloud const>& cloud, tf::Point& pt, double& closest_obst, double& closest_x, double& closest_y, bool& change);
 
     void retrieveContinuity(LNode& wpose);
 
@@ -158,7 +158,7 @@ private:
     //! Debug Publisher
     ros::Publisher local_obst_pub_;
     //! The last received obstacle cloud
-    ObstacleCloud::Ptr l_obstacle_cloud_;
+    std::shared_ptr<ObstacleCloud> l_obstacle_cloud_;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H

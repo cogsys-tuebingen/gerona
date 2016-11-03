@@ -17,10 +17,10 @@ public:
 
 
     virtual bool avoid(MoveCommand * const cmd,
-                       ObstacleCloud::ConstPtr obstacles,
+                       std::shared_ptr<ObstacleCloud const> obstacles,
                        const ObstacleAvoider::State &state);
 
-    virtual bool checkOnCloud(ObstacleCloud::ConstPtr obstacles,
+    virtual bool checkOnCloud(std::shared_ptr<ObstacleCloud const> obstacles,
                               float width,
                               float length,
                               float course_angle,

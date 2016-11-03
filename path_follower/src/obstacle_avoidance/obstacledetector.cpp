@@ -6,7 +6,7 @@ const std::string MODULE = "obstacle_avoider";
 }
 
 bool ObstacleDetector::avoid(MoveCommand * const cmd,
-                             ObstacleCloud::ConstPtr obstacles,
+                             std::shared_ptr<ObstacleCloud const> obstacles,
                              const ObstacleAvoider::State &state)
 {
     float course = cmd->getDirectionAngle(); //TODO: use CoursePredictor instead of command?

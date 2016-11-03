@@ -25,7 +25,7 @@ protected:
      * @see getPolygon()
      * @return True if there is an obstacle, false if not.
      */
-    virtual bool checkOnCloud(ObstacleCloud::ConstPtr obstacles,
+    virtual bool checkOnCloud(std::shared_ptr<ObstacleCloud const> obstacles,
                               float width,
                               float length,
                               float course_angle,

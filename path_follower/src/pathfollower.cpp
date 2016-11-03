@@ -62,8 +62,6 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     obstacle_avoider_ = controller_factory_->makeObstacleAvoider(opt_.controller(), pose_listener_, controller_);
     local_planner_ = controller_factory_->makeLocalPlanner(opt_.algo(), pose_listener_, ros::Duration(opt_.uinterval()));
 
-    obstacle_cloud_sub_ = node_handle_.subscribe<ObstacleCloud>("/obstacles", 10,
-                                                                &PathFollower::obstacleCloudCB, this);
 
 
 
@@ -134,7 +132,7 @@ void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
     robot_pose_odom_.z() = tf::getYaw(robot_pose_odom_msg_.orientation);
 }
 
-void PathFollower::obstacleCloudCB(const ObstacleCloud::ConstPtr &msg)
+void PathFollower::obstacleCloudCB(const std::shared_ptr<ObstacleCloud const> &msg)
 {
     obstacle_cloud_ = msg;
 }
@@ -472,7 +470,7 @@ ros::NodeHandle& PathFollower::getNodeHandle()
     return node_handle_;
 }
 
-ObstacleCloud::ConstPtr PathFollower::getObstacleCloud() const
+std::shared_ptr<ObstacleCloud const> PathFollower::getObstacleCloud() const
 {
     return obstacle_cloud_;
 }

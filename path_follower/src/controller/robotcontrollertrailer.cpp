@@ -6,10 +6,12 @@
 #include <path_msgs/FollowPathResult.h>
 #include <path_follower/pathfollower.h>
 #include <path_follower/utils/path_exceptions.h>
-
+#include <path_follower/utils/obstacle_cloud.h>
 #include "path_controller.h"
 #include "path_simple_pid.h"
 #include "path_cascade_pid.h"
+
+#include <pcl_ros/point_cloud.h>
 
 using namespace std;
 using namespace Eigen;
@@ -363,8 +365,8 @@ void RobotControllerTrailer::analyzePathObstacles()
     Eigen::Vector3d pose = path_driver_->getRobotPose();
     tf::Transform odom_to_base_link(tf::createQuaternionFromYaw(pose(2)), tf::Vector3(pose(0), pose(1), 0.0));
 
-    ObstacleCloud::ConstPtr obstacle_cloud = path_driver_->getObstacleCloud();
-    for(pcl::PointCloud<pcl::PointXYZ>::const_iterator it = obstacle_cloud->begin(); it != obstacle_cloud->end(); ++it) {
+    const auto& obstacle_cloud = path_driver_->getObstacleCloud()->cloud;
+    for(auto it = obstacle_cloud->begin(); it != obstacle_cloud->end(); ++it) {
         const pcl::PointXYZ& pt = *it;
         tf::Vector3 obstacle_odom = odom_to_base_link * tf::Vector3(pt.x, pt.y, 0.0);
         Eigen::Vector2d obstacle(obstacle_odom.x(), obstacle_odom.y());

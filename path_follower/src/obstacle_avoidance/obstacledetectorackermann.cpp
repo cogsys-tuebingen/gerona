@@ -9,7 +9,7 @@ using namespace Eigen;
 
 
 bool ObstacleDetectorAckermann::avoid(MoveCommand * const cmd,
-                                    ObstacleCloud::ConstPtr obstacles,
+                                    std::shared_ptr<ObstacleCloud const> obstacles,
                                     const ObstacleAvoider::State &state)
 {
     velocity_ = cmd->getVelocity();

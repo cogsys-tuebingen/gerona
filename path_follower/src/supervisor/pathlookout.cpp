@@ -12,6 +12,10 @@
 #include <laser_geometry/laser_geometry.h>
 #include <pcl_ros/transforms.h>
 
+#include <path_follower/utils/obstacle_cloud.h>
+#include <pcl_ros/point_cloud.h>
+
+
 using namespace std;
 
 namespace {
@@ -32,7 +36,7 @@ PathLookout::PathLookout(const tf::TransformListener *tf_listener):
     visualizer_ = Visualizer::getInstance();
 }
 
-void PathLookout::setObstacleCloud(const ObstacleCloud::ConstPtr &cloud)
+void PathLookout::setObstacleCloud(const std::shared_ptr<ObstacleCloud const> &cloud)
 {
     obstacle_cloud_ = cloud;
 }
@@ -219,15 +223,17 @@ float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::Tracke
     return w_dist + w_time;
 }
 
-std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::ConstPtr &cloud)
-{
+std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const std::shared_ptr<ObstacleCloud const> &obstacles_container)
+{    
     if (path_.size() < 2) {
         ROS_WARN_NAMED(MODULE, "Path has less than 2 waypoints. No obstacle lookout is done.");
         return std::list<cv::Point2f>(); // return empty cloud
     }
 
+    ObstacleCloud::Cloud::ConstPtr cloud = obstacles_container->cloud;
+
     //TODO: ensure that obstacle_frame_ is the frame of the path.
-    ObstacleCloud trans_cloud;
+    ObstacleCloud::Cloud trans_cloud;
     bool has_tf = tf_listener_->waitForTransform(obstacle_frame_,
                                                  cloud->header.frame_id,
                                                  pcl_conversions::fromPCL(cloud->header.stamp),

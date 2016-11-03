@@ -1,5 +1,7 @@
 /// HEADER
 #include <path_follower/local_planner/local_planner.h>
+#include <pcl_ros/point_cloud.h>
+#include <path_follower/utils/obstacle_cloud.h>
 
 LocalPlanner::LocalPlanner(PathFollower &follower, tf::Transformer &transformer)
     : follower_(follower), transformer_(transformer)
@@ -41,13 +43,13 @@ bool LocalPlanner::isNull() const
     return false;
 }
 
-void LocalPlanner::setObstacleCloud(const ObstacleCloud::ConstPtr &msg)
+void LocalPlanner::setObstacleCloud(const std::shared_ptr<ObstacleCloud const> &msg)
 {
     last_obstacle_cloud_ = obstacle_cloud_;
     obstacle_cloud_ = msg;
 
     ros::Time now;
-    now.fromNSec(msg->header.stamp * 1e3);
+    now.fromNSec(msg->cloud->header.stamp * 1e3);
 
     lastbase_to_odom = base_to_odom;
     odom_to_lastbase = odom_to_base;

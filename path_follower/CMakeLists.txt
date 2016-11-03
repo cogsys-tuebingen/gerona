@@ -71,6 +71,7 @@ add_library(${PROJECT_NAME} SHARED
 
     src/utils/parameters.cpp
     src/utils/visualizer.cpp
+    src/utils/obstacle_cloud.cpp
     src/utils/maptransformer.cpp
     src/utils/cubic_spline_interpolation.cpp
     src/utils/coursepredictor.cpp

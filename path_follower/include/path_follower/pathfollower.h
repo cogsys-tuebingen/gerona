@@ -18,7 +18,6 @@
 /// PROJECT
 #include <path_follower/pathfollowerparameters.h>
 #include <path_follower/utils/parameters.h>
-#include <path_follower/utils/obstaclecloud.hpp> // TODO: this includes pcl...
 
 /// SYSTEM
 #include <memory>
@@ -32,7 +31,7 @@ class RobotController;
 class Path;
 class ObstacleAvoider;
 
-//class ObstacleCloud;
+class ObstacleCloud;
 class MoveCommand;
 
 class PathFollower
@@ -64,7 +63,10 @@ public:
     Visualizer& getVisualizer() const;
 
     ros::NodeHandle& getNodeHandle();
-    boost::shared_ptr<ObstacleCloud const> getObstacleCloud() const;
+
+    std::shared_ptr<ObstacleCloud const> getObstacleCloud() const;
+    void obstacleCloudCB(const std::shared_ptr<ObstacleCloud const>&);
+
     CoursePredictor &getCoursePredictor();
     Eigen::Vector3d getRobotPose() const;
     const geometry_msgs::Pose &getRobotPoseMsg() const;
@@ -81,8 +83,6 @@ private:
 
     //! Callback for odometry messages
     void odometryCB(const nav_msgs::OdometryConstPtr &odom);
-
-    void obstacleCloudCB(const boost::shared_ptr<ObstacleCloud const>&);
 
     //! Update the current pose of the robot.
     /** @see robot_pose_, robot_pose_msg_ */
@@ -120,7 +120,7 @@ private:
     //! Subscriber for odometry messages.
     ros::Subscriber odom_sub_;
     //! Subscriber for the obstacle point cloud (used by ObstacleAvoider).
-    ros::Subscriber obstacle_cloud_sub_;
+
 
     tf::TransformListener pose_listener_;
 
@@ -146,7 +146,7 @@ private:
     nav_msgs::Odometry odometry_;
 
     //! The last received obstacle cloud
-    boost::shared_ptr<ObstacleCloud const> obstacle_cloud_;
+    std::shared_ptr<ObstacleCloud const> obstacle_cloud_;
 
     //! Current pose of the robot as Eigen vector (x,y,theta).
     Eigen::Vector3d robot_pose_world_;

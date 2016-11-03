@@ -11,6 +11,9 @@
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/pidcontroller.hpp>
 
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+
 /// FORWARD CLASS DEFINITIONS
 class PathController;
 

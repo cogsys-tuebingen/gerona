@@ -6,7 +6,6 @@
 #include <cslibs_utils/Stopwatch.h>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/path_interpolated.h>
-#include <path_follower/utils/obstaclecloud.hpp>
 #include <path_follower/local_planner/constraint.h>
 #include <path_follower/local_planner/dis2path_constraint.h>
 #include <path_follower/local_planner/dis2obst_constraint.h>
@@ -19,6 +18,7 @@
 #include <path_follower/local_planner/curvatured_scorer.h>
 
 class PathFollower;
+class ObstacleCloud;
 
 class LocalPlanner
 {
@@ -43,7 +43,7 @@ public:
     virtual void setParams(int nnodes, int ic, double dis2p, double adis, double fdis, double s_angle,
                            int ia, double lmf, int max_level, double mu, double ef) = 0;
 
-    void setObstacleCloud(const ObstacleCloud::ConstPtr &msg);
+    void setObstacleCloud(const std::shared_ptr<ObstacleCloud const> &msg);
 
 
 protected:
@@ -60,7 +60,7 @@ protected:
 
     tf::Transform odom_to_base, odom_to_lastbase;
 
-    ObstacleCloud::ConstPtr obstacle_cloud_, last_obstacle_cloud_;
+    std::shared_ptr<ObstacleCloud const> obstacle_cloud_, last_obstacle_cloud_;
 };
 
 #endif // LOCAL_PLANNER_H

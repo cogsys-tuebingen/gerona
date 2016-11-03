@@ -1,4 +1,5 @@
 #include <path_follower/obstacle_avoidance/obstacledetectorpolygon.h>
+#include <path_follower/utils/obstacle_cloud.h>
 
 #define DEBUG_PATHLOOKOUT 0
 
@@ -18,11 +19,12 @@ namespace {
 const std::string MODULE = "obstacle_avoider";
 }
 
-bool ObstacleDetectorPolygon::checkOnCloud(ObstacleCloud::ConstPtr obstacles, float width, float length, float course_angle, float curve_enlarge_factor)
+bool ObstacleDetectorPolygon::checkOnCloud(std::shared_ptr<ObstacleCloud const> obstacles_container, float width, float length, float course_angle, float curve_enlarge_factor)
 {
+    ObstacleCloud::Cloud::ConstPtr obstacles = obstacles_container->cloud;
+
     bool collision = false;
     PolygonWithTfFrame pwf = getPolygon(width, length, course_angle, curve_enlarge_factor);
-
 
     if (pwf.polygon.size() == 0) {
         ROS_WARN_NAMED(MODULE, "Obstacle polygon is empty -> no obstacle test is done!");
@@ -51,8 +53,7 @@ bool ObstacleDetectorPolygon::checkOnCloud(ObstacleCloud::ConstPtr obstacles, fl
     }
 
     /// now check each point of the scan
-    ObstacleCloud::const_iterator point_it;
-    for (point_it = obstacles->begin(); point_it != obstacles->end(); ++point_it) {
+    for (auto point_it = obstacles->begin(); point_it != obstacles->end(); ++point_it) {
         // check if this scan point is inside the polygon
         cv::Point2f point( point_it->x, point_it->y );
 

@@ -8,7 +8,8 @@
 #include <path_msgs/FollowPathFeedback.h>
 #include <path_msgs/FollowPathResult.h>
 #include <path_follower/utils/path.h>
-#include <path_follower/utils/obstaclecloud.hpp>
+
+class ObstacleCloud;
 
 class Supervisor
 {
@@ -23,7 +24,7 @@ public:
 
         State(const Eigen::Vector3d &robot_pose,
               Path::ConstPtr path,
-              ObstacleCloud::ConstPtr obstacle_cloud,
+              std::shared_ptr<ObstacleCloud const> obstacle_cloud,
               path_msgs::FollowPathFeedback &feedback):
             robot_pose(robot_pose),
             path(path),
@@ -36,7 +37,7 @@ public:
         //! The current path
         const Path::ConstPtr path;
         //! The last obstacle cloud
-        const ObstacleCloud::ConstPtr obstacle_cloud;
+        const std::shared_ptr<ObstacleCloud const> obstacle_cloud;
 
         path_msgs::FollowPathFeedback &feedback;
     };

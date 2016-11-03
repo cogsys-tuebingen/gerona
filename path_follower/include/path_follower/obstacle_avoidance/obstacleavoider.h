@@ -5,9 +5,10 @@
 #include <tf/tf.h>
 
 #include <path_follower/pathfollowerparameters.h>
-#include <path_follower/utils/obstaclecloud.hpp>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/movecommand.h>
+
+class ObstacleCloud;
 
 class ObstacleAvoider
 {
@@ -37,7 +38,7 @@ public:
      * @return True, if the move command was modified, otherwise false.
      */
     virtual bool avoid(MoveCommand* const cmd,
-                       ObstacleCloud::ConstPtr obstacles,
+                       std::shared_ptr<ObstacleCloud const> obstacles,
                        const State &state) = 0;
 };
 
