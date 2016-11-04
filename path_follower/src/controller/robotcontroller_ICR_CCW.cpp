@@ -12,7 +12,7 @@
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <path_follower/utils/extended_kalman_filter.h>
 #include <cslibs_utils/MathHelper.h>
-#include <path_follower/utils/coursepredictor.h>
+
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
 
@@ -118,7 +118,7 @@ void RobotController_ICR_CCW::initialize()
     proj_ind_ = 0;
 
     // desired velocity
-    vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
+    vn_ = std::min(global_opt_.max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 
     //reset the ekf path points
@@ -157,7 +157,7 @@ void RobotController_ICR_CCW::WheelVelocities(const std_msgs::Float64MultiArray:
 
 void RobotController_ICR_CCW::start()
 {
-    path_driver_->getCoursePredictor().reset();
+
 }
 
 void RobotController_ICR_CCW::reset()
@@ -381,7 +381,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     //TODO: consider the minimum excitation speed
     double v = vn_ * exp(-exponent);
 
-    cmd_.speed = getDirSign()*std::max((double)path_driver_->getOptions().min_velocity(), fabs(v));
+    cmd_.speed = getDirSign()*std::max((double)global_opt_.min_velocity(), fabs(v));
 
     ///***///
 

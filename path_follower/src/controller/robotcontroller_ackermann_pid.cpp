@@ -129,7 +129,7 @@ void RobotController_Ackermann_Pid::publishMoveCommand(const MoveCommand &cmd) c
 
 void RobotController_Ackermann_Pid::selectWaypoint()
 {
-    double tolerance = path_driver_->getOptions().wp_tolerance();
+    double tolerance = global_opt_.wp_tolerance();
 
     // increase tolerance, when driving backwards
     if(getDirSign() < 0) {
@@ -143,8 +143,8 @@ void RobotController_Ackermann_Pid::selectWaypoint()
     }
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawArrow(path_driver_->getFixedFrameId(), 0, path_->getCurrentWaypoint(), "current waypoint", 1, 1, 0);
-        visualizer_->drawArrow(path_driver_->getFixedFrameId(), 1, path_->getLastWaypoint(), "current waypoint", 1, 0, 0);
+        visualizer_->drawArrow(pose_tracker_.getFixedFrameId(), 0, path_->getCurrentWaypoint(), "current waypoint", 1, 1, 0);
+        visualizer_->drawArrow(pose_tracker_.getFixedFrameId(), 1, path_->getLastWaypoint(), "current waypoint", 1, 0, 0);
     }
 
     // convert waypoint to local frame. NOTE: This has to be done, even if the waypoint did not
@@ -177,9 +177,9 @@ float RobotController_Ackermann_Pid::getErrorOnPath()
 
     // draw steer front
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 2, pose_tracker_.getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 3, pose_tracker_.getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
+        visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 2, pose_tracker_.getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 3, pose_tracker_.getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
     }
 
     return error;
@@ -206,9 +206,9 @@ float RobotController_Ackermann_Pid::getErrorApproachSubpathEnd()
                                 0.5, getFixedFrame(), "turning point", 1, 1, 1);
 
         // draw steer front
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 2, pose_tracker_.getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 3, pose_tracker_.getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
+        visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 2, pose_tracker_.getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 3, pose_tracker_.getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
     }
 
     return error;
@@ -224,7 +224,7 @@ void RobotController_Ackermann_Pid::updateCommand(float error)
     }
 
     ROS_DEBUG_NAMED(MODULE, "PID: error = %g, u = %g", error, u);
-    visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 14, pose_tracker_.getRobotPoseMsg(), u, 0.0, 1.0, 1.0);
+    visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 14, pose_tracker_.getRobotPoseMsg(), u, 0.0, 1.0, 1.0);
 
     float steer = std::max(-opt_.max_steer(), std::min(u, opt_.max_steer()));
     ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
@@ -238,10 +238,9 @@ void RobotController_Ackermann_Pid::updateCommand(float error)
 
 float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
 {
-    PathFollowerParameters path_driver_opt = path_driver_->getOptions();
     float velocity = velocity_;
 
-    if(abs(steer_angle) > path_driver_opt.steer_slow_threshold()) {
+    if(abs(steer_angle) > global_opt_.steer_slow_threshold()) {
         ROS_INFO_STREAM_THROTTLE_NAMED(2, MODULE, "slowing down");
         velocity *= 0.75;
     }
@@ -249,7 +248,7 @@ float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
 
     // Reduce maximal velocity, when driving backwards.
     if(dir_sign_ < 0) {
-        velocity = min(velocity, 0.4f * path_driver_opt.max_velocity());
+        velocity = min(velocity, 0.4f * global_opt_.max_velocity());
     }
 
     // linearly reduce velocity, if the goal is within 2s*velocity (e.g. when driving with
@@ -259,18 +258,18 @@ float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
     float distance_to_next_wp = std::sqrt(next_wp_local_.dot(next_wp_local_));
     float dist_to_path_end = path_->getRemainingSubPathDistance() + distance_to_next_wp;
     if (dist_to_path_end < 2*velocity) {
-        velocity = std::max(0.1f + dist_to_path_end / 2.0f, path_driver_->getOptions().min_velocity());
+        velocity = std::max(0.1f + dist_to_path_end / 2.0f, global_opt_.min_velocity());
     }
     //ROS_INFO("dist:      %f", dist_to_path_end);
     //ROS_INFO("v: %f", velocity);
 
 
     // make sure, the velocity is in the allowed range
-    if (velocity < path_driver_opt.min_velocity()) {
-        velocity = path_driver_opt.min_velocity();
+    if (velocity < global_opt_.min_velocity()) {
+        velocity = global_opt_.min_velocity();
         ROS_WARN_THROTTLE_NAMED(5, MODULE, "Velocity is below minimum. It is set to minimum velocity.");
-    } else if (velocity > path_driver_opt.max_velocity()) {
-        velocity = path_driver_opt.max_velocity();
+    } else if (velocity > global_opt_.max_velocity()) {
+        velocity = global_opt_.max_velocity();
         ROS_WARN_THROTTLE_NAMED(5, MODULE, "Velocity is above maximum. Reduce to maximum velocity.");
     }
 

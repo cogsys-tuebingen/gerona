@@ -19,6 +19,9 @@
 class PathFollower;
 class PoseTracker;
 class Visualizer;
+class CoursePredictor;
+
+class PathFollowerParameters;
 
 class RobotController
 {
@@ -138,6 +141,8 @@ protected:
 
     PathFollower* path_driver_;
     PoseTracker& pose_tracker_;
+
+    const PathFollowerParameters& global_opt_;
 
     Visualizer *visualizer_;
 

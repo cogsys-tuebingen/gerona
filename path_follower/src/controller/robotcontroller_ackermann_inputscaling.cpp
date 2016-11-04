@@ -1,6 +1,6 @@
 #include <path_follower/controller/robotcontroller_ackermann_inputscaling.h>
 #include <path_follower/pathfollower.h>
-#include <path_follower/utils/coursepredictor.h>
+
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <path_follower/utils/pose_tracker.h>
@@ -59,7 +59,7 @@ void RobotController_Ackermann_Inputscaling::stopMotion() {
 }
 
 void RobotController_Ackermann_Inputscaling::start() {
-	path_driver_->getCoursePredictor().reset();
+
 }
 
 void RobotController_Ackermann_Inputscaling::reset() {

@@ -1,7 +1,7 @@
 #include <path_follower/controller/robotcontroller_ackermann_stanley.h>
 
 #include <path_follower/pathfollower.h>
-#include <path_follower/utils/coursepredictor.h>
+
 #include <path_follower/utils/pose_tracker.h>
 #include <ros/ros.h>
 #include <path_follower/utils/visualizer.h>
@@ -42,7 +42,7 @@ void RobotController_Ackermann_Stanley::stopMotion() {
 }
 
 void RobotController_Ackermann_Stanley::start() {
-	path_driver_->getCoursePredictor().reset();
+
 }
 
 void RobotController_Ackermann_Stanley::reset() {

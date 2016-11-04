@@ -4,7 +4,7 @@
 
 // PROJECT
 #include <path_follower/pathfollower.h>
-#include <path_follower/utils/coursepredictor.h>
+
 #include <path_follower/controller/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <interpolation.h>
@@ -146,7 +146,7 @@ void RobotController_Omnidrive_OrthogonalExponential::initialize()
     e_theta_curr_ = pose_tracker_.getRobotPose()[2];
 
     // desired velocity
-    vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
+    vn_ = std::min(global_opt_.max_velocity(), velocity_);
     ROS_WARN_STREAM_NAMED(MODULE, "velocity_: " << velocity_ << ", vn: " << vn_);
     initialized_ = true;
 }
@@ -268,7 +268,7 @@ void RobotController_Omnidrive_OrthogonalExponential::publishInterpolatedPath()
 
 void RobotController_Omnidrive_OrthogonalExponential::start()
 {
-    path_driver_->getCoursePredictor().reset();
+
 }
 
 RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponential::computeMoveCommand(MoveCommand *cmd)
@@ -284,18 +284,18 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
         return MoveCommandStatus::REACHED_GOAL;
     }
 
-//    Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
+//    Vector2d dir_of_mov = course_predictor_.smoothedDirection();
 //    if (!dir_of_mov.isZero() && path_driver_->isObstacleAhead(MathHelper::Angle(dir_of_mov))) {
 //        ROS_WARN_THROTTLE_NAMED(1, MODULE, "Collision!");
 //        //TODO: not so good to use result-constant if it is not finishing the action...
 //        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE);
 
 //        stopMotion();
-//        path_driver_->getCoursePredictor().freeze();
+//        course_predictor_.freeze();
 
 //        return OBSTACLE;
 //    }
-//    path_driver_->getCoursePredictor().unfreeze();
+//    course_predictor_.unfreeze();
 
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
     Eigen::Vector3d current_pose = pose_tracker_.getRobotPose();
@@ -482,7 +482,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 //              atan(-param_k*orth_proj)*180.0/M_PI, e_theta_curr);
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
 
@@ -503,7 +503,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     double distance_to_goal = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
     ROS_WARN_THROTTLE_NAMED(1, MODULE, "distance to goal: %f", distance_to_goal);
 
-    if(distance_to_goal <= path_driver_->getOptions().goal_tolerance()) {
+    if(distance_to_goal <= global_opt_.goal_tolerance()) {
         return MoveCommandStatus::REACHED_GOAL;
     } else {
         // Quickfix: simply convert omnidrive command to move command

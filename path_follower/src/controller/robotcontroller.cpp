@@ -10,6 +10,7 @@
 RobotController::RobotController(PathFollower* path_driver)
     : path_driver_(path_driver),
       pose_tracker_(path_driver->getPoseTracker()),
+      global_opt_(path_driver->getOptions()),
       visualizer_(Visualizer::getInstance()),
       velocity_(0.0f),
       dir_sign_(1.0f)

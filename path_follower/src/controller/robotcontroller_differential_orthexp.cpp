@@ -7,7 +7,7 @@
 
 // PROJECT
 #include <path_follower/pathfollower.h>
-#include <path_follower/utils/coursepredictor.h>
+
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
@@ -91,13 +91,13 @@ void RobotController_Differential_OrthogonalExponential::initialize()
     RobotController_Interpolation::initialize();
 
     // desired velocity
-    vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
+    vn_ = std::min(global_opt_.max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 }
 
 void RobotController_Differential_OrthogonalExponential::start()
 {
-    path_driver_->getCoursePredictor().reset();
+
 }
 
 
@@ -114,18 +114,18 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
         return MoveCommandStatus::REACHED_GOAL;
     }
 
-//    Vector2d dir_of_mov = path_driver_->getCoursePredictor().smoothedDirection();
+//    Vector2d dir_of_mov = course_predictor_.smoothedDirection();
 //    if (!dir_of_mov.isZero() && path_driver_->isObstacleAhead(MathHelper::Angle(dir_of_mov))) {
 //        ROS_WARpath_interpol.n()THROTTLE(1, "Collision!");
 //        //TODO: not so good to use result-constant if it is not finishing the action...
 //        setStatus(path_msgs::FollowPathResult::MOTIOpath_interpol.n()STATUS_OBSTACLE);
 
 //        stopMotion();
-//        path_driver_->getCoursePredictor().freeze();
+//        course_predictor_.freeze();
 
 //        return OBSTACLE;
 //    }
-//    path_driver_->getCoursePredictor().unfreeze();
+//    course_predictor_.unfreeze();
 
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
     Eigen::Vector3d current_pose = pose_tracker_.getRobotPose();
@@ -278,7 +278,7 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
     //***//
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
 
@@ -297,7 +297,7 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
     ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal);
 
 
-    if(distance_to_goal <= path_driver_->getOptions().goal_tolerance()) {
+    if(distance_to_goal <= opt_.goal_tolerance()) {
         return MoveCommandStatus::REACHED_GOAL;
     } else {
         *cmd = cmd_;

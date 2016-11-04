@@ -6,7 +6,7 @@
 
 #include <path_follower/controller/robotcontroller_2steer_purepursuit.h>
 #include <path_follower/pathfollower.h>
-#include <path_follower/utils/coursepredictor.h>
+
 #include <ros/ros.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
@@ -68,7 +68,7 @@ void RobotController_2Steer_PurePursuit::stopMotion() {
 }
 
 void RobotController_2Steer_PurePursuit::start() {
-	path_driver_->getCoursePredictor().reset();
+
 }
 
 RobotController::MoveCommandStatus RobotController_2Steer_PurePursuit::computeMoveCommand(

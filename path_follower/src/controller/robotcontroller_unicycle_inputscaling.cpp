@@ -1,6 +1,6 @@
 #include <path_follower/controller/robotcontroller_unicycle_inputscaling.h>
 #include <path_follower/pathfollower.h>
-#include <path_follower/utils/coursepredictor.h>
+
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 
@@ -61,7 +61,7 @@ void RobotController_Unicycle_InputScaling::stopMotion() {
 }
 
 void RobotController_Unicycle_InputScaling::start() {
-    path_driver_->getCoursePredictor().reset();
+
 }
 
 void RobotController_Unicycle_InputScaling::reset() {

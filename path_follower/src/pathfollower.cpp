@@ -364,6 +364,7 @@ void PathFollower::start()
 {
     //path_idx_.reset();
 
+    course_predictor_->reset();
     controller_->reset();
 
     controller_->start();

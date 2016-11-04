@@ -8,7 +8,7 @@
 
 // PROJECT
 #include <path_follower/pathfollower.h>
-#include <path_follower/utils/coursepredictor.h>
+
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
@@ -68,7 +68,7 @@ void RobotController_Dynamic_SLP::initialize()
     proj_ind_ = 0;
 
     // desired velocity
-    vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
+    vn_ = std::min(global_opt_.max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 
     //calculate the maximal allowed torque (this should be defined as constant later)
@@ -79,7 +79,7 @@ void RobotController_Dynamic_SLP::initialize()
 
 void RobotController_Dynamic_SLP::start()
 {
-    path_driver_->getCoursePredictor().reset();
+
 }
 
 void RobotController_Dynamic_SLP::reset()
@@ -347,7 +347,7 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
 //    //TODO: consider the minimum excitation speed
 //    v = v * exp(-exponent);
 
-//    //cmd_.speed = getDirSign()*std::max((double)path_driver_->getOptions().min_velocity(), fabs(v));
+//    //cmd_.speed = getDirSign()*std::max((double)opt_.min_velocity(), fabs(v));
 
     ///***///
 
@@ -389,7 +389,7 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
 
 
     if (visualizer_->hasSubscriber()) {
-      //  visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+      //  visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
     ///***///

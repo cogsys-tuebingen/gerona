@@ -1,7 +1,7 @@
 #include <path_follower/controller/robotcontroller_2steer_stanley.h>
 
 #include <path_follower/pathfollower.h>
-#include <path_follower/utils/coursepredictor.h>
+
 #include <path_follower/utils/pose_tracker.h>
 #include <ros/ros.h>
 
@@ -52,7 +52,7 @@ void RobotController_2Steer_Stanley::stopMotion() {
 }
 
 void RobotController_2Steer_Stanley::start() {
-	path_driver_->getCoursePredictor().reset();
+
 }
 
 void RobotController_2Steer_Stanley::setPath(Path::Ptr path) {
