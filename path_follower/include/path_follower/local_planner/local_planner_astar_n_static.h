@@ -9,8 +9,7 @@
 class LocalPlannerAStarNStatic : public LocalPlannerAStar, public LocalPlannerStarN, public LocalPlannerStarStatic
 {
 public:
-    LocalPlannerAStarNStatic(RobotController& controller, PoseTracker& pose_tracker,
-                             const ros::Duration& update_interval);
+    LocalPlannerAStarNStatic();
 };
 
 #endif // LOCAL_PLANNER_ASTAR_N_STATIC_H

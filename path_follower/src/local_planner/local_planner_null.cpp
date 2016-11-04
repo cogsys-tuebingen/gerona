@@ -6,8 +6,7 @@
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/pose_tracker.h>
 
-LocalPlannerNull::LocalPlannerNull(RobotController &follower, PoseTracker &pose_tracker)
-    : LocalPlanner(follower, pose_tracker)
+LocalPlannerNull::LocalPlannerNull()
 {
 
 }
@@ -20,7 +19,7 @@ void LocalPlannerNull::setGlobalPath(Path::Ptr path)
      */
     LocalPlanner::setGlobalPath(path);
 
-    controller_.setPath(path);
+    controller_->setPath(path);
 }
 
 Path::Ptr LocalPlannerNull::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,

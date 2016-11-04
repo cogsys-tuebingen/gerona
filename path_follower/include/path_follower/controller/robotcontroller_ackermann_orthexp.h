@@ -16,7 +16,7 @@
 class RobotController_Ackermann_OrthogonalExponential : public RobotController_Interpolation
 {
 public:
-    RobotController_Ackermann_OrthogonalExponential(PathFollower *path_driver);
+    RobotController_Ackermann_OrthogonalExponential();
 
     //! Immediately stop any motion.
     virtual void stopMotion();

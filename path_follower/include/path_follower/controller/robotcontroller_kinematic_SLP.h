@@ -13,7 +13,7 @@
 class RobotController_Kinematic_SLP : public RobotController_Interpolation
 {
 public:
-    RobotController_Kinematic_SLP(PathFollower *path_driver);
+    RobotController_Kinematic_SLP();
     
     //! Immediately stop any motion.
     virtual void stopMotion();

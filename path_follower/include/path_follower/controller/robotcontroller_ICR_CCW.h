@@ -18,7 +18,7 @@
 class RobotController_ICR_CCW : public RobotController_Interpolation
 {
 public:
-    RobotController_ICR_CCW(PathFollower *path_driver);
+    RobotController_ICR_CCW();
     virtual void stopMotion();
     virtual void start();
 

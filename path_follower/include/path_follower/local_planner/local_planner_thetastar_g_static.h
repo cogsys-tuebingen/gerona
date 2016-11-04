@@ -9,8 +9,7 @@
 class LocalPlannerThetaStarGStatic : public LocalPlannerThetaStar, public LocalPlannerStarG, public LocalPlannerStarStatic
 {
 public:
-    LocalPlannerThetaStarGStatic(RobotController& controller, PoseTracker& pose_tracker,
-                                 const ros::Duration& update_interval);
+    LocalPlannerThetaStarGStatic();
 };
 
 #endif // LOCAL_PLANNER_THETASTAR_G_STATIC_H

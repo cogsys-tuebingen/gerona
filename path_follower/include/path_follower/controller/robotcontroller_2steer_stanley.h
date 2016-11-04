@@ -13,7 +13,7 @@
 class RobotController_2Steer_Stanley : public RobotController_Interpolation
 {
 public:
-    RobotController_2Steer_Stanley(PathFollower* _path_follower);
+    RobotController_2Steer_Stanley();
     virtual ~RobotController_2Steer_Stanley() {}
 
 	virtual void stopMotion();

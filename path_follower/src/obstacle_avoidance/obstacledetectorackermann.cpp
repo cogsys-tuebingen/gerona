@@ -9,12 +9,11 @@ using namespace Eigen;
 
 
 bool ObstacleDetectorAckermann::avoid(MoveCommand * const cmd,
-                                    std::shared_ptr<ObstacleCloud const> obstacles,
                                     const ObstacleAvoider::State &state)
 {
     velocity_ = cmd->getVelocity();
 
-    return ObstacleDetectorPolygon::avoid(cmd, obstacles, state);
+    return ObstacleDetectorPolygon::avoid(cmd, state);
 }
 
 ObstacleDetectorPolygon::PolygonWithTfFrame ObstacleDetectorAckermann::getPolygon(float width, float length, float course_angle, float curve_enlarge_factor) const

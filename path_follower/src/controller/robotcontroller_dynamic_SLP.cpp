@@ -7,8 +7,7 @@
 #include <visualization_msgs/MarkerArray.h>
 
 // PROJECT
-#include <path_follower/pathfollower.h>
-
+#include <path_follower/pathfollowerparameters.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
@@ -25,8 +24,8 @@
 using namespace Eigen;
 
 
-RobotController_Dynamic_SLP::RobotController_Dynamic_SLP(PathFollower *path_driver):
-    RobotController_Interpolation(path_driver),
+RobotController_Dynamic_SLP::RobotController_Dynamic_SLP():
+    RobotController_Interpolation(),
     cmd_(this),
     vn_(0),
     Ts_(0.02),
@@ -68,7 +67,7 @@ void RobotController_Dynamic_SLP::initialize()
     proj_ind_ = 0;
 
     // desired velocity
-    vn_ = std::min(global_opt_.max_velocity(), velocity_);
+    vn_ = std::min(global_opt_->max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 
     //calculate the maximal allowed torque (this should be defined as constant later)
@@ -119,7 +118,7 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
 
 
     /// get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
-    Eigen::Vector3d current_pose = pose_tracker_.getRobotPose();
+    Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
 
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
@@ -234,7 +233,7 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
     distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(proj_ind_);
 
     //get the robot's current angular velocity
-    //double angular_vel = pose_tracker_.getVelocity().angular.z;
+    //double angular_vel = pose_tracker_->getVelocity().angular.z;
     ///***///
 
 
@@ -298,7 +297,7 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
     double c1 = opt_.I()*opt_.r()/opt_.w();
     double c2 = opt_.m()*opt_.r();
 
-    vx_ = pose_tracker_.getVelocity().linear.x;
+    vx_ = pose_tracker_->getVelocity().linear.x;
 
     double zeta_old = zeta_;
     zeta_ = delta_prim - opt_.gamma()*(sin(theta_e_) - sin(delta_))/(theta_e_ - delta_) - opt_.k2()*(theta_e_ - delta_);
@@ -389,7 +388,7 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
 
 
     if (visualizer_->hasSubscriber()) {
-      //  visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+      //  visualizer_->drawSteeringArrow(pose_tracker_->getFixedFrameId(), 1, pose_tracker_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
     ///***///

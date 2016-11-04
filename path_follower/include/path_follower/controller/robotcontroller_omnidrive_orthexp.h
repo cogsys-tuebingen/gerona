@@ -11,11 +11,12 @@
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/parameters.h>
 
+#include <std_msgs/String.h>
 
 class RobotController_Omnidrive_OrthogonalExponential : public RobotController
 {
 public:
-    RobotController_Omnidrive_OrthogonalExponential(PathFollower *path_driver);
+    RobotController_Omnidrive_OrthogonalExponential();
 
     //! Immediately stop any motion.
     virtual void stopMotion();
@@ -128,7 +129,6 @@ private:
 
     Command cmd_;
 
-    ros::NodeHandle nh_;
     ros::Publisher interp_path_pub_;
     ros::Publisher points_pub_;
 

@@ -6,19 +6,20 @@
 #include <path_follower/utils/path_exceptions.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
+#include <path_follower/obstacle_avoidance/obstacleavoider.h>
 
-RobotController::RobotController(PathFollower* path_driver)
-    : path_driver_(path_driver),
-      pose_tracker_(path_driver->getPoseTracker()),
-      global_opt_(path_driver->getOptions()),
+RobotController::RobotController()
+    : pnh_("~"),
+      pose_tracker_(nullptr),
+      obstacle_avoider_(nullptr),
+      global_opt_(nullptr),
       visualizer_(Visualizer::getInstance()),
       velocity_(0.0f),
       dir_sign_(1.0f)
 {
     initPublisher(&cmd_pub_);
 
-    ros::NodeHandle& nh = path_driver->getNodeHandle();
-    points_pub_ = nh.advertise<visualization_msgs::Marker>("path_points", 10);
+    points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
 
     // path marker
     robot_path_marker_.header.frame_id = getFixedFrame();
@@ -43,6 +44,15 @@ RobotController::RobotController(PathFollower* path_driver)
     robot_path_marker_.color.b = 1.0;
 }
 
+void RobotController::init(PoseTracker *pose_tracker, ObstacleAvoider *obstacle_avoider, const PathFollowerParameters *options)
+{
+    pose_tracker_ = pose_tracker;
+    obstacle_avoider_ = obstacle_avoider;
+    global_opt_ = options;
+}
+
+
+
 std::string RobotController::getFixedFrame() const
 {
     if(path_) {
@@ -50,11 +60,6 @@ std::string RobotController::getFixedFrame() const
     } else {
         return "map";
     }
-}
-
-void RobotController::setStatus(int status)
-{
-    path_driver_->setStatus(status);
 }
 
 void RobotController::setPath(Path::Ptr path)
@@ -66,7 +71,7 @@ void RobotController::setPath(Path::Ptr path)
     geometry_msgs::PoseStamped wp_pose;
     wp_pose.header.stamp = ros::Time::now();
     wp_pose.pose = path->getCurrentWaypoint();
-    if ( !pose_tracker_.transformToLocal( wp_pose, next_wp_local_)) {
+    if ( !pose_tracker_->transformToLocal( wp_pose, next_wp_local_)) {
         throw EmergencyBreakException("cannot transform path",
                                       path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
@@ -90,7 +95,7 @@ void RobotController::initPublisher(ros::Publisher *pub) const
 double RobotController::calculateAngleError()
 {
     geometry_msgs::Pose waypoint   = path_->getCurrentWaypoint();
-    geometry_msgs::Pose robot_pose = pose_tracker_.getRobotPoseMsg();
+    geometry_msgs::Pose robot_pose = pose_tracker_->getRobotPoseMsg();
     return MathHelper::AngleClamp(tf::getYaw(waypoint.orientation) - tf::getYaw(robot_pose.orientation));
 }
 
@@ -115,7 +120,7 @@ bool RobotController::isOmnidirectional() const
 
 void RobotController::publishPathMarker()
 {
-    Eigen::Vector3d current_pose = pose_tracker_.getRobotPose();
+    Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
     geometry_msgs::Point pt;
     pt.x = current_pose[0];
     pt.y = current_pose[1];
@@ -139,7 +144,8 @@ RobotController::ControlStatus RobotController::execute()
         stopMotion();
         return MCS2CS(status);
     } else {
-        bool cmd_modified = path_driver_->callObstacleAvoider(&cmd);
+        ObstacleAvoider::State state(path_, *global_opt_);
+        bool cmd_modified = obstacle_avoider_->avoid(&cmd, state);
 
         if (!cmd.isValid()) {
             ROS_ERROR("Invalid move command.");

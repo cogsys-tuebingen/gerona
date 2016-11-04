@@ -1,5 +1,5 @@
 #include <path_follower/controller/robotcontroller_ackermann_inputscaling.h>
-#include <path_follower/pathfollower.h>
+
 
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
@@ -19,8 +19,8 @@
 
 #include <time.h>
 
-RobotController_Ackermann_Inputscaling::RobotController_Ackermann_Inputscaling(PathFollower* _path_follower) :
-	RobotController_Interpolation(_path_follower),
+RobotController_Ackermann_Inputscaling::RobotController_Ackermann_Inputscaling() :
+    RobotController_Interpolation(),
 	phi_(0.),
 	v1_(0.), v2_(0.)
 {
@@ -92,8 +92,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Inputscaling::compu
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	const Eigen::Vector3d pose = pose_tracker_.getRobotPose();
-	const geometry_msgs::Twist velocity_measured = pose_tracker_.getVelocity();
+    const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
+    const geometry_msgs::Twist velocity_measured = pose_tracker_->getVelocity();
 
 	ROS_DEBUG("velocity_measured: x=%f, y=%f, z=%f", velocity_measured.linear.x,
 				velocity_measured.linear.y, velocity_measured.linear.z);

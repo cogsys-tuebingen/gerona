@@ -16,7 +16,7 @@
 class RobotController_Kinematic_HBZ : public RobotController_Interpolation
 {
 public:
-    RobotController_Kinematic_HBZ(PathFollower *path_driver);
+    RobotController_Kinematic_HBZ();
 
     //! Immediately stop any motion.
     virtual void stopMotion();

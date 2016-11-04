@@ -4,12 +4,7 @@
 /// PROJECT
 
 
-LocalPlannerStarReconf::LocalPlannerStarReconf(RobotController &follower,
-                                       PoseTracker &pose_tracker,
-                                       const ros::Duration& update_interval)
-    : LocalPlannerClassic(follower, pose_tracker, update_interval),
-      LocalPlannerStar(follower, pose_tracker, update_interval),
-      LocalPlannerReconf(follower, pose_tracker, update_interval)
+LocalPlannerStarReconf::LocalPlannerStarReconf()
 {
 
 }

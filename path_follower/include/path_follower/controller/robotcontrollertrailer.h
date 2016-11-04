@@ -23,7 +23,7 @@ class PathController;
 class RobotControllerTrailer : public RobotController
 {
 public:
-    RobotControllerTrailer(PathFollower *path_driver, ros::NodeHandle *nh);
+    RobotControllerTrailer();
     virtual void stopMotion();
     virtual void reset();
     virtual void setPath(Path::Ptr path);
@@ -69,7 +69,6 @@ private:
 
         {}
     } opt_;
-    ros::NodeHandle *nh_;
     PathController *path_ctrl_;
     ros::Subscriber agv_vel_sub_;
     ros::Publisher agv_steer_is_pub_, agv_steer_set_pub_, agv_error_angle_pub_,agv_error_dist_pub_;

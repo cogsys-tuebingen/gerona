@@ -7,7 +7,7 @@
 class RobotController_Ackermann_Stanley : public RobotController_Interpolation
 {
 public:
-	RobotController_Ackermann_Stanley(PathFollower* _path_follower);
+	RobotController_Ackermann_Stanley();
 	virtual ~RobotController_Ackermann_Stanley() {}
 
 	virtual void stopMotion();

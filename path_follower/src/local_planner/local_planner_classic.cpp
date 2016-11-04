@@ -22,11 +22,8 @@ double LocalPlannerClassic::FL = LocalPlannerClassic::RL;
 double LocalPlannerClassic::beta1 = M_PI/4.0;
 std::vector<LNode> LocalPlannerClassic::EMPTYTWINS;
 
-LocalPlannerClassic::LocalPlannerClassic(RobotController &follower,
-                                 PoseTracker &pose_tracker,
-                                 const ros::Duration& update_interval)
-    : LocalPlannerImplemented(follower, pose_tracker, update_interval),
-      d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),b_obst(false),index1(-1), index2(-1),
+LocalPlannerClassic::LocalPlannerClassic()
+    : d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),b_obst(false),index1(-1), index2(-1),
       r_level(0), n_v(0), step_(0.0),neig_s(0.0),FFL(FL)
 {
 }

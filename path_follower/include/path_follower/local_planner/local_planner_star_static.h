@@ -8,8 +8,7 @@
 class LocalPlannerStarStatic : virtual public LocalPlannerStar, virtual public LocalPlannerStatic
 {
 public:
-    LocalPlannerStarStatic(RobotController& controller, PoseTracker& pose_tracker,
-                           const ros::Duration& update_interval);
+    LocalPlannerStarStatic();
 private:
     virtual void evaluate(double& current_p, double& heuristic, double& score) override;
 };

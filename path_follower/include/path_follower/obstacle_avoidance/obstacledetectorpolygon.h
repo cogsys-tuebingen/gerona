@@ -7,11 +7,6 @@
 
 class ObstacleDetectorPolygon : public ObstacleDetector
 {
-public:
-    ObstacleDetectorPolygon(const tf::TransformListener *tf_listener):
-        tf_listener_(tf_listener)
-    {}
-
 protected:
     struct PolygonWithTfFrame
     {
@@ -43,8 +38,6 @@ protected:
 
 
 private:
-    const tf::TransformListener *tf_listener_;
-
     void visualize(PolygonWithTfFrame polygon, bool hasObstacle) const;
 };
 

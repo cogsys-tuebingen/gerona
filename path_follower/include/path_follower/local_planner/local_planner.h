@@ -26,6 +26,8 @@ class LocalPlanner
 public:
     virtual ~LocalPlanner();
 
+    virtual void init(RobotController *controller, PoseTracker *pose_tracker, const ros::Duration& update_interval);
+
     virtual void setGlobalPath(Path::Ptr path);
 
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) = 0;
@@ -46,16 +48,18 @@ public:
 
     void setObstacleCloud(const std::shared_ptr<ObstacleCloud const> &msg);
 
+protected:
+    LocalPlanner();
+
 
 protected:
-    LocalPlanner(RobotController &controller, PoseTracker &pose_tracker);
-
-protected:
-    RobotController& controller_;
-    PoseTracker& pose_tracker_;
-    tf::Transformer &transformer_;
+    RobotController* controller_;
+    PoseTracker* pose_tracker_;
+    tf::Transformer* transformer_;
 
     PathInterpolated global_path_;
+
+    ros::Duration update_interval_;
 
     tf::StampedTransform initial_map_to_odom_, base_to_odom, lastbase_to_odom;
 

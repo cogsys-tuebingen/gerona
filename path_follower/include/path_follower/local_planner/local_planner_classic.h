@@ -7,8 +7,7 @@
 class LocalPlannerClassic : public LocalPlannerImplemented
 {
 public:
-    LocalPlannerClassic(RobotController& controller, PoseTracker& pose_tracker,
-                        const ros::Duration& update_interval);
+    LocalPlannerClassic();
 
     virtual void setGlobalPath(Path::Ptr path) override;
 

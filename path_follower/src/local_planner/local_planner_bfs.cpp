@@ -5,9 +5,8 @@
 
 
 // this planner uses the Breadth-first search algorithm
-LocalPlannerBFS::LocalPlannerBFS(RobotController& controller, PoseTracker& pose_tracker,
-                                 const ros::Duration& update_interval)
-    : LocalPlannerClassic(controller, pose_tracker, update_interval),fifo()
+LocalPlannerBFS::LocalPlannerBFS()
+    : fifo()
 {
 
 }

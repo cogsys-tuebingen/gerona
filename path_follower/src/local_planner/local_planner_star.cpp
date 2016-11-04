@@ -5,10 +5,8 @@
 
 
 // this planner templates the A*/Theta* search algorithms
-LocalPlannerStar::LocalPlannerStar(RobotController &follower,
-                                 PoseTracker &pose_tracker,
-                                 const ros::Duration& update_interval)
-    : LocalPlannerClassic(follower, pose_tracker, update_interval), score(0.0), heuristic(0.0),
+LocalPlannerStar::LocalPlannerStar()
+    : score(0.0), heuristic(0.0),
       closedSet(), twins(), openSet()
 {
 

@@ -4,12 +4,7 @@
 /// PROJECT
 
 
-LocalPlannerBFSStatic::LocalPlannerBFSStatic(RobotController &follower,
-                                       PoseTracker &pose_tracker,
-                                       const ros::Duration& update_interval)
-    : LocalPlannerClassic(follower, pose_tracker, update_interval),
-      LocalPlannerBFS(follower, pose_tracker, update_interval),
-      LocalPlannerStatic(follower, pose_tracker, update_interval)
+LocalPlannerBFSStatic::LocalPlannerBFSStatic()
 {
 
 }

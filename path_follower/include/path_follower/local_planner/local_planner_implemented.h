@@ -10,8 +10,7 @@
 class LocalPlannerImplemented : public LocalPlanner
 {
 public:
-    LocalPlannerImplemented(RobotController& controller, PoseTracker& pose_tracker,
-                            const ros::Duration& update_interval);
+    LocalPlannerImplemented();
 
     virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
                                       const std::vector<Scorer::Ptr>& scorer,
@@ -40,8 +39,6 @@ private:
                      const std::vector<double>& wscorer,
                      std::size_t& nnodes) = 0;
 protected:
-    ros::Duration update_interval_;
-
     SubPath waypoints, wlp_;
     SubPath waypoints_map;
 

@@ -16,10 +16,10 @@
 #include <path_follower/utils/movecommand.h>
 
 
-class PathFollower;
 class PoseTracker;
 class Visualizer;
 class CoursePredictor;
+class ObstacleAvoider;
 
 class PathFollowerParameters;
 
@@ -99,7 +99,9 @@ protected:
 
     /* REGULAR METHODS */
 public:
-    RobotController(PathFollower *path_driver);
+    RobotController();
+
+    virtual void init(PoseTracker* pose_tracker, ObstacleAvoider* obstacle_avoider, const PathFollowerParameters* options);
 
     virtual ~RobotController() {}
 
@@ -136,13 +138,16 @@ private:
     void publishPathMarker();
 
 protected:
+    ros::NodeHandle nh_;
+    ros::NodeHandle pnh_;
+
     ros::Publisher cmd_pub_;
     ros::Publisher points_pub_;
 
-    PathFollower* path_driver_;
-    PoseTracker& pose_tracker_;
+    PoseTracker* pose_tracker_;
+    ObstacleAvoider* obstacle_avoider_;
 
-    const PathFollowerParameters& global_opt_;
+    const PathFollowerParameters* global_opt_;
 
     Visualizer *visualizer_;
 
@@ -157,8 +162,6 @@ protected:
     //! The next waypoint in the robot frame (set by setPath).
     Eigen:: Vector3d next_wp_local_;
 
-
-    /*ROS_DEPRECATED */void setStatus(int status);
 
     //! Calculate the angle between the orientations of the waypoint and the robot.
     virtual double calculateAngleError();

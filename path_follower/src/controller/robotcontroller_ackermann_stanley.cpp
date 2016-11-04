@@ -1,6 +1,6 @@
 #include <path_follower/controller/robotcontroller_ackermann_stanley.h>
 
-#include <path_follower/pathfollower.h>
+
 
 #include <path_follower/utils/pose_tracker.h>
 #include <ros/ros.h>
@@ -18,8 +18,8 @@
 #include <limits>
 #include <boost/algorithm/clamp.hpp>
 
-RobotController_Ackermann_Stanley::RobotController_Ackermann_Stanley(PathFollower* _path_follower) :
-	RobotController_Interpolation(_path_follower) {
+RobotController_Ackermann_Stanley::RobotController_Ackermann_Stanley() :
+    RobotController_Interpolation() {
 
 	ROS_INFO("Parameters: k_forward=%f, k_backward=%f\n"
 				"vehicle_length=%f\n"
@@ -67,7 +67,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Stanley::computeMov
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	const Eigen::Vector3d pose = pose_tracker_.getRobotPose();
+    const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
 
 	// TODO: theta should also be considered in goal test
 	// goal test

@@ -59,9 +59,11 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     g_points_pub_ = node_handle_.advertise<visualization_msgs::Marker>("g_path_points", 10);
 
     // Choose robot controller
-    controller_ = controller_factory_->makeController(opt_.controller());
-    obstacle_avoider_ = controller_factory_->makeObstacleAvoider(opt_.controller(), *pose_tracker_, controller_);
-    local_planner_ = controller_factory_->makeLocalPlanner(opt_.algo(), *controller_, *pose_tracker_, ros::Duration(opt_.uinterval()));
+    controller_factory_->construct(controller_, local_planner_, obstacle_avoider_);
+
+    ROS_ASSERT_MSG(controller_ != nullptr, "Controller was not set");
+    ROS_ASSERT_MSG(local_planner_ != nullptr, "Local Planner was not set");
+    ROS_ASSERT_MSG(obstacle_avoider_ != nullptr, "Obstacle Avoider was not set");
 
     /*** Initialize supervisors ***/
 
@@ -118,9 +120,11 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 PathFollower::~PathFollower()
 {
 }
-void PathFollower::obstacleCloudCB(const std::shared_ptr<ObstacleCloud const> &msg)
+void PathFollower::setObstacles(const std::shared_ptr<ObstacleCloud const> &msg)
 {
     obstacle_cloud_ = msg;
+
+    obstacle_avoider_->setObstacles(msg);
 }
 
 
@@ -293,23 +297,6 @@ void PathFollower::setStatus(int status)
     // TODO: don't use status this way...
 }
 
-bool PathFollower::callObstacleAvoider(MoveCommand *cmd)
-{
-    if (obstacle_avoider_ == nullptr) {
-        ROS_WARN_ONCE("No obstacle avoider selected. Obstacle avoidace is deactivated!");
-        return false;
-    }
-
-    if (obstacle_cloud_ == nullptr) {
-        ROS_ERROR_THROTTLE(1, "No obstacle cloud received. Obstacle avoidace is skipped!");
-        return false;
-    }
-
-    ObstacleAvoider::State state(path_, opt_);
-
-    return obstacle_avoider_->avoid(cmd, obstacle_cloud_, state);
-}
-
 PoseTracker& PathFollower::getPoseTracker()
 {
     return *pose_tracker_;
@@ -318,6 +305,11 @@ PoseTracker& PathFollower::getPoseTracker()
 RobotController *PathFollower::getController()
 {
     return controller_.get();
+}
+
+ObstacleAvoider& PathFollower::getObstacleAvoider()
+{
+    return *obstacle_avoider_;
 }
 
 CoursePredictor &PathFollower::getCoursePredictor()

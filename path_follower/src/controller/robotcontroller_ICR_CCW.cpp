@@ -8,7 +8,7 @@
 
 
 // PROJECT
-#include <path_follower/pathfollower.h>
+#include <path_follower/pathfollowerparameters.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <path_follower/utils/extended_kalman_filter.h>
 #include <cslibs_utils/MathHelper.h>
@@ -29,8 +29,8 @@
 using namespace Eigen;
 
 
-RobotController_ICR_CCW::RobotController_ICR_CCW(PathFollower *path_driver):
-    RobotController_Interpolation(path_driver),
+RobotController_ICR_CCW::RobotController_ICR_CCW():
+    RobotController_Interpolation(),
     cmd_(this),
     vn_(0),
     Ts_(0.02),
@@ -118,7 +118,7 @@ void RobotController_ICR_CCW::initialize()
     proj_ind_ = 0;
 
     // desired velocity
-    vn_ = std::min(global_opt_.max_velocity(), velocity_);
+    vn_ = std::min(global_opt_->max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 
     //reset the ekf path points
@@ -203,7 +203,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
 
 
     /// get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
-    Eigen::Vector3d current_pose = pose_tracker_.getRobotPose();
+    Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
 
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
@@ -367,7 +367,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     ///Exponential speed control
 
     //get the robot's current angular velocity
-    double angular_vel = pose_tracker_.getVelocity().angular.z;
+    double angular_vel = pose_tracker_->getVelocity().angular.z;
 
     //ensure valid values
     if (distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
@@ -381,7 +381,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     //TODO: consider the minimum excitation speed
     double v = vn_ * exp(-exponent);
 
-    cmd_.speed = getDirSign()*std::max((double)global_opt_.min_velocity(), fabs(v));
+    cmd_.speed = getDirSign()*std::max((double)global_opt_->min_velocity(), fabs(v));
 
     ///***///
 
@@ -409,7 +409,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
 
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(getFixedFrame(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(getFixedFrame(), 1, pose_tracker_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
     ///***///

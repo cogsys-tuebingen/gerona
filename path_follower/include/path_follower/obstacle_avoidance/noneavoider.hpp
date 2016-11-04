@@ -9,7 +9,7 @@
 class NoneAvoider : public ObstacleAvoider
 {
 public:
-    virtual bool avoid(MoveCommand* const, std::shared_ptr<ObstacleCloud const>, const State &)
+    virtual bool avoid(MoveCommand* const, const State &)
     {
         // pass
         return false;

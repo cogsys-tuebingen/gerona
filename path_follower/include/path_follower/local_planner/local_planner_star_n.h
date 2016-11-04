@@ -7,8 +7,7 @@
 class LocalPlannerStarN : virtual public LocalPlannerStar
 {
 public:
-    LocalPlannerStarN(RobotController& controller, PoseTracker& pose_tracker,
-                      const ros::Duration &update_interval);
+    LocalPlannerStarN();
 private:
     virtual double f(double& g, double& score, double& heuristic) override;
 };

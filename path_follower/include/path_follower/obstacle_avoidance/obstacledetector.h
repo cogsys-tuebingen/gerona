@@ -24,7 +24,6 @@ class ObstacleDetector: public ObstacleAvoider
 {
 public:
     virtual bool avoid(MoveCommand * const cmd,
-                       std::shared_ptr<ObstacleCloud const> obstacles,
                        const State &state);
 
 protected:
@@ -79,6 +78,9 @@ protected:
                               float length,
                               float course_angle,
                               float curve_enlarge_factor) = 0;
+
+protected:
+    ObstacleDetector() = default;
 };
 
 #endif // OBSTACLEDETECTOR_H

@@ -7,7 +7,7 @@
 class LocalPlannerNull : public LocalPlanner
 {
 public:
-    LocalPlannerNull(RobotController& controller, PoseTracker& pose_tracker);
+    LocalPlannerNull();
 
     virtual void setGlobalPath(Path::Ptr path) override;
 

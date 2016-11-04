@@ -4,10 +4,7 @@
 /// PROJECT
 
 
-LocalPlannerStarN::LocalPlannerStarN(RobotController &controller, PoseTracker &pose_tracker,
-                                     const ros::Duration &update_interval)
-    : LocalPlannerClassic(controller,pose_tracker,update_interval),
-      LocalPlannerStar(controller,pose_tracker,update_interval)
+LocalPlannerStarN::LocalPlannerStarN()
 {
 
 }

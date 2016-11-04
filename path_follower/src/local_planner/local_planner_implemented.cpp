@@ -6,11 +6,8 @@
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/pose_tracker.h>
 
-LocalPlannerImplemented::LocalPlannerImplemented(RobotController &follower,
-                                 PoseTracker &pose_tracker,
-                                 const ros::Duration& update_interval)
-    : LocalPlanner(follower, pose_tracker), update_interval_(update_interval),
-      waypoints(), wlp_(), tooClose(false), last_update_(0)
+LocalPlannerImplemented::LocalPlannerImplemented()
+    : waypoints(), wlp_(), tooClose(false), last_update_(0)
 {
 
 }
@@ -24,14 +21,14 @@ void LocalPlannerImplemented::setGlobalPath(Path::Ptr path)
 bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
     tf::StampedTransform now_map_to_odom;
     try{//Try to get the latest avaiable Transform
-        transformer_.lookupTransform("map", "odom", ros::Time(0), now_map_to_odom);
+        transformer_->lookupTransform("map", "odom", ros::Time(0), now_map_to_odom);
     }catch(tf::TransformException ex){//If not avaiable, then wait
         (void) ex;
-        if(!transformer_.waitForTransform("map", "odom", now, ros::Duration(0.1))){
+        if(!transformer_->waitForTransform("map", "odom", now, ros::Duration(0.1))){
             ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
             return false;
         }
-        transformer_.lookupTransform("map", "odom", now, now_map_to_odom);
+        transformer_->lookupTransform("map", "odom", now, now_map_to_odom);
     }
 
     tf::Transform transform_correction = now_map_to_odom.inverse();
@@ -66,15 +63,15 @@ void LocalPlannerImplemented::setPath(Path::Ptr& local_path, Path::Ptr& wlp, Sub
         wlp->setPath({wlp_});
     }
 
-    controller_.reset();
+    controller_->reset();
 
     if(local_wps.empty()) {
         local_path->setPath({});
-        controller_.stopMotion();
+        controller_->stopMotion();
 
     } else {
         local_path->setPath({local_wps});
-        controller_.setPath(local_path);
+        controller_->setPath(local_path);
     }
 
     last_update_ = now;
@@ -141,7 +138,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         ofstream myfile;
         myfile.open ("/tmp/pose.txt");
         */
-        Eigen::Vector3d pose = pose_tracker_.getRobotPose();
+        Eigen::Vector3d pose = pose_tracker_->getRobotPose();
         /*
         myfile << pose(0) << ", " << pose(1) << ", " << pose(2)<< std::endl;
         myfile.close();

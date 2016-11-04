@@ -45,74 +45,71 @@
 #include <stdexcept>
 
 ControllerFactory::ControllerFactory(PathFollower &follower)
-    : follower_(follower), opt_(follower.getOptions())
+    : follower_(follower), opt_(follower.getOptions()), pose_tracker_(follower.getPoseTracker())
 {
 
 }
 
-std::shared_ptr<RobotController> ControllerFactory::makeController(const std::string& name)
+void ControllerFactory::construct(std::shared_ptr<RobotController>& out_controller,
+               std::shared_ptr<LocalPlanner>& out_local_planner,
+               std::shared_ptr<ObstacleAvoider>& out_obstacle_avoider)
 {
+    const std::string& name = opt_.controller();
+
     ROS_INFO("Use robot controller '%s'", name.c_str());
     if (name == "ackermann_pid") {
-        return std::make_shared<RobotController_Ackermann_Pid>(&follower_);
+        out_controller = std::make_shared<RobotController_Ackermann_Pid>();
 
     } else if (name == "ackermann_purepursuit") {
-        return std::make_shared<Robotcontroller_Ackermann_PurePursuit>(&follower_);
+        out_controller = std::make_shared<Robotcontroller_Ackermann_PurePursuit>();
 
     } else if (name == "ackermann_inputscaling") {
-        return std::make_shared<RobotController_Ackermann_Inputscaling>(&follower_);
+        out_controller = std::make_shared<RobotController_Ackermann_Inputscaling>();
 
     } else if (name == "ackermann_stanley") {
-        return std::make_shared<RobotController_Ackermann_Stanley>(&follower_);
+        out_controller = std::make_shared<RobotController_Ackermann_Stanley>();
 
     } else if (name == "2steer_purepursuit") {
-        return std::make_shared<RobotController_2Steer_PurePursuit>(&follower_);
+        out_controller = std::make_shared<RobotController_2Steer_PurePursuit>();
 
     } else if (name == "2steer_stanley") {
-        return std::make_shared<RobotController_2Steer_Stanley>(&follower_);
+        out_controller = std::make_shared<RobotController_2Steer_Stanley>();
 
     } else if (name == "2steer_inputscaling") {
-        return std::make_shared<RobotController_2Steer_InputScaling>(&follower_);
+        out_controller = std::make_shared<RobotController_2Steer_InputScaling>();
 
     } else if (name == "unicycle_inputscaling") {
-        return std::make_shared<RobotController_Unicycle_InputScaling>(&follower_);
+        out_controller = std::make_shared<RobotController_Unicycle_InputScaling>();
 
     } else if (name == "patsy_pid") {
-        std::shared_ptr<RobotControllerTrailer> ctrl(new RobotControllerTrailer(&follower_,&follower_.getNodeHandle()));
-        return ctrl;
+        out_controller = std::make_shared<RobotControllerTrailer>();
 
     } else if (name == "omnidrive_orthexp") {
-        return std::make_shared<RobotController_Omnidrive_OrthogonalExponential>(&follower_);
+        out_controller = std::make_shared<RobotController_Omnidrive_OrthogonalExponential>();
 
     } else if (name == "ackermann_orthexp") {
-        return std::make_shared<RobotController_Ackermann_OrthogonalExponential>(&follower_);
+        out_controller = std::make_shared<RobotController_Ackermann_OrthogonalExponential>();
 
     } else if (name == "differential_orthexp") {
-        return std::make_shared<RobotController_Differential_OrthogonalExponential>(&follower_);
+        out_controller = std::make_shared<RobotController_Differential_OrthogonalExponential>();
 
     } else if (name == "kinematic_SLP") {
-        return std::make_shared<RobotController_Kinematic_SLP>(&follower_);
+        out_controller = std::make_shared<RobotController_Kinematic_SLP>();
 
     } else if (name == "dynamic_SLP") {
-        return std::make_shared<RobotController_Dynamic_SLP>(&follower_);
+        out_controller = std::make_shared<RobotController_Dynamic_SLP>();
 
     } else if (name == "kinematic_HBZ") {
-        return std::make_shared<RobotController_Kinematic_HBZ>(&follower_);
+        out_controller = std::make_shared<RobotController_Kinematic_HBZ>();
 
     } else if (name == "ICR_CCW") {
-        return std::make_shared<RobotController_ICR_CCW>(&follower_);
+        out_controller = std::make_shared<RobotController_ICR_CCW>();
 
     } else {
         throw std::logic_error("Unknown robot controller. Shutdown.");
     }
-}
 
-std::shared_ptr<LocalPlanner>
-ControllerFactory::makeLocalPlanner(const std::string& name,
-                                    RobotController& controller,
-                                    PoseTracker& pose_tracker,
-                                    const ros::Duration& uinterval)
-{
+
     ROS_INFO("Use local planner algorithm '%s'", name.c_str());
 
     ROS_INFO("Maximum number of allowed nodes: %d", opt_.nnodes());
@@ -135,122 +132,121 @@ ControllerFactory::makeLocalPlanner(const std::string& name,
              opt_.s3(), opt_.s4(), opt_.s5(), opt_.s6());
 
 
-    std::shared_ptr<LocalPlanner> planner;
-    if(name == "AStar"){
-        planner = std::make_shared<LocalPlannerAStarNStatic>(controller, pose_tracker, uinterval);
-    }else if(name == "AStarG"){
-        planner = std::make_shared<LocalPlannerAStarGStatic>(controller, pose_tracker, uinterval);
-    }else if(name == "ThetaStar"){
-        planner = std::make_shared<LocalPlannerThetaStarNStatic>(controller, pose_tracker, uinterval);
-    }else if(name == "ThetaStarG"){
-        planner = std::make_shared<LocalPlannerThetaStarGStatic>(controller, pose_tracker, uinterval);
-    }else if(name == "AStarR"){
-        planner = std::make_shared<LocalPlannerAStarNReconf>(controller, pose_tracker, uinterval);
-    }else if(name == "AStarGR"){
-        planner = std::make_shared<LocalPlannerAStarGReconf>(controller, pose_tracker, uinterval);
-    }else if(name == "ThetaStarR"){
-        planner = std::make_shared<LocalPlannerThetaStarNReconf>(controller, pose_tracker, uinterval);
-    }else if(name == "ThetaStarGR"){
-        planner = std::make_shared<LocalPlannerThetaStarGReconf>(controller, pose_tracker, uinterval);
-    }else if(name == "BFS"){
-        planner = std::make_shared<LocalPlannerBFSStatic>(controller, pose_tracker, uinterval);
-    }else if(name == "BFSR"){
-        planner = std::make_shared<LocalPlannerBFSReconf>(controller, pose_tracker, uinterval);
-    }else if(name == "Transformer"){
-        planner = std::make_shared<LocalPlannerTransformer>(controller, pose_tracker, uinterval);
-    }else if(name == "NULL"){
-        planner = std::make_shared<LocalPlannerNull>(controller, pose_tracker);
+    const std::string& local_planner_name = opt_.algo();
+
+    if(local_planner_name == "AStar"){
+        out_local_planner = std::make_shared<LocalPlannerAStarNStatic>();
+    }else if(local_planner_name == "AStarG"){
+        out_local_planner = std::make_shared<LocalPlannerAStarGStatic>();
+    }else if(local_planner_name == "ThetaStar"){
+        out_local_planner = std::make_shared<LocalPlannerThetaStarNStatic>();
+    }else if(local_planner_name == "ThetaStarG"){
+        out_local_planner = std::make_shared<LocalPlannerThetaStarGStatic>();
+    }else if(local_planner_name == "AStarR"){
+        out_local_planner = std::make_shared<LocalPlannerAStarNReconf>();
+    }else if(local_planner_name == "AStarGR"){
+        out_local_planner = std::make_shared<LocalPlannerAStarGReconf>();
+    }else if(local_planner_name == "ThetaStarR"){
+        out_local_planner = std::make_shared<LocalPlannerThetaStarNReconf>();
+    }else if(local_planner_name == "ThetaStarGR"){
+        out_local_planner = std::make_shared<LocalPlannerThetaStarGReconf>();
+    }else if(local_planner_name == "BFS"){
+        out_local_planner = std::make_shared<LocalPlannerBFSStatic>();
+    }else if(local_planner_name == "BFSR"){
+        out_local_planner = std::make_shared<LocalPlannerBFSReconf>();
+    }else if(local_planner_name == "Transformer"){
+        out_local_planner = std::make_shared<LocalPlannerTransformer>();
+    }else if(local_planner_name == "NULL"){
+        out_local_planner = std::make_shared<LocalPlannerNull>();
     }else {
         throw std::logic_error("Unknown local planner algorithm. Shutdown.");
     }
 
-    pose_tracker.setLocal(!planner->isNull());
-
-    planner->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.adis(),
-                       opt_.fdis(),opt_.s_angle(), opt_.ia(), opt_.lmf(),
-                       opt_.depth(), opt_.mu(), opt_.ef());
-
-    return planner;
-}
-
-std::shared_ptr<ObstacleAvoider>
-ControllerFactory::makeObstacleAvoider(const std::string& name,
-                                       PoseTracker& pose_tracker,
-                                       std::shared_ptr<RobotController>& controller)
-{
-    tf::TransformListener &pose_listener = pose_tracker.getTransformListener();
 
     ROS_INFO("Use robot controller '%s'", name.c_str());
     if (name == "ackermann_pid") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorAckermann>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorAckermann>();
 
     } else if (name == "ackermann_purepursuit") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorAckermann>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorAckermann>();
 
     } else if (name == "ackermann_inputscaling") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorAckermann>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorAckermann>();
 
     } else if (name == "ackermann_stanley") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorAckermann>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorAckermann>();
 
     } else if (name == "2steer_purepursuit") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorAckermann>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorAckermann>();
 
     } else if (name == "2steer_stanley") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorAckermann>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorAckermann>();
 
     } else if (name == "2steer_inputscaling") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorAckermann>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorAckermann>();
 
     } else if (name == "unicycle_inputscaling") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorAckermann>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorAckermann>();
 
     } else if (name == "patsy_pid") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorPatsy>(&pose_listener,
-                                                           dynamic_cast<RobotControllerTrailer*>(controller.get()));
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorPatsy>();
 
     } else if (name == "omnidrive_orthexp") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorOmnidrive>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorOmnidrive>();
 
     } else if (name == "ackermann_orthexp") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorOmnidrive>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorOmnidrive>();
 
     } else if (name == "differential_orthexp") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorOmnidrive>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorOmnidrive>();
 
     } else if (name == "kinematic_SLP") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorAckermann>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorAckermann>();
 
     } else if (name == "dynamic_SLP") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorAckermann>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorAckermann>();
 
     } else if (name == "kinematic_HBZ") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorAckermann>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorAckermann>();
 
     } else if (name == "ICR_CCW") {
         if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorAckermann>(&pose_listener);
+            out_obstacle_avoider = std::make_shared<ObstacleDetectorAckermann>();
 
     } else {
         throw std::logic_error("Unknown robot controller. Shutdown.");
     }
 
-
     //  if no obstacle avoider was set, use the none-avoider
-    return std::make_shared<NoneAvoider>();
+    out_obstacle_avoider = std::make_shared<NoneAvoider>();
+
+
+    // wiring
+    out_obstacle_avoider->setTransformListener(&pose_tracker_.getTransformListener());
+
+    ros::Duration uinterval(opt_.uinterval());
+    out_local_planner->init(out_controller.get(), &pose_tracker_, uinterval);
+
+    out_controller->init(&pose_tracker_, out_obstacle_avoider.get(), &opt_);
+
+    pose_tracker_.setLocal(!out_local_planner->isNull());
+
+    out_local_planner->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.adis(),
+                       opt_.fdis(),opt_.s_angle(), opt_.ia(), opt_.lmf(),
+                       opt_.depth(), opt_.mu(), opt_.ef());
 }

@@ -14,7 +14,7 @@
 class RobotController_2Steer_PurePursuit: public RobotController_Interpolation
 {
 public:
-    RobotController_2Steer_PurePursuit(PathFollower* _path_follower);
+    RobotController_2Steer_PurePursuit();
     virtual ~RobotController_2Steer_PurePursuit(){}
 
 	virtual void stopMotion();

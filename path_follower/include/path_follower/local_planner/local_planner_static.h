@@ -7,8 +7,7 @@
 class LocalPlannerStatic : virtual public LocalPlannerClassic
 {
 public:
-    LocalPlannerStatic(RobotController& controller, PoseTracker& pose_tracker,
-                       const ros::Duration& update_interval);
+    LocalPlannerStatic();
 
 protected:
     virtual void initLeaves(LNode& root) override;

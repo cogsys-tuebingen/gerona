@@ -1,5 +1,5 @@
 #include <path_follower/controller/robotcontroller_unicycle_inputscaling.h>
-#include <path_follower/pathfollower.h>
+
 
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
@@ -22,8 +22,8 @@
 #include <std_msgs/Float64MultiArray.h>
 #endif
 
-RobotController_Unicycle_InputScaling::RobotController_Unicycle_InputScaling(PathFollower* _path_follower) :
-    RobotController_Interpolation(_path_follower),
+RobotController_Unicycle_InputScaling::RobotController_Unicycle_InputScaling() :
+    RobotController_Interpolation(),
     ind_(0)
 {
 
@@ -89,13 +89,13 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
     if(path_interpol.n() <= 2)
         return RobotController::MoveCommandStatus::ERROR;
 
-    const Eigen::Vector3d pose = pose_tracker_.getRobotPose();
+    const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
 
 //    double x_meas = pose[0];
 //    double y_meas = pose[1];
 //    double theta_meas = pose[2];
 
-    const geometry_msgs::Twist v_meas_twist = pose_tracker_.getVelocity();
+    const geometry_msgs::Twist v_meas_twist = pose_tracker_->getVelocity();
 
     double velocity_measured = dir_sign_ * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
             + v_meas_twist.linear.y * v_meas_twist.linear.y);

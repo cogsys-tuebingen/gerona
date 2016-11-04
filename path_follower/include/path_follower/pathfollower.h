@@ -58,21 +58,20 @@ public:
     PoseTracker& getPoseTracker();
 
     RobotController* getController();
+    ObstacleAvoider& getObstacleAvoider();
     const PathFollowerParameters &getOptions() const;
     Visualizer& getVisualizer() const;
 
     ros::NodeHandle& getNodeHandle();
 
     std::shared_ptr<ObstacleCloud const> getObstacleCloud() const;
-    void obstacleCloudCB(const std::shared_ptr<ObstacleCloud const>&);
+    void setObstacles(const std::shared_ptr<ObstacleCloud const>&);
 
     CoursePredictor &getCoursePredictor();
     std::shared_ptr<Path> getPath();
     std::string getFixedFrameId();
 
     /*ROS_DEPRECATED*/ void setStatus(int status);
-
-    bool callObstacleAvoider(MoveCommand *cmd);
 
 private:
     /**

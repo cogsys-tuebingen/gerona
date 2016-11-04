@@ -86,6 +86,7 @@ add_library(${PROJECT_NAME} SHARED
     src/obstacle_avoidance/obstacledetectorackermann.cpp
     src/obstacle_avoidance/obstacledetectoromnidrive.cpp
     src/obstacle_avoidance/obstacledetectorpatsy.cpp
+    src/obstacle_avoidance/obstacle_avoider.cpp
 
     src/controller/robotcontroller.cpp
     src/controller/robotcontroller_interpolation.cpp

@@ -1,5 +1,5 @@
 #include <path_follower/controller/robotcontroller_2steer_inputscaling.h>
-#include <path_follower/pathfollower.h>
+
 
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
@@ -24,8 +24,8 @@
 #include <std_msgs/Float64MultiArray.h>
 #endif
 
-RobotController_2Steer_InputScaling::RobotController_2Steer_InputScaling(PathFollower* _path_follower) :
-	RobotController_Interpolation(_path_follower),
+RobotController_2Steer_InputScaling::RobotController_2Steer_InputScaling() :
+	RobotController_Interpolation(),
 	phi_(0.)
 {
 
@@ -94,8 +94,8 @@ RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeM
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	const Eigen::Vector3d pose = pose_tracker_.getRobotPose();
-    const geometry_msgs::Twist v_meas_twist = pose_tracker_.getVelocity();
+	const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
+    const geometry_msgs::Twist v_meas_twist = pose_tracker_->getVelocity();
 
     double velocity_measured = dir_sign_ * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
             + v_meas_twist.linear.y * v_meas_twist.linear.y);

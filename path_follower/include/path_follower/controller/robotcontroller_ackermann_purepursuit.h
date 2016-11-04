@@ -15,7 +15,7 @@
 class Robotcontroller_Ackermann_PurePursuit: public RobotController_Interpolation
 {
 public:
-	Robotcontroller_Ackermann_PurePursuit(PathFollower* _path_follower);
+    Robotcontroller_Ackermann_PurePursuit();
 	virtual ~Robotcontroller_Ackermann_PurePursuit();
 
 	virtual void stopMotion();

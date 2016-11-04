@@ -3,8 +3,7 @@
 #include <visualization_msgs/Marker.h>
 
 // PROJECT
-#include <path_follower/pathfollower.h>
-
+#include <path_follower/pathfollowerparameters.h>
 #include <path_follower/controller/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <interpolation.h>
@@ -14,7 +13,6 @@
 
 // SYSTEM
 #include <deque>
-#include <Eigen/Core>
 #include <Eigen/Dense>
 
 using namespace Eigen;
@@ -24,10 +22,9 @@ namespace {
 const std::string MODULE = "controller";
 }
 
-RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_OrthogonalExponential(PathFollower *path_driver):
-    RobotController(path_driver),
+RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_OrthogonalExponential():
+    RobotController(),
     cmd_(this),
-    nh_("~"),
     view_direction_(LookInDrivingDirection),
     initialized_(false),
     vn_(0.0),
@@ -39,12 +36,12 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     distance_to_goal_(1e6),
     distance_to_obstacle_(1e3)
 {
-    interp_path_pub_ = nh_.advertise<nav_msgs::Path>("interp_path", 10);
-    points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
+    interp_path_pub_ = pnh_.advertise<nav_msgs::Path>("interp_path", 10);
+    points_pub_ = pnh_.advertise<visualization_msgs::Marker>("path_points", 10);
 
-    look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
+    look_at_cmd_sub_ = pnh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
                                                        &RobotController_Omnidrive_OrthogonalExponential::lookAtCommand, this);
-    look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
+    look_at_sub_ = pnh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
                                                               &RobotController_Omnidrive_OrthogonalExponential::lookAt, this);
 
     std::cout << "Value of K_O: " << opt_.k_o() << std::endl;
@@ -127,7 +124,7 @@ void RobotController_Omnidrive_OrthogonalExponential::lookAt(const geometry_msgs
 void RobotController_Omnidrive_OrthogonalExponential::keepHeading()
 {
     view_direction_ = KeepHeading;
-    theta_des_ = pose_tracker_.getRobotPose()[2];
+    theta_des_ = pose_tracker_->getRobotPose()[2];
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::rotate()
@@ -143,10 +140,10 @@ void RobotController_Omnidrive_OrthogonalExponential::lookInDrivingDirection()
 void RobotController_Omnidrive_OrthogonalExponential::initialize()
 {
     // initialize the desired angle and the angle error
-    e_theta_curr_ = pose_tracker_.getRobotPose()[2];
+    e_theta_curr_ = pose_tracker_->getRobotPose()[2];
 
     // desired velocity
-    vn_ = std::min(global_opt_.max_velocity(), velocity_);
+    vn_ = std::min(global_opt_->max_velocity(), velocity_);
     ROS_WARN_STREAM_NAMED(MODULE, "velocity_: " << velocity_ << ", vn: " << vn_);
     initialized_ = true;
 }
@@ -278,7 +275,6 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 
     if(N_ < 2) {
         ROS_ERROR_NAMED(MODULE, "[Line] path is too short (N = %d)", N_);
-        setStatus(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
 
         stopMotion();
         return MoveCommandStatus::REACHED_GOAL;
@@ -298,7 +294,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 //    course_predictor_.unfreeze();
 
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
-    Eigen::Vector3d current_pose = pose_tracker_.getRobotPose();
+    Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
 
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
@@ -442,7 +438,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 
     distance_to_goal_ = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
 
-    double angular_vel = pose_tracker_.getVelocity().angular.z;
+    double angular_vel = pose_tracker_->getVelocity().angular.z;
     //***//
 
 
@@ -482,7 +478,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 //              atan(-param_k*orth_proj)*180.0/M_PI, e_theta_curr);
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(pose_tracker_->getFixedFrameId(), 1, pose_tracker_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
 
@@ -496,14 +492,11 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     //***//
 
 
-    // NULL PTR
-    setStatus(path_msgs::FollowPathResult::RESULT_STATUS_MOVING);
-
     // check for end
     double distance_to_goal = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
     ROS_WARN_THROTTLE_NAMED(1, MODULE, "distance to goal: %f", distance_to_goal);
 
-    if(distance_to_goal <= global_opt_.goal_tolerance()) {
+    if(distance_to_goal <= global_opt_->goal_tolerance()) {
         return MoveCommandStatus::REACHED_GOAL;
     } else {
         // Quickfix: simply convert omnidrive command to move command

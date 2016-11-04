@@ -12,12 +12,7 @@
 class ObstacleDetectorAckermann : public ObstacleDetectorPolygon
 {
 public:
-    ObstacleDetectorAckermann(const tf::TransformListener *tf_listener):
-        ObstacleDetectorPolygon(tf_listener)
-    {}
-
-
-    virtual bool avoid(MoveCommand * const cmd, std::shared_ptr<ObstacleCloud const> obstacles, const ObstacleAvoider::State &state) override;
+    virtual bool avoid(MoveCommand * const cmd, const ObstacleAvoider::State &state) override;
 
 protected:
     virtual PolygonWithTfFrame getPolygon(float width, float length, float course_angle, float curve_enlarge_factor) const;

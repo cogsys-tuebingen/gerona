@@ -14,7 +14,7 @@
 class RobotController_Omnidrive_VirtualVehicle : public RobotController
 {
 public:
-    RobotController_Omnidrive_VirtualVehicle(PathFollower *path_driver);
+    RobotController_Omnidrive_VirtualVehicle();
 
     //! Immediatley stop any motion.
     virtual void stopMotion();

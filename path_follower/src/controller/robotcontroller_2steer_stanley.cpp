@@ -1,6 +1,6 @@
 #include <path_follower/controller/robotcontroller_2steer_stanley.h>
 
-#include <path_follower/pathfollower.h>
+
 
 #include <path_follower/utils/pose_tracker.h>
 #include <ros/ros.h>
@@ -26,8 +26,8 @@
 using namespace std;
 using namespace Eigen;
 
-RobotController_2Steer_Stanley::RobotController_2Steer_Stanley(PathFollower* _path_follower) :
-	RobotController_Interpolation(_path_follower) {
+RobotController_2Steer_Stanley::RobotController_2Steer_Stanley() :
+	RobotController_Interpolation() {
 
 	ROS_INFO("Parameters: k_forward=%f, k_backward=%f\n"
 				"vehicle_length=%f\n"
@@ -72,8 +72,8 @@ RobotController::MoveCommandStatus RobotController_2Steer_Stanley::computeMoveCo
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	const Eigen::Vector3d pose = pose_tracker_.getRobotPose();
-	const geometry_msgs::Twist velocity_measured = pose_tracker_.getVelocity();
+	const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
+	const geometry_msgs::Twist velocity_measured = pose_tracker_->getVelocity();
 
 	// goal test
 	if (reachedGoal(pose)) {

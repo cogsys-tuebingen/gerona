@@ -4,14 +4,7 @@
 /// PROJECT
 
 
-LocalPlannerThetaStarGReconf::LocalPlannerThetaStarGReconf(RobotController& controller, PoseTracker& pose_tracker,
-                                                           const ros::Duration& update_interval)
-    : LocalPlannerClassic(controller, pose_tracker, update_interval),
-      LocalPlannerStar(controller, pose_tracker, update_interval),
-      LocalPlannerReconf(controller, pose_tracker, update_interval),
-      LocalPlannerThetaStar(controller, pose_tracker, update_interval),
-      LocalPlannerStarG(controller, pose_tracker, update_interval),
-      LocalPlannerStarReconf(controller, pose_tracker, update_interval)
+LocalPlannerThetaStarGReconf::LocalPlannerThetaStarGReconf()
 {
 
 }

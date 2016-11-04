@@ -7,8 +7,7 @@
 #include <visualization_msgs/MarkerArray.h>
 
 // PROJECT
-#include <path_follower/pathfollower.h>
-
+#include <path_follower/pathfollowerparameters.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
@@ -18,15 +17,14 @@
 // SYSTEM
 #include <cmath>
 #include <deque>
-#include <Eigen/Core>
 #include <Eigen/Dense>
 #include <boost/algorithm/clamp.hpp>
 
 using namespace Eigen;
 
 
-RobotController_Kinematic_SLP::RobotController_Kinematic_SLP(PathFollower *path_driver):
-    RobotController_Interpolation(path_driver),
+RobotController_Kinematic_SLP::RobotController_Kinematic_SLP():
+    RobotController_Interpolation(),
     cmd_(this),
     vn_(0),
     delta_(0),
@@ -64,7 +62,7 @@ void RobotController_Kinematic_SLP::initialize()
     proj_ind_ = 0;
 
     // desired velocity
-    vn_ = std::min(global_opt_.max_velocity(), velocity_);
+    vn_ = std::min(global_opt_->max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 
 
@@ -111,7 +109,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
 
     /// get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
-    Eigen::Vector3d current_pose = pose_tracker_.getRobotPose();
+    Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
 
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
@@ -227,7 +225,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     distance_to_goal_ = 100.0;
 
     //get the robot's current angular velocity
-    double angular_vel = pose_tracker_.getVelocity().angular.z;
+    double angular_vel = pose_tracker_->getVelocity().angular.z;
     ///***///
 
 
@@ -299,7 +297,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     //TODO: consider the minimum excitation speed
     v = v * exp(-exponent);
 
-    cmd_.speed = getDirSign()*std::max((double)global_opt_.min_velocity(), fabs(v));
+    cmd_.speed = getDirSign()*std::max((double)global_opt_->min_velocity(), fabs(v));
 
     ///***///
 
@@ -341,7 +339,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(pose_tracker_->getFixedFrameId(), 1, pose_tracker_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
     ///***///

@@ -7,8 +7,7 @@
 class LocalPlannerStar : virtual public LocalPlannerClassic
 {
 public:
-    LocalPlannerStar(RobotController& controller, PoseTracker& pose_tracker,
-                     const ros::Duration& update_interval);
+    LocalPlannerStar();
 private:
     virtual void setInitScores(LNode& wpose, const std::vector<Scorer::Ptr>& scorer,
                                const std::vector<double>& wscorer, double& dis2last) override;

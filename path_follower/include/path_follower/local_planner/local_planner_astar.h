@@ -7,8 +7,7 @@
 class LocalPlannerAStar : virtual public LocalPlannerStar
 {
 public:
-    LocalPlannerAStar(RobotController& controller, PoseTracker& pose_tracker,
-                      const ros::Duration& update_interval);
+    LocalPlannerAStar();
 private:
     virtual double G(LNode*& current, LNode*& succ,
                      const std::vector<Constraint::Ptr>& constraints,

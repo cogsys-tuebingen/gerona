@@ -9,8 +9,7 @@
 class LocalPlannerAStarGReconf : public LocalPlannerAStar, public LocalPlannerStarG, public LocalPlannerStarReconf
 {
 public:
-    LocalPlannerAStarGReconf(RobotController& controller, PoseTracker& pose_tracker,
-                             const ros::Duration& update_interval);
+    LocalPlannerAStarGReconf();
 };
 
 #endif // LOCAL_PLANNER_ASTAR_G_RECONF_H

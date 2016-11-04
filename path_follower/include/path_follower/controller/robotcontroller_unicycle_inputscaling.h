@@ -11,7 +11,7 @@
 class RobotController_Unicycle_InputScaling : public RobotController_Interpolation
 {
 public:
-    RobotController_Unicycle_InputScaling(PathFollower* _path_follower);
+    RobotController_Unicycle_InputScaling();
     virtual ~RobotController_Unicycle_InputScaling(){}
 
     virtual void stopMotion();

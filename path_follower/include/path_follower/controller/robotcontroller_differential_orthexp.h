@@ -17,7 +17,7 @@
 class RobotController_Differential_OrthogonalExponential : public RobotController_Interpolation
 {
 public:
-    RobotController_Differential_OrthogonalExponential(PathFollower *path_driver);
+    RobotController_Differential_OrthogonalExponential();
 
     //! Immediately stop any motion.
     virtual void stopMotion();

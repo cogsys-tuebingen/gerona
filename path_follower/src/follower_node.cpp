@@ -9,7 +9,7 @@ namespace {
 void importCloud(const ObstacleCloud::Cloud::ConstPtr& cloud, PathFollower* pf)
 {
     ObstacleCloud::Ptr ocloud = std::make_shared<ObstacleCloud>(cloud);
-    pf->obstacleCloudCB(ocloud);
+    pf->setObstacles(ocloud);
 }
 }
 

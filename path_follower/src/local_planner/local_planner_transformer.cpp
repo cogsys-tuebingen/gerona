@@ -5,10 +5,7 @@
 
 #include <path_follower/utils/pose_tracker.h>
 
-LocalPlannerTransformer::LocalPlannerTransformer(RobotController &follower,
-                                 PoseTracker &pose_tracker,
-                                 const ros::Duration& update_interval)
-    : LocalPlannerImplemented(follower, pose_tracker, update_interval)
+LocalPlannerTransformer::LocalPlannerTransformer()
 {
 
 }
@@ -40,13 +37,13 @@ bool LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         // only look at the first sub path for now
 
         // calculate the corrective transformation to map from world coordinates to odom
-        if(!transformer_.waitForTransform("map", "odom", ros::Time(0), ros::Duration(0.1))) {
+        if(!transformer_->waitForTransform("map", "odom", ros::Time(0), ros::Duration(0.1))) {
             ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
             return nullptr;
         }
 
         tf::StampedTransform now_map_to_odom;
-        transformer_.lookupTransform("map", "odom", ros::Time(0), now_map_to_odom);
+        transformer_->lookupTransform("map", "odom", ros::Time(0), now_map_to_odom);
 
         tf::Transform transform_correction = now_map_to_odom.inverse();
 
@@ -63,7 +60,7 @@ bool LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         }
 
         // find the subpath that starts closest to the robot
-        Eigen::Vector3d pose = pose_tracker_.getRobotPose();
+        Eigen::Vector3d pose = pose_tracker_->getRobotPose();
 
         double closest_dist = std::numeric_limits<double>::infinity();
         std::size_t start = 0;

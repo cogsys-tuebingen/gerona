@@ -6,7 +6,7 @@
  */
 
 #include <path_follower/controller/robotcontroller_ackermann_purepursuit.h>
-#include <path_follower/pathfollower.h>
+
 
 #include <ros/ros.h>
 #include <path_follower/utils/pose_tracker.h>
@@ -21,8 +21,8 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-Robotcontroller_Ackermann_PurePursuit::Robotcontroller_Ackermann_PurePursuit (PathFollower* _path_follower) :
-	RobotController_Interpolation(_path_follower),
+Robotcontroller_Ackermann_PurePursuit::Robotcontroller_Ackermann_PurePursuit () :
+	RobotController_Interpolation(),
 	waypoint_(0) {
 
 	path_interpol_pub_ = node_handle_.advertise<nav_msgs::Path>("interp_path", 10);
@@ -74,7 +74,7 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	Eigen::Vector3d pose = pose_tracker_.getRobotPose();
+	Eigen::Vector3d pose = pose_tracker_->getRobotPose();
 
 	// TODO: theta should also be considered in goal test
 	if (reachedGoal(pose)) {

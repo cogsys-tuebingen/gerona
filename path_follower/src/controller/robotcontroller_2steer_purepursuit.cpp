@@ -5,7 +5,7 @@
  */
 
 #include <path_follower/controller/robotcontroller_2steer_purepursuit.h>
-#include <path_follower/pathfollower.h>
+
 
 #include <ros/ros.h>
 #include <path_follower/utils/pose_tracker.h>
@@ -27,8 +27,8 @@
 using namespace std;
 using namespace Eigen;
 
-RobotController_2Steer_PurePursuit::RobotController_2Steer_PurePursuit (PathFollower* _path_follower) :
-	RobotController_Interpolation(_path_follower),
+RobotController_2Steer_PurePursuit::RobotController_2Steer_PurePursuit () :
+    RobotController_Interpolation(),
 	waypoint_(0) {
 
 	ROS_INFO("Parameters: k_forward=%f, k_backward=%f"
@@ -77,8 +77,8 @@ RobotController::MoveCommandStatus RobotController_2Steer_PurePursuit::computeMo
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	const Eigen::Vector3d pose = pose_tracker_.getRobotPose();
-	const geometry_msgs::Twist velocity_measured = pose_tracker_.getVelocity();
+    const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
+    const geometry_msgs::Twist velocity_measured = pose_tracker_->getVelocity();
 
 	if (reachedGoal(pose)) {
 		path_->switchToNextSubPath();

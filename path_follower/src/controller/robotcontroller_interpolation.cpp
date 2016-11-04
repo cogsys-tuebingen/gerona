@@ -7,12 +7,11 @@
 /// THIRD PARTY
 #include <interpolation.h>
 
-RobotController_Interpolation::RobotController_Interpolation(PathFollower *path_driver)
-    : RobotController(path_driver),
-      nh_("~"),
+RobotController_Interpolation::RobotController_Interpolation()
+    : RobotController(),
       interpolated_(false)
 {
-    interp_path_pub_ = path_driver->getNodeHandle().advertise<nav_msgs::Path>("interp_path", 10);
+    interp_path_pub_ = pnh_.advertise<nav_msgs::Path>("interp_path", 10);
 }
 
 void RobotController_Interpolation::setPath(Path::Ptr path)

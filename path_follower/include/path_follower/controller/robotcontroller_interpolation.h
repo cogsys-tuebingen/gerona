@@ -18,7 +18,7 @@
 class RobotController_Interpolation : public RobotController
 {
 protected:
-    RobotController_Interpolation(PathFollower *path_driver);
+    RobotController_Interpolation();
 
 protected:
     virtual void setPath(Path::Ptr path);
@@ -45,8 +45,6 @@ protected:
     void publishInterpolatedPath();
 
 protected:
-    ros::NodeHandle nh_;
-
     ros::Publisher interp_path_pub_;
 
 

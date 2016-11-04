@@ -4,12 +4,7 @@
 /// PROJECT
 
 
-LocalPlannerBFSReconf::LocalPlannerBFSReconf(RobotController &follower,
-                                       PoseTracker &pose_tracker,
-                                       const ros::Duration& update_interval)
-    : LocalPlannerClassic(follower, pose_tracker, update_interval),
-      LocalPlannerBFS(follower, pose_tracker, update_interval),
-      LocalPlannerReconf(follower, pose_tracker, update_interval)
+LocalPlannerBFSReconf::LocalPlannerBFSReconf()
 {
 
 }

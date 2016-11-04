@@ -20,8 +20,7 @@ namespace {
 const std::string MODULE = "obstacle_avoider";
 }
 
-ObstacleDetectorPatsy::ObstacleDetectorPatsy(const tf::TransformListener *tf_listener, RobotControllerTrailer *ctrl)
-    : tf_listener_(tf_listener), robot_controller_(ctrl)
+ObstacleDetectorPatsy::ObstacleDetectorPatsy()
 {
     front_frame_.assign("base_link");
     rear_frame_.assign("s300_rear");
@@ -96,7 +95,6 @@ void ObstacleDetectorPatsy::getPolygon(float width, float length, float course_a
 
 
 bool ObstacleDetectorPatsy::avoid(MoveCommand * const cmd,
-                             std::shared_ptr<ObstacleCloud const> obstacles,
                              const ObstacleAvoider::State &state)
 {
     float course = cmd->getDirectionAngle(); //TODO: use CoursePredictor instead of command?
@@ -144,7 +142,7 @@ bool ObstacleDetectorPatsy::avoid(MoveCommand * const cmd,
         box_length*=-1.0;
     }
 
-    bool collision = checkOnCloud(obstacles, opt_.width(),
+    bool collision = checkOnCloud(obstacles_, opt_.width(),
                                   box_length, course, enlarge_factor);
 
 

@@ -11,7 +11,7 @@
 class RobotController_Ackermann_Inputscaling : public RobotController_Interpolation
 {
 public:
-    RobotController_Ackermann_Inputscaling(PathFollower* _path_follower);
+    RobotController_Ackermann_Inputscaling();
     virtual ~RobotController_Ackermann_Inputscaling(){}
 
 	virtual void stopMotion();

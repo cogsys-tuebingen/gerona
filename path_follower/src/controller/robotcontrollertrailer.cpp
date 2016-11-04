@@ -4,13 +4,14 @@
 #include <path_follower/controller/robotcontrollertrailer.h>
 
 #include <path_msgs/FollowPathResult.h>
-#include <path_follower/pathfollower.h>
+
 #include <path_follower/utils/path_exceptions.h>
 #include <path_follower/utils/obstacle_cloud.h>
 #include "path_controller.h"
 #include "path_simple_pid.h"
 #include "path_cascade_pid.h"
 #include <path_follower/utils/pose_tracker.h>
+#include <path_follower/obstacle_avoidance/obstacleavoider.h>
 
 #include <pcl_ros/point_cloud.h>
 
@@ -32,8 +33,8 @@ template <typename T> int sign(T val) {
 }
 }
 
-RobotControllerTrailer::RobotControllerTrailer(PathFollower *path_driver, ros::NodeHandle *nh):
-    RobotController(path_driver),nh_(nh),
+RobotControllerTrailer::RobotControllerTrailer():
+    RobotController(),
     visualizer_(Visualizer::getInstance()),
     behaviour_(ON_PATH),
     last_velocity_(0)
@@ -44,10 +45,10 @@ RobotControllerTrailer::RobotControllerTrailer(PathFollower *path_driver, ros::N
     // initialize
     std::string agv_vel_topic("/agv_vel");
 
-    agv_vel_sub_ = nh_->subscribe<geometry_msgs::Twist> (agv_vel_topic, 10, boost::bind(&RobotControllerTrailer::updateAgvCb, this, _1));
+    agv_vel_sub_ = nh_.subscribe<geometry_msgs::Twist> (agv_vel_topic, 10, boost::bind(&RobotControllerTrailer::updateAgvCb, this, _1));
 
-    agv_steer_is_pub_ = nh_->advertise<std_msgs::Float32> ("/path_follower/steer_is",1);
-    agv_steer_set_pub_ = nh_->advertise<std_msgs::Float32> ("/path_follower/steer_set",1);
+    agv_steer_is_pub_ = nh_.advertise<std_msgs::Float32> ("/path_follower/steer_is",1);
+    agv_steer_set_pub_ = nh_.advertise<std_msgs::Float32> ("/path_follower/steer_set",1);
 
     if (!opt_.controller_type().compare("cascade")) {
         path_ctrl_= new PathCascadePid();
@@ -55,7 +56,7 @@ RobotControllerTrailer::RobotControllerTrailer(PathFollower *path_driver, ros::N
         path_ctrl_= new PathSimplePid();
     }
 
-    obstacle_pub_ = nh->advertise<pcl::PointCloud<pcl::PointXYZRGBA>> ("path_obstacles", 1);
+    obstacle_pub_ = nh_.advertise<pcl::PointCloud<pcl::PointXYZRGBA>> ("path_obstacles", 1);
 
     double kp = 0.93;
     double ki = 0.1;
@@ -114,7 +115,7 @@ RobotController::MoveCommandStatus RobotControllerTrailer::computeMoveCommand(Mo
             stopMotion(); //< probably not necessary to repeat this, but be on the save side.
 
             // do nothing until robot has realy stopped.
-            geometry_msgs::Twist current_vel = pose_tracker_.getVelocity();
+            geometry_msgs::Twist current_vel = pose_tracker_->getVelocity();
             if((std::abs(current_vel.linear.x) > 0.01) ||
                     (std::abs(current_vel.linear.y) > 0.01) ||
                     (std::abs(current_vel.angular.z) > 0.01)) {
@@ -242,7 +243,7 @@ void RobotControllerTrailer::narrowPassage()
     tf::Transform trailer_link_to_trailer_back(tf::createIdentityQuaternion(), tf::Vector3(-trailer_length_, 0, 0));
     tf::Pose base_to_trailer_back = base_to_trailer_link_ * trailer_link_to_trailer_back;
 
-    Eigen::Vector3d pose = pose_tracker_.getRobotPose();
+    Eigen::Vector3d pose = pose_tracker_->getRobotPose();
     tf::Transform odom_to_base_link(tf::createQuaternionFromYaw(pose(2)), tf::Vector3(pose(0), pose(1), 0.0));
     tf::Transform goal_offset(tf::createIdentityQuaternion(), tf::Vector3(narrow_travel_distance_, 0, 0));
     tf::Pose base_link_to_goal = odom_to_base_link.inverse() * odom_to_base_goal_ * goal_offset;
@@ -363,10 +364,10 @@ void RobotControllerTrailer::analyzePathObstacles()
     double robot_dist_l = std::numeric_limits<double>::infinity();
     double robot_dist_r = std::numeric_limits<double>::infinity();
 
-    Eigen::Vector3d pose = pose_tracker_.getRobotPose();
+    Eigen::Vector3d pose = pose_tracker_->getRobotPose();
     tf::Transform odom_to_base_link(tf::createQuaternionFromYaw(pose(2)), tf::Vector3(pose(0), pose(1), 0.0));
 
-    const auto& obstacle_cloud = path_driver_->getObstacleCloud()->cloud;
+    const auto& obstacle_cloud = obstacle_avoider_->getObstacles()->cloud;
     for(auto it = obstacle_cloud->begin(); it != obstacle_cloud->end(); ++it) {
         const pcl::PointXYZ& pt = *it;
         tf::Vector3 obstacle_odom = odom_to_base_link * tf::Vector3(pt.x, pt.y, 0.0);
@@ -500,7 +501,7 @@ void RobotControllerTrailer::publishMoveCommand(const MoveCommand &cmd) const
 
 void RobotControllerTrailer::selectWaypoint()
 {
-    double tolerance = global_opt_.wp_tolerance();
+    double tolerance = global_opt_->wp_tolerance();
 
     // increase tolerance, when driving backwards
     if(getDirSign() < 0) {
@@ -514,8 +515,8 @@ void RobotControllerTrailer::selectWaypoint()
     }
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawArrow(pose_tracker_.getFixedFrameId(), 0, path_->getCurrentWaypoint(), "current waypoint", 1, 1, 0);
-        visualizer_->drawArrow(pose_tracker_.getFixedFrameId(), 1, path_->getLastWaypoint(), "current waypoint", 1, 0, 0);
+        visualizer_->drawArrow(pose_tracker_->getFixedFrameId(), 0, path_->getCurrentWaypoint(), "current waypoint", 1, 1, 0);
+        visualizer_->drawArrow(pose_tracker_->getFixedFrameId(), 1, path_->getLastWaypoint(), "current waypoint", 1, 0, 0);
     }
 
     // convert waypoint to local frame. NOTE: This has to be done, even if the waypoint did not
@@ -532,7 +533,7 @@ void RobotControllerTrailer::selectWaypoint()
     wp_map.pose = path_->getCurrentWaypoint();
     wp_map.header.stamp = ros::Time::now();
 
-    if (!pose_tracker_.transformToLocal(wp_map, next_wp_local_)) {
+    if (!pose_tracker_->transformToLocal(wp_map, next_wp_local_)) {
         throw EmergencyBreakException("cannot transform next waypoint",
                                       path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
@@ -554,7 +555,7 @@ double RobotControllerTrailer::calculateAngleError()
 {
 
     geometry_msgs::Pose waypoint   = path_->getCurrentWaypoint();
-    geometry_msgs::Pose robot_pose = pose_tracker_.getRobotPoseMsg();
+    geometry_msgs::Pose robot_pose = pose_tracker_->getRobotPoseMsg();
     double trailer_angle;
 
     /*
@@ -607,8 +608,8 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
 {
     // draw steer front
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), angle_error, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 2, pose_tracker_.getRobotPoseMsg(), dist_error, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(pose_tracker_->getFixedFrameId(), 1, pose_tracker_->getRobotPoseMsg(), angle_error, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(pose_tracker_->getFixedFrameId(), 2, pose_tracker_->getRobotPoseMsg(), dist_error, 0.2, 0.2, 1.0);
     }
 
 
@@ -630,7 +631,7 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
         return;
     }
 
-    visualizer_->drawSteeringArrow(pose_tracker_.getFixedFrameId(), 14, pose_tracker_.getRobotPoseMsg(), u_val, 0.0, 1.0, 1.0);
+    visualizer_->drawSteeringArrow(pose_tracker_->getFixedFrameId(), 14, pose_tracker_->getRobotPoseMsg(), u_val, 0.0, 1.0, 1.0);
 
     float steer = dir_sign_* std::max(-opt_.max_steer(), std::min(u_val, opt_.max_steer()));
 
@@ -679,7 +680,7 @@ float RobotControllerTrailer::controlVelocity(float steer_angle) const
 {
     float velocity = velocity_;
 
-    if(fabsf(steer_angle) > global_opt_.steer_slow_threshold()) {
+    if(fabsf(steer_angle) > global_opt_->steer_slow_threshold()) {
         //ROS_INFO_STREAM_THROTTLE_NAMED(2, MODULE, "slowing down");
         velocity *= 0.75;
     }
@@ -697,18 +698,18 @@ float RobotControllerTrailer::controlVelocity(float steer_angle) const
     float distance_to_next_wp = std::sqrt(next_wp_local_.dot(next_wp_local_));
     float dist_to_path_end = path_->getRemainingSubPathDistance() + distance_to_next_wp;
     if (dist_to_path_end < 2*velocity) {
-        velocity = std::max(0.1f + dist_to_path_end / 2.0f, global_opt_.min_velocity());
+        velocity = std::max(0.1f + dist_to_path_end / 2.0f, global_opt_->min_velocity());
     }
     //ROS_INFO("dist:      %f", dist_to_path_end);
     //ROS_INFO("v: %f", velocity);
 
 
     // make sure, the velocity is in the allowed range
-    if (velocity < global_opt_.min_velocity()) {
-        velocity = global_opt_.min_velocity();
+    if (velocity < global_opt_->min_velocity()) {
+        velocity = global_opt_->min_velocity();
         ROS_WARN_THROTTLE_NAMED(5, MODULE, "Velocity is below minimum. It is set to minimum velocity.");
-    } else if (velocity > global_opt_.max_velocity()) {
-        velocity = global_opt_.max_velocity();
+    } else if (velocity > global_opt_->max_velocity()) {
+        velocity = global_opt_->max_velocity();
         ROS_WARN_THROTTLE_NAMED(5, MODULE, "Velocity is above maximum. Reduce to maximum velocity.");
     }
 
@@ -717,7 +718,7 @@ float RobotControllerTrailer::controlVelocity(float steer_angle) const
 
 double RobotControllerTrailer::distanceToWaypoint(const Waypoint &wp) const
 {
-    Eigen::Vector3d pose = pose_tracker_.getRobotPose();
+    Eigen::Vector3d pose = pose_tracker_->getRobotPose();
     return std::hypot(pose(0) - wp.x, pose(1) - wp.y);
 }
 
@@ -790,7 +791,7 @@ double RobotControllerTrailer::calculateLineError() const
         while(!has_line_points) {
             Vector3d next;
             tmp_pt.pose = path_->getWaypoint(wpi);
-            if (!pose_tracker_.transformToLocal( tmp_pt, next)) {
+            if (!pose_tracker_->transformToLocal( tmp_pt, next)) {
                 throw EmergencyBreakException("Cannot transform next waypoint",
                                               path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
             }
@@ -811,7 +812,7 @@ double RobotControllerTrailer::calculateLineError() const
     if(!has_line_points) {
         if(path_->getWaypointIndex() + 1 == path_->getCurrentSubPath().size()) {
             tmp_pt.pose = path_->getWaypoint(path_->getWaypointIndex());
-            if (!pose_tracker_.transformToLocal( tmp_pt, followup_next_wp_local)) {
+            if (!pose_tracker_->transformToLocal( tmp_pt, followup_next_wp_local)) {
                 throw EmergencyBreakException("Cannot transform next waypoint",
                                               path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
             }
@@ -820,7 +821,7 @@ double RobotControllerTrailer::calculateLineError() const
             while(!has_line_points) {
                 Vector3d next;
                 tmp_pt.pose = path_->getWaypoint(wpi);
-                if (!pose_tracker_.transformToLocal( tmp_pt, next)) {
+                if (!pose_tracker_->transformToLocal( tmp_pt, next)) {
                     throw EmergencyBreakException("Cannot transform next waypoint",
                                                   path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
                 }
@@ -912,7 +913,7 @@ void RobotControllerTrailer::visualizeCarrot(const Vector2d &carrot,
 
     carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
     geometry_msgs::PoseStamped carrot_map;
-    if (pose_tracker_.transformToGlobal(carrot_local, carrot_map)) {
+    if (pose_tracker_->transformToGlobal(carrot_local, carrot_map)) {
         visualizer_->drawCircle(id, carrot_map.pose.position, 0.2, getFixedFrame(),"pred", r,g,b,1,5);
     }
 }
