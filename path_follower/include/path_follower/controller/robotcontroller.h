@@ -14,12 +14,11 @@
 // PROJECT
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/movecommand.h>
-#include <path_follower/obstacle_avoidance/obstacledetector.h>
-#include <path_follower/obstacle_avoidance/obstacleavoider.h>
-#include <path_follower/utils/visualizer.h>
 
 
 class PathFollower;
+class PoseTracker;
+class Visualizer;
 
 class RobotController
 {
@@ -138,6 +137,9 @@ protected:
     ros::Publisher points_pub_;
 
     PathFollower* path_driver_;
+    PoseTracker& pose_tracker_;
+
+    Visualizer *visualizer_;
 
     //! Desired velocity (defined by the action goal).
     float velocity_;
@@ -151,7 +153,7 @@ protected:
     Eigen:: Vector3d next_wp_local_;
 
 
-    ROS_DEPRECATED void setStatus(int status);
+    /*ROS_DEPRECATED */void setStatus(int status);
 
     //! Calculate the angle between the orientations of the waypoint and the robot.
     virtual double calculateAngleError();
@@ -161,8 +163,6 @@ protected:
 
     //path driven by the robot
     visualization_msgs::Marker robot_path_marker_;
-
-    Visualizer *visualizer_;
 };
 
 #endif // ROBOTCONTROLLER_H

@@ -9,8 +9,8 @@
 class LocalPlannerThetaStarNStatic : public LocalPlannerThetaStar, public LocalPlannerStarN, public LocalPlannerStarStatic
 {
 public:
-    LocalPlannerThetaStarNStatic(PathFollower& controller, tf::Transformer &transformer,
-                       const ros::Duration& update_interval);
+    LocalPlannerThetaStarNStatic(RobotController& controller, PoseTracker& pose_tracker,
+                                 const ros::Duration& update_interval);
 };
 
 #endif // LOCAL_PLANNER_THETASTAR_N_STATIC_H

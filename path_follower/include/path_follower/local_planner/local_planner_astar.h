@@ -7,7 +7,7 @@
 class LocalPlannerAStar : virtual public LocalPlannerStar
 {
 public:
-    LocalPlannerAStar(PathFollower& controller, tf::Transformer &transformer,
+    LocalPlannerAStar(RobotController& controller, PoseTracker& pose_tracker,
                       const ros::Duration& update_interval);
 private:
     virtual double G(LNode*& current, LNode*& succ,

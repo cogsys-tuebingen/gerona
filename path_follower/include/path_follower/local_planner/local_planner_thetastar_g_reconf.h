@@ -9,8 +9,8 @@
 class LocalPlannerThetaStarGReconf : public LocalPlannerThetaStar, public LocalPlannerStarG, public LocalPlannerStarReconf
 {
 public:
-    LocalPlannerThetaStarGReconf(PathFollower& controller, tf::Transformer &transformer,
-                       const ros::Duration& update_interval);
+    LocalPlannerThetaStarGReconf(RobotController& controller, PoseTracker& pose_tracker,
+                                 const ros::Duration& update_interval);
 };
 
 #endif // LOCAL_PLANNER_THETASTAR_G_RECONF_H

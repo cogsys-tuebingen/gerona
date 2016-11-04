@@ -13,6 +13,8 @@
 #include <path_follower/utils/extended_kalman_filter.h>
 #include <cslibs_utils/MathHelper.h>
 #include <path_follower/utils/coursepredictor.h>
+#include <path_follower/utils/pose_tracker.h>
+#include <path_follower/utils/visualizer.h>
 
 // ALGLIB
 #include <interpolation.h>
@@ -201,7 +203,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
 
 
     /// get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
-    Eigen::Vector3d current_pose = path_driver_->getRobotPose();
+    Eigen::Vector3d current_pose = pose_tracker_.getRobotPose();
 
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
@@ -306,9 +308,9 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     double orth_proj = std::numeric_limits<double>::max();
 
     //this is a hack made for the lemniscate
-    uint old_ind = proj_ind_;
+    int old_ind = proj_ind_;
 
-    for (unsigned int i = proj_ind_; i < path_interpol.n(); i++){
+    for (int i = proj_ind_, n = path_interpol.n(); i < n; i++){
 
         dist = hypot(x_meas - x_aug_[i], y_meas - y_aug_[i]);
         if((dist < orth_proj) & (i - old_ind >= 0) & (i - old_ind <= 3)){
@@ -365,7 +367,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     ///Exponential speed control
 
     //get the robot's current angular velocity
-    double angular_vel = path_driver_->getVelocity().angular.z;
+    double angular_vel = pose_tracker_.getVelocity().angular.z;
 
     //ensure valid values
     if (distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
@@ -407,7 +409,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
 
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(getFixedFrame(), 1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(getFixedFrame(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
     ///***///

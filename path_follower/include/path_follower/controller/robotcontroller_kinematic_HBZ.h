@@ -11,7 +11,7 @@
 /// PROJECT
 #include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
-#include <path_follower/pathfollower.h>
+
 
 class RobotController_Kinematic_HBZ : public RobotController_Interpolation
 {

@@ -2,13 +2,10 @@
 #define PATHFOLLOWER_H
 
 /// THIRD PARTY
-#include <Eigen/Core>
+#include <Eigen/Dense>
+
 /// ROS
-#include <ros/ros.h>
-#include <tf/tf.h>
-#include <tf/transform_listener.h>
 #include <path_msgs/FollowPathAction.h>
-#include <nav_msgs/Odometry.h>
 #include <std_msgs/String.h>
 #include <geometry_msgs/Pose.h>
 #include <sensor_msgs/LaserScan.h>
@@ -17,10 +14,12 @@
 
 /// PROJECT
 #include <path_follower/pathfollowerparameters.h>
-#include <path_follower/utils/parameters.h>
 
 /// SYSTEM
+#include <ros/node_handle.h>
+#include <ros/publisher.h>
 #include <memory>
+#include <boost/variant.hpp>
 
 class ControllerFactory;
 class CoursePredictor;
@@ -34,6 +33,8 @@ class ObstacleAvoider;
 class ObstacleCloud;
 class MoveCommand;
 
+class PoseTracker;
+
 class PathFollower
 {
 public:
@@ -44,10 +45,6 @@ public:
     ~PathFollower();
 
 
-    geometry_msgs::Twist getVelocity() const;
-    bool transformToLocal(const geometry_msgs::PoseStamped& global, geometry_msgs::PoseStamped& local );
-    bool transformToLocal(const geometry_msgs::PoseStamped& global, Eigen::Vector3d& local );
-    bool transformToGlobal(const geometry_msgs::PoseStamped& local, geometry_msgs::PoseStamped& global );
 
     boost::variant<path_msgs::FollowPathFeedback, path_msgs::FollowPathResult> update();
 
@@ -57,6 +54,8 @@ public:
     void emergencyStop();
 
     void setGoal(const path_msgs::FollowPathGoal& goal);
+
+    PoseTracker& getPoseTracker();
 
     RobotController* getController();
     const PathFollowerParameters &getOptions() const;
@@ -68,27 +67,14 @@ public:
     void obstacleCloudCB(const std::shared_ptr<ObstacleCloud const>&);
 
     CoursePredictor &getCoursePredictor();
-    Eigen::Vector3d getRobotPose() const;
-    const geometry_msgs::Pose &getRobotPoseMsg() const;
     std::shared_ptr<Path> getPath();
     std::string getFixedFrameId();
 
-    ROS_DEPRECATED void setStatus(int status);
+    /*ROS_DEPRECATED*/ void setStatus(int status);
 
     bool callObstacleAvoider(MoveCommand *cmd);
 
 private:
-    bool getWorldPose(Eigen::Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = nullptr) const;
-
-
-    //! Callback for odometry messages
-    void odometryCB(const nav_msgs::OdometryConstPtr &odom);
-
-    //! Update the current pose of the robot.
-    /** @see robot_pose_, robot_pose_msg_ */
-    bool updateRobotPose();
-
-
     /**
      * @brief Execute one path following iteration
      * @param feedback Feedback of the running path execution. Only meaningful, if return value is 1.
@@ -117,12 +103,10 @@ private:
     //! Publisher for the path points of the global path
     ros::Publisher g_points_pub_;
 
-    //! Subscriber for odometry messages.
-    ros::Subscriber odom_sub_;
     //! Subscriber for the obstacle point cloud (used by ObstacleAvoider).
 
 
-    tf::TransformListener pose_listener_;
+    std::shared_ptr<PoseTracker> pose_tracker_;
 
     std::unique_ptr<ControllerFactory> controller_factory_;
 
@@ -142,18 +126,8 @@ private:
 
     PathFollowerParameters opt_;
 
-    //! The last received odometry message.
-    nav_msgs::Odometry odometry_;
-
     //! The last received obstacle cloud
     std::shared_ptr<ObstacleCloud const> obstacle_cloud_;
-
-    //! Current pose of the robot as Eigen vector (x,y,theta).
-    Eigen::Vector3d robot_pose_world_;
-    Eigen::Vector3d robot_pose_odom_;
-    //! Current pose of the robot as geometry_msgs pose.
-    geometry_msgs::Pose robot_pose_world_msg_;
-    geometry_msgs::Pose robot_pose_odom_msg_;
     //! Path driven by the robot
     visualization_msgs::Marker g_robot_path_marker_;
 

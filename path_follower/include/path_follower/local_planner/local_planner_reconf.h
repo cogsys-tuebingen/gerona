@@ -7,8 +7,7 @@
 class LocalPlannerReconf : virtual public LocalPlannerClassic
 {
 public:
-    LocalPlannerReconf(PathFollower& controller,
-                       tf::Transformer &transformer,
+    LocalPlannerReconf(RobotController& controller, PoseTracker& pose_tracker,
                        const ros::Duration& update_interval);
 
 protected:

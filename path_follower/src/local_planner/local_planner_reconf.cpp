@@ -2,12 +2,12 @@
 #include <path_follower/local_planner/local_planner_reconf.h>
 
 /// PROJECT
-#include <path_follower/pathfollower.h>
 
-LocalPlannerReconf::LocalPlannerReconf(PathFollower &follower,
-                                 tf::Transformer& transformer,
+
+LocalPlannerReconf::LocalPlannerReconf(RobotController &follower,
+                                 PoseTracker &pose_tracker,
                                  const ros::Duration& update_interval)
-    : LocalPlannerClassic(follower, transformer, update_interval),leaves()
+    : LocalPlannerClassic(follower, pose_tracker, update_interval),leaves()
 {
 
 }

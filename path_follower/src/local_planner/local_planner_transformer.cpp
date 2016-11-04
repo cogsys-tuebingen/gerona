@@ -2,12 +2,13 @@
 #include <path_follower/local_planner/local_planner_transformer.h>
 
 /// PROJECT
-#include <path_follower/pathfollower.h>
 
-LocalPlannerTransformer::LocalPlannerTransformer(PathFollower &follower,
-                                 tf::Transformer& transformer,
+#include <path_follower/utils/pose_tracker.h>
+
+LocalPlannerTransformer::LocalPlannerTransformer(RobotController &follower,
+                                 PoseTracker &pose_tracker,
                                  const ros::Duration& update_interval)
-    : LocalPlannerImplemented(follower, transformer, update_interval)
+    : LocalPlannerImplemented(follower, pose_tracker, update_interval)
 {
 
 }
@@ -62,7 +63,7 @@ bool LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         }
 
         // find the subpath that starts closest to the robot
-        Eigen::Vector3d pose = follower_.getRobotPose();
+        Eigen::Vector3d pose = pose_tracker_.getRobotPose();
 
         double closest_dist = std::numeric_limits<double>::infinity();
         std::size_t start = 0;

@@ -7,13 +7,13 @@
 #endif
 #include <vector>
 #include <string>
-#include <path_follower/pathfollower.h>
 
 #include <laser_geometry/laser_geometry.h>
 #include <pcl_ros/transforms.h>
 
 #include <path_follower/utils/obstacle_cloud.h>
 #include <pcl_ros/point_cloud.h>
+#include <path_follower/utils/pose_tracker.h>
 
 
 using namespace std;
@@ -23,9 +23,9 @@ namespace {
 const std::string MODULE = "s_pathlookout";
 }
 
-PathLookout::PathLookout(const tf::TransformListener *tf_listener):
+PathLookout::PathLookout(PoseTracker &pose_tracker):
     obstacle_frame_("map"),
-    tf_listener_(tf_listener)
+    pose_tracker_(pose_tracker)
 {
     #if DEBUG_PATHLOOKOUT
         cv::namedWindow("Map", CV_WINDOW_KEEPRATIO);
@@ -234,16 +234,16 @@ std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const std::shared_ptr<O
 
     //TODO: ensure that obstacle_frame_ is the frame of the path.
     ObstacleCloud::Cloud trans_cloud;
-    bool has_tf = tf_listener_->waitForTransform(obstacle_frame_,
-                                                 cloud->header.frame_id,
-                                                 pcl_conversions::fromPCL(cloud->header.stamp),
-                                                 ros::Duration(0.05));
+    bool has_tf = pose_tracker_.getTransformListener().waitForTransform(obstacle_frame_,
+                                                                        cloud->header.frame_id,
+                                                                        pcl_conversions::fromPCL(cloud->header.stamp),
+                                                                        ros::Duration(0.05));
     if (!has_tf) {
         ROS_WARN_THROTTLE_NAMED(0.5, MODULE, "Got no transfom for obstacle cloud. %s to %s ",obstacle_frame_.c_str(),
                         cloud->header.frame_id.c_str());
         return std::list<cv::Point2f>(); // return empty cloud
     }
-    if (!pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, *tf_listener_)) {
+    if (!pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, pose_tracker_.getTransformListener())) {
         ROS_ERROR_THROTTLE_NAMED(1.0, MODULE, "Failed to transform obstacle cloud");
         return std::list<cv::Point2f>(); // return empty cloud
     }

@@ -3,6 +3,8 @@
 #include <path_follower/utils/coursepredictor.h>
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
+#include <path_follower/utils/pose_tracker.h>
+#include <path_follower/utils/visualizer.h>
 
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
@@ -90,8 +92,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Inputscaling::compu
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	const Eigen::Vector3d pose = path_driver_->getRobotPose();
-	const geometry_msgs::Twist velocity_measured = path_driver_->getVelocity();
+	const Eigen::Vector3d pose = pose_tracker_.getRobotPose();
+	const geometry_msgs::Twist velocity_measured = pose_tracker_.getVelocity();
 
 	ROS_DEBUG("velocity_measured: x=%f, y=%f, z=%f", velocity_measured.linear.x,
 				velocity_measured.linear.y, velocity_measured.linear.z);

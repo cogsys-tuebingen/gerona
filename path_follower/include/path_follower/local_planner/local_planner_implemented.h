@@ -10,8 +10,7 @@
 class LocalPlannerImplemented : public LocalPlanner
 {
 public:
-    LocalPlannerImplemented(PathFollower& controller,
-                            tf::Transformer &transformer,
+    LocalPlannerImplemented(RobotController& controller, PoseTracker& pose_tracker,
                             const ros::Duration& update_interval);
 
     virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,

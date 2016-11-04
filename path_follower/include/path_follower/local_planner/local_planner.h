@@ -18,6 +18,7 @@
 #include <path_follower/local_planner/curvatured_scorer.h>
 
 class PathFollower;
+class PoseTracker;
 class ObstacleCloud;
 
 class LocalPlanner
@@ -47,11 +48,11 @@ public:
 
 
 protected:
-    LocalPlanner(PathFollower& controller,
-                 tf::Transformer &transformer);
+    LocalPlanner(RobotController &controller, PoseTracker &pose_tracker);
 
 protected:
-    PathFollower& follower_;
+    RobotController& controller_;
+    PoseTracker& pose_tracker_;
     tf::Transformer &transformer_;
 
     PathInterpolated global_path_;

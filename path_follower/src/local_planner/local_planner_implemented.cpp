@@ -2,13 +2,14 @@
 #include <path_follower/local_planner/local_planner_implemented.h>
 
 /// PROJECT
-#include <path_follower/pathfollower.h>
-#include <path_follower/controller/robotcontroller.h>
 
-LocalPlannerImplemented::LocalPlannerImplemented(PathFollower &follower,
-                                 tf::Transformer& transformer,
+#include <path_follower/controller/robotcontroller.h>
+#include <path_follower/utils/pose_tracker.h>
+
+LocalPlannerImplemented::LocalPlannerImplemented(RobotController &follower,
+                                 PoseTracker &pose_tracker,
                                  const ros::Duration& update_interval)
-    : LocalPlanner(follower, transformer), update_interval_(update_interval),
+    : LocalPlanner(follower, pose_tracker), update_interval_(update_interval),
       waypoints(), wlp_(), tooClose(false), last_update_(0)
 {
 
@@ -65,15 +66,15 @@ void LocalPlannerImplemented::setPath(Path::Ptr& local_path, Path::Ptr& wlp, Sub
         wlp->setPath({wlp_});
     }
 
-    follower_.getController()->reset();
+    controller_.reset();
 
     if(local_wps.empty()) {
         local_path->setPath({});
-        follower_.getController()->stopMotion();
+        controller_.stopMotion();
 
     } else {
         local_path->setPath({local_wps});
-        follower_.getController()->setPath(local_path);
+        controller_.setPath(local_path);
     }
 
     last_update_ = now;
@@ -140,7 +141,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         ofstream myfile;
         myfile.open ("/tmp/pose.txt");
         */
-        Eigen::Vector3d pose = follower_.getRobotPose();
+        Eigen::Vector3d pose = pose_tracker_.getRobotPose();
         /*
         myfile << pose(0) << ", " << pose(1) << ", " << pose(2)<< std::endl;
         myfile.close();

@@ -7,8 +7,7 @@
 class LocalPlannerStatic : virtual public LocalPlannerClassic
 {
 public:
-    LocalPlannerStatic(PathFollower& controller,
-                       tf::Transformer &transformer,
+    LocalPlannerStatic(RobotController& controller, PoseTracker& pose_tracker,
                        const ros::Duration& update_interval);
 
 protected:

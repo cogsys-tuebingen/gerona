@@ -2,7 +2,9 @@
 
 #include <path_follower/pathfollower.h>
 #include <path_follower/utils/coursepredictor.h>
+#include <path_follower/utils/pose_tracker.h>
 #include <ros/ros.h>
+#include <path_follower/utils/visualizer.h>
 
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
@@ -65,7 +67,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Stanley::computeMov
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	const Eigen::Vector3d pose = path_driver_->getRobotPose();
+	const Eigen::Vector3d pose = pose_tracker_.getRobotPose();
 
 	// TODO: theta should also be considered in goal test
 	// goal test

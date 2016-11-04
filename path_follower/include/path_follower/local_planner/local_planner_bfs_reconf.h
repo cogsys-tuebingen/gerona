@@ -8,8 +8,8 @@
 class LocalPlannerBFSReconf : public LocalPlannerBFS, public LocalPlannerReconf
 {
 public:
-    LocalPlannerBFSReconf(PathFollower& controller, tf::Transformer &transformer,
-                       const ros::Duration& update_interval);
+    LocalPlannerBFSReconf(RobotController& controller, PoseTracker& pose_tracker,
+                          const ros::Duration& update_interval);
 private:
     virtual void evaluate(double& current_p, LNode*& succ, double& dis2last,
                           const std::vector<Scorer::Ptr>& scorer,

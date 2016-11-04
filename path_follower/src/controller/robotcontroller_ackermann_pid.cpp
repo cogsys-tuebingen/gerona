@@ -2,7 +2,9 @@
 #include <cmath>
 #include <path_msgs/FollowPathResult.h>
 #include <path_follower/pathfollower.h>
+#include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/path_exceptions.h>
+#include <path_follower/utils/visualizer.h>
 
 using namespace std;
 using namespace Eigen;
@@ -68,7 +70,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCom
         stopMotion(); //< probably not necessary to repeat this, but be on the save side.
 
         // do nothing until robot has realy stopped.
-        geometry_msgs::Twist current_vel = path_driver_->getVelocity();
+        geometry_msgs::Twist current_vel = pose_tracker_.getVelocity();
         if((std::abs(current_vel.linear.x) > 0.01) ||
            (std::abs(current_vel.linear.y) > 0.01) ||
            (std::abs(current_vel.angular.z) > 0.01)) {
@@ -151,7 +153,7 @@ void RobotController_Ackermann_Pid::selectWaypoint()
     wp_map.pose = path_->getCurrentWaypoint();
     wp_map.header.stamp = ros::Time::now();
 
-    if (!path_driver_->transformToLocal(wp_map, next_wp_local_)) {
+    if (!pose_tracker_.transformToLocal(wp_map, next_wp_local_)) {
         throw EmergencyBreakException("cannot transform next waypoint",
                                       path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
@@ -175,9 +177,9 @@ float RobotController_Ackermann_Pid::getErrorOnPath()
 
     // draw steer front
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 2, path_driver_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 3, path_driver_->getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 2, pose_tracker_.getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 3, pose_tracker_.getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
     }
 
     return error;
@@ -204,9 +206,9 @@ float RobotController_Ackermann_Pid::getErrorApproachSubpathEnd()
                                 0.5, getFixedFrame(), "turning point", 1, 1, 1);
 
         // draw steer front
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 2, path_driver_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 3, path_driver_->getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 2, pose_tracker_.getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 3, pose_tracker_.getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
     }
 
     return error;
@@ -222,7 +224,7 @@ void RobotController_Ackermann_Pid::updateCommand(float error)
     }
 
     ROS_DEBUG_NAMED(MODULE, "PID: error = %g, u = %g", error, u);
-    visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 14, path_driver_->getRobotPoseMsg(), u, 0.0, 1.0, 1.0);
+    visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 14, pose_tracker_.getRobotPoseMsg(), u, 0.0, 1.0, 1.0);
 
     float steer = std::max(-opt_.max_steer(), std::min(u, opt_.max_steer()));
     ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
@@ -277,7 +279,7 @@ float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
 
 double RobotController_Ackermann_Pid::distanceToWaypoint(const Waypoint &wp) const
 {
-    Eigen::Vector3d pose = path_driver_->getRobotPose();
+    Eigen::Vector3d pose = pose_tracker_.getRobotPose();
     return std::hypot(pose(0) - wp.x, pose(1) - wp.y);
 }
 
@@ -326,7 +328,7 @@ double RobotController_Ackermann_Pid::calculateLineError() const
 
     Line2d target_line;
     Vector3d followup_next_wp_local;
-    if (!path_driver_->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
+    if (!pose_tracker_.transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
         throw EmergencyBreakException("Cannot transform next waypoint",
                                       path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
@@ -387,7 +389,7 @@ void RobotController_Ackermann_Pid::visualizeCarrot(const Vector2d &carrot,
 
     carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
     geometry_msgs::PoseStamped carrot_map;
-    if (path_driver_->transformToGlobal(carrot_local, carrot_map)) {
+    if (pose_tracker_.transformToGlobal(carrot_local, carrot_map)) {
         visualizer_->drawMark(id, carrot_map.pose.position, "prediction", r,g,b);
     }
 }

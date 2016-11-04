@@ -24,6 +24,8 @@
 #include <path_follower/utils/coursepredictor.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/supervisor/supervisorchain.h>
+#include <path_follower/utils/pose_tracker.h>
+#include <path_follower/obstacle_avoidance/obstacleavoider.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -37,12 +39,13 @@ const double WAYPOINT_ANGLE_DIFF_TOL = 0.01*M_PI/180.0;
 
 PathFollower::PathFollower(ros::NodeHandle &nh):
     node_handle_(nh),
+    pose_tracker_(new PoseTracker(opt_, nh)),
     controller_factory_(new ControllerFactory(*this)),
     controller_(nullptr),
     local_planner_(nullptr),
     obstacle_avoider_(nullptr),
     supervisors_(new SupervisorChain()),
-    course_predictor_(new CoursePredictor(this)),
+    course_predictor_(new CoursePredictor(pose_tracker_.get())),
     visualizer_(Visualizer::getInstance()),
     path_(new Path("map")),
     pending_error_(-1),
@@ -55,15 +58,10 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     whole_local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("whole_local_path", 1, true);
     g_points_pub_ = node_handle_.advertise<visualization_msgs::Marker>("g_path_points", 10);
 
-    odom_sub_ = node_handle_.subscribe<nav_msgs::Odometry>("odom", 1, &PathFollower::odometryCB, this);
-
     // Choose robot controller
     controller_ = controller_factory_->makeController(opt_.controller());
-    obstacle_avoider_ = controller_factory_->makeObstacleAvoider(opt_.controller(), pose_listener_, controller_);
-    local_planner_ = controller_factory_->makeLocalPlanner(opt_.algo(), pose_listener_, ros::Duration(opt_.uinterval()));
-
-
-
+    obstacle_avoider_ = controller_factory_->makeObstacleAvoider(opt_.controller(), *pose_tracker_, controller_);
+    local_planner_ = controller_factory_->makeLocalPlanner(opt_.algo(), *controller_, *pose_tracker_, ros::Duration(opt_.uinterval()));
 
     /*** Initialize supervisors ***/
 
@@ -72,7 +70,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     path_->registerNextWaypointCallback([this]() { local_planner_->reset(); });
 
     if (opt_.supervisor_use_path_lookout()) {
-        supervisors_->addSupervisor( Supervisor::Ptr(new PathLookout(&pose_listener_)) );
+        supervisors_->addSupervisor( Supervisor::Ptr(new PathLookout(*pose_tracker_)) );
     }
 
     // Waypoint timeout
@@ -120,117 +118,12 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 PathFollower::~PathFollower()
 {
 }
-
-void PathFollower::odometryCB(const nav_msgs::OdometryConstPtr &odom)
-{
-    odometry_ = *odom;
-
-    robot_pose_odom_msg_ = odometry_.pose.pose;
-
-    robot_pose_odom_.x() = robot_pose_odom_msg_.position.x;
-    robot_pose_odom_.y() = robot_pose_odom_msg_.position.y;
-    robot_pose_odom_.z() = tf::getYaw(robot_pose_odom_msg_.orientation);
-}
-
 void PathFollower::obstacleCloudCB(const std::shared_ptr<ObstacleCloud const> &msg)
 {
     obstacle_cloud_ = msg;
 }
 
-bool PathFollower::updateRobotPose()
-{
-    if (getWorldPose(&robot_pose_world_, &robot_pose_world_msg_)) {
-        course_predictor_->update();
-        controller_->setCurrentPose(robot_pose_world_);
-        return true;
-    } else {
-        return false;
-    }
-}
 
-bool PathFollower::getWorldPose(Vector3d *pose_vec , geometry_msgs::Pose *pose_msg) const
-{
-    tf::StampedTransform transform;
-    geometry_msgs::TransformStamped msg;
-
-    try {
-        pose_listener_.lookupTransform(opt_.world_frame(), opt_.robot_frame(), ros::Time(0), transform);
-
-    } catch (tf::TransformException& ex) {
-        ROS_ERROR("error with transform robot pose: %s", ex.what());
-        return false;
-    }
-    tf::transformStampedTFToMsg(transform, msg);
-
-    pose_vec->x()  = msg.transform.translation.x;
-    pose_vec->y()  = msg.transform.translation.y;
-    (*pose_vec)(2) = tf::getYaw(msg.transform.rotation);
-
-    if(pose_msg != nullptr) {
-        pose_msg->position.x = msg.transform.translation.x;
-        pose_msg->position.y = msg.transform.translation.y;
-        pose_msg->position.z = msg.transform.translation.z;
-        pose_msg->orientation = msg.transform.rotation;
-    }
-    return true;
-}
-
-geometry_msgs::Twist PathFollower::getVelocity() const
-{
-    //    geometry_msgs::Twist twist;
-    //    try {
-    //        pose_listener_.lookupTwist("odom", robot_frame_, ros::Time(0), ros::Duration(0.01), twist);
-
-    //    } catch (tf::TransformException& ex) {
-    //        ROS_ERROR("error with transform robot pose: %s", ex.what());
-    //        return geometry_msgs::Twist();
-    //    }
-    //    return twist;
-    return odometry_.twist.twist;
-}
-
-bool PathFollower::transformToLocal(const geometry_msgs::PoseStamped &global, Vector3d &local)
-{
-    geometry_msgs::PoseStamped local_pose;
-    bool status=transformToLocal(global,local_pose);
-    if (!status) {
-        local.x()=local.y()=local.z()=0.0;
-        return false;
-    }
-    local.x()=local_pose.pose.position.x;
-    local.y()=local_pose.pose.position.y;
-    local.z()=tf::getYaw(local_pose.pose.orientation);
-    return true;
-}
-
-
-bool PathFollower::transformToLocal(const geometry_msgs::PoseStamped &global_org, geometry_msgs::PoseStamped &local)
-{
-    geometry_msgs::PoseStamped global(global_org);
-    try {
-        global.header.frame_id = getFixedFrameId();
-        pose_listener_.transformPose(opt_.robot_frame(),ros::Time(0),global, global.header.frame_id,local);
-        return true;
-
-    } catch (tf::TransformException& ex) {
-        ROS_ERROR("error with transform goal pose: %s", ex.what());
-        return false;
-    }
-}
-
-bool PathFollower::transformToGlobal(const geometry_msgs::PoseStamped &local_org, geometry_msgs::PoseStamped &global)
-{
-    geometry_msgs::PoseStamped local(local_org);
-    try {
-        local.header.frame_id=opt_.robot_frame();
-        pose_listener_.transformPose(getFixedFrameId(),ros::Time(0),local,opt_.robot_frame(),global);
-        return true;
-
-    } catch (tf::TransformException& ex) {
-        ROS_ERROR("error with transform goal pose: %s", ex.what());
-        return false;
-    }
-}
 
 boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
 {
@@ -241,13 +134,17 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
         start();
     }
 
-    if (!updateRobotPose()) {
+    if (!pose_tracker_->updateRobotPose()) {
         ROS_ERROR("do not known own pose");
         stop(FollowPathResult::RESULT_STATUS_SLAM_FAIL);
+
+    } else {
+        course_predictor_->update();
+        controller_->setCurrentPose(pose_tracker_->getRobotPose());
     }
 
     // Ask supervisor whether path following can continue
-    Supervisor::State state(robot_pose_world_,
+    Supervisor::State state(pose_tracker_->getRobotPose(),
                             getPath(),
                             obstacle_cloud_,
                             feedback);
@@ -311,7 +208,7 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
                 local_planner_->setObstacleCloud(obstacle_cloud_);
             }
             if(opt_.use_v()){
-                local_planner_->setVelocity(getVelocity().linear);
+                local_planner_->setVelocity(pose_tracker_->getVelocity().linear);
             }
 
             bool path_search_failure = false;
@@ -413,6 +310,11 @@ bool PathFollower::callObstacleAvoider(MoveCommand *cmd)
     return obstacle_avoider_->avoid(cmd, obstacle_cloud_, state);
 }
 
+PoseTracker& PathFollower::getPoseTracker()
+{
+    return *pose_tracker_;
+}
+
 RobotController *PathFollower::getController()
 {
     return controller_.get();
@@ -423,24 +325,6 @@ CoursePredictor &PathFollower::getCoursePredictor()
     return *course_predictor_;
 }
 
-Eigen::Vector3d PathFollower::getRobotPose() const
-{
-    if(local_planner_->isNull()) {
-        return robot_pose_world_;
-    } else {
-        return robot_pose_odom_;
-    }
-}
-
-const geometry_msgs::Pose &PathFollower::getRobotPoseMsg() const
-{
-    if(local_planner_->isNull()) {
-        return robot_pose_world_msg_;
-    } else {
-        return robot_pose_odom_msg_;
-    }
-}
-
 Path::Ptr PathFollower::getPath()
 {
     return path_;
@@ -448,11 +332,7 @@ Path::Ptr PathFollower::getPath()
 
 std::string PathFollower::getFixedFrameId()
 {
-    if(local_planner_->isNull()) {
-        return opt_.world_frame();
-    } else {
-        return opt_.odom_frame();
-    }
+    return pose_tracker_->getFixedFrameId();
 }
 
 const PathFollowerParameters& PathFollower::getOptions() const
@@ -540,7 +420,7 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
         return DONE;
     }
 
-    visualizer_->drawArrow(getFixedFrameId(), 0, getRobotPoseMsg(), "slam pose", 2.0, 0.7, 1.0);
+    visualizer_->drawArrow(getFixedFrameId(), 0, pose_tracker_->getRobotPoseMsg(), "slam pose", 2.0, 0.7, 1.0);
 
     RobotController::ControlStatus status = controller_->execute();
 
@@ -644,7 +524,7 @@ void PathFollower::findSegments(const path_msgs::PathSequence& path, bool only_o
 }
 
 void PathFollower::publishPathMarker(){
-    Eigen::Vector3d current_pose = getRobotPose();
+    Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
     geometry_msgs::Point pt;
     pt.x = current_pose[0];
     pt.y = current_pose[1];

@@ -9,8 +9,8 @@
 class LocalPlannerAStarNReconf : public LocalPlannerAStar, public LocalPlannerStarN, public LocalPlannerStarReconf
 {
 public:
-    LocalPlannerAStarNReconf(PathFollower& controller, tf::Transformer &transformer,
-                       const ros::Duration& update_interval);
+    LocalPlannerAStarNReconf(RobotController& controller, PoseTracker& pose_tracker,
+                             const ros::Duration& update_interval);
 };
 
 #endif // LOCAL_PLANNER_ASTAR_N_RECONF_H

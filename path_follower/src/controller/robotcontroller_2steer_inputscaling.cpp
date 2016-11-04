@@ -3,6 +3,8 @@
 #include <path_follower/utils/coursepredictor.h>
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
+#include <path_follower/utils/pose_tracker.h>
+#include <path_follower/utils/visualizer.h>
 
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
@@ -92,8 +94,8 @@ RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeM
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	const Eigen::Vector3d pose = path_driver_->getRobotPose();
-    const geometry_msgs::Twist v_meas_twist = path_driver_->getVelocity();
+	const Eigen::Vector3d pose = pose_tracker_.getRobotPose();
+    const geometry_msgs::Twist v_meas_twist = pose_tracker_.getVelocity();
 
     double velocity_measured = dir_sign_ * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
             + v_meas_twist.linear.y * v_meas_twist.linear.y);

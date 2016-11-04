@@ -7,8 +7,8 @@
 class LocalPlannerThetaStar : virtual public LocalPlannerStar
 {
 public:
-    LocalPlannerThetaStar(PathFollower& controller, tf::Transformer &transformer,
-                      const ros::Duration& update_interval);
+    LocalPlannerThetaStar(RobotController& controller, PoseTracker& pose_tracker,
+                          const ros::Duration& update_interval);
 private:
     bool tryForAlternative(LNode*& s_p, const std::vector<Constraint::Ptr>& constraints,
                            const std::vector<bool>& fconstraints);

@@ -8,6 +8,8 @@
 #include <path_follower/pathfollower.h>
 #include <path_follower/utils/coursepredictor.h>
 #include <ros/ros.h>
+#include <path_follower/utils/pose_tracker.h>
+#include <path_follower/utils/visualizer.h>
 
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
@@ -75,8 +77,8 @@ RobotController::MoveCommandStatus RobotController_2Steer_PurePursuit::computeMo
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	const Eigen::Vector3d pose = path_driver_->getRobotPose();
-	const geometry_msgs::Twist velocity_measured = path_driver_->getVelocity();
+	const Eigen::Vector3d pose = pose_tracker_.getRobotPose();
+	const geometry_msgs::Twist velocity_measured = pose_tracker_.getVelocity();
 
 	if (reachedGoal(pose)) {
 		path_->switchToNextSubPath();

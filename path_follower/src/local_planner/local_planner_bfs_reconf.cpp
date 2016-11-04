@@ -2,14 +2,14 @@
 #include <path_follower/local_planner/local_planner_bfs_reconf.h>
 
 /// PROJECT
-#include <path_follower/pathfollower.h>
 
-LocalPlannerBFSReconf::LocalPlannerBFSReconf(PathFollower &follower,
-                                       tf::Transformer& transformer,
+
+LocalPlannerBFSReconf::LocalPlannerBFSReconf(RobotController &follower,
+                                       PoseTracker &pose_tracker,
                                        const ros::Duration& update_interval)
-    : LocalPlannerClassic(follower, transformer, update_interval),
-      LocalPlannerBFS(follower, transformer, update_interval),
-      LocalPlannerReconf(follower, transformer, update_interval)
+    : LocalPlannerClassic(follower, pose_tracker, update_interval),
+      LocalPlannerBFS(follower, pose_tracker, update_interval),
+      LocalPlannerReconf(follower, pose_tracker, update_interval)
 {
 
 }

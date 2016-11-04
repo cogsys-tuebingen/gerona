@@ -8,9 +8,8 @@
 class LocalPlannerBFS : virtual public LocalPlannerClassic
 {
 public:
-    LocalPlannerBFS(PathFollower& controller,
-                            tf::Transformer &transformer,
-                            const ros::Duration& update_interval);
+    LocalPlannerBFS(RobotController& controller, PoseTracker& pose_tracker,
+                    const ros::Duration& update_interval);
 private:
     virtual void setInitScores(LNode& wpose, const std::vector<Scorer::Ptr>& scorer,
                                const std::vector<double>& wscorer, double& dis2last) override;

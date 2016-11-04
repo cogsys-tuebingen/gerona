@@ -2,12 +2,12 @@
 #include <path_follower/local_planner/local_planner_star_g.h>
 
 /// PROJECT
-#include <path_follower/pathfollower.h>
 
-LocalPlannerStarG::LocalPlannerStarG(PathFollower &controller, tf::Transformer &transformer,
+
+LocalPlannerStarG::LocalPlannerStarG(RobotController &controller, PoseTracker &pose_tracker,
                                      const ros::Duration &update_interval)
-    : LocalPlannerClassic(controller,transformer,update_interval),
-      LocalPlannerStar(controller,transformer,update_interval)
+    : LocalPlannerClassic(controller,pose_tracker,update_interval),
+      LocalPlannerStar(controller,pose_tracker,update_interval)
 {
 
 }

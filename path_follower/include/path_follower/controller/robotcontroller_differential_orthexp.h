@@ -6,11 +6,13 @@
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/PointStamped.h>
+#include <std_msgs/String.h>
+#include <sensor_msgs/LaserScan.h>
 
 /// PROJECT
 #include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
-#include <path_follower/pathfollower.h>
+
 
 class RobotController_Differential_OrthogonalExponential : public RobotController_Interpolation
 {

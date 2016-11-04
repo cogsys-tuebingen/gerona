@@ -10,6 +10,7 @@
 #include "path_controller.h"
 #include "path_simple_pid.h"
 #include "path_cascade_pid.h"
+#include <path_follower/utils/pose_tracker.h>
 
 #include <pcl_ros/point_cloud.h>
 
@@ -113,7 +114,7 @@ RobotController::MoveCommandStatus RobotControllerTrailer::computeMoveCommand(Mo
             stopMotion(); //< probably not necessary to repeat this, but be on the save side.
 
             // do nothing until robot has realy stopped.
-            geometry_msgs::Twist current_vel = path_driver_->getVelocity();
+            geometry_msgs::Twist current_vel = pose_tracker_.getVelocity();
             if((std::abs(current_vel.linear.x) > 0.01) ||
                     (std::abs(current_vel.linear.y) > 0.01) ||
                     (std::abs(current_vel.angular.z) > 0.01)) {
@@ -241,7 +242,7 @@ void RobotControllerTrailer::narrowPassage()
     tf::Transform trailer_link_to_trailer_back(tf::createIdentityQuaternion(), tf::Vector3(-trailer_length_, 0, 0));
     tf::Pose base_to_trailer_back = base_to_trailer_link_ * trailer_link_to_trailer_back;
 
-    Eigen::Vector3d pose = path_driver_->getRobotPose();
+    Eigen::Vector3d pose = pose_tracker_.getRobotPose();
     tf::Transform odom_to_base_link(tf::createQuaternionFromYaw(pose(2)), tf::Vector3(pose(0), pose(1), 0.0));
     tf::Transform goal_offset(tf::createIdentityQuaternion(), tf::Vector3(narrow_travel_distance_, 0, 0));
     tf::Pose base_link_to_goal = odom_to_base_link.inverse() * odom_to_base_goal_ * goal_offset;
@@ -362,7 +363,7 @@ void RobotControllerTrailer::analyzePathObstacles()
     double robot_dist_l = std::numeric_limits<double>::infinity();
     double robot_dist_r = std::numeric_limits<double>::infinity();
 
-    Eigen::Vector3d pose = path_driver_->getRobotPose();
+    Eigen::Vector3d pose = pose_tracker_.getRobotPose();
     tf::Transform odom_to_base_link(tf::createQuaternionFromYaw(pose(2)), tf::Vector3(pose(0), pose(1), 0.0));
 
     const auto& obstacle_cloud = path_driver_->getObstacleCloud()->cloud;
@@ -531,7 +532,7 @@ void RobotControllerTrailer::selectWaypoint()
     wp_map.pose = path_->getCurrentWaypoint();
     wp_map.header.stamp = ros::Time::now();
 
-    if (!path_driver_->transformToLocal(wp_map, next_wp_local_)) {
+    if (!pose_tracker_.transformToLocal(wp_map, next_wp_local_)) {
         throw EmergencyBreakException("cannot transform next waypoint",
                                       path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
@@ -553,7 +554,7 @@ double RobotControllerTrailer::calculateAngleError()
 {
 
     geometry_msgs::Pose waypoint   = path_->getCurrentWaypoint();
-    geometry_msgs::Pose robot_pose = path_driver_->getRobotPoseMsg();
+    geometry_msgs::Pose robot_pose = pose_tracker_.getRobotPoseMsg();
     double trailer_angle;
 
     /*
@@ -606,8 +607,8 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
 {
     // draw steer front
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, path_driver_->getRobotPoseMsg(), angle_error, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 2, path_driver_->getRobotPoseMsg(), dist_error, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), angle_error, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 2, pose_tracker_.getRobotPoseMsg(), dist_error, 0.2, 0.2, 1.0);
     }
 
 
@@ -629,7 +630,7 @@ void RobotControllerTrailer::updateCommand(float dist_error, float angle_error)
         return;
     }
 
-    visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 14, path_driver_->getRobotPoseMsg(), u_val, 0.0, 1.0, 1.0);
+    visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 14, pose_tracker_.getRobotPoseMsg(), u_val, 0.0, 1.0, 1.0);
 
     float steer = dir_sign_* std::max(-opt_.max_steer(), std::min(u_val, opt_.max_steer()));
 
@@ -717,7 +718,7 @@ float RobotControllerTrailer::controlVelocity(float steer_angle) const
 
 double RobotControllerTrailer::distanceToWaypoint(const Waypoint &wp) const
 {
-    Eigen::Vector3d pose = path_driver_->getRobotPose();
+    Eigen::Vector3d pose = pose_tracker_.getRobotPose();
     return std::hypot(pose(0) - wp.x, pose(1) - wp.y);
 }
 
@@ -790,7 +791,7 @@ double RobotControllerTrailer::calculateLineError() const
         while(!has_line_points) {
             Vector3d next;
             tmp_pt.pose = path_->getWaypoint(wpi);
-            if (!path_driver_->transformToLocal( tmp_pt, next)) {
+            if (!pose_tracker_.transformToLocal( tmp_pt, next)) {
                 throw EmergencyBreakException("Cannot transform next waypoint",
                                               path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
             }
@@ -811,7 +812,7 @@ double RobotControllerTrailer::calculateLineError() const
     if(!has_line_points) {
         if(path_->getWaypointIndex() + 1 == path_->getCurrentSubPath().size()) {
             tmp_pt.pose = path_->getWaypoint(path_->getWaypointIndex());
-            if (!path_driver_->transformToLocal( tmp_pt, followup_next_wp_local)) {
+            if (!pose_tracker_.transformToLocal( tmp_pt, followup_next_wp_local)) {
                 throw EmergencyBreakException("Cannot transform next waypoint",
                                               path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
             }
@@ -820,7 +821,7 @@ double RobotControllerTrailer::calculateLineError() const
             while(!has_line_points) {
                 Vector3d next;
                 tmp_pt.pose = path_->getWaypoint(wpi);
-                if (!path_driver_->transformToLocal( tmp_pt, next)) {
+                if (!pose_tracker_.transformToLocal( tmp_pt, next)) {
                     throw EmergencyBreakException("Cannot transform next waypoint",
                                                   path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
                 }
@@ -912,7 +913,7 @@ void RobotControllerTrailer::visualizeCarrot(const Vector2d &carrot,
 
     carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
     geometry_msgs::PoseStamped carrot_map;
-    if (path_driver_->transformToGlobal(carrot_local, carrot_map)) {
+    if (pose_tracker_.transformToGlobal(carrot_local, carrot_map)) {
         visualizer_->drawCircle(id, carrot_map.pose.position, 0.2, getFixedFrame(),"pred", r,g,b,1,5);
     }
 }

@@ -5,8 +5,8 @@
  *      Author: holly
  */
 
-#ifndef NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_cslibs_path_planning_INTERPOLATED_H_
-#define NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_cslibs_path_planning_INTERPOLATED_H_
+#ifndef PATH_INTERPOLATED_H_
+#define PATH_INTERPOLATED_H_
 
 #include "path.h"
 #include <nav_msgs/Path.h>
@@ -113,4 +113,4 @@ private:
     double s_prim_;
 };
 
-#endif /* NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_cslibs_path_planning_INTERPOLATED_H_ */
+#endif /* PATH_INTERPOLATED_H_ */

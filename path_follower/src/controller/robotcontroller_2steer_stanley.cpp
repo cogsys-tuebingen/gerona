@@ -2,12 +2,14 @@
 
 #include <path_follower/pathfollower.h>
 #include <path_follower/utils/coursepredictor.h>
+#include <path_follower/utils/pose_tracker.h>
 #include <ros/ros.h>
 
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
 
 #include <visualization_msgs/Marker.h>
+#include <path_follower/utils/visualizer.h>
 
 #include <deque>
 #include <Eigen/Core>
@@ -70,8 +72,8 @@ RobotController::MoveCommandStatus RobotController_2Steer_Stanley::computeMoveCo
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	const Eigen::Vector3d pose = path_driver_->getRobotPose();
-	const geometry_msgs::Twist velocity_measured = path_driver_->getVelocity();
+	const Eigen::Vector3d pose = pose_tracker_.getRobotPose();
+	const geometry_msgs::Twist velocity_measured = pose_tracker_.getVelocity();
 
 	// goal test
 	if (reachedGoal(pose)) {

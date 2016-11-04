@@ -39,6 +39,7 @@
 #include <path_follower/local_planner/local_planner_thetastar_n_reconf.h>
 #include <path_follower/local_planner/local_planner_thetastar_g_reconf.h>
 
+#include <path_follower/utils/pose_tracker.h>
 
 // SYSTEM
 #include <stdexcept>
@@ -108,7 +109,8 @@ std::shared_ptr<RobotController> ControllerFactory::makeController(const std::st
 
 std::shared_ptr<LocalPlanner>
 ControllerFactory::makeLocalPlanner(const std::string& name,
-                                    tf::TransformListener& pose_listener,
+                                    RobotController& controller,
+                                    PoseTracker& pose_tracker,
                                     const ros::Duration& uinterval)
 {
     ROS_INFO("Use local planner algorithm '%s'", name.c_str());
@@ -135,33 +137,34 @@ ControllerFactory::makeLocalPlanner(const std::string& name,
 
     std::shared_ptr<LocalPlanner> planner;
     if(name == "AStar"){
-        planner = std::make_shared<LocalPlannerAStarNStatic>(*&follower_, pose_listener, uinterval);
+        planner = std::make_shared<LocalPlannerAStarNStatic>(controller, pose_tracker, uinterval);
     }else if(name == "AStarG"){
-        planner = std::make_shared<LocalPlannerAStarGStatic>(*&follower_, pose_listener, uinterval);
+        planner = std::make_shared<LocalPlannerAStarGStatic>(controller, pose_tracker, uinterval);
     }else if(name == "ThetaStar"){
-        planner = std::make_shared<LocalPlannerThetaStarNStatic>(*&follower_, pose_listener, uinterval);
+        planner = std::make_shared<LocalPlannerThetaStarNStatic>(controller, pose_tracker, uinterval);
     }else if(name == "ThetaStarG"){
-        planner = std::make_shared<LocalPlannerThetaStarGStatic>(*&follower_, pose_listener, uinterval);
+        planner = std::make_shared<LocalPlannerThetaStarGStatic>(controller, pose_tracker, uinterval);
     }else if(name == "AStarR"){
-        planner = std::make_shared<LocalPlannerAStarNReconf>(*&follower_, pose_listener, uinterval);
+        planner = std::make_shared<LocalPlannerAStarNReconf>(controller, pose_tracker, uinterval);
     }else if(name == "AStarGR"){
-        planner = std::make_shared<LocalPlannerAStarGReconf>(*&follower_, pose_listener, uinterval);
+        planner = std::make_shared<LocalPlannerAStarGReconf>(controller, pose_tracker, uinterval);
     }else if(name == "ThetaStarR"){
-        planner = std::make_shared<LocalPlannerThetaStarNReconf>(*&follower_, pose_listener, uinterval);
+        planner = std::make_shared<LocalPlannerThetaStarNReconf>(controller, pose_tracker, uinterval);
     }else if(name == "ThetaStarGR"){
-        planner = std::make_shared<LocalPlannerThetaStarGReconf>(*&follower_, pose_listener, uinterval);
+        planner = std::make_shared<LocalPlannerThetaStarGReconf>(controller, pose_tracker, uinterval);
     }else if(name == "BFS"){
-        planner = std::make_shared<LocalPlannerBFSStatic>(*&follower_, pose_listener, uinterval);
+        planner = std::make_shared<LocalPlannerBFSStatic>(controller, pose_tracker, uinterval);
     }else if(name == "BFSR"){
-        planner = std::make_shared<LocalPlannerBFSReconf>(*&follower_, pose_listener, uinterval);
+        planner = std::make_shared<LocalPlannerBFSReconf>(controller, pose_tracker, uinterval);
     }else if(name == "Transformer"){
-        planner = std::make_shared<LocalPlannerTransformer>(*&follower_, pose_listener, uinterval);
+        planner = std::make_shared<LocalPlannerTransformer>(controller, pose_tracker, uinterval);
     }else if(name == "NULL"){
-        planner = std::make_shared<LocalPlannerNull>(*&follower_, pose_listener);
+        planner = std::make_shared<LocalPlannerNull>(controller, pose_tracker);
     }else {
         throw std::logic_error("Unknown local planner algorithm. Shutdown.");
     }
 
+    pose_tracker.setLocal(!planner->isNull());
 
     planner->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.adis(),
                        opt_.fdis(),opt_.s_angle(), opt_.ia(), opt_.lmf(),
@@ -172,9 +175,11 @@ ControllerFactory::makeLocalPlanner(const std::string& name,
 
 std::shared_ptr<ObstacleAvoider>
 ControllerFactory::makeObstacleAvoider(const std::string& name,
-                                       tf::TransformListener& pose_listener,
+                                       PoseTracker& pose_tracker,
                                        std::shared_ptr<RobotController>& controller)
 {
+    tf::TransformListener &pose_listener = pose_tracker.getTransformListener();
+
     ROS_INFO("Use robot controller '%s'", name.c_str());
     if (name == "ackermann_pid") {
         if (opt_.obstacle_avoider_use_collision_box())

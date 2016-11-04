@@ -3,8 +3,12 @@
 #include <pcl_ros/point_cloud.h>
 #include <path_follower/utils/obstacle_cloud.h>
 
-LocalPlanner::LocalPlanner(PathFollower &follower, tf::Transformer &transformer)
-    : follower_(follower), transformer_(transformer)
+#include <path_follower/utils/pose_tracker.h>
+
+LocalPlanner::LocalPlanner(RobotController& controller, PoseTracker& pose_tracker)
+    : controller_(controller),
+      pose_tracker_(pose_tracker),
+      transformer_(pose_tracker_.getTransformListener())
 {
 
 }

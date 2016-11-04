@@ -13,9 +13,11 @@
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
-#include <cmath>
+#include <path_follower/utils/pose_tracker.h>
+#include <path_follower/utils/visualizer.h>
 
 // SYSTEM
+#include <cmath>
 #include <deque>
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -126,7 +128,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_HBZ::computeMoveCom
 
 
     /// get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
-    Eigen::Vector3d current_pose = path_driver_->getRobotPose();
+    Eigen::Vector3d current_pose = pose_tracker_.getRobotPose();
 
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
@@ -242,7 +244,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_HBZ::computeMoveCom
     distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(proj_ind_);
 
     //get the robot's current angular velocity
-    double angular_vel = path_driver_->getVelocity().angular.z;
+    double angular_vel = pose_tracker_.getVelocity().angular.z;
     ///***///
 
 
@@ -273,7 +275,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_HBZ::computeMoveCom
 
     ///Calculate the next point on the path
 
-    double omega_meas = path_driver_->getVelocity().angular.z;
+    double omega_meas = pose_tracker_.getVelocity().angular.z;
 
     double s_old = path_interpol.s_new();
 
@@ -369,7 +371,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_HBZ::computeMoveCom
 
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
     ///***///

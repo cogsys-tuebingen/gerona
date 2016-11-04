@@ -7,8 +7,7 @@
 class LocalPlannerNull : public LocalPlanner
 {
 public:
-    LocalPlannerNull(PathFollower& controller,
-                     tf::Transformer &transformer);
+    LocalPlannerNull(RobotController& controller, PoseTracker& pose_tracker);
 
     virtual void setGlobalPath(Path::Ptr path) override;
 

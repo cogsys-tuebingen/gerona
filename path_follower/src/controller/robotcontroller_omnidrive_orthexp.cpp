@@ -9,6 +9,8 @@
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
+#include <path_follower/utils/pose_tracker.h>
+#include <path_follower/utils/visualizer.h>
 
 // SYSTEM
 #include <deque>
@@ -125,7 +127,7 @@ void RobotController_Omnidrive_OrthogonalExponential::lookAt(const geometry_msgs
 void RobotController_Omnidrive_OrthogonalExponential::keepHeading()
 {
     view_direction_ = KeepHeading;
-    theta_des_ = path_driver_->getRobotPose()[2];
+    theta_des_ = pose_tracker_.getRobotPose()[2];
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::rotate()
@@ -141,7 +143,7 @@ void RobotController_Omnidrive_OrthogonalExponential::lookInDrivingDirection()
 void RobotController_Omnidrive_OrthogonalExponential::initialize()
 {
     // initialize the desired angle and the angle error
-    e_theta_curr_ = path_driver_->getRobotPose()[2];
+    e_theta_curr_ = pose_tracker_.getRobotPose()[2];
 
     // desired velocity
     vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
@@ -296,7 +298,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 //    path_driver_->getCoursePredictor().unfreeze();
 
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
-    Eigen::Vector3d current_pose = path_driver_->getRobotPose();
+    Eigen::Vector3d current_pose = pose_tracker_.getRobotPose();
 
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
@@ -440,7 +442,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 
     distance_to_goal_ = hypot(x_meas - p_[N_-1], y_meas - q_[N_-1]);
 
-    double angular_vel = path_driver_->getVelocity().angular.z;
+    double angular_vel = pose_tracker_.getVelocity().angular.z;
     //***//
 
 
@@ -480,7 +482,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 //              atan(-param_k*orth_proj)*180.0/M_PI, e_theta_curr);
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
 

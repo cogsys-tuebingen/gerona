@@ -2,13 +2,13 @@
 #include <path_follower/local_planner/local_planner_star.h>
 
 /// PROJECT
-#include <path_follower/pathfollower.h>
+
 
 // this planner templates the A*/Theta* search algorithms
-LocalPlannerStar::LocalPlannerStar(PathFollower &follower,
-                                 tf::Transformer& transformer,
+LocalPlannerStar::LocalPlannerStar(RobotController &follower,
+                                 PoseTracker &pose_tracker,
                                  const ros::Duration& update_interval)
-    : LocalPlannerClassic(follower, transformer, update_interval), score(0.0), heuristic(0.0),
+    : LocalPlannerClassic(follower, pose_tracker, update_interval), score(0.0), heuristic(0.0),
       closedSet(), twins(), openSet()
 {
 

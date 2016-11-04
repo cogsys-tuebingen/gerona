@@ -4,6 +4,7 @@
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/path_interpolated.h>
+#include <path_follower/utils/parameters.h>
 
 /// SYSTEM
 #include <nav_msgs/Path.h>

@@ -2,13 +2,12 @@
 #include <path_follower/local_planner/local_planner_bfs.h>
 
 /// PROJECT
-#include <path_follower/pathfollower.h>
+
 
 // this planner uses the Breadth-first search algorithm
-LocalPlannerBFS::LocalPlannerBFS(PathFollower &follower,
-                                 tf::Transformer& transformer,
+LocalPlannerBFS::LocalPlannerBFS(RobotController& controller, PoseTracker& pose_tracker,
                                  const ros::Duration& update_interval)
-    : LocalPlannerClassic(follower, transformer, update_interval),fifo()
+    : LocalPlannerClassic(controller, pose_tracker, update_interval),fifo()
 {
 
 }

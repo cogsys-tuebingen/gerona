@@ -2,17 +2,16 @@
 #include <path_follower/local_planner/local_planner_thetastar_g_reconf.h>
 
 /// PROJECT
-#include <path_follower/pathfollower.h>
 
-LocalPlannerThetaStarGReconf::LocalPlannerThetaStarGReconf(PathFollower &follower,
-                                               tf::Transformer& transformer,
-                                               const ros::Duration& update_interval)
-    : LocalPlannerClassic(follower, transformer, update_interval),
-      LocalPlannerStar(follower, transformer, update_interval),
-      LocalPlannerReconf(follower, transformer, update_interval),
-      LocalPlannerThetaStar(follower, transformer, update_interval),
-      LocalPlannerStarG(follower, transformer, update_interval),
-      LocalPlannerStarReconf(follower, transformer, update_interval)
+
+LocalPlannerThetaStarGReconf::LocalPlannerThetaStarGReconf(RobotController& controller, PoseTracker& pose_tracker,
+                                                           const ros::Duration& update_interval)
+    : LocalPlannerClassic(controller, pose_tracker, update_interval),
+      LocalPlannerStar(controller, pose_tracker, update_interval),
+      LocalPlannerReconf(controller, pose_tracker, update_interval),
+      LocalPlannerThetaStar(controller, pose_tracker, update_interval),
+      LocalPlannerStarG(controller, pose_tracker, update_interval),
+      LocalPlannerStarReconf(controller, pose_tracker, update_interval)
 {
 
 }

@@ -20,6 +20,7 @@
 #include <path_msgs/FollowPathFeedback.h>
 
 class ObstacleCloud;
+class PoseTracker;
 
 /**
  * @brief Looks out for obstacles on the path.
@@ -38,7 +39,7 @@ class ObstacleCloud;
 class PathLookout : public Supervisor
 {
 public:
-    PathLookout(const tf::TransformListener *tf_listener);
+    PathLookout(PoseTracker &pose_tracker);
 
     virtual std::string getName() const {
         return "PathLookout";
@@ -143,7 +144,7 @@ private:
 
     ObstacleTracker tracker_;
     Visualizer *visualizer_;
-    const tf::TransformListener *tf_listener_;
+    PoseTracker &pose_tracker_;
 
     std::shared_ptr<ObstacleCloud const> obstacle_cloud_;
 

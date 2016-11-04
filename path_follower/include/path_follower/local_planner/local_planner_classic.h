@@ -7,9 +7,8 @@
 class LocalPlannerClassic : public LocalPlannerImplemented
 {
 public:
-    LocalPlannerClassic(PathFollower& controller,
-                            tf::Transformer &transformer,
-                            const ros::Duration& update_interval);
+    LocalPlannerClassic(RobotController& controller, PoseTracker& pose_tracker,
+                        const ros::Duration& update_interval);
 
     virtual void setGlobalPath(Path::Ptr path) override;
 
@@ -154,11 +153,6 @@ private:
     PathInterpolated last_local_path_;
 
     double step_, neig_s, FFL, beta2;
-
-    //! Debug Publisher
-    ros::Publisher local_obst_pub_;
-    //! The last received obstacle cloud
-    std::shared_ptr<ObstacleCloud> l_obstacle_cloud_;
 };
 
 #endif // LOCAL_PLANNER_CLASSIC_H

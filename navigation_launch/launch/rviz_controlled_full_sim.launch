@@ -8,10 +8,10 @@ path_control using the action interface. It is thus good for testing and
 demonstrating the navigation framework.
 -->
 <launch>
-    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_HBZ)" />
+    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER ackermann_purepursuit)" />
 
-    <arg name="algo" default="AStarR" />
-    <!--arg name="algo" default="NULL" /-->
+    <!--arg name="algo" default="AStarR" /-->
+    <arg name="algo" default="NULL" />
 
     <arg name="c1" default="true" />
     <arg name="c2" default="true" />
@@ -39,10 +39,10 @@ demonstrating the navigation framework.
 
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
-    <arg name="use_planner_static" default="true" />
+    <arg name="use_planner_static" default="false" />
     <arg name="use_planner_default" default="true" />
     
-    <arg name="use_karto" default="true" />
+    <arg name="use_karto" default="false" />
     <arg name="use_karto_segmented" default="false" />
     <arg name="use_amcl" default="false" />
     <arg name="use_hector" default="false" />

@@ -10,7 +10,7 @@
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/parameters.h>
-#include <path_follower/pathfollower.h>
+
 
 class RobotController_Omnidrive_OrthogonalExponential : public RobotController
 {

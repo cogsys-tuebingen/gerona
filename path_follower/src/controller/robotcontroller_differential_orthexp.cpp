@@ -11,6 +11,8 @@
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
+#include <path_follower/utils/pose_tracker.h>
+#include <path_follower/utils/visualizer.h>
 
 // SYSTEM
 #include <deque>
@@ -71,7 +73,7 @@ void RobotController_Differential_OrthogonalExponential::lookAt(const geometry_m
 void RobotController_Differential_OrthogonalExponential::keepHeading()
 {
     view_direction_ = KeepHeading;
-    theta_des_ = path_driver_->getRobotPose()[2];
+    theta_des_ = pose_tracker_.getRobotPose()[2];
 }
 
 void RobotController_Differential_OrthogonalExponential::rotate()
@@ -106,7 +108,7 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
     *cmd = MoveCommand(true);
 
     if(path_interpol.n() < 2) {
-        ROS_ERROR("[Line] path is too short (N = %u)", path_interpol.n());
+        ROS_ERROR("[Line] path is too short (N = %zu)", path_interpol.n());
 
         stopMotion();
         return MoveCommandStatus::REACHED_GOAL;
@@ -126,7 +128,7 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
 //    path_driver_->getCoursePredictor().unfreeze();
 
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
-    Eigen::Vector3d current_pose = path_driver_->getRobotPose();
+    Eigen::Vector3d current_pose = pose_tracker_.getRobotPose();
 
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
@@ -254,7 +256,7 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
 
     //distance_to_goal_ = hypot(x_meas - path_interpol.p(path_interpol.n()-1), y_meas - path_interpol.q(path_interpol.n()-1));
 
-    double angular_vel = path_driver_->getVelocity().angular.z;
+    double angular_vel = pose_tracker_.getVelocity().angular.z;
     //***//
 
 
@@ -276,7 +278,7 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
     //***//
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(path_driver_->getFixedFrameId(), 1, pose_tracker_.getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
 

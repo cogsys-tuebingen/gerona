@@ -12,7 +12,7 @@
 /// PROJECT
 #include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
-#include <path_follower/pathfollower.h>
+
 #include <path_follower/utils/extended_kalman_filter.h>
 
 class RobotController_ICR_CCW : public RobotController_Interpolation

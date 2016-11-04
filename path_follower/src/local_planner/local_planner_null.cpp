@@ -2,12 +2,12 @@
 #include <path_follower/local_planner/local_planner_null.h>
 
 /// PROJECT
-#include <path_follower/pathfollower.h>
-#include <path_follower/controller/robotcontroller.h>
 
-LocalPlannerNull::LocalPlannerNull(PathFollower &follower,
-                                   tf::Transformer &transformer)
-    : LocalPlanner(follower, transformer)
+#include <path_follower/controller/robotcontroller.h>
+#include <path_follower/utils/pose_tracker.h>
+
+LocalPlannerNull::LocalPlannerNull(RobotController &follower, PoseTracker &pose_tracker)
+    : LocalPlanner(follower, pose_tracker)
 {
 
 }
@@ -20,7 +20,7 @@ void LocalPlannerNull::setGlobalPath(Path::Ptr path)
      */
     LocalPlanner::setGlobalPath(path);
 
-    follower_.getController()->setPath(path);
+    controller_.setPath(path);
 }
 
 Path::Ptr LocalPlannerNull::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,

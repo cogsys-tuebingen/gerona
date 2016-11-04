@@ -9,7 +9,7 @@
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/multiplepidwrapper.h>
-#include <path_follower/pathfollower.h>
+
 
 class RobotController_Omnidrive_VirtualVehicle : public RobotController
 {

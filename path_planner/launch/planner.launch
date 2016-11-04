@@ -2,10 +2,10 @@
 <launch>
    <node name="path_planner" type="path_planner_node" pkg="path_planner"
     		output="screen" respawn="true">
-        <param name="use_map_topic" value="false" />
+        <param name="use_map_topic" value="true" />
         <param name="use_map_service" value="false" />
         <param name="map_service" value="/dynamic_map" />
-        <param name="map_topic" value="/global_cost_map" />
+        <param name="map_topic" value="/map" />
         <param name="map_cloud" value="true" />
         <param name="use_unknown_cells" value="true" />
         <param name="use_cost_map" value="false" />
@@ -34,6 +34,6 @@
         <param name="size/width" value="0.70" />
 
         <remap from="/obstacles" to="/obstacle_cloud" />
-        <remap from="/scan/front/filtered" to="/sick_s300_front/filtered" />
+        <remap from="/scan/front/filtered" to="/scan" />
     </node>
 </launch>

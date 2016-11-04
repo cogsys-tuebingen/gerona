@@ -7,8 +7,7 @@
 class LocalPlannerTransformer : public LocalPlannerImplemented
 {
 public:
-    LocalPlannerTransformer(PathFollower& controller,
-                            tf::Transformer &transformer,
+    LocalPlannerTransformer(RobotController& controller, PoseTracker& pose_tracker,
                             const ros::Duration& update_interval);
     virtual void setParams(int nnodes, int ic, double dis2p, double adis, double fdis, double s_angle,
                            int ia, double lmf, int max_level, double mu, double ef) override;

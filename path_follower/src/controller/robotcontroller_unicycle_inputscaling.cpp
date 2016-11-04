@@ -6,6 +6,8 @@
 
 #include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
+#include <path_follower/utils/pose_tracker.h>
+#include <path_follower/utils/visualizer.h>
 
 #include <visualization_msgs/Marker.h>
 
@@ -32,7 +34,7 @@ RobotController_Unicycle_InputScaling::RobotController_Unicycle_InputScaling(Pat
     ROS_INFO("Parameters: k=%f\n"
                 "vehicle_length=%f\n"
                 "goal_tolerance=%f\n"
-                "max_angular_velocity=%f\nmax_angular_velocity=%f",
+                "max_angular_velocity=%f",
                 params_.k(),
                 params_.vehicle_length(),
                 params_.goal_tolerance(),
@@ -87,13 +89,13 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
     if(path_interpol.n() <= 2)
         return RobotController::MoveCommandStatus::ERROR;
 
-    const Eigen::Vector3d pose = path_driver_->getRobotPose();
+    const Eigen::Vector3d pose = pose_tracker_.getRobotPose();
 
 //    double x_meas = pose[0];
 //    double y_meas = pose[1];
 //    double theta_meas = pose[2];
 
-    const geometry_msgs::Twist v_meas_twist = path_driver_->getVelocity();
+    const geometry_msgs::Twist v_meas_twist = pose_tracker_.getVelocity();
 
     double velocity_measured = dir_sign_ * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
             + v_meas_twist.linear.y * v_meas_twist.linear.y);

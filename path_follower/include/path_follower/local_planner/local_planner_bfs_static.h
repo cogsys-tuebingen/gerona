@@ -8,8 +8,8 @@
 class LocalPlannerBFSStatic : public LocalPlannerBFS, public LocalPlannerStatic
 {
 public:
-    LocalPlannerBFSStatic(PathFollower& controller, tf::Transformer &transformer,
-                       const ros::Duration& update_interval);
+    LocalPlannerBFSStatic(RobotController& controller, PoseTracker& pose_tracker,
+                          const ros::Duration& update_interval);
 private:
     virtual void evaluate(double& current_p, LNode*& succ, double& dis2last,
                           const std::vector<Scorer::Ptr>& scorer,
