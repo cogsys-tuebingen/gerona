@@ -120,13 +120,13 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 PathFollower::~PathFollower()
 {
 }
+
 void PathFollower::setObstacles(const std::shared_ptr<ObstacleCloud const> &msg)
 {
     obstacle_cloud_ = msg;
 
     obstacle_avoider_->setObstacles(msg);
 }
-
 
 
 boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
@@ -292,11 +292,6 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
     }
 }
 
-void PathFollower::setStatus(int status)
-{
-    // TODO: don't use status this way...
-}
-
 PoseTracker& PathFollower::getPoseTracker()
 {
     return *pose_tracker_;
@@ -340,11 +335,6 @@ Visualizer& PathFollower::getVisualizer() const
 ros::NodeHandle& PathFollower::getNodeHandle()
 {
     return node_handle_;
-}
-
-std::shared_ptr<ObstacleCloud const> PathFollower::getObstacleCloud() const
-{
-    return obstacle_cloud_;
 }
 
 bool PathFollower::isRunning() const

@@ -64,14 +64,11 @@ public:
 
     ros::NodeHandle& getNodeHandle();
 
-    std::shared_ptr<ObstacleCloud const> getObstacleCloud() const;
     void setObstacles(const std::shared_ptr<ObstacleCloud const>&);
 
     CoursePredictor &getCoursePredictor();
     std::shared_ptr<Path> getPath();
     std::string getFixedFrameId();
-
-    /*ROS_DEPRECATED*/ void setStatus(int status);
 
 private:
     /**
@@ -101,9 +98,6 @@ private:
     ros::Publisher whole_local_path_pub_;
     //! Publisher for the path points of the global path
     ros::Publisher g_points_pub_;
-
-    //! Subscriber for the obstacle point cloud (used by ObstacleAvoider).
-
 
     std::shared_ptr<PoseTracker> pose_tracker_;
 
