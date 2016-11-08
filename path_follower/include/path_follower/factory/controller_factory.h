@@ -29,8 +29,10 @@ public:
 
 private:
     std::shared_ptr<RobotController> makeController(const std::string &name);
-    std::shared_ptr<LocalPlanner> makeLocalPlanner(const std::string &name);
     std::shared_ptr<ObstacleAvoider> makeObstacleAvoider(const std::string &name);
+
+    std::shared_ptr<LocalPlanner> makeConstrainedLocalPlanner(const std::string &name);
+    std::shared_ptr<LocalPlanner> makeLocalPlanner(const std::string &name);
 
 private:
     PathFollower &follower_;

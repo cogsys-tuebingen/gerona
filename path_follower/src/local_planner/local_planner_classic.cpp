@@ -35,8 +35,7 @@ void LocalPlannerClassic::setGlobalPath(Path::Ptr path){
 }
 
 void LocalPlannerClassic::getSuccessors(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
-                                        std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                                        const std::vector<bool>& fconstraints, std::vector<LNode>& twins, bool repeat){
+                                        std::vector<LNode>& nodes, std::vector<LNode>& twins, bool repeat){
     successors.clear();
     twins.resize(nsucc_);
     bool add_n = true;
@@ -72,7 +71,7 @@ void LocalPlannerClassic::getSuccessors(LNode*& current, std::size_t& nsize, std
         LNode succ(x,y,theta,current,rt,current->level_+1);
         setDistances(succ);
 
-        if(areConstraintsSAT(succ,constraints,fconstraints)){
+        if(areConstraintsSAT(succ)){
             int wo = -1;
             if(!isInGraph(succ,nodes,nsize,wo)){
                 if(add_n){
@@ -652,31 +651,31 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
     new_s = global_path_.s(index1);
 }
 
-void LocalPlannerClassic::initConstraints(const std::vector<Constraint::Ptr>& constraints,
-                                          const std::vector<bool>& fconstraints){
-    if(fconstraints.at(0)){
-        std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->setParams(d2p);
-    }
-}
-
-void LocalPlannerClassic::setNormalizer(const std::vector<Constraint::Ptr>& constraints,
-                                        const std::vector<bool>& fconstraints){
-    if(fconstraints.at(0)){
-        double n_limit = std::dynamic_pointer_cast<Dis2Path_Constraint>(constraints.at(0))->getLimit();
-        Dis2PathP_Scorer::setMaxD(n_limit);
-        Dis2PathD_Scorer::setMaxD(n_limit);
-    }
-}
-
-bool LocalPlannerClassic::areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
-                                            const std::vector<bool>& fconstraints){
-    bool rval = true;
-    for(std::size_t i = 0; i < constraints.size(); ++i){
-        if(fconstraints.at(i)){
-            rval = rval && constraints.at(i)->isSatisfied(current);
+void LocalPlannerClassic::initConstraints(){
+    for(Constraint::Ptr c : constraints) {
+        if(auto d2pc = std::dynamic_pointer_cast<Dis2Path_Constraint>(c)) {
+            d2pc->setParams(d2p);
         }
     }
-    return rval;
+}
+
+void LocalPlannerClassic::setNormalizer(){
+    for(Constraint::Ptr c : constraints) {
+        if(auto d2pc = std::dynamic_pointer_cast<Dis2Path_Constraint>(c)) {
+            double n_limit = d2pc->getLimit();
+            Dis2PathP_Scorer::setMaxD(n_limit);
+            Dis2PathD_Scorer::setMaxD(n_limit);
+        }
+    }
+}
+
+bool LocalPlannerClassic::areConstraintsSAT(const LNode& current){
+    for(Constraint::Ptr c : constraints) {
+        if(!c->isSatisfied(current)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void LocalPlannerClassic::smoothAndInterpolate(SubPath& local_wps){
@@ -698,8 +697,7 @@ double LocalPlannerClassic::Heuristic(const LNode& current, const double& dis2la
     return dis2last - current.s;
 }
 
-double LocalPlannerClassic::Cost(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
-                                 const std::vector<double>& wscorer, double& score){
+double LocalPlannerClassic::Cost(const LNode& current, double& score){
     double cost = 0.0;
     if(current.parent_ != nullptr){
         if(current.radius_ == std::numeric_limits<double>::infinity()){
@@ -709,16 +707,16 @@ double LocalPlannerClassic::Cost(const LNode& current, const std::vector<Scorer:
             cost += current.radius_*theta;
         }
     }
-    score = Score(current,scorer,wscorer);
+    score = Score(current);
     cost += score;
     return cost;
 }
 
-double LocalPlannerClassic::Score(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
-                                  const std::vector<double>& wscorer){
+double LocalPlannerClassic::Score(const LNode& current){
     double score = 0.0;
-    for(std::size_t i = 0; i < scorer.size(); ++i){
-        score += ((wscorer.at(i) != 0.0)?(wscorer.at(i)*scorer.at(i)->score(current)):0.0);
+    for(std::size_t i = 0; i < scorers.size(); ++i){
+        Scorer::Ptr scorer = scorers.at(i);
+        score += scorer->calculateScore(current);
     }
     return score;
 }
@@ -769,8 +767,7 @@ void LocalPlannerClassic::printLevelReached() const{
     ROS_INFO_STREAM("Reached Level: " << r_level << "/" << li_level);
 }
 
-bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::vector<Constraint::Ptr>& constraints,
-                                            const std::vector<bool>& fconstraints, bool allow_lines){
+bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_lines){
     LNode* s = s_p->parent_;
     bool line = false;
     if(s->parent_ == nullptr){
@@ -831,7 +828,8 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, const std::
     alt.parent_ = parent;
     alt.radius_ = R;
     setDistances(alt);
-    return areConstraintsSAT(alt,constraints,fconstraints);
+
+    return areConstraintsSAT(alt);
 }
 
 double LocalPlannerClassic::computeFrontier(double& angle){
@@ -849,13 +847,20 @@ double LocalPlannerClassic::computeFrontier(double& angle){
 }
 
 bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
-                               const std::vector<Constraint::Ptr>& constraints,
-                               const std::vector<Scorer::Ptr>& scorer,
-                               const std::vector<bool>& fconstraints,
-                               const std::vector<double>& wscorer,
                                std::size_t& nnodes){
     initIndexes(pose);
-    b_obst = fconstraints.back() || wscorer.back() != 0;
+    b_obst = false;
+    // check if an obstacle-dependent scorer or constraint exists
+    for(Constraint::Ptr c : constraints) {
+        if(std::dynamic_pointer_cast<Dis2Obst_Constraint>(c)) {
+           b_obst = true;
+        }
+    }
+    for(Scorer::Ptr s : scorers) {
+        if(std::dynamic_pointer_cast<Dis2Obst_Scorer>(s)) {
+           b_obst = true;
+        }
+    }
 
     LNode wpose(pose(0),pose(1),pose(2),nullptr,std::numeric_limits<double>::infinity(),0);
     setDistances(wpose);
@@ -870,14 +875,14 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     retrieveContinuity(wpose);
     setD2P(wpose);
-    initConstraints(constraints,fconstraints);
+    initConstraints();
 
     std::vector<LNode> nodes(nnodes_);
     LNode* obj = nullptr;
 
-    setNormalizer(constraints,fconstraints);
+    setNormalizer();
 
-    setInitScores(wpose, scorer, wscorer, dis2last);
+    setInitScores(wpose, dis2last);
 
     nodes.at(0) = wpose;
 
@@ -898,19 +903,19 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         push2Closed(current);
 
         std::vector<LNode*> successors;
-        expandCurrent(current, nnodes, successors, nodes, constraints, fconstraints);
-        setNormalizer(constraints,fconstraints);
+        expandCurrent(current, nnodes, successors, nodes);
+        setNormalizer();
         updateLeaves(successors, current);
         for(std::size_t i = 0; i < successors.size(); ++i){
             double current_p;
-            if(!processSuccessor(successors[i], current, current_p, dis2last, constraints, scorer, fconstraints, wscorer)){
+            if(!processSuccessor(successors[i], current, current_p, dis2last)){
                 continue;
             }
             addLeaf(successors[i]);
             updateBest(current_p,best_p,obj,successors[i]);
         }
     }
-    reconfigureTree(obj, nodes, best_p, constraints, scorer, fconstraints,wscorer);
+    reconfigureTree(obj, nodes, best_p);
     //!
     if(obj != nullptr){
         return processPath(obj, local_wps);

@@ -10,10 +10,6 @@ public:
     LocalPlannerAStar();
 private:
     virtual double G(LNode*& current, LNode*& succ,
-                     const std::vector<Constraint::Ptr>& constraints,
-                     const std::vector<Scorer::Ptr>& scorer,
-                     const std::vector<bool>& fconstraints,
-                     const std::vector<double>& wscorer,
                      double& score) override;
 
     virtual void updateSucc(LNode*& current, LNode*& f_current, LNode& succ) override;

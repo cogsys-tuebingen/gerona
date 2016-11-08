@@ -12,11 +12,7 @@ class LocalPlannerImplemented : public LocalPlanner
 public:
     LocalPlannerImplemented();
 
-    virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
-                                      const std::vector<Scorer::Ptr>& scorer,
-                                      const std::vector<bool>& fconstraints,
-                                      const std::vector<double>& wscorer,
-                                      Path::Ptr& wlp) override;
+    virtual Path::Ptr updateLocalPath(Path::Ptr& wlp) override;
 
     virtual void setGlobalPath(Path::Ptr path) override;
 private:
@@ -24,19 +20,12 @@ private:
 
     void setPath(Path::Ptr& local_path, Path::Ptr& wlp, SubPath& local_wps, ros::Time& now);
 
-    void printSCTimeUsage(const std::vector<Constraint::Ptr>& constraints,
-                          const std::vector<Scorer::Ptr>& scorer,
-                          const std::vector<bool>& fconstraints,
-                          const std::vector<double>& wscorer);
+    void printSCTimeUsage();
 
     virtual void printNodeUsage(std::size_t& nnodes) const = 0;
     virtual void printVelocity() = 0;
     virtual void printLevelReached() const = 0;
     virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
-                     const std::vector<Constraint::Ptr>& constraints,
-                     const std::vector<Scorer::Ptr>& scorer,
-                     const std::vector<bool>& fconstraints,
-                     const std::vector<double>& wscorer,
                      std::size_t& nnodes) = 0;
 protected:
     SubPath waypoints, wlp_;

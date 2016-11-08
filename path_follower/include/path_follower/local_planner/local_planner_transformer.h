@@ -18,10 +18,6 @@ private:
     virtual void printVelocity() override;
     virtual void printLevelReached() const override;
     virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
-                     const std::vector<Constraint::Ptr>& constraints,
-                     const std::vector<Scorer::Ptr>& scorer,
-                     const std::vector<bool>& fconstraints,
-                     const std::vector<double>& wscorer,
                      std::size_t& nnodes) override;
 };
 

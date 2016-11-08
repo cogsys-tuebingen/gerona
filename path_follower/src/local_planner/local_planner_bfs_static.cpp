@@ -9,8 +9,7 @@ LocalPlannerBFSStatic::LocalPlannerBFSStatic()
 
 }
 
-void LocalPlannerBFSStatic::evaluate(double& current_p, LNode*& succ, double& dis2last,
-              const std::vector<Scorer::Ptr>& scorer,
-              const std::vector<double>& wscorer){
-    current_p = Heuristic(*succ, dis2last) + Score(*succ, scorer, wscorer);
+void LocalPlannerBFSStatic::evaluate(double& current_p, LNode*& succ, double& dis2last)
+{
+    current_p = Heuristic(*succ, dis2last) + Score(*succ);
 }

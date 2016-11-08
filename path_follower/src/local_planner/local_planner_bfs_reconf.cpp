@@ -9,12 +9,8 @@ LocalPlannerBFSReconf::LocalPlannerBFSReconf()
 
 }
 
-void LocalPlannerBFSReconf::evaluate(double& current_p, LNode*& succ, double& dis2last,
-              const std::vector<Scorer::Ptr>& scorer,
-              const std::vector<double>& wscorer){
+void LocalPlannerBFSReconf::evaluate(double& current_p, LNode*& succ, double& dis2last){
     (void) current_p;
     (void) succ;
     (void) dis2last;
-    (void) scorer;
-    (void) wscorer;
 }

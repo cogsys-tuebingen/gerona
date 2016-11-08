@@ -56,7 +56,7 @@ void ControllerFactory::construct(std::shared_ptr<RobotController>& out_controll
 {
     out_controller = makeController(opt_.controller());
 
-    out_local_planner = makeLocalPlanner(opt_.algo());
+    out_local_planner = makeConstrainedLocalPlanner(opt_.algo());
 
     out_obstacle_avoider = makeObstacleAvoider(opt_.controller());
 
@@ -130,6 +130,46 @@ std::shared_ptr<RobotController> ControllerFactory::makeController(const std::st
     } else {
         throw std::logic_error("Unknown robot controller. Shutdown.");
     }
+}
+
+std::shared_ptr<LocalPlanner> ControllerFactory::makeConstrainedLocalPlanner(const std::string& name)
+{
+    std::shared_ptr<LocalPlanner> local_planner = makeLocalPlanner(name);
+
+    //Begin Constraints and Scorers Construction
+    if(opt_.c1()){
+        local_planner->addConstraint(Dis2Path_Constraint::Ptr(new Dis2Path_Constraint));
+    }
+
+    if(opt_.c2()){
+        local_planner->addConstraint(Dis2Obst_Constraint::Ptr(new Dis2Obst_Constraint));
+    }
+
+    if(opt_.s1() != 0.0){
+        local_planner->addScorer(Dis2PathP_Scorer::Ptr(new Dis2PathP_Scorer), opt_.s1());
+    }
+
+    if(opt_.s2() != 0.0){
+        local_planner->addScorer(Dis2PathD_Scorer::Ptr(new Dis2PathD_Scorer), opt_.s2());
+    }
+
+    if(opt_.s3() != 0.0){
+        local_planner->addScorer(Curvature_Scorer::Ptr(new Curvature_Scorer), opt_.s3());
+    }
+
+    if(opt_.s4() != 0.0){
+        local_planner->addScorer(CurvatureD_Scorer::Ptr(new CurvatureD_Scorer), opt_.s4());
+    }
+
+    if(opt_.s5() != 0.0){
+        local_planner->addScorer(Level_Scorer::Ptr(new Level_Scorer), opt_.s5());
+    }
+
+    if(opt_.s6() != 0.0){
+        local_planner->addScorer(Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer), opt_.s6());
+    }
+
+    return local_planner;
 }
 
 std::shared_ptr<LocalPlanner> ControllerFactory::makeLocalPlanner(const std::string &name)

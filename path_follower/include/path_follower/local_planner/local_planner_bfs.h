@@ -10,8 +10,7 @@ class LocalPlannerBFS : virtual public LocalPlannerClassic
 public:
     LocalPlannerBFS();
 private:
-    virtual void setInitScores(LNode& wpose, const std::vector<Scorer::Ptr>& scorer,
-                               const std::vector<double>& wscorer, double& dis2last) override;
+    virtual void setInitScores(LNode& wpose, double& dis2last) override;
 
     virtual void initQueue(LNode& root) override;
 
@@ -24,19 +23,12 @@ private:
     virtual void push2Closed(LNode*& current) override;
 
     virtual void expandCurrent(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
-                               std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                               const std::vector<bool>& fconstraints) override;
+                               std::vector<LNode>& nodes) override;
 
     virtual bool processSuccessor(LNode*& succ, LNode*& current,
-                                  double& current_p,double& dis2last,
-                                  const std::vector<Constraint::Ptr>& constraints,
-                                  const std::vector<Scorer::Ptr>& scorer,
-                                  const std::vector<bool>& fconstraints,
-                                  const std::vector<double>& wscorer) override;
+                                  double& current_p,double& dis2last) override;
 
-    virtual void evaluate(double& current_p, LNode*& succ, double& dis2last,
-                          const std::vector<Scorer::Ptr>& scorer,
-                          const std::vector<double>& wscorer) = 0;
+    virtual void evaluate(double& current_p, LNode*& succ, double& dis2last) = 0;
 private:
     std::queue<LNode*> fifo;
 };

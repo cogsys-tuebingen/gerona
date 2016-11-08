@@ -18,20 +18,16 @@ public:
 
 protected:
     void getSuccessors(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
-                       std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                       const std::vector<bool>& fconstraints, std::vector<LNode>& twins = EMPTYTWINS,
+                       std::vector<LNode>& nodes, std::vector<LNode>& twins = EMPTYTWINS,
                        bool repeat = false);
 
     double Heuristic(const LNode& current, const double& dis2last);
 
-    double Cost(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
-                const std::vector<double>& wscorer, double& score);
+    double Cost(const LNode& current, double& score);
 
-    double Score(const LNode& current, const std::vector<Scorer::Ptr>& scorer,
-                 const std::vector<double>& wscorer);
+    double Score(const LNode& current);
 
-    bool createAlternative(LNode*& s_p, LNode& alt, const std::vector<Constraint::Ptr>& constraints,
-                           const std::vector<bool>& fconstraints, bool allow_lines = false);
+    bool createAlternative(LNode*& s_p, LNode& alt, bool allow_lines = false);
 
 private:
     void setDistances(LNode& current);
@@ -46,14 +42,11 @@ private:
 
     bool isInGraph(const LNode& current, std::vector<LNode>& nodes, std::size_t& asize, int& position);
 
-    bool areConstraintsSAT(const LNode& current, const std::vector<Constraint::Ptr>& constraints,
-                           const std::vector<bool>& fconstraints);
+    bool areConstraintsSAT(const LNode& current);
 
-    void initConstraints(const std::vector<Constraint::Ptr>& constraints,
-                         const std::vector<bool>& fconstraints);
+    void initConstraints();
 
-    void setNormalizer(const std::vector<Constraint::Ptr>& constraints,
-                         const std::vector<bool>& fconstraints);
+    void setNormalizer();
 
     void initIndexes(Eigen::Vector3d& pose);
 
@@ -80,10 +73,6 @@ private:
     double computeFrontier(double& angle);
 
     virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
-                     const std::vector<Constraint::Ptr>& constraints,
-                     const std::vector<Scorer::Ptr>& scorer,
-                     const std::vector<bool>& fconstraints,
-                     const std::vector<double>& wscorer,
                      std::size_t& nnodes) override;
 
     virtual void printNodeUsage(std::size_t& nnodes) const override;
@@ -100,14 +89,9 @@ private:
 
     virtual void addLeaf(LNode*& node) = 0;
 
-    virtual void reconfigureTree(LNode*& obj, std::vector<LNode>& nodes, double& best_p,
-                                 const std::vector<Constraint::Ptr>& constraints,
-                                 const std::vector<Scorer::Ptr>& scorer,
-                                 const std::vector<bool>& fconstraints,
-                                 const std::vector<double>& wscorer) = 0;
+    virtual void reconfigureTree(LNode*& obj, std::vector<LNode>& nodes, double& best_p) = 0;
 
-    virtual void setInitScores(LNode& wpose, const std::vector<Scorer::Ptr>& scorer,
-                               const std::vector<double>& wscorer, double& dis2last) = 0;
+    virtual void setInitScores(LNode& wpose, double& dis2last) = 0;
 
     virtual void initQueue(LNode& root) = 0;
 
@@ -120,15 +104,10 @@ private:
     virtual void push2Closed(LNode*& current) = 0;
 
     virtual void expandCurrent(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
-                               std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                               const std::vector<bool>& fconstraints) = 0;
+                               std::vector<LNode>& nodes) = 0;
 
     virtual bool processSuccessor(LNode*& succ, LNode*& current,
-                                  double& current_p, double& dis2last,
-                                  const std::vector<Constraint::Ptr>& constraints,
-                                  const std::vector<Scorer::Ptr>& scorer,
-                                  const std::vector<bool>& fconstraints,
-                                  const std::vector<double>& wscorer) = 0;
+                                  double& current_p, double& dis2last) = 0;
 
 private:
     static constexpr double L = 0.458;//(Distance between front and rear axis of Summit XL)

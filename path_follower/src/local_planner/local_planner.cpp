@@ -73,3 +73,15 @@ void LocalPlanner::setObstacleCloud(const std::shared_ptr<ObstacleCloud const> &
     transformer_->lookupTransform("odom", "base_link", now, base_to_odom);
     odom_to_base = base_to_odom.inverse();
 }
+
+
+void LocalPlanner::addConstraint(Constraint::Ptr constraint)
+{
+    constraints.push_back(constraint);
+}
+
+void LocalPlanner::addScorer(Scorer::Ptr scorer, double weight)
+{
+    scorer->setWeight(weight);
+    scorers.push_back(scorer);
+}

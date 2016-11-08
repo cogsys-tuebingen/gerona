@@ -22,16 +22,8 @@ void LocalPlannerNull::setGlobalPath(Path::Ptr path)
     controller_->setPath(path);
 }
 
-Path::Ptr LocalPlannerNull::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
-                                            const std::vector<Scorer::Ptr>& scorer,
-                                            const std::vector<bool>& fconstraints,
-                                            const std::vector<double>& wscorer,
-                                            Path::Ptr& wlp)
+Path::Ptr LocalPlannerNull::updateLocalPath(Path::Ptr& wlp)
 {
-    (void) constraints;
-    (void) scorer;
-    (void) fconstraints;
-    (void) wscorer;
     (void) wlp;
     // do nothing
     return nullptr;

@@ -9,8 +9,7 @@ class LocalPlannerStar : virtual public LocalPlannerClassic
 public:
     LocalPlannerStar();
 private:
-    virtual void setInitScores(LNode& wpose, const std::vector<Scorer::Ptr>& scorer,
-                               const std::vector<double>& wscorer, double& dis2last) override;
+    virtual void setInitScores(LNode& wpose, double& dis2last) override;
 
     virtual void initQueue(LNode& root) override;
 
@@ -23,23 +22,14 @@ private:
     virtual void push2Closed(LNode*& current) override;
 
     virtual void expandCurrent(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
-                               std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                               const std::vector<bool>& fconstraints) override;
+                               std::vector<LNode>& nodes) override;
 
     virtual bool processSuccessor(LNode*& succ, LNode*& current,
-                                  double& current_p,double& dis2last,
-                                  const std::vector<Constraint::Ptr>& constraints,
-                                  const std::vector<Scorer::Ptr>& scorer,
-                                  const std::vector<bool>& fconstraints,
-                                  const std::vector<double>& wscorer) override;
+                                  double& current_p,double& dis2last) override;
 
     virtual double f(double& g, double& score, double& heuristic) = 0;
 
     virtual double G(LNode*& current, LNode*& succ,
-                     const std::vector<Constraint::Ptr>& constraints,
-                     const std::vector<Scorer::Ptr>& scorer,
-                     const std::vector<bool>& fconstraints,
-                     const std::vector<double>& wscorer,
                      double& score) = 0;
 
     virtual void updateSucc(LNode*& current, LNode*& f_current, LNode& succ) = 0;

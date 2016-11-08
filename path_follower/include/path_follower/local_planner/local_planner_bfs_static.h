@@ -10,9 +10,7 @@ class LocalPlannerBFSStatic : public LocalPlannerBFS, public LocalPlannerStatic
 public:
     LocalPlannerBFSStatic();
 private:
-    virtual void evaluate(double& current_p, LNode*& succ, double& dis2last,
-                          const std::vector<Scorer::Ptr>& scorer,
-                          const std::vector<double>& wscorer) override;
+    virtual void evaluate(double& current_p, LNode*& succ, double& dis2last) override;
 };
 
 #endif // LOCAL_PLANNER_BFS_STATIC_H

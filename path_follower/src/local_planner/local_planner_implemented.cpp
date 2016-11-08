@@ -77,27 +77,16 @@ void LocalPlannerImplemented::setPath(Path::Ptr& local_path, Path::Ptr& wlp, Sub
     last_update_ = now;
 }
 
-void LocalPlannerImplemented::printSCTimeUsage(const std::vector<Constraint::Ptr>& constraints,
-                                           const std::vector<Scorer::Ptr>& scorer,
-                                           const std::vector<bool>& fconstraints,
-                                           const std::vector<double>& wscorer){
+void LocalPlannerImplemented::printSCTimeUsage(){
     for(std::size_t i = 0; i < constraints.size(); ++i){
-        if(fconstraints.at(i)){
-            ROS_INFO_STREAM("Constraint #" << (i+1) << " took " << constraints.at(i)->nsUsed()/1000.0 << " us");
-        }
+        ROS_INFO_STREAM("Constraint #" << (i+1) << " took " << constraints.at(i)->nsUsed()/1000.0 << " us");
     }
-    for(std::size_t i = 0; i < scorer.size(); ++i){
-        if(wscorer.at(i) != 0.0){
-            ROS_INFO_STREAM("Scorer #" << (i+1) << " took " << scorer.at(i)->nsUsed()/1000.0 << " us");
-        }
+    for(std::size_t i = 0; i < scorers.size(); ++i){
+        ROS_INFO_STREAM("Scorer #" << (i+1) << " took " << scorers.at(i)->nsUsed()/1000.0 << " us");
     }
 }
 
-Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
-                                                   const std::vector<Scorer::Ptr>& scorer,
-                                                   const std::vector<bool>& fconstraints,
-                                                   const std::vector<double>& wscorer,
-                                                   Path::Ptr& wlp)
+Path::Ptr LocalPlannerImplemented::updateLocalPath(Path::Ptr& wlp)
 {
     ros::Time now = ros::Time::now();
     Stopwatch gsw;
@@ -148,7 +137,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         SubPath local_wps;
         local_wps.forward = true;
 
-        if(!algo(pose, local_wps, constraints, scorer, fconstraints, wscorer, nnodes)){
+        if(!algo(pose, local_wps, nnodes)){
             if(!wlp_.empty()){
                 wlp->setPath({wlp_});
             }
@@ -162,7 +151,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(const std::vector<Constraint:
         printVelocity();
         printNodeUsage(nnodes);
         printLevelReached();
-        printSCTimeUsage(constraints, scorer, fconstraints, wscorer);
+        printSCTimeUsage();
 
         ROS_INFO_STREAM("Local Planner duration: " << (end_t/1000.0) << " ms");
 

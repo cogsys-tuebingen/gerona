@@ -12,9 +12,8 @@ LocalPlannerStar::LocalPlannerStar()
 
 }
 
-void LocalPlannerStar::setInitScores(LNode& wpose, const std::vector<Scorer::Ptr>& scorer,
-                   const std::vector<double>& wscorer, double& dis2last){
-    wpose.gScore_ = Cost(wpose, scorer, wscorer, score);
+void LocalPlannerStar::setInitScores(LNode& wpose, double& dis2last){
+    wpose.gScore_ = Cost(wpose, score);
     heuristic = Heuristic(wpose, dis2last);
     wpose.fScore_ = f(wpose.gScore_,score,heuristic);
 }
@@ -43,25 +42,20 @@ void LocalPlannerStar::push2Closed(LNode*& current){
 }
 
 void LocalPlannerStar::expandCurrent(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
-                           std::vector<LNode>& nodes, const std::vector<Constraint::Ptr>& constraints,
-                           const std::vector<bool>& fconstraints){
+                           std::vector<LNode>& nodes){
     twins.clear();
-    getSuccessors(current, nsize, successors, nodes, constraints, fconstraints, twins, true);
+    getSuccessors(current, nsize, successors, nodes, twins, true);
 }
 
 bool LocalPlannerStar::processSuccessor(LNode*& succ, LNode*& current,
-                                        double& current_p,double& dis2last,
-                                        const std::vector<Constraint::Ptr>& constraints,
-                                        const std::vector<Scorer::Ptr>& scorer,
-                                        const std::vector<bool>& fconstraints,
-                                        const std::vector<double>& wscorer){
+                                        double& current_p, double& dis2last){
     if(std::find(closedSet.begin(), closedSet.end(), succ) != closedSet.end()){
         succ->twin_ = nullptr;
         return false;
     }
 
     LNode* for_current = current;
-    double tentative_gScore = G(for_current,succ,constraints,scorer,fconstraints,wscorer,score);
+    double tentative_gScore = G(for_current,succ,score);
 
     if(tentative_gScore >= succ->gScore_){
         succ->twin_ = nullptr;

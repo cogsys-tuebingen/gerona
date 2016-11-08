@@ -36,17 +36,16 @@ public:
 
     virtual void reset();
 
-    virtual Path::Ptr updateLocalPath(const std::vector<Constraint::Ptr>& constraints,
-                                      const std::vector<Scorer::Ptr>& scorer,
-                                      const std::vector<bool>& fconstraints,
-                                      const std::vector<double>& wscorer,
-                                      Path::Ptr& wlp) = 0;
+    virtual Path::Ptr updateLocalPath(Path::Ptr& wlp) = 0;
 
     virtual bool isNull() const;
     virtual void setParams(int nnodes, int ic, double dis2p, double adis, double fdis, double s_angle,
                            int ia, double lmf, int max_level, double mu, double ef) = 0;
 
     void setObstacleCloud(const std::shared_ptr<ObstacleCloud const> &msg);
+
+    void addConstraint(Constraint::Ptr constraint);
+    void addScorer(Scorer::Ptr scorer, double weight);
 
 protected:
     LocalPlanner();
@@ -56,6 +55,9 @@ protected:
     RobotController* controller_;
     PoseTracker* pose_tracker_;
     tf::Transformer* transformer_;
+
+    std::vector<Constraint::Ptr> constraints;
+    std::vector<Scorer::Ptr> scorers;
 
     PathInterpolated global_path_;
 

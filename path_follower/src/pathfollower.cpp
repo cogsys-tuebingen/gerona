@@ -85,7 +85,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // Distance to path
     if (opt_.supervisor_use_distance_to_path()) {
         supervisors_->addSupervisor(Supervisor::Ptr(
-                                       new DistanceToPathSupervisor(opt_.supervisor_distance_to_path_max_dist())));
+                                        new DistanceToPathSupervisor(opt_.supervisor_distance_to_path_max_dist())));
     }
 
 
@@ -154,135 +154,90 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
                             feedback);
 
     Supervisor::Result s_res = supervisors_->supervise(state);
-    if (s_res.can_continue) {
+    if(!s_res.can_continue) {
+        ROS_WARN("My supervisor told me to stop.");
+        stop(s_res.status);
 
-        if(local_planner_->isNull()) {
-            is_running_ = execute(feedback, result);
-        } else  {
-            //Begin Constraints and Scorers Construction
-            //In case that more constraints or scorers need to be added, please add them
-            //before Dis2Obst_Constraint/Scorer
-            std::vector<Constraint::Ptr> constraints(2);
-            std::vector<bool> fconstraints(2);
-            if(opt_.c1()){
-                constraints.at(0) = Dis2Path_Constraint::Ptr(new Dis2Path_Constraint);
-            }
-            fconstraints.at(0) = opt_.c1();
+        return result;
 
-            if(opt_.c2()){
-                constraints.at(1) = Dis2Obst_Constraint::Ptr(new Dis2Obst_Constraint);
-            }
-            fconstraints.at(1) = opt_.c2();
+    }
 
-            std::vector<Scorer::Ptr> scorer(6);
-            std::vector<double> wscorer(6);
-            if(opt_.s1() != 0.0){
-                scorer.at(0) = Dis2PathP_Scorer::Ptr(new Dis2PathP_Scorer);
-            }
-            wscorer.at(0) = opt_.s1();
+    if(local_planner_->isNull()) {
+        is_running_ = execute(feedback, result);
 
-            if(opt_.s2() != 0.0){
-                scorer.at(1) = Dis2PathD_Scorer::Ptr(new Dis2PathD_Scorer);
-            }
-            wscorer.at(1) = opt_.s2();
+    } else  {
+        //End Constraints and Scorers Construction
+        publishPathMarker();
+        if(obstacle_cloud_ != nullptr){
+            local_planner_->setObstacleCloud(obstacle_cloud_);
+        }
+        if(opt_.use_v()){
+            local_planner_->setVelocity(pose_tracker_->getVelocity().linear);
+        }
 
-            if(opt_.s3() != 0.0){
-                scorer.at(2) = Curvature_Scorer::Ptr(new Curvature_Scorer);
-            }
-            wscorer.at(2) = opt_.s3();
-
-            if(opt_.s4() != 0.0){
-                scorer.at(3) = CurvatureD_Scorer::Ptr(new CurvatureD_Scorer);
-            }
-            wscorer.at(3) = opt_.s4();
-
-            if(opt_.s5() != 0.0){
-                scorer.at(4) = Level_Scorer::Ptr(new Level_Scorer);
-            }
-            wscorer.at(4) = opt_.s5();
-
-            if(opt_.s6() != 0.0){
-                scorer.at(5) = Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer);
-            }
-            wscorer.at(5) = opt_.s6();
-
-            //End Constraints and Scorers Construction
-            publishPathMarker();
-            if(obstacle_cloud_ != nullptr){
-                local_planner_->setObstacleCloud(obstacle_cloud_);
-            }
-            if(opt_.use_v()){
-                local_planner_->setVelocity(pose_tracker_->getVelocity().linear);
-            }
-
-            bool path_search_failure = false;
-            Path::Ptr local_path_whole(new Path("odom"));
-            try {
-                Path::Ptr local_path = local_planner_->updateLocalPath(constraints, scorer, fconstraints, wscorer, local_path_whole);
-                path_search_failure = local_path && local_path->empty();
-                if(local_path && !path_search_failure) {
-                    nav_msgs::Path path;
-                    path.header.stamp = ros::Time::now();
-                    path.header.frame_id = getFixedFrameId();
-                    for(int i = 0, sub = local_path->subPathCount(); i < sub; ++i) {
-                        const SubPath& p = local_path->getSubPath(i);
-                        for(const Waypoint& wp : p.wps) {
-                            geometry_msgs::PoseStamped pose;
-                            pose.pose.position.x = wp.x;
-                            pose.pose.position.y = wp.y;
-                            pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
-                            path.poses.push_back(pose);
-                        }
-                    }
-                    local_path_pub_.publish(path);
-                }
-
-                is_running_ = execute(feedback, result);
-
-            } catch(const std::runtime_error& e) {
-                ROS_ERROR_STREAM("Cannot find local_path: " << e.what());
-                path_search_failure = true;
-            }
-
-            if(path_search_failure) {
-                ROS_ERROR_STREAM("no local path found. there is an obstacle.");
-                feedback.status = path_msgs::FollowPathFeedback::MOTION_STATUS_OBSTACLE;
-                controller_->stopMotion();
-
-                // avoid RViz bug with empty paths!
+        bool path_search_failure = false;
+        Path::Ptr local_path_whole(new Path("odom"));
+        try {
+            Path::Ptr local_path = local_planner_->updateLocalPath(local_path_whole);
+            path_search_failure = local_path && local_path->empty();
+            if(local_path && !path_search_failure) {
                 nav_msgs::Path path;
                 path.header.stamp = ros::Time::now();
                 path.header.frame_id = getFixedFrameId();
-                geometry_msgs::PoseStamped pose;
-                pose.pose.position.x = std::numeric_limits<double>::quiet_NaN();
-                path.poses.push_back(pose);
-                local_path_pub_.publish(path);
-
-            } else {
-                if(local_path_whole->subPathCount() > 0){
-                    nav_msgs::Path wpath;
-                    wpath.header.stamp = ros::Time::now();
-                    wpath.header.frame_id = local_path_whole->getFrameId();
-                    for(int i = 0, sub = local_path_whole->subPathCount(); i < sub; ++i) {
-                        const SubPath& p = local_path_whole->getSubPath(i);
-                        for(const Waypoint& wp : p.wps) {
-                            geometry_msgs::PoseStamped pose;
-                            pose.pose.position.x = wp.x;
-                            pose.pose.position.y = wp.y;
-                            pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
-                            wpath.poses.push_back(pose);
-                        }
+                for(int i = 0, sub = local_path->subPathCount(); i < sub; ++i) {
+                    const SubPath& p = local_path->getSubPath(i);
+                    for(const Waypoint& wp : p.wps) {
+                        geometry_msgs::PoseStamped pose;
+                        pose.pose.position.x = wp.x;
+                        pose.pose.position.y = wp.y;
+                        pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
+                        path.poses.push_back(pose);
                     }
-                    whole_local_path_pub_.publish(wpath);
                 }
-
-                is_running_ = execute(feedback, result);
+                local_path_pub_.publish(path);
             }
+
+            is_running_ = execute(feedback, result);
+
+        } catch(const std::runtime_error& e) {
+            ROS_ERROR_STREAM("Cannot find local_path: " << e.what());
+            path_search_failure = true;
         }
 
-    } else {
-        ROS_WARN("My supervisor told me to stop.");
-        stop(s_res.status);
+        if(path_search_failure) {
+            ROS_ERROR_STREAM("no local path found. there is an obstacle.");
+            feedback.status = path_msgs::FollowPathFeedback::MOTION_STATUS_OBSTACLE;
+            controller_->stopMotion();
+
+            // avoid RViz bug with empty paths!
+            nav_msgs::Path path;
+            path.header.stamp = ros::Time::now();
+            path.header.frame_id = getFixedFrameId();
+            geometry_msgs::PoseStamped pose;
+            pose.pose.position.x = std::numeric_limits<double>::quiet_NaN();
+            path.poses.push_back(pose);
+            local_path_pub_.publish(path);
+
+        } else {
+            if(local_path_whole->subPathCount() > 0){
+                nav_msgs::Path wpath;
+                wpath.header.stamp = ros::Time::now();
+                wpath.header.frame_id = local_path_whole->getFrameId();
+                for(int i = 0, sub = local_path_whole->subPathCount(); i < sub; ++i) {
+                    const SubPath& p = local_path_whole->getSubPath(i);
+                    for(const Waypoint& wp : p.wps) {
+                        geometry_msgs::PoseStamped pose;
+                        pose.pose.position.x = wp.x;
+                        pose.pose.position.y = wp.y;
+                        pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
+                        wpath.poses.push_back(pose);
+                    }
+                }
+                whole_local_path_pub_.publish(wpath);
+            }
+
+            is_running_ = execute(feedback, result);
+        }
     }
 
     if(is_running_) {

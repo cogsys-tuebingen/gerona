@@ -18,11 +18,7 @@ protected:
 
     virtual void addLeaf(LNode*& node) override;
 
-    virtual void reconfigureTree(LNode*& obj, std::vector<LNode>& nodes, double& best_p,
-                                 const std::vector<Constraint::Ptr>& constraints,
-                                 const std::vector<Scorer::Ptr>& scorer,
-                                 const std::vector<bool>& fconstraints,
-                                 const std::vector<double>& wscorer) override;
+    virtual void reconfigureTree(LNode*& obj, std::vector<LNode>& nodes, double& best_p) override;
 };
 
 #endif // LOCAL_PLANNER_STATIC_H

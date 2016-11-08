@@ -10,18 +10,12 @@ LocalPlannerAStar::LocalPlannerAStar()
 }
 
 double LocalPlannerAStar::G(LNode*& current, LNode*& succ,
-                            const std::vector<Constraint::Ptr>& constraints,
-                            const std::vector<Scorer::Ptr>& scorer,
-                            const std::vector<bool>& fconstraints,
-                            const std::vector<double>& wscorer,
                             double& score){
-    (void) constraints;
-    (void) fconstraints;
     double tentative_gScore = current->gScore_ ;
     if(succ->twin_ != nullptr){
-        tentative_gScore += Cost(*(succ->twin_), scorer, wscorer, score);
+        tentative_gScore += Cost(*(succ->twin_), score);
     }else{
-        tentative_gScore += Cost(*(succ), scorer, wscorer, score);
+        tentative_gScore += Cost(*(succ), score);
     }
     return tentative_gScore;
 }

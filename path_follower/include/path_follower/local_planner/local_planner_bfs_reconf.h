@@ -10,9 +10,7 @@ class LocalPlannerBFSReconf : public LocalPlannerBFS, public LocalPlannerReconf
 public:
     LocalPlannerBFSReconf();
 private:
-    virtual void evaluate(double& current_p, LNode*& succ, double& dis2last,
-                          const std::vector<Scorer::Ptr>& scorer,
-                          const std::vector<double>& wscorer) override;
+    virtual void evaluate(double& current_p, LNode*& succ, double& dis2last) override;
 };
 
 #endif // LOCAL_PLANNER_BFS_RECONF_H

@@ -15,11 +15,20 @@ public:
     Scorer();
     virtual ~Scorer();
 
-    virtual double score(const LNode& point) = 0;
+    double getWeight() const;
+    void setWeight(double weight);
+
+    double calculateScore(const LNode& point);
 
     long nsUsed();
+
+protected:
+    virtual double score(const LNode& point) = 0;
+
 protected:
     Stopwatch sw;
+
+    double weight_;
 };
 
 #endif // SCORER_H
