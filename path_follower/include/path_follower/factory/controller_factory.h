@@ -28,6 +28,11 @@ public:
                    std::shared_ptr<ObstacleAvoider>& out_obstacle_avoider);
 
 private:
+    std::shared_ptr<RobotController> makeController(const std::string &name);
+    std::shared_ptr<LocalPlanner> makeLocalPlanner(const std::string &name);
+    std::shared_ptr<ObstacleAvoider> makeObstacleAvoider(const std::string &name);
+
+private:
     PathFollower &follower_;
     const PathFollowerParameters& opt_;
     PoseTracker& pose_tracker_;
