@@ -17,11 +17,15 @@ public:
     void setLocal(bool local);
 
     std::string getFixedFrameId() const;
+    std::string getRobotFrameId() const;
 
     Eigen::Vector3d getRobotPose() const;
     const geometry_msgs::Pose &getRobotPoseMsg() const;
 
     geometry_msgs::Twist getVelocity() const;
+
+    tf::Transform getRelativeTransform(const std::string& fixed_frame, const std::string& frame, const ros::Time& time, const ros::Duration &max_wait) const;
+    tf::Transform getRelativeTransform(const std::string& frame, const ros::Time& time, const ros::Duration &max_wait) const;
 
     bool transformToLocal(const geometry_msgs::PoseStamped& global, geometry_msgs::PoseStamped& local );
     bool transformToLocal(const geometry_msgs::PoseStamped& global, Eigen::Vector3d& local );

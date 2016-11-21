@@ -134,6 +134,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_HBZ::computeMoveCom
     double theta_meas = current_pose[2];
     ///***///
 
+    tf::Transform target_tf = pose_tracker_->getRelativeTransform("base_link", "target", ros::Time::now(), ros::Duration(0.01));
+    double dist_to_target = target_tf.getOrigin().length();
 
     // check for the subpaths, and see if the goal is reached
     if((ind_ == path_interpol.n()-1) & (xe_ > 0.0)) {
