@@ -15,6 +15,7 @@
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/obstacle_cloud.h>
+#include <path_follower/obstacle_avoidance/obstacleavoider.h>
 
 
 // SYSTEM
@@ -293,7 +294,23 @@ RobotController::MoveCommandStatus RobotController_Kinematic_HBZ::computeMoveCom
 
 
     ///Exponential speed control
+    auto obstacle_cloud = obstacle_avoider_->getObstacles();
+    const pcl::PointCloud<pcl::PointXYZ>& cloud = *obstacle_cloud->cloud;
+    double min_dist = std::numeric_limits<double>::infinity();
+    if(cloud.header.frame_id == "base_link" || cloud.header.frame_id == "/base_link") {
+        for(const pcl::PointXYZ& pt : cloud) {
+            min_dist = std::min<double>(min_dist, std::sqrt(pt.x*pt.x + pt.y*pt.y + pt.z*pt.z));
+        }
+    } else if(cloud.header.frame_id == "odom" || cloud.header.frame_id == "/odom") {
+        tf::Transform trafo = pose_tracker_->getRelativeTransform(pose_tracker_->getRobotFrameId(), cloud.header.frame_id, ros::Time(0), ros::Duration(0));
+        for(const pcl::PointXYZ& pt : cloud) {
+            tf::Point pt_cloud(pt.x, pt.y, pt.z);
+            tf::Point pt_robot = trafo * pt_cloud;
 
+            min_dist = std::min<double>(min_dist, pt_robot.length());
+        }
+    }
+    distance_to_obstacle_ = min_dist;
 
     tf::Transform target_tf = pose_tracker_->getRelativeTransform("base_link", "target", ros::Time::now(), ros::Duration(0.01));
     double dist_to_target = target_tf.getOrigin().length();
