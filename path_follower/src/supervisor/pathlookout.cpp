@@ -7,10 +7,14 @@
 #endif
 #include <vector>
 #include <string>
-#include <path_follower/pathfollower.h>
 
 #include <laser_geometry/laser_geometry.h>
 #include <pcl_ros/transforms.h>
+
+#include <path_follower/utils/obstacle_cloud.h>
+#include <pcl_ros/point_cloud.h>
+#include <path_follower/utils/pose_tracker.h>
+
 
 using namespace std;
 
@@ -19,9 +23,9 @@ namespace {
 const std::string MODULE = "s_pathlookout";
 }
 
-PathLookout::PathLookout(const tf::TransformListener *tf_listener):
-    obstacle_frame_("/map"),
-    tf_listener_(tf_listener)
+PathLookout::PathLookout(PoseTracker &pose_tracker):
+    obstacle_frame_("map"),
+    pose_tracker_(pose_tracker)
 {
     #if DEBUG_PATHLOOKOUT
         cv::namedWindow("Map", CV_WINDOW_KEEPRATIO);
@@ -32,7 +36,7 @@ PathLookout::PathLookout(const tf::TransformListener *tf_listener):
     visualizer_ = Visualizer::getInstance();
 }
 
-void PathLookout::setObstacleCloud(const ObstacleCloud::ConstPtr &cloud)
+void PathLookout::setObstacleCloud(const std::shared_ptr<ObstacleCloud const> &cloud)
 {
     obstacle_cloud_ = cloud;
 }
@@ -40,13 +44,13 @@ void PathLookout::setObstacleCloud(const ObstacleCloud::ConstPtr &cloud)
 void PathLookout::setPath(Path::ConstPtr path)
 {
     // only use path from the last waypoint on ("do not look behind")
-    path_.clear();
+    path_.wps.clear();
     if (path->getWaypointIndex() == 0) {
         path_ = path->getCurrentSubPath();
     } else {
-        SubPath::const_iterator start = path->getCurrentSubPath().begin();
+        std::vector<Waypoint>::const_iterator start = path->getCurrentSubPath().begin();
         start += (path->getWaypointIndex()-1);
-        path_.assign(start, (SubPath::const_iterator) path->getCurrentSubPath().end());
+        path_.wps.assign(start, (std::vector<Waypoint>::const_iterator) path->getCurrentSubPath().end());
     }
 }
 
@@ -175,7 +179,7 @@ vector<Obstacle> PathLookout::lookForObstacles()
 void PathLookout::reset()
 {
     // important! path has to be reseted, otherwise obstacles will be readded immediately.
-    path_.clear();
+    path_.wps.clear();
     tracker_.reset();
 }
 
@@ -219,25 +223,28 @@ float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::Tracke
     return w_dist + w_time;
 }
 
-std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::ConstPtr &cloud)
-{
+std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const std::shared_ptr<ObstacleCloud const> &obstacles_container)
+{    
     if (path_.size() < 2) {
         ROS_WARN_NAMED(MODULE, "Path has less than 2 waypoints. No obstacle lookout is done.");
         return std::list<cv::Point2f>(); // return empty cloud
     }
 
+    ObstacleCloud::Cloud::ConstPtr cloud = obstacles_container->cloud;
+
     //TODO: ensure that obstacle_frame_ is the frame of the path.
-    ObstacleCloud trans_cloud;
-    bool has_tf = tf_listener_->waitForTransform(obstacle_frame_,
-                                                 cloud->header.frame_id,
-                                                 pcl_conversions::fromPCL(cloud->header.stamp),
-                                                 ros::Duration(0.01));
+    ObstacleCloud::Cloud trans_cloud;
+    bool has_tf = pose_tracker_.getTransformListener().waitForTransform(obstacle_frame_,
+                                                                        cloud->header.frame_id,
+                                                                        pcl_conversions::fromPCL(cloud->header.stamp),
+                                                                        ros::Duration(0.05));
     if (!has_tf) {
-        ROS_WARN_NAMED(MODULE, "Got no transfom for obstacle cloud. Skip this cloud.");
+        ROS_WARN_THROTTLE_NAMED(0.5, MODULE, "Got no transfom for obstacle cloud. %s to %s ",obstacle_frame_.c_str(),
+                        cloud->header.frame_id.c_str());
         return std::list<cv::Point2f>(); // return empty cloud
     }
-    if (!pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, *tf_listener_)) {
-        ROS_ERROR_NAMED(MODULE, "Failed to transform obstacle cloud");
+    if (!pcl_ros::transformPointCloud(obstacle_frame_, *cloud, trans_cloud, pose_tracker_.getTransformListener())) {
+        ROS_ERROR_THROTTLE_NAMED(1.0, MODULE, "Failed to transform obstacle cloud");
         return std::list<cv::Point2f>(); // return empty cloud
     }
 
@@ -254,9 +261,22 @@ std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const ObstacleCloud::Co
     if (first_step == 0) {
         first_step = opt_.segment_step_size();
     }
-    for (size_t i = min(first_step, path_.size()-1); i < path_.size(); i += opt_.segment_step_size()) {
-        cv::Point2f b(path_[i].x, path_[i].y);
+    size_t first_idx = 0;//min(first_step, path_.size()-1);
+ //   size_t first_idx = path_->getWaypointIndex();
+    float dist = 0.0;
+    cv::Point2f prev(path_[first_idx].x,path_[first_idx].y);
+    ROS_INFO_THROTTLE(1.0, "first wp %f %f", prev.x,prev.y);
+  //  size_t i = path_->getWaypointIndex();
 
+    for (size_t i = min(first_step, path_.size()-1); i < path_.size(); i += opt_.segment_step_size()) {
+   // for (size_t i = path_->getWaypointIndex(); i < path_.size(); i += opt_.segment_step_size()) {
+        cv::Point2f b(path_[i].x, path_[i].y);
+        dist += cv::norm(b-prev);
+        prev = b;
+        if (dist>opt_.lookout_distance()) {
+            ROS_INFO_THROTTLE(1.0,"no obstacles");
+            break;
+        }
         /**
          * For each point, compute the distance of this point to the current path segment. If the distance is too small,
          * the corresponding field in is_point_obs is set to true (= this point is assumed to be an obstacle).

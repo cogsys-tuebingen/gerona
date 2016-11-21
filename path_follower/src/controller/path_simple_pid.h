@@ -46,7 +46,7 @@ private:
 
 
         SiControllerParameters():
-            pid_ta(this, "~pid/ta", 0.0, "Update interval of the PID controller."),
+            pid_ta(this, "~pid/ta", 0.01, "Update interval of the PID controller."),
             fwd_pid_kp(this, "~fwd/pid/kp", 1.0, "Proportional coefficient of the PID controller."),
             fwd_pid_ki(this, "~fwd/pid/ki", 0.001, "Integral coefficient of the PID controller."),
             fwd_pid_kd(this, "~fwd/pid/kd", 0, "Derivative coefficient of the PID controller."),

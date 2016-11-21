@@ -1,0 +1,98 @@
+<?xml version="1.0"?>
+<!--
+Launch the path follower with the input scaling controller for a bi-steerable robot.
+-->
+<launch>
+  <arg name="algo" default="AStar" />
+  <arg name="c1" default="true" />
+  <arg name="c2" default="true" />
+
+  <arg name="s1" default="0.0" />
+  <arg name="s2" default="0.0" />
+  <arg name="s3" default="0.0" />
+  <arg name="s4" default="0.0" />
+  <arg name="s5" default="0.0" />
+  <arg name="s6" default="0.0" />
+
+  <arg name="nnodes" default="300" />
+  <arg name="depth" default="10" />
+  <arg name="ic" default="3" />
+  <arg name="ia" default="0" />
+  <arg name="uinterval" default="1.0" />
+  <arg name="lmf" default="1.0" />
+  <arg name="dis2p" default="0.3" />
+  <arg name="adis" default="0.1" />
+  <arg name="fdis" default="0.2" />
+  <arg name="s_angle" default="25.0" />
+  <arg name="mu" default="0.6" />
+  <arg name="ef" default="1.0" />
+  <arg name="use_v" default="true" />
+  <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
+	 <param name="controller" value="2steer_inputscaling" />
+
+    <!-- supervisors -->
+    <param name="use_obstacle_map" value="false" />
+    <param name="use_vfh" value="false" />
+
+    <param name="supervisor/use_path_lookout" value="false" />
+    <param name="supervisor/use_waypoint_timeout" value="false" />
+    <param name="supervisor/use_distance_to_path" value="false" />
+    
+    <param name="waypoint_tolerance" value="2.0" />
+    <param name="goal_tolerance" value="0.25" />
+    <param name="max_distance_to_path" value="2.0" />
+    <param name="collision_box_width" value="0.4" />
+    <param name="collision_box_crit_length" value="0.6" />
+    <param name="collision_box_min_length" value="1.0" />
+    <param name="collision_box_max_length" value="1.5" />
+    <param name="collision_box_velocity_factor" value="1.0" />
+    <param name="collision_box_velocity_saturation" value="1.0" />
+    <param name="obstacle_scale_distance" value="1.0" />
+    <param name="obstacle_scale_lifetime" value="5.0" />
+    <param name="path_width" value="0.5" />    
+    
+    <!-- general parameters of the follower -->
+    <param name="min_velocity" value="0.5" />
+    <param name="max_velocity" value="0.7" />
+    <param name="waypoint_tolerance" value="0.8" />
+	 <param name="goal_tolerance" value="0.3" />
+    
+    <!-- parameters, that are dependent of the controller or the robot model -->
+	 <param name="vehicle_length" value="0.34" />
+	 <param name="k_forward" value="4.5" />
+	 <param name="k_backward" value="7.0" />
+	 <param name="max_steering_angle" value="0.52359877559" /> <!-- 30° -->
+	 <param name="max_steering_angle_speed" value="4.0" /> <!-- ~4.0 should be realistic -->
+
+    <!-- local planner -->
+    <param name="algo" value="$(arg algo)"/>
+    <!-- constraints -->
+    <param name="c1" value="$(arg c1)"/>
+    <param name="c2" value="$(arg c2)"/>
+    <!-- scorers -->
+    <param name="s1" value="$(arg s1)"/>
+    <param name="s2" value="$(arg s2)"/>
+    <param name="s3" value="$(arg s3)"/>
+    <param name="s4" value="$(arg s4)"/>
+    <param name="s5" value="$(arg s5)"/>
+    <param name="s6" value="$(arg s6)"/>
+    <!-- planner params-->
+    <param name="nnodes" value="$(arg nnodes)" />
+    <param name="depth" value="$(arg depth)" />
+    <param name="ic" value="$(arg ic)" />
+    <param name="ia" value="$(arg ia)" />
+    <param name="uinterval" value="$(arg uinterval)" />
+    <param name="lmf" value="$(arg lmf)" />
+    <param name="dis2p" value="$(arg dis2p)" />
+    <param name="adis" value="$(arg adis)" />
+    <param name="fdis" value="$(arg fdis)" />
+    <param name="s_angle" value="$(arg s_angle)" />
+    <param name="mu" value="$(arg mu)" />
+    <param name="ef" value="$(arg ef)" />
+    <param name="use_v" value="$(arg use_v)" />
+
+    <remap from="scan" to="scan/filtered" />
+    <remap from="/obstacles" to="/obstacle_cloud" />
+  </node>
+  
+</launch>

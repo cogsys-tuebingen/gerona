@@ -24,7 +24,6 @@ class ObstacleDetector: public ObstacleAvoider
 {
 public:
     virtual bool avoid(MoveCommand * const cmd,
-                       ObstacleCloud::ConstPtr obstacles,
                        const State &state);
 
 protected:
@@ -74,11 +73,14 @@ protected:
      *                             'length' in LaserEnvironment).
      * @return True, if there is an object within the collision box.
      */
-    virtual bool checkOnCloud(ObstacleCloud::ConstPtr obstacles,
+    virtual bool checkOnCloud(std::shared_ptr<ObstacleCloud const> obstacles,
                               float width,
                               float length,
                               float course_angle,
                               float curve_enlarge_factor) = 0;
+
+protected:
+    ObstacleDetector() = default;
 };
 
 #endif // OBSTACLEDETECTOR_H

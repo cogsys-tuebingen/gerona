@@ -6,7 +6,6 @@ const std::string MODULE = "obstacle_avoider";
 }
 
 bool ObstacleDetector::avoid(MoveCommand * const cmd,
-                             ObstacleCloud::ConstPtr obstacles,
                              const ObstacleAvoider::State &state)
 {
     float course = cmd->getDirectionAngle(); //TODO: use CoursePredictor instead of command?
@@ -39,7 +38,7 @@ bool ObstacleDetector::avoid(MoveCommand * const cmd,
 
     //ROS_DEBUG_NAMED(MODULE, "Collision Box: v = %g -> len = %g", v, box_length);
 
-    double distance_to_goal = state.path->getCurrentSubPath().back().distanceTo(state.path->getCurrentWaypoint());
+    double distance_to_goal = state.path->getCurrentSubPath().wps.back().distanceTo(state.path->getCurrentWaypoint());
 
     if(box_length > distance_to_goal) {
         box_length = distance_to_goal + 0.2;
@@ -50,13 +49,11 @@ bool ObstacleDetector::avoid(MoveCommand * const cmd,
     }
 
 
-    bool collision = checkOnCloud(obstacles, opt_.width(),
+    bool collision = checkOnCloud(obstacles_, opt_.width(),
                                   box_length, course, enlarge_factor);
 
 
     if(collision) {
-//        beep(beep::OBSTACLE_IN_PATH);
-
         // stop motion
         cmd->setVelocity(0);
     }

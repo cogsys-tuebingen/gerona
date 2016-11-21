@@ -2,7 +2,7 @@
 #define PIDCONTROLLER_H
 
 #include <Eigen/Core>
-#include <utils_general/Stopwatch.h>
+#include <cslibs_utils/Stopwatch.h>
 
 /**
  * @brief Multidimensional PID controller.
@@ -109,7 +109,7 @@ public:
 
         // Only compute new u, if at least dt_ time has elapsed.
         double elapsed = timer_.msElapsed() / 1000.0;
-        if (elapsed >= dt_) {
+        if (elapsed > 0.0 && elapsed >= dt_) {
             // Use the exact elapsed time (`elapsed`) instead of `dt_`
             integral_ += error * elapsed;
             Vector derivative = (error - previous_error_) / elapsed;

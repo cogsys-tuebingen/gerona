@@ -8,14 +8,19 @@
 
 
 // PROJECT
-#include <path_follower/pathfollower.h>
+#include <path_follower/pathfollowerparameters.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <path_follower/utils/extended_kalman_filter.h>
-#include "../alglib/interpolation.h"
-#include <utils_general/MathHelper.h>
-#include <cmath>
+#include <cslibs_utils/MathHelper.h>
+
+#include <path_follower/utils/pose_tracker.h>
+#include <path_follower/utils/visualizer.h>
+
+// ALGLIB
+#include <interpolation.h>
 
 // SYSTEM
+#include <cmath>
 #include <deque>
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -24,8 +29,8 @@
 using namespace Eigen;
 
 
-RobotController_ICR_CCW::RobotController_ICR_CCW(PathFollower *path_driver):
-    RobotController_Interpolation(path_driver),
+RobotController_ICR_CCW::RobotController_ICR_CCW():
+    RobotController_Interpolation(),
     cmd_(this),
     vn_(0),
     Ts_(0.02),
@@ -34,16 +39,11 @@ RobotController_ICR_CCW::RobotController_ICR_CCW(PathFollower *path_driver):
     Vr_(0),
     curv_sum_(1e-3),
     distance_to_goal_(1e6),
-    distance_to_obstacle_(1.0)
+    distance_to_obstacle_(1e3)
 {
     pose_ekf_ = Eigen::Vector3d::Zero();
     ICR_ekf_  = Eigen::Vector3d::Zero();
     last_time_ = ros::Time::now();
-
-    laser_sub_front_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 10,
-                                                             &RobotController_ICR_CCW::laserFront, this);
-    laser_sub_back_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 10,
-                                                            &RobotController_ICR_CCW::laserBack, this);
 
     wheel_vel_sub_ = nh_.subscribe<std_msgs::Float64MultiArray>("/wheel_velocities", 10,
                                                                    &RobotController_ICR_CCW::WheelVelocities, this);
@@ -118,7 +118,7 @@ void RobotController_ICR_CCW::initialize()
     proj_ind_ = 0;
 
     // desired velocity
-    vn_ = std::min(path_driver_->getOptions().max_velocity(), velocity_);
+    vn_ = std::min(global_opt_->max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 
     //reset the ekf path points
@@ -132,29 +132,6 @@ void RobotController_ICR_CCW::initialize()
     y_aug_.clear();
 }
 
-void RobotController_ICR_CCW::laserFront(const sensor_msgs::LaserScanConstPtr &scan)
-{
-    ranges_front_.clear();
-    for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
-        float range = scan->ranges[i];
-        if(range > scan->range_min && range < scan->range_max) {
-            ranges_front_.push_back(range);
-        }
-    }
-    findMinDistance();
-}
-
-void RobotController_ICR_CCW::laserBack(const sensor_msgs::LaserScanConstPtr &scan)
-{
-    ranges_back_.clear();
-    for(std::size_t i = 0, total = scan->ranges.size(); i < total; ++i) {
-        float range = scan->ranges[i];
-        if(range > scan->range_min && range < scan->range_max) {
-            ranges_back_.push_back(range);
-        }
-    }
-    findMinDistance();
-}
 
 void RobotController_ICR_CCW::WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array)
 {
@@ -178,26 +155,9 @@ void RobotController_ICR_CCW::WheelVelocities(const std_msgs::Float64MultiArray:
 
 }
 
-//TODO: work with the obstacle map!!!
-void RobotController_ICR_CCW::findMinDistance()
-{
-    std::vector<float> ranges;
-    ranges.insert(ranges.end(), ranges_front_.begin(), ranges_front_.end());
-    ranges.insert(ranges.end(), ranges_back_.begin(), ranges_back_.end());
-    std::sort(ranges.begin(), ranges.end());
-
-    if(ranges.size() <= 7) {
-       distance_to_obstacle_ = 0;
-        return;
-    }
-
-    distance_to_obstacle_ = ranges[0];
-
-}
-
 void RobotController_ICR_CCW::start()
 {
-    path_driver_->getCoursePredictor().reset();
+
 }
 
 void RobotController_ICR_CCW::reset()
@@ -207,18 +167,11 @@ void RobotController_ICR_CCW::reset()
 
 void RobotController_ICR_CCW::calculateMovingDirection()
 {
-    const std::vector<Waypoint> subp = path_->getCurrentSubPath();
-
-    const double theta_0 = subp[0].orientation;
-    Eigen::Vector2d looking_dir_normalized(std::cos(theta_0), std::sin(theta_0));
-    Eigen::Vector2d delta(subp[1].x - subp[0].x, subp[1].y - subp[0].y);
-    const double theta_diff = std::acos(delta.dot(looking_dir_normalized) / delta.norm());
-
     // decide whether to drive forward or backward
-    if (theta_diff > M_PI_2 || theta_diff < -M_PI_2) {
-        setDirSign(-1.f);
-    } else {
+    if (path_->getCurrentSubPath().forward) {
         setDirSign(1.f);
+    } else {
+        setDirSign(-1.f);
     }
 }
 
@@ -250,7 +203,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
 
 
     /// get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
-    Eigen::Vector3d current_pose = path_driver_->getRobotPose();
+    Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
 
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
@@ -355,9 +308,9 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     double orth_proj = std::numeric_limits<double>::max();
 
     //this is a hack made for the lemniscate
-    uint old_ind = proj_ind_;
+    int old_ind = proj_ind_;
 
-    for (unsigned int i = proj_ind_; i < path_interpol.n(); i++){
+    for (int i = proj_ind_, n = path_interpol.n(); i < n; i++){
 
         dist = hypot(x_meas - x_aug_[i], y_meas - y_aug_[i]);
         if((dist < orth_proj) & (i - old_ind >= 0) & (i - old_ind <= 3)){
@@ -414,7 +367,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     ///Exponential speed control
 
     //get the robot's current angular velocity
-    double angular_vel = path_driver_->getVelocity().angular.z;
+    double angular_vel = pose_tracker_->getVelocity().angular.z;
 
     //ensure valid values
     if (distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
@@ -428,7 +381,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     //TODO: consider the minimum excitation speed
     double v = vn_ * exp(-exponent);
 
-    cmd_.speed = getDirSign()*std::max((double)path_driver_->getOptions().min_velocity(), fabs(v));
+    cmd_.speed = getDirSign()*std::max((double)global_opt_->min_velocity(), fabs(v));
 
     ///***///
 
@@ -448,7 +401,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     ///plot the moving reference frame together with position vector and error components
 
     if (visualizer_->MarrayhasSubscriber()) {
-        visualizer_->drawFrenetSerretFrame(0, current_pose, xe, ye, path_interpol.p(proj_ind_),
+        visualizer_->drawFrenetSerretFrame(getFixedFrame(), 0, current_pose, xe, ye, path_interpol.p(proj_ind_),
                                            path_interpol.q(proj_ind_), path_interpol.theta_p(proj_ind_));
     }
 
@@ -456,7 +409,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
 
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(getFixedFrame(), 1, pose_tracker_->getRobotPoseMsg(), cmd_.direction_angle, 0.2, 1.0, 0.2);
     }
 
     ///***///

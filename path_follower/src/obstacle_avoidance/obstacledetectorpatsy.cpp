@@ -5,7 +5,7 @@
 //#include <opencv2/opencv.hpp> // only for debugging
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/controller/robotcontrollertrailer.h>
-
+#include <path_follower/utils/obstacle_cloud.h>
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <pcl_ros/transforms.h>
@@ -20,8 +20,7 @@ namespace {
 const std::string MODULE = "obstacle_avoider";
 }
 
-ObstacleDetectorPatsy::ObstacleDetectorPatsy(const tf::TransformListener *tf_listener, RobotControllerTrailer *ctrl)
-    : tf_listener_(tf_listener), robot_controller_(ctrl)
+ObstacleDetectorPatsy::ObstacleDetectorPatsy()
 {
     front_frame_.assign("base_link");
     rear_frame_.assign("s300_rear");
@@ -96,7 +95,6 @@ void ObstacleDetectorPatsy::getPolygon(float width, float length, float course_a
 
 
 bool ObstacleDetectorPatsy::avoid(MoveCommand * const cmd,
-                             ObstacleCloud::ConstPtr obstacles,
                              const ObstacleAvoider::State &state)
 {
     float course = cmd->getDirectionAngle(); //TODO: use CoursePredictor instead of command?
@@ -144,13 +142,11 @@ bool ObstacleDetectorPatsy::avoid(MoveCommand * const cmd,
         box_length*=-1.0;
     }
 
-    bool collision = checkOnCloud(obstacles, opt_.width(),
+    bool collision = checkOnCloud(obstacles_, opt_.width(),
                                   box_length, course, enlarge_factor);
 
 
     if(collision) {
-//        beep(beep::OBSTACLE_IN_PATH);
-
         // stop motion
         cmd->setVelocity(0);
     }
@@ -160,8 +156,10 @@ bool ObstacleDetectorPatsy::avoid(MoveCommand * const cmd,
 
 
 
-bool ObstacleDetectorPatsy::checkOnCloud(ObstacleCloud::ConstPtr obstacles, float width, float length,  float course_angle, float curve_enlarge_factor)
+bool ObstacleDetectorPatsy::checkOnCloud(std::shared_ptr<ObstacleCloud const> obstacles_container, float width, float length,  float course_angle, float curve_enlarge_factor)
 {
+    ObstacleCloud::Cloud::ConstPtr obstacles = obstacles_container->cloud;
+
     bool collision = false;
     bool backwards = false;
     if (length<0) {
@@ -204,8 +202,7 @@ bool ObstacleDetectorPatsy::checkOnCloud(ObstacleCloud::ConstPtr obstacles, floa
 
 
     /// now check each point of the scan
-    ObstacleCloud::const_iterator point_it;
-    for (point_it = obstacles->begin(); point_it != obstacles->end(); ++point_it) {
+    for (auto point_it = obstacles->begin(); point_it != obstacles->end(); ++point_it) {
         // check if this scan point is inside the polygon
         cv::Point2f point( point_it->x, point_it->y );
 

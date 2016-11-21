@@ -6,8 +6,8 @@
 
 // PROJECT
 #include <path_follower/utils/cubic_spline_interpolation.h>
-#include "../alglib/interpolation.h"
-#include <utils_general/MathHelper.h>
+#include <interpolation.h>
+#include <cslibs_utils/MathHelper.h>
 
 // SYSTEM
 #include <deque>
@@ -20,6 +20,7 @@ using namespace Eigen;
 
 PathInterpolated::PathInterpolated()
 	: N_(0),
+      frame_id_("map"),
 	  s_new_(0),
 	  s_prim_(0)
 {
@@ -28,38 +29,60 @@ PathInterpolated::PathInterpolated()
 PathInterpolated::~PathInterpolated() {
 }
 
-void PathInterpolated::interpolatePath(const Path::Ptr path) {
+void PathInterpolated::interpolatePath(const Path::Ptr path, const bool hack) {
 
 	clearBuffers();
 
+    frame_id_ = path->getFrameId();
+
 	std::deque<Waypoint> waypoints;
-	while (true) {
-		waypoints.insert(waypoints.end(), path->getCurrentSubPath().begin(), path->getCurrentSubPath().end());
+    while (!path->isDone()) {
+        waypoints.insert(waypoints.end(), path->getCurrentSubPath().wps.begin(), path->getCurrentSubPath().wps.end());
 
-		// (messy) hack!!!!!
-		// remove waypoints that are closer than 0.1 meters to the starting point
-		Waypoint start = waypoints.front();
-		while(!waypoints.empty()) {
-			std::deque<Waypoint>::iterator it = waypoints.begin();
-			const Waypoint& wp = *it;
+        if(hack){
+            // (messy) hack!!!!!
+            // remove waypoints that are closer than 0.1 meters to the starting point
+            Waypoint start = waypoints.front();
+            while(!waypoints.empty()) {
+                std::deque<Waypoint>::iterator it = waypoints.begin();
+                const Waypoint& wp = *it;
 
-			double dx = wp.x - start.x;
-			double dy = wp.y - start.y;
-			double distance = hypot(dx, dy);
-			if(distance < 0.1) {
-				waypoints.pop_front();
-			} else {
-				break;
-			}
-		}
+                double dx = wp.x - start.x;
+                double dy = wp.y - start.y;
+                double distance = hypot(dx, dy);
+                if(distance < 0.1) {
+                    waypoints.pop_front();
+                } else {
+                    break;
+                }
+            }
 
-		// eliminate subpaths containing only the same points
-		if(waypoints.size() > 0)
-			break;
+            // eliminate subpaths containing only the same points
+            if(waypoints.size() > 0)
+                break;
 
-		path->switchToNextSubPath();
-	}
+            path->switchToNextSubPath();
+        }else{
+            break;
+        }
+    }
 
+    interpolatePath(waypoints);
+}
+
+void PathInterpolated::interpolatePath(const SubPath& path, const std::string& frame_id){
+
+    clearBuffers();
+
+    frame_id_ = frame_id;
+
+    std::deque<Waypoint> waypoints;
+    waypoints.insert(waypoints.end(),path.wps.begin(),path.wps.end());
+
+    interpolatePath(waypoints);
+}
+
+void PathInterpolated::interpolatePath(const std::deque<Waypoint>& waypoints){
 	//copy the waypoints to arrays X_arr and Y_arr, and introduce a new array l_arr_unif required for the interpolation
 	//as an intermediate step, calculate the arclength of the curve, and do the reparameterization with respect to arclength
 
@@ -72,20 +95,30 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
 	double X_arr[N_], Y_arr[N_], l_arr[N_], l_arr_unif[N_];
 	double L = 0;
 
-	for(std::size_t i = 0; i < N_; ++i) {
-		const Waypoint& waypoint = waypoints[i];
-
-		X_arr[i] = waypoint.x;
-		Y_arr[i] = waypoint.y;
-
-	}
-
+    X_arr[0] = waypoints[0].x;
+    Y_arr[0] = waypoints[0].y;
 	l_arr[0] = 0;
 
-	for(std::size_t i = 1; i < N_; i++){
+    for(std::size_t wp_index = 1, insert_index = 1, n = N_; wp_index < n; ++wp_index){
+        const Waypoint& waypoint = waypoints[wp_index];
 
-		L += hypot(X_arr[i] - X_arr[i-1], Y_arr[i] - Y_arr[i-1]);
-		l_arr[i] = L;
+        auto dist = hypot(waypoint.x - X_arr[insert_index-1], waypoint.y - Y_arr[insert_index-1]);
+
+        if(dist >= 1e-3) {
+            X_arr[insert_index] = waypoint.x;
+            Y_arr[insert_index] = waypoint.y;
+
+            L += dist;
+            l_arr[insert_index] = L;
+
+            ++insert_index;
+
+        } else {
+            // two points were to close...
+            ROS_WARN_STREAM("dropping point (" << waypoint.x << " / " << waypoint.y <<
+                            ") because it is too close to the last point (" << X_arr[insert_index-1] << " / " << Y_arr[insert_index-1] << ")" );
+            --N_;
+        }
 
 	}
 	ROS_INFO("Length of the path: %lf m", L);
@@ -93,7 +126,7 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
 
 	double f = std::max(0.0001, L / (double) (N_-1));
 
-	for(std::size_t i = 1; i < N_; i++){
+    for(std::size_t i = 0; i < N_; i++){
 
 		l_arr_unif[i] = i * f;
 
@@ -110,8 +143,14 @@ void PathInterpolated::interpolatePath(const Path::Ptr path) {
 
 
 	//interpolate the path and find the derivatives
-	alglib::spline1dconvdiff2cubic(l_alg, X_alg, l_alg_unif, x_s, x_s_prim, x_s_sek);
-	alglib::spline1dconvdiff2cubic(l_alg, Y_alg, l_alg_unif, y_s, y_s_prim, y_s_sek);
+    try {
+        alglib::spline1dconvdiff2cubic(l_alg, X_alg, l_alg_unif, x_s, x_s_prim, x_s_sek);
+        alglib::spline1dconvdiff2cubic(l_alg, Y_alg, l_alg_unif, y_s, y_s_prim, y_s_sek);
+
+    } catch(const alglib::ap_error& error) {
+        ROS_FATAL_STREAM("alglib error: " << error.msg);
+        throw error;
+    }
 
 	//define path components, its derivatives, and curvilinear abscissa, then calculate the path curvature
 	for(uint i = 0; i < N_; ++i) {
@@ -176,9 +215,26 @@ PathInterpolated::operator nav_msgs::Path() const {
 		path.poses.push_back(poza);
 	}
 
-	path.header.frame_id = "map";
+    path.header.frame_id = frame_id_;
 
 	return path;
+}
+
+PathInterpolated::operator SubPath() const {
+
+    SubPath path(true);
+    path.wps.resize(p_.size());
+    const unsigned int length = p_.size();
+
+    for (uint i = 0; i < length; ++i) {
+        auto& wp = path.wps.at(i);
+        wp.x = p_[i];
+        wp.y = q_[i];
+        wp.orientation = std::atan2(q_prim_[i],p_prim_[i]);
+        wp.s = s_[i];
+    }
+
+    return path;
 }
 
 void PathInterpolated::clearBuffers() {

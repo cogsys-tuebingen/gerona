@@ -6,13 +6,13 @@
 #include <boost/circular_buffer.hpp>
 #include <path_follower/utils/parameters.h>
 
-class PathFollower;
+class PoseTracker;
 
 //! Predict direction of movement of the robot.
 class CoursePredictor
 {
 public:
-    CoursePredictor(PathFollower *path_driver);
+    CoursePredictor(PoseTracker *pose_tracker);
 
     void update();
     void reset();
@@ -66,7 +66,7 @@ private:
         }
     } opt_;
 
-    PathFollower *path_driver_;
+    PoseTracker *pose_tracker_;
 
     //! List of last known positions. The most recent position is pushed to the back.
     buffer_type last_positions_;

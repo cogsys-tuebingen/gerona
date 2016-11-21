@@ -12,8 +12,8 @@
 #include "planner_node.h"
 
 /// PROJECT
-#include <utils_path/common/SimpleGridMap2d.h>
-#include <utils_path/common/Path.h>
+#include <cslibs_path_planning/common/SimpleGridMap2d.h>
+#include <cslibs_path_planning/common/Path.h>
 
 /// SYSTEM
 #include <nav_msgs/Path.h>

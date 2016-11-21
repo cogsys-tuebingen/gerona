@@ -1,0 +1,26 @@
+<package>
+  <name>path_rviz</name>
+  <version>0.0.1</version>
+  <description>
+      Path plugins for RViz.
+  </description>
+  <maintainer email="sebastian.buck@uni-tuebingen.de">Sebastian Buck</maintainer>
+  <license>BSD</license>
+
+  <author email="sebastian.buck@uni-tuebingen.de">Sebastian Buck</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>qtbase5-dev</build_depend>
+  <build_depend>rviz</build_depend>
+
+  <run_depend>libqt5-core</run_depend>
+  <run_depend>libqt5-gui</run_depend>
+  <run_depend>libqt5-widgets</run_depend>
+  <run_depend>rviz</run_depend>
+
+  <export>
+      <rosdoc config="${prefix}/rosdoc.yaml"/>
+      <rviz plugin="${prefix}/plugin_description.xml"/>
+  </export>
+</package>

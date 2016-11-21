@@ -5,8 +5,6 @@
  *      Author: buck <sebastian.buck@uni-tuebingen.de>
  */
 
-#include <utils_general/Stopwatch.h>
-
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/GetMap.h>
@@ -19,9 +17,9 @@ public:
     ROIMapNode(ros::NodeHandle &nh)
         : running_avg_(0), running_avg_ticks_(0)
     {
-        std::string map_topic ("/map/hector");
+        std::string map_topic ("map/hector");
         std::string map_service ("/dynamic_map/hector");
-        std::string map_topic_result ("/map");
+        std::string map_topic_result ("map");
         std::string map_service_result ("/dynamic_map");
         nh.param("topic_map", map_topic, map_topic);
         nh.param("map_service", map_service, map_service);
@@ -71,7 +69,7 @@ public:
     {
         map_data_ = map.data;
 
-        Stopwatch timer;
+        ros::Time start = ros::Time::now();
 
         cv::Mat working(map.info.height, map.info.width, CV_8SC1, map_data_.data());
         cv::Point min(map.info.width, map.info.height);
@@ -120,10 +118,11 @@ public:
         current_map_.info.origin.position.x += roi.x * map.info.resolution;
         current_map_.info.origin.position.y += roi.y * map.info.resolution;
 
-        double diff =  timer.elapsed() * 1000;
+        ros::Duration diff = ros::Time::now() - start;
+        double diff_ms =  diff.toNSec() * 1e-6;
         running_avg_ticks_++;
-        running_avg_ = (running_avg_ * (running_avg_ticks_-1) / running_avg_ticks_) + diff / running_avg_ticks_;
-        ROS_INFO_STREAM("map shrink took " << diff << "ms , sampling: " << sampling_ << "] [avg. " << running_avg_ << "ms]");
+        running_avg_ = (running_avg_ * (running_avg_ticks_-1) / running_avg_ticks_) + diff_ms / running_avg_ticks_;
+        ROS_INFO_STREAM("map shrink took " << diff_ms << "ms , sampling: " << sampling_ << "] [avg. " << running_avg_ << "ms]");
 
         return true;
     }

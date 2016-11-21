@@ -12,13 +12,13 @@
 /// PROJECT
 #include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
-#include <path_follower/pathfollower.h>
+
 #include <path_follower/utils/extended_kalman_filter.h>
 
 class RobotController_ICR_CCW : public RobotController_Interpolation
 {
 public:
-    RobotController_ICR_CCW(PathFollower *path_driver);
+    RobotController_ICR_CCW();
     virtual void stopMotion();
     virtual void start();
 
@@ -30,8 +30,6 @@ protected:
 
     virtual void initialize();
 
-    void laserBack(const sensor_msgs::LaserScanConstPtr& scan_back);
-    void laserFront(const sensor_msgs::LaserScanConstPtr& scan_front);
     void WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array);
 
 private:

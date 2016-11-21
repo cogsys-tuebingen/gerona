@@ -1,10 +1,13 @@
 #include <path_follower/controller/robotcontroller_ackermann_pid.h>
 #include <cmath>
 #include <path_msgs/FollowPathResult.h>
-#include <path_follower/pathfollower.h>
+#include <path_follower/pathfollowerparameters.h>
+#include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/path_exceptions.h>
+#include <path_follower/utils/visualizer.h>
 
 using namespace std;
+using namespace Eigen;
 
 namespace {
 //! Module name, that is used for ros console output
@@ -21,8 +24,8 @@ template <typename T> int sign(T val) {
 }
 }
 
-RobotController_Ackermann_Pid::RobotController_Ackermann_Pid(PathFollower *path_driver):
-    RobotController(path_driver),
+RobotController_Ackermann_Pid::RobotController_Ackermann_Pid():
+    RobotController(),
     behaviour_(ON_PATH),
     last_velocity_(0)
 {
@@ -67,7 +70,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Pid::computeMoveCom
         stopMotion(); //< probably not necessary to repeat this, but be on the save side.
 
         // do nothing until robot has realy stopped.
-        geometry_msgs::Twist current_vel = path_driver_->getVelocity();
+        geometry_msgs::Twist current_vel = pose_tracker_->getVelocity();
         if((std::abs(current_vel.linear.x) > 0.01) ||
            (std::abs(current_vel.linear.y) > 0.01) ||
            (std::abs(current_vel.angular.z) > 0.01)) {
@@ -126,7 +129,7 @@ void RobotController_Ackermann_Pid::publishMoveCommand(const MoveCommand &cmd) c
 
 void RobotController_Ackermann_Pid::selectWaypoint()
 {
-    double tolerance = path_driver_->getOptions().wp_tolerance();
+    double tolerance = global_opt_->wp_tolerance();
 
     // increase tolerance, when driving backwards
     if(getDirSign() < 0) {
@@ -140,8 +143,8 @@ void RobotController_Ackermann_Pid::selectWaypoint()
     }
 
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawArrow(0, path_->getCurrentWaypoint(), "current waypoint", 1, 1, 0);
-        visualizer_->drawArrow(1, path_->getLastWaypoint(), "current waypoint", 1, 0, 0);
+        visualizer_->drawArrow(pose_tracker_->getFixedFrameId(), 0, path_->getCurrentWaypoint(), "current waypoint", 1, 1, 0);
+        visualizer_->drawArrow(pose_tracker_->getFixedFrameId(), 1, path_->getLastWaypoint(), "current waypoint", 1, 0, 0);
     }
 
     // convert waypoint to local frame. NOTE: This has to be done, even if the waypoint did not
@@ -150,7 +153,7 @@ void RobotController_Ackermann_Pid::selectWaypoint()
     wp_map.pose = path_->getCurrentWaypoint();
     wp_map.header.stamp = ros::Time::now();
 
-    if (!path_driver_->transformToLocal(wp_map, next_wp_local_)) {
+    if (!pose_tracker_->transformToLocal(wp_map, next_wp_local_)) {
         throw EmergencyBreakException("cannot transform next waypoint",
                                       path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
@@ -174,9 +177,9 @@ float RobotController_Ackermann_Pid::getErrorOnPath()
 
     // draw steer front
     if (visualizer_->hasSubscriber()) {
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
+        visualizer_->drawSteeringArrow(pose_tracker_->getFixedFrameId(), 1, pose_tracker_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(pose_tracker_->getFixedFrameId(), 2, pose_tracker_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(pose_tracker_->getFixedFrameId(), 3, pose_tracker_->getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
     }
 
     return error;
@@ -200,12 +203,12 @@ float RobotController_Ackermann_Pid::getErrorApproachSubpathEnd()
 
     if (visualizer_->hasSubscriber()) {
         visualizer_->drawCircle(2, ((geometry_msgs::Pose) path_->getCurrentWaypoint()).position,
-                                0.5, "/map", "turning point", 1, 1, 1);
+                                0.5, getFixedFrame(), "turning point", 1, 1, 1);
 
         // draw steer front
-        visualizer_->drawSteeringArrow(1, path_driver_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
-        visualizer_->drawSteeringArrow(2, path_driver_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
-        visualizer_->drawSteeringArrow(3, path_driver_->getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
+        visualizer_->drawSteeringArrow(pose_tracker_->getFixedFrameId(), 1, pose_tracker_->getRobotPoseMsg(), e_angle, 0.2, 1.0, 0.2);
+        visualizer_->drawSteeringArrow(pose_tracker_->getFixedFrameId(), 2, pose_tracker_->getRobotPoseMsg(), e_distance, 0.2, 0.2, 1.0);
+        visualizer_->drawSteeringArrow(pose_tracker_->getFixedFrameId(), 3, pose_tracker_->getRobotPoseMsg(), error, 1.0, 0.2, 0.2);
     }
 
     return error;
@@ -221,7 +224,7 @@ void RobotController_Ackermann_Pid::updateCommand(float error)
     }
 
     ROS_DEBUG_NAMED(MODULE, "PID: error = %g, u = %g", error, u);
-    visualizer_->drawSteeringArrow(14, path_driver_->getRobotPoseMsg(), u, 0.0, 1.0, 1.0);
+    visualizer_->drawSteeringArrow(pose_tracker_->getFixedFrameId(), 14, pose_tracker_->getRobotPoseMsg(), u, 0.0, 1.0, 1.0);
 
     float steer = std::max(-opt_.max_steer(), std::min(u, opt_.max_steer()));
     ROS_DEBUG_STREAM_NAMED(MODULE, "direction = " << dir_sign_ << ", steer = " << steer);
@@ -235,10 +238,9 @@ void RobotController_Ackermann_Pid::updateCommand(float error)
 
 float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
 {
-    PathFollowerParameters path_driver_opt = path_driver_->getOptions();
     float velocity = velocity_;
 
-    if(abs(steer_angle) > path_driver_opt.steer_slow_threshold()) {
+    if(abs(steer_angle) > global_opt_->steer_slow_threshold()) {
         ROS_INFO_STREAM_THROTTLE_NAMED(2, MODULE, "slowing down");
         velocity *= 0.75;
     }
@@ -246,7 +248,7 @@ float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
 
     // Reduce maximal velocity, when driving backwards.
     if(dir_sign_ < 0) {
-        velocity = min(velocity, 0.4f * path_driver_opt.max_velocity());
+        velocity = min(velocity, 0.4f * global_opt_->max_velocity());
     }
 
     // linearly reduce velocity, if the goal is within 2s*velocity (e.g. when driving with
@@ -256,18 +258,18 @@ float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
     float distance_to_next_wp = std::sqrt(next_wp_local_.dot(next_wp_local_));
     float dist_to_path_end = path_->getRemainingSubPathDistance() + distance_to_next_wp;
     if (dist_to_path_end < 2*velocity) {
-        velocity = std::max(0.1f + dist_to_path_end / 2.0f, path_driver_->getOptions().min_velocity());
+        velocity = std::max(0.1f + dist_to_path_end / 2.0f, global_opt_->min_velocity());
     }
     //ROS_INFO("dist:      %f", dist_to_path_end);
     //ROS_INFO("v: %f", velocity);
 
 
     // make sure, the velocity is in the allowed range
-    if (velocity < path_driver_opt.min_velocity()) {
-        velocity = path_driver_opt.min_velocity();
+    if (velocity < global_opt_->min_velocity()) {
+        velocity = global_opt_->min_velocity();
         ROS_WARN_THROTTLE_NAMED(5, MODULE, "Velocity is below minimum. It is set to minimum velocity.");
-    } else if (velocity > path_driver_opt.max_velocity()) {
-        velocity = path_driver_opt.max_velocity();
+    } else if (velocity > global_opt_->max_velocity()) {
+        velocity = global_opt_->max_velocity();
         ROS_WARN_THROTTLE_NAMED(5, MODULE, "Velocity is above maximum. Reduce to maximum velocity.");
     }
 
@@ -276,7 +278,7 @@ float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
 
 double RobotController_Ackermann_Pid::distanceToWaypoint(const Waypoint &wp) const
 {
-    Eigen::Vector3d pose = path_driver_->getRobotPose();
+    Eigen::Vector3d pose = pose_tracker_->getRobotPose();
     return std::hypot(pose(0) - wp.x, pose(1) - wp.y);
 }
 
@@ -325,7 +327,7 @@ double RobotController_Ackermann_Pid::calculateLineError() const
 
     Line2d target_line;
     Vector3d followup_next_wp_local;
-    if (!path_driver_->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
+    if (!pose_tracker_->transformToLocal( followup_next_wp_map, followup_next_wp_local)) {
         throw EmergencyBreakException("Cannot transform next waypoint",
                                       path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
@@ -386,7 +388,7 @@ void RobotController_Ackermann_Pid::visualizeCarrot(const Vector2d &carrot,
 
     carrot_local.pose.orientation = tf::createQuaternionMsgFromYaw(0);
     geometry_msgs::PoseStamped carrot_map;
-    if (path_driver_->transformToGlobal(carrot_local, carrot_map)) {
+    if (pose_tracker_->transformToGlobal(carrot_local, carrot_map)) {
         visualizer_->drawMark(id, carrot_map.pose.position, "prediction", r,g,b);
     }
 }

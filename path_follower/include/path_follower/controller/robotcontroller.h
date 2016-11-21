@@ -14,12 +14,14 @@
 // PROJECT
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/movecommand.h>
-#include <path_follower/obstacle_avoidance/obstacledetector.h>
-#include <path_follower/obstacle_avoidance/obstacleavoider.h>
-#include <path_follower/utils/visualizer.h>
 
 
-class PathFollower;
+class PoseTracker;
+class Visualizer;
+class CoursePredictor;
+class ObstacleAvoider;
+
+class PathFollowerParameters;
 
 class RobotController
 {
@@ -97,15 +99,20 @@ protected:
 
     /* REGULAR METHODS */
 public:
-    RobotController(PathFollower *path_driver);
+    RobotController();
+
+    virtual void init(PoseTracker* pose_tracker, ObstacleAvoider* obstacle_avoider, const PathFollowerParameters* options);
 
     virtual ~RobotController() {}
 
     //! Execute one iteration of path following. This method should not be overwritten by subclasses!
     ControlStatus execute();
 
-
+    //! Set the global path (map frame)
     virtual void setPath(Path::Ptr path);
+
+    //! Set the local path (odometry frame)
+    virtual void setLocalPath(Path::Ptr path);
 
     virtual void setVelocity(float v)
     {
@@ -124,15 +131,25 @@ public:
         return dir_sign_;
     }
 
+    std::string getFixedFrame() const;
+
 private:
     //Vizualize the path driven by the robot
     void publishPathMarker();
 
 protected:
+    ros::NodeHandle nh_;
+    ros::NodeHandle pnh_;
+
     ros::Publisher cmd_pub_;
     ros::Publisher points_pub_;
 
-    PathFollower* path_driver_;
+    PoseTracker* pose_tracker_;
+    ObstacleAvoider* obstacle_avoider_;
+
+    const PathFollowerParameters* global_opt_;
+
+    Visualizer *visualizer_;
 
     //! Desired velocity (defined by the action goal).
     float velocity_;
@@ -146,8 +163,6 @@ protected:
     Eigen:: Vector3d next_wp_local_;
 
 
-    ROS_DEPRECATED void setStatus(int status);
-
     //! Calculate the angle between the orientations of the waypoint and the robot.
     virtual double calculateAngleError();
 
@@ -156,8 +171,6 @@ protected:
 
     //path driven by the robot
     visualization_msgs::Marker robot_path_marker_;
-
-    Visualizer *visualizer_;
 };
 
 #endif // ROBOTCONTROLLER_H

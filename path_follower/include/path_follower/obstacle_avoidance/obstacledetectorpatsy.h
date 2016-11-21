@@ -13,14 +13,12 @@ class RobotControllerTrailer ;
 class ObstacleDetectorPatsy : public ObstacleDetector
 {
 public:
-    ObstacleDetectorPatsy(const tf::TransformListener *tf_listener, RobotControllerTrailer *ctrl);
-
+    ObstacleDetectorPatsy();
 
     virtual bool avoid(MoveCommand * const cmd,
-                       ObstacleCloud::ConstPtr obstacles,
                        const ObstacleAvoider::State &state);
 
-    virtual bool checkOnCloud(ObstacleCloud::ConstPtr obstacles,
+    virtual bool checkOnCloud(std::shared_ptr<ObstacleCloud const> obstacles,
                               float width,
                               float length,
                               float course_angle,
@@ -31,8 +29,6 @@ protected:
     void visualize(std::vector<cv::Point2f>& polygon,const std::string& frame, bool hasObstacle) const;
 
     const tf::TransformListener *tf_listener_;
-
-    RobotControllerTrailer *robot_controller_;
 
     std::string front_frame_, rear_frame_;
 

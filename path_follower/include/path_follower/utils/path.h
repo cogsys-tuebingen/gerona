@@ -21,7 +21,7 @@ struct Waypoint
     Waypoint() {}
 
     Waypoint(double x, double y, double orientation):
-        x(x), y(y), orientation(orientation)
+        x(x), y(y), orientation(orientation), s(0.0)
     {}
 
     Waypoint(const geometry_msgs::PoseStamped& ref)
@@ -58,13 +58,143 @@ struct Waypoint
     double y;
     //! Orientation of the waypoint, represented as an angle ("theta")
     double orientation;
+    //!curvilinear abscissa
+    double s;
 
     std::vector<double> actuator_cmds_;
 };
 
+//!Local Node for the local planner tree
+struct LNode: Waypoint
+{
+    LNode():
+        Waypoint(0.0, 0.0, 0.0),
+        parent_(nullptr), level_(0),d2p(0.0),d2o(0.0),of(0.0)
+    {
+
+    }
+    LNode(double x, double y, double orientation, LNode* parent, double radius, int level):
+        Waypoint(x,y,orientation),radius_(radius),parent_(parent),twin_(nullptr),level_(level),
+        d2p(0.0),d2o(0.0),of(0.0),npp(),nop(),gScore_(std::numeric_limits<double>::infinity()),
+        fScore_(std::numeric_limits<double>::infinity()){}
+
+    void InfoFromTwin(){
+        x = twin_->x;
+        y = twin_->y;
+        orientation = twin_->orientation;
+        s = twin_->s;
+        radius_ = twin_->radius_;
+        level_ = twin_->level_;
+        d2p = twin_->d2p;
+        d2o = twin_->d2o;
+        of = twin_->of;
+        npp = twin_->npp;
+        nop = twin_->nop;
+        twin_ = nullptr;
+    }
+
+    double radius_;
+
+    LNode* parent_;
+    LNode* twin_;
+    int level_;
+
+    //!distance to path and obstacle, and obstacle frontier
+    double d2p, d2o, of;
+    //!nearest path point and obstacle point
+    Waypoint npp, nop;
+    //!values used by the Star type algorithms
+    double gScore_, fScore_;
+};
+
+struct CompareHNode : public std::binary_function<LNode*, LNode*, bool> {
+    bool operator()(const LNode* lhs, const LNode* rhs) const {
+        return lhs->fScore_ < rhs->fScore_;
+    }
+};
+
 
 //! A path is sequence of waypoints.
-typedef std::vector<Waypoint> SubPath;
+struct SubPath
+{
+    SubPath(bool forward = true)
+        : forward(forward)
+    {
+
+    }
+
+    std::size_t size() const
+    {
+        return wps.size();
+    }
+
+    bool empty() const
+    {
+        return wps.empty();
+    }
+
+    Waypoint& operator[] (const std::size_t& i)
+    {
+        return wps[i];
+    }
+    const Waypoint& operator[] (const std::size_t& i) const
+    {
+        return wps[i];
+    }
+
+    Waypoint& at (const std::size_t& i)
+    {
+        return wps.at(i);
+    }
+    const Waypoint& at (const std::size_t& i) const
+    {
+        return wps.at(i);
+    }
+
+    std::vector<Waypoint>::iterator begin()
+    {
+        return wps.begin();
+    }
+    std::vector<Waypoint>::const_iterator begin() const
+    {
+        return wps.begin();
+    }
+    std::vector<Waypoint>::iterator end()
+    {
+        return wps.end();
+    }
+    std::vector<Waypoint>::const_iterator end() const
+    {
+        return wps.end();
+    }
+
+    Waypoint& front()
+    {
+        return wps.front();
+    }
+    const Waypoint& front() const
+    {
+        return wps.front();
+    }
+
+    Waypoint& back()
+    {
+        return wps.back();
+    }
+    const Waypoint& back() const
+    {
+        return wps.back();
+    }
+
+    void push_back(const Waypoint& wp)
+    {
+        wps.push_back(wp);
+    }
+
+    std::vector<Waypoint> wps;
+    bool forward;
+};
+
 
 /**
  * @brief Wraps the path and manages the current sub path and waypoint.
@@ -82,7 +212,8 @@ public:
     typedef std::function<void ()> NextWaypointCallback_t;
 
 
-    Path():
+    Path(const std::string& frame_id):
+        frame_id_(frame_id),
         current_sub_path_(path_.begin()),
         has_callback_(false)
     {}
@@ -145,6 +276,7 @@ public:
      * @return The current sub path.
      */
     const SubPath &getCurrentSubPath() const;
+    const SubPath &getSubPath(size_t idx) const;
 
     /**
      * @brief Get a waypoint on the current sub path.
@@ -191,7 +323,13 @@ public:
 
     void fireNextWaypointCallback() const;
 
+    std::string getFrameId() const;
+    void setFrameId(const std::string& frame_id);
+
 private:
+    //! frame in which the path is valid
+    std::string frame_id_;
+
     std::vector<SubPath> path_;
     //! Iterator on `path_` pointing to the current subpath.
     std::vector<SubPath>::iterator current_sub_path_;

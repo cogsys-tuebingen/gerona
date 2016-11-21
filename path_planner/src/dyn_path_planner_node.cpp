@@ -12,9 +12,9 @@
 #include "planner_node.h"
 
 /// PROJECT
-#include <utils_path/generic/Algorithms.hpp>
-#include <utils_path/generic/ReedsSheppExpansion.hpp>
-#include <utils_path/common/Bresenham2d.h>
+#include <cslibs_path_planning/generic/Algorithms.hpp>
+#include <cslibs_path_planning/generic/ReedsSheppExpansion.hpp>
+#include <cslibs_path_planning/common/Bresenham2d.h>
 
 /// SYSTEM
 #include <nav_msgs/Path.h>

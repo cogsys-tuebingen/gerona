@@ -13,7 +13,7 @@
 #include <Eigen/Core>
 
 /// PROJECT
-#include <utils_general/Line2d.h>
+#include <cslibs_utils/Line2d.h>
 
 /**
  * @brief Provides functions to visualize things in Rviz (e.g. arrows, lines, ...)
@@ -51,8 +51,9 @@ public:
      * @param g     Marker color, green.
      * @param b     Marker color, blue.
      * @param live  Lifetime of the marker.
+     * @param scale Mutiplicative scale of the arrow
      */
-    void drawArrow(int id, const geometry_msgs::Pose &pose, const std::string& ns, float r, float g, float b, double live = 3) const;
+    void drawArrow(const std::string &frame, int id, const geometry_msgs::Pose &pose, const std::string& ns, float r, float g, float b, double live = 3, double scale = 1.0) const;
 
     /**
      * @brief Publish a line marker.
@@ -101,7 +102,7 @@ public:
      * @param frame TF-Frame, in which the position is given.
      */
     void drawMark(int id, const geometry_msgs::Point &pos, const std::string& ns, float r, float g, float b,
-                  const std::string &frame="/map") const;
+                  const std::string &frame="map") const;
 
     /**
      * @brief Publish a marker to display some text.
@@ -116,7 +117,7 @@ public:
      * @param live  Lifetime of the marker.
      */
     void drawText(int id, const geometry_msgs::Point &pos, const std::string &text, const std::string& ns,
-                  float r, float g, float b, const std::string &frame="/map", double live = 1) const;
+                  float r, float g, float b, const std::string &frame="map", double live = 1) const;
 
     /**
      * @brief Draw an arrow to visualize the steering angle.
@@ -127,7 +128,7 @@ public:
      * @param g      Marker color, green.
      * @param b      Marker color, blue.
      */
-    void drawSteeringArrow(int id, geometry_msgs::Pose robot_pose, double angle, double r, double g, double b);
+    void drawSteeringArrow(const std::string &frame, int id, geometry_msgs::Pose robot_pose, double angle, double r, double g, double b);
 
     /**
      * @brief Wrapper for drawLine, that only takes a line object.
@@ -145,7 +146,7 @@ public:
      * @param q_ind     Current point on the path, y component.
      * @param theta_p   Slope of the path in the current point.
      */
-    void drawFrenetSerretFrame(int id, Eigen::Vector3d robot_pose, double xe, double ye, double p_ind,
+    void drawFrenetSerretFrame(const std::string &frame, int id, Eigen::Vector3d robot_pose, double xe, double ye, double p_ind,
                                            double q_ind, double theta_p);
 
     ros::Publisher getMarkerPublisher();

@@ -12,7 +12,7 @@
 class RobotController_Ackermann_Pid : public RobotController
 {
 public:
-    RobotController_Ackermann_Pid(PathFollower *path_driver);
+    RobotController_Ackermann_Pid();
     virtual void stopMotion();
     virtual void reset();
 

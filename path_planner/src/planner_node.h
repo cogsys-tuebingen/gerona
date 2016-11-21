@@ -2,8 +2,8 @@
 #define PLANNER_NODE_H
 
 /// PROJECT
-#include <utils_path/common/SimpleGridMap2d.h>
-#include <utils_path/common/Pose2d.h>
+#include <cslibs_path_planning/common/SimpleGridMap2d.h>
+#include <cslibs_path_planning/common/Pose2d.h>
 #include <path_msgs/PlanPathAction.h>
 
 /// SYSTEM
@@ -62,13 +62,13 @@ protected:
      * @brief plan is the interface for implementation classes
      * @param goal the requested goal message
      */
-    nav_msgs::Path planImpl (const path_msgs::PlanPathGoal &goal);
+    path_msgs::PathSequence planImpl (const path_msgs::PlanPathGoal &goal);
 
     /**
      * @brief plan is the interface for implementation classes for 'non pose mode'
      * @param goal the requested goal message
      */
-    virtual nav_msgs::Path planWithoutTargetPose(const path_msgs::PlanPathGoal &goal,
+    virtual path_msgs::PathSequence planWithoutTargetPose(const path_msgs::PlanPathGoal &goal,
                                                  const lib_path::Pose2d& from_world, const lib_path::Pose2d& from_map);
 
     /**
@@ -79,7 +79,7 @@ protected:
      * @param from_map start pose in map coordinates
      * @param to_map goal pose in map coordinates
      */
-    virtual nav_msgs::Path plan (const path_msgs::PlanPathGoal &goal,
+    virtual path_msgs::PathSequence plan (const path_msgs::PlanPathGoal &goal,
                        const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                        const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) = 0;
 
@@ -90,9 +90,9 @@ protected:
      * @param max_distance maximum segment length
      * @return interpolated path
      */
-    nav_msgs::Path interpolatePath(const nav_msgs::Path& path, double max_distance);
+    path_msgs::PathSequence interpolatePath(const path_msgs::PathSequence &path, double max_distance);
 
-    nav_msgs::Path simplifyPath(const nav_msgs::Path& path);
+    path_msgs::PathSequence simplifyPath(const path_msgs::PathSequence &path);
 
     /**
      * @brief smoothPath smooths the given path
@@ -102,16 +102,9 @@ protected:
      * @param tolerance iteration stopping criterium
      * @return smooted path
      */
-    nav_msgs::Path smoothPath(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
+    path_msgs::PathSequence smoothPath(const path_msgs::PathSequence& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
 
-    nav_msgs::Path optimizePathCost(const nav_msgs::Path& path);
-
-    /**
-     * @brief segmentPath splits a path into its constituent parts
-     * @param path
-     * @return
-     */
-    std::vector<nav_msgs::Path> segmentPath(const nav_msgs::Path& path);
+    path_msgs::PathSequence optimizePathCost(const path_msgs::PathSequence& path);
 
     /**
      * @brief convert convert a ros pose to a lib_path::Pose
@@ -124,21 +117,25 @@ protected:
      * @brief publish publishes the given path and a smoothed version of it
      * @param path path to publish
      */
-    void publish(const nav_msgs::Path& path, const nav_msgs::Path &path_raw);
+    void publish(const path_msgs::PathSequence& path, const path_msgs::PathSequence &path_raw);
 
 protected:
     void transformPose(const geometry_msgs::PoseStamped& pose, lib_path::Pose2d& world, lib_path::Pose2d& map);
 
     void preprocess(const path_msgs::PlanPathGoal& request);
-    nav_msgs::Path postprocess(const nav_msgs::Path& path);
+    path_msgs::PathSequence postprocess(const path_msgs::PathSequence& path);
 
     void preempt();
     void feedback(int status);
 
-    nav_msgs::Path empty() const;
+    path_msgs::PathSequence empty() const;
 
 protected:
     virtual bool supportsGoalType(int type) const = 0;
+
+    void visualizeOutline(const geometry_msgs::Pose &at, int id, const std::string &frame);
+    void visualizePath(const path_msgs::PathSequence& path, int id = 0, double alpha = 0.5);
+    void visualizePathLine(const path_msgs::PathSequence &path, int id);
 
 private:
     void laserCallback(const sensor_msgs::LaserScanConstPtr& scan, bool front);
@@ -147,24 +144,23 @@ private:
     void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud);
     void integratePointCloud(const sensor_msgs::PointCloud2 &cloud);
 
+    void growObstacles(const path_msgs::PlanPathGoal &request, double radius);
+
     void calculateGradient(cv::Mat& gx, cv::Mat& gy);
     void publishGradient(const cv::Mat &gx, const cv::Mat &gy);
 
     geometry_msgs::PoseStamped lookupPose();
     tf::StampedTransform lookupTransform(const std::string& from, const std::string& to, const ros::Time& stamp);
 
-    nav_msgs::Path findPath(const path_msgs::PlanPathGoal &request);
+    path_msgs::PathSequence findPath(const path_msgs::PlanPathGoal &request);
 
     void planThreaded(const path_msgs::PlanPathGoal &request);
-    nav_msgs::Path doPlan(const path_msgs::PlanPathGoal& request);
+    path_msgs::PathSequence doPlan(const path_msgs::PlanPathGoal& request);
 
 
-    nav_msgs::Path smoothPathSegment(const nav_msgs::Path& path, double weight_data, double weight_smooth, double tolerance);
+    path_msgs::DirectionalPath smoothPathSegment(const path_msgs::DirectionalPath &path, double weight_data, double weight_smooth, double tolerance);
 
-    void subdividePath(nav_msgs::Path& result, geometry_msgs::PoseStamped low, geometry_msgs::PoseStamped up, double max_distance);
-
-    void visualizeOutline(const geometry_msgs::Pose &at, int id, const std::string &frame);
-    void visualizePath(const nav_msgs::Path& path);
+    void subdividePath(path_msgs::DirectionalPath& result, geometry_msgs::PoseStamped low, geometry_msgs::PoseStamped up, double max_distance);
 
 protected:
     ros::NodeHandle nh;
@@ -185,6 +181,8 @@ protected:
     bool post_process_;
     bool use_collision_gridmap_;
 
+    double grow_obstacles_;
+
     double size_forward;
     double size_backward;
     double size_width;
@@ -203,13 +201,15 @@ protected:
     ros::Publisher viz_pub;
     ros::Publisher viz_array_pub;
     ros::Publisher cost_pub;
-
+    ros::Publisher map_pub;
     tf::TransformListener tfl;
 
     std::string base_frame_;
 
     lib_path::SimpleGridMap2d * map_info;
     double map_rotation_yaw_;
+
+    nav_msgs::OccupancyGridConstPtr pending_map;
 
     nav_msgs::OccupancyGrid cost_map;
     std::vector<double> gradient_x;
@@ -220,14 +220,16 @@ protected:
     sensor_msgs::LaserScan scan_back;
 
     // threaded
-    nav_msgs::Path thread_result;
+    path_msgs::PathSequence thread_result;
     bool thread_running;
     boost::thread* thread_;
     boost::mutex thread_mutex;
 
-private:
-    ros::Publisher path_publisher;
-    ros::Publisher raw_path_publisher;
+    boost::mutex map_mutex;
+
+protected:
+    ros::Publisher path_publisher_;
+    ros::Publisher raw_path_publisher_;
 };
 
 #endif // PLANNER_NODE_H

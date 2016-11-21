@@ -1,15 +1,14 @@
 #include <path_follower/utils/coursepredictor.h>
-#include <path_follower/pathfollower.h>
 #include <path_follower/utils/path_exceptions.h>
-
-#include <utils_general/MathHelper.h>
+#include <path_follower/utils/pose_tracker.h>
+#include <cslibs_utils/MathHelper.h>
 #include <tf/tf.h>
 
 using namespace std;
 using namespace Eigen;
 
-CoursePredictor::CoursePredictor(PathFollower *path_driver):
-    path_driver_(path_driver),
+CoursePredictor::CoursePredictor(PoseTracker *pose_tracker):
+    pose_tracker_(pose_tracker),
     last_positions_(opt_.buffer_size()),
     last_update_time_(0),
     frozen_(false)
@@ -22,7 +21,7 @@ void CoursePredictor::update()
         return;
     }
 
-    last_positions_.push_back(path_driver_->getRobotPose().head<2>());
+    last_positions_.push_back(pose_tracker_->getRobotPose().head<2>());
     last_update_time_ = ros::Time::now();
 }
 
@@ -47,7 +46,7 @@ Eigen::Vector2d CoursePredictor::predictDirectionOfMovement() const
         last_pos_msg.pose.orientation.w = 1;
 
         Vector3d last_position;
-        if ( !path_driver_->transformToLocal(last_pos_msg, last_position) ) {
+        if ( !pose_tracker_->transformToLocal(last_pos_msg, last_position) ) {
             throw EmergencyBreakException("cannot transform last known position",
                                           path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
         }
@@ -69,7 +68,7 @@ Eigen::Vector2d CoursePredictor::smoothedDirection() const
     vector<Vector2d> points;
     points.assign(last_positions_.begin(), last_positions_.end());
     // at current position
-    points.push_back(path_driver_->getRobotPose().head<2>());
+    points.push_back(pose_tracker_->getRobotPose().head<2>());
 
     MathHelper::Line line = MathHelper::FitLinear(points);
 
@@ -88,7 +87,7 @@ Eigen::Vector2d CoursePredictor::smoothedDirection() const
         line_direction_as_pose_msg.pose.orientation = tf::createQuaternionMsgFromYaw(MathHelper::Angle( line.direction ));
 
         geometry_msgs::PoseStamped local_msg;
-        if ( !path_driver_->transformToLocal(line_direction_as_pose_msg, local_msg) ) {
+        if ( !pose_tracker_->transformToLocal(line_direction_as_pose_msg, local_msg) ) {
             throw EmergencyBreakException("cannot transform line",
                                           path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
         }

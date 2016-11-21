@@ -37,6 +37,7 @@ private:
     };
 
     ros::NodeHandle node_handle_;
+    ros::NodeHandle private_node_handle_;
 
     Options opt_;
 
@@ -46,15 +47,15 @@ private:
     //! Action client to communicate with the path_follower package.
     FollowPathClient follow_path_client_;
 
-    //! Action client to communicate with the path_planner package
-    PlanPathClient path_planner_client_;
+    //! Action clients to communicate with the path_planner package
+    std::map<std::string, boost::shared_ptr<PlanPathClient>> path_planner_client_;
 
     //! Publisher for text to speech messages.
     ros::Publisher speech_pub_;
     //! Publisher for visualizing the current goal
     ros::Publisher goal_pub_;
 
-    nav_msgs::PathConstPtr requested_path_;
+    path_msgs::PathSequenceConstPtr requested_path_;
 
     //! Final state of the last finished follow_path action.
     actionlib::SimpleClientGoalState::StateEnum follow_path_final_state_;
@@ -109,6 +110,8 @@ private:
 
     //! Send 'text' to a text to speech processor.
     void say(std::string text);
+
+    void publishGoalMessage();
 };
 
 #endif // PATHCONTROLLER_H

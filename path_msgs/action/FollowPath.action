@@ -1,6 +1,9 @@
 # GOAL DEFINITION
+uint8 INIT_MODE_STOP = 0
+uint8 INIT_MODE_CONTINUE = 1
 
-nav_msgs/Path path
+uint8 init_mode
+path_msgs/PathSequence path
 
 # driving speed of robot (interpreted as recommended value)
 float32 velocity
@@ -27,5 +30,6 @@ uint8 MOTION_STATUS_MOVING = 1
 uint8 MOTION_STATUS_OBSTACLE = 2
 
 uint8 status
+uint32  current_wp_id
 
 Obstacle[] obstacles_on_path

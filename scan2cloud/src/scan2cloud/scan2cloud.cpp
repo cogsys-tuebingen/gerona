@@ -1,8 +1,8 @@
-#include "scan2cloud.h"
+#include "../../include/scan2cloud/scan2cloud.h"
 
 ScanConverter::ScanConverter():node_("~"){
     // init parameter with a default value
-    node_.param<std::string>("baseFrame",baseFrame_,"/base_link");
+    node_.param<std::string>("baseFrame",baseFrame_,"base_link");
 
     node_.param<double>("cloudFilterMean",cloudFilterMean_,50.0);
     node_.param<double>("cloudFilterStdD",cloudFilterStdD_,1.0);
@@ -22,7 +22,7 @@ void ScanConverter::scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan_in
     try{
         if(!tfListener_.waitForTransform(
                     scan_in->header.frame_id,
-                    "/base_link",
+                    "base_link",
                     scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
                     wait_tf_timeout)){
             ROS_DEBUG_THROTTLE(60.0, "ignore scan");

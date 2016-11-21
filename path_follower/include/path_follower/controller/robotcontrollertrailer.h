@@ -9,6 +9,10 @@
 #include <path_follower/utils/pidcontroller.hpp>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/utils/visualizer.h>
+#include <path_follower/utils/pidcontroller.hpp>
+
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
 
 /// FORWARD CLASS DEFINITIONS
 class PathController;
@@ -19,11 +23,16 @@ class PathController;
 class RobotControllerTrailer : public RobotController
 {
 public:
-    RobotControllerTrailer(PathFollower *path_driver, ros::NodeHandle *nh);
+    RobotControllerTrailer();
     virtual void stopMotion();
     virtual void reset();
     virtual void setPath(Path::Ptr path);
     virtual void precomputeSteerCommand(Waypoint& wp_now,  Waypoint& wp_next );
+    /**
+         * @brief isOmnidirectional
+         * @return true ***hack to avoid bugs in local_plannr_transformer with multiple subpaths
+         */
+    virtual bool isOmnidirectional() const {return false;}
 
 protected:
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
@@ -60,12 +69,23 @@ private:
 
         {}
     } opt_;
-    ros::NodeHandle *nh_;
     PathController *path_ctrl_;
     ros::Subscriber agv_vel_sub_;
     ros::Publisher agv_steer_is_pub_, agv_steer_set_pub_, agv_error_angle_pub_,agv_error_dist_pub_;
+    ros::Publisher obstacle_pub_;
     //! The current move command.
     MoveCommand cmd_;
+
+
+    pcl::PointCloud<pcl::PointXYZ> left, right, center;
+    pcl::PointXYZ closest_left, closest_right;
+    pcl::PointXYZ nearest_left, nearest_right;
+    tf::Pose odom_to_base_goal_;
+    double narrow_travel_distance_;
+
+    double last_error_pos_;
+
+    PidController<1, double> pid_psi_;
 
     //! current velocity and trailer angle
     geometry_msgs::Twist agv_vel_;
@@ -74,9 +94,12 @@ private:
     // current precomputed steering angles
     double steer_des_fwd_,steer_des_bwd_;
 
-    //! PID controller for the steering angle
-
     Visualizer* visualizer_;
+
+
+    void analyzePathObstacles();
+    void onPath();
+    void narrowPassage();
 
     /**
      * \brief The current behaviour of the controller.
@@ -87,8 +110,10 @@ private:
      *     stopped (i.e. measured velocity is below some tolerance threshold).
      */
     enum {
-        ON_PATH, APPROACH_SUBPATH_END, WAIT_FOR_STOP
+        ON_PATH, APPROACH_SUBPATH_END, WAIT_FOR_STOP,
+        NARROW_PASSAGE
     } behaviour_;
+
 
     //! Velocity of the last published move command (used for pose prediction)
     mutable float last_velocity_; // mutable, so it can be set by publishMoveCommand()
@@ -176,7 +201,6 @@ private:
     virtual double calculateAngleError();
 
     tf::TransformListener trailer_listener_;
-
 
 };
 

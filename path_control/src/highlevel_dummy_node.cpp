@@ -4,6 +4,7 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/String.h>
 #include <string>
+#include <tf/transform_listener.h>
 
 using namespace path_msgs;
 
@@ -19,23 +20,24 @@ class HighDummy
 public:
     HighDummy(ros::NodeHandle &nh):
         nh_(nh),
+        pnh_("~"),
         client_("navigate_to_goal", true)
     {
         srand(ros::Time::now().toNSec());
-        ros::NodeHandle pnh("~");
 
         // topic for goal position
-        goal_sub_ = pnh.subscribe<geometry_msgs::PoseStamped>("/rviz_goal", 0, &HighDummy::goalCb, this);
+        goal_sub_ = pnh_.subscribe<geometry_msgs::PoseStamped>("/rviz_goal", 0, &HighDummy::goalCb, this);
         client_.waitForServer();
 
         speech_pub_ = nh.advertise<std_msgs::String>("/speech", 0);
 
+        pnh_.param("target_frame", target_frame_, std::string("map"));
         // target speed
-        pnh.param("target_speed", target_speed_, 1.0);
+        pnh_.param("target_speed", target_speed_, 1.0);
 
         // failure mode; possible: ABORT, REPLAN
         std::string failure_mode = "ABORT";
-        pnh.param("failure_mode", failure_mode, failure_mode);
+        pnh_.param("failure_mode", failure_mode, failure_mode);
 
         std::transform(failure_mode.begin(), failure_mode.end(), failure_mode.begin(), ::toupper);
 
@@ -59,10 +61,15 @@ public:
 
 private:
     ros::NodeHandle nh_;
+    ros::NodeHandle pnh_;
+
     actionlib::SimpleActionClient<path_msgs::NavigateToGoalAction> client_;
     ros::Subscriber goal_sub_;
     ros::Publisher speech_pub_;
 
+    tf::TransformListener tfl_;
+
+    std::string target_frame_;
     double target_speed_;
     int failure_mode_;
 
@@ -132,6 +139,29 @@ private:
         goal.goal.pose = *pose;
         goal.failure_mode = failure_mode_;
         goal.velocity = target_speed_;
+        goal.goal.channel.data = pnh_.param("channel", std::string(""));
+        goal.goal.algorithm.data = pnh_.param("algorithm", std::string(""));
+
+        goal.goal.grow_obstacles = pnh_.param("grow_obstacles", true);
+        goal.goal.obstacle_growth_radius = pnh_.param("obstacle_radius", 1.0);
+
+        ROS_INFO_STREAM("goal: " << goal.goal);
+
+        if(pose->header.frame_id != target_frame_) {
+            if(!tfl_.waitForTransform(target_frame_, pose->header.frame_id, pose->header.stamp, ros::Duration(10.0))) {
+                ROS_ERROR_STREAM("cannot drive to goal, the transformation between " << target_frame_ << " and " << pose->header.frame_id << " is not known");
+            }
+            tf::StampedTransform trafo;
+            tfl_.lookupTransform(target_frame_, pose->header.frame_id, pose->header.stamp, trafo);
+
+            tf::Pose old_pose;
+            tf::poseMsgToTF(pose->pose, old_pose);
+
+            tf::Pose map_pose = trafo * old_pose;
+            tf::poseTFToMsg(map_pose, goal.goal.pose.pose);
+
+            goal.goal.pose.header.frame_id = target_frame_;
+        }
 
         client_.cancelAllGoals();
         ros::spinOnce();
@@ -154,7 +184,7 @@ private:
 
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "highlevel_dummy");
+    ros::init(argc, argv, "highlevel_dummy", ros::init_options::NoSigintHandler);
     ros::NodeHandle nh;
 
     HighDummy dummy(nh);

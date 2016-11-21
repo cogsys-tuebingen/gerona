@@ -15,7 +15,6 @@
 // forward declarations
 
 class CarLikeDriver;
-using namespace Eigen;
 
 #define RTOD(r)   ((r) * 180 / M_PI)
 #define DTOR(d)   ((d) * M_PI / 180)

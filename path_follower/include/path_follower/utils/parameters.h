@@ -4,6 +4,8 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <queue>
+#include <set>
 #include <ros/param.h>
 
 /**

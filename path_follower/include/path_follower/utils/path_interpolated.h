@@ -5,8 +5,8 @@
  *      Author: holly
  */
 
-#ifndef NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_UTILS_PATH_INTERPOLATED_H_
-#define NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_UTILS_PATH_INTERPOLATED_H_
+#ifndef PATH_INTERPOLATED_H_
+#define PATH_INTERPOLATED_H_
 
 #include "path.h"
 #include <nav_msgs/Path.h>
@@ -16,7 +16,9 @@ public:
 	PathInterpolated();
 	virtual ~PathInterpolated();
 
-	void interpolatePath(const Path::Ptr path);
+    void interpolatePath(const Path::Ptr path, const bool hack = true);
+
+    void interpolatePath(const SubPath& path, const std::string& frame_id);
 
     inline double s(const unsigned int i) const {
         return s_[i];
@@ -75,12 +77,17 @@ public:
 	}
 
 	operator nav_msgs::Path() const;
+    operator SubPath() const;
 
 private:
 	void clearBuffers();
 
+    void interpolatePath(const std::deque<Waypoint>& waypoints);
+
     //number of path elements
     uint N_;
+
+    std::string frame_id_;
 
 	nav_msgs::Path interp_path;
     //curvilinear abscissa
@@ -106,4 +113,4 @@ private:
     double s_prim_;
 };
 
-#endif /* NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_UTILS_PATH_INTERPOLATED_H_ */
+#endif /* PATH_INTERPOLATED_H_ */

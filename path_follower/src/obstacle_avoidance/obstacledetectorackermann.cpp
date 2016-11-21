@@ -9,12 +9,11 @@ using namespace Eigen;
 
 
 bool ObstacleDetectorAckermann::avoid(MoveCommand * const cmd,
-                                    ObstacleCloud::ConstPtr obstacles,
                                     const ObstacleAvoider::State &state)
 {
     velocity_ = cmd->getVelocity();
 
-    return ObstacleDetectorPolygon::avoid(cmd, obstacles, state);
+    return ObstacleDetectorPolygon::avoid(cmd, state);
 }
 
 ObstacleDetectorPolygon::PolygonWithTfFrame ObstacleDetectorAckermann::getPolygon(float width, float length, float course_angle, float curve_enlarge_factor) const
@@ -75,7 +74,7 @@ ObstacleDetectorPolygon::PolygonWithTfFrame ObstacleDetectorAckermann::getPolygo
     Vector2f s = q + dir * length * Vector2f(cos_angle, sin_angle);
 
     PolygonWithTfFrame pwf;
-    pwf.frame = "/base_link";
+    pwf.frame = "base_link";
 
     pwf.polygon.push_back( cv::Point2f(p[0], p[1]) );
     pwf.polygon.push_back( cv::Point2f(q[0], q[1]) );

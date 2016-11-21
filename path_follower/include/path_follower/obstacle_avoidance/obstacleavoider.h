@@ -5,9 +5,11 @@
 #include <tf/tf.h>
 
 #include <path_follower/pathfollowerparameters.h>
-#include <path_follower/utils/obstaclecloud.hpp>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/movecommand.h>
+#include <tf/transform_listener.h>
+
+class ObstacleCloud;
 
 class ObstacleAvoider
 {
@@ -28,6 +30,11 @@ public:
 
     virtual ~ObstacleAvoider() {}
 
+    void setTransformListener(const tf::TransformListener *tf_listener);
+
+    std::shared_ptr<ObstacleCloud const> getObstacles() const;
+    void setObstacles(std::shared_ptr<ObstacleCloud const> obstacles);
+
     /**
      * @brief Determines, if there are obstacles, which are blocking the path and adjusts the
      *        move command such that a collision is avoided.
@@ -36,9 +43,15 @@ public:
      * @param state     Additional information about the current state of the robot.
      * @return True, if the move command was modified, otherwise false.
      */
-    virtual bool avoid(MoveCommand* const cmd,
-                       ObstacleCloud::ConstPtr obstacles,
-                       const State &state) = 0;
+    virtual bool avoid(MoveCommand* const cmd, const State &state) = 0;
+
+protected:
+    ObstacleAvoider();
+
+protected:
+    std::shared_ptr<ObstacleCloud const> obstacles_;
+
+    const tf::TransformListener *tf_listener_;
 };
 
 #endif // OBSTACLEAVOIDER_H
