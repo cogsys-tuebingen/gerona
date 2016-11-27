@@ -32,21 +32,24 @@ find_package(catkin REQUIRED COMPONENTS
   laser_geometry
   pcl_ros
   pcl_conversions
+  pluginlib
 )
 
 find_package(OpenCV REQUIRED)
 find_package(PCL REQUIRED)
 find_package(ALGLIB REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 catkin_package(
-  CATKIN_DEPENDS path_msgs nav_msgs control_msgs
+    INCLUDE_DIRS include
+    LIBRARIES ${PROJECT_NAME}
+    DEPENDS Eigen3
+    CATKIN_DEPENDS path_msgs nav_msgs control_msgs cslibs_utils
 )
 
 ###########
 ## Build ##
 ###########
-
-find_package(Eigen3 REQUIRED)
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
@@ -108,7 +111,6 @@ add_library(${PROJECT_NAME} SHARED
     src/controller/robotcontroller_omnidrive_orthexp.cpp
     src/controller/robotcontroller_kinematic_SLP.cpp
     src/controller/robotcontroller_dynamic_SLP.cpp
-    src/controller/robotcontroller_kinematic_HBZ.cpp
 
     src/local_planner/local_planner.cpp
     src/local_planner/local_planner_null.cpp
