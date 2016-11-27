@@ -29,6 +29,9 @@ private:
     FollowPathServer follow_path_server_;
 
     path_msgs::FollowPathGoalConstPtr latest_goal_;
+
+    ros::Duration continue_mode_timeout_;
+    boost::optional<ros::Time> last_preempt_;
 };
 
 #endif // PATH_FOLLOWER_SERVER_H
