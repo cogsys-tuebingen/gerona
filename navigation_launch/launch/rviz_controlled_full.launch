@@ -10,11 +10,12 @@ demonstrating the navigation framework.
 <launch>
     <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_HBZ)" />
     <arg name="algo" default="AStarR" />
+    <!--arg name="algo" default="NULL" /-->
 
     <arg name="c1" default="true" />
     <arg name="c2" default="true" />
 
-    <arg name="s1" default="2.0" />
+    <arg name="s1" default="1.0" />
     <arg name="s2" default="1.0" />
     <arg name="s3" default="1.0" />
     <arg name="s4" default="1.0" />
@@ -37,7 +38,7 @@ demonstrating the navigation framework.
 
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
-    <arg name="use_planner_static" default="true" />
+    <arg name="use_planner_static" default="false" />
     <arg name="use_planner_default" default="true" />
     
     <arg name="use_karto" default="false" />
@@ -47,7 +48,7 @@ demonstrating the navigation framework.
 
     <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy"
     		output="screen" respawn="true">
-        <param name="target_speed" value="2.5" />
+        <param name="target_speed" value="0.5" />
         <param name="failure_mode" value="replan" />
         <remap from="/rviz_goal" to="/move_base_simple/goal" />
     </node>

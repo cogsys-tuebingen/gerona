@@ -205,7 +205,7 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
         }
 
         if(path_search_failure) {
-            ROS_ERROR_STREAM("no local path found. there is an obstacle.");
+            ROS_ERROR_STREAM_THROTTLE(1, "no local path found.");
             feedback.status = path_msgs::FollowPathFeedback::MOTION_STATUS_OBSTACLE;
             controller_->stopMotion();
 
@@ -217,6 +217,8 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
             pose.pose.position.x = std::numeric_limits<double>::quiet_NaN();
             path.poses.push_back(pose);
             local_path_pub_.publish(path);
+
+            return feedback;
 
         } else {
             if(local_path_whole->subPathCount() > 0){
@@ -327,6 +329,7 @@ void PathFollower::stop(int status)
 
 void PathFollower::emergencyStop()
 {
+    ROS_WARN("***EMERGENCY STOP***");
     stop(FollowPathResult::RESULT_STATUS_INTERNAL_ERROR);
 }
 
@@ -389,7 +392,7 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
         return MOVING;
 
     default:
-        ROS_INFO_STREAM("aborting, status=" << static_cast<int>(status));
+        //ROS_INFO_STREAM("aborting, status=" << static_cast<int>(status));
         result.status = FollowPathResult::RESULT_STATUS_INTERNAL_ERROR;
         return DONE;
     }

@@ -132,7 +132,7 @@ void RobotController::publishPathMarker()
 RobotController::ControlStatus RobotController::execute()
 {
     if(!path_) {
-       return ControlStatus::OKAY;
+       return ControlStatus::ERROR;
     }
  
     publishPathMarker();

@@ -178,7 +178,7 @@ tf::Transform PoseTracker::getRelativeTransform(const std::string &fixed_frame, 
         pose_listener_.lookupTransform(fixed_frame, frame, time, trafo);
 
     } else {
-        ROS_WARN_STREAM("cannot lookup relative transform from " << fixed_frame << " to " << frame << " at time " << time
+        ROS_WARN_STREAM_THROTTLE(0.1, "cannot lookup relative transform from " << fixed_frame << " to " << frame << " at time " << time
                         << ". Using latest transform");
         pose_listener_.lookupTransform(fixed_frame, frame, ros::Time(0), trafo);
     }

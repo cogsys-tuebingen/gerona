@@ -565,6 +565,7 @@ struct PathPlanner : public Planner
         Algo algorithm = algo_to_use;
 
         if(!request.goal.algorithm.data.empty()) {
+            ROS_INFO_STREAM("planning w/o target pose with requested algorithm: " << request.goal.algorithm.data);
             algorithm = stringToAlgorithm(request.goal.algorithm.data);
         }
 
@@ -591,6 +592,7 @@ struct PathPlanner : public Planner
         Algo algorithm = algo_to_use;
 
         if(!goal.goal.algorithm.data.empty()) {
+            ROS_INFO_STREAM("planning w/ target pose with requested algorithm: " << goal.goal.algorithm.data);
             algorithm = stringToAlgorithm(goal.goal.algorithm.data);
         }
 

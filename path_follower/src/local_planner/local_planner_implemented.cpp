@@ -114,13 +114,16 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(Path::Ptr& wlp)
 //        }
 //        std::cout << std::endl;
 
+        Path::Ptr local_path(new Path("odom"));
+
         if(!transform2Odo(now)){
-            return nullptr;
+            ROS_WARN_THROTTLE(1, "cannot calculate local path, transform to odom not known");
+            return local_path;
         }
 
         if(!obstacle_cloud_) {
-            ROS_WARN("cannot calculate local path, no obstacle cloud received yet");
-            return nullptr;
+            ROS_WARN_THROTTLE(1, "cannot calculate local path, no obstacle cloud received yet");
+            return local_path;
         }
 
         /*
@@ -141,10 +144,10 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(Path::Ptr& wlp)
             if(!wlp_.empty()){
                 wlp->setPath({wlp_});
             }
-            return nullptr;
+
+            return local_path;
         }
 
-        Path::Ptr local_path(new Path("odom"));
         setPath(local_path, wlp, local_wps, now);
         int end_t = gsw.usElapsed();
 

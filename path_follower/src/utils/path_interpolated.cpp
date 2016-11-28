@@ -121,7 +121,7 @@ void PathInterpolated::interpolatePath(const std::deque<Waypoint>& waypoints){
         }
 
 	}
-	ROS_INFO("Length of the path: %lf m", L);
+//	ROS_INFO("Length of the path: %lf m", L);
 
 
 	double f = std::max(0.0001, L / (double) (N_-1));
