@@ -18,6 +18,9 @@ PathFollowerServer::PathFollowerServer(PathFollower &follower)
     follow_path_server_.registerPreemptCallback([this]() {followPathPreemptCB(); });
 
     follow_path_server_.start();
+
+    double continue_mode_timeout_seconds = follower.getNodeHandle().param("continue_mode_timeout_seconds", 0.1);
+    continue_mode_timeout_ = ros::Duration(continue_mode_timeout_seconds);
 }
 
 void PathFollowerServer::spin()
@@ -44,10 +47,7 @@ void PathFollowerServer::update()
 {
     if (follow_path_server_.isActive()) {
         if(follow_path_server_.isPreemptRequested()) {
-            if(follower_.isRunning()) {
-                follower_.stop(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
-            }
-            follow_path_server_.setPreempted();
+            followPathPreemptCB();
 
         } else {
             auto result_var = follower_.update();
@@ -63,6 +63,11 @@ void PathFollowerServer::update()
                     follow_path_server_.setAborted(result);
                 }
             }
+        }
+    } else {
+        if(last_preempt_ && ros::Time::now() > last_preempt_.get() + continue_mode_timeout_) {
+            follower_.stop(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
+            last_preempt_.reset();
         }
     }
 }
@@ -84,5 +89,12 @@ void PathFollowerServer::followPathGoalCB()
 
 void PathFollowerServer::followPathPreemptCB()
 {
-    follower_.stop(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
+    if(follower_.isRunning()) {
+        if(latest_goal_->init_mode != path_msgs::FollowPathGoal::INIT_MODE_CONTINUE) {
+            follower_.stop(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
+        }
+    }
+    follow_path_server_.setPreempted();
+
+    last_preempt_ = ros::Time::now();
 }

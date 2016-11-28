@@ -2,6 +2,7 @@
 #define CONTROLLER_FACTORY_H
 
 #include <memory>
+#include <pluginlib/class_loader.h>
 
 
 namespace ros {
@@ -38,6 +39,9 @@ private:
     PathFollower &follower_;
     const PathFollowerParameters& opt_;
     PoseTracker& pose_tracker_;
+
+    pluginlib::ClassLoader<RobotController> controller_loader;
+
 };
 
 #endif // CONTROLLER_FACTORY_H
