@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package>
+  <name>navigation</name>
+  <version>0.1.0</version>
+  <description>
+	The csnavigation stack contains packages for path planning and following.
+  </description>
+
+  <maintainer email="goran.huskic@uni-tuebingen.de">Goran Huskic</maintainer>
+  <maintainer email="sebastian.buck@uni-tuebingen.de">Sebastian Buck</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>path_msgs</run_depend>
+  <run_depend>path_control</run_depend>
+  <run_depend>path_planner</run_depend>
+  <run_depend>path_follower</run_depend>
+  <run_depend>path_rviz</run_depend>
+
+  <export>
+   <metapackage />
+  </export>
+</package>

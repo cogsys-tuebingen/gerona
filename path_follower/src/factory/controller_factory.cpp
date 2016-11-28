@@ -19,7 +19,6 @@
 #include <path_follower/controller/robotcontroller_differential_orthexp.h>
 #include <path_follower/controller/robotcontroller_kinematic_SLP.h>
 #include <path_follower/controller/robotcontroller_dynamic_SLP.h>
-#include <path_follower/controller/robotcontroller_kinematic_HBZ.h>
 
 #include <path_follower/obstacle_avoidance/noneavoider.hpp>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
@@ -45,7 +44,9 @@
 #include <stdexcept>
 
 ControllerFactory::ControllerFactory(PathFollower &follower)
-    : follower_(follower), opt_(follower.getOptions()), pose_tracker_(follower.getPoseTracker())
+    : follower_(follower), opt_(follower.getOptions()), pose_tracker_(follower.getPoseTracker()),
+
+      controller_loader("path_follower", "RobotController")
 {
 
 }
@@ -78,7 +79,48 @@ void ControllerFactory::construct(std::shared_ptr<RobotController>& out_controll
 
 std::shared_ptr<RobotController> ControllerFactory::makeController(const std::string& name)
 {
-    ROS_INFO("Use robot controller '%s'", name.c_str());
+    std::string name_low = name;
+    std::transform(name_low.begin(), name_low.end(), name_low.begin(), ::tolower);
+
+    std::vector<std::string> classes = controller_loader.getDeclaredClasses();
+    std::vector<std::string> classes_low;
+    classes_low.reserve(classes.size());
+    for(const std::string& s : classes) {
+        std::string low = s;
+        std::transform(low.begin(), low.end(), low.begin(), ::tolower);
+        classes_low.push_back(low);
+    }
+
+    std::string plugin_class;
+
+    for(int i = 0, n = classes.size(); i < n; ++i) {
+        const std::string& available = classes_low.at(i);
+
+        // first try direct name
+        if(available == name_low) {
+            plugin_class = classes.at(i);
+            break;
+        }
+
+        std::string conventional = std::string("robotcontroller_") + name_low;
+
+        // then try the conventional naming scheme
+        if(conventional == available) {
+            plugin_class = classes.at(i);
+            break;
+        }
+    }
+
+    if(!plugin_class.empty() && controller_loader.isClassAvailable(plugin_class)) {
+        ROS_INFO("Use robot controller plugin '%s'", plugin_class.c_str());
+
+        return std::shared_ptr<RobotController>(controller_loader.createUnmanagedInstance(plugin_class));
+    }
+
+    // legacy controllers:
+    // TODO: move to plugins
+    ROS_INFO("Use legacy robot controller '%s'", name.c_str());
+
     if (name == "ackermann_pid") {
         return std::make_shared<RobotController_Ackermann_Pid>();
 
@@ -120,9 +162,6 @@ std::shared_ptr<RobotController> ControllerFactory::makeController(const std::st
 
     } else if (name == "dynamic_SLP") {
         return std::make_shared<RobotController_Dynamic_SLP>();
-
-    } else if (name == "kinematic_HBZ") {
-        return std::make_shared<RobotController_Kinematic_HBZ>();
 
     } else if (name == "ICR_CCW") {
         return std::make_shared<RobotController_ICR_CCW>();
