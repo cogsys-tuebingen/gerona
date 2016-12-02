@@ -14,6 +14,7 @@
 
 /// PROJECT
 #include <path_follower/pathfollowerparameters.h>
+#include <path_follower/utils/path_follower_config.h>
 
 /// SYSTEM
 #include <ros/node_handle.h>
@@ -57,8 +58,6 @@ public:
 
     PoseTracker& getPoseTracker();
 
-    RobotController* getController();
-    ObstacleAvoider& getObstacleAvoider();
     const PathFollowerParameters &getOptions() const;
     Visualizer& getVisualizer() const;
 
@@ -103,12 +102,10 @@ private:
 
     std::unique_ptr<ControllerFactory> controller_factory_;
 
-    //! The robot controller is responsible for everything that is dependend on robot model and controller type.
-    std::shared_ptr<RobotController> controller_;
+    std::string default_config_;
 
-    std::shared_ptr<LocalPlanner> local_planner_;
-
-    std::shared_ptr<ObstacleAvoider> obstacle_avoider_;
+    std::shared_ptr<PathFollowerConfig> config_;
+    std::map<std::string, std::shared_ptr<PathFollowerConfig>> config_cache_;
 
     std::unique_ptr<SupervisorChain> supervisors_;
 

@@ -1,6 +1,8 @@
 # A generic path planning goal
-std_msgs/String algorithm
-std_msgs/String channel
+std_msgs/String planning_algorithm
+std_msgs/String planning_channel
+
+std_msgs/String following_algorithm
 
 uint8 type
 

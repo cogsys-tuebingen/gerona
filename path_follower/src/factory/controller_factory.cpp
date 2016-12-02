@@ -51,29 +51,46 @@ ControllerFactory::ControllerFactory(PathFollower &follower)
 
 }
 
-void ControllerFactory::construct(std::shared_ptr<RobotController>& out_controller,
-               std::shared_ptr<LocalPlanner>& out_local_planner,
-               std::shared_ptr<ObstacleAvoider>& out_obstacle_avoider)
+std::shared_ptr<PathFollowerConfig> ControllerFactory::construct(const std::string& config)
 {
-    out_controller = makeController(opt_.controller());
+    PathFollowerConfig result;
 
-    out_local_planner = makeConstrainedLocalPlanner(opt_.algo());
+    if(config.empty()) {
+        result.controller_ = makeController(opt_.controller());
+        result.local_planner_ = makeConstrainedLocalPlanner(opt_.algo());
+        result.obstacle_avoider_ = makeObstacleAvoider(opt_.controller());
 
-    out_obstacle_avoider = makeObstacleAvoider(opt_.controller());
+    } else {
+        if(config == "HBZ_forward_backward") {
+            result.controller_ = makeController("RobotController_Kinematic_HBZ");
+            result.local_planner_ = makeConstrainedLocalPlanner("NULL");
+            result.obstacle_avoider_ = makeObstacleAvoider("RobotController_Kinematic_HBZ");
+
+        } else {
+            ROS_FATAL_STREAM("the path follower \"" << config << "\" does not exist." );
+            std::abort();
+        }
+    }
+
+    ROS_ASSERT_MSG(result.controller_ != nullptr, "Controller was not set");
+    ROS_ASSERT_MSG(result.local_planner_ != nullptr, "Local Planner was not set");
+    ROS_ASSERT_MSG(result.obstacle_avoider_ != nullptr, "Obstacle Avoider was not set");
 
     // wiring
-    out_obstacle_avoider->setTransformListener(&pose_tracker_.getTransformListener());
+    result.obstacle_avoider_->setTransformListener(&pose_tracker_.getTransformListener());
 
     ros::Duration uinterval(opt_.uinterval());
-    out_local_planner->init(out_controller.get(), &pose_tracker_, uinterval);
+    result.local_planner_->init(result.controller_.get(), &pose_tracker_, uinterval);
 
-    out_controller->init(&pose_tracker_, out_obstacle_avoider.get(), &opt_);
+    result.controller_->init(&pose_tracker_, result.obstacle_avoider_.get(), &opt_);
 
-    pose_tracker_.setLocal(!out_local_planner->isNull());
+    pose_tracker_.setLocal(!result.local_planner_->isNull());
 
-    out_local_planner->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.adis(),
-                       opt_.fdis(),opt_.s_angle(), opt_.ia(), opt_.lmf(),
-                       opt_.depth(), opt_.mu(), opt_.ef());
+    result.local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.adis(),
+                                     opt_.fdis(),opt_.s_angle(), opt_.ia(), opt_.lmf(),
+                                     opt_.depth(), opt_.mu(), opt_.ef());
+
+    return std::make_shared<PathFollowerConfig>(result);
 }
 
 
@@ -167,7 +184,7 @@ std::shared_ptr<RobotController> ControllerFactory::makeController(const std::st
         return std::make_shared<RobotController_ICR_CCW>();
 
     } else {
-        throw std::logic_error("Unknown robot controller. Shutdown.");
+        throw std::logic_error(std::string("Unknown robot controller: ") + name + ". Shutdown.");
     }
 }
 
@@ -322,18 +339,17 @@ std::shared_ptr<ObstacleAvoider> ControllerFactory::makeObstacleAvoider(const st
         if (opt_.obstacle_avoider_use_collision_box())
             return std::make_shared<ObstacleDetectorAckermann>();
 
-    } else if (name == "kinematic_HBZ") {
-        if (opt_.obstacle_avoider_use_collision_box())
-            return std::make_shared<ObstacleDetectorAckermann>();
-
     } else if (name == "ICR_CCW") {
         if (opt_.obstacle_avoider_use_collision_box())
             return std::make_shared<ObstacleDetectorAckermann>();
 
     } else {
-        throw std::logic_error("Unknown robot controller. Shutdown.");
+        if (opt_.obstacle_avoider_use_collision_box()) {
+            // TODO: think about how to implement this for plug-ins
+            ROS_WARN_STREAM("Unknown robot controller: " << name << ". Defaulting to AckermannDetector.");
+            return std::make_shared<ObstacleDetectorAckermann>();
+        }
     }
-
     //  if no obstacle avoider was set, use the none-avoider
     return std::make_shared<NoneAvoider>();
 }

@@ -663,6 +663,13 @@ tf::StampedTransform Planner::lookupTransform(const std::string& from, const std
         tfl.lookupTransform(from, to, stamp, trafo);
     } else {
         ROS_WARN("cannot lookup own pose, using last estimate");
+        // this can throw...
+        if(!tfl.canTransform(from, to, ros::Time(0))) {
+            tfl.waitForTransform(from, to, ros::Time(0), ros::Duration(0.01));
+        }
+        if(!tfl.canTransform(from, to, ros::Time(0))) {
+            ROS_FATAL_STREAM("cannot get latest transform from " << from << " to " << to);
+        }
         tfl.lookupTransform(from, to, ros::Time(0), trafo);
     }
     return trafo;
@@ -1272,7 +1279,7 @@ path_msgs::DirectionalPath Planner::smoothPathSegment(const path_msgs::Direction
     new_path.header = path.header;
     new_path.forward = path.forward;
 
-    unsigned n = path.poses.size();
+    int n = path.poses.size();
 
     double last_change = -2 * tolerance;
     double change = 0;
@@ -1283,7 +1290,7 @@ path_msgs::DirectionalPath Planner::smoothPathSegment(const path_msgs::Direction
         last_change = change;
         change = 0;
 
-        for(unsigned i = offset; i < n-offset; ++i){
+        for(int i = offset; i < n-offset; ++i){
             Pose2d path_i = convert(path.poses[i]);
             Pose2d new_path_i = convert(new_path.poses[i]);
             Pose2d new_path_ip1 = convert(new_path.poses[i+1]);
@@ -1317,7 +1324,7 @@ path_msgs::DirectionalPath Planner::smoothPathSegment(const path_msgs::Direction
     // decide whether to drive forward or backward
     bool is_backward = (theta_diff > M_PI_2 || theta_diff < -M_PI_2) ;
 
-    for(unsigned i = 1; i < n-1; ++i){
+    for(int i = 1; i < n-1; ++i){
         Pose2d next = convert(new_path.poses[i+1]);
         Pose2d prev = convert(new_path.poses[i-1]);
 

@@ -349,7 +349,7 @@ void PathController::findPath()
     ros::Duration timeout(20.0);
     ros::Time start = ros::Time::now();
 
-    std::string planner_topic = goal.channel.data;
+    std::string planner_topic = goal.planning_channel.data;
     ROS_INFO_STREAM("got request with channel " << planner_topic);
     if(planner_topic.empty()) {
         planner_topic = node_handle_.resolveName("plan_path", true);

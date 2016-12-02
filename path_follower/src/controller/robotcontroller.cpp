@@ -8,6 +8,9 @@
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/obstacle_avoidance/obstacleavoider.h>
 
+/// THIRD PARTY
+#include <interpolation.h>
+
 RobotController::RobotController()
     : pnh_("~"),
       pose_tracker_(nullptr),
@@ -77,9 +80,15 @@ void RobotController::setPath(Path::Ptr path)
     }
 }
 
-void RobotController::setLocalPath(Path::Ptr path)
+void RobotController::setGlobalPath(Path::Ptr path)
 {
-    // nothing to do, can be implemented by children
+    //global_path_ = path;
+    try {
+        global_path_.interpolatePath(path, true);
+
+    } catch(const alglib::ap_error& error) {
+        throw std::runtime_error(error.msg);
+    }
 }
 
 void RobotController::initPublisher(ros::Publisher *pub) const

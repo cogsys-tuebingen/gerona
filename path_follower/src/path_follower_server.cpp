@@ -80,8 +80,10 @@ void PathFollowerServer::followPathGoalCB()
     ROS_INFO("Start Action!");
 
     // stop current goal
-    if(latest_goal_->init_mode != path_msgs::FollowPathGoal::INIT_MODE_CONTINUE) {
-        follower_.stop(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
+    if(follower_.isRunning()) {
+        if(latest_goal_->init_mode != path_msgs::FollowPathGoal::INIT_MODE_CONTINUE) {
+            follower_.stop(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
+        }
     }
 
     follower_.setGoal(*latest_goal_);

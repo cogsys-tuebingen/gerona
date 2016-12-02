@@ -19,6 +19,7 @@ void LocalPlannerNull::setGlobalPath(Path::Ptr path)
      */
     LocalPlanner::setGlobalPath(path);
 
+    controller_->setGlobalPath(path);
     controller_->setPath(path);
 }
 

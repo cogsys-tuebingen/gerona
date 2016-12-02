@@ -1,6 +1,8 @@
 #ifndef CONTROLLER_FACTORY_H
 #define CONTROLLER_FACTORY_H
 
+#include <path_follower/utils/path_follower_config.h>
+
 #include <memory>
 #include <pluginlib/class_loader.h>
 
@@ -24,9 +26,7 @@ public:
     ControllerFactory(PathFollower &follower);
 
 public:
-    void construct(std::shared_ptr<RobotController>& out_controller,
-                   std::shared_ptr<LocalPlanner>& out_local_planner,
-                   std::shared_ptr<ObstacleAvoider>& out_obstacle_avoider);
+    std::shared_ptr<PathFollowerConfig> construct(const std::string &config);
 
 private:
     std::shared_ptr<RobotController> makeController(const std::string &name);

@@ -35,15 +35,10 @@ using namespace Eigen;
 const double WAYPOINT_POS_DIFF_TOL = 0.001;
 const double WAYPOINT_ANGLE_DIFF_TOL = 0.01*M_PI/180.0;
 
-
-
 PathFollower::PathFollower(ros::NodeHandle &nh):
     node_handle_(nh),
     pose_tracker_(new PoseTracker(opt_, nh)),
     controller_factory_(new ControllerFactory(*this)),
-    controller_(nullptr),
-    local_planner_(nullptr),
-    obstacle_avoider_(nullptr),
     supervisors_(new SupervisorChain()),
     course_predictor_(new CoursePredictor(pose_tracker_.get())),
     visualizer_(Visualizer::getInstance()),
@@ -58,18 +53,12 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     whole_local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("whole_local_path", 1, true);
     g_points_pub_ = node_handle_.advertise<visualization_msgs::Marker>("g_path_points", 10);
 
-    // Choose robot controller
-    controller_factory_->construct(controller_, local_planner_, obstacle_avoider_);
-
-    ROS_ASSERT_MSG(controller_ != nullptr, "Controller was not set");
-    ROS_ASSERT_MSG(local_planner_ != nullptr, "Local Planner was not set");
-    ROS_ASSERT_MSG(obstacle_avoider_ != nullptr, "Obstacle Avoider was not set");
+    node_handle_.param("default_config", default_config_, std::string(""));
 
     /*** Initialize supervisors ***/
 
     // register callback for new waypoint event.
     path_->registerNextWaypointCallback([this]() { supervisors_->notifyNewWaypoint(); });
-    path_->registerNextWaypointCallback([this]() { local_planner_->reset(); });
 
     if (opt_.supervisor_use_path_lookout()) {
         supervisors_->addSupervisor( Supervisor::Ptr(new PathLookout(*pose_tracker_)) );
@@ -125,12 +114,16 @@ void PathFollower::setObstacles(const std::shared_ptr<ObstacleCloud const> &msg)
 {
     obstacle_cloud_ = msg;
 
-    obstacle_avoider_->setObstacles(msg);
+    if(config_) {
+        config_->obstacle_avoider_->setObstacles(msg);
+    }
 }
 
 
 boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
 {
+    ROS_ASSERT(config_);
+
     FollowPathFeedback feedback;
     FollowPathResult result;
 
@@ -144,7 +137,7 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
 
     } else {
         course_predictor_->update();
-        controller_->setCurrentPose(pose_tracker_->getRobotPose());
+        config_->controller_->setCurrentPose(pose_tracker_->getRobotPose());
     }
 
     // Ask supervisor whether path following can continue
@@ -162,23 +155,23 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
 
     }
 
-    if(local_planner_->isNull()) {
+    if(config_->local_planner_->isNull()) {
         is_running_ = execute(feedback, result);
 
     } else  {
         //End Constraints and Scorers Construction
         publishPathMarker();
         if(obstacle_cloud_ != nullptr){
-            local_planner_->setObstacleCloud(obstacle_cloud_);
+            config_->local_planner_->setObstacleCloud(obstacle_cloud_);
         }
         if(opt_.use_v()){
-            local_planner_->setVelocity(pose_tracker_->getVelocity().linear);
+            config_->local_planner_->setVelocity(pose_tracker_->getVelocity().linear);
         }
 
         bool path_search_failure = false;
         Path::Ptr local_path_whole(new Path("odom"));
         try {
-            Path::Ptr local_path = local_planner_->updateLocalPath(local_path_whole);
+            Path::Ptr local_path = config_->local_planner_->updateLocalPath(local_path_whole);
             path_search_failure = local_path && local_path->empty();
             if(local_path && !path_search_failure) {
                 nav_msgs::Path path;
@@ -207,7 +200,7 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
         if(path_search_failure) {
             ROS_ERROR_STREAM_THROTTLE(1, "no local path found.");
             feedback.status = path_msgs::FollowPathFeedback::MOTION_STATUS_OBSTACLE;
-            controller_->stopMotion();
+            config_->controller_->stopMotion();
 
             // avoid RViz bug with empty paths!
             nav_msgs::Path path;
@@ -254,16 +247,6 @@ PoseTracker& PathFollower::getPoseTracker()
     return *pose_tracker_;
 }
 
-RobotController *PathFollower::getController()
-{
-    return controller_.get();
-}
-
-ObstacleAvoider& PathFollower::getObstacleAvoider()
-{
-    return *obstacle_avoider_;
-}
-
 CoursePredictor &PathFollower::getCoursePredictor()
 {
     return *course_predictor_;
@@ -301,15 +284,16 @@ bool PathFollower::isRunning() const
 
 void PathFollower::start()
 {
+    ROS_ASSERT(config_);
     //path_idx_.reset();
 
     course_predictor_->reset();
-    controller_->reset();
+    config_->controller_->reset();
 
-    controller_->start();
+    config_->controller_->start();
 
-    local_planner_->setGlobalPath(path_);
-    local_planner_->setVelocity(vel_);
+    config_->local_planner_->setGlobalPath(path_);
+    config_->local_planner_->setVelocity(vel_);
 
     g_robot_path_marker_.header.stamp = ros::Time();
     g_robot_path_marker_.points.clear();
@@ -319,10 +303,12 @@ void PathFollower::start()
 
 void PathFollower::stop(int status)
 {
+    ROS_ASSERT(config_);
+
     is_running_ = false;
 
-    controller_->reset();
-    controller_->stopMotion();
+    config_->controller_->reset();
+    config_->controller_->stopMotion();
 
     pending_error_ = status;
 }
@@ -335,6 +321,7 @@ void PathFollower::emergencyStop()
 
 bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& result)
 {
+    ROS_ASSERT(config_);
     /* TODO:
       * The global use of the result-constants as status codes is a bit problematic, as there are feedback
       * states, which do not imply that the path execution is finished (and thus there is no result to send).
@@ -355,7 +342,7 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
     }
 
     if(path_->empty()) {
-        controller_->reset();
+        config_->controller_->reset();
         result.status = FollowPathResult::RESULT_STATUS_SUCCESS;
         ROS_WARN("no path");
         return DONE;
@@ -363,12 +350,12 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
 
     visualizer_->drawArrow(getFixedFrameId(), 0, pose_tracker_->getRobotPoseMsg(), "slam pose", 2.0, 0.7, 1.0);
 
-    RobotController::ControlStatus status = controller_->execute();
+    RobotController::ControlStatus status = config_->controller_->execute();
 
     switch(status)
     {
     case RobotController::ControlStatus::REACHED_GOAL:
-        if(!local_planner_->isNull()) {
+        if(!config_->local_planner_->isNull()) {
             result.status = FollowPathResult::RESULT_STATUS_SUCCESS;
             return DONE;
             //feedback.status = FollowPathFeedback::MOTION_STATUS_OBSTACLE;
@@ -399,9 +386,23 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
 }
 
 void PathFollower::setGoal(const FollowPathGoal &goal)
-{
+{    
+    // Choose robot controller
+    auto pos = config_cache_.find(goal.following_algorithm.data);
+    if(pos != config_cache_.end()) {
+        config_ = pos->second;
+    } else {
+        config_ = controller_factory_->construct(goal.following_algorithm.data);
+        config_cache_[goal.following_algorithm.data] = config_;
+    }
+
+    ROS_ASSERT(config_);
+    if(obstacle_cloud_) {
+        config_->obstacle_avoider_->setObstacles(obstacle_cloud_);
+    }
+
     vel_ = goal.velocity;
-    controller_->setVelocity(vel_);
+    config_->controller_->setVelocity(vel_);
 
     pending_error_ = -1;
 
@@ -428,12 +429,14 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
 
 void PathFollower::setPath(const path_msgs::PathSequence& path)
 {
+    ROS_ASSERT(config_);
+
     path_->clear();
 
     // find segments
-    findSegments(path, getController()->isOmnidirectional());
+    findSegments(path, config_->controller_->isOmnidirectional());
 
-    controller_->reset();
+    config_->controller_->reset();
 }
 
 namespace {

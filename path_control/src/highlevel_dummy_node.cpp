@@ -139,8 +139,10 @@ private:
         goal.goal.pose = *pose;
         goal.failure_mode = failure_mode_;
         goal.velocity = target_speed_;
-        goal.goal.channel.data = pnh_.param("channel", std::string(""));
-        goal.goal.algorithm.data = pnh_.param("algorithm", std::string(""));
+        goal.goal.planning_channel.data = pnh_.param("planning_channel", std::string(""));
+        goal.goal.planning_algorithm.data = pnh_.param("planning_algorithm", std::string(""));
+
+        goal.goal.following_algorithm.data = pnh_.param("following_algorithm", std::string(""));
 
         goal.goal.grow_obstacles = pnh_.param("grow_obstacles", true);
         goal.goal.obstacle_growth_radius = pnh_.param("obstacle_radius", 1.0);

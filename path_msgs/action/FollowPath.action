@@ -5,6 +5,8 @@ uint8 INIT_MODE_CONTINUE = 1
 uint8 init_mode
 path_msgs/PathSequence path
 
+std_msgs/String following_algorithm
+
 # driving speed of robot (interpreted as recommended value)
 float32 velocity
 

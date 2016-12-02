@@ -564,9 +564,9 @@ struct PathPlanner : public Planner
 
         Algo algorithm = algo_to_use;
 
-        if(!request.goal.algorithm.data.empty()) {
-            ROS_INFO_STREAM("planning w/o target pose with requested algorithm: " << request.goal.algorithm.data);
-            algorithm = stringToAlgorithm(request.goal.algorithm.data);
+        if(!request.goal.planning_algorithm.data.empty()) {
+            ROS_INFO_STREAM("planning w/o target pose with requested algorithm: " << request.goal.planning_algorithm.data);
+            algorithm = stringToAlgorithm(request.goal.planning_algorithm.data);
         }
 
         switch(algorithm) {
@@ -591,9 +591,9 @@ struct PathPlanner : public Planner
 
         Algo algorithm = algo_to_use;
 
-        if(!goal.goal.algorithm.data.empty()) {
-            ROS_INFO_STREAM("planning w/ target pose with requested algorithm: " << goal.goal.algorithm.data);
-            algorithm = stringToAlgorithm(goal.goal.algorithm.data);
+        if(!goal.goal.planning_algorithm.data.empty()) {
+            ROS_INFO_STREAM("planning w/ target pose with requested algorithm: " << goal.goal.planning_algorithm.data);
+            algorithm = stringToAlgorithm(goal.goal.planning_algorithm.data);
         }
 
         switch(algorithm) {
@@ -677,7 +677,7 @@ private:
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "path_planner");
+    ros::init(argc, argv, "path_planner", ros::init_options::NoSigintHandler);
 
     PathPlanner planner;
 

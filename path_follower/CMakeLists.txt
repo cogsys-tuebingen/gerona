@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(path_follower)
 
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
+
 add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function -Wno-deprecated-register)
 
 ## Enforce that we use C++11

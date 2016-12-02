@@ -14,6 +14,7 @@
 // PROJECT
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/movecommand.h>
+#include <path_follower/utils/path_interpolated.h>
 
 
 class PoseTracker;
@@ -112,7 +113,7 @@ public:
     virtual void setPath(Path::Ptr path);
 
     //! Set the local path (odometry frame)
-    virtual void setLocalPath(Path::Ptr path);
+    virtual void setGlobalPath(Path::Ptr path);
 
     virtual void setVelocity(float v)
     {
@@ -159,6 +160,7 @@ protected:
 
     //! Current path.
     Path::Ptr path_;
+    PathInterpolated global_path_;
     //! The next waypoint in the robot frame (set by setPath).
     Eigen:: Vector3d next_wp_local_;
 
