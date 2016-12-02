@@ -10,18 +10,18 @@ demonstrating the navigation framework.
 <launch>
     <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_HBZ)" />
 
-    <!-- arg name="algo" default="AStarR" / -->
-    <arg name="algo" default="NULL" />
+    <arg name="algo" default="AStarR" />
+    <!-- arg name="algo" default="NULL" / -->
 
     <arg name="c1" default="true" />
     <arg name="c2" default="true" />
 
     <arg name="s1" default="2.0" />
     <arg name="s2" default="1.0" />
-    <arg name="s3" default="1.0" />
-    <arg name="s4" default="1.0" />
-    <arg name="s5" default="3.25" />
-    <arg name="s6" default="-3.25" />
+    <arg name="s3" default="3.5" />
+    <arg name="s4" default="1.5" />
+    <arg name="s5" default="1.5" />
+    <arg name="s6" default="5.0" />
 
     <arg name="nnodes" default="400" />
     <arg name="depth" default="10" />
@@ -29,27 +29,48 @@ demonstrating the navigation framework.
     <arg name="ia" default="0" />
     <arg name="uinterval" default="0.125" />
     <arg name="lmf" default="12.0" />
-    <arg name="dis2p" default="0.8" />
-    <arg name="adis" default="0.2" />
-    <arg name="fdis" default="0.3" />
+    <arg name="dis2p" default="0.5" />
+    <arg name="adis" default="0.25" />
+    <arg name="fdis" default="0.5" />
     <arg name="s_angle" default="35.0" />
     <arg name="mu" default="0.1" />
     <arg name="ef" default="0.8" />
     <arg name="use_v" default="true" />
+
+    <!-- arg name="s1" default="2.0" />
+    <arg name="s2" default="1.0" />
+    <arg name="s3" default="3.5" />
+    <arg name="s4" default="1.5" />
+    <arg name="s5" default="1.5" />
+    <arg name="s6" default="5.0" />
+
+    <arg name="nnodes" default="400" />
+    <arg name="depth" default="10" />
+    <arg name="ic" default="7" />
+    <arg name="ia" default="0" />
+    <arg name="uinterval" default="0.125" />
+    <arg name="lmf" default="12.0" />
+    <arg name="dis2p" default="0.5" />
+    <arg name="adis" default="0.35" />
+    <arg name="fdis" default="0.5" />
+    <arg name="s_angle" default="35.0" />
+    <arg name="mu" default="0.1" />
+    <arg name="ef" default="0.8" />
+    <arg name="use_v" default="true" / -->
 
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
     <arg name="use_planner_static" default="false" />
     <arg name="use_planner_default" default="true" />
     
-    <arg name="use_karto" default="true" />
+    <arg name="use_karto" default="false" />
     <arg name="use_karto_segmented" default="false" />
     <arg name="use_amcl" default="false" />
     <arg name="use_hector" default="false" />
 
     <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy"
     		output="screen" respawn="true">
-        <param name="target_speed" value="1.0" />
+        <param name="target_speed" value="2.5" />
         <param name="failure_mode" value="replan" />
         <remap from="/rviz_goal" to="/move_base_simple/goal" />
     </node>

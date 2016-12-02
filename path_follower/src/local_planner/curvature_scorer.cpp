@@ -22,7 +22,7 @@ double Curvature_Scorer::score(const LNode& point){
     sw.resume();
     if(point.radius_ < std::numeric_limits<double>::infinity()){
         double div = std::abs(1.0/point.radius_)/MAX_CURV;
-        div = div > 1.0 ? 1.0 : div;
+        //div = div > 1.0 ? 1.0 : div;
         sw.stop();
         return div;
     }

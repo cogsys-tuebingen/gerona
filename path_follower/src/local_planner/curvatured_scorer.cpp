@@ -25,7 +25,7 @@ double CurvatureD_Scorer::score(const LNode& point){
         double c_curv = point.radius_ < std::numeric_limits<double>::infinity() ? 1.0/point.radius_:0.0;
         double p_curv = point.parent_->radius_ < std::numeric_limits<double>::infinity() ? 1.0/point.parent_->radius_:0.0;
         diff = std::abs(c_curv - p_curv)/MAX_CURV;
-        diff = diff > 1.0 ? 1.0 : diff;
+        //diff = diff > 1.0 ? 1.0 : diff;
     }
     sw.stop();
     return diff;

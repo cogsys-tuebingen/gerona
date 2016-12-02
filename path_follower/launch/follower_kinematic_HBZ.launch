@@ -105,10 +105,14 @@
     <param name="k_w" value="0.1" />
     <param name="k_curv" value="0.01" />
 -->
-    <param name="k_o" value="0.2" />
+    <param name="k_o" value="0.4" />
     <param name="k_g" value="0.4" />
     <param name="k_w" value="0.0" />
     <param name="k_curv" value="0.0" />
+
+    <param name="des_dist" value="3.0" />
+    <param name="k_l" value="3.0" />
+
 
     <!-- local planner -->
     <param name="algo" value="$(arg algo)"/>

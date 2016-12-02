@@ -20,7 +20,8 @@ void Level_Scorer::setLevel(const int& m_level){
 
 double Level_Scorer::score(const LNode& point){
     sw.resume();
-    double ls = (double)(max_level  - point.level_)/(double)max_level ;
+    //double ls = (double)(max_level  - point.level_)/(double)max_level;
+    double ls = (double)(max_level  - point.level_);
     sw.stop();
     return ls;
 }

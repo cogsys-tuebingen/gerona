@@ -289,7 +289,8 @@ void LocalPlannerClassic::retrieveContinuity(LNode& wpose){
 }
 
 void LocalPlannerClassic::setD2P(LNode& wpose){
-    d2p = 1.5*wpose.d2p;
+    //d2p = 1.5*wpose.d2p;
+    d2p = 0.8*wpose.d2p;
 }
 
 bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
@@ -756,15 +757,15 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double adi
 }
 
 void LocalPlannerClassic::printVelocity(){
-    ROS_INFO_STREAM("Mean velocity: " << velocity_ << " m/s");
-    ROS_INFO_STREAM("Additional Front secure area: " << velocity_*velocity_/mudiv_);
+//    ROS_INFO_STREAM("Mean velocity: " << velocity_ << " m/s");
+//    ROS_INFO_STREAM("Additional Front secure area: " << velocity_*velocity_/mudiv_);
     if(fvel_){
         fvel_ = false;
     }
 }
 
 void LocalPlannerClassic::printLevelReached() const{
-    ROS_INFO_STREAM("Reached Level: " << r_level << "/" << li_level);
+//    ROS_INFO_STREAM("Reached Level: " << r_level << "/" << li_level);
 }
 
 bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_lines){

@@ -65,6 +65,8 @@ void LocalPlannerImplemented::setPath(Path::Ptr& local_path, Path::Ptr& wlp, Sub
 
     controller_->reset();
 
+    controller_->setGlobalPath(global_path_.getOriginalPath());
+
     if(local_wps.empty()) {
         local_path->setPath({});
         controller_->stopMotion();
@@ -79,10 +81,10 @@ void LocalPlannerImplemented::setPath(Path::Ptr& local_path, Path::Ptr& wlp, Sub
 
 void LocalPlannerImplemented::printSCTimeUsage(){
     for(std::size_t i = 0; i < constraints.size(); ++i){
-        ROS_INFO_STREAM("Constraint #" << (i+1) << " took " << constraints.at(i)->nsUsed()/1000.0 << " us");
+//        ROS_INFO_STREAM("Constraint #" << (i+1) << " took " << constraints.at(i)->nsUsed()/1000.0 << " us");
     }
     for(std::size_t i = 0; i < scorers.size(); ++i){
-        ROS_INFO_STREAM("Scorer #" << (i+1) << " took " << scorers.at(i)->nsUsed()/1000.0 << " us");
+//        ROS_INFO_STREAM("Scorer #" << (i+1) << " took " << scorers.at(i)->nsUsed()/1000.0 << " us");
     }
 }
 
@@ -151,12 +153,12 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(Path::Ptr& wlp)
         setPath(local_path, wlp, local_wps, now);
         int end_t = gsw.usElapsed();
 
-        printVelocity();
-        printNodeUsage(nnodes);
-        printLevelReached();
-        printSCTimeUsage();
+//        printVelocity();
+//        printNodeUsage(nnodes);
+//        printLevelReached();
+//        printSCTimeUsage();
 
-        ROS_INFO_STREAM("Local Planner duration: " << (end_t/1000.0) << " ms");
+//        ROS_INFO_STREAM("Local Planner duration: " << (end_t/1000.0) << " ms");
 
         return local_path;
 
