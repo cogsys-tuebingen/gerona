@@ -21,28 +21,28 @@ public:
     void interpolatePath(const SubPath& path, const std::string& frame_id);
 
     inline double s(const unsigned int i) const {
-        return s_[i];
+        return s_.at(i);
     }
 
     inline double p(const unsigned int i) const {
-        return p_[i];
+        return p_.at(i);
 	}
     inline double q(const unsigned int i) const {
-        return q_[i];
+        return q_.at(i);
     }
 
     inline double p_prim(const unsigned int i) const {
-        return p_prim_[i];
+        return p_prim_.at(i);
     }
     inline double q_prim(const unsigned int i) const {
-        return q_prim_[i];
+        return q_prim_.at(i);
     }
 
     inline double p_sek(const unsigned int i) const {
-        return p_sek_[i];
+        return p_sek_.at(i);
     }
     inline double q_sek(const unsigned int i) const {
-        return q_sek_[i];
+        return q_sek_.at(i);
     }
 
     inline double s_new() const {
@@ -62,7 +62,7 @@ public:
     }
 
     inline double curvature(const unsigned int i) const {
-        return curvature_[i];
+        return curvature_.at(i);
 	}
 
     inline std::size_t n() const {
@@ -73,11 +73,13 @@ public:
     double curvature_sek(const unsigned int i) const;
 
     inline double theta_p(const unsigned int i) const {
-        return atan2(q_prim_[i], p_prim_[i]);
+        return atan2(q_prim_.at(i), p_prim_.at(i));
 	}
 
 	operator nav_msgs::Path() const;
     operator SubPath() const;
+
+    Path::Ptr getOriginalPath() const;
 
 private:
 	void clearBuffers();
@@ -88,6 +90,8 @@ private:
     uint N_;
 
     std::string frame_id_;
+
+    Path::Ptr original_path_;
 
 	nav_msgs::Path interp_path;
     //curvilinear abscissa

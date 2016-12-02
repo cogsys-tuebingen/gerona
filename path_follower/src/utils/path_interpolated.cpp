@@ -33,6 +33,8 @@ void PathInterpolated::interpolatePath(const Path::Ptr path, const bool hack) {
 
 	clearBuffers();
 
+    original_path_ = path;
+
     frame_id_ = path->getFrameId();
 
 	std::deque<Waypoint> waypoints;
@@ -89,6 +91,7 @@ void PathInterpolated::interpolatePath(const std::deque<Waypoint>& waypoints){
 	N_ = waypoints.size();
 
 	if(N_ < 2) {
+        N_ = 0;
 		return;
 	}
 
@@ -235,6 +238,11 @@ PathInterpolated::operator SubPath() const {
     }
 
     return path;
+}
+
+Path::Ptr PathInterpolated::getOriginalPath() const
+{
+    return original_path_;
 }
 
 void PathInterpolated::clearBuffers() {
