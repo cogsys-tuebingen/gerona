@@ -2,7 +2,6 @@
  * path_interpolated.h
  *
  *  Created on: Apr 25, 2015
- *      Author: holly
  */
 
 #ifndef PATH_INTERPOLATED_H_

@@ -23,7 +23,7 @@ double LocalPlannerClassic::beta1 = M_PI/4.0;
 std::vector<LNode> LocalPlannerClassic::EMPTYTWINS;
 
 LocalPlannerClassic::LocalPlannerClassic()
-    : d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0),fvel_(false),b_obst(false),index1(-1), index2(-1),
+    : d2p(0.0),last_s(0.0), new_s(0.0),velocity_(0.0), obstacle_threshold_(0.0), fvel_(false),b_obst(false),index1(-1), index2(-1),
       r_level(0), n_v(0), step_(0.0),neig_s(0.0),FFL(FL)
 {
 }
@@ -40,6 +40,7 @@ void LocalPlannerClassic::getSuccessors(LNode*& current, std::size_t& nsize, std
     twins.resize(nsucc_);
     bool add_n = true;
     double ori = current->orientation;
+    //translation from the rear axis to the center
     double trax = L*std::cos(ori)/2.0;
     double tray = L*std::sin(ori)/2.0;
     double ox = current->x - trax;
@@ -196,6 +197,7 @@ void LocalPlannerClassic::setDistances(LNode& current){
             double y = current.nop.y - current.y;
             double angle = MathHelper::AngleClamp(std::atan2(y,x) - current.orientation);
             current.of = computeFrontier(angle);
+
         }else{
             current.d2o = std::numeric_limits<double>::infinity();
             current.of = 0.0;
@@ -242,6 +244,7 @@ void LocalPlannerClassic::retrievePath(LNode* obj, SubPath& local_wps, double& l
                     double tray = L*std::sin(ori)/2.0;
                     double ox = parent->x - trax;
                     double oy = parent->y - tray;
+
                     for(int i = ic_; i >= 1; --i){
                         theta = MathHelper::AngleClamp(ori + ((double)i)*step);
                         trax = L*std::cos(theta)/2.0;
@@ -289,8 +292,7 @@ void LocalPlannerClassic::retrieveContinuity(LNode& wpose){
 }
 
 void LocalPlannerClassic::setD2P(LNode& wpose){
-    //d2p = 1.5*wpose.d2p;
-    d2p = 0.8*wpose.d2p;
+    d2p = wpose.d2p;
 }
 
 bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
@@ -313,6 +315,7 @@ bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
     last_local_path_.interpolatePath(local_wps, "odom");
     local_wps = (SubPath)last_local_path_;
     if(tooClose){
+        //wlp_ is the part of the local path that actually gets followed
         wlp_.wps.insert(wlp_.wps.end(),local_wps.begin(),local_wps.end());
     }
     return true;
@@ -341,14 +344,16 @@ void LocalPlannerClassic::setStep(){
     step_ = length_MF*dis/(double)li_level;
     D_THETA.clear();
     for(std::size_t i = 0; i < RT.size(); ++i){
+        //in the presentation psi = d/R
         D_THETA.push_back(MathHelper::AngleClamp(step_/RT[i]));
     }
     double H_D_THETA = D_THETA.front()/2.0;
+    //in the presentation h = 2*R*sin(psi/2)
     double l_step = 2.0*RT.front()*std::sin(H_D_THETA);
     neig_s = l_step*(H_D_THETA > M_PI_4?std::cos(H_D_THETA):std::sin(H_D_THETA));
     Dis2Path_Constraint::setDRate(neig_s);
     double v_dis = velocity_*velocity_/mudiv_;
-    FFL = FL + 2.0*v_dis;
+    FFL = FL + v_dis;
     beta2 = std::acos(FFL/std::sqrt(FFL*FFL + GW*GW));
 }
 
@@ -420,67 +425,67 @@ SubPath LocalPlannerClassic::smoothPath(const SubPath& path, double weight_data,
 
 //borrowed from path_planner/planner_node.cpp
 std::vector<SubPath> LocalPlannerClassic::segmentPath(const SubPath &path){
-                                   std::vector<SubPath> result;
+    std::vector<SubPath> result;
 
-                                   int n = path.size();
-                                   if(n < 2) {
-                                       return result;
-                                   }
+    int n = path.size();
+    if(n < 2) {
+        return result;
+    }
 
-                                   SubPath current_segment;
+    SubPath current_segment;
 
-                                   const Waypoint * last_point = &path[0];
-                                   current_segment.push_back(*last_point);
+    const Waypoint * last_point = &path[0];
+    current_segment.push_back(*last_point);
 
-                                   for(int i = 1; i < n; ++i){
-                                       const Waypoint* current_point = &path[i];
+    for(int i = 1; i < n; ++i){
+        const Waypoint* current_point = &path[i];
 
-                                       // append to current segment
-                                       current_segment.push_back(*current_point);
+        // append to current segment
+        current_segment.push_back(*current_point);
 
-                                       bool is_the_last_node = i == n-1;
-                                       bool segment_ends_with_this_node = false;
+        bool is_the_last_node = i == n-1;
+        bool segment_ends_with_this_node = false;
 
-                                       if(is_the_last_node) {
-                                           // this is the last node
-                                           segment_ends_with_this_node = true;
+        if(is_the_last_node) {
+            // this is the last node
+            segment_ends_with_this_node = true;
 
-                                       } else {
-                                           const Waypoint* next_point = &path[i+1];
+        } else {
+            const Waypoint* next_point = &path[i+1];
 
-                                           // if angle between last direction and next direction to large -> segment ends
-                                           double diff_last_x = current_point->x - last_point->x;
-                                           double diff_last_y = current_point->y - last_point->y;
-                                           double last_angle = std::atan2(diff_last_y, diff_last_x);
+            // if angle between last direction and next direction to large -> segment ends
+            double diff_last_x = current_point->x - last_point->x;
+            double diff_last_y = current_point->y - last_point->y;
+            double last_angle = std::atan2(diff_last_y, diff_last_x);
 
-                                           double diff_next_x = next_point->x - current_point->x;
-                                           double diff_next_y = next_point->y - current_point->y;
-                                           double next_angle = std::atan2(diff_next_y, diff_next_x);
+            double diff_next_x = next_point->x - current_point->x;
+            double diff_next_y = next_point->y - current_point->y;
+            double next_angle = std::atan2(diff_next_y, diff_next_x);
 
-                                           if(std::abs(MathHelper::AngleClamp(last_angle - next_angle)) > M_PI / 2.0) {
-                                               // new segment!
-                                               // current node is the last one of the old segment
-                                               segment_ends_with_this_node = true;
-                                           }
-                                       }
+            if(std::abs(MathHelper::AngleClamp(last_angle - next_angle)) > M_PI / 2.0) {
+                // new segment!
+                // current node is the last one of the old segment
+                segment_ends_with_this_node = true;
+            }
+        }
 
-                                       if(segment_ends_with_this_node) {
-                                           result.push_back(current_segment);
+        if(segment_ends_with_this_node) {
+            result.push_back(current_segment);
 
-                                           current_segment.wps.clear();
+            current_segment.wps.clear();
 
-                                           if(!is_the_last_node) {
-                                               // begin new segment
+            if(!is_the_last_node) {
+                // begin new segment
 
-                                               // current node is also the first one of the new segment
-                                               current_segment.push_back(*current_point);
-                                           }
-                                       }
+                // current node is also the first one of the new segment
+                current_segment.push_back(*current_point);
+            }
+        }
 
-                                       last_point = current_point;
-                                   }
+        last_point = current_point;
+    }
 
-                                   return result;
+    return result;
 }
 
 //borrowed from path_planner/planner_node.cpp
@@ -561,6 +566,7 @@ SubPath LocalPlannerClassic::smoothPathSegment(const SubPath& path, double weigh
 }
 
 void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
+    //index1 and index2 are approximations, in order to shorten the search
     double closest_dist = std::numeric_limits<double>::infinity();
     if(last_s == global_path_.s_new()){
         for(std::size_t i = 0; i < global_path_.n(); ++i){
@@ -657,6 +663,9 @@ void LocalPlannerClassic::initConstraints(){
         if(auto d2pc = std::dynamic_pointer_cast<Dis2Path_Constraint>(c)) {
             d2pc->setParams(d2p);
         }
+        if(auto d2oc = std::dynamic_pointer_cast<Dis2Obst_Constraint>(c)) {
+            d2oc->setParams(obstacle_threshold_);
+        }
     }
 }
 
@@ -738,12 +747,13 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double adi
     ic_ = ic;
     TH = s_angle*M_PI/180.0;
     length_MF = lmf;
-    mudiv_ = 2.0*9.81*mu;
+    mudiv_ = 9.81*mu;
     li_level = max_level;
     RT.clear();
     for(int i = 0; i <= ia; ++i){
         RT.push_back(L/std::tan(((double)(i + 1)/(ia + 1))*TH));
     }
+    //left, right, forward
     nsucc_ = 2*RT.size() + 1;
     Curvature_Scorer::setMaxC(RT.back());
     CurvatureD_Scorer::setMaxC(RT.back());
@@ -754,18 +764,20 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double adi
     FL = GL + 2.0*fdis;
     GW = RW + 2.0*adis;
     beta1 = std::acos(GL/std::sqrt(GL*GL + GW*GW));
+
+    obstacle_threshold_ = fdis;
 }
 
 void LocalPlannerClassic::printVelocity(){
-//    ROS_INFO_STREAM("Mean velocity: " << velocity_ << " m/s");
-//    ROS_INFO_STREAM("Additional Front secure area: " << velocity_*velocity_/mudiv_);
+        ROS_INFO_STREAM("Mean velocity: " << velocity_ << " m/s");
+        ROS_INFO_STREAM("Additional Front secure area: " << velocity_*velocity_/mudiv_);
     if(fvel_){
         fvel_ = false;
     }
 }
 
 void LocalPlannerClassic::printLevelReached() const{
-//    ROS_INFO_STREAM("Reached Level: " << r_level << "/" << li_level);
+        ROS_INFO_STREAM("Reached Level: " << r_level << "/" << li_level);
 }
 
 bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_lines){
@@ -830,11 +842,41 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_
     alt.radius_ = R;
     setDistances(alt);
 
-    return areConstraintsSAT(alt);
+    //check the line between the first and the last point of the reconfigured path
+    //first, mid and second are three points on this line (three quarters)
+
+    LNode first;
+    first.x = (3*alt.x + parent->x)/4.0;
+    first.y = (3*alt.y + parent->y)/4.0;
+    first.orientation = MathHelper::AngleClamp(alt.orientation - parent->orientation);
+    first.parent_ = alt.parent_;
+    first.radius_ = R;
+    setDistances(first);
+
+
+    LNode mid;
+    mid.x = (alt.x + parent->x)/2.0;
+    mid.y = (alt.y + parent->y)/2.0;
+    mid.orientation = MathHelper::AngleClamp(alt.orientation - parent->orientation);
+    mid.parent_ = &first;
+    mid.radius_ = R;
+    setDistances(mid);
+
+
+    LNode second;
+    second.x = (1*alt.x + 3*parent->x)/4.0;
+    second.y = (1*alt.y + 3*parent->y)/4.0;
+    second.orientation = MathHelper::AngleClamp(alt.orientation - parent->orientation);
+    second.parent_ = &mid;
+    second.radius_ = R;
+    setDistances(second);
+
+    return areConstraintsSAT(alt) && areConstraintsSAT(mid) && areConstraintsSAT(first) && areConstraintsSAT(second);
+
 }
 
 double LocalPlannerClassic::computeFrontier(double& angle){
-    double r;
+    double r = 0.0;
     if(angle <= beta1 - M_PI || angle > M_PI - beta1){
         r = -GL/(2.0*std::cos(angle));
     }else if(angle > beta1 - M_PI && angle <= -beta2){
@@ -854,12 +896,12 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     // check if an obstacle-dependent scorer or constraint exists
     for(Constraint::Ptr c : constraints) {
         if(std::dynamic_pointer_cast<Dis2Obst_Constraint>(c)) {
-           b_obst = true;
+            b_obst = true;
         }
     }
     for(Scorer::Ptr s : scorers) {
         if(std::dynamic_pointer_cast<Dis2Obst_Scorer>(s)) {
-           b_obst = true;
+            b_obst = true;
         }
     }
 
@@ -868,7 +910,9 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     double dis2last = global_path_.s(global_path_.n()-1);
 
-    if(std::abs(dis2last - wpose.s) < 0.8){
+    //this needs to be a parameter
+    double min_dist_to_goal = 0.8;
+    if(std::abs(dis2last - wpose.s) < min_dist_to_goal){
         tooClose = true;
         setLLP();
         return false;
