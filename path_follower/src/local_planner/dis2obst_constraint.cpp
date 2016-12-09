@@ -12,9 +12,13 @@ Dis2Obst_Constraint::~Dis2Obst_Constraint()
 
 }
 
+void Dis2Obst_Constraint::setParams(double obstacle_threshold){
+    threshold = obstacle_threshold;
+}
+
 bool Dis2Obst_Constraint::isSatisfied(const LNode& point){
     sw.resume();
-    if(point.d2o <= point.of){
+    if(point.d2o <= threshold){
         sw.stop();
         return false;
     }

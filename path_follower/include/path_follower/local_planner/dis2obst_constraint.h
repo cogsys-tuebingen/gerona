@@ -11,8 +11,11 @@ public:
 public:
     Dis2Obst_Constraint();
     virtual ~Dis2Obst_Constraint();
+    void setParams(double threshold);
 
     virtual bool isSatisfied(const LNode& point) override;
+private:
+    double threshold;
 };
 
 #endif // DIS2OBST_CONSTRAINT_H

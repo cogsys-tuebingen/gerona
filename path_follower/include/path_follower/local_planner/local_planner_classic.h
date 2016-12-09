@@ -122,6 +122,7 @@ private:
     static std::vector<double> D_THETA, RT;
 
     double d2p, last_s, new_s, velocity_;
+    double obstacle_threshold_;
     bool fvel_, b_obst;
 
     std::size_t index1;

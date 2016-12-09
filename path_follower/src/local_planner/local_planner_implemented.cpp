@@ -32,10 +32,6 @@ bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
     }
 
     tf::Transform transform_correction = now_map_to_odom.inverse();
-    /*
-    ofstream myfile;
-    myfile.open ("/tmp/path.txt");
-    */
 
     // transform the waypoints from world to odom
     for(Waypoint& wp : waypoints) {
@@ -47,13 +43,9 @@ bool LocalPlannerImplemented::transform2Odo(ros::Time& now){
         tf::Quaternion rot = tf::createQuaternionFromYaw(wp.orientation);
         rot = transform_correction * rot;
         wp.orientation = tf::getYaw(rot);
-        /*
-        myfile << wp.x << ", " << wp.y << ", " << wp.orientation <<std::endl;
-        */
+
     }
-    /*
-    myfile.close();
-    */
+
     return true;
 }
 
@@ -81,10 +73,10 @@ void LocalPlannerImplemented::setPath(Path::Ptr& local_path, Path::Ptr& wlp, Sub
 
 void LocalPlannerImplemented::printSCTimeUsage(){
     for(std::size_t i = 0; i < constraints.size(); ++i){
-//        ROS_INFO_STREAM("Constraint #" << (i+1) << " took " << constraints.at(i)->nsUsed()/1000.0 << " us");
+        ROS_INFO_STREAM("Constraint #" << (i+1) << " took " << constraints.at(i)->nsUsed()/1000.0 << " us");
     }
     for(std::size_t i = 0; i < scorers.size(); ++i){
-//        ROS_INFO_STREAM("Scorer #" << (i+1) << " took " << scorers.at(i)->nsUsed()/1000.0 << " us");
+        ROS_INFO_STREAM("Scorer #" << (i+1) << " took " << scorers.at(i)->nsUsed()/1000.0 << " us");
     }
 }
 
@@ -128,15 +120,9 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(Path::Ptr& wlp)
             return local_path;
         }
 
-        /*
-        ofstream myfile;
-        myfile.open ("/tmp/pose.txt");
-        */
+
         Eigen::Vector3d pose = pose_tracker_->getRobotPose();
-        /*
-        myfile << pose(0) << ", " << pose(1) << ", " << pose(2)<< std::endl;
-        myfile.close();
-        */
+
         std::size_t nnodes = 0;
 
         SubPath local_wps;
@@ -153,10 +139,6 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(Path::Ptr& wlp)
         setPath(local_path, wlp, local_wps, now);
         int end_t = gsw.usElapsed();
 
-//        printVelocity();
-//        printNodeUsage(nnodes);
-//        printLevelReached();
-//        printSCTimeUsage();
 
 //        ROS_INFO_STREAM("Local Planner duration: " << (end_t/1000.0) << " ms");
 
