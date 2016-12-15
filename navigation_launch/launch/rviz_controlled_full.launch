@@ -15,12 +15,12 @@ demonstrating the navigation framework.
     <arg name="c1" default="true" />
     <arg name="c2" default="true" />
 
-    <arg name="s1" default="1.0" />
-    <arg name="s2" default="1.0" />
-    <arg name="s3" default="1.0" />
+    <arg name="s1" default="3.5" />
+    <arg name="s2" default="1.5" />
+    <arg name="s3" default="2.0" />
     <arg name="s4" default="1.0" />
-    <arg name="s5" default="3.25" />
-    <arg name="s6" default="-3.25" />
+    <arg name="s5" default="1.5" />
+    <arg name="s6" default="5.0" />
 
     <arg name="nnodes" default="400" />
     <arg name="depth" default="10" />
@@ -29,16 +29,17 @@ demonstrating the navigation framework.
     <arg name="uinterval" default="0.125" />
     <arg name="lmf" default="12.0" />
     <arg name="dis2p" default="0.8" />
-    <arg name="adis" default="0.55" />
+    <arg name="adis" default="0.65" />
     <arg name="fdis" default="0.55" />
     <arg name="s_angle" default="35.0" />
     <arg name="mu" default="0.005" />
-    <arg name="ef" default="0.8" />
+    <arg name="ef" default="2.0" />
+
     <arg name="use_v" default="true" />
 
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
-    <arg name="use_planner_static" default="false" />
+    <arg name="use_planner_static" default="true" />
     <arg name="use_planner_default" default="true" />
     
     <arg name="use_karto" default="false" />
@@ -48,7 +49,7 @@ demonstrating the navigation framework.
 
     <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy"
     		output="screen" respawn="true">
-        <param name="target_speed" value="0.5" />
+        <param name="target_speed" value="2.5" />
         <param name="failure_mode" value="replan" />
         <remap from="/rviz_goal" to="/move_base_simple/goal" />
     </node>

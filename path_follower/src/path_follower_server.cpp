@@ -66,6 +66,7 @@ void PathFollowerServer::update()
         }
     } else {
         if(last_preempt_ && ros::Time::now() > last_preempt_.get() + continue_mode_timeout_) {
+            ROS_WARN_STREAM("stoping the robot in continue mode, because " << continue_mode_timeout_ << " time has passed" << std::endl);
             follower_.stop(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
             last_preempt_.reset();
         }
