@@ -171,24 +171,33 @@ void LocalPlannerClassic::setDistances(LNode& current){
         double closest_obst = std::numeric_limits<double>::infinity();
         double closest_x = std::numeric_limits<double>::infinity();
         double closest_y = std::numeric_limits<double>::infinity();
+        const pcl::PointCloud<pcl::PointXYZ>& cloud = *obstacle_cloud_->cloud;
+        bool cloud_in_base_frame = false;
         if(!obstacle_cloud_->empty()){
             tf::Point pt(current.x, current.y, current.orientation);
-            pt = odom_to_base * pt;
+            if(cloud.header.frame_id == "base_link" || cloud.header.frame_id == "/base_link") {
+                pt = odom_to_base * pt;
+                cloud_in_base_frame = true;
+            }
             iterateCloud(obstacle_cloud_, pt, closest_obst, closest_x, closest_y, currentCloud);
         }
         if(last_obstacle_cloud_){
             if(!last_obstacle_cloud_->empty()){
                 tf::Point pt(current.x, current.y, current.orientation);
-                pt = odom_to_lastbase * pt;
+                if(cloud_in_base_frame) {
+                   pt = odom_to_lastbase * pt;
+                }
                 iterateCloud(obstacle_cloud_, pt, closest_obst, closest_x, closest_y, currentCloud);
             }
         }
         if(currentCloud || lastCloud){
             current.d2o = closest_obst;
             tf::Point tmpnop(closest_x ,closest_y,0.0);
-            if(lastCloud){
+            if(lastCloud && cloud_in_base_frame){
                 tmpnop = lastbase_to_odom * tmpnop;
-            }else{
+            }
+            else if(!lastCloud && cloud_in_base_frame)
+            {
                 tmpnop = base_to_odom * tmpnop;
             }
             current.nop = Waypoint(tmpnop.x(), tmpnop.y(), 0.0);
@@ -871,25 +880,6 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_
     LNode first, mid, second;
     checkQuarters(alt, parent, first, mid, second);
     bool constraints_satisfied = areConstraintsSAT(alt) && areConstraintsSAT(mid) && areConstraintsSAT(first) && areConstraintsSAT(second);
-
-    LNode first_1, mid_1, second_1;
-    checkQuarters(first, parent, first_1, mid_1, second_1);
-    constraints_satisfied = constraints_satisfied && areConstraintsSAT(first_1) && areConstraintsSAT(mid_1) && areConstraintsSAT(second_1);
-
-    LNode first_2, mid_2, second_2;
-    LNode* par_2 = &first;
-    checkQuarters(mid, par_2, first_2, mid_2, second_2);
-    constraints_satisfied = constraints_satisfied && areConstraintsSAT(first_2) && areConstraintsSAT(mid_2) && areConstraintsSAT(second_2);
-
-    LNode first_3, mid_3, second_3;
-    LNode* par_3 = &mid;
-    checkQuarters(second, par_3, first_3, mid_3, second_3);
-    constraints_satisfied = constraints_satisfied && areConstraintsSAT(first_3) && areConstraintsSAT(mid_3) && areConstraintsSAT(second_3);
-
-    LNode first_4, mid_4, second_4;
-    LNode* par_4 = &second;
-    checkQuarters(alt, par_4, first_4, mid_4, second_4);
-    constraints_satisfied = constraints_satisfied && areConstraintsSAT(first_4) && areConstraintsSAT(mid_4) && areConstraintsSAT(second_4);
 
     return constraints_satisfied;
 
