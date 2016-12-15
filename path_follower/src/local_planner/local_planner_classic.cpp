@@ -780,6 +780,29 @@ void LocalPlannerClassic::printLevelReached() const{
         ROS_INFO_STREAM("Reached Level: " << r_level << "/" << li_level);
 }
 
+void LocalPlannerClassic::checkQuarters(LNode child, LNode* parent, LNode& first, LNode& mid, LNode& second){
+
+    first.x = (3*child.x + parent->x)/4.0;
+    first.y = (3*child.y + parent->y)/4.0;
+    first.orientation = MathHelper::AngleClamp(child.orientation - parent->orientation);
+    first.parent_ = child.parent_;
+    setDistances(first);
+
+
+    mid.x = (child.x + parent->x)/2.0;
+    mid.y = (child.y + parent->y)/2.0;
+    mid.orientation = MathHelper::AngleClamp(child.orientation - parent->orientation);
+    mid.parent_ = &first;
+    setDistances(mid);
+
+
+    second.x = (child.x + 3*parent->x)/4.0;
+    second.y = (child.y + 3*parent->y)/4.0;
+    second.orientation = MathHelper::AngleClamp(child.orientation - parent->orientation);
+    second.parent_ = &mid;
+    setDistances(second);
+}
+
 bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_lines){
     LNode* s = s_p->parent_;
     bool line = false;
@@ -845,33 +868,30 @@ bool LocalPlannerClassic::createAlternative(LNode*& s_p, LNode& alt, bool allow_
     //check the line between the first and the last point of the reconfigured path
     //first, mid and second are three points on this line (three quarters)
 
-    LNode first;
-    first.x = (3*alt.x + parent->x)/4.0;
-    first.y = (3*alt.y + parent->y)/4.0;
-    first.orientation = MathHelper::AngleClamp(alt.orientation - parent->orientation);
-    first.parent_ = alt.parent_;
-    first.radius_ = R;
-    setDistances(first);
+    LNode first, mid, second;
+    checkQuarters(alt, parent, first, mid, second);
+    bool constraints_satisfied = areConstraintsSAT(alt) && areConstraintsSAT(mid) && areConstraintsSAT(first) && areConstraintsSAT(second);
 
+    LNode first_1, mid_1, second_1;
+    checkQuarters(first, parent, first_1, mid_1, second_1);
+    constraints_satisfied = constraints_satisfied && areConstraintsSAT(first_1) && areConstraintsSAT(mid_1) && areConstraintsSAT(second_1);
 
-    LNode mid;
-    mid.x = (alt.x + parent->x)/2.0;
-    mid.y = (alt.y + parent->y)/2.0;
-    mid.orientation = MathHelper::AngleClamp(alt.orientation - parent->orientation);
-    mid.parent_ = &first;
-    mid.radius_ = R;
-    setDistances(mid);
+    LNode first_2, mid_2, second_2;
+    LNode* par_2 = &first;
+    checkQuarters(mid, par_2, first_2, mid_2, second_2);
+    constraints_satisfied = constraints_satisfied && areConstraintsSAT(first_2) && areConstraintsSAT(mid_2) && areConstraintsSAT(second_2);
 
+    LNode first_3, mid_3, second_3;
+    LNode* par_3 = &mid;
+    checkQuarters(second, par_3, first_3, mid_3, second_3);
+    constraints_satisfied = constraints_satisfied && areConstraintsSAT(first_3) && areConstraintsSAT(mid_3) && areConstraintsSAT(second_3);
 
-    LNode second;
-    second.x = (1*alt.x + 3*parent->x)/4.0;
-    second.y = (1*alt.y + 3*parent->y)/4.0;
-    second.orientation = MathHelper::AngleClamp(alt.orientation - parent->orientation);
-    second.parent_ = &mid;
-    second.radius_ = R;
-    setDistances(second);
+    LNode first_4, mid_4, second_4;
+    LNode* par_4 = &second;
+    checkQuarters(alt, par_4, first_4, mid_4, second_4);
+    constraints_satisfied = constraints_satisfied && areConstraintsSAT(first_4) && areConstraintsSAT(mid_4) && areConstraintsSAT(second_4);
 
-    return areConstraintsSAT(alt) && areConstraintsSAT(mid) && areConstraintsSAT(first) && areConstraintsSAT(second);
+    return constraints_satisfied;
 
 }
 
