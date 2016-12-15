@@ -27,6 +27,8 @@ protected:
 
     double Score(const LNode& current);
 
+    void checkQuarters(LNode child, LNode* parent, LNode& first, LNode& mid, LNode& second);
+
     bool createAlternative(LNode*& s_p, LNode& alt, bool allow_lines = false);
 
 private:
