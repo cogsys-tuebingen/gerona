@@ -34,7 +34,7 @@ protected:
 private:
     void setDistances(LNode& current);
 
-    void iterateCloud(std::shared_ptr<ObstacleCloud const>& cloud, tf::Point& pt, double& closest_obst, double& closest_x, double& closest_y, bool& change);
+    void findClosestObstaclePoint(std::shared_ptr<ObstacleCloud const>& cloud, tf::Point& pt, double& closest_obst, double& closest_x, double& closest_y, bool& change);
 
     void retrieveContinuity(LNode& wpose);
 

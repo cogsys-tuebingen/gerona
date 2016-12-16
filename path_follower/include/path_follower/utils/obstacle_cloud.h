@@ -5,6 +5,11 @@
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Core>
 
+namespace tf
+{
+class Transform;
+}
+
 namespace pcl
 {
 struct PointXYZ;
@@ -31,6 +36,8 @@ public:
 
     bool empty() const;
     void clear();
+
+    void transformCloud(const tf::Transform& transform);
 };
 
 #endif // OBSTACLE_CLOUD_H

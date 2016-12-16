@@ -166,41 +166,27 @@ void LocalPlannerClassic::setDistances(LNode& current){
     current.s = current.npp.s + dis;
 
     if(b_obst){
-        bool currentCloud = false;
-        bool lastCloud = false;
-        double closest_obst = std::numeric_limits<double>::infinity();
+        bool has_obstacle_in_current_cloud = false;
+        bool has_obstacle_in_last_cloud = false;
+        double dist_to_closest_obst = std::numeric_limits<double>::infinity();
         double closest_x = std::numeric_limits<double>::infinity();
         double closest_y = std::numeric_limits<double>::infinity();
         const pcl::PointCloud<pcl::PointXYZ>& cloud = *obstacle_cloud_->cloud;
-        bool cloud_in_base_frame = false;
-        if(!obstacle_cloud_->empty()){
-            tf::Point pt(current.x, current.y, current.orientation);
-            if(cloud.header.frame_id == "base_link" || cloud.header.frame_id == "/base_link") {
-                pt = odom_to_base * pt;
-                cloud_in_base_frame = true;
-            }
-            iterateCloud(obstacle_cloud_, pt, closest_obst, closest_x, closest_y, currentCloud);
-        }
+
+
         if(last_obstacle_cloud_){
             if(!last_obstacle_cloud_->empty()){
                 tf::Point pt(current.x, current.y, current.orientation);
-                if(cloud_in_base_frame) {
-                   pt = odom_to_lastbase * pt;
-                }
-                iterateCloud(obstacle_cloud_, pt, closest_obst, closest_x, closest_y, currentCloud);
+                findClosestObstaclePoint(obstacle_cloud_, pt, dist_to_closest_obst, closest_x, closest_y, has_obstacle_in_current_cloud);
             }
         }
-        if(currentCloud || lastCloud){
-            current.d2o = closest_obst;
-            tf::Point tmpnop(closest_x ,closest_y,0.0);
-            if(lastCloud && cloud_in_base_frame){
-                tmpnop = lastbase_to_odom * tmpnop;
-            }
-            else if(!lastCloud && cloud_in_base_frame)
-            {
-                tmpnop = base_to_odom * tmpnop;
-            }
-            current.nop = Waypoint(tmpnop.x(), tmpnop.y(), 0.0);
+        if(!obstacle_cloud_->empty()){
+            tf::Point pt(current.x, current.y, current.orientation);
+            findClosestObstaclePoint(obstacle_cloud_, pt, dist_to_closest_obst, closest_x, closest_y, has_obstacle_in_current_cloud);
+        }
+        if(has_obstacle_in_current_cloud || has_obstacle_in_last_cloud){
+            current.d2o = dist_to_closest_obst;
+            current.nop = Waypoint(closest_x ,closest_y, 0.0);
             //! Debug
             double x = current.nop.x - current.x;
             double y = current.nop.y - current.y;
@@ -217,7 +203,7 @@ void LocalPlannerClassic::setDistances(LNode& current){
     }
 }
 
-void LocalPlannerClassic::iterateCloud(std::shared_ptr<ObstacleCloud const>& cloud_container, tf::Point& pt, double& closest_obst, double& closest_x, double& closest_y, bool& change){
+void LocalPlannerClassic::findClosestObstaclePoint(std::shared_ptr<ObstacleCloud const>& cloud_container, tf::Point& pt, double& closest_obst, double& closest_x, double& closest_y, bool& change){
     const auto& cloud = cloud_container->cloud;
     for (auto point_it = cloud->begin(); point_it != cloud->end(); ++point_it){
         double x = (double)(point_it->x) - pt.x();

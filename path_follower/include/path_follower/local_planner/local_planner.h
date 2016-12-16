@@ -63,10 +63,6 @@ protected:
 
     ros::Duration update_interval_;
 
-    tf::StampedTransform initial_map_to_odom_, base_to_odom, lastbase_to_odom;
-
-    tf::Transform odom_to_base, odom_to_lastbase;
-
     std::shared_ptr<ObstacleCloud const> obstacle_cloud_, last_obstacle_cloud_;
 };
 
