@@ -8,12 +8,13 @@
 #include <geometry_msgs/PointStamped.h>
 
 /// PROJECT
-#include <path_follower/controller/robotcontroller.h>
+#include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
 
 #include <std_msgs/String.h>
+#include <sensor_msgs/LaserScan.h>
 
-class RobotController_Omnidrive_OrthogonalExponential : public RobotController
+class RobotController_Omnidrive_OrthogonalExponential : public RobotController_Interpolation
 {
 public:
     RobotController_Omnidrive_OrthogonalExponential();
@@ -28,10 +29,6 @@ protected:
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
-    virtual void setPath(Path::Ptr path);
-
-    virtual void reset();
-
     virtual bool isOmnidirectional() const
     {
         return true;
@@ -39,12 +36,11 @@ protected:
 
     void lookAtCommand(const std_msgs::StringConstPtr& cmd);
     void lookAt(const geometry_msgs::PointStampedConstPtr& look_at);
+    void laserBack(const sensor_msgs::LaserScanConstPtr& scan_back);
+    void laserFront(const sensor_msgs::LaserScanConstPtr& scan_front);
 
 private:
     void initialize();
-    void clearBuffers();
-    void interpolatePath();
-    void publishInterpolatedPath();
 
     void findMinDistance();
 
@@ -53,7 +49,7 @@ private:
     void rotate();
 
 private:
-    struct ControllerParameters : public Parameters
+    struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters
     {
         P<double> k;
         P<double> kp;
@@ -77,6 +73,11 @@ private:
             k_curv(this, "~k_curv", 0.05, "")
         {}
     } opt_;
+
+    const RobotController_Interpolation::InterpolationParameters& getParameters() const
+    {
+        return opt_;
+    }
 
     struct Command
     {
@@ -129,8 +130,7 @@ private:
 
     Command cmd_;
 
-    ros::Publisher interp_path_pub_;
-    ros::Publisher points_pub_;
+    ros::NodeHandle nh_;
 
     ros::Subscriber look_at_sub_;
     ros::Subscriber look_at_cmd_sub_;
@@ -140,14 +140,6 @@ private:
 
     std::vector<float> ranges_front_;
     std::vector<float> ranges_back_;
-
-    nav_msgs::Path interp_path_;
-    std::vector<double> p_;
-    std::vector<double> q_;
-    std::vector<double> p_prim_;
-    std::vector<double> q_prim_;
-    std::vector<double> curvature_;
-
 
     enum ViewDirection {
         KeepHeading,
@@ -159,19 +151,14 @@ private:
     ViewDirection view_direction_;
     geometry_msgs::Point look_at_;
 
-    bool initialized_;
-
     double vn_;
     double theta_des_;
-    uint N_;
     double Ts_;
     double e_theta_curr_;
 
     double curv_sum_;
     double distance_to_goal_;
     double distance_to_obstacle_;
-
-    visualization_msgs::Marker robot_path_marker_;
 };
 
 #endif // ROBOTCONTROLLER_OMNIDRIVE_ORTHEXP_H

@@ -50,7 +50,7 @@ tasks and can be used instead of this file.
 
     <include file="$(find path_control)/launch/path_control.launch" />
 
-	 <include file="$(find path_follower)/launch/follower.launch">
+    <include file="$(find path_follower)/launch/follower.launch">
         <arg name="controller" value="$(arg robot_controller)" />
 	<arg name="algo" value="$(arg algo)" />
 
@@ -78,6 +78,8 @@ tasks and can be used instead of this file.
         <arg name="ef" value="$(arg ef)" />
         <arg name="use_v" value="$(arg use_v)" />
 
-	 </include>
+        <remap from="/obstacles" to="/obstacle_cloud" />
+
+    </include>
 
 </launch>
