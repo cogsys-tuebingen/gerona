@@ -1,4 +1,5 @@
 #include <path_follower/obstacle_avoidance/obstacledetector.h>
+#include <path_follower/utils/obstacle_cloud.h>
 
 namespace {
 //! Module name, that is used for ros console output
@@ -49,8 +50,13 @@ bool ObstacleDetector::avoid(MoveCommand * const cmd,
     }
 
 
-    bool collision = checkOnCloud(obstacles_, opt_.width(),
-                                  box_length, course, enlarge_factor);
+    bool collision = false;
+    if(obstacles_ && !obstacles_->empty()) {
+        collision = checkOnCloud(obstacles_, opt_.width(),
+                                      box_length, course, enlarge_factor);
+    } else {
+        ROS_WARN("no obstacle cloud is available");
+    }
 
 
     if(collision) {
