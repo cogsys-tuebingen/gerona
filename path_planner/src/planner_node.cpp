@@ -1268,7 +1268,7 @@ void Planner::publish(const path_msgs::PathSequence &path, const path_msgs::Path
     }
 
     if(!path_raw.paths.empty()) {
-        path_publisher_.publish(path_raw);
+        path_publisher_.publish(path);
         visualizePath(path_raw);
     }
 }
