@@ -66,9 +66,10 @@ std::shared_ptr<PathFollowerConfig> ControllerFactory::construct(const std::stri
             result.local_planner_ = makeConstrainedLocalPlanner("NULL");
             result.obstacle_avoider_ = makeObstacleAvoider("RobotController_Kinematic_HBZ");
 
-        } else {
-            ROS_FATAL_STREAM("the path follower \"" << config << "\" does not exist." );
-            std::abort();
+        } else {            
+            result.controller_ = makeController(config);
+            result.local_planner_ = makeConstrainedLocalPlanner("NULL");
+            result.obstacle_avoider_ = makeObstacleAvoider(config);
         }
     }
 
