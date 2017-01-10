@@ -105,8 +105,8 @@
     <param name="k_w" value="0.1" />
     <param name="k_curv" value="0.01" />
 -->
-    <param name="k_o" value="0.4" />
-    <param name="k_g" value="0.4" />
+    <param name="k_o" value="0.35789" />
+    <param name="k_g" value="0.0" />
     <param name="k_w" value="0.0" />
     <param name="k_curv" value="0.0" />
 
