@@ -347,7 +347,7 @@ std::shared_ptr<ObstacleAvoider> ControllerFactory::makeObstacleAvoider(const st
     } else {
         if (opt_.obstacle_avoider_use_collision_box()) {
             // TODO: think about how to implement this for plug-ins
-            ROS_WARN_STREAM("Unknown robot controller: " << name << ". Defaulting to AckermannDetector.");
+            ROS_WARN_STREAM("No CollisionAvoider defined for robot controller: " << name << ". Defaulting to AckermannDetector.");
             return std::make_shared<ObstacleDetectorAckermann>();
         }
     }

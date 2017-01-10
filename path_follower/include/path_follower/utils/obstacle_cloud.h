@@ -37,7 +37,7 @@ public:
     bool empty() const;
     void clear();
 
-    void transformCloud(const tf::Transform& transform);
+    void transformCloud(const tf::Transform& transform, const std::string& target_frame);
 };
 
 #endif // OBSTACLE_CLOUD_H

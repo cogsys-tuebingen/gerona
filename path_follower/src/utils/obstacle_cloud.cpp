@@ -27,7 +27,7 @@ void ObstacleCloud::clear()
     return cloud->clear();
 }
 
-void ObstacleCloud::transformCloud(const tf::Transform& transform)
+void ObstacleCloud::transformCloud(const tf::Transform& transform, const std::string &target_frame)
 {
     for(auto& pt : cloud->points) {
         tf::Point point(pt.x,pt.y,pt.z);
@@ -36,4 +36,6 @@ void ObstacleCloud::transformCloud(const tf::Transform& transform)
         pt.y = transformed.y();
         pt.z = transformed.z();
     }
+
+    cloud->header.frame_id = target_frame;
 }

@@ -45,6 +45,8 @@ bool ObstacleDetectorPolygon::checkOnCloud(std::shared_ptr<ObstacleCloud const> 
                 p.x = gm_pt.point.x;
                 p.y = gm_pt.point.y;
             }
+            pwf.frame = obstacles->header.frame_id;
+
         } catch (tf::TransformException& ex) {
             ROS_ERROR_NAMED(MODULE, "Failed to transform polygon to obstacle cloud frame: %s", ex.what());
             // can't check for obstacles, so better assume there is one.
