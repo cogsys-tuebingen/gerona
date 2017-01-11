@@ -86,6 +86,8 @@ private:
     //! Publish to the global path_points
     void publishPathMarker();
 
+    PathFollowerConfigName goalToConfig(const path_msgs::FollowPathGoal &goal) const;
+
 private:
     ros::NodeHandle node_handle_;
 
@@ -102,10 +104,8 @@ private:
 
     std::unique_ptr<ControllerFactory> controller_factory_;
 
-    std::string default_config_;
-
     std::shared_ptr<PathFollowerConfig> config_;
-    std::map<std::string, std::shared_ptr<PathFollowerConfig>> config_cache_;
+    std::map<PathFollowerConfigName, std::shared_ptr<PathFollowerConfig>> config_cache_;
 
     std::unique_ptr<SupervisorChain> supervisors_;
 

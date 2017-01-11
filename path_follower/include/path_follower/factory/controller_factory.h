@@ -26,7 +26,7 @@ public:
     ControllerFactory(PathFollower &follower);
 
 public:
-    std::shared_ptr<PathFollowerConfig> construct(const std::string &config);
+    std::shared_ptr<PathFollowerConfig> construct(const PathFollowerConfigName &config);
 
 private:
     std::shared_ptr<RobotController> makeController(const std::string &name);

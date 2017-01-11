@@ -53,8 +53,6 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     whole_local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("whole_local_path", 1, true);
     g_points_pub_ = node_handle_.advertise<visualization_msgs::Marker>("g_path_points", 10);
 
-    node_handle_.param("default_config", default_config_, std::string(""));
-
     /*** Initialize supervisors ***/
 
     // register callback for new waypoint event.
@@ -199,7 +197,7 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
 
         if(path_search_failure) {
             ROS_ERROR_STREAM_THROTTLE(1, "no local path found.");
-            feedback.status = path_msgs::FollowPathFeedback::MOTION_STATUS_OBSTACLE;
+            feedback.status = path_msgs::FollowPathFeedback::MOTION_STATUS_NO_LOCAL_PATH;
             config_->controller_->stopMotion();
 
             // avoid RViz bug with empty paths!
@@ -385,15 +383,38 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
     }
 }
 
+PathFollowerConfigName PathFollower::goalToConfig(const FollowPathGoal &goal) const
+{
+    PathFollowerConfigName config_name;
+
+    config_name.controller = goal.robot_controller.data;
+    config_name.local_planner = goal.local_planner.data;
+    config_name.obstacle_avoider = goal.obstacle_avoider.data;
+
+    if(config_name.controller.empty()) {
+        config_name.controller = opt_.controller();
+    }
+    if(config_name.local_planner.empty()) {
+        config_name.local_planner = opt_.algo();
+    }
+    if(config_name.obstacle_avoider.empty()) {
+        config_name.obstacle_avoider = opt_.controller();
+    }
+
+    return config_name;
+}
+
 void PathFollower::setGoal(const FollowPathGoal &goal)
 {    
     // Choose robot controller
-    auto pos = config_cache_.find(goal.following_algorithm.data);
+    PathFollowerConfigName config_name = goalToConfig(goal);
+
+    auto pos = config_cache_.find(config_name);
     if(pos != config_cache_.end()) {
         config_ = pos->second;
     } else {
-        config_ = controller_factory_->construct(goal.following_algorithm.data);
-        config_cache_[goal.following_algorithm.data] = config_;
+        config_ = controller_factory_->construct(config_name);
+        config_cache_[config_name] = config_;
     }
 
     ROS_ASSERT(config_);

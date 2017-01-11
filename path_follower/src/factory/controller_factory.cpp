@@ -51,27 +51,16 @@ ControllerFactory::ControllerFactory(PathFollower &follower)
 
 }
 
-std::shared_ptr<PathFollowerConfig> ControllerFactory::construct(const std::string& config)
+std::shared_ptr<PathFollowerConfig> ControllerFactory::construct(const PathFollowerConfigName &config)
 {
+    ROS_ASSERT_MSG(!config.controller.empty(), "No controller specified");
+    ROS_ASSERT_MSG(!config.local_planner.empty(), "No local planner specified");
+    ROS_ASSERT_MSG(!config.obstacle_avoider.empty(), "No obstacle avoider specified");
+
     PathFollowerConfig result;
-
-    if(config.empty()) {
-        result.controller_ = makeController(opt_.controller());
-        result.local_planner_ = makeConstrainedLocalPlanner(opt_.algo());
-        result.obstacle_avoider_ = makeObstacleAvoider(opt_.controller());
-
-    } else {
-        if(config == "HBZ_forward_backward") {
-            result.controller_ = makeController("RobotController_Kinematic_HBZ");
-            result.local_planner_ = makeConstrainedLocalPlanner("NULL");
-            result.obstacle_avoider_ = makeObstacleAvoider("RobotController_Kinematic_HBZ");
-
-        } else {            
-            result.controller_ = makeController(config);
-            result.local_planner_ = makeConstrainedLocalPlanner("NULL");
-            result.obstacle_avoider_ = makeObstacleAvoider(config);
-        }
-    }
+    result.controller_ = makeController(config.controller);
+    result.local_planner_ = makeConstrainedLocalPlanner(config.local_planner);
+    result.obstacle_avoider_ = makeObstacleAvoider(config.obstacle_avoider);
 
     ROS_ASSERT_MSG(result.controller_ != nullptr, "Controller was not set");
     ROS_ASSERT_MSG(result.local_planner_ != nullptr, "Local Planner was not set");
