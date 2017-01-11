@@ -395,7 +395,7 @@ PathFollowerConfigName PathFollower::goalToConfig(const FollowPathGoal &goal) co
         config_name.controller = opt_.controller();
     }
     if(config_name.local_planner.empty()) {
-        config_name.local_planner = opt_.algo();
+        config_name.local_planner = opt_.local_planner();
     }
     if(config_name.obstacle_avoider.empty()) {
         config_name.obstacle_avoider = opt_.controller();
