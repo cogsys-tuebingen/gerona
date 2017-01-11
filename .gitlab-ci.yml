@@ -1,0 +1,59 @@
+before_script:
+  # Install ssh-agent if not already installed, it is required by Docker.
+  # (change apt-get to yum if you use a CentOS-based image)
+  - 'apt-get -qq update -y && apt-get -qq install build-essential openssh-client sudo -y --no-install-recommends'
+
+  # Run ssh-agent (inside the build environment)
+  - eval $(ssh-agent -s)
+
+  # Add the SSH key stored in SSH_PRIVATE_KEY variable to the agent store
+  - ssh-add <(echo "$SSH_PRIVATE_KEY")
+
+  # For Docker builds disable host key checking. Be aware that by adding that
+  # you are suspectible to man-in-the-middle attacks.
+  # WARNING: Use this only with the Docker executor, if you use it with shell
+  # you will overwrite your user's SSH config.
+  - mkdir -p ~/.ssh
+  - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+
+  # Here we are at /build/$CI_PROJECT_NAME
+  # For pure catkin projects, we need a workspace:
+  - mkdir -p /build/ws/src/
+  - cd /build/ws
+  - ln -s $CI_PROJECT_DIR src/$CI_PROJECT_NAME
+  - cd src
+  - git clone gitlab@gitlab.cs.uni-tuebingen.de:libs/cslibs_path_planning
+  - git clone gitlab@gitlab.cs.uni-tuebingen.de:libs/cslibs_utils
+  - cd ..
+
+
+stages:
+  - build
+
+indigo:
+  stage: build
+  image: ros:indigo
+  script:
+    - source /opt/ros/$(ls /opt/ros/ | sort -r | head -n 1)/setup.bash
+    - ls -R
+    - rosdep install -y -r -i --from-paths src
+    - catkin_make
+
+jade:
+  stage: build
+  image: ros:jade
+  script:
+    - source /opt/ros/$(ls /opt/ros/ | sort -r | head -n 1)/setup.bash
+    - ls -R
+    - rosdep install -y -r -i --from-paths src
+    - catkin_make
+
+kinetic:
+  stage: build
+  image: ros:kinetic
+  script:
+    - source /opt/ros/$(ls /opt/ros/ | sort -r | head -n 1)/setup.bash
+    - ls -R
+    - rosdep install -y -r -i --from-paths src
+    - catkin_make
+
