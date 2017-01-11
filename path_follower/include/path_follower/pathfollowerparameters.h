@@ -7,6 +7,7 @@
 struct PathFollowerParameters : public Parameters
 {
     P<std::string> controller;
+    P<std::string> obstacle_avoider;
     P<std::string> world_frame;
     P<std::string> robot_frame;
     P<std::string> odom_frame;
@@ -40,6 +41,7 @@ struct PathFollowerParameters : public Parameters
 
     PathFollowerParameters():
         controller(this, "~controller", "ackermann_purepursuit", "Defines, which controller is used."),
+        obstacle_avoider(this, "~obstacle_avoider", "", "Defines, which obstacle avoider is used."),
         world_frame(this, "~world_frame",  "map", "Name of the world frame."),
         robot_frame(this, "~robot_frame",  "base_link", "Name of the robot frame."),
         odom_frame(this, "~odom_frame",  "odom", "Name of the odometry frame."),

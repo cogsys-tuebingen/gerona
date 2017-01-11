@@ -385,23 +385,30 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
 
 PathFollowerConfigName PathFollower::goalToConfig(const FollowPathGoal &goal) const
 {
-    PathFollowerConfigName config_name;
+    PathFollowerConfigName config;
 
-    config_name.controller = goal.robot_controller.data;
-    config_name.local_planner = goal.local_planner.data;
-    config_name.obstacle_avoider = goal.obstacle_avoider.data;
+    config.controller = goal.robot_controller.data;
+    config.local_planner = goal.local_planner.data;
+    config.obstacle_avoider = goal.obstacle_avoider.data;
 
-    if(config_name.controller.empty()) {
-        config_name.controller = opt_.controller();
+    if(config.controller.empty()) {
+        config.controller = opt_.controller();
     }
-    if(config_name.local_planner.empty()) {
-        config_name.local_planner = opt_.local_planner();
+    if(config.local_planner.empty()) {
+        config.local_planner = opt_.local_planner();
     }
-    if(config_name.obstacle_avoider.empty()) {
-        config_name.obstacle_avoider = opt_.controller();
+    if(config.obstacle_avoider.empty()) {
+        config.obstacle_avoider = opt_.obstacle_avoider();
     }
+    if(config.obstacle_avoider.empty()) {
+        config.obstacle_avoider = opt_.controller();
+    }
+    ROS_ASSERT_MSG(!config.controller.empty(), "No controller specified");
+    ROS_ASSERT_MSG(!config.local_planner.empty(), "No local planner specified");
+    ROS_ASSERT_MSG(!config.obstacle_avoider.empty(), "No obstacle avoider specified");
 
-    return config_name;
+
+    return config;
 }
 
 void PathFollower::setGoal(const FollowPathGoal &goal)

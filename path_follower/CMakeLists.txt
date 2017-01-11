@@ -90,13 +90,11 @@ add_library(${PROJECT_NAME} SHARED
     src/obstacle_avoidance/obstacledetectorpolygon.cpp
     src/obstacle_avoidance/obstacledetectorackermann.cpp
     src/obstacle_avoidance/obstacledetectoromnidrive.cpp
-    src/obstacle_avoidance/obstacledetectorpatsy.cpp
     src/obstacle_avoidance/obstacle_avoider.cpp
 
     src/controller/robotcontroller.cpp
     src/controller/robotcontroller_interpolation.cpp
     src/controller/robotcontroller_ackermann_pid.cpp
-    src/controller/robotcontrollertrailer.cpp
     src/controller/path_simple_pid.cpp
     src/controller/path_cascade_pid.cpp
     src/controller/robotcontroller_ICR_CCW.cpp
