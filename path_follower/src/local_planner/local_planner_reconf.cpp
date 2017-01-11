@@ -22,10 +22,10 @@ void LocalPlannerReconf::updateLeaves(std::vector<LNode*>& successors, LNode*& c
 }
 
 void LocalPlannerReconf::updateBest(double& current_p, double& best_p, LNode*& obj, LNode*& succ){
-    (void) current_p;
-    (void) best_p;
-    (void) obj;
-    (void) succ;
+    if(current_p < best_p){
+        best_p = current_p;
+        obj = succ;
+    }
 }
 
 void LocalPlannerReconf::addLeaf(LNode*& node){

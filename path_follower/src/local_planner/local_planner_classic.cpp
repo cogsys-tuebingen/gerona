@@ -920,6 +920,7 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     std::vector<LNode> nodes(nnodes_);
     LNode* obj = nullptr;
+    LNode* best_non_reconf = nullptr;
 
     setNormalizer();
 
@@ -930,6 +931,7 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     initQueue(nodes[0]);
     initLeaves(nodes[0]);
     double best_p = std::numeric_limits<double>::infinity();
+    double best_rec = std::numeric_limits<double>::infinity();
     nnodes = 1;
 
     LNode* current;
@@ -947,21 +949,23 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         expandCurrent(current, nnodes, successors, nodes);
         setNormalizer();
         updateLeaves(successors, current);
+
         for(std::size_t i = 0; i < successors.size(); ++i){
             double current_p;
             if(!processSuccessor(successors[i], current, current_p, dis2last)){
                 continue;
             }
             addLeaf(successors[i]);
-            updateBest(current_p,best_p,obj,successors[i]);
+            updateBest(current_p,best_p,best_non_reconf,successors[i]);
         }
+
     }
-    reconfigureTree(obj, nodes, best_p);
+    reconfigureTree(obj, nodes, best_rec);
     //!
     if(obj != nullptr){
         return processPath(obj, local_wps);
     }else{
-        return false;
+        return processPath(best_non_reconf, local_wps);;
     }
 }
 
