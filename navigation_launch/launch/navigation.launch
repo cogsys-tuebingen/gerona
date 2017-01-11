@@ -10,7 +10,7 @@ tasks and can be used instead of this file.
 -->
 <launch>
     <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_HBZ)" />
-    <arg name="algo" default="AStar" />
+    <arg name="local_planner" default="AStar" />
 
     <arg name="c1" default="true" />
     <arg name="c2" default="true" />
@@ -52,7 +52,7 @@ tasks and can be used instead of this file.
 
     <include file="$(find path_follower)/launch/follower.launch">
         <arg name="controller" value="$(arg robot_controller)" />
-	<arg name="algo" value="$(arg algo)" />
+	<arg name="local_planner" value="$(arg local_planner)" />
 
         <arg name="c1" value="$(arg c1)" />
         <arg name="c2" value="$(arg c2)" />

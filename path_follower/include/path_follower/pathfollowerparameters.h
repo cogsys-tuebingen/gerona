@@ -7,6 +7,7 @@
 struct PathFollowerParameters : public Parameters
 {
     P<std::string> controller;
+    P<std::string> obstacle_avoider;
     P<std::string> world_frame;
     P<std::string> robot_frame;
     P<std::string> odom_frame;
@@ -18,7 +19,7 @@ struct PathFollowerParameters : public Parameters
     P<bool> abort_if_obstacle_ahead;
 
     //Parameters for the Local Planner
-    P<std::string> algo;
+    P<std::string> local_planner;
     P<bool> c1, c2;
     P<double> s1, s2, s3, s4, s5, s6;
     P<int> nnodes,depth,ic,ia;
@@ -40,6 +41,7 @@ struct PathFollowerParameters : public Parameters
 
     PathFollowerParameters():
         controller(this, "~controller", "ackermann_purepursuit", "Defines, which controller is used."),
+        obstacle_avoider(this, "~obstacle_avoider", "", "Defines, which obstacle avoider is used."),
         world_frame(this, "~world_frame",  "map", "Name of the world frame."),
         robot_frame(this, "~robot_frame",  "base_link", "Name of the robot frame."),
         odom_frame(this, "~odom_frame",  "odom", "Name of the odometry frame."),
@@ -60,7 +62,7 @@ struct PathFollowerParameters : public Parameters
                                 " stop, but not abort (the obstacle might move away)."),
 
         //Local Planner
-        algo(this, "~algo", "AStar", "Algorithm to be used by the Local Planner."),
+        local_planner(this, "~local_planner", "AStar", "Algorithm to be used by the Local Planner."),
         //Constraints
         c1(this, "~c1", true,
            "Determines whether the first constraint is used or not. (Distance to global path)"),

@@ -10,8 +10,8 @@ demonstrating the navigation framework.
 <launch>
     <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_HBZ)" />
 
-    <arg name="algo" default="AStarR" />
-    <!-- arg name="algo" default="NULL" / -->
+    <arg name="local_planner" default="AStarR" />
+    <!-- arg name="local_planner" default="NULL" / -->
 
     <arg name="c1" default="true" />
     <arg name="c2" default="true" />
@@ -57,7 +57,7 @@ demonstrating the navigation framework.
     <include file="$(find navigation_launch)/launch/laser_filter.launch" />
     <include file="$(find navigation_launch)/launch/full.launch">
       <arg name="robot_controller" value="$(arg robot_controller)" />
-      <arg name="algo" value="$(arg algo)" />
+      <arg name="local_planner" value="$(arg local_planner)" />
 
       <arg name="c1" value="$(arg c1)" />
       <arg name="c2" value="$(arg c2)" />

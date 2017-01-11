@@ -319,6 +319,10 @@ void PathController::followPathFeedbackCB(const path_msgs::FollowPathFeedbackCon
         nav_feedback.status = NavigateToGoalFeedback::STATUS_OBSTACLE;
         break;
 
+    case FollowPathFeedback::MOTION_STATUS_NO_LOCAL_PATH:
+        nav_feedback.status = NavigateToGoalFeedback::STATUS_NO_LOCAL_PLAN;
+        break;
+
     default:
         ROS_ERROR("Feedback: Unknown status code %d", feedback->status);
         break;

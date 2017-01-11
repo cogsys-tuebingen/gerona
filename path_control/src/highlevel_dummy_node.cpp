@@ -117,6 +117,10 @@ private:
             ROS_WARN_THROTTLE(1, "Feedback: Collision.");
             break;
 
+        case NavigateToGoalFeedback::STATUS_NO_LOCAL_PLAN:
+            ROS_WARN_THROTTLE(1, "Feedback: No local plan found.");
+            break;
+
         case NavigateToGoalFeedback::STATUS_REPLAN:
             ROS_WARN("Path is replaned.");
             break;
