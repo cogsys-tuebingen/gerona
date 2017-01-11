@@ -140,7 +140,7 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
 
     // Ask supervisor whether path following can continue
     Supervisor::State state(pose_tracker_->getRobotPose(),
-                            getPath(),
+                            path_,
                             obstacle_cloud_,
                             feedback);
 
@@ -245,17 +245,7 @@ PoseTracker& PathFollower::getPoseTracker()
     return *pose_tracker_;
 }
 
-CoursePredictor &PathFollower::getCoursePredictor()
-{
-    return *course_predictor_;
-}
-
-Path::Ptr PathFollower::getPath()
-{
-    return path_;
-}
-
-std::string PathFollower::getFixedFrameId()
+std::string PathFollower::getFixedFrameId() const
 {
     return pose_tracker_->getFixedFrameId();
 }
@@ -263,11 +253,6 @@ std::string PathFollower::getFixedFrameId()
 const PathFollowerParameters& PathFollower::getOptions() const
 {
     return opt_;
-}
-
-Visualizer& PathFollower::getVisualizer() const
-{
-    return *visualizer_;
 }
 
 ros::NodeHandle& PathFollower::getNodeHandle()
