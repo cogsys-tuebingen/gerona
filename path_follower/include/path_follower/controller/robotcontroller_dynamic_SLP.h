@@ -111,16 +111,16 @@ private:
 
         bool isValid()
         {
-            if ( isnan(tau_fl) || isinf(tau_fl)
-                 || isnan(tau_fr) || isinf(tau_fr)
-                 || isnan(tau_br) || isinf(tau_br)
-                 || isnan(tau_bl) || isinf(tau_bl))
+            if ( std::isnan(tau_fl) || std::isinf(tau_fl)
+                 || std::isnan(tau_fr) || std::isinf(tau_fr)
+                 || std::isnan(tau_br) || std::isinf(tau_br)
+                 || std::isnan(tau_bl) || std::isinf(tau_bl))
             {
                 ROS_FATAL("Non-numerical values in command: %d,%d,%d,%d,%d,%d,%d,%d",
-                          isnan(tau_fl), isinf(tau_fl),
-                          isnan(tau_fr), isinf(tau_fr),
-                          isnan(tau_br), isinf(tau_br),
-                          isnan(tau_bl), isinf(tau_bl));
+                          std::isnan(tau_fl), std::isinf(tau_fl),
+                          std::isnan(tau_fr), std::isinf(tau_fr),
+                          std::isnan(tau_br), std::isinf(tau_br),
+                          std::isnan(tau_bl), std::isinf(tau_bl));
                 // fix this instantly, to avoid further problems.
                 tau_fl = 0.0;
                 tau_fr = 0.0;

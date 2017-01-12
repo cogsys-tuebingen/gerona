@@ -9,7 +9,7 @@
 #include "std_msgs/MultiArrayLayout.h"
 #include "std_msgs/MultiArrayDimension.h"
 #include "std_msgs/Float64MultiArray.h"
-
+#include <cmath>
 
 // PROJECT
 #include <path_follower/utils/path.h>
