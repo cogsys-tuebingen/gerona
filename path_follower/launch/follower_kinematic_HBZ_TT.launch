@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="algo" default="AStar" />
+  <arg name="local_planner" default="AStar" />
   <arg name="c1" default="true" />
   <arg name="c2" default="true" />
 
@@ -51,7 +51,7 @@
     <param name="obstacle_scale_lifetime" value="5.0" />
     <param name="path_width" value="0.5" />
  
-    <param name="k1" value="1.0" />
+    <param name="k1" value="0.5" />
     <param name="k2" value="40" />
 
     <param name="lambda" value="1" />
@@ -115,7 +115,7 @@
 
 
     <!-- local planner -->
-    <param name="algo" value="$(arg algo)"/>
+    <param name="local_planner" value="$(arg local_planner)"/>
     <!-- constraints -->
     <param name="c1" value="$(arg c1)"/>
     <param name="c2" value="$(arg c2)"/>

@@ -3,7 +3,7 @@
 Launch the path follower with the pure pursuit controller for a car-like (Ackermann) robot.
 -->
 <launch>
-  <arg name="algo" default="AStar" />
+  <arg name="local_planner" default="AStar" />
   <arg name="c1" default="true" />
   <arg name="c2" default="true" />
 
@@ -67,7 +67,7 @@ Launch the path follower with the pure pursuit controller for a car-like (Ackerm
 	 <param name="factor_steering_angle" value="1.0" />
 
     <!-- local planner -->
-    <param name="algo" value="$(arg algo)"/>
+    <param name="local_planner" value="$(arg local_planner)"/>
     <!-- constraints -->
     <param name="c1" value="$(arg c1)"/>
     <param name="c2" value="$(arg c2)"/>
