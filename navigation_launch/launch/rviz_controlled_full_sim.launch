@@ -18,8 +18,8 @@ demonstrating the navigation framework.
 
     <arg name="s1" default="3.5" />
     <arg name="s2" default="1.5" />
-    <arg name="s3" default="2.0" />
-    <arg name="s4" default="1.0" />
+    <arg name="s3" default="4.0" />
+    <arg name="s4" default="3.0" />
     <arg name="s5" default="1.5" />
     <arg name="s6" default="5.0" />
 

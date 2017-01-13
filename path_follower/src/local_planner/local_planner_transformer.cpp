@@ -32,7 +32,7 @@ bool LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         // calculate the corrective transformation to map from world coordinates to odom
         if(!transformer_->waitForTransform("map", "odom", ros::Time(0), ros::Duration(0.1))) {
             ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
-            return nullptr;
+            return false;
         }
 
         tf::StampedTransform now_map_to_odom;

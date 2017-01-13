@@ -114,5 +114,5 @@ void MoveCommand::setWheelTorques(double fl, double fr, double br, double bl){
 
 bool MoveCommand::isValid(float val) const
 {
-    return !isnan(val) && val != -INFINITY && val != INFINITY;
+    return !std::isnan(val) && !std::isinf(val);
 }

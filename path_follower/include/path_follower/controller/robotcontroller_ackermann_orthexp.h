@@ -98,12 +98,12 @@ private:
 
         bool isValid()
         {
-            if ( isnan(speed) || isinf(speed)
-                 || isnan(direction_angle) || isinf(direction_angle))
+            if ( std::isnan(speed) || std::isinf(speed)
+                 || std::isnan(direction_angle) || std::isinf(direction_angle))
             {
                 ROS_FATAL("Non-numerical values in command: %d,%d,%d,%d",
-                          isnan(speed), isinf(speed),
-                          isnan(direction_angle), isinf(direction_angle));
+                          std::isnan(speed), std::isinf(speed),
+                          std::isnan(direction_angle), std::isinf(direction_angle));
                 // fix this instantly, to avoid further problems.
                 speed = 0.0;
                 direction_angle = 0.0;
