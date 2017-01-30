@@ -75,10 +75,16 @@ public:
         return atan2(q_prim_.at(i), p_prim_.at(i));
 	}
 
+    inline std::string frame_id() const {
+        return frame_id_;
+    }
+
 	operator nav_msgs::Path() const;
     operator SubPath() const;
 
     Path::Ptr getOriginalPath() const;
+
+    std::string frame_id_;
 
 private:
 	void clearBuffers();
@@ -87,8 +93,6 @@ private:
 
     //number of path elements
     uint N_;
-
-    std::string frame_id_;
 
     Path::Ptr original_path_;
 
