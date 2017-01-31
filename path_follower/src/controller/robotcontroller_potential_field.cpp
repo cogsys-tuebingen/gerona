@@ -263,7 +263,7 @@ void RobotController_Potential_Field::computeFReps()
 }
 
 /**
- * determines the nearest obstacle for each segment and stores it for further computation
+ * determines the nearest obstacle and stores it for further computation
  */
 void RobotController_Potential_Field::findObstacles()
 {
@@ -333,9 +333,9 @@ void RobotController_Potential_Field::setGoalPosition()
         finished = true;
     }
 
-    for(int i = proj_ind_; i < path_interpol.n()-1 ; i++){
+    for(int i = proj_ind_ + 1; i < path_interpol.n()-1 ; i++){
         if(fabs(fabs(path_interpol.s(proj_ind_) - path_interpol.s(i)) - s_dist) < s_diff && !finished){
-            s_diff = fabs(path_interpol.s(path_interpol.n()-1) - path_interpol.s(i));
+            s_diff = fabs(fabs(path_interpol.s(proj_ind_) - path_interpol.s(i)) - s_dist);
             tf::Point goal_tmp(path_interpol.p(i), path_interpol.q(i), 0.0);
             goal = goal_tmp;
         }
@@ -420,10 +420,13 @@ RobotController::MoveCommandStatus RobotController_Potential_Field::computeMoveC
     double dist = 0;
     double orth_proj = std::numeric_limits<double>::max();
 
+    //quick solution for closed paths
+    int old_ind = proj_ind_;
+
     for (unsigned int i = proj_ind_; i < path_interpol.n(); i++){
 
         dist = hypot(x_meas_ - path_interpol.p(i), y_meas_ - path_interpol.q(i));
-        if(dist < orth_proj){
+        if(dist < orth_proj && std::abs(i - old_ind) < 50){
 
             orth_proj = dist;
             proj_ind_ = i;

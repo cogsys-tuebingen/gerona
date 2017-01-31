@@ -38,9 +38,12 @@ void RobotController_Potential_Field_TT::setGoalPosition()
     tf::Point goal;
     for(int i = proj_ind_; i < path_interpol.n()-1 ; i++){
         if(fabs(fabs(path_interpol.s(path_interpol.n()-1) - path_interpol.s(i)) - s_dist) < s_diff){
-            s_diff = fabs(path_interpol.s(path_interpol.n()-1) - path_interpol.s(i));
+            s_diff = fabs(fabs(path_interpol.s(path_interpol.n()-1) - path_interpol.s(i)) - s_dist);
             tf::Point goal_tmp(path_interpol.p(i), path_interpol.q(i), 0.0);
             goal = goal_tmp;
+        }
+        if(fabs(fabs(path_interpol.s(path_interpol.n()-1) - path_interpol.s(proj_ind_)) - s_dist) < 1e-1){
+            vn_ = 0.0;
         }
     }
 
