@@ -20,6 +20,7 @@
 #include <path_follower/controller/robotcontroller_dynamic_SLP.h>
 #include <path_follower/controller/robotcontroller_potential_field.h>
 #include <path_follower/controller/robotcontroller_potential_field_TT.h>
+#include <path_follower/controller/robotcontroller_dynamic_window.h>
 
 #include <path_follower/obstacle_avoidance/noneavoider.hpp>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
@@ -175,6 +176,9 @@ std::shared_ptr<RobotController> ControllerFactory::makeController(const std::st
 
     } else if (name == "potential_field_TT") {
         return std::make_shared<RobotController_Potential_Field_TT>();
+
+    } else if (name == "dynamic_window") {
+        return std::make_shared<RobotController_Dynamic_Window>();
 
     } else {
         throw std::logic_error(std::string("Unknown robot controller: ") + name + ". Shutdown.");

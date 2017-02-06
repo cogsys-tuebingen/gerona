@@ -113,6 +113,7 @@ add_library(${PROJECT_NAME} SHARED
     src/controller/robotcontroller_dynamic_SLP.cpp
     src/controller/robotcontroller_potential_field.cpp
     src/controller/robotcontroller_potential_field_TT.cpp
+    src/controller/robotcontroller_dynamic_window.cpp
 
     src/local_planner/local_planner.cpp
     src/local_planner/local_planner_null.cpp
