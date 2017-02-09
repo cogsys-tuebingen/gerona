@@ -42,14 +42,16 @@ RobotController_Dynamic_Window::RobotController_Dynamic_Window():
     x_next_(0.0),
     y_next_(0.0),
     theta_next_(0.0),
-    obstacle_found(false)
+    obstacle_found(false),
+    m_id_counter(0)
 {
     t_old_ = ros::Time::now();
     goal_pub = nh_.advertise<geometry_msgs::PointStamped>("goal_position", 0);
-    far_pred_pub = nh_.advertise<geometry_msgs::PointStamped>("far_predicted_point", 0);
+    far_pred_pub = nh_.advertise<visualization_msgs::MarkerArray>("far_predicted_positions", 0);
     predict_pub = nh_.advertise<geometry_msgs::PointStamped>("predicted_position", 0);
     obst_marker_pub = nh_.advertise<visualization_msgs::Marker>("obstacle_distance", 0);
-    positions_pub = nh_.advertise<visualization_msgs::Marker>("predicted_far_positions", 0);
+    obst_point_pub = nh_.advertise<geometry_msgs::PointStamped>("obstacle_point", 0);
+    traj_pub = nh_.advertise<nav_msgs::Path>("possible_trajectories", 0);
 }
 
 
@@ -139,6 +141,8 @@ void RobotController_Dynamic_Window::setGoalPosition()
 
 
 void RobotController_Dynamic_Window::searchMinObstDist(){
+
+
     auto obstacle_cloud = obstacle_avoider_->getObstacles();
     const pcl::PointCloud<pcl::PointXYZ>& cloud = *obstacle_cloud->cloud;
     double min_dist = std::numeric_limits<double>::infinity();
@@ -165,61 +169,45 @@ void RobotController_Dynamic_Window::searchMinObstDist(){
         }
     }
 
-    geometry_msgs::PointStamped far_pred_point;
-    far_pred_point.point.x = x_pred_;
-    far_pred_point.point.y = y_pred_;
-    far_pred_point.header.frame_id = pose_tracker_->getFixedFrameId();
-    far_pred_pub.publish(far_pred_point);
-
-
-    visualization_msgs::Marker obst_dist_marker;
-
-    geometry_msgs::Point p1, p2;
-
-    p1.x = x_pred_;
-    p1.y = y_pred_;
-    p2.x = coll_pt.getX();
-    p2.y = coll_pt.getY();
-
-
-    obst_dist_marker.header.frame_id = pose_tracker_->getFixedFrameId();
-    obst_dist_marker.header.stamp = ros::Time();
-    obst_dist_marker.ns = "obstacle_distance";
-    obst_dist_marker.id = 1445;
-    obst_dist_marker.type = visualization_msgs::Marker::ARROW;
-    obst_dist_marker.action = visualization_msgs::Marker::ADD;
-    obst_dist_marker.pose.position.x = coll_pt.getX();
-    obst_dist_marker.pose.position.y = coll_pt.getY();
-    obst_dist_marker.pose.position.z = 0.0;
-
-    tf::Quaternion quaternion = tf::createQuaternionFromYaw(std::atan2(y_pred_-coll_pt.getY(), x_pred_-coll_pt.getX()));
-    obst_dist_marker.pose.orientation.x = quaternion.getX();
-    obst_dist_marker.pose.orientation.y = quaternion.getY();
-    obst_dist_marker.pose.orientation.z = quaternion.getZ();
-    obst_dist_marker.pose.orientation.w = quaternion.getW();
-    obst_dist_marker.scale.x = std::hypot(y_pred_-coll_pt.getY(), x_pred_-coll_pt.getX());
-    obst_dist_marker.scale.y = 0.1f;
-    obst_dist_marker.scale.z = 0.1f;
-    obst_dist_marker.color.a = 1.0f;
-    obst_dist_marker.color.r = 0.0f;
-    obst_dist_marker.color.g = 1.0f;
-    obst_dist_marker.color.b = 0.0f;
-
-    obst_marker_pub.publish(obst_dist_marker);
-
 
     if(min_dist > opt_.obst_dist_thresh()){
         curv_dist_obst_ = 10.0;
     }
     else{
+        visualization_msgs::Marker obst_dist_marker;
 
-        geometry_msgs::Point p;
+        geometry_msgs::Point p1, p2;
 
-        p.x = x_pred_;
-        p.y = y_pred_;
+        p1.x = x_pred_;
+        p1.y = y_pred_;
+        p2.x = coll_pt.getX();
+        p2.y = coll_pt.getY();
 
-        pred_positions.points.push_back(p);
-        positions_pub.publish(pred_positions);
+
+        obst_dist_marker.header.frame_id = pose_tracker_->getFixedFrameId();
+        obst_dist_marker.header.stamp = ros::Time();
+        obst_dist_marker.ns = "obstacle_distance";
+        obst_dist_marker.id = 1445;
+        obst_dist_marker.type = visualization_msgs::Marker::ARROW;
+        obst_dist_marker.action = visualization_msgs::Marker::ADD;
+        obst_dist_marker.pose.position.x = coll_pt.getX();
+        obst_dist_marker.pose.position.y = coll_pt.getY();
+        obst_dist_marker.pose.position.z = 0.0;
+
+        tf::Quaternion quaternion = tf::createQuaternionFromYaw(std::atan2(y_pred_-coll_pt.getY(), x_pred_-coll_pt.getX()));
+        obst_dist_marker.pose.orientation.x = quaternion.getX();
+        obst_dist_marker.pose.orientation.y = quaternion.getY();
+        obst_dist_marker.pose.orientation.z = quaternion.getZ();
+        obst_dist_marker.pose.orientation.w = quaternion.getW();
+        obst_dist_marker.scale.x = std::hypot(y_pred_-coll_pt.getY(), x_pred_-coll_pt.getX());
+        obst_dist_marker.scale.y = 0.1f;
+        obst_dist_marker.scale.z = 0.1f;
+        obst_dist_marker.color.a = 1.0f;
+        obst_dist_marker.color.r = 0.0f;
+        obst_dist_marker.color.g = 1.0f;
+        obst_dist_marker.color.b = 0.0f;
+
+        obst_marker_pub.publish(obst_dist_marker);
 
         if(std::abs(w_iter_) < 1e-1){
             curv_dist_obst_ = std::hypot(y_next_ - y_pred_, x_next_ - x_pred_);
@@ -253,6 +241,7 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
     double y_new = 0.0;
     double theta_new = theta_meas_;
     double t = opt_.step_T();
+    double t_count = 0.0;
     x_pred_ = x_meas_;
     y_pred_ = y_meas_;
     x_next_ = x_meas_;
@@ -275,24 +264,28 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
     pred_positions.color.g = 1.0f;
     pred_positions.color.b = 0.0f;
 
-
     if(std::abs(w_iter_) < 1e-1){
-        while(t < opt_.fact_T()*opt_.T_dwa()){
+        while(t_count < opt_.fact_T()*opt_.T_dwa()){
+            t_count += opt_.step_T();
+            theta_new += w_iter_*opt_.step_T();
             x_new = v_iter_ * std::cos(theta_new) * t;
             y_new = v_iter_ * std::sin(theta_new) * t;
             x_pred_ += x_new;
             y_pred_ += y_new;
-            t += opt_.step_T();
-            theta_new += w_iter_*opt_.step_T();
             obstacle_found = false;
             searchMinObstDist();
             x_next_ = x_pred_;
             y_next_ = y_pred_;
             theta_next_ = theta_new;
             if(obstacle_found){
+                geometry_msgs::PointStamped obst_point;
+                obst_point.point.x = x_pred_;
+                obst_point.point.y = y_pred_;
+                obst_point.header.frame_id = pose_tracker_->getFixedFrameId();
+                obst_point_pub.publish(obst_point);
                 break;
             }
-            if(std::abs(t - opt_.step_T() - opt_.T_dwa()) < 1e-1){
+            if(std::abs(t_count - opt_.T_dwa()) < 1e-1){
 
                 double goal_angle = std::atan2(mGoalPosY - y_pred_, mGoalPosX - x_pred_);
                 theta_pred_ = MathHelper::AngleDelta(goal_angle, theta_new);
@@ -306,12 +299,12 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
         }
     }
     else{
-        while(t < opt_.fact_T()*opt_.T_dwa()){
+        while(t_count < opt_.fact_T()*opt_.T_dwa()){
             x_new = v_iter_/w_iter_ * (std::sin(theta_new + w_iter_*opt_.step_T()) - std::sin(theta_new));
             y_new = v_iter_/w_iter_ * (std::cos(theta_new) - std::cos(theta_new + w_iter_*opt_.step_T()));
             x_pred_ += x_new;
             y_pred_ += y_new;
-            t += opt_.step_T();
+            t_count += opt_.step_T();
             theta_new += w_iter_*opt_.step_T();
             obstacle_found = false;
             searchMinObstDist();
@@ -319,9 +312,14 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
             y_next_ = y_pred_;
             theta_next_ = theta_new;
             if(obstacle_found){
+                geometry_msgs::PointStamped obst_point;
+                obst_point.point.x = x_pred_;
+                obst_point.point.y = y_pred_;
+                obst_point.header.frame_id = pose_tracker_->getFixedFrameId();
+                obst_point_pub.publish(obst_point);
                 break;
             }
-            if(std::abs(t - opt_.step_T() - opt_.T_dwa()) < 1e-1){
+            if(std::abs(t_count - opt_.T_dwa()) < 1e-1){
 
                 double goal_angle = std::atan2(mGoalPosY - y_pred_, mGoalPosX - x_pred_);
                 theta_pred_ = MathHelper::AngleDelta(goal_angle, theta_new);
@@ -335,7 +333,44 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
         }
     }
 
+    traj_.header.frame_id = pose_tracker_->getFixedFrameId();
+    geometry_msgs::PoseStamped pos_st;
+    pos_st.pose.position.x = x_pred_;
+    pos_st.pose.position.y = y_pred_;
+    traj_.poses.push_back(pos_st);
+    traj_pub.publish(traj_);
+
+
+
+
     if((v_iter_ <= std::sqrt(2.0 * curv_dist_obst_ * opt_.lin_dec())) && (std::abs(w_iter_) <= std::sqrt(2.0 * curv_dist_obst_ * opt_.ang_dec()))){
+        m_id_counter++;
+        visualization_msgs::Marker far_pred_point;
+        far_pred_point.points.clear();
+        far_pred_point.header.frame_id = pose_tracker_->getFixedFrameId();
+        far_pred_point.header.stamp = ros::Time();
+        far_pred_point.ns = "far_predictions";
+        far_pred_point.id = 1446 + m_id_counter;
+        far_pred_point.type = visualization_msgs::Marker::POINTS;
+        far_pred_point.action = visualization_msgs::Marker::ADD;
+        far_pred_point.pose.orientation.w = 1.0;
+        far_pred_point.scale.x = 0.3;
+        far_pred_point.scale.y = 0.3;
+        far_pred_point.scale.z = 0.1f;
+        far_pred_point.color.a = 1.0f;
+        far_pred_point.color.r = 0.0f;
+        far_pred_point.color.g = 1.0f;
+        far_pred_point.color.b = 0.0f;
+
+        geometry_msgs::Point p;
+
+        p.x = x_pred_;
+        p.y = y_pred_;
+
+        far_pred_point.points.push_back(p);
+
+        far_pred_points.markers.push_back(far_pred_point);
+        far_pred_pub.publish(far_pred_points);
         return true;
     }
     else{
@@ -343,9 +378,9 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
     }
 }
 
-void RobotController_Dynamic_Window::findNextVelocityPair(double v_act, double w_act)
+void RobotController_Dynamic_Window::findNextVelocityPair()
 {
-    double v_wind_b = std::max(opt_.v_step(), v_cmd_ - opt_.lin_acc()*opt_.T_dwa());
+    double v_wind_b = std::max(0.0, v_cmd_ - opt_.lin_acc()*opt_.T_dwa());
     double v_wind_t = std::min((double)global_opt_->max_velocity(), v_cmd_ + opt_.lin_acc()*opt_.T_dwa());
 
     double w_wind_l = std::max(-opt_.max_ang_vel(), w_cmd_ - opt_.ang_acc()*opt_.T_dwa());
@@ -355,6 +390,10 @@ void RobotController_Dynamic_Window::findNextVelocityPair(double v_act, double w
     w_iter_ = w_wind_l - opt_.w_step();
 
     vector< tuple<double,double,double> > vels_and_objfunc;
+
+    far_pred_points.markers.clear();
+    m_id_counter = 0;
+    traj_.poses.clear();
 
     while(v_iter_ < v_wind_t){
         v_iter_ += opt_.v_step();
@@ -371,7 +410,11 @@ void RobotController_Dynamic_Window::findNextVelocityPair(double v_act, double w
 
     double max_obj = std::numeric_limits<double>::min();
 
-    for(int i = 0; i < vels_and_objfunc.size(); i++){
+    if(vels_and_objfunc.size() < 1){
+        std::cout << "There are no admissible velocities!!!" << std::endl;
+    }
+
+    for(uint i = 0; i < vels_and_objfunc.size(); i++){
         if(get<0>(vels_and_objfunc[i]) > max_obj){
             max_obj = get<0>(vels_and_objfunc[i]);
             v_cmd_ = boost::algorithm::clamp(get<1>(vels_and_objfunc[i]), 0.0, global_opt_->max_velocity());
@@ -497,7 +540,7 @@ RobotController::MoveCommandStatus RobotController_Dynamic_Window::computeMoveCo
         x_pred_ = x_meas_;
         y_pred_ = y_meas_;
 
-        findNextVelocityPair(v_meas, w_meas);
+        findNextVelocityPair();
         t_old_ = ros::Time::now();
     }
 

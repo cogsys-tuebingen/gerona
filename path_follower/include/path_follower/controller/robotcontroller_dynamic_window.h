@@ -3,6 +3,8 @@
 
 /// THIRD PARTY
 #include <geometry_msgs/PoseStamped.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <nav_msgs/Path.h>
 
 /// SYSTEM
 #include <pcl_ros/point_cloud.h>
@@ -31,7 +33,7 @@ protected:
     virtual void initialize();
 
     void calculateMovingDirection();
-    void findNextVelocityPair(double v_act, double w_act);
+    void findNextVelocityPair();
     bool checkAdmissibleVelocities();
     void setGoalPosition();
     void searchMinObstDist();
@@ -63,6 +65,12 @@ protected:
     double x_next_, y_next_, theta_next_;
     //obstacle flag
     bool obstacle_found;
+    //marker id counter
+    int m_id_counter;
+    //far predicted positions
+    visualization_msgs::MarkerArray far_pred_points;
+    //possible trajectories
+    nav_msgs::Path traj_;
 
     //publish the goal position
     ros::Publisher goal_pub;
@@ -70,10 +78,12 @@ protected:
     ros::Publisher predict_pub;
     //publish the line between the predicted position and the closest obstacle
     ros::Publisher obst_marker_pub;
-    //publish the far predicted point (at: factor times T_dwa)
-    ros::Publisher far_pred_pub;
     //publish all far predicted points
-    ros::Publisher positions_pub;
+    ros::Publisher far_pred_pub;
+    //publish the next obstacle point
+    ros::Publisher obst_point_pub;
+    //publish the possible trajectories
+    ros::Publisher traj_pub;
 
     visualization_msgs::Marker pred_positions;
 
