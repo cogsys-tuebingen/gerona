@@ -277,6 +277,16 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
             x_next_ = x_pred_;
             y_next_ = y_pred_;
             theta_next_ = theta_new;
+
+
+            traj_.header.frame_id = pose_tracker_->getFixedFrameId();
+            geometry_msgs::PoseStamped pos_st;
+            pos_st.pose.position.x = x_pred_;
+            pos_st.pose.position.y = y_pred_;
+            traj_.poses.push_back(pos_st);
+            traj_pub.publish(traj_);
+
+
             if(obstacle_found){
                 geometry_msgs::PointStamped obst_point;
                 obst_point.point.x = x_pred_;
@@ -311,6 +321,17 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
             x_next_ = x_pred_;
             y_next_ = y_pred_;
             theta_next_ = theta_new;
+
+
+            traj_.header.frame_id = pose_tracker_->getFixedFrameId();
+            geometry_msgs::PoseStamped pos_st;
+            pos_st.pose.position.x = x_pred_;
+            pos_st.pose.position.y = y_pred_;
+            traj_.poses.push_back(pos_st);
+            traj_pub.publish(traj_);
+
+
+
             if(obstacle_found){
                 geometry_msgs::PointStamped obst_point;
                 obst_point.point.x = x_pred_;
@@ -333,12 +354,7 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
         }
     }
 
-    traj_.header.frame_id = pose_tracker_->getFixedFrameId();
-    geometry_msgs::PoseStamped pos_st;
-    pos_st.pose.position.x = x_pred_;
-    pos_st.pose.position.y = y_pred_;
-    traj_.poses.push_back(pos_st);
-    traj_pub.publish(traj_);
+
 
 
 
@@ -354,8 +370,8 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
         far_pred_point.type = visualization_msgs::Marker::POINTS;
         far_pred_point.action = visualization_msgs::Marker::ADD;
         far_pred_point.pose.orientation.w = 1.0;
-        far_pred_point.scale.x = 0.3;
-        far_pred_point.scale.y = 0.3;
+        far_pred_point.scale.x = 0.1;
+        far_pred_point.scale.y = 0.1;
         far_pred_point.scale.z = 0.1f;
         far_pred_point.color.a = 1.0f;
         far_pred_point.color.r = 0.0f;
