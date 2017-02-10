@@ -85,8 +85,6 @@ protected:
     //publish the possible trajectories
     ros::Publisher traj_pub;
 
-    visualization_msgs::Marker pred_positions;
-
 
     struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters
     {

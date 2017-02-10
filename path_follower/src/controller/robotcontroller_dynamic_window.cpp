@@ -248,21 +248,24 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
     y_next_ = y_meas_;
     theta_next_ = theta_meas_;
 
-    pred_positions.points.clear();
-    pred_positions.header.frame_id = pose_tracker_->getFixedFrameId();
-    pred_positions.header.stamp = ros::Time();
-    pred_positions.ns = "predicted_far_positions";
-    pred_positions.id = 1445;
-    pred_positions.type = visualization_msgs::Marker::POINTS;
-    pred_positions.action = visualization_msgs::Marker::ADD;
-    pred_positions.pose.orientation.w = 1.0;
-    pred_positions.scale.x = 0.3;
-    pred_positions.scale.y = 0.3;
-    pred_positions.scale.z = 0.1f;
-    pred_positions.color.a = 1.0f;
-    pred_positions.color.r = 0.0f;
-    pred_positions.color.g = 1.0f;
-    pred_positions.color.b = 0.0f;
+
+    m_id_counter++;
+    visualization_msgs::Marker far_pred_point;
+    far_pred_point.points.clear();
+    far_pred_point.header.frame_id = pose_tracker_->getFixedFrameId();
+    far_pred_point.header.stamp = ros::Time::now();
+    far_pred_point.ns = "far_predictions";
+    far_pred_point.id = 1446 + m_id_counter;
+    far_pred_point.type = visualization_msgs::Marker::LINE_STRIP;
+    far_pred_point.action = visualization_msgs::Marker::ADD;
+    far_pred_point.pose.orientation.w = 1.0;
+    far_pred_point.scale.x = 0.05;
+    far_pred_point.scale.y = 0.05;
+    far_pred_point.scale.z = 0.1f;
+    far_pred_point.color.a = 1.0f;
+    far_pred_point.color.r = 0.0f;
+    far_pred_point.color.g = 1.0f;
+    far_pred_point.color.b = 0.0f;
 
     if(std::abs(w_iter_) < 1e-1){
         while(t_count < opt_.fact_T()*opt_.T_dwa()){
@@ -278,6 +281,10 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
             y_next_ = y_pred_;
             theta_next_ = theta_new;
 
+            geometry_msgs::Point p;
+            p.x = x_pred_;
+            p.y = y_pred_;
+            far_pred_point.points.push_back(p);
 
             traj_.header.frame_id = pose_tracker_->getFixedFrameId();
             geometry_msgs::PoseStamped pos_st;
@@ -322,6 +329,10 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
             y_next_ = y_pred_;
             theta_next_ = theta_new;
 
+            geometry_msgs::Point p;
+            p.x = x_pred_;
+            p.y = y_pred_;
+            far_pred_point.points.push_back(p);
 
             traj_.header.frame_id = pose_tracker_->getFixedFrameId();
             geometry_msgs::PoseStamped pos_st;
@@ -329,8 +340,6 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
             pos_st.pose.position.y = y_pred_;
             traj_.poses.push_back(pos_st);
             traj_pub.publish(traj_);
-
-
 
             if(obstacle_found){
                 geometry_msgs::PointStamped obst_point;
@@ -356,34 +365,7 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
 
 
 
-
-
-
     if((v_iter_ <= std::sqrt(2.0 * curv_dist_obst_ * opt_.lin_dec())) && (std::abs(w_iter_) <= std::sqrt(2.0 * curv_dist_obst_ * opt_.ang_dec()))){
-        m_id_counter++;
-        visualization_msgs::Marker far_pred_point;
-        far_pred_point.points.clear();
-        far_pred_point.header.frame_id = pose_tracker_->getFixedFrameId();
-        far_pred_point.header.stamp = ros::Time();
-        far_pred_point.ns = "far_predictions";
-        far_pred_point.id = 1446 + m_id_counter;
-        far_pred_point.type = visualization_msgs::Marker::POINTS;
-        far_pred_point.action = visualization_msgs::Marker::ADD;
-        far_pred_point.pose.orientation.w = 1.0;
-        far_pred_point.scale.x = 0.1;
-        far_pred_point.scale.y = 0.1;
-        far_pred_point.scale.z = 0.1f;
-        far_pred_point.color.a = 1.0f;
-        far_pred_point.color.r = 0.0f;
-        far_pred_point.color.g = 1.0f;
-        far_pred_point.color.b = 0.0f;
-
-        geometry_msgs::Point p;
-
-        p.x = x_pred_;
-        p.y = y_pred_;
-
-        far_pred_point.points.push_back(p);
 
         far_pred_points.markers.push_back(far_pred_point);
         far_pred_pub.publish(far_pred_points);
