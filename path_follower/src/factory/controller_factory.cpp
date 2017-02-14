@@ -21,6 +21,7 @@
 #include <path_follower/controller/robotcontroller_potential_field.h>
 #include <path_follower/controller/robotcontroller_potential_field_TT.h>
 #include <path_follower/controller/robotcontroller_dynamic_window.h>
+#include <path_follower/controller/robotcontroller_OFC.h>
 
 #include <path_follower/obstacle_avoidance/noneavoider.hpp>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
@@ -179,6 +180,9 @@ std::shared_ptr<RobotController> ControllerFactory::makeController(const std::st
 
     } else if (name == "dynamic_window") {
         return std::make_shared<RobotController_Dynamic_Window>();
+
+    } else if (name == "OFC") {
+        return std::make_shared<RobotController_OFC>();
 
     } else {
         throw std::logic_error(std::string("Unknown robot controller: ") + name + ". Shutdown.");
