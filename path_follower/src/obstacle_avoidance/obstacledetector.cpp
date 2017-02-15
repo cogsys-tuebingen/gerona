@@ -54,7 +54,7 @@ bool ObstacleDetector::avoid(MoveCommand * const cmd,
     if(obstacles_ && !obstacles_->empty()) {
         collision = checkOnCloud(obstacles_, opt_.width(),
                                       box_length, course, enlarge_factor);
-    } else {
+    } else if (!obstacles_) {
         ROS_WARN("no obstacle cloud is available");
     }
 

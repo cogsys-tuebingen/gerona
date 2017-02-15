@@ -8,7 +8,7 @@ path_control using the action interface. It is thus good for testing and
 demonstrating the navigation framework.
 -->
 <launch>
-    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_HBZ)" />
+    <arg name="robot_controller" default="kinematic_HBZ_TT" /> <!--$(optenv ROBOT_CONTROLLER kinematic_HBZ_TT)" />-->
     <arg name="local_planner" default="AStarR" />
     <!--arg name="local_planner" default="NULL" /-->
 
