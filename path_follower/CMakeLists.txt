@@ -97,8 +97,8 @@ add_library(${PROJECT_NAME} SHARED
     src/controller/robotcontroller_ackermann_pid.cpp
     src/controller/path_simple_pid.cpp
     src/controller/path_cascade_pid.cpp
-    src/controller/robotcontroller_ICR_CCW.cpp
 
+    src/controller/robotcontroller_ICR_CCW.cpp
     src/controller/robotcontroller_ackermann_orthexp.cpp
     src/controller/robotcontroller_ackermann_purepursuit.cpp
     src/controller/robotcontroller_ackermann_inputscaling.cpp
@@ -114,6 +114,7 @@ add_library(${PROJECT_NAME} SHARED
     src/controller/robotcontroller_potential_field.cpp
     src/controller/robotcontroller_potential_field_TT.cpp
     src/controller/robotcontroller_dynamic_window.cpp
+    src/controller/robotcontroller_OFC.cpp
 
     src/local_planner/local_planner.cpp
     src/local_planner/local_planner_null.cpp

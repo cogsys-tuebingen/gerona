@@ -213,4 +213,3 @@ void RobotController_OFC::publishMoveCommand(const MoveCommand &cmd) const
 
     cmd_pub_.publish(msg);
 }
-
