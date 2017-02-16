@@ -243,17 +243,15 @@ void RobotController_Potential_Field::computeFReps()
     double min_dist = obstacles[0];
     //relative orientation of the obstacle to the robot
     double alpha = obstacles[1];
-    //radius in which obstacles affect the robot
-    double objInfluenceDist = 5.0;
     //Is robot within obstacle's influence reach?
-    if(min_dist <= objInfluenceDist && min_dist > 0.0)
+    if(min_dist <= opt_.dist_thresh() && min_dist > 0.0)
     {
         //polar position of the obstacle
         double obstX = min_dist * cos(alpha);
         double obstY = min_dist * sin(alpha);
         // computation of the repulsive force (x and y components)
-        FRep[0] = opt_.kRep() * (1/min_dist - 1/objInfluenceDist) * (1/(min_dist*min_dist)) * (-obstX/min_dist);
-        FRep[1] = opt_.kRep() * (1/min_dist - 1/objInfluenceDist) * (1/(min_dist*min_dist)) * (-obstY/min_dist);
+        FRep[0] = opt_.kRep() * (1/min_dist - 1/opt_.dist_thresh()) * (1/(min_dist*min_dist)) * (-obstX/min_dist);
+        FRep[1] = opt_.kRep() * (1/min_dist - 1/opt_.dist_thresh()) * (1/(min_dist*min_dist)) * (-obstY/min_dist);
     } else
     {
         FRep[0] = 0.0f;

@@ -54,8 +54,8 @@
     <param name="angle_fact" value="0.1" />
     <param name="disobst_fact" value="10.0" />
     <param name="v_fact" value="0.1" />
-    <param name="lin_acc" value="1.5" />
-    <param name="ang_acc" value="1.5" />
+    <param name="lin_acc" value="2.0" />
+    <param name="ang_acc" value="2.0" />
     <param name="lin_dec" value="0.5" />
     <param name="ang_dec" value="0.1" />
     <param name="T_dwa" value="0.26" />

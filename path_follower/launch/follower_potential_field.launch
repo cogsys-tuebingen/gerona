@@ -52,7 +52,8 @@
     <param name="path_width" value="0.5" />
  
     <param name="kAtt" value="1.0" />
-    <param name="kRep" value="0.8" />
+    <param name="kRep" value="4.0" />
+    <param name="dist_thresh" value="2.5" />
     <param name="max_angular_velocity" value="0.5" />
     
 
