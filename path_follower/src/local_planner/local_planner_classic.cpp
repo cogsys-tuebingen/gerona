@@ -565,11 +565,17 @@ void LocalPlannerClassic::initIndexes(Eigen::Vector3d& pose){
     double closest_dist = std::numeric_limits<double>::infinity();
     if(last_s == global_path_.s_new()){
         for(std::size_t i = 0; i < global_path_.n(); ++i){
-            if(global_path_.s(i) > last_s){
-                index1 = i == 0?0:i-1;
-                double x = global_path_.p(index1) - pose(0);
-                double y = global_path_.q(index1) - pose(1);
-                closest_dist = std::hypot(x, y);
+            try {
+                if(global_path_.s(i) > last_s){
+                    index1 = i == 0?0:i-1;
+                    double x = global_path_.p(index1) - pose(0);
+                    double y = global_path_.q(index1) - pose(1);
+                    closest_dist = std::hypot(x, y);
+                    break;
+                }
+            } catch(const std::exception& e) {
+                index1 = global_path_.n();
+                index2 = global_path_.n();
                 break;
             }
         }
