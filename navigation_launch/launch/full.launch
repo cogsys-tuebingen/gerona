@@ -52,7 +52,7 @@ This is a complete setup and enought to actually navigate the robot.
     
     <!-- obstacle cloud (simply converting laser scans to cloud) -->
     <node name="obstacle_cloud" type="scan2cloud_node" pkg="scan2cloud" output="screen">
-        <!--<remap from="/scan/front/filtered" to="/scan/filtered" />-->
+        <remap from="/scan/front/filtered" to="/scan_filtered" />
         <remap from="/cloud/total" to="/obstacle_cloud" />
     </node>
     
