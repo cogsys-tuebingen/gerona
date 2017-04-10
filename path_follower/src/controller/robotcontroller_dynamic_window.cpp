@@ -17,6 +17,8 @@
 #include <boost/algorithm/clamp.hpp>
 #include <boost/tuple/tuple.hpp>
 
+using namespace Eigen;
+using namespace std;
 
 RobotController_Dynamic_Window::RobotController_Dynamic_Window():
     RobotController_Interpolation(),
