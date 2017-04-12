@@ -20,7 +20,7 @@
 
         <param name="oversearch_distance" value="0.05" />
 
-        <param name="algorithm" value="summit_forward" />
+        <param name="algorithm" value="2d" />
 
         <param name="preprocess" value="true" />
         <param name="postprocess" value="true" />
