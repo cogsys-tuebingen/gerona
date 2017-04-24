@@ -18,7 +18,6 @@ before_script:
 
   # Here we are at /build/$CI_PROJECT_NAME
   # For pure catkin projects, we need a workspace:
-  - apt-get install -y libalglib-dev # TODO: add to rosdep database
   - mkdir -p /build/ws/src/
   - cd /build/ws
   - ln -s $CI_PROJECT_DIR src/$CI_PROJECT_NAME
@@ -26,6 +25,7 @@ before_script:
   - git clone gitlab@gitlab.cs.uni-tuebingen.de:libs/cslibs_path_planning
   - git clone gitlab@gitlab.cs.uni-tuebingen.de:libs/cslibs_utils
   - cd ..
+  - rosdep update
 
 
 stages:
