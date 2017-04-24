@@ -957,7 +957,7 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         updateLeaves(successors, current);
 
         for(std::size_t i = 0; i < successors.size(); ++i){
-            double current_p;
+            double current_p = std::numeric_limits<double>::infinity();
             if(!processSuccessor(successors[i], current, current_p, dis2last)){
                 continue;
             }
@@ -970,8 +970,10 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     //!
     if(obj != nullptr){
         return processPath(obj, local_wps);
-    }else{
+    } else if(best_non_reconf){
         return processPath(best_non_reconf, local_wps);;
+    } else {
+        return false;
     }
 }
 

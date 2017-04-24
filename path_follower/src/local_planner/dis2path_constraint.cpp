@@ -39,7 +39,7 @@ bool Dis2Path_Constraint::isSatisfied(const LNode& point){
 
     //this should be a parameter
     double obst_min_dist = 4.0;
-    double enhancement_fact = 4;
+    double enhancement_fact = 4.0;
     if(point.d2o <= obst_min_dist){
         limit *= enhancement_fact;
     }
