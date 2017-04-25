@@ -393,7 +393,7 @@ void RobotController_Dynamic_Window::findNextVelocityPair()
     clearing_marker.header.stamp = ros::Time::now();
     clearing_marker.ns = "far_predictions";
     clearing_marker.id = 0;
-#if ROS_VERSION_MINIMUM(1, 11, 0)
+#if ROS_VERSION_MINIMUM(1, 11, 21)
     clearing_marker.action = visualization_msgs::Marker::DELETEALL;
 #else
     clearing_marker.action = 3u;
