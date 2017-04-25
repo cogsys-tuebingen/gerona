@@ -61,7 +61,7 @@ Launch the path follower with the inputscaling controller for a car-like (Ackerm
 
 
 	 <!-- simulation -->
-	 <param name="k_forward" value="7.0" />
+	 <param name="k_forward" value="4.5" />
 	 <param name="k_backward" value="10.0" />
 	 <param name="factor_k1" value="1.0" />
 	 <param name="factor_k2" value="3.0" />
@@ -79,7 +79,7 @@ Launch the path follower with the inputscaling controller for a car-like (Ackerm
 
 	 <param name="vehicle_length" value="0.34" />
 	 <param name="max_steering_angle" value="0.52359877559" /> <!-- 30° -->
-	 <param name="max_steering_angle_speed" value="100.0" />
+	 <param name="max_steering_angle_speed" value="4.0" />
 
     <!-- local planner -->
     <param name="local_planner" value="$(arg local_planner)"/>

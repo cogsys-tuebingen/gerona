@@ -110,19 +110,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
         return MoveCommandStatus::REACHED_GOAL;
     }
 
-//    Vector2d dir_of_mov = course_predictor_.smoothedDirection();
-//    if (!dir_of_mov.isZero() && path_driver_->isObstacleAhead(MathHelper::Angle(dir_of_mov))) {
-//        ROS_WARN_THROTTLE(1, "Collision!");
-//        //TODO: not so good to use result-constant if it is not finishing the action...
-//        setStatus(path_msgs::FollowPathResult::MOTION_STATUS_OBSTACLE);
-
-//        stopMotion();
-//        course_predictor_.freeze();
-
-//        return OBSTACLE;
-//    }
-//    course_predictor_.unfreeze();
-
     // get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
     Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
 
@@ -136,14 +123,18 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     double dist = 0;
     int ind = 0;
     double orth_proj = std::numeric_limits<double>::max();
+    double dx = 0.0;
+    double dy = 0.0;
 
     for (unsigned int i = 0; i < path_interpol.n(); i++){
-
         dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
         if(dist < orth_proj){
 
             orth_proj = dist;
             ind = i;
+
+            dx = x_meas - path_interpol.p(ind);
+            dy = y_meas - path_interpol.q(ind);
 
         }
 
@@ -184,12 +175,11 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     //***//
 
     //determine the sign of the orthogonal distance
-    static const double epsilon = 1e-3;
-    if( ((theta_p > -M_PI/2) && (theta_p < M_PI/2) && (path_interpol.q(ind) > y_meas))
-            || ((((theta_p >= -M_PI) && (theta_p < -M_PI/2)) || ((theta_p > M_PI/2) && (theta_p <= M_PI)))
-            && (path_interpol.q(ind) < y_meas))
-            || ((std::abs(theta_p + M_PI/2) < epsilon) && (path_interpol.p(ind) > x_meas))
-            || ((std::abs(theta_p - M_PI/2) < epsilon) && (path_interpol.p(ind) < x_meas)) ){
+    Eigen::Vector2d path2vehicle_vec(dx, dy);
+    double path2vehicle_angle = MathHelper::Angle(path2vehicle_vec);
+    double theta_diff = MathHelper::AngleDelta(theta_p, path2vehicle_angle);
+
+    if( theta_diff < 0 && theta_diff >= -M_PI){
 
         orth_proj = -fabs(orth_proj);
 
@@ -210,7 +200,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
         // do nothing
         break;
     case LookInDrivingDirection:
-        theta_des_ = cmd_.direction_angle + current_pose[2];//std::atan2(q[ind+1] - y_meas, p[ind+1] - x_meas);
+        theta_des_ = cmd_.direction_angle + current_pose[2];
         break;
     case Rotate:
         theta_des_ += 0.01;
@@ -223,9 +213,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
     //***//
 
     //Calculate the look-ahead curvature
-
-    /*uint look_ahead_index;
-    double look_ahead_difference = std::numeric_limits<double>::max();*/
 
     double look_ahead_cum_sum = 0;
     curv_sum_ = 1e-10;
@@ -249,8 +236,6 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
 
     }
     distance_to_goal_ = cum_sum_to_goal;
-
-    //distance_to_goal_ = hypot(x_meas - path_interpol.p(path_interpol.n()-1), y_meas - path_interpol.q(path_interpol.n()-1));
 
     double angular_vel = pose_tracker_->getVelocity().angular.z;
     //***//
