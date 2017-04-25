@@ -9,7 +9,6 @@
 #include <path_follower/obstacle_avoidance/obstacleavoider.h>
 
 /// THIRD PARTY
-#include <interpolation.h>
 
 RobotController::RobotController()
     : pnh_("~"),
@@ -83,12 +82,7 @@ void RobotController::setPath(Path::Ptr path)
 void RobotController::setGlobalPath(Path::Ptr path)
 {
     //global_path_ = path;
-    try {
-        global_path_.interpolatePath(path, true);
-
-    } catch(const alglib::ap_error& error) {
-        throw std::runtime_error(error.msg);
-    }
+    global_path_.interpolatePath(path, true);
 }
 
 void RobotController::initPublisher(ros::Publisher *pub) const

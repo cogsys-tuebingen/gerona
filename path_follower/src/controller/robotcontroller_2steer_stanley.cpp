@@ -5,7 +5,6 @@
 #include <path_follower/utils/pose_tracker.h>
 #include <ros/ros.h>
 
-#include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
 
 #include <visualization_msgs/Marker.h>
@@ -91,12 +90,9 @@ RobotController::MoveCommandStatus RobotController_2Steer_Stanley::computeMoveCo
 
 			ROS_INFO("Next subpath...");
 			// interpolate the next subpath
-			try {
-				path_interpol.interpolatePath(path_);
-			} catch(const alglib::ap_error& error) {
-				throw std::runtime_error(error.msg);
-			}
-			// invert driving direction
+            path_interpol.interpolatePath(path_);
+
+            // invert driving direction
 			setDirSign(-getDirSign());
 		}
 	}

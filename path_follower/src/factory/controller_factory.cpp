@@ -289,9 +289,8 @@ std::shared_ptr<ObstacleAvoider> ControllerFactory::makeObstacleAvoider(const st
             return std::make_shared<ObstacleDetectorOmnidrive>();
         } else if (name == "ackermann") {
             return std::make_shared<ObstacleDetectorAckermann>();
-        }
 
-        if (name == "ackermann_pid") {
+        } else if (name == "ackermann_pid") {
             return std::make_shared<ObstacleDetectorAckermann>();
 
         } else if (name == "ackermann_purepursuit") {

@@ -8,7 +8,6 @@
 // PROJECT
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/obstacle_cloud.h>
-#include <interpolation.h>
 #include <path_follower/pathfollowerparameters.h>
 #include <path_follower/obstacle_avoidance/obstacleavoider.h>
 #include <cslibs_utils/MathHelper.h>

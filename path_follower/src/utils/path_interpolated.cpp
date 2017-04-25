@@ -69,7 +69,11 @@ void PathInterpolated::interpolatePath(const Path::Ptr path, const bool hack) {
         }
     }
 
-    interpolatePath(waypoints);
+    try {
+        interpolatePath(waypoints);
+    } catch(const alglib::ap_error& error) {
+        throw std::runtime_error(error.msg);
+    }
 }
 
 void PathInterpolated::interpolatePath(const SubPath& path, const std::string& frame_id){
@@ -152,7 +156,7 @@ void PathInterpolated::interpolatePath(const std::deque<Waypoint>& waypoints){
 
     } catch(const alglib::ap_error& error) {
         ROS_FATAL_STREAM("alglib error: " << error.msg);
-        throw error;
+        throw std::runtime_error(error.msg);
     }
 
 	//define path components, its derivatives, and curvilinear abscissa, then calculate the path curvature

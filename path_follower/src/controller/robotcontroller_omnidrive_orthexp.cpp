@@ -6,7 +6,6 @@
 #include <path_follower/pathfollowerparameters.h>
 #include <path_follower/controller/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
-#include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>

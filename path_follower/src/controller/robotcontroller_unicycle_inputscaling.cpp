@@ -4,7 +4,6 @@
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 
-#include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
@@ -32,13 +31,13 @@ RobotController_Unicycle_InputScaling::RobotController_Unicycle_InputScaling() :
     setDirSign(1.f);
 
     ROS_INFO("Parameters: k=%f\n"
-                "vehicle_length=%f\n"
-                "goal_tolerance=%f\n"
-                "max_angular_velocity=%f",
-                params_.k(),
-                params_.vehicle_length(),
-                params_.goal_tolerance(),
-                params_.max_angular_velocity());
+             "vehicle_length=%f\n"
+             "goal_tolerance=%f\n"
+             "max_angular_velocity=%f",
+             params_.k(),
+             params_.vehicle_length(),
+             params_.goal_tolerance(),
+             params_.max_angular_velocity());
 
 #ifdef TEST_OUTPUT
     test_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/test_output", 100);
@@ -91,14 +90,14 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
 
     const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
 
-//    double x_meas = pose[0];
-//    double y_meas = pose[1];
-//    double theta_meas = pose[2];
+    //    double x_meas = pose[0];
+    //    double y_meas = pose[1];
+    //    double theta_meas = pose[2];
 
     const geometry_msgs::Twist v_meas_twist = pose_tracker_->getVelocity();
 
     double velocity_measured = dir_sign_ * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
-            + v_meas_twist.linear.y * v_meas_twist.linear.y);
+                                                + v_meas_twist.linear.y * v_meas_twist.linear.y);
 
     //check if the goal is reached
     if (reachedGoal(pose)) {
@@ -119,11 +118,8 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
 
             ROS_INFO("Next subpath...");
             // interpolate the next subpath
-            try {
-                path_interpol.interpolatePath(path_);
-            } catch(const alglib::ap_error& error) {
-                throw std::runtime_error(error.msg);
-            }
+            path_interpol.interpolatePath(path_);
+
             // invert driving direction and set tuning parameters accordingly
             setDirSign(-getDirSign());
         }
@@ -236,8 +232,8 @@ void RobotController_Unicycle_InputScaling::publishMoveCommand(
 
 #ifdef TEST_OUTPUT
 void RobotController_Unicycle_InputScaling::publishTestOutput(const unsigned int waypoint, const double d,
-                                                                            const double theta_e,
-                                                                            const double v) const {
+                                                              const double theta_e,
+                                                              const double v) const {
     std_msgs::Float64MultiArray msg;
 
     msg.data.push_back((double) waypoint);

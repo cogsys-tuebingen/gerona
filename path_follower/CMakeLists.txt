@@ -45,7 +45,7 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
     INCLUDE_DIRS include
     LIBRARIES ${PROJECT_NAME}
-    DEPENDS Eigen3
+    DEPENDS Eigen3 ALGLIB
     CATKIN_DEPENDS path_msgs nav_msgs control_msgs cslibs_utils
 )
 

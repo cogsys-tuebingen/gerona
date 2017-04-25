@@ -6,7 +6,6 @@
 #include <ros/ros.h>
 #include <path_follower/utils/visualizer.h>
 
-#include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
 
 #include <visualization_msgs/Marker.h>
@@ -86,11 +85,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Stanley::computeMov
 
 			ROS_INFO("Next subpath...");
 			// interpolate the next subpath
-			try {
-				path_interpol.interpolatePath(path_);
-			} catch(const alglib::ap_error& error) {
-				throw std::runtime_error(error.msg);
-			}
+            path_interpol.interpolatePath(path_);
 		}
 	}
 

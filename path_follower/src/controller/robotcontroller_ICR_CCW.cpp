@@ -17,7 +17,6 @@
 #include <path_follower/utils/visualizer.h>
 
 // ALGLIB
-#include <interpolation.h>
 
 // SYSTEM
 #include <cmath>
@@ -243,13 +242,9 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
 
             ROS_INFO("Next subpath...");
             // interpolate the next subpath
-            try {
-                path_interpol.interpolatePath(path_);
-                publishInterpolatedPath();
+            path_interpol.interpolatePath(path_);
+            publishInterpolatedPath();
 
-            } catch(const alglib::ap_error& error) {
-                throw std::runtime_error(error.msg);
-            }
             // recalculate the driving direction
             calculateMovingDirection();
         }

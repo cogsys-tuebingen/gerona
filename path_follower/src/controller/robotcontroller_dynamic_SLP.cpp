@@ -9,7 +9,6 @@
 // PROJECT
 #include <path_follower/pathfollowerparameters.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
-#include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
@@ -149,12 +148,9 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
 
             ROS_INFO("Next subpath...");
             // interpolate the next subpath
-            try {
-                path_interpol.interpolatePath(path_);
-                publishInterpolatedPath();
-            } catch(const alglib::ap_error& error) {
-                throw std::runtime_error(error.msg);
-            }
+            path_interpol.interpolatePath(path_);
+            publishInterpolatedPath();
+
             // recalculate the driving direction
             calculateMovingDirection();
         }

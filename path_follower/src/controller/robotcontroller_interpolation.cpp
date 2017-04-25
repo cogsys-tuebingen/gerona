@@ -24,14 +24,8 @@ void RobotController_Interpolation::setPath(Path::Ptr path)
 
     std::cerr << "interpolating path in frame " << path->getFrameId() << std::endl;
 
-    try {
-        path_interpol.interpolatePath(path);
-        publishInterpolatedPath();
-
-
-    } catch(const alglib::ap_error& error) {
-        throw std::runtime_error(error.msg);
-    }
+    path_interpol.interpolatePath(path);
+    publishInterpolatedPath();
 
     initialize();
 

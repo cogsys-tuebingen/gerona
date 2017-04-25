@@ -12,7 +12,6 @@
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
 
-#include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
 
 #include <visualization_msgs/Marker.h>
@@ -95,13 +94,8 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 
 			ROS_INFO("Next subpath...");
 
-			try {
-				path_interpol.interpolatePath(path_);
-				// publishInterpolatedPath();
-
-			} catch(const alglib::ap_error& error) {
-				throw std::runtime_error(error.msg);
-			}
+            path_interpol.interpolatePath(path_);
+            // publishInterpolatedPath();
 
 			waypoint_ = 0;
 			setDirSign(-getDirSign());

@@ -9,7 +9,6 @@
 // PROJECT
 #include <path_follower/pathfollowerparameters.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
-#include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
@@ -130,7 +129,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
             *cmd = cmd_;
 
             double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
-                                          y_meas - path_interpol.q(path_interpol.n()-1));
+                                                 y_meas - path_interpol.q(path_interpol.n()-1));
 
             ROS_INFO_THROTTLE(1, "Final positioning error: %f m", distance_to_goal_eucl);
 
@@ -142,12 +141,9 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
             ROS_INFO("Next subpath...");
             // interpolate the next subpath
-            try {
-                path_interpol.interpolatePath(path_);
-                publishInterpolatedPath();
-            } catch(const alglib::ap_error& error) {
-                throw std::runtime_error(error.msg);
-            }
+            path_interpol.interpolatePath(path_);
+            publishInterpolatedPath();
+
             // recalculate the driving direction
             calculateMovingDirection();
         }
@@ -274,7 +270,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     //omega_m = theta_e_prim + curv*s_prim
     double omega_m = delta_prim - opt_.gamma()*ye_*v*(sin(theta_e) - sin(delta_))
-                    /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
+            /(theta_e - delta_) - opt_.k2()*(theta_e - delta_) + path_interpol.curvature(ind_)*path_interpol.s_prim();
 
 
     omega_m = boost::algorithm::clamp(omega_m, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
@@ -344,9 +340,9 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     ///***///
 
-        *cmd = cmd_;
+    *cmd = cmd_;
 
-        return MoveCommandStatus::OKAY;
+    return MoveCommandStatus::OKAY;
 }
 
 void RobotController_Kinematic_SLP::publishMoveCommand(const MoveCommand &cmd) const

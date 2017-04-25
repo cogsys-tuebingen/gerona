@@ -8,7 +8,6 @@
 // PROJECT
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/obstacle_cloud.h>
-#include <interpolation.h>
 #include <path_follower/pathfollowerparameters.h>
 #include <path_follower/obstacle_avoidance/obstacleavoider.h>
 #include <cslibs_utils/MathHelper.h>
@@ -369,7 +368,7 @@ RobotController::MoveCommandStatus RobotController_Potential_Field::computeMoveC
     const geometry_msgs::Twist v_meas_twist = pose_tracker_->getVelocity();
 
     double v_meas = getDirSign() * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
-            + v_meas_twist.linear.y * v_meas_twist.linear.y);
+                                        + v_meas_twist.linear.y * v_meas_twist.linear.y);
 
     double x_meas_ = current_pose[0];
     double y_meas_ = current_pose[1];
@@ -390,7 +389,7 @@ RobotController::MoveCommandStatus RobotController_Potential_Field::computeMoveC
             *cmd = cmd_;
 
             double distance_to_goal_eucl = hypot(x_meas_ - path_interpol.p(path_interpol.n()-1),
-                                          y_meas_ - path_interpol.q(path_interpol.n()-1));
+                                                 y_meas_ - path_interpol.q(path_interpol.n()-1));
 
             ROS_INFO_THROTTLE(1, "Final positioning error: %f m", distance_to_goal_eucl);
 
@@ -402,12 +401,9 @@ RobotController::MoveCommandStatus RobotController_Potential_Field::computeMoveC
 
             ROS_INFO("Next subpath...");
             // interpolate the next subpath
-            try {
-                path_interpol.interpolatePath(path_);
-                publishInterpolatedPath();
-            } catch(const alglib::ap_error& error) {
-                throw std::runtime_error(error.msg);
-            }
+            path_interpol.interpolatePath(path_);
+            publishInterpolatedPath();
+
             // recalculate the driving direction
             calculateMovingDirection();
         }
@@ -469,7 +465,7 @@ RobotController::MoveCommandStatus RobotController_Potential_Field::computeMoveC
 
     double omega = 0.0;
     if(FResY * FResX != 0.0){
-    omega = atan2(FResY, FResX);
+        omega = atan2(FResY, FResX);
     }
     cmd_.rotation = boost::algorithm::clamp(omega, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
 
