@@ -13,12 +13,12 @@
 
 
 /// PROJECT
-#include <path_follower/controller/robotcontroller_interpolation.h>
+#include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/parameters.h>
 
 
 /// The Dynamic_Window class
-class RobotController_Dynamic_Window : public RobotController_Interpolation
+class RobotController_Dynamic_Window : public RobotController
 {
 public:
     RobotController_Dynamic_Window();
@@ -32,7 +32,6 @@ protected:
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
     virtual void initialize();
 
-    void calculateMovingDirection();
     void findNextVelocityPair();
     bool checkAdmissibleVelocities();
     void setGoalPosition();
@@ -86,7 +85,7 @@ protected:
     ros::Publisher traj_pub;
 
 
-    struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters
+    struct ControllerParameters : public RobotController::InterpolationParameters
     {
         P<double> angle_fact;
         P<double> disobst_fact;
@@ -123,7 +122,7 @@ protected:
         {}
     } opt_;
 
-    const RobotController_Interpolation::InterpolationParameters& getParameters() const
+    const RobotController::InterpolationParameters& getParameters() const
     {
         return opt_;
     }

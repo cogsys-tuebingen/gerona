@@ -22,7 +22,7 @@ const std::string MODULE = "controller";
 }
 
 RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_OrthogonalExponential():
-    RobotController_Interpolation(),
+    RobotController(),
     cmd_(this),
     nh_("~"),
     view_direction_(LookInDrivingDirection),
@@ -90,7 +90,7 @@ void RobotController_Omnidrive_OrthogonalExponential::lookInDrivingDirection()
 
 void RobotController_Omnidrive_OrthogonalExponential::initialize()
 {
-    RobotController_Interpolation::initialize();
+    RobotController::initialize();
 
     // initialize the desired angle and the angle error
     e_theta_curr_ = pose_tracker_->getRobotPose()[2];

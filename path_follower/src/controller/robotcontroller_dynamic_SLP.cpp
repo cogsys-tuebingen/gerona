@@ -24,7 +24,7 @@ using namespace Eigen;
 
 
 RobotController_Dynamic_SLP::RobotController_Dynamic_SLP():
-    RobotController_Interpolation(),
+    RobotController(),
     cmd_(this),
     vn_(0),
     Ts_(0.02),
@@ -57,7 +57,7 @@ void RobotController_Dynamic_SLP::stopMotion()
 
 void RobotController_Dynamic_SLP::initialize()
 {
-    RobotController_Interpolation::initialize();
+    RobotController::initialize();
 
     //reset the index of the current point on the path
     ind_ = 0;
@@ -82,24 +82,13 @@ void RobotController_Dynamic_SLP::start()
 
 void RobotController_Dynamic_SLP::reset()
 {
-    RobotController_Interpolation::reset();
+    RobotController::reset();
 }
 
-void RobotController_Dynamic_SLP::calculateMovingDirection()
-{    
-    // decide whether to drive forward or backward
-    if (path_->getCurrentSubPath().forward) {
-        setDirSign(1.f);
-    } else {
-        setDirSign(-1.f);
-    }
-}
 
 void RobotController_Dynamic_SLP::setPath(Path::Ptr path)
 {
-    RobotController_Interpolation::setPath(path);
-
-    calculateMovingDirection();
+    RobotController::setPath(path);
 }
 
 RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveCommand(MoveCommand *cmd)
@@ -152,7 +141,7 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
             publishInterpolatedPath();
 
             // recalculate the driving direction
-            calculateMovingDirection();
+            //calculateMovingDirection();
         }
     }
 

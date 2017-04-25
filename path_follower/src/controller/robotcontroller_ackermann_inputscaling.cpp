@@ -19,8 +19,8 @@
 #include <time.h>
 
 RobotController_Ackermann_Inputscaling::RobotController_Ackermann_Inputscaling() :
-    RobotController_Interpolation(),
-	phi_(0.),
+    RobotController(),
+    phi_(0.),
 	v1_(0.), v2_(0.)
 {
 
@@ -70,19 +70,12 @@ void RobotController_Ackermann_Inputscaling::reset() {
 	s_prim_ = 0.001; // TODO: good starting value
 
 
-	RobotController_Interpolation::reset();
+    RobotController::reset();
 }
 
 void RobotController_Ackermann_Inputscaling::setPath(Path::Ptr path)
 {
-	RobotController_Interpolation::setPath(path);
-
-    // decide whether to drive forward or backward
-    if (path_->getCurrentSubPath().forward) {
-        setDirSign(1.f);
-    } else {
-        setDirSign(-1.f);
-    }
+    RobotController::setPath(path);
 }
 
 RobotController::MoveCommandStatus RobotController_Ackermann_Inputscaling::computeMoveCommand(

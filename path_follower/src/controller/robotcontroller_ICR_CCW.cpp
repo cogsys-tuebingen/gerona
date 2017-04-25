@@ -29,7 +29,7 @@ using namespace Eigen;
 
 
 RobotController_ICR_CCW::RobotController_ICR_CCW():
-    RobotController_Interpolation(),
+    RobotController(),
     cmd_(this),
     vn_(0),
     Ts_(0.02),
@@ -111,7 +111,7 @@ void RobotController_ICR_CCW::stopMotion()
 
 void RobotController_ICR_CCW::initialize()
 {
-    RobotController_Interpolation::initialize();
+    RobotController::initialize();
 
     //reset the index of the orthogonal projection
     proj_ind_ = 0;
@@ -161,24 +161,13 @@ void RobotController_ICR_CCW::start()
 
 void RobotController_ICR_CCW::reset()
 {
-    RobotController_Interpolation::reset();
+    RobotController::reset();
 }
 
-void RobotController_ICR_CCW::calculateMovingDirection()
-{
-    // decide whether to drive forward or backward
-    if (path_->getCurrentSubPath().forward) {
-        setDirSign(1.f);
-    } else {
-        setDirSign(-1.f);
-    }
-}
 
 void RobotController_ICR_CCW::setPath(Path::Ptr path)
 {
-    RobotController_Interpolation::setPath(path);
-
-    calculateMovingDirection();
+    RobotController::setPath(path);
 }
 
 void RobotController_ICR_CCW::setCurrentPose(const Eigen::Vector3d& pose) {
@@ -246,7 +235,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
             publishInterpolatedPath();
 
             // recalculate the driving direction
-            calculateMovingDirection();
+            //calculateMovingDirection();
         }
     }
 

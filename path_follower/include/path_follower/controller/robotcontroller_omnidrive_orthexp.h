@@ -8,13 +8,13 @@
 #include <geometry_msgs/PointStamped.h>
 
 /// PROJECT
-#include <path_follower/controller/robotcontroller_interpolation.h>
+#include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/parameters.h>
 
 #include <std_msgs/String.h>
 #include <sensor_msgs/LaserScan.h>
 
-class RobotController_Omnidrive_OrthogonalExponential : public RobotController_Interpolation
+class RobotController_Omnidrive_OrthogonalExponential: public RobotController
 {
 public:
     RobotController_Omnidrive_OrthogonalExponential();
@@ -49,7 +49,7 @@ private:
     void rotate();
 
 private:
-    struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters
+    struct ControllerParameters : public RobotController::InterpolationParameters
     {
         P<double> k;
         P<double> kp;
@@ -74,7 +74,7 @@ private:
         {}
     } opt_;
 
-    const RobotController_Interpolation::InterpolationParameters& getParameters() const
+    const RobotController::InterpolationParameters& getParameters() const
     {
         return opt_;
     }

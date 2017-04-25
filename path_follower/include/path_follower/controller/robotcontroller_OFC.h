@@ -9,11 +9,11 @@
 #include "std_msgs/Float64MultiArray.h"
 
 /// PROJECT
-#include <path_follower/controller/robotcontroller_interpolation.h>
+#include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/parameters.h>
 
 
-class RobotController_OFC : public RobotController_Interpolation
+class RobotController_OFC: public RobotController
 {
 public:
     RobotController_OFC();
@@ -27,7 +27,7 @@ protected:
     virtual void initialize();
 
 protected:
-    struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters
+    struct ControllerParameters : public RobotController::InterpolationParameters
     {
         P<double> kp_lin;
         P<double> ki_lin;
@@ -52,7 +52,7 @@ protected:
         {}
     } opt_;
 
-    const RobotController_Interpolation::InterpolationParameters& getParameters() const
+    const RobotController::InterpolationParameters& getParameters() const
     {
         return opt_;
     }

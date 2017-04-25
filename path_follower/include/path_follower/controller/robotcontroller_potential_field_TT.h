@@ -13,7 +13,7 @@
 
 
 /// PROJECT
-#include <path_follower/controller/robotcontroller_interpolation.h>
+#include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/controller/robotcontroller_potential_field.h>
 

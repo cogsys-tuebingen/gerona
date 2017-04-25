@@ -6,11 +6,11 @@
 #include <geometry_msgs/PointStamped.h>
 
 /// PROJECT
-#include <path_follower/controller/robotcontroller_interpolation.h>
+#include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/parameters.h>
 
 
-class RobotController_Dynamic_SLP : public RobotController_Interpolation
+class RobotController_Dynamic_SLP: public RobotController
 {
 public:
     RobotController_Dynamic_SLP();
@@ -29,10 +29,9 @@ protected:
 
 private:
     void findMinDistance();
-    void calculateMovingDirection();
 
 private:
-    struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters
+    struct ControllerParameters : public RobotController::InterpolationParameters
     {
         P<double> k1;
         P<double> k2;
@@ -81,7 +80,7 @@ private:
         {}
     } opt_;
 
-    const RobotController_Interpolation::InterpolationParameters& getParameters() const
+    const RobotController::InterpolationParameters& getParameters() const
     {
         return opt_;
     }

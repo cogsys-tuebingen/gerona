@@ -21,7 +21,7 @@ using namespace Eigen;
 
 
 RobotController_Differential_OrthogonalExponential::RobotController_Differential_OrthogonalExponential():
-    RobotController_Interpolation(),
+    RobotController(),
     cmd_(this),
     nh_("~"),
     view_direction_(LookInDrivingDirection),
@@ -86,7 +86,7 @@ void RobotController_Differential_OrthogonalExponential::lookInDrivingDirection(
 
 void RobotController_Differential_OrthogonalExponential::initialize()
 {
-    RobotController_Interpolation::initialize();
+    RobotController::initialize();
 
     // desired velocity
     vn_ = std::min(global_opt_->max_velocity(), velocity_);

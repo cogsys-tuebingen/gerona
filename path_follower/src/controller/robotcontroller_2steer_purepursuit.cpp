@@ -26,9 +26,10 @@
 using namespace std;
 using namespace Eigen;
 
-RobotController_2Steer_PurePursuit::RobotController_2Steer_PurePursuit () :
-    RobotController_Interpolation(),
-    waypoint_(0) {
+RobotController_2Steer_PurePursuit::RobotController_2Steer_PurePursuit ():
+    RobotController(),
+    waypoint_(0)
+{
 
     ROS_INFO("Parameters: k_forward=%f, k_backward=%f"
              "\nvehicle_length=%f\ngoal_tolerance=%f",
@@ -42,18 +43,11 @@ RobotController_2Steer_PurePursuit::RobotController_2Steer_PurePursuit () :
 
 void RobotController_2Steer_PurePursuit::reset() {
     waypoint_ = 0;
-    RobotController_Interpolation::reset();
+    RobotController::reset();
 }
 
 void RobotController_2Steer_PurePursuit::setPath(Path::Ptr path) {
-    RobotController_Interpolation::setPath(path);
-
-    // decide whether to drive forward or backward
-    if (path_->getCurrentSubPath().forward) {
-        setDirSign(1.f);
-    } else {
-        setDirSign(-1.f);
-    }
+    RobotController::setPath(path);
 }
 
 

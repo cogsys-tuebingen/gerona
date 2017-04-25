@@ -30,7 +30,7 @@ using namespace Eigen;
 
 
 RobotController_OFC::RobotController_OFC():
-    RobotController_Interpolation(),
+    RobotController(),
     cmd_(this),
     vn_(0.0),
     Ts_(0.02),
@@ -65,7 +65,7 @@ void RobotController_OFC::stopMotion()
 
 void RobotController_OFC::initialize()
 {
-    RobotController_Interpolation::initialize();
+    RobotController::initialize();
 
     // desired velocity
     vn_ = std::min(global_opt_->max_velocity(), velocity_);

@@ -93,7 +93,6 @@ add_library(${PROJECT_NAME} SHARED
     src/obstacle_avoidance/obstacle_avoider.cpp
 
     src/controller/robotcontroller.cpp
-    src/controller/robotcontroller_interpolation.cpp
     src/controller/robotcontroller_ackermann_pid.cpp
     src/controller/path_simple_pid.cpp
     src/controller/path_cascade_pid.cpp

@@ -8,11 +8,10 @@
 #ifndef NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_CONTROLLER_ROBOTCONTROLLER_ACKERMANN_GEOMETRICAL_H_
 #define NAVIGATION_PATH_FOLLOWER_INCLUDE_PATH_FOLLOWER_CONTROLLER_ROBOTCONTROLLER_ACKERMANN_GEOMETRICAL_H_
 
-#include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
+#include <path_follower/controller/robotcontroller.h>
 
-
-class Robotcontroller_Ackermann_PurePursuit: public RobotController_Interpolation
+class Robotcontroller_Ackermann_PurePursuit: public RobotController
 {
 public:
     Robotcontroller_Ackermann_PurePursuit();
@@ -32,7 +31,7 @@ protected:
 
 private:
 
-	struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
+    struct ControllerParameters : public RobotController::InterpolationParameters {
 		P<double> factor_lookahead_distance_forward;
 		P<double> factor_lookahead_distance_backward;
 		P<double> vehicle_length;
@@ -50,7 +49,7 @@ private:
 
 	} params_;
 
-	const RobotController_Interpolation::InterpolationParameters& getParameters() const {
+    const RobotController::InterpolationParameters& getParameters() const {
 		return params_;
 	}
 

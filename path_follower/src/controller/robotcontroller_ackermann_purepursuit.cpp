@@ -21,8 +21,9 @@
 #include <Eigen/Dense>
 
 Robotcontroller_Ackermann_PurePursuit::Robotcontroller_Ackermann_PurePursuit () :
-	RobotController_Interpolation(),
-	waypoint_(0) {
+    RobotController(),
+    waypoint_(0)
+{
 
 	path_interpol_pub_ = node_handle_.advertise<nav_msgs::Path>("interp_path", 10);
 
@@ -39,18 +40,11 @@ Robotcontroller_Ackermann_PurePursuit::~Robotcontroller_Ackermann_PurePursuit() 
 
 void Robotcontroller_Ackermann_PurePursuit::reset() {
 	waypoint_ = 0;
-	RobotController_Interpolation::reset();
+    RobotController::reset();
 }
 
 void Robotcontroller_Ackermann_PurePursuit::setPath(Path::Ptr path) {
-	RobotController_Interpolation::setPath(path);
-
-    // decide whether to drive forward or backward
-    if (path_->getCurrentSubPath().forward) {
-        setDirSign(1.f);
-    } else {
-        setDirSign(-1.f);
-    }
+    RobotController::setPath(path);
 }
 
 

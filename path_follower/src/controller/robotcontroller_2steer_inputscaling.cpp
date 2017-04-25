@@ -24,7 +24,7 @@
 #endif
 
 RobotController_2Steer_InputScaling::RobotController_2Steer_InputScaling() :
-	RobotController_Interpolation(),
+    RobotController(),
 	phi_(0.)
 {
 
@@ -69,20 +69,16 @@ void RobotController_2Steer_InputScaling::start() {
 void RobotController_2Steer_InputScaling::reset() {
 	old_time_ = ros::Time::now();
 
-	RobotController_Interpolation::reset();
+    RobotController::reset();
 }
 
 void RobotController_2Steer_InputScaling::setPath(Path::Ptr path) {
-	RobotController_Interpolation::setPath(path);
+    RobotController::setPath(path);
 
-    // decide whether to drive forward or backward
-    if (path_->getCurrentSubPath().forward) {
-        setDirSign(1.f);
+    if (getDirSign() < 0.)
         setTuningParameters(params_.k_backward());
-    } else {
-        setDirSign(-1.f);
+    else
         setTuningParameters(params_.k_forward());
-    }
 }
 
 RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeMoveCommand(

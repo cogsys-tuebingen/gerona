@@ -1,9 +1,8 @@
 #ifndef ROBOTCONTROLLER_2STEER_PUREPURSUIT_H
 #define ROBOTCONTROLLER_2STEER_PUREPURSUIT_H
 
-#include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
-
+#include <path_follower/controller/robotcontroller.h>
 
 #define TEST_OUTPUT
 
@@ -11,7 +10,7 @@
 #include <ros/ros.h>
 #endif
 
-class RobotController_2Steer_PurePursuit: public RobotController_Interpolation
+class RobotController_2Steer_PurePursuit: public RobotController
 {
 public:
     RobotController_2Steer_PurePursuit();
@@ -31,7 +30,7 @@ protected:
 
 private:
 
-	struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
+    struct ControllerParameters : public RobotController::InterpolationParameters {
 		P<double> k_forward;
 		P<double> k_backward;
 		P<double> vehicle_length;
@@ -44,7 +43,7 @@ private:
 
 	} params_;
 
-	const RobotController_Interpolation::InterpolationParameters& getParameters() const {
+    const RobotController::InterpolationParameters& getParameters() const {
 		return params_;
 	}
 

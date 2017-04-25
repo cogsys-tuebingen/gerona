@@ -10,12 +10,12 @@
 #include "std_msgs/Float64MultiArray.h"
 
 /// PROJECT
-#include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
+#include <path_follower/controller/robotcontroller.h>
 
 #include <path_follower/utils/extended_kalman_filter.h>
 
-class RobotController_ICR_CCW : public RobotController_Interpolation
+class RobotController_ICR_CCW: public RobotController
 {
 public:
     RobotController_ICR_CCW();
@@ -34,10 +34,9 @@ protected:
 
 private:
     void findMinDistance();
-    void calculateMovingDirection();
 
 private:
-    struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters
+    struct ControllerParameters : public RobotController::InterpolationParameters
     {
         P<double> k1;
         P<double> k2;
@@ -60,7 +59,7 @@ private:
         {}
     } opt_;
 
-    const RobotController_Interpolation::InterpolationParameters& getParameters() const
+    const RobotController::InterpolationParameters& getParameters() const
     {
         return opt_;
     }

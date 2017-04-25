@@ -17,7 +17,7 @@
 
 
 RobotController_Potential_Field::RobotController_Potential_Field():
-    RobotController_Interpolation(),
+    RobotController(),
     cmd_(this),
     FAttX(0.0),
     FAttY(0.0),
@@ -48,7 +48,7 @@ void RobotController_Potential_Field::stopMotion()
 
 void RobotController_Potential_Field::initialize()
 {
-    RobotController_Interpolation::initialize();
+    RobotController::initialize();
 
     // initialize the markers for the visualization
     initializeMarkers();
@@ -60,24 +60,13 @@ void RobotController_Potential_Field::initialize()
 
 void RobotController_Potential_Field::reset()
 {
-    RobotController_Interpolation::reset();
+    RobotController::reset();
 }
 
-void RobotController_Potential_Field::calculateMovingDirection()
-{
-    // decide whether to drive forward or backward
-    if (path_->getCurrentSubPath().forward) {
-        setDirSign(1.f);
-    } else {
-        setDirSign(-1.f);
-    }
-}
 
 void RobotController_Potential_Field::setPath(Path::Ptr path)
 {
-    RobotController_Interpolation::setPath(path);
-
-    calculateMovingDirection();
+    RobotController::setPath(path);
 }
 
 
@@ -405,7 +394,7 @@ RobotController::MoveCommandStatus RobotController_Potential_Field::computeMoveC
             publishInterpolatedPath();
 
             // recalculate the driving direction
-            calculateMovingDirection();
+            //calculateMovingDirection();
         }
     }
 

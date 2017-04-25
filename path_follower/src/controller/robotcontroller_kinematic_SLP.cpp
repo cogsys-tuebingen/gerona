@@ -23,7 +23,7 @@ using namespace Eigen;
 
 
 RobotController_Kinematic_SLP::RobotController_Kinematic_SLP():
-    RobotController_Interpolation(),
+    RobotController(),
     cmd_(this),
     vn_(0),
     delta_(0),
@@ -52,7 +52,7 @@ void RobotController_Kinematic_SLP::stopMotion()
 
 void RobotController_Kinematic_SLP::initialize()
 {
-    RobotController_Interpolation::initialize();
+    RobotController::initialize();
 
     //reset the index of the current point on the path
     ind_ = 0;
@@ -74,24 +74,12 @@ void RobotController_Kinematic_SLP::start()
 
 void RobotController_Kinematic_SLP::reset()
 {
-    RobotController_Interpolation::reset();
-}
-
-void RobotController_Kinematic_SLP::calculateMovingDirection()
-{
-    // decide whether to drive forward or backward
-    if (path_->getCurrentSubPath().forward) {
-        setDirSign(1.f);
-    } else {
-        setDirSign(-1.f);
-    }
+    RobotController::reset();
 }
 
 void RobotController_Kinematic_SLP::setPath(Path::Ptr path)
 {
-    RobotController_Interpolation::setPath(path);
-
-    calculateMovingDirection();
+    RobotController::setPath(path);
 }
 
 RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCommand(MoveCommand *cmd)
@@ -145,7 +133,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
             publishInterpolatedPath();
 
             // recalculate the driving direction
-            calculateMovingDirection();
+            //calculateMovingDirection();
         }
     }
 
@@ -217,8 +205,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     //calculate the distance from the orthogonal projection to the goal, w.r.t. path
     distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(proj_ind_);
-    //A very dirty hack!!!!!!!!!!
-    distance_to_goal_ = 100.0;
 
     //get the robot's current angular velocity
     double angular_vel = pose_tracker_->getVelocity().angular.z;
@@ -282,8 +268,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///Exponential speed control
 
     //ensure valid values
-    if (distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e-10;
-    if (distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e-10;
+    if (distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e10;
+    if (distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e10;
 
     double exponent = opt_.k_curv()*fabs(curv_sum_)
             + opt_.k_w()*fabs(angular_vel)

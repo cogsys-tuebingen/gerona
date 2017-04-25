@@ -20,7 +20,6 @@ using namespace Eigen;
 using namespace std;
 
 RobotController_Dynamic_Window::RobotController_Dynamic_Window():
-    RobotController_Interpolation(),
     cmd_(this),
     vn_(0.0),
     proj_ind_(0),
@@ -69,7 +68,7 @@ void RobotController_Dynamic_Window::stopMotion()
 
 void RobotController_Dynamic_Window::initialize()
 {
-    RobotController_Interpolation::initialize();
+    RobotController::initialize();
 
     // desired velocity
     vn_ = std::min(global_opt_->max_velocity(), velocity_);
@@ -78,24 +77,13 @@ void RobotController_Dynamic_Window::initialize()
 
 void RobotController_Dynamic_Window::reset()
 {
-    RobotController_Interpolation::reset();
+    RobotController::reset();
 }
 
-void RobotController_Dynamic_Window::calculateMovingDirection()
-{
-    // decide whether to drive forward or backward
-    if (path_->getCurrentSubPath().forward) {
-        setDirSign(1.f);
-    } else {
-        setDirSign(-1.f);
-    }
-}
 
 void RobotController_Dynamic_Window::setPath(Path::Ptr path)
 {
-    RobotController_Interpolation::setPath(path);
-
-    calculateMovingDirection();
+    RobotController::setPath(path);
 
     //initial velocity commands
     v_cmd_ = 0.5;
@@ -442,12 +430,6 @@ RobotController::MoveCommandStatus RobotController_Dynamic_Window::computeMoveCo
         return MoveCommandStatus::REACHED_GOAL;
     }
 
-
-    const geometry_msgs::Twist v_meas_twist = pose_tracker_->getVelocity();
-
-    double v_meas = getDirSign() * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
-            + v_meas_twist.linear.y * v_meas_twist.linear.y);
-
     ///***///
 
 
@@ -480,7 +462,7 @@ RobotController::MoveCommandStatus RobotController_Dynamic_Window::computeMoveCo
             publishInterpolatedPath();
 
             // recalculate the driving direction
-            calculateMovingDirection();
+            //calculateMovingDirection();
         }
     }
 
@@ -524,9 +506,6 @@ RobotController::MoveCommandStatus RobotController_Dynamic_Window::computeMoveCo
     ye_ = r * sin(delta_theta);
 
     ///***///
-
-    //get the robot's current angular velocity
-    double w_meas = pose_tracker_->getVelocity().angular.z;
 
     //set the current goal position
     setGoalPosition();

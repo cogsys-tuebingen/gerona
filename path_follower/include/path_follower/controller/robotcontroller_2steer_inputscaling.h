@@ -1,14 +1,14 @@
 #ifndef ROBOTCONTROLLER_2STEER_INPUTSCALING_H
 #define ROBOTCONTROLLER_2STEER_INPUTSCALING_H
 
-#include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
+#include <path_follower/controller/robotcontroller.h>
 
 #include <ros/ros.h>
 
 #define TEST_OUTPUT
 
-class RobotController_2Steer_InputScaling : public RobotController_Interpolation
+class RobotController_2Steer_InputScaling : public RobotController
 {
 public:
     RobotController_2Steer_InputScaling();
@@ -25,7 +25,7 @@ protected:
 	virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
 private:
-	struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters {
+    struct ControllerParameters : public RobotController::InterpolationParameters {
 		P<double> vehicle_length;
 		P<double> k_forward;
 		P<double> k_backward;
@@ -42,7 +42,7 @@ private:
 
 	} params_;
 
-	const RobotController_Interpolation::InterpolationParameters& getParameters() const {
+    const RobotController::InterpolationParameters& getParameters() const {
 		return params_;
 	}
 

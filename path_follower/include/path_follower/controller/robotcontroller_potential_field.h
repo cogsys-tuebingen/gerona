@@ -13,12 +13,12 @@
 
 
 /// PROJECT
-#include <path_follower/controller/robotcontroller_interpolation.h>
+#include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/parameters.h>
 
 
 /// The Potential_Field class
-class RobotController_Potential_Field : public RobotController_Interpolation
+class RobotController_Potential_Field: public RobotController
 {
 public:
     RobotController_Potential_Field();
@@ -38,7 +38,6 @@ protected:
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
     virtual void initialize();
 
-    void calculateMovingDirection();
     void initializeMarkers();
     void visualizeMarkers();
 
@@ -84,7 +83,7 @@ protected:
 
 
 
-    struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters
+    struct ControllerParameters : public RobotController::InterpolationParameters
     {
         P<double> kAtt;
         P<double> kRep;
@@ -99,7 +98,7 @@ protected:
         {}
     } opt_;
 
-    const RobotController_Interpolation::InterpolationParameters& getParameters() const
+    const RobotController::InterpolationParameters& getParameters() const
     {
         return opt_;
     }

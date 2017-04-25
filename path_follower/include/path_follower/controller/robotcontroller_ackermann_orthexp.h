@@ -9,11 +9,11 @@
 #include <std_msgs/String.h>
 
 /// PROJECT
-#include <path_follower/controller/robotcontroller_interpolation.h>
 #include <path_follower/utils/parameters.h>
+#include <path_follower/controller/robotcontroller.h>
 
 
-class RobotController_Ackermann_OrthogonalExponential : public RobotController_Interpolation
+class RobotController_Ackermann_OrthogonalExponential: public RobotController
 {
 public:
     RobotController_Ackermann_OrthogonalExponential();
@@ -46,7 +46,7 @@ private:
     void rotate();
 
 private:
-    struct ControllerParameters : public RobotController_Interpolation::InterpolationParameters
+    struct ControllerParameters : public RobotController::InterpolationParameters
     {
         P<double> k;
         P<double> max_angular_velocity;
@@ -67,7 +67,7 @@ private:
         {}
     } opt_;
 
-    const RobotController_Interpolation::InterpolationParameters& getParameters() const
+    const RobotController::InterpolationParameters& getParameters() const
     {
         return opt_;
     }

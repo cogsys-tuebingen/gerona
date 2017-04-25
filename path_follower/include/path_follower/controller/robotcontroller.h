@@ -9,12 +9,14 @@
 #include "std_msgs/MultiArrayLayout.h"
 #include "std_msgs/MultiArrayDimension.h"
 #include "std_msgs/Float64MultiArray.h"
+#include <nav_msgs/Path.h>
 #include <cmath>
 
 // PROJECT
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/movecommand.h>
 #include <path_follower/utils/path_interpolated.h>
+#include <path_follower/utils/parameters.h>
 
 
 class PoseTracker;
@@ -50,12 +52,16 @@ public:
     virtual void start() {}
 
     //! Is called at several points, if new path is set or movement is aborted.
-    virtual void reset() {}
+    virtual void reset();
 
     //! Set the robot pose
     virtual void setCurrentPose(const Eigen::Vector3d&) {}
 
     virtual void precomputeSteerCommand(Waypoint& wp_now,  Waypoint& wp_next ) {}
+
+    virtual void initialize();
+
+    bool reachedGoal(const Eigen::Vector3d& pose) const;
 
 protected:
     //! This is a subset of ControlStatus. computeMoveCommand is not allowed to report obstacles
@@ -98,6 +104,20 @@ protected:
     virtual void initPublisher(ros::Publisher* pub) const;
 
 
+    ////interpolation///
+
+    struct InterpolationParameters : public Parameters {
+        P<double> goal_tolerance;
+
+        InterpolationParameters() :
+            goal_tolerance(this, "~goal_tolerance", 0.3, "minimum distance at which the robot stops")
+        {}
+    };
+
+    virtual const InterpolationParameters& getParameters() const = 0;
+
+    ////-------------////
+
     /* REGULAR METHODS */
 public:
     RobotController();
@@ -133,6 +153,8 @@ public:
     }
 
     std::string getFixedFrame() const;
+
+    void computeMovingDirection();
 
 private:
     //Vizualize the path driven by the robot
@@ -173,6 +195,22 @@ protected:
 
     //path driven by the robot
     visualization_msgs::Marker robot_path_marker_;
+
+    ///interpolation////
+
+    ros::Publisher interp_path_pub_;
+
+
+    PathInterpolated path_interpol;
+
+    // is there an interpolated path?
+    bool interpolated_;
+
+    //interpolated path
+    nav_msgs::Path interp_path_;
+
+    void publishInterpolatedPath();
+    ////-------------////
 };
 
 #endif // ROBOTCONTROLLER_H

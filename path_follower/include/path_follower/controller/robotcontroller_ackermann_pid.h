@@ -22,7 +22,8 @@ protected:
 
 private:
     //! Specific parameters of this controller.
-    struct ControllerParameters : public Parameters
+    struct ControllerParameters :
+            public RobotController::InterpolationParameters
     {
         P<double> dead_time;
         P<double> l;
@@ -42,6 +43,11 @@ private:
             max_steer(this, "~max_steer", 0.52, "Maximal allowed steering angle. Higher angles are capped by this value.")
         {}
     } opt_;
+
+    const RobotController::InterpolationParameters& getParameters() const
+    {
+        return opt_;
+    }
 
 
     //! The current move command.

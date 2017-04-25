@@ -17,11 +17,13 @@ RobotController::RobotController()
       global_opt_(nullptr),
       visualizer_(Visualizer::getInstance()),
       velocity_(0.0f),
-      dir_sign_(1.0f)
+      dir_sign_(1.0f),
+      interpolated_(false)
 {
     initPublisher(&cmd_pub_);
 
     points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
+    interp_path_pub_ = nh_.advertise<nav_msgs::Path>("interp_path", 10);
 
     // path marker
     robot_path_marker_.header.frame_id = getFixedFrame();
@@ -53,8 +55,6 @@ void RobotController::init(PoseTracker *pose_tracker, ObstacleAvoider *obstacle_
     global_opt_ = options;
 }
 
-
-
 std::string RobotController::getFixedFrame() const
 {
     if(path_) {
@@ -62,6 +62,39 @@ std::string RobotController::getFixedFrame() const
     } else {
         return "map";
     }
+}
+
+void RobotController::computeMovingDirection()
+{
+    // decide whether to drive forward or backward
+    if (path_->getCurrentSubPath().forward) {
+        setDirSign(1.f);
+    } else {
+        setDirSign(-1.f);
+    }
+}
+
+void RobotController::initialize()
+{
+    interpolated_ = true;
+}
+
+void RobotController::reset()
+{
+    interpolated_ = false;
+}
+
+void RobotController::publishInterpolatedPath()
+{
+    interp_path_pub_.publish((nav_msgs::Path) path_interpol);
+}
+
+bool RobotController::reachedGoal(const Eigen::Vector3d& pose) const
+{
+
+    const unsigned int end = path_interpol.n() - 1;
+    return hypot(path_interpol.p(end) - pose[0], path_interpol.q(end) - pose[1])
+            <= getParameters().goal_tolerance();
 }
 
 void RobotController::setPath(Path::Ptr path)
@@ -77,6 +110,21 @@ void RobotController::setPath(Path::Ptr path)
         throw EmergencyBreakException("cannot transform path",
                                       path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
     }
+
+    computeMovingDirection();
+
+    if(!interpolated_) {
+        std::cerr << "interpolating path in frame " << path->getFrameId() << std::endl;
+
+        path_interpol.interpolatePath(path);
+        publishInterpolatedPath();
+
+        initialize();
+    }
+
+    //reset the index of the orthogonal projection
+    //proj_ind_ = 0;
+
 }
 
 void RobotController::setGlobalPath(Path::Ptr path)

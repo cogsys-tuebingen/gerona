@@ -17,8 +17,9 @@
 #include <limits>
 #include <boost/algorithm/clamp.hpp>
 
-RobotController_Ackermann_Stanley::RobotController_Ackermann_Stanley() :
-    RobotController_Interpolation() {
+RobotController_Ackermann_Stanley::RobotController_Ackermann_Stanley():
+    RobotController()
+{
 
 	ROS_INFO("Parameters: k_forward=%f, k_backward=%f\n"
 				"vehicle_length=%f\n"
@@ -46,18 +47,11 @@ void RobotController_Ackermann_Stanley::start() {
 
 void RobotController_Ackermann_Stanley::reset() {
 
-    RobotController_Interpolation::reset();
+    RobotController::reset();
 }
 
 void RobotController_Ackermann_Stanley::setPath(Path::Ptr path) {
-    RobotController_Interpolation::setPath(path);
-
-    // decide whether to drive forward or backward
-    if (path_->getCurrentSubPath().forward) {
-        setDirSign(1.f);
-    } else {
-        setDirSign(-1.f);
-    }
+    RobotController::setPath(path);
 }
 
 RobotController::MoveCommandStatus RobotController_Ackermann_Stanley::computeMoveCommand(

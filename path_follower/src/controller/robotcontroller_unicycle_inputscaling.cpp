@@ -22,7 +22,7 @@
 #endif
 
 RobotController_Unicycle_InputScaling::RobotController_Unicycle_InputScaling() :
-    RobotController_Interpolation(),
+    RobotController(),
     ind_(0)
 {
 
@@ -65,21 +65,14 @@ void RobotController_Unicycle_InputScaling::start() {
 
 void RobotController_Unicycle_InputScaling::reset() {
 
-    RobotController_Interpolation::reset();
+    RobotController::reset();
 }
 
 void RobotController_Unicycle_InputScaling::setPath(Path::Ptr path) {
-    RobotController_Interpolation::setPath(path);
+    RobotController::setPath(path);
 
     //reset the index of the current point
     ind_ = 0;
-
-    // decide whether to drive forward or backward
-    if (path_->getCurrentSubPath().forward) {
-        setDirSign(1.f);
-    } else {
-        setDirSign(-1.f);
-    }
 }
 
 RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::computeMoveCommand(
@@ -89,10 +82,6 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
         return RobotController::MoveCommandStatus::ERROR;
 
     const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
-
-    //    double x_meas = pose[0];
-    //    double y_meas = pose[1];
-    //    double theta_meas = pose[2];
 
     const geometry_msgs::Twist v_meas_twist = pose_tracker_->getVelocity();
 

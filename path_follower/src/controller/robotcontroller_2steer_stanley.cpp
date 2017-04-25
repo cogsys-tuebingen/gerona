@@ -25,8 +25,9 @@
 using namespace std;
 using namespace Eigen;
 
-RobotController_2Steer_Stanley::RobotController_2Steer_Stanley() :
-	RobotController_Interpolation() {
+RobotController_2Steer_Stanley::RobotController_2Steer_Stanley():
+    RobotController()
+{
 
 	ROS_INFO("Parameters: k_forward=%f, k_backward=%f\n"
 				"vehicle_length=%f\n"
@@ -55,14 +56,7 @@ void RobotController_2Steer_Stanley::start() {
 }
 
 void RobotController_2Steer_Stanley::setPath(Path::Ptr path) {
-	RobotController_Interpolation::setPath(path);
-
-    // decide whether to drive forward or backward
-    if (path_->getCurrentSubPath().forward) {
-        setDirSign(1.f);
-    } else {
-        setDirSign(-1.f);
-    }
+    RobotController::setPath(path);
 }
 
 RobotController::MoveCommandStatus RobotController_2Steer_Stanley::computeMoveCommand(
