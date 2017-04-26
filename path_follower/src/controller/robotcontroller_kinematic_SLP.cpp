@@ -19,6 +19,11 @@
 #include <Eigen/Dense>
 #include <boost/algorithm/clamp.hpp>
 
+
+#include <path_follower/factory/controller_factory.h>
+
+REGISTER_ROBOT_CONTROLLER(RobotController_Kinematic_SLP, kinematic_SLP);
+
 using namespace Eigen;
 
 

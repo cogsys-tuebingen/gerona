@@ -17,6 +17,10 @@
 #include <limits>
 #include <boost/algorithm/clamp.hpp>
 
+#include <path_follower/factory/controller_factory.h>
+
+REGISTER_ROBOT_CONTROLLER(RobotController_Ackermann_Stanley, ackermann_stanley);
+
 RobotController_Ackermann_Stanley::RobotController_Ackermann_Stanley():
     RobotController()
 {

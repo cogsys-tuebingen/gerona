@@ -22,6 +22,10 @@
 #include <std_msgs/Float64MultiArray.h>
 #endif
 
+#include <path_follower/factory/controller_factory.h>
+
+REGISTER_ROBOT_CONTROLLER(RobotController_2Steer_Stanley, 2steer_stanley);
+
 using namespace std;
 using namespace Eigen;
 

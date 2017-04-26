@@ -25,6 +25,10 @@
 #include <Eigen/Dense>
 #include <boost/algorithm/clamp.hpp>
 
+#include <path_follower/factory/controller_factory.h>
+
+REGISTER_ROBOT_CONTROLLER(RobotController_ICR_CCW, ICR_CCW);
+
 using namespace Eigen;
 
 

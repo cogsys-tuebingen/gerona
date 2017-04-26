@@ -4,7 +4,6 @@
 #include <path_follower/pathfollower.h>
 
 // Controller/Models
-#include <path_follower/controller/robotcontroller_ackermann_pid.h>
 #include <path_follower/controller/robotcontroller_ICR_CCW.h>
 #include <path_follower/controller/robotcontroller_ackermann_orthexp.h>
 #include <path_follower/controller/robotcontroller_ackermann_purepursuit.h>
@@ -44,6 +43,8 @@
 
 // SYSTEM
 #include <stdexcept>
+
+std::map<std::string, std::function<std::shared_ptr<RobotController>()>> ControllerFactory::controller_constructors_;
 
 ControllerFactory::ControllerFactory(PathFollower &follower)
     : follower_(follower), opt_(follower.getOptions()), pose_tracker_(follower.getPoseTracker()),
@@ -85,19 +86,27 @@ std::shared_ptr<PathFollowerConfig> ControllerFactory::construct(const PathFollo
     return std::make_shared<PathFollowerConfig>(result);
 }
 
+std::string ControllerFactory::toLower(const std::string& s)
+{
+    std::string s_low = s;
+    std::transform(s_low.begin(), s_low.end(), s_low.begin(), ::tolower);
+    return s_low;
+}
 
 std::shared_ptr<RobotController> ControllerFactory::makeController(const std::string& name)
 {
-    std::string name_low = name;
-    std::transform(name_low.begin(), name_low.end(), name_low.begin(), ::tolower);
+    std::string name_low = toLower(name);
+
+    auto pos = controller_constructors_.find(name_low);
+    if(pos != controller_constructors_.end()) {
+        return pos->second();
+    }
 
     std::vector<std::string> classes = controller_loader.getDeclaredClasses();
     std::vector<std::string> classes_low;
     classes_low.reserve(classes.size());
     for(const std::string& s : classes) {
-        std::string low = s;
-        std::transform(low.begin(), low.end(), low.begin(), ::tolower);
-        classes_low.push_back(low);
+        classes_low.push_back(toLower(s));
     }
 
     std::string plugin_class;
@@ -121,72 +130,16 @@ std::shared_ptr<RobotController> ControllerFactory::makeController(const std::st
     }
 
     if(!plugin_class.empty() && controller_loader.isClassAvailable(plugin_class)) {
-        ROS_INFO("Use robot controller plugin '%s'", plugin_class.c_str());
+        ROS_INFO("Loading robot controller plugin '%s'", plugin_class.c_str());
 
-        return std::shared_ptr<RobotController>(controller_loader.createUnmanagedInstance(plugin_class));
+        controller_constructors_[name_low] = [this, plugin_class]() -> std::shared_ptr<RobotController> {
+            return std::shared_ptr<RobotController>(controller_loader.createUnmanagedInstance(plugin_class));
+        };
+
+        return controller_constructors_[name_low]();
     }
 
-    // legacy controllers:
-    // TODO: move to plugins
-    ROS_INFO("Use legacy robot controller '%s'", name.c_str());
-
-    if (name == "ackermann_pid") {
-        return std::make_shared<RobotController_Ackermann_Pid>();
-
-    } else if (name == "ackermann_purepursuit") {
-        return std::make_shared<Robotcontroller_Ackermann_PurePursuit>();
-
-    } else if (name == "ackermann_inputscaling") {
-        return std::make_shared<RobotController_Ackermann_Inputscaling>();
-
-    } else if (name == "ackermann_stanley") {
-        return std::make_shared<RobotController_Ackermann_Stanley>();
-
-    } else if (name == "2steer_purepursuit") {
-        return std::make_shared<RobotController_2Steer_PurePursuit>();
-
-    } else if (name == "2steer_stanley") {
-        return std::make_shared<RobotController_2Steer_Stanley>();
-
-    } else if (name == "2steer_inputscaling") {
-        return std::make_shared<RobotController_2Steer_InputScaling>();
-
-    } else if (name == "unicycle_inputscaling") {
-        return std::make_shared<RobotController_Unicycle_InputScaling>();
-
-    } else if (name == "omnidrive_orthexp") {
-        return std::make_shared<RobotController_Omnidrive_OrthogonalExponential>();
-
-    } else if (name == "ackermann_orthexp") {
-        return std::make_shared<RobotController_Ackermann_OrthogonalExponential>();
-
-    } else if (name == "differential_orthexp") {
-        return std::make_shared<RobotController_Differential_OrthogonalExponential>();
-
-    } else if (name == "kinematic_SLP") {
-        return std::make_shared<RobotController_Kinematic_SLP>();
-
-    } else if (name == "dynamic_SLP") {
-        return std::make_shared<RobotController_Dynamic_SLP>();
-
-    } else if (name == "ICR_CCW") {
-        return std::make_shared<RobotController_ICR_CCW>();
-
-    } else if (name == "potential_field") {
-        return std::make_shared<RobotController_Potential_Field>();
-
-    } else if (name == "potential_field_TT") {
-        return std::make_shared<RobotController_Potential_Field_TT>();
-
-    } else if (name == "dynamic_window") {
-        return std::make_shared<RobotController_Dynamic_Window>();
-
-    } else if (name == "OFC") {
-        return std::make_shared<RobotController_OFC>();
-
-    } else {
-        throw std::logic_error(std::string("Unknown robot controller: ") + name + ". Shutdown.");
-    }
+    throw std::logic_error(std::string("Unknown robot controller: ") + name + ". Shutdown.");
 }
 
 std::shared_ptr<LocalPlanner> ControllerFactory::makeConstrainedLocalPlanner(const std::string& name)

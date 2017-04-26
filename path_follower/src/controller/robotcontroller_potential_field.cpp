@@ -15,6 +15,9 @@
 // SYSTEM
 #include <boost/algorithm/clamp.hpp>
 
+#include <path_follower/factory/controller_factory.h>
+
+REGISTER_ROBOT_CONTROLLER(RobotController_Potential_Field, potential_field);
 
 RobotController_Potential_Field::RobotController_Potential_Field():
     RobotController(),

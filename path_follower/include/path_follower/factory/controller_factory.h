@@ -4,6 +4,7 @@
 #include <path_follower/utils/path_follower_config.h>
 
 #include <memory>
+#include <functional>
 #include <pluginlib/class_loader.h>
 
 
@@ -28,6 +29,14 @@ public:
 public:
     std::shared_ptr<PathFollowerConfig> construct(const PathFollowerConfigName &config);
 
+    template <typename Controller>
+    static void registerController(const std::string& type)
+    {
+        controller_constructors_.emplace(toLower(type), [](){
+            return std::make_shared<Controller>();
+        });
+    }
+
 private:
     std::shared_ptr<RobotController> makeController(const std::string &name);
     std::shared_ptr<ObstacleAvoider> makeObstacleAvoider(const std::string &name);
@@ -35,13 +44,30 @@ private:
     std::shared_ptr<LocalPlanner> makeConstrainedLocalPlanner(const std::string &name);
     std::shared_ptr<LocalPlanner> makeLocalPlanner(const std::string &name);
 
+    static std::string toLower(const std::string& s);
+
 private:
     PathFollower &follower_;
     const PathFollowerParameters& opt_;
     PoseTracker& pose_tracker_;
 
     pluginlib::ClassLoader<RobotController> controller_loader;
-
+    static std::map<std::string, std::function<std::shared_ptr<RobotController>()>> controller_constructors_;
 };
+
+
+
+template <typename Controller>
+class ControllerFactoryRegistration
+{
+public:
+    ControllerFactoryRegistration(const std::string& type)
+    {
+        ControllerFactory::registerController<Controller>(type);
+    }
+};
+
+#define REGISTER_ROBOT_CONTROLLER(class_t, type) \
+ControllerFactoryRegistration<class_t> register_##type(#type)
 
 #endif // CONTROLLER_FACTORY_H

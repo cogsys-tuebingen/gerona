@@ -16,6 +16,10 @@
 #include <boost/algorithm/clamp.hpp>
 #include <boost/tuple/tuple.hpp>
 
+#include <path_follower/factory/controller_factory.h>
+
+REGISTER_ROBOT_CONTROLLER(RobotController_Dynamic_Window, dynamic_window);
+
 using namespace Eigen;
 using namespace std;
 

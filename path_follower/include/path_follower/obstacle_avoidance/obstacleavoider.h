@@ -32,6 +32,7 @@ public:
 
     void setTransformListener(const tf::TransformListener *tf_listener);
 
+    bool hasObstacles() const;
     std::shared_ptr<ObstacleCloud const> getObstacles() const;
     void setObstacles(std::shared_ptr<ObstacleCloud const> obstacles);
 

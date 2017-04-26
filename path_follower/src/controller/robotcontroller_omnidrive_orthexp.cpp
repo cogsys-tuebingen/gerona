@@ -14,6 +14,10 @@
 #include <deque>
 #include <Eigen/Dense>
 
+#include <path_follower/factory/controller_factory.h>
+
+REGISTER_ROBOT_CONTROLLER(RobotController_Omnidrive_OrthogonalExponential, omnidrive_orthexp);
+
 using namespace Eigen;
 
 namespace {

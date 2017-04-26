@@ -21,6 +21,10 @@
 #include <std_msgs/Float64MultiArray.h>
 #endif
 
+#include <path_follower/factory/controller_factory.h>
+
+REGISTER_ROBOT_CONTROLLER(RobotController_Unicycle_InputScaling, unicycle_inputscaling);
+
 RobotController_Unicycle_InputScaling::RobotController_Unicycle_InputScaling() :
     RobotController(),
     ind_(0)

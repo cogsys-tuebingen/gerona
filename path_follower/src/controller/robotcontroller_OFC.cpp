@@ -26,6 +26,10 @@
 #include <pcl_ros/point_cloud.h>
 #include <pluginlib/class_list_macros.h>
 
+#include <path_follower/factory/controller_factory.h>
+
+REGISTER_ROBOT_CONTROLLER(RobotController_OFC, OFC);
+
 using namespace Eigen;
 
 

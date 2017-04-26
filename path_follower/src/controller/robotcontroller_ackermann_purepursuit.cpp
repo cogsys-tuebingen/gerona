@@ -20,6 +20,10 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
+#include <path_follower/factory/controller_factory.h>
+
+REGISTER_ROBOT_CONTROLLER(Robotcontroller_Ackermann_PurePursuit, ackermann_purepursuit);
+
 Robotcontroller_Ackermann_PurePursuit::Robotcontroller_Ackermann_PurePursuit () :
     RobotController(),
     waypoint_(0)

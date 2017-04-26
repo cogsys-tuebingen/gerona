@@ -6,6 +6,10 @@
 #include <path_follower/utils/path_exceptions.h>
 #include <path_follower/utils/visualizer.h>
 
+#include <path_follower/factory/controller_factory.h>
+
+REGISTER_ROBOT_CONTROLLER(RobotController_Ackermann_Pid, ackermann_pid);
+
 using namespace std;
 using namespace Eigen;
 

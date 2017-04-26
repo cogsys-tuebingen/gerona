@@ -23,6 +23,10 @@
 #include <std_msgs/Float64MultiArray.h>
 #endif
 
+#include <path_follower/factory/controller_factory.h>
+
+REGISTER_ROBOT_CONTROLLER(RobotController_2Steer_PurePursuit, 2steer_purepursuit);
+
 using namespace std;
 using namespace Eigen;
 
