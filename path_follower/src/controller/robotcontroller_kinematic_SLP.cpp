@@ -105,7 +105,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///***///
 
 
-    double orth_exp = RobotController::findOrthogonalProjection();
+    RobotController::findOrthogonalProjection();
 
     if(RobotController::isGoalReached(cmd)){
        return RobotController::MoveCommandStatus::REACHED_GOAL;

@@ -352,7 +352,7 @@ RobotController::MoveCommandStatus RobotController_Potential_Field::computeMoveC
         return MoveCommandStatus::REACHED_GOAL;
     }
 
-    double orth_proj = RobotController::findOrthogonalProjection();
+    RobotController::findOrthogonalProjection();
 
     if(RobotController::isGoalReached(cmd)){
        return RobotController::MoveCommandStatus::REACHED_GOAL;

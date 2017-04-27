@@ -66,7 +66,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Stanley::computeMov
 
     const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
 
-    double d = -RobotController::findOrthogonalProjection();
+    RobotController::findOrthogonalProjection();
+    double d = -orth_proj_;
 
     if(RobotController::isGoalReached(cmd)){
        return RobotController::MoveCommandStatus::REACHED_GOAL;

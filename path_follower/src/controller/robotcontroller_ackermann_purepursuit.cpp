@@ -73,7 +73,7 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 
     Eigen::Vector3d pose = pose_tracker_->getRobotPose();
 
-    double d = RobotController::findOrthogonalProjection();
+    RobotController::findOrthogonalProjection();
 
     if(RobotController::isGoalReached(cmd)){
        return RobotController::MoveCommandStatus::REACHED_GOAL;

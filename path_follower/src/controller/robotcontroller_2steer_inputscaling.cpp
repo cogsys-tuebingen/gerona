@@ -93,13 +93,14 @@ RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeM
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
+    const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
     const geometry_msgs::Twist v_meas_twist = pose_tracker_->getVelocity();
 
     double velocity_measured = dir_sign_ * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
             + v_meas_twist.linear.y * v_meas_twist.linear.y);
 
-    double d = RobotController::findOrthogonalProjection();
+    RobotController::findOrthogonalProjection();
+    double d = orth_proj_;
 
     if(RobotController::isGoalReached(cmd)){
        return RobotController::MoveCommandStatus::REACHED_GOAL;
@@ -130,7 +131,7 @@ RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeM
     const double dc_ds_2 = path_interpol.curvature_sek(proj_ind_);
 
 	// 1 - dc(s)
-	const double _1_dc = 1. - d * c;
+    const double _1_dc = 1. - d * c;
 	const double _1_dc_2 = _1_dc * _1_dc;
 
 
@@ -158,7 +159,7 @@ RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeM
 			+ 2. * _1_dc_2 * sin_phi / (params_.vehicle_length() * cos_theta_e_3);
 
 	const double x3 = _1_dc * tan_theta_e;
-	const double x4 = d;
+    const double x4 = d;
 
 
 	// u1, u2
@@ -174,14 +175,14 @@ RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeM
 			+ c * c * (1. + sin_theta_e_2) / cos_theta_e_2
 			- 4. * _1_dc * c * sin_phi / (params_.vehicle_length() * cos_theta_e_3);
 
-	const double dx2_dtheta_e = -dc_ds * d * (1. + tan_theta_e_2)
+    const double dx2_dtheta_e = -dc_ds * d * (1. + tan_theta_e_2)
 			- 4. * c * _1_dc * tan_theta_e / cos_theta_e_2
 			+ 6. * _1_dc_2 * sin_phi * tan_theta_e / (params_.vehicle_length()
 																	* cos_theta_e_3);
 	const double dx2_ds =
 			- dc_ds_2 * d * tan_theta_e
-			- (dc_ds * _1_dc - d * dc_ds * c) * (1. + sin_theta_e_2) / cos_theta_e_2
-			- 4. * _1_dc * dc_ds * d * sin_phi / (params_.vehicle_length() * cos_theta_e_3);
+            - (dc_ds * _1_dc - d * dc_ds * c) * (1. + sin_theta_e_2) / cos_theta_e_2
+            - 4. * _1_dc * dc_ds * d * sin_phi / (params_.vehicle_length() * cos_theta_e_3);
 
 	// alpha1
 	const double alpha1 =

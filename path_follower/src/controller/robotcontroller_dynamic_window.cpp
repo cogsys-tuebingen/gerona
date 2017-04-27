@@ -428,7 +428,7 @@ RobotController::MoveCommandStatus RobotController_Dynamic_Window::computeMoveCo
 
     ///***///
 
-    double orth_proj = RobotController::findOrthogonalProjection();
+    RobotController::findOrthogonalProjection();
 
     if(RobotController::isGoalReached(cmd)){
        return RobotController::MoveCommandStatus::REACHED_GOAL;

@@ -130,7 +130,8 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     double theta_meas = current_pose[2];
     //***//
 
-    double orth_proj = RobotController::findOrthogonalProjection();
+    RobotController::findOrthogonalProjection();
+    double orth_proj = orth_proj_;
 
     if(RobotController::isGoalReached(cmd)){
        return RobotController::MoveCommandStatus::REACHED_GOAL;

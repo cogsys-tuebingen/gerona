@@ -20,6 +20,8 @@ RobotController::RobotController()
       dir_sign_(1.0f),
       interpolated_(false)
 {
+    orth_proj_ = std::numeric_limits<double>::max();
+
     initPublisher(&cmd_pub_);
 
     points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
@@ -86,6 +88,7 @@ void RobotController::reset()
     interpolated_ = false;
     //reset the index of the orthogonal projection
     proj_ind_ = 0;
+
 }
 
 void RobotController::publishInterpolatedPath()
@@ -184,16 +187,17 @@ void RobotController::publishPathMarker()
     points_pub_.publish(robot_path_marker_);
 }
 
-double RobotController::findOrthogonalProjection()
+void RobotController::findOrthogonalProjection()
 {
     //find the orthogonal projection to the curve and extract the corresponding index
+
+    orth_proj_ = std::numeric_limits<double>::max();
 
     Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
 
     double dist = 0;
-    double orth_proj = std::numeric_limits<double>::max();
     double dx = 0.0;
     double dy = 0.0;
     //this is a trick for closed paths
@@ -202,9 +206,9 @@ double RobotController::findOrthogonalProjection()
     for (unsigned int i = proj_ind_; i < path_interpol.n(); i++){
 
         dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
-        if((dist < orth_proj) & (i - old_ind >= 0) & (i - old_ind <= 3)){
+        if((dist < orth_proj_) & (i - old_ind >= 0) & (i - old_ind <= 3)){
 
-            orth_proj = dist;
+            orth_proj_ = dist;
             proj_ind_ = i;
 
             dx = x_meas - path_interpol.p(proj_ind_);
@@ -220,13 +224,11 @@ double RobotController::findOrthogonalProjection()
 
     if( theta_diff < 0 && theta_diff >= -M_PI){
 
-        orth_proj = -fabs(orth_proj);
+        orth_proj_ = -fabs(orth_proj_);
 
     }else{
-        orth_proj = fabs(orth_proj);
+        orth_proj_ = fabs(orth_proj_);
     }
-
-    return orth_proj;
     //***//
 }
 

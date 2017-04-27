@@ -88,7 +88,8 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
     double velocity_measured = dir_sign_ * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
                                                 + v_meas_twist.linear.y * v_meas_twist.linear.y);
 
-    double d = RobotController::findOrthogonalProjection();
+    RobotController::findOrthogonalProjection();
+    double d = orth_proj_;
 
     if(RobotController::isGoalReached(cmd)){
        return RobotController::MoveCommandStatus::REACHED_GOAL;

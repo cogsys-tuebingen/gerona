@@ -208,7 +208,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     x_meas = x_meas + std::cos(theta_meas)*r_x - std::sin(theta_meas)*r_y;
     y_meas = y_meas + std::sin(theta_meas)*r_x + std::cos(theta_meas)*r_y;
 
-    double d = RobotController::findOrthogonalProjection();
+    RobotController::findOrthogonalProjection();
 
     if(RobotController::isGoalReached(cmd)){
        return RobotController::MoveCommandStatus::REACHED_GOAL;

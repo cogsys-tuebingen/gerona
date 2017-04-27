@@ -93,7 +93,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Inputscaling::compu
 	ROS_DEBUG("velocity_measured: x=%f, y=%f, z=%f", velocity_measured.linear.x,
 				velocity_measured.linear.y, velocity_measured.linear.z);
 
-    double d = RobotController::findOrthogonalProjection();
+    RobotController::findOrthogonalProjection();
+    double d = orth_proj_;
 
     if(RobotController::isGoalReached(cmd)){
        return RobotController::MoveCommandStatus::REACHED_GOAL;
