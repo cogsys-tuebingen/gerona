@@ -70,7 +70,6 @@ void RobotController_Ackermann_Inputscaling::reset() {
 
 	v1_ = v2_ = 0.;
 
-	ind_ = 0;
 	s_prim_ = 0.001; // TODO: good starting value
 
 
@@ -94,73 +93,34 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Inputscaling::compu
 	ROS_DEBUG("velocity_measured: x=%f, y=%f, z=%f", velocity_measured.linear.x,
 				velocity_measured.linear.y, velocity_measured.linear.z);
 
-	// goal test
-	if (reachedGoal(pose)) {
-		path_->switchToNextSubPath();
-		// check if we reached the actual goal or just the end of a subpath
-		if (path_->isDone()) {
-			move_cmd_.setDirection(0.);
-			move_cmd_.setVelocity(0.);
+    double d = RobotController::findOrthogonalProjection();
 
-			*cmd = move_cmd_;
-
-			return RobotController::MoveCommandStatus::REACHED_GOAL;
-
-		} else {
-
-			ROS_INFO("Next subpath...");
-			// interpolate the next subpath
-            path_interpol.interpolatePath(path_);
-
-			setDirSign(-getDirSign());
-		}
-	}
-
-	// compute the length of the orthogonal projection and the according path index
-	double min_dist = std::numeric_limits<double>::max();
-
-	for (unsigned int i = 0; i < path_interpol.n(); ++i) {
-		const double dx = path_interpol.p(i) - pose[0];
-		const double dy = path_interpol.q(i) - pose[1];
-
-		const double dist = hypot(dx, dy);
-		if (dist < min_dist) {
-			min_dist = dist;
-			ind_ = i;
-		}
-	}
+    if(RobotController::isGoalReached(cmd)){
+       return RobotController::MoveCommandStatus::REACHED_GOAL;
+    }
 
 	// draw a line to the orthogonal projection
 	geometry_msgs::Point from, to;
-	from.x = pose[0]; from.y = pose[1];
-	to.x = path_interpol.p(ind_); to.y = path_interpol.q(ind_);
+    from.x = pose[0]; from.y = pose[1];
+    to.x = path_interpol.p(proj_ind_); to.y = path_interpol.q(proj_ind_);
     visualizer_->drawLine(12341234, from, to, getFixedFrame(), "Inputscaling", 1, 0, 0, 1, 0.01);
 
-
-	// distance to the path (path to the right -> positive)
-	Eigen::Vector2d path_vehicle(pose[0] - path_interpol.p(ind_), pose[1] - path_interpol.q(ind_));
-
-	double d =
-			MathHelper::AngleDelta(MathHelper::Angle(path_vehicle), path_interpol.theta_p(ind_)) < 0. ?
-				min_dist : -min_dist;
-
-
 	// theta_e = theta_vehicle - theta_path (orientation error)
-	double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), pose[2]);
+    double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), pose[2]);
 
 	// if dir_sign is negative we drive backwards and set theta_e to the complementary angle
-	if (getDirSign() < 0.) {
-		d = -d;
+    if (getDirSign() < 0.) {
+        d = -d;
 		setTuningParameters(params_.k_backward());
-		theta_e = theta_e > 0.? M_PI - theta_e : -M_PI - theta_e;
+        theta_e = theta_e > 0.? M_PI - theta_e : -M_PI - theta_e;
 	} else {
 		setTuningParameters(params_.k_forward());
 	}
 
 	// curvature and first two derivations
-	const double c = path_interpol.curvature(ind_);
-	const double c_prim = path_interpol.curvature_prim(ind_);
-	const double c_sek = path_interpol.curvature_sek(ind_);
+    const double c = path_interpol.curvature(proj_ind_);
+    const double c_prim = path_interpol.curvature_prim(proj_ind_);
+    const double c_sek = path_interpol.curvature_sek(proj_ind_);
 
 	// 1 - dc(s)
 	const double _1_dc = 1. - d * c;
@@ -221,9 +181,9 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Inputscaling::compu
 	// TODO: use measured velocity
 	const double u1 = velocity_ * cos_theta_e / _1_dc;
 	const double u2 =
-			- k1_ * u1 * x4
-			- k2_ * u1 * x3
-			- k3_ * u1 * x2;
+            - k1_ * u1 * x4
+            - k2_ * u1 * x3
+            - k3_ * u1 * x2;
 
 	// derivations of x2 (for alpha1)
 	const double dx2_dd = -c_prim * tan_theta_e

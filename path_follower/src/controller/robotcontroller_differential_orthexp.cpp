@@ -102,8 +102,6 @@ void RobotController_Differential_OrthogonalExponential::start()
 
 }
 
-
-
 RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExponential::computeMoveCommand(MoveCommand *cmd)
 {
     // omni drive can rotate.
@@ -124,33 +122,15 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
     double theta_meas = current_pose[2];
     //***//
 
-    //find the orthogonal projection to the curve and extract the corresponding index
+    double orth_proj = RobotController::findOrthogonalProjection();
 
-    double dist = 0;
-    int ind = 0;
-    double orth_proj = std::numeric_limits<double>::max();
-    double dx = 0.0;
-    double dy = 0.0;
-
-    for (unsigned int i = 0; i < path_interpol.n(); i++){
-
-        dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
-        if(dist < orth_proj){
-
-            orth_proj = dist;
-            ind = i;
-
-            dx = x_meas - path_interpol.p(ind);
-            dy = y_meas - path_interpol.q(ind);
-
-        }
-
+    if(RobotController::isGoalReached(cmd)){
+       return RobotController::MoveCommandStatus::REACHED_GOAL;
     }
-    //***//
 
     //find the slope of the desired path, and plot a vector from the robot to the current point on the path
 
-    double theta_p = path_interpol.theta_p(ind);
+    double theta_p = path_interpol.theta_p(proj_ind_);
 
     visualization_msgs::Marker marker;
     marker.ns = "orthexp";
@@ -170,8 +150,8 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
     geometry_msgs::Point from, to;
     from.x = x_meas;
     from.y = y_meas;
-    to.x = path_interpol.p(ind);
-    to.y = path_interpol.q(ind);
+    to.x = path_interpol.p(proj_ind_);
+    to.y = path_interpol.q(proj_ind_);
 
     marker.points.push_back(from);
     marker.points.push_back(to);
@@ -179,21 +159,6 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
     visualizer_->getMarkerPublisher().publish(marker);
 
     //***//
-
-    //determine the sign of the orthogonal distance
-    Eigen::Vector2d path2vehicle_vec(dx, dy);
-    double path2vehicle_angle = MathHelper::Angle(path2vehicle_vec);
-    double theta_diff = MathHelper::AngleDelta(theta_p, path2vehicle_angle);
-
-    if( theta_diff < 0 && theta_diff >= -M_PI){
-
-        orth_proj = -fabs(orth_proj);
-
-    }else{
-        orth_proj = fabs(orth_proj);
-    }
-
-    //****//
 
 
     //check the "look-at" point, and calculate the rotation control
@@ -220,14 +185,11 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
 
     //Calculate the look-ahead curvature
 
-    /*uint look_ahead_index;
-    double look_ahead_difference = std::numeric_limits<double>::max();*/
-
     double look_ahead_cum_sum = 0;
     curv_sum_ = 1e-10;
 
 
-    for (unsigned int i = ind + 1; i < path_interpol.n(); i++){
+    for (unsigned int i = proj_ind_ + 1; i < path_interpol.n(); i++){
 
         look_ahead_cum_sum += hypot(path_interpol.p(i) - path_interpol.p(i-1), path_interpol.q(i) - path_interpol.q(i-1));
         curv_sum_ += fabs(path_interpol.curvature(i));
@@ -240,7 +202,7 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
 
     double cum_sum_to_goal = 0;
 
-    for(unsigned int i = ind + 1; i < path_interpol.n(); i++){
+    for(unsigned int i = proj_ind_ + 1; i < path_interpol.n(); i++){
 
         cum_sum_to_goal += hypot(path_interpol.p(i) - path_interpol.p(i-1), path_interpol.q(i) - path_interpol.q(i-1));
 
@@ -289,14 +251,10 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
     double distance_to_goal = hypot(x_meas - path_interpol.p(path_interpol.n()-1), y_meas - path_interpol.q(path_interpol.n()-1));
     ROS_WARN_THROTTLE(1, "distance to goal: %f", distance_to_goal);
 
+    *cmd = cmd_;
 
-    if(distance_to_goal <= opt_.goal_tolerance()) {
-        return MoveCommandStatus::REACHED_GOAL;
-    } else {
-        *cmd = cmd_;
+    return MoveCommandStatus::OKAY;
 
-        return MoveCommandStatus::OKAY;
-    }
 }
 
 void RobotController_Differential_OrthogonalExponential::publishMoveCommand(const MoveCommand &cmd) const

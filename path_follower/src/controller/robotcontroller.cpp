@@ -77,11 +77,15 @@ void RobotController::computeMovingDirection()
 void RobotController::initialize()
 {
     interpolated_ = true;
+    //reset the index of the orthogonal projection
+    proj_ind_ = 0;
 }
 
 void RobotController::reset()
 {
     interpolated_ = false;
+    //reset the index of the orthogonal projection
+    proj_ind_ = 0;
 }
 
 void RobotController::publishInterpolatedPath()
@@ -123,7 +127,7 @@ void RobotController::setPath(Path::Ptr path)
     }
 
     //reset the index of the orthogonal projection
-    //proj_ind_ = 0;
+    proj_ind_ = 0;
 
 }
 
@@ -180,6 +184,96 @@ void RobotController::publishPathMarker()
     points_pub_.publish(robot_path_marker_);
 }
 
+double RobotController::findOrthogonalProjection()
+{
+    //find the orthogonal projection to the curve and extract the corresponding index
+
+    Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
+    double x_meas = current_pose[0];
+    double y_meas = current_pose[1];
+
+    double dist = 0;
+    double orth_proj = std::numeric_limits<double>::max();
+    double dx = 0.0;
+    double dy = 0.0;
+    //this is a trick for closed paths
+    int old_ind = proj_ind_;
+
+    for (unsigned int i = proj_ind_; i < path_interpol.n(); i++){
+
+        dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
+        if((dist < orth_proj) & (i - old_ind >= 0) & (i - old_ind <= 3)){
+
+            orth_proj = dist;
+            proj_ind_ = i;
+
+            dx = x_meas - path_interpol.p(proj_ind_);
+            dy = y_meas - path_interpol.q(proj_ind_);
+
+        }
+    }
+
+    //determine the sign of the orthogonal distance
+    Eigen::Vector2d path2vehicle_vec(dx, dy);
+    double path2vehicle_angle = MathHelper::Angle(path2vehicle_vec);
+    double theta_diff = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), path2vehicle_angle);
+
+    if( theta_diff < 0 && theta_diff >= -M_PI){
+
+        orth_proj = -fabs(orth_proj);
+
+    }else{
+        orth_proj = fabs(orth_proj);
+    }
+
+    return orth_proj;
+    //***//
+}
+
+
+bool RobotController::isGoalReached(MoveCommand *cmd)
+{
+    Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
+    double x_meas = current_pose[0];
+    double y_meas = current_pose[1];
+
+    // check for the subpaths, and see if the goal is reached
+    if(proj_ind_ == path_interpol.n()-1) {
+        path_->switchToNextSubPath();
+        // check if we reached the actual goal or just the end of a subpath
+        if (path_->isDone()) {
+
+            MoveCommand cmd_stop;
+            cmd_stop.setVelocity(0.0);
+            cmd_stop.setDirection(0.0);
+            cmd_stop.setRotationalVelocity(0.0);
+
+            *cmd = cmd_stop;
+
+            double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
+                                                 y_meas - path_interpol.q(path_interpol.n()-1));
+
+            ROS_INFO_THROTTLE(1, "Final positioning error: %f m", distance_to_goal_eucl);
+            return true;
+
+        } else {
+            //reset the orthogonal projection
+            proj_ind_ = 0;
+
+            ROS_INFO("Next subpath...");
+            // interpolate the next subpath
+            path_interpol.interpolatePath(path_);
+            publishInterpolatedPath();
+
+            // recompute the driving direction
+            computeMovingDirection();
+
+            return false;
+        }
+    }
+    return false;
+}
+
 RobotController::ControlStatus RobotController::execute()
 {
     if(!path_) {
@@ -190,6 +284,7 @@ RobotController::ControlStatus RobotController::execute()
 
     MoveCommand cmd;
     MoveCommandStatus status = computeMoveCommand(&cmd);
+
 
     if (status != MoveCommandStatus::OKAY) {
         stopMotion();

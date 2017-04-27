@@ -27,7 +27,6 @@ RobotController_Potential_Field::RobotController_Potential_Field():
     FResX(0.0),
     FResY(0.0),
     vn_(0.0),
-    proj_ind_(0),
     xe_(0.0),
     ye_(0.0),
     theta_e_(0.0),
@@ -353,94 +352,11 @@ RobotController::MoveCommandStatus RobotController_Potential_Field::computeMoveC
         return MoveCommandStatus::REACHED_GOAL;
     }
 
+    double orth_proj = RobotController::findOrthogonalProjection();
 
-    /// get the pose as pose(0) = x, pose(1) = y, pose(2) = theta
-    Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
-
-    const geometry_msgs::Twist v_meas_twist = pose_tracker_->getVelocity();
-
-    double v_meas = getDirSign() * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
-                                        + v_meas_twist.linear.y * v_meas_twist.linear.y);
-
-    double x_meas_ = current_pose[0];
-    double y_meas_ = current_pose[1];
-    double theta_meas_ = current_pose[2];
-    ///***///
-
-
-    // check for the subpaths, and see if the goal is reached
-    if((proj_ind_ == path_interpol.n()-1) & (xe_ > 0.0)) {
-        path_->switchToNextSubPath();
-        // check if we reached the actual goal or just the end of a subpath
-        if (path_->isDone()) {
-
-            cmd_.speed = 0;
-            cmd_.direction_angle = 0;
-            cmd_.rotation = 0;
-
-            *cmd = cmd_;
-
-            double distance_to_goal_eucl = hypot(x_meas_ - path_interpol.p(path_interpol.n()-1),
-                                                 y_meas_ - path_interpol.q(path_interpol.n()-1));
-
-            ROS_INFO_THROTTLE(1, "Final positioning error: %f m", distance_to_goal_eucl);
-
-            return RobotController::MoveCommandStatus::REACHED_GOAL;
-
-        } else {
-            //reset the Frenet-Serret frame
-            proj_ind_ = 0;
-
-            ROS_INFO("Next subpath...");
-            // interpolate the next subpath
-            path_interpol.interpolatePath(path_);
-            publishInterpolatedPath();
-
-            // recalculate the driving direction
-            //calculateMovingDirection();
-        }
+    if(RobotController::isGoalReached(cmd)){
+       return RobotController::MoveCommandStatus::REACHED_GOAL;
     }
-
-    //find the orthogonal projection to the curve and extract the corresponding index
-
-    double dist = 0;
-    double orth_proj = std::numeric_limits<double>::max();
-
-    //quick solution for closed paths
-    int old_ind = proj_ind_;
-
-    for (unsigned int i = proj_ind_; i < path_interpol.n(); i++){
-
-        dist = hypot(x_meas_ - path_interpol.p(i), y_meas_ - path_interpol.q(i));
-        if(dist < orth_proj && std::abs(i - old_ind) < 50){
-
-            orth_proj = dist;
-            proj_ind_ = i;
-
-        }
-
-    }
-    //***//
-
-    ///calculate the control for the current point on the path
-
-    //robot direction angle in path coordinates
-    theta_e_ = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), theta_meas_);
-
-    //robot position vector module
-    double r = hypot(x_meas_ - path_interpol.p(proj_ind_), y_meas_ - path_interpol.q(proj_ind_));
-
-    //robot position vector angle in world coordinates
-    double theta_r = atan2(y_meas_ - path_interpol.q(proj_ind_), x_meas_ - path_interpol.p(proj_ind_));
-
-    //robot position vector angle in path coordinates
-    double delta_theta = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), theta_r);
-
-    //current robot position in path coordinates
-    xe_ = r * cos(delta_theta);
-    ye_ = r * sin(delta_theta);
-
-    ///***///
 
     // update markers put them in the MarkerArray to publish them
     FMarkers.markers.clear();

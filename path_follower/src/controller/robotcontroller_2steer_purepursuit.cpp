@@ -77,29 +77,11 @@ RobotController::MoveCommandStatus RobotController_2Steer_PurePursuit::computeMo
     const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
     const geometry_msgs::Twist velocity_measured = pose_tracker_->getVelocity();
 
-    if (reachedGoal(pose)) {
-        path_->switchToNextSubPath();
-        if (path_->isDone()) {
-            move_cmd_.setDirection(0.);
-            move_cmd_.setVelocity(0.);
+    double d = RobotController::findOrthogonalProjection();
 
-            *cmd = move_cmd_;
-
-            return RobotController::MoveCommandStatus::REACHED_GOAL;
-
-        } else {
-
-            ROS_INFO("Next subpath...");
-
-            path_interpol.interpolatePath(path_);
-            // publishInterpolatedPath();
-
-            // invert the driving direction and reset the waypoint
-            waypoint_ = 0;
-            setDirSign(-getDirSign());
-        }
+    if(RobotController::isGoalReached(cmd)){
+       return RobotController::MoveCommandStatus::REACHED_GOAL;
     }
-
 
     const double v = velocity_measured.linear.x;
     double l_ah = v * (getDirSign() > 0.? params_.k_forward() : params_.k_backward());
@@ -121,32 +103,14 @@ RobotController::MoveCommandStatus RobotController_2Steer_PurePursuit::computeMo
     *cmd = move_cmd_;
 
 #ifdef TEST_OUTPUT
-    double min_dist = std::numeric_limits<double>::max();
-    unsigned int ind = 0;
-    for (unsigned int i = 0; i < path_interpol.n(); ++i) {
-        const double dx = path_interpol.p(i) - pose[0];
-        const double dy = path_interpol.q(i) - pose[1];
-
-        const double dist = hypot(dx, dy);
-        if (dist < min_dist) {
-            min_dist = dist;
-            ind = i;
-        }
-    }
-
-    Eigen::Vector2d path_vehicle(pose[0] - path_interpol.p(ind), pose[1] - path_interpol.q(ind));
-    double d =
-            MathHelper::AngleDelta(MathHelper::Angle(path_vehicle), path_interpol.theta_p(ind)) < 0. ?
-                -min_dist : min_dist;
-
-    double theta_e = MathHelper::AngleDelta(pose[2], path_interpol.theta_p(ind));
+    double theta_e = MathHelper::AngleDelta(pose[2], path_interpol.theta_p(proj_ind_));
 
     if (getDirSign() < 0.) {
         d = -d;
         theta_e = theta_e > 0.? M_PI - theta_e : -M_PI - theta_e;
     }
 
-    publishTestOutput(ind, d, theta_e, phi, v);
+    publishTestOutput(proj_ind_, d, theta_e, phi, v);
 #endif
 
     return RobotController::MoveCommandStatus::OKAY;

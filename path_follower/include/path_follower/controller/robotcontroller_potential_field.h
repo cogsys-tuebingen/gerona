@@ -47,8 +47,6 @@ protected:
     double FResX, FResY;
     // nominal robot velocity
     double vn_;
-    // index of the orthogonal projection
-    unsigned int proj_ind_;
     // error coordinates
     double xe_, ye_, theta_e_;
 

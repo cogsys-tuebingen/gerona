@@ -66,9 +66,6 @@ void RobotController_Dynamic_SLP::initialize()
     //reset the index of the current point on the path
     ind_ = 0;
 
-    //reset the index of the orthogonal projection
-    proj_ind_ = 0;
-
     // desired velocity
     vn_ = std::min(global_opt_->max_velocity(), velocity_);
     ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
@@ -117,57 +114,11 @@ RobotController::MoveCommandStatus RobotController_Dynamic_SLP::computeMoveComma
     double theta_meas = current_pose[2];
     ///***///
 
+    double orth_proj = RobotController::findOrthogonalProjection();
 
-    // check for the subpaths, and see if the goal is reached
-    if((ind_ == path_interpol.n()-1) & (xe_ > 0.0)) {
-        path_->switchToNextSubPath();
-        // check if we reached the actual goal or just the end of a subpath
-        if (path_->isDone()) {
-
-            cmd_.tau_fl = 0;
-            cmd_.tau_fr = 0;
-            cmd_.tau_br = 0;
-            cmd_.tau_bl = 0;
-            *cmd = cmd_;
-
-            double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
-                                          y_meas - path_interpol.q(path_interpol.n()-1));
-
-            ROS_INFO_THROTTLE(1, "Final positioning error: %f m", distance_to_goal_eucl);
-
-            return RobotController::MoveCommandStatus::REACHED_GOAL;
-
-        } else {
-
-            ROS_INFO("Next subpath...");
-            // interpolate the next subpath
-            path_interpol.interpolatePath(path_);
-            publishInterpolatedPath();
-
-            // recalculate the driving direction
-            //calculateMovingDirection();
-        }
+    if(RobotController::isGoalReached(cmd)){
+       return RobotController::MoveCommandStatus::REACHED_GOAL;
     }
-
-
-    //find the orthogonal projection to the curve and extract the corresponding index
-
-    double dist = 0;
-    double orth_proj = std::numeric_limits<double>::max();
-
-    for (unsigned int i = proj_ind_; i < path_interpol.n(); i++){
-
-        dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
-        if(dist < orth_proj){
-
-            orth_proj = dist;
-            proj_ind_ = i;
-
-        }
-
-    }
-    //***//
-
 
     ///calculate the error coordinates for the current point on the path
 

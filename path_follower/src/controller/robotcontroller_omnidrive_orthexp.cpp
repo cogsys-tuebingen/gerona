@@ -130,34 +130,15 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     double theta_meas = current_pose[2];
     //***//
 
+    double orth_proj = RobotController::findOrthogonalProjection();
 
-    //find the orthogonal projection to the curve and extract the corresponding index
-
-    double dist = 0;
-    int ind = 0;
-    double orth_proj = std::numeric_limits<double>::max();
-    double dx = 0.0;
-    double dy = 0.0;
-
-    for (unsigned int i = 0; i < path_interpol.n(); i++){
-
-        dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
-        if(dist < orth_proj){
-
-            orth_proj = dist;
-            ind = i;
-
-            dx = x_meas - path_interpol.p(ind);
-            dy = y_meas - path_interpol.q(ind);
-
-        }
-
+    if(RobotController::isGoalReached(cmd)){
+       return RobotController::MoveCommandStatus::REACHED_GOAL;
     }
-    //***//
 
     //find the slope of the desired path, and plot a vector from the robot to the current point on the path
 
-    double theta_p = path_interpol.theta_p(ind);
+    double theta_p = path_interpol.theta_p(proj_ind_);
 
     visualization_msgs::Marker marker;
     marker.ns = "orthexp";
@@ -177,8 +158,8 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     geometry_msgs::Point from, to;
     from.x = x_meas;
     from.y = y_meas;
-    to.x = path_interpol.p(ind);
-    to.y = path_interpol.q(ind);
+    to.x = path_interpol.p(proj_ind_);
+    to.y = path_interpol.q(proj_ind_);
 
     marker.points.push_back(from);
     marker.points.push_back(to);
@@ -186,21 +167,6 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     visualizer_->getMarkerPublisher().publish(marker);
 
     //***//
-
-    //determine the sign of the orthogonal distance
-    Eigen::Vector2d path2vehicle_vec(dx, dy);
-    double path2vehicle_angle = MathHelper::Angle(path2vehicle_vec);
-    double theta_diff = MathHelper::AngleDelta(theta_p, path2vehicle_angle);
-
-    if( theta_diff < 0 && theta_diff >= -M_PI){
-
-        orth_proj = -fabs(orth_proj);
-
-    }else{
-        orth_proj = fabs(orth_proj);
-    }
-
-    //****//
 
 
     //check the "look-at" point, and calculate the rotation control
@@ -213,7 +179,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
         // do nothing
         break;
     case LookInDrivingDirection:
-        theta_des_ = cmd_.direction_angle + current_pose[2];//std::atan2(q[ind+1] - y_meas, p[ind+1] - x_meas);
+        theta_des_ = cmd_.direction_angle + current_pose[2];
         break;
     case Rotate:
         theta_des_ += 0.01;
@@ -236,9 +202,9 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     double s_cum_sum = 0;
     curv_sum_ = 1e-10;
 
-    for (unsigned int i = ind + 1; i < path_interpol.n(); i++){
+    for (unsigned int i = proj_ind_ + 1; i < path_interpol.n(); i++){
 
-        s_cum_sum = path_interpol.s(i) - path_interpol.s(ind);
+        s_cum_sum = path_interpol.s(i) - path_interpol.s(proj_ind_);
         curv_sum_ += std::abs(path_interpol.curvature(i));
 
         if(s_cum_sum - opt_.look_ahead_dist() >= 0){
@@ -248,7 +214,7 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 
     double cum_sum_to_goal = 0;
 
-    for(unsigned int i = ind + 1; i < path_interpol.n(); i++){
+    for(unsigned int i = proj_ind_ + 1; i < path_interpol.n(); i++){
 
         cum_sum_to_goal += hypot(path_interpol.p(i) - path_interpol.p(i-1), path_interpol.q(i) - path_interpol.q(i-1));
 
@@ -315,14 +281,11 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
     double distance_to_goal = hypot(x_meas - path_interpol.p(path_interpol.n()-1), y_meas - path_interpol.q(path_interpol.n()-1));
     ROS_WARN_THROTTLE_NAMED(1, MODULE, "distance to goal: %f", distance_to_goal);
 
-    if(distance_to_goal <= global_opt_->goal_tolerance()) {
-        return MoveCommandStatus::REACHED_GOAL;
-    } else {
-        // Quickfix: simply convert omnidrive command to move command
-        *cmd = cmd_;
 
-        return MoveCommandStatus::OKAY;
-    }
+    *cmd = cmd_;
+
+    return MoveCommandStatus::OKAY;
+
 }
 
 void RobotController_Omnidrive_OrthogonalExponential::publishMoveCommand(const MoveCommand &cmd) const
