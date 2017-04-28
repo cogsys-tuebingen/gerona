@@ -20,7 +20,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_Ackermann_OrthogonalExponential, ackermann_orthexp);
+REGISTER_ROBOT_CONTROLLER(RobotController_Ackermann_OrthogonalExponential, ackermann_orthexp, ackermann);
 
 using namespace Eigen;
 

@@ -4,23 +4,7 @@
 #include <path_follower/pathfollower.h>
 
 // Controller/Models
-#include <path_follower/controller/robotcontroller_ICR_CCW.h>
-#include <path_follower/controller/robotcontroller_ackermann_orthexp.h>
-#include <path_follower/controller/robotcontroller_ackermann_purepursuit.h>
-#include <path_follower/controller/robotcontroller_ackermann_inputscaling.h>
-#include <path_follower/controller/robotcontroller_ackermann_stanley.h>
-#include <path_follower/controller/robotcontroller_2steer_purepursuit.h>
-#include <path_follower/controller/robotcontroller_2steer_stanley.h>
-#include <path_follower/controller/robotcontroller_2steer_inputscaling.h>
-#include <path_follower/controller/robotcontroller_unicycle_inputscaling.h>
-#include <path_follower/controller/robotcontroller_omnidrive_orthexp.h>
-#include <path_follower/controller/robotcontroller_differential_orthexp.h>
-#include <path_follower/controller/robotcontroller_kinematic_SLP.h>
-#include <path_follower/controller/robotcontroller_dynamic_SLP.h>
-#include <path_follower/controller/robotcontroller_potential_field.h>
-#include <path_follower/controller/robotcontroller_potential_field_TT.h>
-#include <path_follower/controller/robotcontroller_dynamic_window.h>
-#include <path_follower/controller/robotcontroller_OFC.h>
+#include <path_follower/controller/robotcontroller.h>
 
 #include <path_follower/obstacle_avoidance/noneavoider.hpp>
 #include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
@@ -45,6 +29,7 @@
 #include <stdexcept>
 
 std::map<std::string, std::function<std::shared_ptr<RobotController>()>> ControllerFactory::controller_constructors_;
+std::map<std::string, std::string> ControllerFactory::default_collision_detectors_;
 
 ControllerFactory::ControllerFactory(PathFollower &follower)
     : follower_(follower), opt_(follower.getOptions()), pose_tracker_(follower.getPoseTracker()),
@@ -58,12 +43,22 @@ std::shared_ptr<PathFollowerConfig> ControllerFactory::construct(const PathFollo
 {
     ROS_ASSERT_MSG(!config.controller.empty(), "No controller specified");
     ROS_ASSERT_MSG(!config.local_planner.empty(), "No local planner specified");
-    ROS_ASSERT_MSG(!config.obstacle_avoider.empty(), "No obstacle avoider specified");
+    //ROS_ASSERT_MSG(!config.obstacle_avoider.empty(), "No obstacle avoider specified");
 
     PathFollowerConfig result;
     result.controller_ = makeController(config.controller);
     result.local_planner_ = makeConstrainedLocalPlanner(config.local_planner);
-    result.obstacle_avoider_ = makeObstacleAvoider(config.obstacle_avoider);
+
+    std::string obstacle_avoider = config.obstacle_avoider;
+    if(obstacle_avoider.empty()) {
+        auto key = default_collision_detectors_.find(config.controller);
+        if(key != default_collision_detectors_.end()) {
+            obstacle_avoider = key->second;
+        }
+
+        ROS_ASSERT_MSG(!obstacle_avoider.empty(), "No obstacle avoider specified");
+    }
+    result.obstacle_avoider_ = makeObstacleAvoider(obstacle_avoider);
 
     ROS_ASSERT_MSG(result.controller_ != nullptr, "Controller was not set");
     ROS_ASSERT_MSG(result.local_planner_ != nullptr, "Local Planner was not set");
@@ -82,6 +77,10 @@ std::shared_ptr<PathFollowerConfig> ControllerFactory::construct(const PathFollo
     result.local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.adis(),
                                      opt_.fdis(),opt_.s_angle(), opt_.ia(), opt_.lmf(),
                                      opt_.depth(), opt_.mu(), opt_.ef());
+
+    ROS_INFO_STREAM("using follower configuration:\n- controller: " << config.controller <<
+                    "\n- avoider: " << typeid(*result.obstacle_avoider_).name() <<
+                    "\n- local planner: " << config.local_planner);
 
     return std::make_shared<PathFollowerConfig>(result);
 }
@@ -237,59 +236,15 @@ std::shared_ptr<LocalPlanner> ControllerFactory::makeLocalPlanner(const std::str
 
 std::shared_ptr<ObstacleAvoider> ControllerFactory::makeObstacleAvoider(const std::string &name)
 {
-    if (opt_.obstacle_avoider_use_collision_box()) {
+    if(name == "default_collision_avoider") {
+        return std::make_shared<ObstacleDetectorOmnidrive>();
+    } else {
         if (name == "omnidive") {
             return std::make_shared<ObstacleDetectorOmnidrive>();
         } else if (name == "ackermann") {
             return std::make_shared<ObstacleDetectorAckermann>();
-
-        } else if (name == "ackermann_pid") {
-            return std::make_shared<ObstacleDetectorAckermann>();
-
-        } else if (name == "ackermann_purepursuit") {
-            return std::make_shared<ObstacleDetectorAckermann>();
-
-        } else if (name == "ackermann_inputscaling") {
-            return std::make_shared<ObstacleDetectorAckermann>();
-
-        } else if (name == "ackermann_stanley") {
-            return std::make_shared<ObstacleDetectorAckermann>();
-
-        } else if (name == "2steer_purepursuit") {
-            return std::make_shared<ObstacleDetectorAckermann>();
-
-        } else if (name == "2steer_stanley") {
-            return std::make_shared<ObstacleDetectorAckermann>();
-
-        } else if (name == "2steer_inputscaling") {
-            return std::make_shared<ObstacleDetectorAckermann>();
-
-        } else if (name == "unicycle_inputscaling") {
-            return std::make_shared<ObstacleDetectorAckermann>();
-
-        } else if (name == "omnidrive_orthexp") {
-            return std::make_shared<ObstacleDetectorOmnidrive>();
-
-        } else if (name == "ackermann_orthexp") {
-            return std::make_shared<ObstacleDetectorOmnidrive>();
-
-        } else if (name == "differential_orthexp") {
-            return std::make_shared<ObstacleDetectorOmnidrive>();
-
-        } else if (name == "kinematic_SLP") {
-            return std::make_shared<ObstacleDetectorAckermann>();
-
-        } else if (name == "dynamic_SLP") {
-            return std::make_shared<ObstacleDetectorAckermann>();
-
-        } else if (name == "ICR_CCW") {
-            return std::make_shared<ObstacleDetectorAckermann>();
-
-        } else {
-            ROS_WARN_STREAM("No CollisionAvoider defined for robot controller: " << name << ". Defaulting to AckermannDetector.");
-            return std::make_shared<ObstacleDetectorAckermann>();
         }
     }
-    //  if no obstacle avoider was set, use the none-avoider
-    return std::make_shared<NoneAvoider>();
+    ROS_WARN_STREAM("No CollisionAvoider defined with the name '" << name << "'. Defaulting to Omnidrive.");
+    return std::make_shared<ObstacleDetectorOmnidrive>();
 }

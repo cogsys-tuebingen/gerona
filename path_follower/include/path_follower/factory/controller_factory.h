@@ -30,11 +30,12 @@ public:
     std::shared_ptr<PathFollowerConfig> construct(const PathFollowerConfigName &config);
 
     template <typename Controller>
-    static void registerController(const std::string& type)
+    static void registerController(const std::string& type, const std::string& collision_detector)
     {
         controller_constructors_.emplace(toLower(type), [](){
             return std::make_shared<Controller>();
         });
+        default_collision_detectors_[type] = collision_detector;
     }
 
 private:
@@ -53,6 +54,8 @@ private:
 
     pluginlib::ClassLoader<RobotController> controller_loader;
     static std::map<std::string, std::function<std::shared_ptr<RobotController>()>> controller_constructors_;
+
+    static std::map<std::string, std::string> default_collision_detectors_;
 };
 
 
@@ -61,13 +64,13 @@ template <typename Controller>
 class ControllerFactoryRegistration
 {
 public:
-    ControllerFactoryRegistration(const std::string& type)
+    ControllerFactoryRegistration(const std::string& type, const std::string& collision_detector)
     {
-        ControllerFactory::registerController<Controller>(type);
+        ControllerFactory::registerController<Controller>(type, collision_detector);
     }
 };
 
-#define REGISTER_ROBOT_CONTROLLER(class_t, type) \
-ControllerFactoryRegistration<class_t> register_##type(#type)
+#define REGISTER_ROBOT_CONTROLLER(class_t, type, collision_detector) \
+ControllerFactoryRegistration<class_t> register_##type(#type, #collision_detector)
 
 #endif // CONTROLLER_FACTORY_H

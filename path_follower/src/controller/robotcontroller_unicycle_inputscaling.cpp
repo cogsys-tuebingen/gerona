@@ -23,7 +23,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_Unicycle_InputScaling, unicycle_inputscaling);
+REGISTER_ROBOT_CONTROLLER(RobotController_Unicycle_InputScaling, unicycle_inputscaling, default_collision_avoider);
 
 RobotController_Unicycle_InputScaling::RobotController_Unicycle_InputScaling() :
     RobotController(),

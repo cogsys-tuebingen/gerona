@@ -25,7 +25,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_2Steer_PurePursuit, 2steer_purepursuit);
+REGISTER_ROBOT_CONTROLLER(RobotController_2Steer_PurePursuit, 2steer_purepursuit, default_collision_avoider);
 
 using namespace std;
 using namespace Eigen;

@@ -22,7 +22,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(Robotcontroller_Ackermann_PurePursuit, ackermann_purepursuit);
+REGISTER_ROBOT_CONTROLLER(Robotcontroller_Ackermann_PurePursuit, ackermann_purepursuit, ackermann);
 
 Robotcontroller_Ackermann_PurePursuit::Robotcontroller_Ackermann_PurePursuit () :
     RobotController(),

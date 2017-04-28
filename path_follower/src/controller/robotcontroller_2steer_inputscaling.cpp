@@ -25,7 +25,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_2Steer_InputScaling, 2steer_inputscaling);
+REGISTER_ROBOT_CONTROLLER(RobotController_2Steer_InputScaling, 2steer_inputscaling, default_collision_avoider);
 
 RobotController_2Steer_InputScaling::RobotController_2Steer_InputScaling() :
     RobotController(),

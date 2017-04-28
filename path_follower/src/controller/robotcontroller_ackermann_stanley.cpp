@@ -19,7 +19,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_Ackermann_Stanley, ackermann_stanley);
+REGISTER_ROBOT_CONTROLLER(RobotController_Ackermann_Stanley, ackermann_stanley, ackermann);
 
 RobotController_Ackermann_Stanley::RobotController_Ackermann_Stanley():
     RobotController()

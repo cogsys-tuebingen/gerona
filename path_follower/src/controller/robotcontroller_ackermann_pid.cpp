@@ -8,7 +8,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_Ackermann_Pid, ackermann_pid);
+REGISTER_ROBOT_CONTROLLER(RobotController_Ackermann_Pid, ackermann_pid, ackermann);
 
 using namespace std;
 using namespace Eigen;

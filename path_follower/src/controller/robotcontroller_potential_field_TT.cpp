@@ -17,7 +17,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_Potential_Field_TT, potential_field_TT);
+REGISTER_ROBOT_CONTROLLER(RobotController_Potential_Field_TT, potential_field_TT, default_collision_avoider);
 
 RobotController_Potential_Field_TT::RobotController_Potential_Field_TT():
     RobotController_Potential_Field()

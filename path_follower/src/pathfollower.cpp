@@ -385,13 +385,8 @@ PathFollowerConfigName PathFollower::goalToConfig(const FollowPathGoal &goal) co
     if(config.obstacle_avoider.empty()) {
         config.obstacle_avoider = opt_.obstacle_avoider();
     }
-    if(config.obstacle_avoider.empty()) {
-        config.obstacle_avoider = opt_.controller();
-    }
     ROS_ASSERT_MSG(!config.controller.empty(), "No controller specified");
     ROS_ASSERT_MSG(!config.local_planner.empty(), "No local planner specified");
-    ROS_ASSERT_MSG(!config.obstacle_avoider.empty(), "No obstacle avoider specified");
-
 
     return config;
 }

@@ -19,7 +19,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_Differential_OrthogonalExponential, differential_orthexp);
+REGISTER_ROBOT_CONTROLLER(RobotController_Differential_OrthogonalExponential, differential_orthexp, differential);
 
 using namespace Eigen;
 

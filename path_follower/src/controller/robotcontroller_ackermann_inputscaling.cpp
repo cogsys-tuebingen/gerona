@@ -20,7 +20,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_Ackermann_Inputscaling, ackermann_inputscaling);
+REGISTER_ROBOT_CONTROLLER(RobotController_Ackermann_Inputscaling, ackermann_inputscaling, ackermann);
 
 RobotController_Ackermann_Inputscaling::RobotController_Ackermann_Inputscaling() :
     RobotController(),

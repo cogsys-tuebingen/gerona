@@ -18,7 +18,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_Dynamic_Window, dynamic_window);
+REGISTER_ROBOT_CONTROLLER(RobotController_Dynamic_Window, dynamic_window, default_collision_avoider);
 
 using namespace Eigen;
 using namespace std;

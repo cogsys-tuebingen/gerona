@@ -27,7 +27,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_ICR_CCW, ICR_CCW);
+REGISTER_ROBOT_CONTROLLER(RobotController_ICR_CCW, ICR_CCW, default_collision_avoider);
 
 using namespace Eigen;
 
