@@ -66,9 +66,7 @@ private:
 	MoveCommand move_cmd_;
 
 	//! Tuning parameters
-	double k1_, k2_, k3_;
-    //! Last waypoint index
-	unsigned int ind_;
+    double k1_, k2_, k3_;
 	//! Current steering angle
 	double phi_;
 	//! v1 longitudinal velocity, v2 (steering angle speed)

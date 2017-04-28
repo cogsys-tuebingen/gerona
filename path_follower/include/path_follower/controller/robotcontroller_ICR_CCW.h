@@ -142,7 +142,7 @@ private:
     double Ts_;
 
     //index of the orthogonal projection to the path
-    uint proj_ind_;
+    uint ind_;
 
     //velocity of the left tread
     double Vl_;

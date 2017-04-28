@@ -40,10 +40,6 @@ protected:
 
     // nominal robot velocity
     double vn_;
-    // index of the orthogonal projection
-    unsigned int proj_ind_;
-    // error coordinates
-    double xe_, ye_, theta_e_;
     //time measure for the dwa period
     ros::Time t_old_;
     //velocity commands (newly found velocity pair)

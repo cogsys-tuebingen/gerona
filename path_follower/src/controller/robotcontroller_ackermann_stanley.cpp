@@ -66,71 +66,27 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Stanley::computeMov
 
     const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
 
-	// TODO: theta should also be considered in goal test
-	// goal test
-	if (reachedGoal(pose)) {
-		path_->switchToNextSubPath();
-		// check if we reached the actual goal or just the end of a subpath
-		if (path_->isDone()) {
-			move_cmd_.setDirection(0.);
-			move_cmd_.setVelocity(0.);
+    RobotController::findOrthogonalProjection();
+    double d = -orth_proj_;
 
-			*cmd = move_cmd_;
-
-			return RobotController::MoveCommandStatus::REACHED_GOAL;
-
-		} else {
-
-			ROS_INFO("Next subpath...");
-			// interpolate the next subpath
-            path_interpol.interpolatePath(path_);
-		}
-	}
-
-	// compute the length of the orthogonal projection and the according path index
-	double min_dist = std::numeric_limits<double>::max();
-	unsigned int ind = 0;
-	for (unsigned int i = 0; i < path_interpol.n(); ++i) {
-		const double dx = path_interpol.p(i) - pose[0];
-		const double dy = path_interpol.q(i) - pose[1];
-
-		const double dist = hypot(dx, dy);
-		if (dist < min_dist) {
-			min_dist = dist;
-			ind = i;
-		}
-	}
+    if(RobotController::isGoalReached(cmd)){
+       return RobotController::MoveCommandStatus::REACHED_GOAL;
+    }
 
 	// draw a line to the orthogonal projection
 	geometry_msgs::Point from, to;
 	from.x = pose[0]; from.y = pose[1];
-	to.x = path_interpol.p(ind); to.y = path_interpol.q(ind);
+    to.x = path_interpol.p(proj_ind_); to.y = path_interpol.q(proj_ind_);
     visualizer_->drawLine(12341234, from, to, getFixedFrame(), "kinematic", 1, 0, 0, 1, 0.01);
 
-
-	// distance to the path (path to the right -> positive)
-	Eigen::Vector2d path_vehicle(pose[0] - path_interpol.p(ind), pose[1] - path_interpol.q(ind));
-
-	double d =
-			MathHelper::AngleDelta(MathHelper::Angle(path_vehicle), path_interpol.theta_p(ind)) < 0. ?
-				-min_dist : min_dist;
-
-
 	// theta_e = theta_vehicle - theta_path (orientation error)
-	double theta_e = MathHelper::AngleDelta(pose[2], path_interpol.theta_p(ind));
+    double theta_e = MathHelper::AngleDelta(pose[2], path_interpol.theta_p(proj_ind_));
 
-	// if |theta_e| > 90° we drive backwards
-	if (theta_e > M_PI_2) {
-		setDirSign(-1.f);
-		d = -d;
-		theta_e = M_PI - theta_e;
-	} else if (theta_e < -M_PI_2) {
-		setDirSign(-1.f);
-		d = -d;
-		theta_e = -M_PI - theta_e;
-	} else {
-		setDirSign(1.f);
-	}
+    // if we drive backwards invert d and set theta_e to the complementary angle
+    if (getDirSign() < 0.) {
+        d = -d;
+        theta_e = theta_e > 0.? M_PI - theta_e : -M_PI - theta_e;
+    }
 
 	const double k = getDirSign() > 0. ? params_.k_forward() : params_.k_backward();
 

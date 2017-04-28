@@ -71,34 +71,13 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	Eigen::Vector3d pose = pose_tracker_->getRobotPose();
+    Eigen::Vector3d pose = pose_tracker_->getRobotPose();
 
-	// TODO: theta should also be considered in goal test
-	if (reachedGoal(pose)) {
-		path_->switchToNextSubPath();
-		if (path_->isDone()) {
-			move_cmd_.setDirection(0.);
-			move_cmd_.setVelocity(0.);
+    RobotController::findOrthogonalProjection();
 
-			*cmd = move_cmd_;
-
-#ifdef DEBUG
-			ROS_INFO("Reached goal.");
-#endif
-
-			return RobotController::MoveCommandStatus::REACHED_GOAL;
-
-		} else {
-
-			ROS_INFO("Next subpath...");
-
-            path_interpol.interpolatePath(path_);
-            // publishInterpolatedPath();
-
-			waypoint_ = 0;
-			setDirSign(-getDirSign());
-		}
-	}
+    if(RobotController::isGoalReached(cmd)){
+       return RobotController::MoveCommandStatus::REACHED_GOAL;
+    }
 
 	double lookahead_distance = velocity_;
 	if(getDirSign() >= 0.)
