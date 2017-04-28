@@ -46,17 +46,19 @@ private:
 
 
         SiControllerParameters():
-            pid_ta(this, "~pid/ta", 0.01, "Update interval of the PID controller."),
-            fwd_pid_kp(this, "~fwd/pid/kp", 1.0, "Proportional coefficient of the PID controller."),
-            fwd_pid_ki(this, "~fwd/pid/ki", 0.001, "Integral coefficient of the PID controller."),
-            fwd_pid_kd(this, "~fwd/pid/kd", 0, "Derivative coefficient of the PID controller."),
-            fwd_cap_steer_deg(this, "~fwd/cap_steer_deg", 5.0, "Maximum allowed deviation from precomputed angle."),
-            bwd_pid_kp(this, "~bwd/pid/kp", 1.0, "Proportional coefficient of the PID controller."),
-            bwd_pid_ki(this, "~bwd/pid/ki", 0.001, "Integral coefficient of the PID controller."),
-            bwd_pid_kd(this, "~bwd/pid/kd", 0, "Derivative coefficient of the PID controller."),
-            bwd_cap_steer_deg(this, "~bwd/cap_steer_deg", 5.0, "Maximum allowed deviation from precomputed angle."),
-            weight_dist(this, "~pc_weight_dist", 1.0, "Weight of distance error"),
-            weight_angle(this, "~pc_weight_angle", 1.0, "Weight of angle error"),
+            Parameters("~"),
+
+            pid_ta(this, "pid/ta", 0.01, "Update interval of the PID controller."),
+            fwd_pid_kp(this, "fwd/pid/kp", 1.0, "Proportional coefficient of the PID controller."),
+            fwd_pid_ki(this, "fwd/pid/ki", 0.001, "Integral coefficient of the PID controller."),
+            fwd_pid_kd(this, "fwd/pid/kd", 0, "Derivative coefficient of the PID controller."),
+            fwd_cap_steer_deg(this, "fwd/cap_steer_deg", 5.0, "Maximum allowed deviation from precomputed angle."),
+            bwd_pid_kp(this, "bwd/pid/kp", 1.0, "Proportional coefficient of the PID controller."),
+            bwd_pid_ki(this, "bwd/pid/ki", 0.001, "Integral coefficient of the PID controller."),
+            bwd_pid_kd(this, "bwd/pid/kd", 0, "Derivative coefficient of the PID controller."),
+            bwd_cap_steer_deg(this, "bwd/cap_steer_deg", 5.0, "Maximum allowed deviation from precomputed angle."),
+            weight_dist(this, "pc_weight_dist", 1.0, "Weight of distance error"),
+            weight_angle(this, "pc_weight_angle", 1.0, "Weight of angle error"),
             clip_dist_error(this,"~dist_error_clip",1.0, "Clipping for distance error"),
             clip_angle_error(this,"~angle_error_clip",1.0, "Clipping for angle error")
 

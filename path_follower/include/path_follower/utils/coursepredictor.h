@@ -56,8 +56,10 @@ private:
         P<int> buffer_size;
 
         CoursePredictorParameters():
-            update_interval(this, "~coursepredictor/update_interval", 0.1f, "Update interval (in sec) of the course prediction."),
-            buffer_size(this, "~coursepredictor/buffer_size", 5, "Number of last positions that are kept in the buffer.")
+            Parameters("coursepredictor"),
+
+            update_interval(this, "update_interval", 0.1f, "Update interval (in sec) of the course prediction."),
+            buffer_size(this, "buffer_size", 5, "Number of last positions that are kept in the buffer.")
         {
             if (buffer_size() < 2) {
                 ROS_ERROR("Course Predictor: Buffer size must be at least 2 but is set to %d. Course prediction will not work!",

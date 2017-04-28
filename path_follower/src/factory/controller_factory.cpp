@@ -67,16 +67,19 @@ std::shared_ptr<PathFollowerConfig> ControllerFactory::construct(const PathFollo
     // wiring
     result.collision_avoider_->setTransformListener(&pose_tracker_.getTransformListener());
 
-    ros::Duration uinterval(opt_.uinterval());
+    ros::Duration uinterval(opt_.local_planner.uinterval());
     result.local_planner_->init(result.controller_.get(), &pose_tracker_, uinterval);
 
     result.controller_->init(&pose_tracker_, result.collision_avoider_.get(), &opt_);
 
     pose_tracker_.setLocal(!result.local_planner_->isNull());
 
-    result.local_planner_->setParams(opt_.nnodes(), opt_.ic(), opt_.dis2p(), opt_.adis(),
-                                     opt_.fdis(),opt_.s_angle(), opt_.ia(), opt_.lmf(),
-                                     opt_.depth(), opt_.mu(), opt_.ef());
+    LocalPlannerParameters local = opt_.local_planner;
+    result.local_planner_->setParams(local.nnodes(), local.ic(), local.dis2p(), local.adis(),
+                                     local.fdis(),local.s_angle(), local.ia(), local.lmf(),
+                                     local.depth(), local.mu(), local.ef());
+
+    ROS_WARN_STREAM("nnodes: " << local.nnodes());
 
     ROS_INFO_STREAM("using follower configuration:\n- controller: " << config.controller <<
                     "\n- avoider: " << typeid(*result.collision_avoider_).name() <<
@@ -146,36 +149,36 @@ std::shared_ptr<LocalPlanner> ControllerFactory::makeConstrainedLocalPlanner(con
     std::shared_ptr<LocalPlanner> local_planner = makeLocalPlanner(name);
 
     //Begin Constraints and Scorers Construction
-    if(opt_.c1()){
+    if(opt_.local_planner.c1()){
         local_planner->addConstraint(Dis2Path_Constraint::Ptr(new Dis2Path_Constraint));
     }
 
-    if(opt_.c2()){
+    if(opt_.local_planner.c2()){
         local_planner->addConstraint(Dis2Obst_Constraint::Ptr(new Dis2Obst_Constraint));
     }
 
-    if(opt_.s1() != 0.0){
-        local_planner->addScorer(Dis2PathP_Scorer::Ptr(new Dis2PathP_Scorer), opt_.s1());
+    if(opt_.local_planner.s1() != 0.0){
+        local_planner->addScorer(Dis2PathP_Scorer::Ptr(new Dis2PathP_Scorer), opt_.local_planner.s1());
     }
 
-    if(opt_.s2() != 0.0){
-        local_planner->addScorer(Dis2PathD_Scorer::Ptr(new Dis2PathD_Scorer), opt_.s2());
+    if(opt_.local_planner.s2() != 0.0){
+        local_planner->addScorer(Dis2PathD_Scorer::Ptr(new Dis2PathD_Scorer), opt_.local_planner.s2());
     }
 
-    if(opt_.s3() != 0.0){
-        local_planner->addScorer(Curvature_Scorer::Ptr(new Curvature_Scorer), opt_.s3());
+    if(opt_.local_planner.s3() != 0.0){
+        local_planner->addScorer(Curvature_Scorer::Ptr(new Curvature_Scorer), opt_.local_planner.s3());
     }
 
-    if(opt_.s4() != 0.0){
-        local_planner->addScorer(CurvatureD_Scorer::Ptr(new CurvatureD_Scorer), opt_.s4());
+    if(opt_.local_planner.s4() != 0.0){
+        local_planner->addScorer(CurvatureD_Scorer::Ptr(new CurvatureD_Scorer), opt_.local_planner.s4());
     }
 
-    if(opt_.s5() != 0.0){
-        local_planner->addScorer(Level_Scorer::Ptr(new Level_Scorer), opt_.s5());
+    if(opt_.local_planner.s5() != 0.0){
+        local_planner->addScorer(Level_Scorer::Ptr(new Level_Scorer), opt_.local_planner.s5());
     }
 
-    if(opt_.s6() != 0.0){
-        local_planner->addScorer(Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer), opt_.s6());
+    if(opt_.local_planner.s6() != 0.0){
+        local_planner->addScorer(Dis2Obst_Scorer::Ptr(new Dis2Obst_Scorer), opt_.local_planner.s6());
     }
 
     return local_planner;
@@ -185,24 +188,24 @@ std::shared_ptr<LocalPlanner> ControllerFactory::makeLocalPlanner(const std::str
 {
     ROS_INFO("Use local planner algorithm '%s'", name.c_str());
 
-    ROS_INFO("Maximum number of allowed nodes: %d", opt_.nnodes());
-    ROS_INFO("Maximum tree depth: %d", opt_.depth());
-    ROS_INFO("Update Interval: %.3f", opt_.uinterval());
-    ROS_INFO("Maximal distance from path: %.3f", opt_.dis2p());
-    ROS_INFO("Security distance around the robot: %.3f", opt_.adis());
-    ROS_INFO("Security distance in front of the robot: %.3f", opt_.fdis());
-    ROS_INFO("Steering angle: %.3f", opt_.s_angle());
-    ROS_INFO("Intermediate Configurations: %d",opt_.ic());
-    ROS_INFO("Intermediate Angles: %d",opt_.ia());
-    ROS_INFO("Using current velocity: %s",opt_.use_v() ? "true" : "false");
-    ROS_INFO("Length multiplying factor: %.3f",opt_.lmf());
-    ROS_INFO("Coefficient of friction: %.3f",opt_.mu());
-    ROS_INFO("Exponent factor: %.3f",opt_.ef());
+    ROS_INFO("Maximum number of allowed nodes: %d", opt_.local_planner.nnodes());
+    ROS_INFO("Maximum tree depth: %d", opt_.local_planner.depth());
+    ROS_INFO("Update Interval: %.3f", opt_.local_planner.uinterval());
+    ROS_INFO("Maximal distance from path: %.3f", opt_.local_planner.dis2p());
+    ROS_INFO("Security distance around the robot: %.3f", opt_.local_planner.adis());
+    ROS_INFO("Security distance in front of the robot: %.3f", opt_.local_planner.fdis());
+    ROS_INFO("Steering angle: %.3f", opt_.local_planner.s_angle());
+    ROS_INFO("Intermediate Configurations: %d",opt_.local_planner.ic());
+    ROS_INFO("Intermediate Angles: %d",opt_.local_planner.ia());
+    ROS_INFO("Using current velocity: %s",opt_.local_planner.use_v() ? "true" : "false");
+    ROS_INFO("Length multiplying factor: %.3f",opt_.local_planner.lmf());
+    ROS_INFO("Coefficient of friction: %.3f",opt_.local_planner.mu());
+    ROS_INFO("Exponent factor: %.3f",opt_.local_planner.ef());
 
-    ROS_INFO("Constraint usage [%s, %s]", opt_.c1() ? "true" : "false",
-             opt_.c2() ? "true" : "false");
-    ROS_INFO("Scorer usage [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f]", opt_.s1(),opt_.s2(),
-             opt_.s3(), opt_.s4(), opt_.s5(), opt_.s6());
+    ROS_INFO("Constraint usage [%s, %s]", opt_.local_planner.c1() ? "true" : "false",
+             opt_.local_planner.c2() ? "true" : "false");
+    ROS_INFO("Scorer usage [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f]", opt_.local_planner.s1(),opt_.local_planner.s2(),
+             opt_.local_planner.s3(), opt_.local_planner.s4(), opt_.local_planner.s5(), opt_.local_planner.s6());
 
 
     if(name == "AStar"){

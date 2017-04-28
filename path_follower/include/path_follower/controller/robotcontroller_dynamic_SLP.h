@@ -56,27 +56,27 @@ private:
         P<double> max_current;
 
         ControllerParameters():
-            k1(this, "~k1", 1.0, ""),
-            k2(this, "~k2", 1.0, ""),
-            k3(this, "~k3", 1.0, ""),
-            k4(this, "~k4", 1.0, ""),
-            gamma(this, "~gamma", 1.0, ""),
-            theta_a(this, "~theta_a", M_PI/4.0, ""),
-            epsilon(this, "~epsilon", 0.5, ""),
-            b(this, "~b", 0.2, ""),
-            max_angular_velocity(this, "~max_angular_velocity", 0.8, ""),
-            look_ahead_dist(this, "~look_ahead_dist", 0.5, ""),
-            k_o(this, "~k_o", 0.3, ""),
-            k_g(this, "~k_g", 0.4, ""),
-            k_w(this, "~k_w", 0.5, ""),
-            k_curv(this, "~k_curv", 0.05, ""),
-            m(this, "~m", 50.0, ""),
-            I(this, "~I", 0.0356, ""),
-            r(this, "~r", 0.10, ""),
-            w(this, "~w", 0.2335, ""),
-            gearbox(this, "~gearbox", 12.52, ""),
-            Kt(this, "~Kt", 0.08, ""),
-            max_current(this, "~max_current", 12.0, "")
+            k1(this, "k1", 1.0, ""),
+            k2(this, "k2", 1.0, ""),
+            k3(this, "k3", 1.0, ""),
+            k4(this, "k4", 1.0, ""),
+            gamma(this, "gamma", 1.0, ""),
+            theta_a(this, "theta_a", M_PI/4.0, ""),
+            epsilon(this, "epsilon", 0.5, ""),
+            b(this, "b", 0.2, ""),
+            max_angular_velocity(this, "max_angular_velocity", 0.8, ""),
+            look_ahead_dist(this, "look_ahead_dist", 0.5, ""),
+            k_o(this, "k_o", 0.3, ""),
+            k_g(this, "k_g", 0.4, ""),
+            k_w(this, "k_w", 0.5, ""),
+            k_curv(this, "k_curv", 0.05, ""),
+            m(this, "m", 50.0, ""),
+            I(this, "I", 0.0356, ""),
+            r(this, "r", 0.10, ""),
+            w(this, "w", 0.2335, ""),
+            gearbox(this, "gearbox", 12.52, ""),
+            Kt(this, "Kt", 0.08, ""),
+            max_current(this, "max_current", 12.0, "")
         {}
     } opt_;
 

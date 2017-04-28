@@ -89,10 +89,10 @@ protected:
         P<double> max_angular_velocity;
 
         ControllerParameters():
-            kAtt(this, "~kAtt", 0.2, ""),
-            kRep(this, "~kRep", 0.5, ""),
-            dist_thresh(this, "~dist_thres", 2.5, ""),
-            max_angular_velocity(this, "~max_angular_velocity", 0.8, "")
+            kAtt(this, "kAtt", 0.2, ""),
+            kRep(this, "kRep", 0.5, ""),
+            dist_thresh(this, "dist_thres", 2.5, ""),
+            max_angular_velocity(this, "max_angular_velocity", 0.8, "")
         {}
     } opt_;
 

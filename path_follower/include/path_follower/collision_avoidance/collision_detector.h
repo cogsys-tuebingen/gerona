@@ -37,16 +37,18 @@ protected:
         P<float> velocity_saturation;
 
         CollisionDetectorParameters():
-            width(this,  "~collision_avoider/collision_box/width",  0.5,
+            Parameters("collision_avoider"),
+
+            width(this, "collision_box/width",  0.5,
                   "Width of the collision box for obstacle avoidance."),
-            min_length(this,  "~collision_avoider/collision_box/min_length",  0.5,
+            min_length(this, "collision_box/min_length",  0.5,
                        "Minimum length of the collision box for obstacle avoidance (grows with increasing velocity)."),
-            crit_length(this,  "~collision_avoider/collision_box/crit_length",  0.3, ""),
-            max_length(this,  "~collision_avoider/collision_box/max_length",  1.0,
+            crit_length(this, "collision_box/crit_length",  0.3, ""),
+            max_length(this, "collision_box/max_length",  1.0,
                        "Maximum length of the collision box for obstacle avoidance."),
-            velocity_factor(this,  "~collision_avoider/collision_box/velocity_factor",  1.0,
+            velocity_factor(this, "collision_box/velocity_factor",  1.0,
                             "This factor determines, how much the length of the box is increased, depending on the velocity."),
-            velocity_saturation(this,  "~collision_avoider/collision_box/velocity_saturation",  -1.0,
+            velocity_saturation(this, "collision_box/velocity_saturation",  -1.0,
                                 "The velocity for which the maximum length should be used. If set to a value < 0, the max. velocity is used.")
         {
             if(max_length() < min_length()) {

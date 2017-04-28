@@ -48,14 +48,14 @@ private:
         P<double> k_curv;
 
         ControllerParameters():
-            k1(this, "~k1", 1.0, ""),
-            k2(this, "~k2", 1.0, ""),
-            max_angular_velocity(this, "~max_angular_velocity", 0.8, ""),
-            look_ahead_dist(this, "~look_ahead_dist", 0.5, ""),
-            k_o(this, "~k_o", 0.3, ""),
-            k_g(this, "~k_g", 0.4, ""),
-            k_w(this, "~k_w", 0.5, ""),
-            k_curv(this, "~k_curv", 0.05, "")
+            k1(this, "k1", 1.0, ""),
+            k2(this, "k2", 1.0, ""),
+            max_angular_velocity(this, "max_angular_velocity", 0.8, ""),
+            look_ahead_dist(this, "look_ahead_dist", 0.5, ""),
+            k_o(this, "k_o", 0.3, ""),
+            k_g(this, "k_g", 0.4, ""),
+            k_w(this, "k_w", 0.5, ""),
+            k_curv(this, "k_curv", 0.05, "")
         {}
     } opt_;
 

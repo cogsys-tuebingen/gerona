@@ -134,8 +134,10 @@ private:
         P<float> lost_lifetime;
 
         Options():
-            max_dist(this, "~obstacle_tracker/max_dist", 0.3f, "Only match new observation with tracked obstacle, if the position change is less than this threshold."),
-            lost_lifetime(this, "~obstacle_tracker/lost_lifetime", 1.0f, "Duration (in seconds) for which a lost obstacle is still tracked at its last known position.")
+            Parameters("obstacle_tracker"),
+
+            max_dist(this, "max_dist", 0.3f, "Only match new observation with tracked obstacle, if the position change is less than this threshold."),
+            lost_lifetime(this, "lost_lifetime", 1.0f, "Duration (in seconds) for which a lost obstacle is still tracked at its last known position.")
         {}
     } opt_;
 

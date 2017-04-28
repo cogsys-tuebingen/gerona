@@ -35,8 +35,17 @@ void Parameters::printToFile(const std::string &filename)
     file.close();
 }
 
-Parameters::Parameters()
+Parameters::Parameters(const std::string& ns, Parameters* parent)
+    : parent_(parent)
 {
+    if(parent_) {
+        ns_ = parent_->ns_;
+    }
+    ns_ += ns;
+    if(ns_ != "~") {
+        ns_ += '/';
+    }
+
     registerInstance(this);
 }
 

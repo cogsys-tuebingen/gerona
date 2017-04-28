@@ -4,7 +4,7 @@
 #include <Eigen/Core>
 #include <tf/tf.h>
 
-#include <path_follower/pathfollowerparameters.h>
+#include <path_follower/parameters/path_follower_parameters.h>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/movecommand.h>
 #include <tf/transform_listener.h>

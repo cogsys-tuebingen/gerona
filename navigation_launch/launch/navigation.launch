@@ -10,36 +10,11 @@ tasks and can be used instead of this file.
 -->
 <launch>
     <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_HBZ)" />
-    <arg name="local_planner" default="AStar" />
 
-    <arg name="c1" default="true" />
-    <arg name="c2" default="true" />
-
-    <arg name="s1" default="0.0" />
-    <arg name="s2" default="0.0" />
-    <arg name="s3" default="0.0" />
-    <arg name="s4" default="0.0" />
-    <arg name="s5" default="0.0" />
-    <arg name="s6" default="0.0" />
-
-    <arg name="nnodes" default="300" />
-    <arg name="depth" default="10" />
-    <arg name="ic" default="3" />
-    <arg name="ia" default="0" />
-    <arg name="uinterval" default="1.0" />
-    <arg name="lmf" default="1.0" />
-    <arg name="dis2p" default="0.3" />
-    <arg name="adis" default="0.1" />
-    <arg name="fdis" default="0.2" />
-    <arg name="s_angle" default="25.0" />
-    <arg name="mu" default="0.6" />
-    <arg name="ef" default="1.0" />
-    <arg name="use_v" default="true" />
-    
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
-	 <arg name="use_planner_static" default="false" />
-	 <arg name="use_planner_default" default="true" />
+    <arg name="use_planner_static" default="false" />
+    <arg name="use_planner_default" default="true" />
 
     <include file="$(find path_planner)/launch/path_planner.launch">
         <arg name="use_planner_cost" value="$(arg use_planner_cost)" />
@@ -52,31 +27,6 @@ tasks and can be used instead of this file.
 
     <include file="$(find path_follower)/launch/follower.launch">
         <arg name="controller" value="$(arg robot_controller)" />
-	<arg name="local_planner" value="$(arg local_planner)" />
-
-        <arg name="c1" value="$(arg c1)" />
-        <arg name="c2" value="$(arg c2)" />
-
-        <arg name="s1" value="$(arg s1)" />
-        <arg name="s2" value="$(arg s2)" />
-        <arg name="s3" value="$(arg s3)" />
-        <arg name="s4" value="$(arg s4)" />
-        <arg name="s5" value="$(arg s5)" />
-        <arg name="s6" value="$(arg s6)" />
-
-        <arg name="nnodes" value="$(arg nnodes)" />
-        <arg name="depth" value="$(arg depth)" />
-        <arg name="ic" value="$(arg ic)" />
-        <arg name="ia" value="$(arg ia)" />
-        <arg name="uinterval" value="$(arg uinterval)" />
-        <arg name="lmf" value="$(arg lmf)" />
-        <arg name="dis2p" value="$(arg dis2p)" />
-        <arg name="adis" value="$(arg adis)" />
-        <arg name="fdis" value="$(arg fdis)" />
-        <arg name="s_angle" value="$(arg s_angle)" />
-        <arg name="mu" value="$(arg mu)" />
-        <arg name="ef" value="$(arg ef)" />
-        <arg name="use_v" value="$(arg use_v)" />
 
         <remap from="/obstacles" to="/obstacle_cloud" />
 

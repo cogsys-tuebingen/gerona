@@ -50,27 +50,26 @@ private:
 
 
         ControllerParameters():
-            pid_ta(this, "~pid/ta", 0.01, "Update interval of the PID controller."),
-            fwd_csca_kp(this, "~fwd/csca/kp", 1.0, "Proportional coefficient of the PID controller."),
-            fwd_csca_ki(this, "~fwd/csca/ki", 0.001, "Integral coefficient of the PID controller."),
-            fwd_csca_kd(this, "~fwd/csca/kd", 0, "Derivative coefficient of the PID controller."),
-            fwd_cscd_kp(this, "~fwd/cscd/kp", 1.0, "Proportional coefficient of the PID controller."),
-            fwd_cscd_ki(this, "~fwd/cscd/ki", 0.001, "Integral coefficient of the PID controller."),
-            fwd_cscd_kd(this, "~fwd/cscd/kd", 0, "Derivative coefficient of the PID controller."),
-            bwd_csca_kp(this, "~bwd/csca/kp", 1.0, "Proportional coefficient of the PID controller."),
-            bwd_csca_ki(this, "~bwd/csca/ki", 0.001, "Integral coefficient of the PID controller."),
-            bwd_csca_kd(this, "~bwd/csca/kd", 0, "Derivative coefficient of the PID controller."),
-            bwd_cscd_kp(this, "~bwd/cscd/kp", 1.0, "Proportional coefficient of the PID controller."),
-            bwd_cscd_ki(this, "~bwd/cscd/ki", 0.001, "Integral coefficient of the PID controller."),
-            bwd_cscd_kd(this, "~bwd/cscd/kd", 0, "Derivative coefficient of the PID controller."),
+            Parameters("~"),
 
-            fwd_cap_steer_deg(this, "~fwd/cap_steer_deg", 5.0, "Maximum allowed deviation from precomputed angle."),
-            bwd_cap_steer_deg(this, "~bwd/cap_steer_deg", 5.0, "Maximum allowed deviation from precomputed angle."),
-            clip_dist_error(this,"~dist_error_clip",1.0, "Clipping for distance error"),
-            clip_angle_error(this,"~angle_error_clip",1.0, "Clipping for angle error")
+            pid_ta(this, "pid/ta", 0.01, "Update interval of the PID controller."),
+            fwd_csca_kp(this, "fwd/csca/kp", 1.0, "Proportional coefficient of the PID controller."),
+            fwd_csca_ki(this, "fwd/csca/ki", 0.001, "Integral coefficient of the PID controller."),
+            fwd_csca_kd(this, "fwd/csca/kd", 0, "Derivative coefficient of the PID controller."),
+            fwd_cscd_kp(this, "fwd/cscd/kp", 1.0, "Proportional coefficient of the PID controller."),
+            fwd_cscd_ki(this, "fwd/cscd/ki", 0.001, "Integral coefficient of the PID controller."),
+            fwd_cscd_kd(this, "fwd/cscd/kd", 0, "Derivative coefficient of the PID controller."),
+            bwd_csca_kp(this, "bwd/csca/kp", 1.0, "Proportional coefficient of the PID controller."),
+            bwd_csca_ki(this, "bwd/csca/ki", 0.001, "Integral coefficient of the PID controller."),
+            bwd_csca_kd(this, "bwd/csca/kd", 0, "Derivative coefficient of the PID controller."),
+            bwd_cscd_kp(this, "bwd/cscd/kp", 1.0, "Proportional coefficient of the PID controller."),
+            bwd_cscd_ki(this, "bwd/cscd/ki", 0.001, "Integral coefficient of the PID controller."),
+            bwd_cscd_kd(this, "bwd/cscd/kd", 0, "Derivative coefficient of the PID controller."),
 
-
-
+            fwd_cap_steer_deg(this, "fwd/cap_steer_deg", 5.0, "Maximum allowed deviation from precomputed angle."),
+            bwd_cap_steer_deg(this, "bwd/cap_steer_deg", 5.0, "Maximum allowed deviation from precomputed angle."),
+            clip_dist_error(this, "~dist_error_clip", 1.0, "Clipping for distance error"),
+            clip_angle_error(this, "~angle_error_clip", 1.0, "Clipping for angle error")
         {}
     } opt_;
     PidController<1> fwd_angle_pid_, fwd_dist_pid_;

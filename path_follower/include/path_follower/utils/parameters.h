@@ -27,9 +27,9 @@
  *         WrappedP<ros::Duration, float> baz;
  *
  *         MyParameters():
- *             foo(this, "~foo", 13, "Meaningless number"),
- *             bar(this, "~bar", 3.14, "Pi"),
- *             baz(this, "~baz", 5, "Update interval in seconds")
+ *             foo(this, "foo", 13, "Meaningless number"),
+ *             bar(this, "bar", 3.14, "Pi"),
+ *             baz(this, "baz", 5, "Update interval in seconds")
  *         {}
  *     }
  *
@@ -76,7 +76,8 @@ public:
          */
         P(Parameters *opt, const std::string& param_name, const T& default_val, const std::string& desc)
         {
-            ros::param::param<T>(param_name, value_, default_val);
+            std::cerr << "creating parameter " << opt->ns_ + param_name << std::endl;
+            ros::param::param<T>(opt->ns_ + param_name, value_, default_val);
             opt->registerParam(param_name, default_val, desc);
         }
 
@@ -159,7 +160,7 @@ public:
     static void printToFileAllInstances(const std::string &filename="/tmp/parameters.md");
 
 protected:
-    Parameters(); // abstract class
+    Parameters(const std::string& ns, Parameters* parent = nullptr); // abstract class
     ~Parameters();
 
 private:
@@ -170,6 +171,8 @@ private:
         std::string default_value;
     };
 
+    Parameters* parent_;
+    std::string ns_;
     std::vector<ParamInfo> params_;
 
     //! Register a parameter to the parameter list used by the print*-methods

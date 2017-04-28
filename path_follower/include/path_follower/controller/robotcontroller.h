@@ -110,7 +110,9 @@ protected:
         P<double> goal_tolerance;
 
         InterpolationParameters() :
-            goal_tolerance(this, "~goal_tolerance", 0.3, "minimum distance at which the robot stops")
+            Parameters("~"),
+
+            goal_tolerance(this, "goal_tolerance", 0.3, "minimum distance at which the robot stops")
         {}
     };
 

@@ -162,7 +162,7 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
         if(obstacle_cloud_ != nullptr){
             config_->local_planner_->setObstacleCloud(obstacle_cloud_);
         }
-        if(opt_.use_v()){
+        if(opt_.local_planner.use_v()){
             config_->local_planner_->setVelocity(pose_tracker_->getVelocity().linear);
         }
 
@@ -380,7 +380,7 @@ PathFollowerConfigName PathFollower::goalToConfig(const FollowPathGoal &goal) co
         config.controller = opt_.controller();
     }
     if(config.local_planner.empty()) {
-        config.local_planner = opt_.local_planner();
+        config.local_planner = opt_.local_planner.local_planner();
     }
     if(config.collision_avoider.empty()) {
         config.collision_avoider = opt_.collision_avoider();

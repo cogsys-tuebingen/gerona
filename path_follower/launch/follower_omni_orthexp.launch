@@ -3,30 +3,6 @@
 Launch the path follower with the "OrthExp" controller and omnidirectional kinematic model.
 -->
 <launch>
-  <arg name="local_planner" default="AStar" />
-  <arg name="c1" default="true" />
-  <arg name="c2" default="true" />
-
-  <arg name="s1" default="0.0" />
-  <arg name="s2" default="0.0" />
-  <arg name="s3" default="0.0" />
-  <arg name="s4" default="0.0" />
-  <arg name="s5" default="0.0" />
-  <arg name="s6" default="0.0" />
-
-  <arg name="nnodes" default="300" />
-  <arg name="depth" default="10" />
-  <arg name="ic" default="3" />
-  <arg name="ia" default="0" />
-  <arg name="uinterval" default="1.0" />
-  <arg name="lmf" default="1.0" />
-  <arg name="dis2p" default="0.3" />
-  <arg name="adis" default="0.1" />
-  <arg name="fdis" default="0.2" />
-  <arg name="s_angle" default="25.0" />
-  <arg name="mu" default="0.6" />
-  <arg name="ef" default="1.0" />
-  <arg name="use_v" default="true" />
   <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
     <param name="controller" value="omnidrive_orthexp" />
     
@@ -69,33 +45,6 @@ Launch the path follower with the "OrthExp" controller and omnidirectional kinem
     <param name="k_g" value="0.4" />
     <param name="k_w" value="0.75" />
     <param name="k_curv" value="0.2" />
-
-    <!-- local planner -->
-    <param name="local_planner" value="$(arg local_planner)"/>
-    <!-- constraints -->
-    <param name="c1" value="$(arg c1)"/>
-    <param name="c2" value="$(arg c2)"/>
-    <!-- scorers -->
-    <param name="s1" value="$(arg s1)"/>
-    <param name="s2" value="$(arg s2)"/>
-    <param name="s3" value="$(arg s3)"/>
-    <param name="s4" value="$(arg s4)"/>
-    <param name="s5" value="$(arg s5)"/>
-    <param name="s6" value="$(arg s6)"/>
-    <!-- planner params-->
-    <param name="nnodes" value="$(arg nnodes)" />
-    <param name="depth" value="$(arg depth)" />
-    <param name="ic" value="$(arg ic)" />
-    <param name="ia" value="$(arg ia)" />
-    <param name="uinterval" value="$(arg uinterval)" />
-    <param name="lmf" value="$(arg lmf)" />
-    <param name="dis2p" value="$(arg dis2p)" />
-    <param name="adis" value="$(arg adis)" />
-    <param name="fdis" value="$(arg fdis)" />
-    <param name="s_angle" value="$(arg s_angle)" />
-    <param name="mu" value="$(arg mu)" />
-    <param name="ef" value="$(arg ef)" />
-    <param name="use_v" value="$(arg use_v)" />
 
     <remap from="scan" to="scan/front/filtered" />
   </node>

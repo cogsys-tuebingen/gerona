@@ -1,7 +1,7 @@
 #include <path_follower/controller/robotcontroller_ackermann_pid.h>
 #include <cmath>
 #include <path_msgs/FollowPathResult.h>
-#include <path_follower/pathfollowerparameters.h>
+#include <path_follower/parameters/path_follower_parameters.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/path_exceptions.h>
 #include <path_follower/utils/visualizer.h>

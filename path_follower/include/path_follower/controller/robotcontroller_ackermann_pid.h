@@ -34,13 +34,13 @@ private:
         P<float> max_steer;
 
         ControllerParameters():
-            dead_time(this, "~dead_time", 0.1, "Time step that is used by predictPose"),
-            l(this, "~l", 0.38, "Distance between front and rear axes of the robot."),
-            pid_ta(this, "~pid/ta", 0.03, "Update interval of the PID controller."),
-            pid_kp(this, "~pid/kp", 1.0, "Proportional coefficient of the PID controller."),
-            pid_ki(this, "~pid/ki", 0.001, "Integral coefficient of the PID controller."),
-            pid_kd(this, "~pid/kd", 0, "Derivative coefficient of the PID controller."),
-            max_steer(this, "~max_steer", 0.52, "Maximal allowed steering angle. Higher angles are capped by this value.")
+            dead_time(this, "dead_time", 0.1, "Time step that is used by predictPose"),
+            l(this, "l", 0.38, "Distance between front and rear axes of the robot."),
+            pid_ta(this, "pid/ta", 0.03, "Update interval of the PID controller."),
+            pid_kp(this, "pid/kp", 1.0, "Proportional coefficient of the PID controller."),
+            pid_ki(this, "pid/ki", 0.001, "Integral coefficient of the PID controller."),
+            pid_kd(this, "pid/kd", 0, "Derivative coefficient of the PID controller."),
+            max_steer(this, "max_steer", 0.52, "Maximal allowed steering angle. Higher angles are capped by this value.")
         {}
     } opt_;
 

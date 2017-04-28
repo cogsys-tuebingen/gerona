@@ -3,7 +3,7 @@
 #include <visualization_msgs/Marker.h>
 
 // PROJECT
-#include <path_follower/pathfollowerparameters.h>
+#include <path_follower/parameters/path_follower_parameters.h>
 #include <path_follower/controller/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <cslibs_utils/MathHelper.h>

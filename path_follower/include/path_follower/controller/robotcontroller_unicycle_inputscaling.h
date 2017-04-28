@@ -31,9 +31,9 @@ private:
         P<double> max_angular_velocity;
 
         ControllerParameters() :
-            vehicle_length(this, "~vehicle_length", 0.3, "axis-centre distance"),
-            k(this, "~k", 7.0, "Tuning factor"),
-            max_angular_velocity(this, "~maximum_angular_velocity", 0.8, "Maximum angular velocity")
+            vehicle_length(this, "vehicle_length", 0.3, "axis-centre distance"),
+            k(this, "k", 7.0, "Tuning factor"),
+            max_angular_velocity(this, "maximum_angular_velocity", 0.8, "Maximum angular velocity")
         {}
 
     } params_;

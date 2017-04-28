@@ -35,10 +35,10 @@ private:
 		P<double> max_steering_angle;
 
 		ControllerParameters() :
-			vehicle_length(this, "~vehicle_length", 0.34, "axis-centre distance"),
-			k_forward(this, "~k_forward", 0.6, "Tuning factor for forward driving"),
-			k_backward(this, "~k_backward", 0.6, "Tuning factor for backward driving"),
-			max_steering_angle(this, "~max_steering_angle", 0.52359877559, "Maximum steering angle")
+			vehicle_length(this, "vehicle_length", 0.34, "axis-centre distance"),
+			k_forward(this, "k_forward", 0.6, "Tuning factor for forward driving"),
+			k_backward(this, "k_backward", 0.6, "Tuning factor for backward driving"),
+			max_steering_angle(this, "max_steering_angle", 0.52359877559, "Maximum steering angle")
 		{}
 
 	} params_;

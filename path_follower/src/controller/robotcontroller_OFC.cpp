@@ -8,7 +8,7 @@
 
 
 // PROJECT
-#include <path_follower/pathfollowerparameters.h>
+#include <path_follower/parameters/path_follower_parameters.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <cslibs_utils/MathHelper.h>
 #include <path_follower/utils/pose_tracker.h>

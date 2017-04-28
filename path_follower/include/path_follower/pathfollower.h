@@ -13,7 +13,7 @@
 #include <visualization_msgs/Marker.h>
 
 /// PROJECT
-#include <path_follower/pathfollowerparameters.h>
+#include <path_follower/parameters/path_follower_parameters.h>
 #include <path_follower/utils/path_follower_config.h>
 
 /// SYSTEM

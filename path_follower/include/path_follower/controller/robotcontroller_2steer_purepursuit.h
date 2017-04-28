@@ -36,9 +36,9 @@ private:
 		P<double> vehicle_length;
 
 		ControllerParameters() :
-			k_forward(this, "~k_forward", 1.2, "lookahead distance factor while driving forwards"),
-			k_backward(this, "~k_forward", 1.2, "lookahead distance factor while driving backwards"),
-			vehicle_length(this, "~vehicle_length", 0.34, "axis-centre distance")
+			k_forward(this, "k_forward", 1.2, "lookahead distance factor while driving forwards"),
+			k_backward(this, "k_forward", 1.2, "lookahead distance factor while driving backwards"),
+			vehicle_length(this, "vehicle_length", 0.34, "axis-centre distance")
 		{}
 
 	} params_;

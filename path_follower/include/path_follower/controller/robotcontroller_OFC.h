@@ -40,15 +40,15 @@ protected:
         P<double> max_angular_velocity;
 
         ControllerParameters():
-            kp_lin(this, "~kp_lin", 1.0, ""),
-            ki_lin(this, "~ki_lin", 0.1, ""),
-            kd_lin(this, "~kd_lin", 0.1, ""),
-            kp_ang(this, "~kp_ang", 1.0, ""),
-            ki_ang(this, "~ki_ang", 0.1, ""),
-            kd_ang(this, "~kd_ang", 0.1, ""),
-            goal_x(this, "~goal_x", 2.0, ""),
-            goal_y(this, "~goal_y", 0.0, ""),
-            max_angular_velocity(this, "~max_angular_velocity", 0.5, "")
+            kp_lin(this, "kp_lin", 1.0, ""),
+            ki_lin(this, "ki_lin", 0.1, ""),
+            kd_lin(this, "kd_lin", 0.1, ""),
+            kp_ang(this, "kp_ang", 1.0, ""),
+            ki_ang(this, "ki_ang", 0.1, ""),
+            kd_ang(this, "kd_ang", 0.1, ""),
+            goal_x(this, "goal_x", 2.0, ""),
+            goal_y(this, "goal_y", 0.0, ""),
+            max_angular_velocity(this, "max_angular_velocity", 0.5, "")
         {}
     } opt_;
 

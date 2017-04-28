@@ -122,18 +122,21 @@ private:
         P<float> scan_cluster_max_distance;
         P<int> min_number_of_points;
         P<float> lookout_distance;
+
         Options():
-            scale_obstacle_distance(this, "~supervisor/path_lookout/obstacle_scale_distance",  1.0f, ""),
-            scale_obstacle_lifetime(this, "~supervisor/path_lookout/obstacle_scale_lifetime",  10.0f, ""),
-            path_width(this, "~supervisor/path_lookout/path_width",  0.5f,
+            Parameters("supervisor"),
+
+            scale_obstacle_distance(this, "path_lookout/obstacle_scale_distance",  1.0f, ""),
+            scale_obstacle_lifetime(this, "path_lookout/obstacle_scale_lifetime",  10.0f, ""),
+            path_width(this, "path_lookout/path_width",  0.5f,
                        "Width of the path in meters (should be at least the width of the robot)."),
-            segment_step_size(this, "~supervisor/path_lookout/segment_step_size",  5,
+            segment_step_size(this, "path_lookout/segment_step_size",  5,
                               "Number of path segments that are approximated by a line to speed up computation."),
-            scan_cluster_max_distance(this, "~supervisor/path_lookout/scan_cluster_max_distance",  0.5f,
+            scan_cluster_max_distance(this, "path_lookout/scan_cluster_max_distance",  0.5f,
                                       "Maximum distance between two obstacle points, to combine them to one obstacle."),
-            min_number_of_points(this, "~supervisor/path_lookout/min_number_of_points",  3,
+            min_number_of_points(this, "path_lookout/min_number_of_points",  3,
                                  "Minimum number of points on one obstacle (smaller clusters are ignored)."),
-            lookout_distance(this,"~supervisor/path_lookout/lookout_distance", 99.0,
+            lookout_distance(this,"path_lookout/lookout_distance", 99.0,
             "Maximum distance to lookout on path")
         {}
     } opt_;
