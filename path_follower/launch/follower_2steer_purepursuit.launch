@@ -60,8 +60,8 @@ Launch the path follower with the pure pursuit controller for a bi-steerable rob
 	 <param name="goal_tolerance" value="0.25" />
     
     <!-- parameters, that are dependent of the controller or the robot model -->
-	 <param name="k_forward" value="1.2" />
-	 <param name="k_backward" value="1.2" />
+	 <param name="k_forward" value="0.2" />
+	 <param name="k_backward" value="0.2" />
 	 <param name="vehicle_length" value="0.34" />
 
     <!-- local planner -->

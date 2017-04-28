@@ -37,7 +37,7 @@ RobotController_ICR_CCW::RobotController_ICR_CCW():
     cmd_(this),
     vn_(0),
     Ts_(0.02),
-    proj_ind_(0),
+    ind_(0),
     Vl_(0),
     Vr_(0),
     curv_sum_(1e-3),
@@ -116,9 +116,6 @@ void RobotController_ICR_CCW::stopMotion()
 void RobotController_ICR_CCW::initialize()
 {
     RobotController::initialize();
-
-    //reset the index of the orthogonal projection
-    proj_ind_ = 0;
 
     // desired velocity
     vn_ = std::min(global_opt_->max_velocity(), velocity_);
@@ -211,41 +208,14 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     x_meas = x_meas + std::cos(theta_meas)*r_x - std::sin(theta_meas)*r_y;
     y_meas = y_meas + std::sin(theta_meas)*r_x + std::cos(theta_meas)*r_y;
 
+    RobotController::findOrthogonalProjection();
 
-    // check for the subpaths, and see if the goal is reached
-    if((proj_ind_ == path_interpol.n()-1)) {
-        path_->switchToNextSubPath();
-        // check if we reached the actual goal or just the end of a subpath
-        if (path_->isDone()) {
-
-            cmd_.speed = 0;
-            cmd_.direction_angle = 0;
-            cmd_.rotation = 0;
-
-            *cmd = cmd_;
-
-            double distance_to_goal_eucl = hypot(x_meas - x_aug_[path_interpol.n()-1],
-                                          y_meas - y_aug_[path_interpol.n()-1]);
-
-            ROS_INFO("Final positioning error: %f m", distance_to_goal_eucl);
-
-            return RobotController::MoveCommandStatus::REACHED_GOAL;
-
-        } else {
-
-            ROS_INFO("Next subpath...");
-            // interpolate the next subpath
-            path_interpol.interpolatePath(path_);
-            publishInterpolatedPath();
-
-            // recalculate the driving direction
-            //calculateMovingDirection();
-        }
+    if(RobotController::isGoalReached(cmd)){
+       return RobotController::MoveCommandStatus::REACHED_GOAL;
     }
 
-
     //augmenting the path by the vector r = (x_ICR, (y_ICRl-y_ICRr)/2)
-    for(std::size_t i = proj_ind_; i < path_interpol.n(); ++i) {
+    for(std::size_t i = ind_; i < path_interpol.n(); ++i) {
 
         //vector of the ICR mapping in world coordinates
         double delta_p =path_interpol.theta_p(i);
@@ -253,7 +223,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
         double r_x_m = std::cos(delta_p)*r_x - std::sin(delta_p)*r_y;
         double r_y_m = std::sin(delta_p)*r_x + std::cos(delta_p)*r_y;
 
-        if(i == proj_ind_){
+        if(i == ind_){
             geometry_msgs::Point pt_aug;
             pt_aug.x = path_interpol.p(i) + r_x_m;
             pt_aug.y = path_interpol.q(i) + r_y_m;
@@ -269,55 +239,36 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     ///***///
 
 
-    ///calculate the control for the current point on the path
-    //robot direction angle in path coordinates
-    double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), theta_meas);
-
-    //robot position vector module
-    double r = hypot(x_meas - x_aug_[proj_ind_], y_meas - y_aug_[proj_ind_]);
-
-    //robot position vector angle in world coordinates
-    double theta_r = atan2(y_meas - y_aug_[proj_ind_], x_meas - x_aug_[proj_ind_]);
-
-    //robot position vector angle in path coordinates
-    double delta_theta = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), theta_r);
-
-    //current robot position in path coordinates
-    double xe = r * cos(delta_theta);
-    double ye = r * sin(delta_theta);
-
-    ///***///
-
-
-
     //find the orthogonal projection to the curve and extract the corresponding index
 
     double dist = 0;
     double orth_proj = std::numeric_limits<double>::max();
 
     //this is a hack made for the lemniscate
-    int old_ind = proj_ind_;
+    int old_ind = ind_;
 
-    for (int i = proj_ind_, n = path_interpol.n(); i < n; i++){
+    for (int i = ind_, n = path_interpol.n(); i < n; i++){
 
         dist = hypot(x_meas - x_aug_[i], y_meas - y_aug_[i]);
         if((dist < orth_proj) & (i - old_ind >= 0) & (i - old_ind <= 3)){
 
             orth_proj = dist;
-            proj_ind_ = i;
+            ind_ = i;
 
         }
 
     }
 
     // distance to the path (path to the right -> positive)
-    Eigen::Vector2d path_vehicle(x_meas - x_aug_[proj_ind_], y_meas - y_aug_[proj_ind_]);
+    Eigen::Vector2d path_vehicle(x_meas - x_aug_[ind_], y_meas - y_aug_[ind_]);
 
-    orth_proj = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), MathHelper::Angle(path_vehicle)) > 0. ?
+    orth_proj = MathHelper::AngleDelta(path_interpol.theta_p(ind_), MathHelper::Angle(path_vehicle)) > 0. ?
                 orth_proj : -orth_proj;
 
     //***//
 
+    //robot direction angle in path coordinates
+    double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), theta_meas);
 
     ///Check the driving direction, and set the complementary angle in path coordinates, if driving backwards
 
@@ -335,9 +286,9 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     double s_cum_sum = 0;
     curv_sum_ = 1e-10;
 
-    for (unsigned int i = proj_ind_ + 1; i < path_interpol.n(); i++){
+    for (unsigned int i = ind_ + 1; i < path_interpol.n(); i++){
 
-        s_cum_sum = path_interpol.s(i) - path_interpol.s(proj_ind_);
+        s_cum_sum = path_interpol.s(i) - path_interpol.s(ind_);
         //TODO: need two types of curv_sum_, one for the exponential, the other one for the Lyapunov speed control
         //curv_sum_ += fabs(path_interpol.curvature(i));
         curv_sum_ += path_interpol.curvature(i);
@@ -348,7 +299,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     }
 
     //calculate the distance from the orthogonal projection to the goal, w.r.t. path
-    distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(proj_ind_);
+    distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(ind_);
     ///***///
 
 
@@ -382,18 +333,9 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     ///***///
 
 
-    if(proj_ind_ != path_interpol.n()){
+    if(ind_ != path_interpol.n()){
         path_->fireNextWaypointCallback();
     }
-
-    ///plot the moving reference frame together with position vector and error components
-
-    if (visualizer_->MarrayhasSubscriber()) {
-        visualizer_->drawFrenetSerretFrame(getFixedFrame(), 0, current_pose, xe, ye, path_interpol.p(proj_ind_),
-                                           path_interpol.q(proj_ind_), path_interpol.theta_p(proj_ind_));
-    }
-
-    ///***///
 
 
     if (visualizer_->hasSubscriber()) {

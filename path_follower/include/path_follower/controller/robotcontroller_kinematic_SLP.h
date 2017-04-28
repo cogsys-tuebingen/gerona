@@ -139,8 +139,6 @@ private:
 
     //index of the current point on the path (origin of the F-S frame)
     uint ind_;
-    //index of the orthogonal projection to the path
-    uint proj_ind_;
     
     //x component of the following error in path coordinates
     double xe_;

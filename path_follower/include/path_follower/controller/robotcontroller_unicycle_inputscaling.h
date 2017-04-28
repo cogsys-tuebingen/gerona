@@ -64,9 +64,6 @@ private:
     //! Tuning parameters
     double k1_, k2_;
 
-    //! Index of the current point
-    unsigned int ind_;
-
 };
 
 #endif // ROBOTCONTROLLER_UNICYCLE_INPUTSCALING_H

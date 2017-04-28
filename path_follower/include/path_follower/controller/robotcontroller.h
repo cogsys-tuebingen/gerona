@@ -118,6 +118,10 @@ protected:
 
     ////-------------////
 
+    virtual void findOrthogonalProjection();
+    virtual bool isGoalReached(MoveCommand *cmd);
+
+
     /* REGULAR METHODS */
 public:
     RobotController();
@@ -211,6 +215,11 @@ protected:
 
     void publishInterpolatedPath();
     ////-------------////
+
+    //index of the orthogonal projection to the path
+    uint proj_ind_;
+    //orthogonal projection
+    double orth_proj_;
 };
 
 #endif // ROBOTCONTROLLER_H

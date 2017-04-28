@@ -93,82 +93,45 @@ RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeM
 	if(path_interpol.n() <= 2)
 		return RobotController::MoveCommandStatus::ERROR;
 
-	const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
+    const Eigen::Vector3d pose = pose_tracker_->getRobotPose();
     const geometry_msgs::Twist v_meas_twist = pose_tracker_->getVelocity();
 
     double velocity_measured = dir_sign_ * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
             + v_meas_twist.linear.y * v_meas_twist.linear.y);
 
-	// goal test
-	if (reachedGoal(pose)) {
-		path_->switchToNextSubPath();
-		// check if we reached the actual goal or just the end of a subpath
-		if (path_->isDone()) {
-			move_cmd_.setDirection(0.);
-			move_cmd_.setVelocity(0.);
+    RobotController::findOrthogonalProjection();
+    double d = orth_proj_;
 
-			*cmd = move_cmd_;
+    if(RobotController::isGoalReached(cmd)){
+       return RobotController::MoveCommandStatus::REACHED_GOAL;
+    }
 
-			return RobotController::MoveCommandStatus::REACHED_GOAL;
-
-		} else {
-
-			ROS_INFO("Next subpath...");
-			// interpolate the next subpath
-            path_interpol.interpolatePath(path_);
-
-			// invert driving direction and set tuning parameters accordingly
-			setDirSign(-getDirSign());
-			if (getDirSign() < 0.)
-				setTuningParameters(params_.k_backward());
-			else
-				setTuningParameters(params_.k_forward());
-		}
-	}
-
-	// compute the length of the orthogonal projection and the according path index
-	double min_dist = std::numeric_limits<double>::max();
-	unsigned int ind = 0;
-	for (unsigned int i = 0; i < path_interpol.n(); ++i) {
-		const double dx = path_interpol.p(i) - pose[0];
-		const double dy = path_interpol.q(i) - pose[1];
-
-		const double dist = hypot(dx, dy);
-		if (dist < min_dist) {
-			min_dist = dist;
-			ind = i;
-		}
-	}
+    if (getDirSign() < 0.)
+        setTuningParameters(params_.k_backward());
+    else
+        setTuningParameters(params_.k_forward());
 
 	// draw a line to the orthogonal projection
 	geometry_msgs::Point from, to;
 	from.x = pose[0]; from.y = pose[1];
-	to.x = path_interpol.p(ind); to.y = path_interpol.q(ind);
+    to.x = path_interpol.p(proj_ind_); to.y = path_interpol.q(proj_ind_);
     visualizer_->drawLine(12341234, from, to, getFixedFrame(), "kinematic", 1, 0, 0, 1, 0.01);
 
 
-	// distance to the path (path to the right -> positive)
-	Eigen::Vector2d path_vehicle(pose[0] - path_interpol.p(ind), pose[1] - path_interpol.q(ind));
-
-	const double d =
-			MathHelper::AngleDelta(path_interpol.theta_p(ind), MathHelper::Angle(path_vehicle)) > 0. ?
-				min_dist : -min_dist;
-
-
 	// theta_e = theta_vehicle - theta_path (orientation error)
-	double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind), pose[2]);
+    double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(proj_ind_), pose[2]);
 
 	// if dir_sign is negative we drive backwards and set theta_e to the complementary angle
 	if (getDirSign() < 0.)
 		theta_e = theta_e > 0.? -M_PI + theta_e : M_PI + theta_e;
 
 	// curvature and first two derivations
-	const double c = path_interpol.curvature(ind);
-	const double dc_ds = path_interpol.curvature_prim(ind);
-	const double dc_ds_2 = path_interpol.curvature_sek(ind);
+    const double c = path_interpol.curvature(proj_ind_);
+    const double dc_ds = path_interpol.curvature_prim(proj_ind_);
+    const double dc_ds_2 = path_interpol.curvature_sek(proj_ind_);
 
 	// 1 - dc(s)
-	const double _1_dc = 1. - d * c;
+    const double _1_dc = 1. - d * c;
 	const double _1_dc_2 = _1_dc * _1_dc;
 
 
@@ -196,7 +159,7 @@ RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeM
 			+ 2. * _1_dc_2 * sin_phi / (params_.vehicle_length() * cos_theta_e_3);
 
 	const double x3 = _1_dc * tan_theta_e;
-	const double x4 = d;
+    const double x4 = d;
 
 
 	// u1, u2
@@ -212,14 +175,14 @@ RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeM
 			+ c * c * (1. + sin_theta_e_2) / cos_theta_e_2
 			- 4. * _1_dc * c * sin_phi / (params_.vehicle_length() * cos_theta_e_3);
 
-	const double dx2_dtheta_e = -dc_ds * d * (1. + tan_theta_e_2)
+    const double dx2_dtheta_e = -dc_ds * d * (1. + tan_theta_e_2)
 			- 4. * c * _1_dc * tan_theta_e / cos_theta_e_2
 			+ 6. * _1_dc_2 * sin_phi * tan_theta_e / (params_.vehicle_length()
 																	* cos_theta_e_3);
 	const double dx2_ds =
 			- dc_ds_2 * d * tan_theta_e
-			- (dc_ds * _1_dc - d * dc_ds * c) * (1. + sin_theta_e_2) / cos_theta_e_2
-			- 4. * _1_dc * dc_ds * d * sin_phi / (params_.vehicle_length() * cos_theta_e_3);
+            - (dc_ds * _1_dc - d * dc_ds * c) * (1. + sin_theta_e_2) / cos_theta_e_2
+            - 4. * _1_dc * dc_ds * d * sin_phi / (params_.vehicle_length() * cos_theta_e_3);
 
 	// alpha1
 	const double alpha1 =
@@ -256,7 +219,7 @@ RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeM
 
 
 #ifdef TEST_OUTPUT
-    publishTestOutput(ind, d, theta_e, phi_, velocity_measured);
+    publishTestOutput(proj_ind_, d, theta_e, phi_, velocity_measured);
 #endif
 
 	ROS_DEBUG("d=%f, theta_e=%f, c=%f, c'=%f, c''=%f", d, theta_e, c, dc_ds, dc_ds_2);
