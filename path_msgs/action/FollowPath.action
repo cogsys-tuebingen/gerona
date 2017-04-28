@@ -7,7 +7,7 @@ path_msgs/PathSequence path
 
 std_msgs/String robot_controller
 std_msgs/String local_planner
-std_msgs/String obstacle_avoider
+std_msgs/String collision_avoider
 
 # driving speed of robot (interpreted as recommended value)
 float32 velocity

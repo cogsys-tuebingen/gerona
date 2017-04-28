@@ -43,34 +43,34 @@ std::shared_ptr<PathFollowerConfig> ControllerFactory::construct(const PathFollo
 {
     ROS_ASSERT_MSG(!config.controller.empty(), "No controller specified");
     ROS_ASSERT_MSG(!config.local_planner.empty(), "No local planner specified");
-    //ROS_ASSERT_MSG(!config.obstacle_avoider.empty(), "No obstacle avoider specified");
+    //ROS_ASSERT_MSG(!config.collision_avoider.empty(), "No obstacle avoider specified");
 
     PathFollowerConfig result;
     result.controller_ = makeController(config.controller);
     result.local_planner_ = makeConstrainedLocalPlanner(config.local_planner);
 
-    std::string obstacle_avoider = config.collision_avoider;
-    if(obstacle_avoider.empty()) {
+    std::string collision_avoider = config.collision_avoider;
+    if(collision_avoider.empty()) {
         auto key = default_collision_detectors_.find(config.controller);
         if(key != default_collision_detectors_.end()) {
-            obstacle_avoider = key->second;
+            collision_avoider = key->second;
         }
 
-        ROS_ASSERT_MSG(!obstacle_avoider.empty(), "No obstacle avoider specified");
+        ROS_ASSERT_MSG(!collision_avoider.empty(), "No obstacle avoider specified");
     }
-    result.obstacle_avoider_ = makeObstacleAvoider(obstacle_avoider);
+    result.collision_avoider_ = makeObstacleAvoider(collision_avoider);
 
     ROS_ASSERT_MSG(result.controller_ != nullptr, "Controller was not set");
     ROS_ASSERT_MSG(result.local_planner_ != nullptr, "Local Planner was not set");
-    ROS_ASSERT_MSG(result.obstacle_avoider_ != nullptr, "Obstacle Avoider was not set");
+    ROS_ASSERT_MSG(result.collision_avoider_ != nullptr, "Obstacle Avoider was not set");
 
     // wiring
-    result.obstacle_avoider_->setTransformListener(&pose_tracker_.getTransformListener());
+    result.collision_avoider_->setTransformListener(&pose_tracker_.getTransformListener());
 
     ros::Duration uinterval(opt_.uinterval());
     result.local_planner_->init(result.controller_.get(), &pose_tracker_, uinterval);
 
-    result.controller_->init(&pose_tracker_, result.obstacle_avoider_.get(), &opt_);
+    result.controller_->init(&pose_tracker_, result.collision_avoider_.get(), &opt_);
 
     pose_tracker_.setLocal(!result.local_planner_->isNull());
 
@@ -79,7 +79,7 @@ std::shared_ptr<PathFollowerConfig> ControllerFactory::construct(const PathFollo
                                      opt_.depth(), opt_.mu(), opt_.ef());
 
     ROS_INFO_STREAM("using follower configuration:\n- controller: " << config.controller <<
-                    "\n- avoider: " << typeid(*result.obstacle_avoider_).name() <<
+                    "\n- avoider: " << typeid(*result.collision_avoider_).name() <<
                     "\n- local planner: " << config.local_planner);
 
     return std::make_shared<PathFollowerConfig>(result);

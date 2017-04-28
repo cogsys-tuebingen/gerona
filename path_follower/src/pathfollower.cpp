@@ -113,7 +113,7 @@ void PathFollower::setObstacles(const std::shared_ptr<ObstacleCloud const> &msg)
     obstacle_cloud_ = msg;
 
     if(config_) {
-        config_->obstacle_avoider_->setObstacles(msg);
+        config_->collision_avoider_->setObstacles(msg);
     }
 }
 
@@ -374,7 +374,7 @@ PathFollowerConfigName PathFollower::goalToConfig(const FollowPathGoal &goal) co
 
     config.controller = goal.robot_controller.data;
     config.local_planner = goal.local_planner.data;
-    config.collision_avoider = goal.obstacle_avoider.data;
+    config.collision_avoider = goal.collision_avoider.data;
 
     if(config.controller.empty()) {
         config.controller = opt_.controller();
@@ -383,7 +383,7 @@ PathFollowerConfigName PathFollower::goalToConfig(const FollowPathGoal &goal) co
         config.local_planner = opt_.local_planner();
     }
     if(config.collision_avoider.empty()) {
-        config.collision_avoider = opt_.obstacle_avoider();
+        config.collision_avoider = opt_.collision_avoider();
     }
     ROS_ASSERT_MSG(!config.controller.empty(), "No controller specified");
     ROS_ASSERT_MSG(!config.local_planner.empty(), "No local planner specified");
@@ -406,7 +406,7 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
 
     ROS_ASSERT(config_);
     if(obstacle_cloud_) {
-        config_->obstacle_avoider_->setObstacles(obstacle_cloud_);
+        config_->collision_avoider_->setObstacles(obstacle_cloud_);
     }
 
     vel_ = goal.velocity;

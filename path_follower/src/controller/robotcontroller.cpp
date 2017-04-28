@@ -13,7 +13,7 @@
 RobotController::RobotController()
     : pnh_("~"),
       pose_tracker_(nullptr),
-      obstacle_avoider_(nullptr),
+      collision_avoider_(nullptr),
       global_opt_(nullptr),
       visualizer_(Visualizer::getInstance()),
       velocity_(0.0f),
@@ -50,10 +50,10 @@ RobotController::RobotController()
     robot_path_marker_.color.b = 1.0;
 }
 
-void RobotController::init(PoseTracker *pose_tracker, CollisionAvoider *obstacle_avoider, const PathFollowerParameters *options)
+void RobotController::init(PoseTracker *pose_tracker, CollisionAvoider *collision_avoider, const PathFollowerParameters *options)
 {
     pose_tracker_ = pose_tracker;
-    obstacle_avoider_ = obstacle_avoider;
+    collision_avoider_ = collision_avoider;
     global_opt_ = options;
 }
 
@@ -293,7 +293,7 @@ RobotController::ControlStatus RobotController::execute()
         return MCS2CS(status);
     } else {
         CollisionAvoider::State state(path_, *global_opt_);
-        bool cmd_modified = obstacle_avoider_->avoid(&cmd, state);
+        bool cmd_modified = collision_avoider_->avoid(&cmd, state);
 
         if (!cmd.isValid()) {
             ROS_ERROR("Invalid move command.");

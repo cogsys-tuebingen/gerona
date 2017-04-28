@@ -3,7 +3,7 @@
 
 namespace {
 //! Module name, that is used for ros console output
-const std::string MODULE = "obstacle_avoider";
+const std::string MODULE = "collision_avoider";
 }
 
 bool CollisionDetector::avoid(MoveCommand * const cmd,

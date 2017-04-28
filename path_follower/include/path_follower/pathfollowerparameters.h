@@ -7,7 +7,7 @@
 struct PathFollowerParameters : public Parameters
 {
     P<std::string> controller;
-    P<std::string> obstacle_avoider;
+    P<std::string> collision_avoider;
     P<std::string> world_frame;
     P<std::string> robot_frame;
     P<std::string> odom_frame;
@@ -27,8 +27,8 @@ struct PathFollowerParameters : public Parameters
     P<bool> use_v;
 
     // obstacle avoider
-    P<bool> obstacle_avoider_use_collision_box;
-    //P<bool> obstacle_avoider_use_vfh;  // not yet implemented
+    P<bool> collision_avoider_use_collision_box;
+    //P<bool> collision_avoider_use_vfh;  // not yet implemented
 
     // supervisors
     P<bool> supervisor_use_path_lookout;
@@ -41,7 +41,7 @@ struct PathFollowerParameters : public Parameters
 
     PathFollowerParameters():
         controller(this, "~controller", "ackermann_purepursuit", "Defines, which controller is used."),
-        obstacle_avoider(this, "~obstacle_avoider", "", "Defines, which obstacle avoider is used."),
+        collision_avoider(this, "~collision_avoider", "", "Defines, which obstacle avoider is used."),
         world_frame(this, "~world_frame",  "map", "Name of the world frame."),
         robot_frame(this, "~robot_frame",  "base_link", "Name of the robot frame."),
         odom_frame(this, "~odom_frame",  "odom", "Name of the odometry frame."),
@@ -109,9 +109,9 @@ struct PathFollowerParameters : public Parameters
         use_v(this, "~use_v", true,
               "Determines if the current velocity is used by the local planner"),
 
-        obstacle_avoider_use_collision_box(this, "~obstacle_avoider/use_collision_box", true,
+        collision_avoider_use_collision_box(this, "~collision_avoider/use_collision_box", true,
                                            "Use the collision box obstacle avoider ('CollisionDetector')"),
-        //obstacle_avoider_vfh(this, "~obstacle_avoider/use_vfh",  false,
+        //collision_avoider_vfh(this, "~collision_avoider/use_vfh",  false,
         //                     "If set to true, vector field histogram is used for collision avoidance."),
 
 		  supervisor_use_path_lookout(this, "~supervisor/use_path_lookout",  false,

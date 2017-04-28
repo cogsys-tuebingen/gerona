@@ -139,7 +139,7 @@ void RobotController_Dynamic_Window::searchMinObstDist(){
     obst_dist_marker.type = visualization_msgs::Marker::ARROW;
     obst_dist_marker.action = visualization_msgs::Marker::ADD;
 
-    auto obstacle_cloud = obstacle_avoider_->getObstacles();
+    auto obstacle_cloud = collision_avoider_->getObstacles();
     const pcl::PointCloud<pcl::PointXYZ>& cloud = *obstacle_cloud->cloud;
     double min_dist = std::numeric_limits<double>::infinity();
     tf::Point coll_pt(0.0, 0.0, 0.0);
