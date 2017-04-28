@@ -166,7 +166,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///***///
 
 
-    ///Calculate the delta_ and its derivative
+    ///Compute the delta_ and its derivative
 
     double delta_old = delta_;
 
@@ -190,7 +190,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///***///
 
 
-    ///Calculate the next point on the path
+    ///Compute the next point on the path
 
     double s_old = path_interpol.s_new();
 

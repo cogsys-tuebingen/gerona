@@ -242,54 +242,6 @@ void RobotController_2Steer_InputScaling::publishMoveCommand(
 	cmd_pub_.publish(msg);
 }
 
-double RobotController_2Steer_InputScaling::lookUpAngle(const double angle) const {
-
-	const double keys[11] = {0.,
-									 0.0872664626,
-									 0.1221730476,
-									 0.2094395102,
-									 0.2967059728,
-									 0.3839724354,
-									 0.436332313,
-									 0.4537856055,
-									 0.4537856055,
-									 0.4537856055,
-									 0.4537856055};
-
-	const double values[11] = {0.,
-										0.0523598776,
-										0.1047197551,
-										0.1570796327,
-										0.2094395102,
-										0.2617993878,
-										0.3141592654,
-										0.3665191429,
-										0.4188790205,
-										0.471238898,
-										0.5235987756};
-
-	const double abs_angle = fabs(angle);
-
-	unsigned int i;
-	for (i = 1; i < 11; ++i) {
-		if (abs_angle <= keys[i])
-			break;
-	}
-
-	unsigned int smaller = i - 1;
-	unsigned int greater = i;
-
-	const double ratio = (abs_angle - keys[smaller]) / (keys[greater] - keys[smaller]);
-
-	const double interpolated = (1. - ratio) * values[smaller] + ratio * values[greater];
-
-	ROS_INFO("angle=%f, abs_angle=%f, smaller=%d, ratio=%f, interpolated=%f",
-				angle, abs_angle, smaller, ratio, interpolated);
-
-	return angle > 0. ? interpolated : -interpolated;
-
-}
-
 #ifdef TEST_OUTPUT
 void RobotController_2Steer_InputScaling::publishTestOutput(const unsigned int waypoint, const double d,
 																			const double theta_e,
