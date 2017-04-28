@@ -14,7 +14,7 @@
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/utils/obstacle_cloud.h>
-#include <path_follower/obstacle_avoidance/obstacleavoider.h>
+#include <path_follower/collision_avoidance/collision_avoider.h>
 
 
 // SYSTEM
@@ -28,7 +28,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_OFC, OFC);
+REGISTER_ROBOT_CONTROLLER(RobotController_OFC, OFC, default_collision_avoider);
 
 using namespace Eigen;
 

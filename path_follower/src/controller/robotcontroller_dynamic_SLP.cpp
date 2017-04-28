@@ -22,7 +22,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_Dynamic_SLP, dynamic_SLP);
+REGISTER_ROBOT_CONTROLLER(RobotController_Dynamic_SLP, dynamic_SLP, default_collision_avoider);
 
 using namespace Eigen;
 

@@ -6,14 +6,14 @@
 #include <path_follower/utils/path_exceptions.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
-#include <path_follower/obstacle_avoidance/obstacleavoider.h>
+#include <path_follower/collision_avoidance/collision_avoider.h>
 
 /// THIRD PARTY
 
 RobotController::RobotController()
     : pnh_("~"),
       pose_tracker_(nullptr),
-      obstacle_avoider_(nullptr),
+      collision_avoider_(nullptr),
       global_opt_(nullptr),
       visualizer_(Visualizer::getInstance()),
       velocity_(0.0f),
@@ -50,10 +50,10 @@ RobotController::RobotController()
     robot_path_marker_.color.b = 1.0;
 }
 
-void RobotController::init(PoseTracker *pose_tracker, ObstacleAvoider *obstacle_avoider, const PathFollowerParameters *options)
+void RobotController::init(PoseTracker *pose_tracker, CollisionAvoider *collision_avoider, const PathFollowerParameters *options)
 {
     pose_tracker_ = pose_tracker;
-    obstacle_avoider_ = obstacle_avoider;
+    collision_avoider_ = collision_avoider;
     global_opt_ = options;
 }
 
@@ -293,8 +293,8 @@ RobotController::ControlStatus RobotController::execute()
         stopMotion();
         return MCS2CS(status);
     } else {
-        ObstacleAvoider::State state(path_, *global_opt_);
-        bool cmd_modified = obstacle_avoider_->avoid(&cmd, state);
+        CollisionAvoider::State state(path_, *global_opt_);
+        bool cmd_modified = collision_avoider_->avoid(&cmd, state);
 
         if (!cmd.isValid()) {
             ROS_ERROR("Invalid move command.");

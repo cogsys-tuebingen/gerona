@@ -5,13 +5,13 @@
 
 class RobotController;
 class LocalPlanner;
-class ObstacleAvoider;
+class CollisionAvoider;
 
 struct PathFollowerConfigName
 {
     std::string controller;
     std::string local_planner;
-    std::string obstacle_avoider;
+    std::string collision_avoider;
 
     bool operator < (const PathFollowerConfigName& rhs) const
     {
@@ -21,7 +21,7 @@ struct PathFollowerConfigName
         if(local_planner < rhs.local_planner) {
             return true;
         }
-        if(obstacle_avoider < rhs.obstacle_avoider) {
+        if(collision_avoider < rhs.collision_avoider) {
             return true;
         }
 
@@ -34,7 +34,7 @@ struct PathFollowerConfig
     //! The robot controller is responsible for everything that is dependend on robot model and controller type.
     std::shared_ptr<RobotController> controller_;
     std::shared_ptr<LocalPlanner> local_planner_;
-    std::shared_ptr<ObstacleAvoider> obstacle_avoider_;
+    std::shared_ptr<CollisionAvoider> collision_avoider_;
 };
 
 #endif // PATH_FOLLOWER_CONFIG_H

@@ -1,7 +1,7 @@
-#ifndef OBSTACLEDETECTOR_H
-#define OBSTACLEDETECTOR_H
+#ifndef CollisionDetector_H
+#define CollisionDetector_H
 
-#include <path_follower/obstacle_avoidance/obstacleavoider.h>
+#include <path_follower/collision_avoidance/collision_avoider.h>
 #include <path_follower/utils/parameters.h>
 
 /**
@@ -20,14 +20,14 @@
  * In courves, the box is bend toward the direction of the path. For more details on this, see the comments inside
  * the method isObstacleAhead().
  */
-class ObstacleDetector: public ObstacleAvoider
+class CollisionDetector: public CollisionAvoider
 {
 public:
     virtual bool avoid(MoveCommand * const cmd,
                        const State &state);
 
 protected:
-    struct ObstacleDetectorParameters : public Parameters
+    struct CollisionDetectorParameters : public Parameters
     {
         P<float> width;
         P<float> min_length;
@@ -36,17 +36,17 @@ protected:
         P<float> velocity_factor;
         P<float> velocity_saturation;
 
-        ObstacleDetectorParameters():
-            width(this,  "~obstacle_avoider/collision_box/width",  0.5,
+        CollisionDetectorParameters():
+            width(this,  "~collision_avoider/collision_box/width",  0.5,
                   "Width of the collision box for obstacle avoidance."),
-            min_length(this,  "~obstacle_avoider/collision_box/min_length",  0.5,
+            min_length(this,  "~collision_avoider/collision_box/min_length",  0.5,
                        "Minimum length of the collision box for obstacle avoidance (grows with increasing velocity)."),
-            crit_length(this,  "~obstacle_avoider/collision_box/crit_length",  0.3, ""),
-            max_length(this,  "~obstacle_avoider/collision_box/max_length",  1.0,
+            crit_length(this,  "~collision_avoider/collision_box/crit_length",  0.3, ""),
+            max_length(this,  "~collision_avoider/collision_box/max_length",  1.0,
                        "Maximum length of the collision box for obstacle avoidance."),
-            velocity_factor(this,  "~obstacle_avoider/collision_box/velocity_factor",  1.0,
+            velocity_factor(this,  "~collision_avoider/collision_box/velocity_factor",  1.0,
                             "This factor determines, how much the length of the box is increased, depending on the velocity."),
-            velocity_saturation(this,  "~obstacle_avoider/collision_box/velocity_saturation",  -1.0,
+            velocity_saturation(this,  "~collision_avoider/collision_box/velocity_saturation",  -1.0,
                                 "The velocity for which the maximum length should be used. If set to a value < 0, the max. velocity is used.")
         {
             if(max_length() < min_length()) {
@@ -80,7 +80,7 @@ protected:
                               float curve_enlarge_factor) = 0;
 
 protected:
-    ObstacleDetector() = default;
+    CollisionDetector() = default;
 };
 
-#endif // OBSTACLEDETECTOR_H
+#endif // CollisionDetector_H

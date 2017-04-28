@@ -9,7 +9,7 @@
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/obstacle_cloud.h>
 #include <path_follower/pathfollowerparameters.h>
-#include <path_follower/obstacle_avoidance/obstacleavoider.h>
+#include <path_follower/collision_avoidance/collision_avoider.h>
 #include <cslibs_utils/MathHelper.h>
 
 // SYSTEM
@@ -17,7 +17,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_Potential_Field_TT, potential_field_TT);
+REGISTER_ROBOT_CONTROLLER(RobotController_Potential_Field_TT, potential_field_TT, default_collision_avoider);
 
 RobotController_Potential_Field_TT::RobotController_Potential_Field_TT():
     RobotController_Potential_Field()

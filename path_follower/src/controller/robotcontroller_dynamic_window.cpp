@@ -9,7 +9,7 @@
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/obstacle_cloud.h>
 #include <path_follower/pathfollowerparameters.h>
-#include <path_follower/obstacle_avoidance/obstacleavoider.h>
+#include <path_follower/collision_avoidance/collision_avoider.h>
 #include <cslibs_utils/MathHelper.h>
 
 // SYSTEM
@@ -18,7 +18,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_Dynamic_Window, dynamic_window);
+REGISTER_ROBOT_CONTROLLER(RobotController_Dynamic_Window, dynamic_window, default_collision_avoider);
 
 using namespace Eigen;
 using namespace std;
@@ -139,7 +139,7 @@ void RobotController_Dynamic_Window::searchMinObstDist(){
     obst_dist_marker.type = visualization_msgs::Marker::ARROW;
     obst_dist_marker.action = visualization_msgs::Marker::ADD;
 
-    auto obstacle_cloud = obstacle_avoider_->getObstacles();
+    auto obstacle_cloud = collision_avoider_->getObstacles();
     const pcl::PointCloud<pcl::PointXYZ>& cloud = *obstacle_cloud->cloud;
     double min_dist = std::numeric_limits<double>::infinity();
     tf::Point coll_pt(0.0, 0.0, 0.0);

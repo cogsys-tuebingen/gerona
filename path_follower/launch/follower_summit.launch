@@ -36,12 +36,12 @@
     <param name="max_distance_to_path" value="2.0" />
     <param name="min_velocity" value="0.1" />
     <param name="max_velocity" value="0.5" />
-    <param name="obstacle_avoider/collision_box/width" value="0.4" />
-    <param name="obstacle_avoider/collision_box/crit_length" value="0.6" />
-    <param name="obstacle_avoider/collision_box/min_length" value="1.0" />
-    <param name="obstacle_avoider/collision_box/max_length" value="1.5" />
-    <param name="obstacle_avoider/collision_box/velocity_factor" value="1.0" />
-    <param name="obstacle_avoider/collision_box/velocity_saturation" value="1.0" />
+    <param name="collision_avoider/collision_box/width" value="0.4" />
+    <param name="collision_avoider/collision_box/crit_length" value="0.6" />
+    <param name="collision_avoider/collision_box/min_length" value="1.0" />
+    <param name="collision_avoider/collision_box/max_length" value="1.5" />
+    <param name="collision_avoider/collision_box/velocity_factor" value="1.0" />
+    <param name="collision_avoider/collision_box/velocity_saturation" value="1.0" />
     <param name="obstacle_scale_distance" value="1.0" />
     <param name="obstacle_scale_lifetime" value="5.0" />
     <param name="path_width" value="0.5" />

@@ -46,14 +46,14 @@ Launch the path follower with the PID controller for a car-like (Ackermann) robo
     
     <!-- obstacle avoider -->
     <!-- right now, there is only the collision box avoider -->
-    <param name="obstacle_avoider/use_collision_box" value="true" />
+    <param name="collision_avoider/use_collision_box" value="true" />
     
-    <param name="obstacle_avoider/collision_box/width" value="0.4" />
-    <param name="obstacle_avoider/collision_box/crit_length" value="0.5" />
-    <param name="obstacle_avoider/collision_box/min_length" value="0.7" />
-    <param name="obstacle_avoider/collision_box/max_length" value="1.4" />
-    <param name="obstacle_avoider/collision_box/velocity_factor" value="1.0" />
-    <param name="obstacle_avoider/collision_box/velocity_saturation" value="1.0" />
+    <param name="collision_avoider/collision_box/width" value="0.4" />
+    <param name="collision_avoider/collision_box/crit_length" value="0.5" />
+    <param name="collision_avoider/collision_box/min_length" value="0.7" />
+    <param name="collision_avoider/collision_box/max_length" value="1.4" />
+    <param name="collision_avoider/collision_box/velocity_factor" value="1.0" />
+    <param name="collision_avoider/collision_box/velocity_saturation" value="1.0" />
     
     
     <!-- general parameters of the follower -->

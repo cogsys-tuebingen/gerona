@@ -1,4 +1,4 @@
-#include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
+#include <path_follower/collision_avoidance/collision_detector_ackermann.h>
 
 #include <Eigen/Core>
 //#include <opencv2/opencv.hpp> // only for debugging
@@ -8,15 +8,15 @@ using namespace Eigen;
 
 
 
-bool ObstacleDetectorAckermann::avoid(MoveCommand * const cmd,
-                                    const ObstacleAvoider::State &state)
+bool CollisionDetectorAckermann::avoid(MoveCommand * const cmd,
+                                    const CollisionAvoider::State &state)
 {
     velocity_ = cmd->getVelocity();
 
-    return ObstacleDetectorPolygon::avoid(cmd, state);
+    return CollisionDetectorPolygon::avoid(cmd, state);
 }
 
-ObstacleDetectorPolygon::PolygonWithTfFrame ObstacleDetectorAckermann::getPolygon(float width, float length, float course_angle, float curve_enlarge_factor) const
+CollisionDetectorPolygon::PolygonWithTfFrame CollisionDetectorAckermann::getPolygon(float width, float length, float course_angle, float curve_enlarge_factor) const
 {
     /// Based on http://stackoverflow.com/questions/1217585/parallelogram-contains-point
 

@@ -22,7 +22,7 @@
 class PoseTracker;
 class Visualizer;
 class CoursePredictor;
-class ObstacleAvoider;
+class CollisionAvoider;
 
 class PathFollowerParameters;
 
@@ -126,7 +126,7 @@ protected:
 public:
     RobotController();
 
-    virtual void init(PoseTracker* pose_tracker, ObstacleAvoider* obstacle_avoider, const PathFollowerParameters* options);
+    virtual void init(PoseTracker* pose_tracker, CollisionAvoider* collision_avoider, const PathFollowerParameters* options);
 
     virtual ~RobotController() {}
 
@@ -172,7 +172,7 @@ protected:
     ros::Publisher points_pub_;
 
     PoseTracker* pose_tracker_;
-    ObstacleAvoider* obstacle_avoider_;
+    CollisionAvoider* collision_avoider_;
 
     const PathFollowerParameters* global_opt_;
 

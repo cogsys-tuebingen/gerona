@@ -9,7 +9,7 @@
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/obstacle_cloud.h>
 #include <path_follower/pathfollowerparameters.h>
-#include <path_follower/obstacle_avoidance/obstacleavoider.h>
+#include <path_follower/collision_avoidance/collision_avoider.h>
 #include <cslibs_utils/MathHelper.h>
 
 // SYSTEM
@@ -17,7 +17,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_Potential_Field, potential_field);
+REGISTER_ROBOT_CONTROLLER(RobotController_Potential_Field, potential_field, default_collision_avoider);
 
 RobotController_Potential_Field::RobotController_Potential_Field():
     RobotController(),
@@ -256,7 +256,7 @@ void RobotController_Potential_Field::computeFReps()
 void RobotController_Potential_Field::findObstacles()
 {
     double obst_angle = 0.0;
-    auto obstacle_cloud = obstacle_avoider_->getObstacles();
+    auto obstacle_cloud = collision_avoider_->getObstacles();
     const pcl::PointCloud<pcl::PointXYZ>& cloud = *obstacle_cloud->cloud;
     pcl::PointCloud<pcl::PointXYZ> obst_points_new;
     double min_dist = std::numeric_limits<double>::infinity();

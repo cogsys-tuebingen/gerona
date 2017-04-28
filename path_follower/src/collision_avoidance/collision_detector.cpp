@@ -1,13 +1,13 @@
-#include <path_follower/obstacle_avoidance/obstacledetector.h>
+#include <path_follower/collision_avoidance/collision_detector.h>
 #include <path_follower/utils/obstacle_cloud.h>
 
 namespace {
 //! Module name, that is used for ros console output
-const std::string MODULE = "obstacle_avoider";
+const std::string MODULE = "collision_avoider";
 }
 
-bool ObstacleDetector::avoid(MoveCommand * const cmd,
-                             const ObstacleAvoider::State &state)
+bool CollisionDetector::avoid(MoveCommand * const cmd,
+                             const CollisionAvoider::State &state)
 {
     float course = cmd->getDirectionAngle(); //TODO: use CoursePredictor instead of command?
 

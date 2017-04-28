@@ -16,7 +16,7 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_Omnidrive_OrthogonalExponential, omnidrive_orthexp);
+REGISTER_ROBOT_CONTROLLER(RobotController_Omnidrive_OrthogonalExponential, omnidrive_orthexp, omnidrive);
 
 using namespace Eigen;
 

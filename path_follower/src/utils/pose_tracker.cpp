@@ -10,7 +10,7 @@ PoseTracker::PoseTracker(PathFollowerParameters &opt, ros::NodeHandle& nh)
     : opt_(opt),
       local_(false)
 {
-    odom_sub_ = nh.subscribe<nav_msgs::Odometry>("odom", 1, &PoseTracker::odometryCB, this);
+    odom_sub_ = nh.subscribe<nav_msgs::Odometry>("/odom", 1, &PoseTracker::odometryCB, this);
 }
 
 bool PoseTracker::isLocal() const
