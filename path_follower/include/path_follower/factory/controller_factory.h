@@ -16,7 +16,7 @@ class PathFollowerParameters;
 
 class RobotController;
 class LocalPlanner;
-class ObstacleAvoider;
+class CollisionAvoider;
 class PathFollower;
 
 class PoseTracker;
@@ -40,7 +40,7 @@ public:
 
 private:
     std::shared_ptr<RobotController> makeController(const std::string &name);
-    std::shared_ptr<ObstacleAvoider> makeObstacleAvoider(const std::string &name);
+    std::shared_ptr<CollisionAvoider> makeObstacleAvoider(const std::string &name);
 
     std::shared_ptr<LocalPlanner> makeConstrainedLocalPlanner(const std::string &name);
     std::shared_ptr<LocalPlanner> makeLocalPlanner(const std::string &name);

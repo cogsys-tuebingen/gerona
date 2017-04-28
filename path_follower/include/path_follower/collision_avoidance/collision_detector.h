@@ -1,7 +1,7 @@
-#ifndef OBSTACLEDETECTOR_H
-#define OBSTACLEDETECTOR_H
+#ifndef CollisionDetector_H
+#define CollisionDetector_H
 
-#include <path_follower/obstacle_avoidance/obstacleavoider.h>
+#include <path_follower/collision_avoidance/collision_avoider.h>
 #include <path_follower/utils/parameters.h>
 
 /**
@@ -20,14 +20,14 @@
  * In courves, the box is bend toward the direction of the path. For more details on this, see the comments inside
  * the method isObstacleAhead().
  */
-class ObstacleDetector: public ObstacleAvoider
+class CollisionDetector: public CollisionAvoider
 {
 public:
     virtual bool avoid(MoveCommand * const cmd,
                        const State &state);
 
 protected:
-    struct ObstacleDetectorParameters : public Parameters
+    struct CollisionDetectorParameters : public Parameters
     {
         P<float> width;
         P<float> min_length;
@@ -36,7 +36,7 @@ protected:
         P<float> velocity_factor;
         P<float> velocity_saturation;
 
-        ObstacleDetectorParameters():
+        CollisionDetectorParameters():
             width(this,  "~obstacle_avoider/collision_box/width",  0.5,
                   "Width of the collision box for obstacle avoidance."),
             min_length(this,  "~obstacle_avoider/collision_box/min_length",  0.5,
@@ -80,7 +80,7 @@ protected:
                               float curve_enlarge_factor) = 0;
 
 protected:
-    ObstacleDetector() = default;
+    CollisionDetector() = default;
 };
 
-#endif // OBSTACLEDETECTOR_H
+#endif // CollisionDetector_H

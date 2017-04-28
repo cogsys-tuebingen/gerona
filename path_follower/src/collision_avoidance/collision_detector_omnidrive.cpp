@@ -1,9 +1,9 @@
-#include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
+#include <path_follower/collision_avoidance/collision_detector_omnidrive.h>
 #include <algorithm>
 
 using namespace std;
 
-ObstacleDetectorPolygon::PolygonWithTfFrame ObstacleDetectorOmnidrive::getPolygon(float width, float length, float course_angle, float curve_enlarge_factor) const
+CollisionDetectorPolygon::PolygonWithTfFrame CollisionDetectorOmnidrive::getPolygon(float width, float length, float course_angle, float curve_enlarge_factor) const
 {
     PolygonWithTfFrame pwf;
     pwf.frame = "base_link";

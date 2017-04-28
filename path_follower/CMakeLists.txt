@@ -86,11 +86,11 @@ add_library(${PROJECT_NAME} SHARED
     src/utils/path_interpolated.cpp
     src/utils/extended_kalman_filter.cpp
 
-    src/obstacle_avoidance/obstacledetector.cpp
-    src/obstacle_avoidance/obstacledetectorpolygon.cpp
-    src/obstacle_avoidance/obstacledetectorackermann.cpp
-    src/obstacle_avoidance/obstacledetectoromnidrive.cpp
-    src/obstacle_avoidance/obstacle_avoider.cpp
+    src/collision_avoidance/collision_detector.cpp
+    src/collision_avoidance/collision_detector_polygon.cpp
+    src/collision_avoidance/collision_detector_ackermann.cpp
+    src/collision_avoidance/collision_detector_omnidrive.cpp
+    src/collision_avoidance/collision_avoider.cpp
 
     src/controller/robotcontroller.cpp
     src/controller/robotcontroller_ackermann_pid.cpp

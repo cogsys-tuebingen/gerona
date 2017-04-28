@@ -6,9 +6,9 @@
 // Controller/Models
 #include <path_follower/controller/robotcontroller.h>
 
-#include <path_follower/obstacle_avoidance/noneavoider.hpp>
-#include <path_follower/obstacle_avoidance/obstacledetectorackermann.h>
-#include <path_follower/obstacle_avoidance/obstacledetectoromnidrive.h>
+#include <path_follower/collision_avoidance/none_avoider.hpp>
+#include <path_follower/collision_avoidance/collision_detector_ackermann.h>
+#include <path_follower/collision_avoidance/collision_detector_omnidrive.h>
 
 #include <path_follower/local_planner/local_planner_null.h>
 #include <path_follower/local_planner/local_planner_transformer.h>
@@ -49,7 +49,7 @@ std::shared_ptr<PathFollowerConfig> ControllerFactory::construct(const PathFollo
     result.controller_ = makeController(config.controller);
     result.local_planner_ = makeConstrainedLocalPlanner(config.local_planner);
 
-    std::string obstacle_avoider = config.obstacle_avoider;
+    std::string obstacle_avoider = config.collision_avoider;
     if(obstacle_avoider.empty()) {
         auto key = default_collision_detectors_.find(config.controller);
         if(key != default_collision_detectors_.end()) {
@@ -234,17 +234,17 @@ std::shared_ptr<LocalPlanner> ControllerFactory::makeLocalPlanner(const std::str
     }
 }
 
-std::shared_ptr<ObstacleAvoider> ControllerFactory::makeObstacleAvoider(const std::string &name)
+std::shared_ptr<CollisionAvoider> ControllerFactory::makeObstacleAvoider(const std::string &name)
 {
     if(name == "default_collision_avoider") {
-        return std::make_shared<ObstacleDetectorOmnidrive>();
+        return std::make_shared<CollisionDetectorOmnidrive>();
     } else {
         if (name == "omnidive") {
-            return std::make_shared<ObstacleDetectorOmnidrive>();
+            return std::make_shared<CollisionDetectorOmnidrive>();
         } else if (name == "ackermann") {
-            return std::make_shared<ObstacleDetectorAckermann>();
+            return std::make_shared<CollisionDetectorAckermann>();
         }
     }
-    ROS_WARN_STREAM("No CollisionAvoider defined with the name '" << name << "'. Defaulting to Omnidrive.");
-    return std::make_shared<ObstacleDetectorOmnidrive>();
+    ROS_WARN_STREAM("No collision_avoider defined with the name '" << name << "'. Defaulting to Omnidrive.");
+    return std::make_shared<CollisionDetectorOmnidrive>();
 }

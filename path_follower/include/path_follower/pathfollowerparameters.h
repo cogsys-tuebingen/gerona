@@ -110,7 +110,7 @@ struct PathFollowerParameters : public Parameters
               "Determines if the current velocity is used by the local planner"),
 
         obstacle_avoider_use_collision_box(this, "~obstacle_avoider/use_collision_box", true,
-                                           "Use the collision box obstacle avoider ('ObstacleDetector')"),
+                                           "Use the collision box obstacle avoider ('CollisionDetector')"),
         //obstacle_avoider_vfh(this, "~obstacle_avoider/use_vfh",  false,
         //                     "If set to true, vector field histogram is used for collision avoidance."),
 

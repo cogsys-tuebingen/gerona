@@ -1,12 +1,12 @@
-#ifndef NONEAVOIDER_H
-#define NONEAVOIDER_H
+#ifndef NONE_AVOIDER_H
+#define NONE_AVOIDER_H
 
-#include <path_follower/obstacle_avoidance/obstacleavoider.h>
+#include <path_follower/collision_avoidance/collision_avoider.h>
 
 /**
  * @brief Dummy avoider that does nothing. Use this to deactivate obstacle avoidance.
  */
-class NoneAvoider : public ObstacleAvoider
+class NoneAvoider : public CollisionAvoider
 {
 public:
     virtual bool avoid(MoveCommand* const, const State &)

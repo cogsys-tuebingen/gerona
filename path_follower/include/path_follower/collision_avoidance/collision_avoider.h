@@ -1,5 +1,5 @@
-#ifndef OBSTACLEAVOIDER_H
-#define OBSTACLEAVOIDER_H
+#ifndef COLLISION_AVOIDER_H
+#define COLLISION_AVOIDER_H
 
 #include <Eigen/Core>
 #include <tf/tf.h>
@@ -11,7 +11,7 @@
 
 class ObstacleCloud;
 
-class ObstacleAvoider
+class CollisionAvoider
 {
 public:
     //! Additional information about the robots state, that might be required by the obstacle avodier
@@ -28,7 +28,7 @@ public:
         {}
     };
 
-    virtual ~ObstacleAvoider() {}
+    virtual ~CollisionAvoider() {}
 
     void setTransformListener(const tf::TransformListener *tf_listener);
 
@@ -47,7 +47,7 @@ public:
     virtual bool avoid(MoveCommand* const cmd, const State &state) = 0;
 
 protected:
-    ObstacleAvoider();
+    CollisionAvoider();
 
 protected:
     std::shared_ptr<ObstacleCloud const> obstacles_;
@@ -55,4 +55,4 @@ protected:
     const tf::TransformListener *tf_listener_;
 };
 
-#endif // OBSTACLEAVOIDER_H
+#endif // COLLISION_AVOIDER_H

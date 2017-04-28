@@ -6,7 +6,7 @@
 #include <path_follower/utils/path_exceptions.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
-#include <path_follower/obstacle_avoidance/obstacleavoider.h>
+#include <path_follower/collision_avoidance/collision_avoider.h>
 
 /// THIRD PARTY
 
@@ -50,7 +50,7 @@ RobotController::RobotController()
     robot_path_marker_.color.b = 1.0;
 }
 
-void RobotController::init(PoseTracker *pose_tracker, ObstacleAvoider *obstacle_avoider, const PathFollowerParameters *options)
+void RobotController::init(PoseTracker *pose_tracker, CollisionAvoider *obstacle_avoider, const PathFollowerParameters *options)
 {
     pose_tracker_ = pose_tracker;
     obstacle_avoider_ = obstacle_avoider;
@@ -292,7 +292,7 @@ RobotController::ControlStatus RobotController::execute()
         stopMotion();
         return MCS2CS(status);
     } else {
-        ObstacleAvoider::State state(path_, *global_opt_);
+        CollisionAvoider::State state(path_, *global_opt_);
         bool cmd_modified = obstacle_avoider_->avoid(&cmd, state);
 
         if (!cmd.isValid()) {

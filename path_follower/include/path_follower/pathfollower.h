@@ -30,7 +30,7 @@ class SupervisorChain;
 class LocalPlanner;
 class RobotController;
 class Path;
-class ObstacleAvoider;
+class CollisionAvoider;
 
 class ObstacleCloud;
 class MoveCommand;

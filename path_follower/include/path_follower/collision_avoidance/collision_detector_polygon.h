@@ -1,11 +1,11 @@
-#ifndef OBSTACLEDETECTORPOLYGON_H
-#define OBSTACLEDETECTORPOLYGON_H
+#ifndef COLLISION_DETECTOR_POLYGON_H
+#define COLLISION_DETECTOR_POLYGON_H
 
-#include "obstacledetector.h"
+#include "collision_detector.h"
 #include <opencv2/core/core.hpp>
 #include <tf/transform_listener.h>
 
-class ObstacleDetectorPolygon : public ObstacleDetector
+class CollisionDetectorPolygon : public CollisionDetector
 {
 protected:
     struct PolygonWithTfFrame
@@ -41,4 +41,4 @@ private:
     void visualize(PolygonWithTfFrame polygon, bool hasObstacle) const;
 };
 
-#endif // OBSTACLEDETECTORPOLYGON_H
+#endif // COLLISION_DETECTOR_POLYGON_H

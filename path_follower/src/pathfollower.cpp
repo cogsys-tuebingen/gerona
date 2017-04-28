@@ -25,7 +25,7 @@
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/supervisor/supervisorchain.h>
 #include <path_follower/utils/pose_tracker.h>
-#include <path_follower/obstacle_avoidance/obstacleavoider.h>
+#include <path_follower/collision_avoidance/collision_avoider.h>
 
 using namespace path_msgs;
 using namespace std;
@@ -374,7 +374,7 @@ PathFollowerConfigName PathFollower::goalToConfig(const FollowPathGoal &goal) co
 
     config.controller = goal.robot_controller.data;
     config.local_planner = goal.local_planner.data;
-    config.obstacle_avoider = goal.obstacle_avoider.data;
+    config.collision_avoider = goal.obstacle_avoider.data;
 
     if(config.controller.empty()) {
         config.controller = opt_.controller();
@@ -382,8 +382,8 @@ PathFollowerConfigName PathFollower::goalToConfig(const FollowPathGoal &goal) co
     if(config.local_planner.empty()) {
         config.local_planner = opt_.local_planner();
     }
-    if(config.obstacle_avoider.empty()) {
-        config.obstacle_avoider = opt_.obstacle_avoider();
+    if(config.collision_avoider.empty()) {
+        config.collision_avoider = opt_.obstacle_avoider();
     }
     ROS_ASSERT_MSG(!config.controller.empty(), "No controller specified");
     ROS_ASSERT_MSG(!config.local_planner.empty(), "No local planner specified");
