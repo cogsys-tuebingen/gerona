@@ -200,13 +200,14 @@ void RobotController::findOrthogonalProjection()
     double dist = 0;
     double dx = 0.0;
     double dy = 0.0;
-    //this is a trick for closed paths
+    //this is a trick for closed paths, if the start and goal point are very close
+    //without this, the robot would reach the goal, without even driving
     int old_ind = proj_ind_;
 
     for (unsigned int i = proj_ind_; i < path_interpol.n(); i++){
 
         dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
-        if((dist < orth_proj_) & (i - old_ind >= 0) & (i - old_ind <= 3)){
+        if((dist < orth_proj_) && (i - old_ind <= 3)){
 
             orth_proj_ = dist;
             proj_ind_ = i;

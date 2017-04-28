@@ -58,10 +58,7 @@ private:
 #endif
 
 	//! Sets the tuning parameters k1, k2, k3 according to k
-	void setTuningParameters(const double k);
-
-	//! Converts the steering angle to compensate the errors of the robot
-	double lookUpAngle(const double angle) const;
+    void setTuningParameters(const double k);
 
 	//! The MoveCommand that is beeing published
 	MoveCommand move_cmd_;
