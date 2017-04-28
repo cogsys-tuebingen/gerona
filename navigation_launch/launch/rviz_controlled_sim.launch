@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_HBZ)" />
+
+    <include file="$(find navigation_launch)/launch/laser_filter.launch" />
+
+    <include file="$(find navigation_launch)/launch/rviz_controlled.launch">
+      <arg name="robot_controller" value="$(arg robot_controller)" />
+
+      <arg name="use_planner_default" value="true" />
+    </include>
+
+    <param name="path_planner/render_open_cells" value="false" />
+    <param name="path_follower/local_planner/algorithm" value="NULL" />
+    <param name="path_planner/algorithm" value="summit_forward" />
+
+</launch>
