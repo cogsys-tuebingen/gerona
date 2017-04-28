@@ -165,7 +165,7 @@ RobotController::ControlStatus RobotController::MCS2CS(RobotController::MoveComm
     case MoveCommandStatus::REACHED_GOAL:
         return ControlStatus::REACHED_GOAL;
     default:
-        ROS_ERROR("MoveCommandStatus %d is not handled by MCS2CS! Return ERROR instead.", s);
+        ROS_ERROR("MoveCommandStatus %d is not handled by MCS2CS! Return ERROR instead.", (int) s);
     case MoveCommandStatus::ERROR:
         return ControlStatus::ERROR;
     }

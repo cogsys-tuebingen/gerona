@@ -76,7 +76,6 @@ public:
          */
         P(Parameters *opt, const std::string& param_name, const T& default_val, const std::string& desc)
         {
-            std::cerr << "creating parameter " << opt->ns_ + param_name << std::endl;
             ros::param::param<T>(opt->ns_ + param_name, value_, default_val);
             opt->registerParam(param_name, default_val, desc);
         }

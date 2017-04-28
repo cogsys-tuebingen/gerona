@@ -115,7 +115,7 @@ double Robotcontroller_Ackermann_PurePursuit::computeAlpha(double& lookahead_dis
 
 	// TODO: correct angle, when the goal is near
 
-	double distance, dx, dy;
+    double distance=0, dx=0, dy=0;
 	for (unsigned int i = waypoint_; i < path_interpol.n(); ++i) {
 		dx = path_interpol.p(i) - pose[0];
 		dy = path_interpol.q(i) - pose[1];

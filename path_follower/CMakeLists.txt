@@ -94,9 +94,6 @@ add_library(${PROJECT_NAME} SHARED
 
     src/controller/robotcontroller.cpp
     src/controller/robotcontroller_ackermann_pid.cpp
-    src/controller/path_simple_pid.cpp
-    src/controller/path_cascade_pid.cpp
-
     src/controller/robotcontroller_ICR_CCW.cpp
     src/controller/robotcontroller_ackermann_orthexp.cpp
     src/controller/robotcontroller_ackermann_purepursuit.cpp
@@ -114,6 +111,7 @@ add_library(${PROJECT_NAME} SHARED
     src/controller/robotcontroller_potential_field_TT.cpp
     src/controller/robotcontroller_dynamic_window.cpp
     src/controller/robotcontroller_OFC.cpp
+    src/controller/vector_field_histogram.cpp
 
     src/local_planner/local_planner.cpp
     src/local_planner/local_planner_null.cpp
@@ -156,7 +154,6 @@ add_library(${PROJECT_NAME} SHARED
     src/supervisor/obstacletracker.cpp
     src/supervisor/waypointtimeout.cpp
     src/supervisor/distancetopathsupervisor.cpp
-    src/controller/vector_field_histogram.cpp
 )
 target_link_libraries(${PROJECT_NAME}
     ${ALGLIB_LIBRARIES} ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES} ${PCL_LIBRARIES}

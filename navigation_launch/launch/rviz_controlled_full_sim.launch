@@ -44,5 +44,6 @@ demonstrating the navigation framework.
 
     <param name="path_planner/render_open_cells" value="false" />
     <param name="path_follower/local_planner/algorithm" value="NULL" />
-    <param name="path_planner/algorithm" value="2d" />
+    <param name="path_planner/algorithm" value="summit_forward" />
+
 </launch>

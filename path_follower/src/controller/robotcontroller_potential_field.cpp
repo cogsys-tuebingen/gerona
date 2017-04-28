@@ -21,7 +21,6 @@ REGISTER_ROBOT_CONTROLLER(RobotController_Potential_Field, potential_field, defa
 
 RobotController_Potential_Field::RobotController_Potential_Field():
     RobotController(),
-    cmd_(this),
     FAttX(0.0),
     FAttY(0.0),
     FResX(0.0),
@@ -31,7 +30,8 @@ RobotController_Potential_Field::RobotController_Potential_Field():
     ye_(0.0),
     theta_e_(0.0),
     mGoalPosX(0.0),
-    mGoalPosY(0.0)
+    mGoalPosY(0.0),
+    cmd_(this)
 {
     F_pub = nh_.advertise<visualization_msgs::MarkerArray>("potential_field_vectors", 0);
 }
@@ -307,21 +307,22 @@ void RobotController_Potential_Field::setGoalPosition()
     double theta_meas = current_pose[2];
 
     ///PATH FOLLOWING
-    double theta = 0.0;
+//    double theta = 0.0;
     double s_diff = std::numeric_limits<double>::max();
+
     // desired look-out distance wrt orthogonal projection
     double s_dist = 1.0;
     bool finished = false;
-    tf::Point goal;
 
+    tf::Point goal (0,0,0);
     if(fabs(fabs(fabs(path_interpol.s(proj_ind_) - path_interpol.s(path_interpol.n()-1)) - s_dist)) < 1e-1){
-        theta = path_interpol.theta_p(path_interpol.n()-1) - theta_meas;
+        //theta = path_interpol.theta_p(path_interpol.n()-1) - theta_meas;
         tf::Point goal_tmp(path_interpol.p(path_interpol.n()-1), path_interpol.q(path_interpol.n()-1),0.0);
         goal = goal_tmp;
         finished = true;
     }
 
-    for(int i = proj_ind_ + 1; i < path_interpol.n()-1 ; i++){
+    for(int i = proj_ind_ + 1; i < ((int) path_interpol.n())-1 ; i++){
         if(fabs(fabs(path_interpol.s(proj_ind_) - path_interpol.s(i)) - s_dist) < s_diff && !finished){
             s_diff = fabs(fabs(path_interpol.s(proj_ind_) - path_interpol.s(i)) - s_dist);
             tf::Point goal_tmp(path_interpol.p(i), path_interpol.q(i), 0.0);

@@ -130,7 +130,7 @@ void RobotController_2Steer_PurePursuit::publishMoveCommand(
 
 double RobotController_2Steer_PurePursuit::computeAlpha(double& l_ah, const Eigen::Vector3d& pose) {
 
-    double distance, dx, dy;
+    double distance=0, dx=0, dy=0;
     for (unsigned int i = waypoint_; i < path_interpol.n(); ++i) {
         dx = path_interpol.p(i) - pose[0];
         dy = path_interpol.q(i) - pose[1];
