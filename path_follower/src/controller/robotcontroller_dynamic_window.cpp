@@ -24,7 +24,6 @@ using namespace Eigen;
 using namespace std;
 
 RobotController_Dynamic_Window::RobotController_Dynamic_Window():
-    cmd_(this),
     vn_(0.0),
     v_cmd_(0.0),
     w_cmd_(0.0),
@@ -43,7 +42,8 @@ RobotController_Dynamic_Window::RobotController_Dynamic_Window():
     y_next_(0.0),
     theta_next_(0.0),
     obstacle_found(false),
-    m_id_counter(0)
+    m_id_counter(0),
+    cmd_(this)
 {
     t_old_ = ros::Time::now();
     goal_pub = nh_.advertise<geometry_msgs::PointStamped>("goal_position", 0);
@@ -95,21 +95,21 @@ void RobotController_Dynamic_Window::setGoalPosition()
 {
 
     ///PATH FOLLOWING
-    double theta = 0.0;
+//    double theta = 0.0;
     double s_diff = std::numeric_limits<double>::max();
     // desired look-out distance wrt orthogonal projection
     double s_dist = 2.0;
     bool finished = false;
-    tf::Point goal;
+    tf::Point goal(0,0,0);
 
     if(fabs(fabs(fabs(path_interpol.s(proj_ind_) - path_interpol.s(path_interpol.n()-1)) - s_dist)) < 1e-1){
-        theta = path_interpol.theta_p(path_interpol.n()-1) - theta_meas_;
+//        theta = path_interpol.theta_p(path_interpol.n()-1) - theta_meas_;
         tf::Point goal_tmp(path_interpol.p(path_interpol.n()-1), path_interpol.q(path_interpol.n()-1),0.0);
         goal = goal_tmp;
         finished = true;
     }
 
-    for(int i = proj_ind_ + 1; i < path_interpol.n()-1 ; i++){
+    for(unsigned int i = proj_ind_ + 1; i < path_interpol.n()-1 ; i++){
         if(fabs(fabs(path_interpol.s(proj_ind_) - path_interpol.s(i)) - s_dist) < s_diff && !finished){
             s_diff = fabs(fabs(path_interpol.s(proj_ind_) - path_interpol.s(i)) - s_dist);
             tf::Point goal_tmp(path_interpol.p(i), path_interpol.q(i), 0.0);

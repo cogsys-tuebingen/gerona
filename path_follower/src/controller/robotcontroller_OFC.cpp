@@ -114,7 +114,7 @@ RobotController::MoveCommandStatus RobotController_OFC::computeMoveCommand(MoveC
         }
         mean_vel_ /= meas_num;
 
-        if(counter_ == meas_velocities_.size() - 1){
+        if(counter_ == ((int) meas_velocities_.size()) - 1){
             counter_ = -1;
         }
         counter_++;

@@ -137,7 +137,7 @@ Path::Ptr LocalPlannerImplemented::updateLocalPath(Path::Ptr& wlp)
         }
 
         setPath(local_path, wlp, local_wps, now);
-        int end_t = gsw.usElapsed();
+//        int end_t = gsw.usElapsed();
 
 
 //        ROS_INFO_STREAM("Local Planner duration: " << (end_t/1000.0) << " ms");

@@ -1,27 +1,21 @@
 // HEADER
 #include <path_follower/utils/path_interpolated.h>
 
-// THIRD PARTY
-//#include <nav_msgs/Path.h>
-
 // PROJECT
 #include <path_follower/utils/cubic_spline_interpolation.h>
-#include <interpolation.h>
 #include <cslibs_utils/MathHelper.h>
 
 // SYSTEM
 #include <deque>
-//#include <Eigen/Core>
-//#include <Eigen/Dense>
-
 #include <nav_msgs/Path.h>
+#include <interpolation.h>
 
 using namespace Eigen;
 
 PathInterpolated::PathInterpolated()
-	: N_(0),
-      frame_id_("map"),
-	  s_new_(0),
+    : frame_id_("map"),
+      N_(0),
+      s_new_(0),
 	  s_prim_(0)
 {
 }

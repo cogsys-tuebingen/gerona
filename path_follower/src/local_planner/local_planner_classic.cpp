@@ -171,7 +171,7 @@ void LocalPlannerClassic::setDistances(LNode& current){
         double dist_to_closest_obst = std::numeric_limits<double>::infinity();
         double closest_x = std::numeric_limits<double>::infinity();
         double closest_y = std::numeric_limits<double>::infinity();
-        const pcl::PointCloud<pcl::PointXYZ>& cloud = *obstacle_cloud_->cloud;
+//        const pcl::PointCloud<pcl::PointXYZ>& cloud = *obstacle_cloud_->cloud;
 
 
         if(last_obstacle_cloud_){
