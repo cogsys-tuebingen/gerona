@@ -11,7 +11,7 @@
         <param name="use_cost_map" value="false" />
 
         <param name="use_collision_gridmap" value="false" />
-        <param name="grow_obstacles" value="0.4" />
+        <param name="grow_obstacles" value="0.2" />
 
         <param name="render_open_cells" value="false"/>
 
@@ -20,7 +20,7 @@
 
         <param name="oversearch_distance" value="0.05" />
 
-        <param name="algorithm" value="summit" />
+        <param name="algorithm" value="2d" />
 
         <param name="preprocess" value="true" />
         <param name="postprocess" value="true" />
@@ -34,6 +34,6 @@
         <param name="size/width" value="0.70" />
 
         <remap from="/obstacles" to="/obstacle_cloud" />
-        <remap from="/scan/front/filtered" to="/scan" />
+        <remap from="/scan/front/filtered" to="/scan_filtered" />
     </node>
 </launch>
