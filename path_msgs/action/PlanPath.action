@@ -4,6 +4,7 @@ geometry_msgs/PoseStamped start
 bool use_start
 
 path_msgs/Goal goal
+path_msgs/PlannerOptions options
 
 ---
 #result definition

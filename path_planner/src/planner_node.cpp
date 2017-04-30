@@ -548,7 +548,7 @@ void Planner::preprocess(const path_msgs::PlanPathGoal& request)
     }
 
     if(grow_obstacles_ != 0.0) {
-        growObstacles(request, request.goal.grow_obstacles ? request.goal.obstacle_growth_radius : grow_obstacles_);
+        growObstacles(request, request.options.grow_obstacles ? request.options.obstacle_growth_radius : grow_obstacles_);
     }
 
     if(map_pub.getNumSubscribers() > 0) {
@@ -690,7 +690,7 @@ path_msgs::PathSequence Planner::doPlan(const path_msgs::PlanPathGoal &request)
     boost::thread worker(boost::bind(&Planner::planThreaded, this, request));
     ros::Rate spin(10);
     ros::Time start_time = ros::Time::now();
-    ros::Duration max_search_time(std::max(request.goal.max_search_duration, 40.f));
+    ros::Duration max_search_time(std::max(request.options.max_search_duration, 40.f));
 
     while(ros::ok()) {
         ROS_INFO_STREAM_THROTTLE(2, "still planning");

@@ -148,8 +148,21 @@ private:
 
         goal.goal.following_algorithm.data = pnh_.param("following_algorithm", std::string(""));
 
-        goal.goal.grow_obstacles = pnh_.param("grow_obstacles", true);
-        goal.goal.obstacle_growth_radius = pnh_.param("obstacle_radius", 1.0);
+        goal.planner_options.grow_obstacles = pnh_.param("grow_obstacles", true);
+        goal.planner_options.obstacle_growth_radius = pnh_.param("obstacle_radius", 1.0);
+
+        goal.planner_options.goal_dist_threshold = pnh_.param("planner/goal_dist_threshold", 0.05);
+        goal.planner_options.goal_angle_threshold_degree = pnh_.param("planner/goal_angle_threshold", 22.5);
+
+        goal.planner_options.reversed = pnh_.param("planner/reversed", false);
+
+        goal.planner_options.allow_forward = pnh_.param("planner/allow_forward", true);
+        goal.planner_options.allow_backward = pnh_.param("planner/allow_backward", false);
+
+        goal.planner_options.ackermann_la = pnh_.param("planner/ackermann_la", 1.2);
+        goal.planner_options.ackermann_steer_steps = pnh_.param("planner/ackermann_steer_steps", 2);
+        goal.planner_options.ackermann_max_steer_angle_degree = pnh_.param("planner/ackermann_max_steer_angle", 60);
+        goal.planner_options.ackermann_steer_delta_degree = pnh_.param("planner/ackermann_steer_delta", 15);
 
         ROS_INFO_STREAM("goal: " << goal.goal);
 

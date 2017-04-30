@@ -14,6 +14,7 @@ add_message_files(
     Obstacle.msg
     DirectionalPath.msg
     PathSequence.msg
+    PlannerOptions.msg
 )
 
 # Generate actions in the 'action' folder

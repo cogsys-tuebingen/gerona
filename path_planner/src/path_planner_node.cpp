@@ -17,6 +17,7 @@
 #include <cslibs_path_planning/common/Bresenham2d.h>
 #include <cslibs_path_planning/generic/SteeringNode.hpp>
 #include <cslibs_path_planning/generic/SteeringNeighborhood.hpp>
+#include <cslibs_path_planning/generic/DynamicSteeringNeighborhood.h>
 
 /// SYSTEM
 #include <nav_msgs/Path.h>
@@ -305,6 +306,10 @@ struct PathPlanner : public Planner
     //    typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhoodPrecise<30, 150, NonHolonomicNeighborhoodMoves::FORWARD>,
     //    ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
 
+
+    typedef AStarDynamicSearch<DynamicSteeringNeighborhood,
+    NoExpansion, Pose2d, GridMap2d, 100> AStarSteeringDynamic; // Generic Steering Planner
+
     typedef AStarAckermannReversed AStarAckermann;
     typedef AStarOmnidrive AStar2D;
     //    typedef AStarOmnidrive AStar;
@@ -315,7 +320,8 @@ struct PathPlanner : public Planner
         SUMMIT_FORWARD = 2,
         OMNI = 3,
         PATSY = 4,
-        PATSY_FORWARD = 5
+        PATSY_FORWARD = 5,
+        GENERIC = 6
     };
 
     PathPlanner()
@@ -366,9 +372,11 @@ struct PathPlanner : public Planner
             return Algo::SUMMIT_FORWARD;
         } else if(algo == "omni" || algo == "2d") {
             return Algo::OMNI;
+        } else if(algo == "generic") {
+            return Algo::GENERIC;
         }
 
-        throw std::runtime_error(std::string("unknown algorithm ") + algo);
+        throw std::runtime_error(std::string("unknown algorithm: ") + algo);
     }
 
     // convert non-directional paths
@@ -477,7 +485,7 @@ struct PathPlanner : public Planner
                                           const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
                                           const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
 
-        initSearch(algo, request.goal.pose.header, request.goal.max_search_duration);
+        initSearch(algo, request.goal.pose.header, request.options.max_search_duration);
 
         try {
             typename Algorithm::PathT path;
@@ -518,7 +526,7 @@ struct PathPlanner : public Planner
                                              const path_msgs::PlanPathGoal &request,
                                              const Pose2d &from_world, const Pose2d &from_map) {
 
-        initSearch(algo, request.goal.map.header, request.goal.max_search_duration);
+        initSearch(algo, request.goal.map.header, request.options.max_search_duration);
 
         try {
             typename Algorithm::PathT path;
@@ -526,10 +534,10 @@ struct PathPlanner : public Planner
                                              request.goal.min_dist,
                                              request.goal.map, map_info);
 
-            if(request.goal.has_search_dir) {
+            if(request.options.has_search_dir) {
                 Pose2d goal;
-                goal.x = request.goal.search_dir.x;
-                goal.y = request.goal.search_dir.y;
+                goal.x = request.options.search_dir.x;
+                goal.y = request.options.search_dir.y;
                 goal.theta = 0;
                 goal_test.setHeuristicGoal(goal);
             }
@@ -578,6 +586,8 @@ struct PathPlanner : public Planner
             return planMapInstance(algorithm, algo_summit_forward_reversed, request, from_world, from_map);
         case Algo::OMNI:
             return planMapInstance(algorithm, algo_omni, request, from_world, from_map);
+        case Algo::GENERIC:
+            return planMapInstance(algorithm, algo_generic, request, from_world, from_map);
 
         default:
             throw std::runtime_error("unknown algorithm selected");
@@ -609,10 +619,26 @@ struct PathPlanner : public Planner
             return planInstance(algorithm, algo_summit_forward, goal, from_world, to_world, from_map, to_map);
         case Algo::OMNI:
             return planInstance(algorithm, algo_omni, goal, from_world, to_world, from_map, to_map);
+        case Algo::GENERIC:
+            DynamicSteeringNeighborhood::goal_dist_threshold = goal.options.goal_dist_threshold;
+            DynamicSteeringNeighborhood::goal_angle_threshold = goal.options.goal_angle_threshold_degree / 180. * M_PI;
+            DynamicSteeringNeighborhood::reversed = goal.options.reversed;
+            DynamicSteeringNeighborhood::allow_forward = goal.options.allow_forward;
+            DynamicSteeringNeighborhood::allow_backward = goal.options.allow_backward;
+            DynamicSteeringNeighborhood::MAX_STEER_ANGLE = goal.options.ackermann_max_steer_angle_degree;
+            DynamicSteeringNeighborhood::STEER_DELTA = goal.options.ackermann_steer_delta_degree;
+            DynamicSteeringNeighborhood::steer_steps = goal.options.ackermann_steer_steps;
+            DynamicSteeringNeighborhood::LA = goal.options.ackermann_la;
+            return planInstance(algorithm, algo_generic, goal, from_world, to_world, from_map, to_map);
 
         default:
             throw std::runtime_error("unknown algorithm selected");
         }
+
+    }
+
+    void setPlannerOptions()
+    {
 
     }
 
@@ -649,6 +675,8 @@ struct PathPlanner : public Planner
             return renderCellsInstance(algo_summit_forward);
         case Algo::OMNI:
             return renderCellsInstance(algo_omni);
+        case Algo::GENERIC:
+            return renderCellsInstance(algo_generic);
 
         default:
             throw std::runtime_error("unknown algorithm selected");
@@ -667,6 +695,7 @@ private:
     AStarPatsy algo_patsy;
     AStarPatsyForward algo_patsy_forward;
     AStar2D algo_omni;
+    AStarSteeringDynamic algo_generic;
 
     Algo algo_to_use;
 

@@ -349,6 +349,7 @@ void PathController::findPath()
     PlanPathGoal goal_msg;
     goal_msg.use_start = false;
     goal_msg.goal = goal;
+    goal_msg.options = current_goal_->planner_options;
 
     ros::Duration timeout(20.0);
     ros::Time start = ros::Time::now();

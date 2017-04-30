@@ -12,6 +12,16 @@
 
     <param name="path_planner/render_open_cells" value="false" />
     <param name="path_follower/local_planner/algorithm" value="NULL" />
-    <param name="path_planner/algorithm" value="summit_forward" />
+    <param name="path_planner/algorithm" value="generic" />
+
+    <param name="highlevel_dummy/planner/reversed" value="true" />
+    <param name="highlevel_dummy/planner/goal_dist_threshold" value="0.15" />
+    <param name="highlevel_dummy/planner/goal_angle_threshold" value="25" />
+    <param name="highlevel_dummy/planner/allow_forward" value="true" />
+    <param name="highlevel_dummy/planner/allow_backward" value="false" />
+    <param name="highlevel_dummy/planner/ackermann_la" value="1.2" />
+    <param name="highlevel_dummy/planner/ackermann_steer_steps" value="2" />
+    <param name="highlevel_dummy/planner/ackermann_max_steer_angle" value="40" />
+    <param name="highlevel_dummy/planner/ackermann_steer_delta" value="20" />
 
 </launch>

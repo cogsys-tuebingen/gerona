@@ -6,6 +6,7 @@ uint8 INIT_MODE_STOP = 0
 uint8 INIT_MODE_CONTINUE = 1
 
 path_msgs/Goal goal
+path_msgs/PlannerOptions planner_options
 
 uint8 init_mode
 uint8 failure_mode
