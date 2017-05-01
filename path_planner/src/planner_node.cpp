@@ -573,7 +573,14 @@ void Planner::preprocess(const path_msgs::PlanPathGoal& request)
 
         std::size_t n = map_info->getWidth() * map_info->getHeight() * sizeof(unsigned char);
         map_viz.data.resize(n);
-        std::memcpy(&map_viz.data.at(0), map_info->getData(), n);
+        int8_t* data = map_viz.data.data();
+        //std::memcpy(&map_viz.data.at(0), map_info->getData(), n);
+        for(int y = 0, h = map_info->getHeight(); y < h; ++y) {
+            for(int x = 0, w = map_info->getWidth(); x < w; ++x, ++data) {
+
+                *data = map_info->isFree(x,y) ? 255 : 0;
+            }
+        }
         map_pub.publish(map_viz);
     }
 

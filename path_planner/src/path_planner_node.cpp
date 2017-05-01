@@ -587,6 +587,7 @@ struct PathPlanner : public Planner
         case Algo::OMNI:
             return planMapInstance(algorithm, algo_omni, request, from_world, from_map);
         case Algo::GENERIC:
+            updateGenericParameters(request);
             return planMapInstance(algorithm, algo_generic, request, from_world, from_map);
 
         default:
@@ -620,15 +621,7 @@ struct PathPlanner : public Planner
         case Algo::OMNI:
             return planInstance(algorithm, algo_omni, goal, from_world, to_world, from_map, to_map);
         case Algo::GENERIC:
-            DynamicSteeringNeighborhood::goal_dist_threshold = goal.options.goal_dist_threshold;
-            DynamicSteeringNeighborhood::goal_angle_threshold = goal.options.goal_angle_threshold_degree / 180. * M_PI;
-            DynamicSteeringNeighborhood::reversed = goal.options.reversed;
-            DynamicSteeringNeighborhood::allow_forward = goal.options.allow_forward;
-            DynamicSteeringNeighborhood::allow_backward = goal.options.allow_backward;
-            DynamicSteeringNeighborhood::MAX_STEER_ANGLE = goal.options.ackermann_max_steer_angle_degree;
-            DynamicSteeringNeighborhood::STEER_DELTA = goal.options.ackermann_steer_delta_degree;
-            DynamicSteeringNeighborhood::steer_steps = goal.options.ackermann_steer_steps;
-            DynamicSteeringNeighborhood::LA = goal.options.ackermann_la;
+            updateGenericParameters(goal);
             return planInstance(algorithm, algo_generic, goal, from_world, to_world, from_map, to_map);
 
         default:
@@ -637,10 +630,19 @@ struct PathPlanner : public Planner
 
     }
 
-    void setPlannerOptions()
+    void updateGenericParameters(const path_msgs::PlanPathGoal &goal)
     {
-
+        DynamicSteeringNeighborhood::goal_dist_threshold = goal.options.goal_dist_threshold;
+        DynamicSteeringNeighborhood::goal_angle_threshold = goal.options.goal_angle_threshold_degree / 180. * M_PI;
+        DynamicSteeringNeighborhood::reversed = goal.options.reversed;
+        DynamicSteeringNeighborhood::allow_forward = goal.options.allow_forward;
+        DynamicSteeringNeighborhood::allow_backward = goal.options.allow_backward;
+        DynamicSteeringNeighborhood::MAX_STEER_ANGLE = goal.options.ackermann_max_steer_angle_degree;
+        DynamicSteeringNeighborhood::STEER_DELTA = goal.options.ackermann_steer_delta_degree;
+        DynamicSteeringNeighborhood::steer_steps = goal.options.ackermann_steer_steps;
+        DynamicSteeringNeighborhood::LA = goal.options.ackermann_la;
     }
+
 
     template <class Algorithm>
     void renderCellsInstance(Algorithm& algo)

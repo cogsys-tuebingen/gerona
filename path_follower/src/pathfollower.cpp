@@ -433,6 +433,10 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
     supervisors_->notifyNewGoal();
 
     ROS_INFO_STREAM("Following path with " << goal.path.paths.size() << " segments.");
+
+    ROS_INFO_STREAM("using follower configuration:\n- controller: " << config_name.controller <<
+                    "\n- avoider: " << typeid(*config_->collision_avoider_).name() <<
+                    "\n- local planner: " << config_name.local_planner);
 }
 
 void PathFollower::setPath(const path_msgs::PathSequence& path)

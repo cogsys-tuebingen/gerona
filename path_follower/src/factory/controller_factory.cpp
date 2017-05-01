@@ -81,10 +81,6 @@ std::shared_ptr<PathFollowerConfig> ControllerFactory::construct(const PathFollo
 
     ROS_WARN_STREAM("nnodes: " << local.nnodes());
 
-    ROS_INFO_STREAM("using follower configuration:\n- controller: " << config.controller <<
-                    "\n- avoider: " << typeid(*result.collision_avoider_).name() <<
-                    "\n- local planner: " << config.local_planner);
-
     return std::make_shared<PathFollowerConfig>(result);
 }
 
