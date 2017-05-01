@@ -177,9 +177,18 @@ protected:
     bool use_scan_front_;
     bool use_scan_back_;
 
+
     bool pre_process_;
     bool post_process_;
     bool use_collision_gridmap_;
+
+    bool post_process_optimize_cost_;
+    bool publish_gradient_;
+    double cost_optimization_weight_data;
+    double cost_optimization_weight_smooth;
+    double cost_optimization_weight_cost;
+    double cost_optimization_tolerance;
+
 
     double grow_obstacles_;
 

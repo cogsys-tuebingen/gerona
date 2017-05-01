@@ -64,9 +64,19 @@ Planner::Planner()
 
     } else {
         use_cost_map_service_ = false;
-//        if(pre_process_) {
-//            use_cost_map_ = true;
-//        }
+        //        if(pre_process_) {
+        //            use_cost_map_ = true;
+        //        }
+    }
+
+    nh_priv.param("optimization/optimize_cost", post_process_optimize_cost_, false);
+    if(post_process_optimize_cost_) {
+        nh_priv.param("optimization/publish_gradient", publish_gradient_, false);
+
+        nh_priv.param("optimize_cost/weight/data", cost_optimization_weight_data, 0.9);
+        nh_priv.param("optimization/weight/smooth", cost_optimization_weight_smooth, 0.3);
+        nh_priv.param("optimization/weight/cost", cost_optimization_weight_cost, 0.75);
+        nh_priv.param("optimization/tolerance", cost_optimization_tolerance, 1e-5);
     }
 
     nh_priv.param("use_cloud", use_cloud_, false);
@@ -616,9 +626,9 @@ path_msgs::PathSequence Planner::postprocess(const path_msgs::PathSequence& path
     //    path_msgs::PathSequence simplified_path = simplifyPath(path);
     //    ROS_INFO_STREAM("simplifying took " << sw.msElapsed() << "ms");
 
-    if(use_cost_map_) {
+    if(post_process_optimize_cost_) {
         sw.restart();
-        //    working_copy = optimizePathCost(working_copy);
+        working_copy = optimizePathCost(working_copy);
         ROS_INFO_STREAM("optimizing cost took " << sw.msElapsed() << "ms");
     }
 
@@ -1040,19 +1050,17 @@ path_msgs::PathSequence Planner::optimizePathCost(const path_msgs::PathSequence&
     if(!map_info) {
         return path_raw;
     }
-    double weight_data = 0.9;
-    double weight_smooth = 0.3;
-    double weight_cost = 0.75;
-    double tolerance = 1e-5;
 
     path_msgs::PathSequence new_path(path_raw);
 
     cv::Mat gx, gy;
     calculateGradient(gx, gy);
 
-    //    publishGradient(gx, gy);
+    if(publish_gradient_) {
+        publishGradient(gx, gy);
+    }
 
-    double last_change = -2 * tolerance;
+    double last_change = -2 * cost_optimization_tolerance;
     double change = 0;
 
     int offset = 2;
@@ -1074,7 +1082,7 @@ path_msgs::PathSequence Planner::optimizePathCost(const path_msgs::PathSequence&
 
         std::vector<double> lengths(segment.poses.size()-1);
 
-        while(change > last_change + tolerance) {
+        while(change > last_change + cost_optimization_tolerance) {
             last_change = change;
             change = 0;
 
@@ -1120,7 +1128,7 @@ path_msgs::PathSequence Planner::optimizePathCost(const path_msgs::PathSequence&
                 double dist_border = std::min(dist_to_start[i], dist_to_goal[i]);
                 double border_damp = 1.0 + 5.0 / (0.01 + (dist_border / 5.0));
 
-                Pose2d deltaData = border_damp * weight_data * (path_i - new_path_i);
+                Pose2d deltaData = border_damp * cost_optimization_weight_data * (path_i - new_path_i);
                 new_path_i = new_path_i + deltaData;
 
                 double grad_x = gradients_x[i];
@@ -1138,11 +1146,11 @@ path_msgs::PathSequence Planner::optimizePathCost(const path_msgs::PathSequence&
                     magnitude /= width;
 
                     Pose2d grad(-grad_x, -grad_y, 0.0);
-                    deltaCost =  weight_cost * magnitude * grad;
+                    deltaCost =  cost_optimization_weight_cost * magnitude * grad;
                     new_path_i = new_path_i + deltaCost;
                 }
 
-                Pose2d deltaSmooth =  weight_smooth * (new_path_ip1 + new_path_im1 - 2* new_path_i);
+                Pose2d deltaSmooth =  cost_optimization_weight_smooth * (new_path_ip1 + new_path_im1 - 2* new_path_i);
                 new_path_i = new_path_i + deltaSmooth;
 
                 optimized_segment.poses[i].pose.position.x = new_path_i.x;
