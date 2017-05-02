@@ -1,13 +1,23 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_HBZ)" />
+    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER ackermann_purepursuit)" />
 
-    <include file="$(find navigation_launch)/launch/laser_filter.launch" />
+    <arg name="use_planner_cost" default="false" />
+    <arg name="use_planner_dynamic" default="false" />
+    <arg name="use_planner_static" default="false" />
+    <arg name="use_planner_default" default="true" />
+
+    <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter">
+      <rosparam command="load" file="$(find navigation_launch)/config/laser_config.yaml" />
+    </node>
 
     <include file="$(find navigation_launch)/launch/rviz_controlled.launch">
       <arg name="robot_controller" value="$(arg robot_controller)" />
-
-      <arg name="use_planner_default" value="true" />
+      <arg name="use_laser_obstacles" value="true" />
+      <arg name="use_planner_cost" value="$(arg use_planner_cost)" />
+      <arg name="use_planner_dynamic" value="$(arg use_planner_dynamic)" />
+      <arg name="use_planner_static" value="$(arg use_planner_static)" />
+      <arg name="use_planner_default" value="$(arg use_planner_default)" />
     </include>
 
     <param name="path_planner/render_open_cells" value="true" />
@@ -30,13 +40,14 @@
 
     <param name="highlevel_dummy/grow_obstacles" value="true" />
     <param name="highlevel_dummy/obstacle_radius" value="0.5" />
+    <param name="highlevel_dummy/target_speed" value="1.0" />
 
     <param name="highlevel_dummy/planner/reversed" value="true" />
     <param name="highlevel_dummy/planner/goal_dist_threshold" value="0.15" />
     <param name="highlevel_dummy/planner/goal_angle_threshold" value="25" />
     <param name="highlevel_dummy/planner/allow_forward" value="true" />
-    <param name="highlevel_dummy/planner/allow_backward" value="false" />
-    <param name="highlevel_dummy/planner/ackermann_la" value="0.6" />
+    <param name="highlevel_dummy/planner/allow_backward" value="true" />
+    <param name="highlevel_dummy/planner/ackermann_la" value="0.8" />
     <param name="highlevel_dummy/planner/ackermann_steer_steps" value="2" />
     <param name="highlevel_dummy/planner/ackermann_max_steer_angle" value="40" />
     <param name="highlevel_dummy/planner/ackermann_steer_delta" value="20" />

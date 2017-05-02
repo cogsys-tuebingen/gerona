@@ -1,13 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="robot_controller" default="differential_orthexp" /> <!--$(optenv ROBOT_CONTROLLER kinematic_HBZ_TT)" />-->
-
-    <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy" output="screen" respawn="true">
-        <param name="target_speed" value="0.8" />
-        <param name="failure_mode" value="replan" />
-        <param name="obstacle_radius" value="0.5" />
-        <remap from="/rviz_goal" to="/move_base_simple/goal" />
-    </node>
+    <arg name="robot_controller" default="differential_orthexp" />
 
     <include file="$(find navigation_launch)/launch/rviz_controlled.launch">
         <arg name="robot_controller" value="$(arg robot_controller)" />
@@ -16,4 +9,7 @@
     </include>
 
     <param name="path_follower/local_planner/algorithm" value="NULL" />
+    <param name="highlevel_dummy/target_speed" value="0.8" />
+    <param name="highlevel_dummy/obstacle_radius" value="0.5" />
+
 </launch>
