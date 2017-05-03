@@ -6,9 +6,33 @@
         <arg name="robot_controller" value="$(arg robot_controller)" />
         <arg name="use_hector" value="true" />
         <arg name="use_planner_default" value="true" />
+        <arg name="use_laser_obstacles" value="true" />
     </include>
 
     <param name="path_follower/local_planner/algorithm" value="NULL" />
     <param name="highlevel_dummy/target_speed" value="0.8" />
-    <param name="highlevel_dummy/obstacle_radius" value="0.5" />
+    <param name="highlevel_dummy/obstacle_radius" value="0.45" />
+
+    <param name="path_follower/kp" value="1.0" />
+    <param name="path_follower/kd" value="1.0" />
+
+    <param name="path_follower/look_ahead_dist" value="1.0" />
+    <param name="path_follower/k" value="2.0" />
+    <param name="path_follower/k_o" value="0.2" />
+    <param name="path_follower/k_g" value="0.3" />
+    <param name="path/follower/k_w" value="0.3" />
+    <param name="path_follower/k_curv" value="0.3" />
+
+    <param name="highlevel_dummy/planner/reversed" value="true" />
+    <param name="highlevel_dummy/planner/goal_dist_threshold" value="0.15" />
+    <param name="highlevel_dummy/planner/goal_angle_threshold" value="25" />
+    <param name="highlevel_dummy/planner/allow_forward" value="true" />
+    <param name="highlevel_dummy/planner/allow_backward" value="true" />
+    <param name="highlevel_dummy/planner/ackermann_la" value="0.8" />
+    <param name="highlevel_dummy/planner/ackermann_steer_steps" value="2" />
+    <param name="highlevel_dummy/planner/ackermann_max_steer_angle" value="40" />
+    <param name="highlevel_dummy/planner/ackermann_steer_delta" value="20" />
+
+    <param name="path_planner/algorithm" value="generic" />
+
 </launch>
