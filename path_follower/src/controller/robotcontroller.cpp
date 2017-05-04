@@ -121,8 +121,6 @@ void RobotController::setPath(Path::Ptr path)
     computeMovingDirection();
 
     if(!interpolated_) {
-        std::cerr << "interpolating path in frame " << path->getFrameId() << std::endl;
-
         path_interpol.interpolatePath(path);
         publishInterpolatedPath();
 

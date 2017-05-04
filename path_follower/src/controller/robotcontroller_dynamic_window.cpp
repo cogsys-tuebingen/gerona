@@ -401,7 +401,7 @@ void RobotController_Dynamic_Window::findNextVelocityPair()
     double max_obj = std::numeric_limits<double>::min();
 
     if(vels_and_objfunc.size() < 1){
-        std::cout << "There are no admissible velocities!!!" << std::endl;
+        ROS_ERROR("There are no admissible velocities!!!");
     }
 
     for(uint i = 0; i < vels_and_objfunc.size(); i++){

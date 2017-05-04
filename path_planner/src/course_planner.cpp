@@ -159,7 +159,7 @@ void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const Path
         --first_idx;
     }
 
-    std::cout <<" found "<< avoidance_path1.size() << " tangent arcs"<<std::endl;
+    ROS_INFO_STREAM("found "<< avoidance_path1.size() << " tangent arcs");
     if (avoidance_path1.size()!=3) {
         ROS_INFO("failed to find adequate avoidance course");
         return;

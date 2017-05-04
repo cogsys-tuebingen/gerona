@@ -471,11 +471,6 @@ void PathFollower::findSegments(const path_msgs::PathSequence& path, bool only_o
         subpaths.push_back(sp);
     }
 
-    std::cout << "split the path into " << subpaths.size() << " sub paths" << std::endl;
-    for(const SubPath& sp : subpaths) {
-        std::cout << " - " << (sp.forward ? "forward" : "backward" ) << std::endl;
-    }
-
     path_->setPath(subpaths);
 }
 

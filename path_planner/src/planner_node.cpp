@@ -38,14 +38,14 @@ Planner::Planner()
         map_sub = nh.subscribe<nav_msgs::OccupancyGrid>
                 (map_topic, 1, boost::bind(&Planner::updateMapCallback, this, _1));
 
-        std::cout << "using map topic " << map_topic << std::endl;
+        ROS_INFO_STREAM("using map topic " << map_topic);
 
     } else {
         std::string map_service = "/static_map";
         nh_priv.param("map_service",map_service, map_service);
         map_service_client = nh_priv.serviceClient<nav_msgs::GetMap> (map_service);
 
-        std::cout << "using map service " << map_service << std::endl;
+        ROS_INFO_STREAM("using map service " << map_service);
     }
 
     nh_priv.param("preprocess", pre_process_, true);
@@ -60,7 +60,7 @@ Planner::Planner()
         nh_priv.param("cost_map_service",costmap_service, costmap_service);
         cost_map_service_client = nh_priv.serviceClient<nav_msgs::GetMap> (costmap_service);
 
-        std::cout << "using cost map service " << costmap_service << std::endl;
+        ROS_INFO_STREAM("using cost map service " << costmap_service);
 
     } else {
         use_cost_map_service_ = false;

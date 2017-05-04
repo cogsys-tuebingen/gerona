@@ -227,10 +227,8 @@ struct MapGoalTest
     const Pose2d* getHeuristicGoal() const
     {
         if(has_heuristic_goal) {
-            std::cerr << "heuristic goal " << &heuristic_goal << std::endl;
             return &heuristic_goal;
         } else {
-            std::cerr << "no heuristic goal " << std::endl;
             return NULL;
         }
     }

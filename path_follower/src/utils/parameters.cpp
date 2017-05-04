@@ -11,7 +11,7 @@ std::vector<Parameters*> Parameters::instances_;
 void Parameters::print()
 {
     for (vector<ParamInfo>::const_iterator it = params_.begin(); it != params_.end(); ++it) {
-        cout << it->name << " [" << it->default_value << "]:\t" << it->description << endl;
+        ROS_INFO_STREAM(it->name << " [" << it->default_value << "]:\t" << it->description);
     }
 }
 
