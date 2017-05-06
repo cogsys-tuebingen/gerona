@@ -51,7 +51,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 
     local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("local_path", 1, true);
     whole_local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("whole_local_path", 1, true);
-    g_points_pub_ = node_handle_.advertise<visualization_msgs::Marker>("g_path_points", 10);
+    marker_pub_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
 
     /*** Initialize supervisors ***/
 
@@ -481,5 +481,5 @@ void PathFollower::publishPathMarker(){
     pt.y = current_pose[1];
     g_robot_path_marker_.points.push_back(pt);
 
-    g_points_pub_.publish(g_robot_path_marker_);
+    marker_pub_.publish(g_robot_path_marker_);
 }

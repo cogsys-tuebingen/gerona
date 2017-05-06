@@ -12,7 +12,7 @@ ScanConverter::ScanConverter():node_("~"){
                 "/scan/front/filtered", 1, boost::bind(&ScanConverter::scanCallback, this, _1, false));
     scan_sub_back_  = node_.subscribe<sensor_msgs::LaserScan>(
                 "/scan/back/filtered", 1, boost::bind(&ScanConverter::scanCallback, this ,_1, true));
-    point_cloud_publisher_ = node_.advertise<sensor_msgs::PointCloud2>("/cloud/total", 1, false);
+    point_cloud_publisher_ = node_.advertise<sensor_msgs::PointCloud2>("cloud/total", 1, false);
 }
 
 void ScanConverter::scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan_in, bool is_back)

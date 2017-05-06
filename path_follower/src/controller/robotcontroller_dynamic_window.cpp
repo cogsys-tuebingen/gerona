@@ -47,9 +47,9 @@ RobotController_Dynamic_Window::RobotController_Dynamic_Window():
 {
     t_old_ = ros::Time::now();
     goal_pub = nh_.advertise<geometry_msgs::PointStamped>("goal_position", 0);
-    far_pred_pub = nh_.advertise<visualization_msgs::MarkerArray>("far_predicted_positions", 0);
+    far_pred_pub = nh_.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 0);
     predict_pub = nh_.advertise<geometry_msgs::PointStamped>("predicted_position", 0);
-    obst_marker_pub = nh_.advertise<visualization_msgs::Marker>("obstacle_distance", 0);
+    obst_marker_pub = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 0);
     obst_point_pub = nh_.advertise<geometry_msgs::PointStamped>("obstacle_point", 0);
     traj_pub = nh_.advertise<nav_msgs::Path>("possible_trajectories", 0);
 }

@@ -98,8 +98,8 @@ Planner::Planner()
 
     nh_priv.param("use_collision_gridmap", use_collision_gridmap_, false);
 
-    viz_pub = nh_priv.advertise<visualization_msgs::Marker>("/viz_path_planner", 0);
-    viz_array_pub = nh_priv.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 0);
+    viz_pub = nh_priv.advertise<visualization_msgs::Marker>("visualization_marker", 0);
+    viz_array_pub = nh_priv.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 0);
     cost_pub = nh_priv.advertise<nav_msgs::OccupancyGrid>("cost", 1, true);
     map_pub = nh_priv.advertise<nav_msgs::OccupancyGrid>("map", 1, true);
 
@@ -111,8 +111,8 @@ Planner::Planner()
     nh_priv.param("size/backward", size_backward, -0.6);
     nh_priv.param("size/width", size_width, 0.5);
 
-    path_publisher_ = nh_priv.advertise<path_msgs::PathSequence> ("/path", 10);
-    raw_path_publisher_ = nh_priv.advertise<nav_msgs::Path> ("/path_raw", 10);
+    path_publisher_ = nh_priv.advertise<path_msgs::PathSequence> ("path", 10);
+    raw_path_publisher_ = nh_priv.advertise<nav_msgs::Path> ("path_raw", 10);
 
     server_.registerPreemptCallback(boost::bind(&Planner::preempt, this));
     server_.start();

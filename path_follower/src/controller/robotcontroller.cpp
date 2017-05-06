@@ -24,7 +24,7 @@ RobotController::RobotController()
 
     initPublisher(&cmd_pub_);
 
-    points_pub_ = nh_.advertise<visualization_msgs::Marker>("path_points", 10);
+    points_pub_ = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
     interp_path_pub_ = nh_.advertise<nav_msgs::Path>("interp_path", 10);
 
     // path marker
@@ -143,9 +143,9 @@ void RobotController::initPublisher(ros::Publisher *pub) const
     ros::NodeHandle nh;
     //TODO: implement a dynamic switching between velocity and torque mode
     //torque mode
-    //*pub = nh.advertise<std_msgs::Float64MultiArray>("/wheel_torques", 10);
+    //*pub = nh.advertise<std_msgs::Float64MultiArray>("wheel_torques", 10);
     //velocity mode
-    *pub = nh.advertise<geometry_msgs::Twist> ("/cmd_vel", 10);
+    *pub = nh.advertise<geometry_msgs::Twist> ("cmd_vel", 10);
 }
 
 double RobotController::calculateAngleError()

@@ -41,7 +41,7 @@ RobotController_2Steer_Stanley::RobotController_2Steer_Stanley():
                 params_.goal_tolerance());
 
 #ifdef TEST_OUTPUT
-    test_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/test_output", 100);
+    test_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("test_output", 100);
 #endif
 
 }

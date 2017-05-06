@@ -8,8 +8,8 @@ using namespace Eigen;
 Visualizer::Visualizer() :
     private_nh_("~")
 {
-    vis_pub_ = private_nh_.advertise<visualization_msgs::Marker>("/marker", 100);
-    marray_vis_pub_ = private_nh_.advertise<visualization_msgs::MarkerArray>("/path_coord_array", 100);
+    vis_pub_ = private_nh_.advertise<visualization_msgs::Marker>("visualization_marker", 100);
+    marray_vis_pub_ = private_nh_.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 100);
 }
 
 Visualizer *Visualizer::getInstance()

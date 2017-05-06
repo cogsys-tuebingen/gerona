@@ -10,8 +10,8 @@ PathController::PathController(ros::NodeHandle &nh):
 {
     ros::param::param<int>("~num_replan_attempts", opt_.num_replan_attempts, 5);
 
-    speech_pub_ = node_handle_.advertise<std_msgs::String>("/speech", 5);
-    goal_pub_ = node_handle_.advertise<geometry_msgs::PoseStamped>("/move_base_simple/accepted_goal", 5);
+    speech_pub_ = node_handle_.advertise<std_msgs::String>("speech", 5);
+    goal_pub_ = node_handle_.advertise<geometry_msgs::PoseStamped>("move_base_simple/accepted_goal", 5);
 
     navigate_to_goal_server_.start();
     ROS_INFO("Initialisation done.");

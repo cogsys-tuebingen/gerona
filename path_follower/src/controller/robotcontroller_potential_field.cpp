@@ -33,7 +33,7 @@ RobotController_Potential_Field::RobotController_Potential_Field():
     mGoalPosY(0.0),
     cmd_(this)
 {
-    F_pub = nh_.advertise<visualization_msgs::MarkerArray>("potential_field_vectors", 0);
+    F_pub = nh_.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 0);
 }
 
 

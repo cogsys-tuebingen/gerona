@@ -43,7 +43,7 @@ RobotController_Unicycle_InputScaling::RobotController_Unicycle_InputScaling() :
              params_.max_angular_velocity());
 
 #ifdef TEST_OUTPUT
-    test_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/test_output", 100);
+    test_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("test_output", 100);
 #endif
 }
 

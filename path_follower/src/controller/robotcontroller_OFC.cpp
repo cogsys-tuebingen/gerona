@@ -53,7 +53,7 @@ RobotController_OFC::RobotController_OFC():
 
     goal_pub = nh_.advertise<geometry_msgs::PointStamped>("goal_position", 0);
     target_pub = nh_.advertise<geometry_msgs::PointStamped>("target_position", 0);
-    err_vec_pub = nh_.advertise<visualization_msgs::Marker>("error_vector", 0);
+    err_vec_pub = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 0);
 }
 
 void RobotController_OFC::stopMotion()

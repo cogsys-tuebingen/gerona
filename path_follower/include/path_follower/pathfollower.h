@@ -150,7 +150,7 @@ private:
     //! Publisher for all local paths
     ros::Publisher whole_local_path_pub_;
     //! Publisher for the path points of the global path
-    ros::Publisher g_points_pub_;
+    ros::Publisher marker_pub_;
 
     //! The pse tracker keeps track of tf information
     std::shared_ptr<PoseTracker> pose_tracker_;

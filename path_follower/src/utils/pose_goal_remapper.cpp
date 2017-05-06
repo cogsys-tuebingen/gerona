@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
 
 	ros::NodeHandle n;
 
-	pub = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1);
+    pub = n.advertise<geometry_msgs::PoseStamped>("move_base_simple/goal", 1);
 
 	auto s1 = n.subscribe("/slam_out_pose", 10, callback);
 

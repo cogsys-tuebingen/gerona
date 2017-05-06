@@ -26,10 +26,10 @@ public:
         srand(ros::Time::now().toNSec());
 
         // topic for goal position
-        goal_sub_ = pnh_.subscribe<geometry_msgs::PoseStamped>("/rviz_goal", 0, &HighDummy::goalCb, this);
+        goal_sub_ = pnh_.subscribe<geometry_msgs::PoseStamped>("rviz_goal", 0, &HighDummy::goalCb, this);
         client_.waitForServer();
 
-        speech_pub_ = nh.advertise<std_msgs::String>("/speech", 0);
+        speech_pub_ = nh.advertise<std_msgs::String>("speech", 0);
 
         pnh_.param("target_frame", target_frame_, std::string("map"));
         // target speed

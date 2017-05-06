@@ -126,8 +126,7 @@ private:
     ros::Subscriber wheel_vel_sub_;
 
     ros::Publisher ICR_pub_;
-    ros::Publisher ekf_points_pub_;
-    ros::Publisher path_aug_pub_;
+    ros::Publisher marker_pub_;
 
     std::vector<float> ranges_front_;
     std::vector<float> ranges_back_;

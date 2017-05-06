@@ -45,7 +45,7 @@ RobotController_2Steer_InputScaling::RobotController_2Steer_InputScaling() :
 				params_.max_steering_angle(), params_.max_steering_angle_speed());
 
 #ifdef TEST_OUTPUT
-	test_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/test_output", 100);
+    test_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("test_output", 100);
 #endif
 }
 

@@ -53,9 +53,7 @@ RobotController_ICR_CCW::RobotController_ICR_CCW():
 
     ICR_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("ICR_parameters", 10);
 
-    ekf_points_pub_ = nh_.advertise<visualization_msgs::Marker>("ekf_path", 10);
-
-    path_aug_pub_ = nh_.advertise<visualization_msgs::Marker>("path_aug", 10);
+    marker_pub_ = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
 
     ekf_path_marker_.header.frame_id = "map";
     ekf_path_marker_.header.stamp = ros::Time();
@@ -234,7 +232,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
         y_aug_.push_back(path_interpol.q(i) + r_y_m);
     }
 
-    path_aug_pub_.publish(path_aug_marker_);
+    marker_pub_.publish(path_aug_marker_);
 
     ///***///
 
@@ -351,7 +349,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     pt.y = pose_ekf_(1);
     ekf_path_marker_.points.push_back(pt);
 
-    ekf_points_pub_.publish(ekf_path_marker_);
+    marker_pub_.publish(ekf_path_marker_);
     ///***///
 
     //Publish the ICR parameters in a form of an array

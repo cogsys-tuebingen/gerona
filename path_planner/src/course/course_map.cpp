@@ -9,7 +9,7 @@ using namespace Eigen;
 CourseMap::CourseMap(ros::NodeHandle &nh)
     : nh_(nh), pnh_("~")
 {
-    pub_viz_ = nh.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 100, true);
+    pub_viz_ = nh.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 100, true);
 
     pnh_.param("course/radius", curve_radius, 1.0);
 }
