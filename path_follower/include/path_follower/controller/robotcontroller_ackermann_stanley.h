@@ -21,13 +21,15 @@ protected:
 	virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
 private:
-    struct ControllerParameters : public RobotController::InterpolationParameters {
+    struct ControllerParameters : public RobotController::ControllerParameters {
 		P<double> vehicle_length;
 		P<double> k_forward;
 		P<double> k_backward;
 		P<double> factor_steering_angle;
 
 		ControllerParameters() :
+            RobotController::ControllerParameters("ackermann_stanley"),
+
 			vehicle_length(this, "vehicle_length", 0.3, "axis-centre distance"),
 			k_forward(this, "k_forward", 7.0, "Tuning factor for forward driving"),
 			k_backward(this, "k_backward", 7.0, "Tuning factor for backward driving"),
@@ -37,7 +39,7 @@ private:
 
 	} params_;
 
-    const RobotController::InterpolationParameters& getParameters() const {
+    const RobotController::ControllerParameters& getParameters() const {
 		return params_;
 	}
 

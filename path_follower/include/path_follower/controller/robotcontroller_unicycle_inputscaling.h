@@ -25,12 +25,14 @@ protected:
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
 private:
-    struct ControllerParameters : public RobotController::InterpolationParameters {
+    struct ControllerParameters : public RobotController::ControllerParameters {
         P<double> vehicle_length;
         P<double> k;
         P<double> max_angular_velocity;
 
         ControllerParameters() :
+            RobotController::ControllerParameters("unicycle_inputscaling"),
+
             vehicle_length(this, "vehicle_length", 0.3, "axis-centre distance"),
             k(this, "k", 7.0, "Tuning factor"),
             max_angular_velocity(this, "maximum_angular_velocity", 0.8, "Maximum angular velocity")
@@ -38,7 +40,7 @@ private:
 
     } params_;
 
-    const RobotController::InterpolationParameters& getParameters() const {
+    const RobotController::ControllerParameters& getParameters() const {
         return params_;
     }
 

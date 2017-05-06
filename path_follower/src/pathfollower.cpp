@@ -58,21 +58,21 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // register callback for new waypoint event.
     path_->registerNextWaypointCallback([this]() { supervisors_->notifyNewWaypoint(); });
 
-    if (opt_.supervisor_use_path_lookout()) {
+    if (opt_.supervisor.use_path_lookout()) {
         supervisors_->addSupervisor( Supervisor::Ptr(new PathLookout(*pose_tracker_)) );
     }
 
     // Waypoint timeout
-    if (opt_.supervisor_use_waypoint_timeout()) {
+    if (opt_.supervisor.use_waypoint_timeout()) {
         Supervisor::Ptr waypoint_timeout(
-                    new WaypointTimeout(ros::Duration( opt_.supervisor_waypoint_timeout_time())));
+                    new WaypointTimeout(ros::Duration( opt_.supervisor.waypoint_timeout_time())));
         supervisors_->addSupervisor(waypoint_timeout);
     }
 
     // Distance to path
-    if (opt_.supervisor_use_distance_to_path()) {
+    if (opt_.supervisor.use_distance_to_path()) {
         supervisors_->addSupervisor(Supervisor::Ptr(
-                                        new DistanceToPathSupervisor(opt_.supervisor_distance_to_path_max_dist())));
+                                        new DistanceToPathSupervisor(opt_.supervisor.distance_to_path_max_dist())));
     }
 
 
@@ -243,6 +243,11 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
 PoseTracker& PathFollower::getPoseTracker()
 {
     return *pose_tracker_;
+}
+
+ControllerFactory& PathFollower::getControllerFactory()
+{
+    return *controller_factory_;
 }
 
 std::string PathFollower::getFixedFrameId() const

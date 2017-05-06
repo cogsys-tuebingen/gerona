@@ -27,7 +27,7 @@ protected:
     virtual void initialize();
 
 protected:
-    struct ControllerParameters : public RobotController::InterpolationParameters
+    struct ControllerParameters : public RobotController::ControllerParameters
     {
         P<double> kp_lin;
         P<double> ki_lin;
@@ -40,6 +40,8 @@ protected:
         P<double> max_angular_velocity;
 
         ControllerParameters():
+            RobotController::ControllerParameters("ofc"),
+
             kp_lin(this, "kp_lin", 1.0, ""),
             ki_lin(this, "ki_lin", 0.1, ""),
             kd_lin(this, "kd_lin", 0.1, ""),
@@ -52,7 +54,7 @@ protected:
         {}
     } opt_;
 
-    const RobotController::InterpolationParameters& getParameters() const
+    const RobotController::ControllerParameters& getParameters() const
     {
         return opt_;
     }

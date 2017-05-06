@@ -30,20 +30,22 @@ protected:
 
 private:
 
-    struct ControllerParameters : public RobotController::InterpolationParameters {
+    struct ControllerParameters : public RobotController::ControllerParameters {
 		P<double> k_forward;
 		P<double> k_backward;
 		P<double> vehicle_length;
 
 		ControllerParameters() :
-			k_forward(this, "k_forward", 1.2, "lookahead distance factor while driving forwards"),
+            RobotController::ControllerParameters("2steer_purepursuit"),
+
+            k_forward(this, "k_forward", 1.2, "lookahead distance factor while driving forwards"),
 			k_backward(this, "k_forward", 1.2, "lookahead distance factor while driving backwards"),
 			vehicle_length(this, "vehicle_length", 0.34, "axis-centre distance")
 		{}
 
 	} params_;
 
-    const RobotController::InterpolationParameters& getParameters() const {
+    const RobotController::ControllerParameters& getParameters() const {
 		return params_;
 	}
 

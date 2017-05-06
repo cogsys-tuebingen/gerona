@@ -36,7 +36,7 @@ private:
     void findMinDistance();
 
 private:
-    struct ControllerParameters : public RobotController::InterpolationParameters
+    struct ControllerParameters : public RobotController::ControllerParameters
     {
         P<double> k1;
         P<double> k2;
@@ -48,6 +48,8 @@ private:
         P<double> k_curv;
 
         ControllerParameters():
+            RobotController::ControllerParameters("icr_ccw"),
+
             k1(this, "k1", 1.0, ""),
             k2(this, "k2", 1.0, ""),
             max_angular_velocity(this, "max_angular_velocity", 0.8, ""),
@@ -59,7 +61,7 @@ private:
         {}
     } opt_;
 
-    const RobotController::InterpolationParameters& getParameters() const
+    const RobotController::ControllerParameters& getParameters() const
     {
         return opt_;
     }

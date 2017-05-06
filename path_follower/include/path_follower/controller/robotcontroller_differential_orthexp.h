@@ -49,7 +49,7 @@ private:
     void rotate();
 
 private:
-    struct ControllerParameters : public RobotController::InterpolationParameters
+    struct ControllerParameters : public RobotController::ControllerParameters
     {
         P<double> k;
         P<double> max_angular_velocity;
@@ -60,6 +60,8 @@ private:
         P<double> k_curv;
 
         ControllerParameters():
+            RobotController::ControllerParameters("differential_orthexp"),
+
             k(this, "k", 1.5, ""),
             max_angular_velocity(this, "max_angular_velocity", 2.0, ""),
             look_ahead_dist(this, "look_ahead_dist", 0.5, ""),
@@ -70,7 +72,7 @@ private:
         {}
     } opt_;
 
-    const RobotController::InterpolationParameters& getParameters() const
+    const RobotController::ControllerParameters& getParameters() const
     {
         return opt_;
     }

@@ -33,7 +33,6 @@
         <param name="size/backward" value="-0.6" />
         <param name="size/width" value="0.70" />
 
-        <remap from="/obstacles" to="/obstacle_cloud" />
         <remap from="/scan/front/filtered" to="/scan_filtered" />
     </node>
 </launch>

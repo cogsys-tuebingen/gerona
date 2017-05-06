@@ -81,7 +81,7 @@ protected:
     ros::Publisher traj_pub;
 
 
-    struct ControllerParameters : public RobotController::InterpolationParameters
+    struct ControllerParameters : public RobotController::ControllerParameters
     {
         P<double> angle_fact;
         P<double> disobst_fact;
@@ -100,6 +100,8 @@ protected:
         P<double> initial_vel_fact;
 
         ControllerParameters():
+            RobotController::ControllerParameters("dynamic_window"),
+
             angle_fact(this, "angle_fact", 0.2, ""),
             disobst_fact(this, "disobst_fact", 0.2, ""),
             v_fact(this, "v_fact", 2.0, ""),
@@ -118,7 +120,7 @@ protected:
         {}
     } opt_;
 
-    const RobotController::InterpolationParameters& getParameters() const
+    const RobotController::ControllerParameters& getParameters() const
     {
         return opt_;
     }

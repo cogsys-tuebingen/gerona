@@ -3,45 +3,57 @@
 Launch the path follower with the input scaling controller for a bi-steerable robot.
 -->
 <launch>
-  <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
-	 <param name="controller" value="2steer_inputscaling" />
+    <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
+        <param name="controller_type" value="2steer_inputscaling" />
+    </node>
 
-    <!-- supervisors -->
-    <param name="use_obstacle_map" value="false" />
-    <param name="use_vfh" value="false" />
+    <group ns="path_follower">
+        <param name="min_velocity" value="0.5" />
+        <param name="max_velocity" value="0.7" />
+        <param name="waypoint_tolerance" value="0.8" />
+        <param name="goal_tolerance" value="0.25" />
 
-    <param name="supervisor/use_path_lookout" value="false" />
-    <param name="supervisor/use_waypoint_timeout" value="false" />
-    <param name="supervisor/use_distance_to_path" value="false" />
-    
-    <param name="waypoint_tolerance" value="2.0" />
-    <param name="goal_tolerance" value="0.25" />
-    <param name="max_distance_to_path" value="2.0" />
-    <param name="collision_box_width" value="0.4" />
-    <param name="collision_box_crit_length" value="0.6" />
-    <param name="collision_box_min_length" value="1.0" />
-    <param name="collision_box_max_length" value="1.5" />
-    <param name="collision_box_velocity_factor" value="1.0" />
-    <param name="collision_box_velocity_saturation" value="1.0" />
-    <param name="obstacle_scale_distance" value="1.0" />
-    <param name="obstacle_scale_lifetime" value="5.0" />
-    <param name="path_width" value="0.5" />    
-    
-    <!-- general parameters of the follower -->
-    <param name="min_velocity" value="0.5" />
-    <param name="max_velocity" value="0.7" />
-    <param name="waypoint_tolerance" value="0.8" />
-	 <param name="goal_tolerance" value="0.3" />
-    
-    <!-- parameters, that are dependent of the controller or the robot model -->
-	 <param name="vehicle_length" value="0.34" />
-	 <param name="k_forward" value="4.5" />
-	 <param name="k_backward" value="7.0" />
-	 <param name="max_steering_angle" value="0.52359877559" /> <!-- 30° -->
-	 <param name="max_steering_angle_speed" value="4.0" /> <!-- ~4.0 should be realistic -->
+        <group ns="controller">
+            <!-- parameters, that are dependent of the controller or the robot model -->
+            <group ns="2steer_inputscaling">
+                <param name="vehicle_length" value="0.34" />
+                <param name="k_forward" value="4.5" />
+                <param name="k_backward" value="7.0" />
+                <param name="max_steering_angle" value="0.52359877559" /> <!-- 30° -->
+                <param name="max_steering_angle_speed" value="4.0" /> <!-- ~4.0 should be realistic -->
+            </group>
+        </group>
 
-    <remap from="scan" to="scan/filtered" />
-    <remap from="/obstacles" to="/obstacle_cloud" />
-  </node>
-  
+        <group ns="collision_avoider">
+            <group ns="collision_box">
+                <param name="width" value="0.4" />
+                <param name="crit_length" value="0.6" />
+                <param name="min_length" value="1.0" />
+                <param name="max_length" value="1.5" />
+                <param name="velocity_factor" value="1.0" />
+                <param name="velocity_saturation" value="1.0" />
+            </group>
+        </group>
+
+        <group ns="supervisor">
+            <param name="use_waypoint_timeout" value="false" />
+            <group ns="waypoint_timeout">
+                <param name="time" value="30.0" />
+            </group>
+
+            <param name="use_distance_to_path" value="false" />
+            <group ns="distance_to_path">
+                <param name="max_dist" value="2.0" />
+            </group>
+
+            <param name="use_path_lookout" value="false" />
+            <group ns="path_lookout">
+                <param name="obstacle_scale_distance" value="1.0" />
+                <param name="obstacle_scale_lifetime" value="5.0" />
+                <param name="path_width" value="0.5" />
+            </group>
+        </group>
+
+    </group>
+
 </launch>

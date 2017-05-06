@@ -14,7 +14,7 @@ struct LocalPlannerParameters : public Parameters
     P<double> uinterval,dis2p, adis, fdis, s_angle, lmf, mu, ef;
     P<bool> use_v;
 
-    LocalPlannerParameters(Parameters* parent = nullptr):
+    LocalPlannerParameters(Parameters* parent):
         Parameters("local_planner", parent),
 
         local_planner(this, "algorithm", "AStar", "Algorithm to be used by the Local Planner."),

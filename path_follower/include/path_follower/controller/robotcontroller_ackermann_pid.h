@@ -23,7 +23,7 @@ protected:
 private:
     //! Specific parameters of this controller.
     struct ControllerParameters :
-            public RobotController::InterpolationParameters
+            public RobotController::ControllerParameters
     {
         P<double> dead_time;
         P<double> l;
@@ -34,6 +34,8 @@ private:
         P<float> max_steer;
 
         ControllerParameters():
+            RobotController::ControllerParameters("ackermann_pid"),
+
             dead_time(this, "dead_time", 0.1, "Time step that is used by predictPose"),
             l(this, "l", 0.38, "Distance between front and rear axes of the robot."),
             pid_ta(this, "pid/ta", 0.03, "Update interval of the PID controller."),
@@ -44,7 +46,7 @@ private:
         {}
     } opt_;
 
-    const RobotController::InterpolationParameters& getParameters() const
+    const RobotController::ControllerParameters& getParameters() const
     {
         return opt_;
     }

@@ -7,6 +7,7 @@
 #include <queue>
 #include <set>
 #include <ros/param.h>
+#include <functional>
 
 /**
  * @brief Wrapper for ROS parameter access that encourages the user to add a description for each parameter and provides
@@ -57,7 +58,19 @@ class Parameters
     friend class P;
     friend class WrappedP;
 
+
 public:
+    /**
+     * @brief The ParamInfo struct holds meta information for parameters
+     */
+    struct ParamInfo
+    {
+        std::string name;
+        std::string description;
+        std::string default_value;
+    };
+
+
     /**
      * @brief A common parameter
      *
@@ -69,15 +82,16 @@ public:
     public:
         /**
          * @brief A Parameter
-         * @param opt          Pointer to the parent Parameters class. Set this always to 'this'.
+         * @param opt          Pointer to the parent Parameters class.
          * @param param_name   Name of this parameter (add prefix '~' for private parameters).
          * @param default_val  Default value.
          * @param desc         Description of the parameter.
          */
         P(Parameters *opt, const std::string& param_name, const T& default_val, const std::string& desc)
         {
-            ros::param::param<T>(opt->ns_ + param_name, value_, default_val);
-            opt->registerParam(param_name, default_val, desc);
+            std::string full_name = opt->ns_ + param_name;
+            ros::param::param<T>(full_name, value_, default_val);
+            opt->registerParam(full_name, default_val, desc);
         }
 
         //! Returns the parameters value.
@@ -125,10 +139,11 @@ public:
          */
         WrappedP(Parameters *opt, const std::string& param_name, const ParamT& default_val, const std::string& desc)
         {
+            std::string full_name = opt->ns_ + param_name;
             ParamT val;
-            ros::param::param<ParamT>(param_name, val, default_val);
+            ros::param::param<ParamT>(full_name, val, default_val);
             value_ = T(val);
-            opt->registerParam(param_name, default_val, desc);
+            opt->registerParam(full_name, default_val, desc);
         }
 
         //! Returns the parameters value.
@@ -147,29 +162,17 @@ public:
         T value_;
     };
 
-    //! Print a simple parameter list with default values and descriptions to the terminal.
-    void print();
-
-    //! Print a list of all parameters to the specified file.
-    void printToFile(const std::string &filename="/tmp/parameters.md");
-
     //! Like print() but combining the parameters of all living Parameters instances.
-    static void printAllInstances();
-    //! Like printToFile() but combining the parameters of all living Parameters instances.
-    static void printToFileAllInstances(const std::string &filename="/tmp/parameters.md");
+    static void visitParameters(std::function<void (const ParamInfo &)> visitor);
 
 protected:
-    Parameters(const std::string& ns, Parameters* parent = nullptr); // abstract class
+    // abstract class
+    Parameters();
+    Parameters(const std::string& ns);
+    Parameters(const std::string& ns, Parameters* parent);
     ~Parameters();
 
 private:
-    struct ParamInfo
-    {
-        std::string name;
-        std::string description;
-        std::string default_value;
-    };
-
     Parameters* parent_;
     std::string ns_;
     std::vector<ParamInfo> params_;

@@ -101,6 +101,12 @@ public:
     PoseTracker& getPoseTracker();
 
     /**
+     * @brief getControllerFactory accesses the controller factory
+     * @return  the controller factory
+     */
+    ControllerFactory& getControllerFactory();
+
+    /**
      * @brief getOptions accesses the path following options
      * @return  the path following options
      */

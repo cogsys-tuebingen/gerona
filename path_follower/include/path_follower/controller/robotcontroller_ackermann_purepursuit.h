@@ -31,13 +31,15 @@ protected:
 
 private:
 
-    struct ControllerParameters : public RobotController::InterpolationParameters {
+    struct ControllerParameters : public RobotController::ControllerParameters {
 		P<double> factor_lookahead_distance_forward;
 		P<double> factor_lookahead_distance_backward;
 		P<double> vehicle_length;
 		P<double> factor_steering_angle;
 
 		ControllerParameters() :
+            RobotController::ControllerParameters("ackermann_purepursuit"),
+
 			factor_lookahead_distance_forward(this, "factor_lookahead_distance_forward", 0.8,
 														 "lookahead distance factor while driving forwards"),
 			factor_lookahead_distance_backward(this, "factor_lookahead_distance_forward", 0.8,
@@ -49,7 +51,7 @@ private:
 
 	} params_;
 
-    const RobotController::InterpolationParameters& getParameters() const {
+    const RobotController::ControllerParameters& getParameters() const {
 		return params_;
 	}
 

@@ -247,3 +247,12 @@ std::shared_ptr<CollisionAvoider> ControllerFactory::makeObstacleAvoider(const s
     ROS_WARN_STREAM("No collision_avoider defined with the name '" << name << "'. Defaulting to Omnidrive.");
     return std::make_shared<CollisionDetectorOmnidrive>();
 }
+
+
+void ControllerFactory::loadAllControllers(std::vector<std::shared_ptr<RobotController>>& out)
+{
+    for(auto pair: controller_constructors_) {
+        auto constructor = pair.second;
+        out.push_back(constructor());
+    }
+}

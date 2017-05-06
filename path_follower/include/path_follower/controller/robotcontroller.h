@@ -106,17 +106,17 @@ protected:
 
     ////interpolation///
 
-    struct InterpolationParameters : public Parameters {
+    struct ControllerParameters : public Parameters {
         P<double> goal_tolerance;
 
-        InterpolationParameters() :
-            Parameters("~"),
+        ControllerParameters(const std::string& controller_name) :
+            Parameters("controller/" + controller_name),
 
             goal_tolerance(this, "goal_tolerance", 0.3, "minimum distance at which the robot stops")
         {}
     };
 
-    virtual const InterpolationParameters& getParameters() const = 0;
+    virtual const ControllerParameters& getParameters() const = 0;
 
     ////-------------////
 

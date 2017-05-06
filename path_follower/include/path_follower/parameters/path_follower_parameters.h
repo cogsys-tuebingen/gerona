@@ -4,6 +4,7 @@
 #include <path_follower/utils/parameters.h>
 #include <rosconsole/macros_generated.h>
 #include <path_follower/parameters/local_planner_parameters.h>
+#include <path_follower/parameters/supervisor_parameters.h>
 
 struct PathFollowerParameters : public Parameters
 {
@@ -19,25 +20,14 @@ struct PathFollowerParameters : public Parameters
     P<float> max_velocity;
     P<bool> abort_if_obstacle_ahead;
 
-    // obstacle avoider
-    P<bool> collision_avoider_use_collision_box;
-    //P<bool> collision_avoider_use_vfh;  // not yet implemented
-
-    // supervisors
-    P<bool> supervisor_use_path_lookout;
-    P<bool> supervisor_use_waypoint_timeout;
-    P<bool> supervisor_use_distance_to_path;
-
-    P<double> supervisor_distance_to_path_max_dist;
-    P<float> supervisor_waypoint_timeout_time;
 
     LocalPlannerParameters local_planner;
+    SupervisorParameters supervisor;
 
     PathFollowerParameters():
-        Parameters("~"),
 
-        controller(this, "controller", "ackermann_purepursuit", "Defines, which controller is used."),
-        collision_avoider(this, "collision_avoider", "", "Defines, which obstacle avoider is used."),
+        controller(this, "controller_type", "ackermann_purepursuit", "Defines, which controller is used."),
+        collision_avoider(this, "collision_avoider", "", "Defines, which collisison avoider is used."),
         world_frame(this, "world_frame",  "map", "Name of the world frame."),
         robot_frame(this, "robot_frame",  "base_link", "Name of the robot frame."),
         odom_frame(this, "odom_frame",  "odom", "Name of the odometry frame."),
@@ -57,41 +47,9 @@ struct PathFollowerParameters : public Parameters
                                 " detected on front of the robot. If false, the robot will"
                                 " stop, but not abort (the obstacle might move away)."),
 
-        collision_avoider_use_collision_box(this, "collision_avoider/use_collision_box", true,
-                                           "Use the collision box obstacle avoider ('CollisionDetector')"),
-        //collision_avoider_vfh(this, "collision_avoider/use_vfh",  false,
-        //                     "If set to true, vector field histogram is used for collision avoidance."),
 
-                  supervisor_use_path_lookout(this, "supervisor/use_path_lookout",  false,
-                                    "Set to `true` to activate supervisor _path lookout_ (check"
-                                    " if there are obstacles somewhere on the path ahead of the"
-                                    " robot)."),
-                  supervisor_use_waypoint_timeout(this, "supervisor/use_waypoint_timeout", false,
-                                        "Set to `true` to activate supervisor _waypoint timeout_."),
-                  supervisor_use_distance_to_path(this, "supervisor/use_distance_to_path", false,
-                                        "Set to `true` to activate supervisor _distance to path_."),
-
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//        supervisor_distance_to_path_max_dist(this, "supervisor/distance_to_path/max_dist",  0.3,
-//                                             "Maximum distance the robot is allowed to depart from the path."
-//                                             " If this threshold is exceeded, the distance_to_path superv will abort."),
-
-//        supervisor_waypoint_timeout_time(this, "supervisor/waypoint_timeout/time", 10.0,
-//                                         "If the robot needs more than this time (in seconds), supervisor"
-//                                         " WaypointTimeout will stop the path execution.")
-
-
-        supervisor_distance_to_path_max_dist(this, "supervisor/distance_to_path/max_dist",  10.0,
-                                             "Maximum distance the robot is allowed to depart from the path."
-                                             " If this threshold is exceeded, the distance_to_path superv will abort."),
-
-        supervisor_waypoint_timeout_time(this, "supervisor/waypoint_timeout/time", 30.0,
-                                         "If the robot needs more than this time (in seconds), supervisor"
-                                         " WaypointTimeout will stop the path execution."),
-
-
-        local_planner(this)
+        local_planner(this),
+        supervisor(this)
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     {

@@ -81,7 +81,7 @@ protected:
 
 
 
-    struct ControllerParameters : public RobotController::InterpolationParameters
+    struct ControllerParameters : public RobotController::ControllerParameters
     {
         P<double> kAtt;
         P<double> kRep;
@@ -89,6 +89,8 @@ protected:
         P<double> max_angular_velocity;
 
         ControllerParameters():
+            RobotController::ControllerParameters("potential_field"),
+
             kAtt(this, "kAtt", 0.2, ""),
             kRep(this, "kRep", 0.5, ""),
             dist_thresh(this, "dist_thres", 2.5, ""),
@@ -96,7 +98,7 @@ protected:
         {}
     } opt_;
 
-    const RobotController::InterpolationParameters& getParameters() const
+    const RobotController::ControllerParameters& getParameters() const
     {
         return opt_;
     }

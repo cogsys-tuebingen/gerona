@@ -31,7 +31,7 @@ private:
     void findMinDistance();
 
 private:
-    struct ControllerParameters : public RobotController::InterpolationParameters
+    struct ControllerParameters : public RobotController::ControllerParameters
     {
         P<double> k1;
         P<double> k2;
@@ -56,6 +56,8 @@ private:
         P<double> max_current;
 
         ControllerParameters():
+            RobotController::ControllerParameters("dynamic_slp"),
+
             k1(this, "k1", 1.0, ""),
             k2(this, "k2", 1.0, ""),
             k3(this, "k3", 1.0, ""),
@@ -80,7 +82,7 @@ private:
         {}
     } opt_;
 
-    const RobotController::InterpolationParameters& getParameters() const
+    const RobotController::ControllerParameters& getParameters() const
     {
         return opt_;
     }

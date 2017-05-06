@@ -31,7 +31,7 @@ private:
     void findMinDistance();
     
 private:
-    struct ControllerParameters : public RobotController::InterpolationParameters
+    struct ControllerParameters : public RobotController::ControllerParameters
     {
         P<double> k1;
         P<double> k2;
@@ -47,6 +47,8 @@ private:
         P<double> k_curv;
         
         ControllerParameters():
+            RobotController::ControllerParameters("kinematic_SLP"),
+
             k1(this, "k1", 1.0, ""),
             k2(this, "k2", 1.0, ""),
             gamma(this, "gamma", 1.0, ""),
@@ -62,7 +64,7 @@ private:
         {}
     } opt_;
 
-    const RobotController::InterpolationParameters& getParameters() const
+    const RobotController::ControllerParameters& getParameters() const
     {
         return opt_;
     }

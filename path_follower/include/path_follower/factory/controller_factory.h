@@ -38,6 +38,8 @@ public:
         default_collision_detectors_[type] = collision_detector;
     }
 
+    void loadAllControllers(std::vector<std::shared_ptr<RobotController>>& out);
+
 private:
     std::shared_ptr<RobotController> makeController(const std::string &name);
     std::shared_ptr<CollisionAvoider> makeObstacleAvoider(const std::string &name);

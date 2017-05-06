@@ -84,8 +84,8 @@ Planner::Planner()
     nh_priv.param("use_scan_back", use_scan_back_, true);
 
     if(use_cloud_) {
-        ROS_INFO_STREAM("subscribing to obstacle cloud topic " << nh.resolveName(std::string("obstacles")));
-        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("obstacles", 0, boost::bind(&Planner::cloudCallback, this, _1));
+        ROS_INFO_STREAM("subscribing to obstacle cloud topic " << nh.resolveName(std::string("obstacle_cloud")));
+        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("obstacle_cloud", 0, boost::bind(&Planner::cloudCallback, this, _1));
         //        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("/obstacle_cloud", 0, boost::bind(&Planner::cloudCallback, this, _1));
     }
     if(use_scan_front_) {

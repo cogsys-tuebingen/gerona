@@ -44,9 +44,7 @@ pointcloud that is used for obstacle detection.
     <include file="$(find path_control)/launch/path_control.launch" />
 
     <include file="$(find path_follower)/launch/follower.launch">
-        <arg name="controller" value="$(arg robot_controller)" />
-
-        <remap from="/obstacles" to="/obstacle_cloud" />
+        <arg name="controller_type" value="$(arg robot_controller)" />
     </include>
 
 </launch>

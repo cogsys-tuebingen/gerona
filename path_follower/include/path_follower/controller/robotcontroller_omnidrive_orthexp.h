@@ -49,7 +49,7 @@ private:
     void rotate();
 
 private:
-    struct ControllerParameters : public RobotController::InterpolationParameters
+    struct ControllerParameters : public RobotController::ControllerParameters
     {
         P<double> k;
         P<double> kp;
@@ -62,6 +62,8 @@ private:
         P<double> k_curv;
 
         ControllerParameters():
+            RobotController::ControllerParameters("omnidrive_orthexp"),
+
             k(this, "k", 1.5, ""),
             kp(this, "kp", 0.4, ""),
             kd(this, "kd", 0.2, ""),
@@ -74,7 +76,7 @@ private:
         {}
     } opt_;
 
-    const RobotController::InterpolationParameters& getParameters() const
+    const RobotController::ControllerParameters& getParameters() const
     {
         return opt_;
     }

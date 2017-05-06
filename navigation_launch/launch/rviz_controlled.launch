@@ -25,7 +25,7 @@ demonstrating the navigation framework.
     <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy" output="screen" respawn="true">
         <param name="target_speed" value="2.5" />
         <param name="failure_mode" value="replan" />
-        <remap from="/rviz_goal" to="/move_base_simple/goal" />
+        <remap from="rviz_goal" to="/move_base_simple/goal" />
     </node>
 
     <include file="$(find navigation_launch)/launch/navigation.launch">
