@@ -304,7 +304,7 @@ void PathFollower::stop(int status)
 void PathFollower::emergencyStop()
 {
     ROS_WARN("***EMERGENCY STOP***");
-    stop(FollowPathResult::RESULT_STATUS_INTERNAL_ERROR);
+    stop(FollowPathResult::RESULT_STATUS_ABORTED);
 }
 
 bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& result)
@@ -414,7 +414,7 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
         config_->collision_avoider_->setObstacles(obstacle_cloud_);
     }
 
-    vel_ = goal.velocity;
+    vel_ = goal.follower_options.velocity;
     config_->controller_->setVelocity(vel_);
 
     pending_error_ = -1;
@@ -426,7 +426,7 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
     }
 
     if(is_running_) {
-        if(goal.init_mode != FollowPathGoal::INIT_MODE_CONTINUE) {
+        if(goal.follower_options.init_mode != FollowerOptions::INIT_MODE_CONTINUE) {
             ROS_ERROR("got a new goal, stopping");
             stop(FollowPathResult::RESULT_STATUS_SUCCESS);
         }

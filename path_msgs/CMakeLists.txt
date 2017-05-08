@@ -15,6 +15,7 @@ add_message_files(
     DirectionalPath.msg
     PathSequence.msg
     PlannerOptions.msg
+    FollowerOptions.msg
 )
 
 # Generate actions in the 'action' folder
@@ -22,7 +23,6 @@ add_action_files(
   FILES
     FollowPath.action
     NavigateToGoal.action
-    PlanAvoidance.action
     PlanPath.action
 )
 

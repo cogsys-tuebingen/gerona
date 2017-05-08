@@ -1,14 +1,20 @@
-#goal definition
+## Request to plan a path
 
-geometry_msgs/PoseStamped start
+# use_start: If true, start the search at the <start> pose
 bool use_start
+# start: The start pose, only used when <use_start> is true.
+#        Otherwise, other means (tf, odometry) are used to determine the start pose.
+geometry_msgs/PoseStamped start
 
+# goal: Specification of the goal condiditions
 path_msgs/Goal goal
+
+# options: Planner options
 path_msgs/PlannerOptions options
 
 ---
 #result definition
-
+# path: Resulting path, empty if no path is found
 path_msgs/PathSequence path
 
 ---
@@ -19,5 +25,4 @@ uint8 STATUS_PLANNING = 1
 uint8 STATUS_POST_PROCESSING = 2
 uint8 STATUS_PRE_PROCESSING = 3
 uint8 STATUS_PLANNING_FAILED = 10
-
 uint8 status

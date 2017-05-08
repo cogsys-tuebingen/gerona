@@ -172,7 +172,7 @@ struct LinearExpansion
 template <typename Algorithm>
 struct MapGoalTest
 {
-    MapGoalTest(Algorithm& algo, const Pose2d& start, double min_dist,
+    MapGoalTest(Algorithm& algo, const Pose2d& start, int map_search_min_value, int map_search_min_candidates, double min_dist,
                 const nav_msgs::OccupancyGrid& map, const lib_path::SimpleGridMap2d* map_info)
         : algo(algo),
           start(start),
@@ -210,7 +210,7 @@ struct MapGoalTest
 
         const int8_t& val = map.data.at(idx);
 
-        if(val > 32) {
+        if(val > map_search_min_value) {
             if(has_heuristic_goal) {
                 double dist_to_heuristic_goal = std::hypot(wx - heuristic_goal.x, wy - heuristic_goal.y);
                 algo.addGoalCandidate(node, dist_to_heuristic_goal);
@@ -221,7 +221,7 @@ struct MapGoalTest
             ++candidates;
         }
 
-        return candidates > 64;
+        return candidates > map_search_min_candidates;
     }
 
     const Pose2d* getHeuristicGoal() const
@@ -245,6 +245,8 @@ struct MapGoalTest
     bool has_heuristic_goal;
     Pose2d heuristic_goal;
 
+    int map_search_min_value;
+    int map_search_min_candidates;
     double min_dist;
 
     const lib_path::SimpleGridMap2d * map_info;
@@ -529,6 +531,8 @@ struct PathPlanner : public Planner
         try {
             typename Algorithm::PathT path;
             MapGoalTest<Algorithm> goal_test(algo, from_world,
+                                             request.goal.map_search_min_value > 0 ? request.goal.map_search_min_value : 32,
+                                             request.goal.map_search_min_candidates > 0 ? request.goal.map_search_min_candidates : 64,
                                              request.goal.min_dist,
                                              request.goal.map, map_info);
 
@@ -633,8 +637,17 @@ struct PathPlanner : public Planner
         DynamicSteeringNeighborhood::goal_dist_threshold = goal.options.goal_dist_threshold;
         DynamicSteeringNeighborhood::goal_angle_threshold = goal.options.goal_angle_threshold_degree / 180. * M_PI;
         DynamicSteeringNeighborhood::reversed = goal.options.reversed;
-        DynamicSteeringNeighborhood::allow_forward = goal.options.allow_forward;
-        DynamicSteeringNeighborhood::allow_backward = goal.options.allow_backward;
+
+        bool forward = goal.options.allow_forward;
+        bool backward = goal.options.allow_backward;
+        if(!forward && !backward) {
+            // if neither direction is allowd (empty message), we default to full planning
+            forward = true;
+            backward = true;
+        }
+        DynamicSteeringNeighborhood::allow_forward = forward;
+        DynamicSteeringNeighborhood::allow_backward = backward;
+
         DynamicSteeringNeighborhood::MAX_STEER_ANGLE = goal.options.ackermann_max_steer_angle_degree;
         DynamicSteeringNeighborhood::STEER_DELTA = goal.options.ackermann_steer_delta_degree;
         DynamicSteeringNeighborhood::steer_steps = goal.options.ackermann_steer_steps;

@@ -82,7 +82,7 @@ void PathFollowerServer::followPathGoalCB()
 
     // stop current goal
     if(follower_.isRunning()) {
-        if(latest_goal_->init_mode != path_msgs::FollowPathGoal::INIT_MODE_CONTINUE) {
+        if(latest_goal_->follower_options.init_mode != path_msgs::FollowerOptions::INIT_MODE_CONTINUE) {
             follower_.stop(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
         }
     }
@@ -93,7 +93,7 @@ void PathFollowerServer::followPathGoalCB()
 void PathFollowerServer::followPathPreemptCB()
 {
     if(follower_.isRunning()) {
-        if(latest_goal_->init_mode != path_msgs::FollowPathGoal::INIT_MODE_CONTINUE) {
+        if(latest_goal_->follower_options.init_mode != path_msgs::FollowerOptions::INIT_MODE_CONTINUE) {
             follower_.stop(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
         }
     }

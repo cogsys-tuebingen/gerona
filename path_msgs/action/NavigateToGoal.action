@@ -1,16 +1,20 @@
-# Define the goal
-uint8 FAILURE_MODE_ABORT = 0
-uint8 FAILURE_MODE_REPLAN = 1
+## Request to navigate the robot to a goal
 
-uint8 INIT_MODE_STOP = 0
-uint8 INIT_MODE_CONTINUE = 1
-
+# goal: Specification of the goal condition
 path_msgs/Goal goal
+
+# planner_options: Options for the path planner
 path_msgs/PlannerOptions planner_options
 
-uint8 init_mode
+# follower_options: Options for the path follower
+path_msgs/FollowerOptions follower_options
+
+# failure_mode: Determines how to react to a failure in path following:
+#  FAILURE_MODE_ABORT: Stop navigating
+#  FAILURE_MODE_REPLAN: Plan a new path to the same goal
+uint8 FAILURE_MODE_ABORT = 0
+uint8 FAILURE_MODE_REPLAN = 1
 uint8 failure_mode
-float32 velocity
 
 ---
 # Define the result

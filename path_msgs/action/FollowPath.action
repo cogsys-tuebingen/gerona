@@ -1,30 +1,32 @@
-# GOAL DEFINITION
-uint8 INIT_MODE_STOP = 0
-uint8 INIT_MODE_CONTINUE = 1
+## Request to follow a path
 
-uint8 init_mode
+# follower_options: Options for the path follower
+path_msgs/FollowerOptions follower_options
+
+# path: The path to follow
 path_msgs/PathSequence path
 
+# robot_controller: [optional] name of the controller to use
 std_msgs/String robot_controller
-std_msgs/String local_planner
-std_msgs/String collision_avoider
 
-# driving speed of robot (interpreted as recommended value)
-float32 velocity
+# local_planner: [optional] name of the local planner to use
+std_msgs/String local_planner
+
+# collision_avoider: [optional] name of the collision avoider to use
+std_msgs/String collision_avoider
 
 ---
 # RESULT DEFINITION
 
-uint8 RESULT_STATUS_MOVING = 1 # FIXME: this makes no sense as a _result_ status
+uint8 RESULT_STATUS_UNKNOWN = 1
 uint8 RESULT_STATUS_OBSTACLE = 2
 uint8 RESULT_STATUS_SUCCESS = 3
-#uint8 RESULT_STATUS_MOVE_FAIL = 4 #TODO: unused
+uint8 RESULT_STATUS_ABORTED = 4
 uint8 RESULT_STATUS_INTERNAL_ERROR = 5
 uint8 RESULT_STATUS_SLAM_FAIL = 6
 uint8 RESULT_STATUS_TF_FAIL = 7
 uint8 RESULT_STATUS_PATH_LOST = 8
 uint8 RESULT_STATUS_TIMEOUT = 9
-
 int8 status
 
 ---
@@ -33,8 +35,7 @@ int8 status
 uint8 MOTION_STATUS_MOVING = 1
 uint8 MOTION_STATUS_OBSTACLE = 2
 uint8 MOTION_STATUS_NO_LOCAL_PATH = 3
-
 uint8 status
-uint32  current_wp_id
 
+# obstacles_on_path: a list of the currently relevant obstacles
 Obstacle[] obstacles_on_path

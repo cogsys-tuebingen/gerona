@@ -21,9 +21,9 @@ void PathController::navToGoalActionCallback(const path_msgs::NavigateToGoalGoal
 {    
     current_goal_ = goal;
 
-    ROS_INFO_STREAM("Start Action! Requested velocity: " << current_goal_->velocity);
+    ROS_INFO_STREAM("Start Action! Requested velocity: " << current_goal_->follower_options.velocity);
 
-    if(current_goal_->init_mode != NavigateToGoalGoal::INIT_MODE_CONTINUE) {
+    if(current_goal_->follower_options.init_mode != FollowerOptions::INIT_MODE_CONTINUE) {
         follow_path_client_.cancelAllGoals();
     };
 
@@ -108,7 +108,7 @@ bool PathController::processGoal()
     ROS_INFO("Wait for follow_path action server...");
     follow_path_client_.waitForServer();
 
-    if(current_goal_->init_mode != NavigateToGoalGoal::INIT_MODE_CONTINUE) {
+    if(current_goal_->follower_options.init_mode != FollowerOptions::INIT_MODE_CONTINUE) {
         follow_path_client_.cancelAllGoals();
     }
 
@@ -156,8 +156,8 @@ bool PathController::processGoal()
 
     path_msgs::FollowPathGoal path_action_goal;
     path_action_goal.path = *requested_path_;
-    path_action_goal.velocity = current_goal_->velocity;
-    path_action_goal.init_mode = current_goal_->init_mode;
+    path_action_goal.follower_options.velocity = current_goal_->follower_options.velocity;
+    path_action_goal.follower_options.init_mode = current_goal_->follower_options.init_mode;
 
     follow_path_client_.sendGoal(path_action_goal,
                                  boost::bind(&PathController::followPathDoneCB, this, _1, _2),
@@ -170,7 +170,7 @@ bool PathController::processGoal()
         ros::spinOnce();
         if (navigate_to_goal_server_.isPreemptRequested()) {
             ROS_INFO("Preempt goal.\n---------------------");
-            if(current_goal_->init_mode != NavigateToGoalGoal::INIT_MODE_CONTINUE) {
+            if(current_goal_->follower_options.init_mode != FollowerOptions::INIT_MODE_CONTINUE) {
                 follow_path_client_.cancelAllGoals();
             }
             // wait until the goal is really canceled (= done callback is called).
@@ -231,6 +231,10 @@ void PathController::handleFollowPathResult()
             switch (follow_path_result_->status) {
             case FollowPathResult::RESULT_STATUS_OBSTACLE:
                 nav_result.status = NavigateToGoalResult::STATUS_OBSTACLE;
+                break;
+
+            case FollowPathResult::RESULT_STATUS_ABORTED:
+                nav_result.status = NavigateToGoalResult::STATUS_ABORTED;
                 break;
 
             case FollowPathResult::RESULT_STATUS_PATH_LOST:

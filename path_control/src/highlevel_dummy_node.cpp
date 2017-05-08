@@ -142,7 +142,7 @@ private:
         path_msgs::NavigateToGoalGoal goal;
         goal.goal.pose = *pose;
         goal.failure_mode = failure_mode_;
-        goal.velocity = target_speed_;
+        goal.follower_options.velocity = target_speed_;
         goal.goal.planning_channel.data = pnh_.param("planning_channel", std::string(""));
         goal.goal.planning_algorithm.data = pnh_.param("planning_algorithm", std::string(""));
 

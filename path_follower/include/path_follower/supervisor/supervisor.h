@@ -46,7 +46,7 @@ public:
     {
         Result():
             can_continue(true),
-            status(path_msgs::FollowPathResult::RESULT_STATUS_MOVING)
+            status(path_msgs::FollowPathResult::RESULT_STATUS_UNKNOWN)
         {}
 
         bool can_continue;

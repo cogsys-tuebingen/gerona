@@ -17,7 +17,6 @@
 #include <memory>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <path_msgs/PlanAvoidanceAction.h>
 #include "course/course_map.h"
 #include "course/search.h"
 
@@ -47,22 +46,12 @@ public:
 
     void addCurve(double angle, double radius);
 
-    void startPoseCb(const geometry_msgs::PoseStampedConstPtr &pose);
-
-    void obstaclePoseCb(const geometry_msgs::PoseWithCovarianceStampedConstPtr &pose);
-
-
-
-    void planAvoidanceCb (const path_msgs::PlanAvoidanceGoalConstPtr &goal);
-
     void findCircleOnCourse(const path_geom::Circle& obstacle, const std::vector<std::shared_ptr<path_geom::Shape>>& course, std::vector<int>& indices );
 
     void findPosOnCourse(const path_geom::PathPose& gp, const std::vector<std::shared_ptr<path_geom::Shape>>& course,
                         int& nearest_idx,Eigen::Vector2d& nearest);
 private:
     double resolution_ = 0.1;
-    double avoidance_radius_ = 1.5;
-    double obstacle_radius_ = 1.5;
 
     XmlRpc::XmlRpcValue segment_array_;
     XmlRpc::XmlRpcValue map_segment_array_;
@@ -77,19 +66,8 @@ private:
     path_msgs::PathSequence path_;
     tf::Transform pose_;
     ros::Publisher posearray_pub_;
-    ros::Publisher avoidance_pub_;
     ros::Subscriber start_pose_sub_;
     ros::Subscriber obstacle_pose_sub_;
-
-    typedef actionlib::SimpleActionServer<path_msgs::PlanAvoidanceAction> PlanAvoidanceServer;
-
-    //! Action server that communicates with the guidance control
-    PlanAvoidanceServer plan_avoidance_server_;
-
-    void processPlanAvoidance(const path_geom::PathPose& obstacle,
-                              const path_geom::PathPose& robot,
-                              path_msgs::PathSequence& path);
-
 
 
     /**

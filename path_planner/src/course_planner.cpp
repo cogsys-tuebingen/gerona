@@ -25,27 +25,15 @@ using namespace path_geom;
 CoursePlanner::CoursePlanner()
 
     : course_(nh),
-      course_search_(course_),
-      plan_avoidance_server_(nh, "/plan_avoidance", boost::bind(&CoursePlanner::planAvoidanceCb, this, _1), false)
+      course_search_(course_)
 {
     posearray_pub_ = nh.advertise<geometry_msgs::PoseArray>("static_poses",1000);
 
-    avoidance_pub_ = nh.advertise<path_msgs::PathSequence>("avoidance_path",1000);
-
-    start_pose_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal2", 0, &CoursePlanner::startPoseCb, this);
-
-    obstacle_pose_sub_ = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/obst_pose", 0, &CoursePlanner::obstaclePoseCb, this);
-
     ros::NodeHandle pnh("~");
-
-    pnh.param("avoidance_radius",avoidance_radius_,1.5);
-    pnh.param("obstacle_radius",obstacle_radius_,1.0);
 
     pnh.param("resolution", resolution_, 0.1);
     pnh.param("segments", segment_array_, segment_array_);
     pnh.param("map_segments", map_segment_array_, map_segment_array_);
-    
-    plan_avoidance_server_.start();
 
     course_.load(map_segment_array_);
 }
@@ -73,170 +61,6 @@ void CoursePlanner::addGeomPoses(const PathPoseVec &gposes, path_msgs::PathSeque
     }
 }
 
-
-void CoursePlanner::obstaclePoseCb(const geometry_msgs::PoseWithCovarianceStampedConstPtr &pose)
-{
-    PathPose obstacle_gp=pose2PathPose(pose->pose.pose);
-    geometry_msgs::PoseStamped robot_pose;
-    bool has_pose = getWorldPose("map","base_link",robot_pose);
-    if (!has_pose) {
-        ROS_ERROR("cannot find robot pose with TF");
-        return;
-    }
-
-    PathPose robot_gp=pose2PathPose(robot_pose.pose);
-    path_msgs::PathSequence smoothed_path;
-    processPlanAvoidance(obstacle_gp, robot_gp, smoothed_path);
-
-
-    avoidance_pub_.publish(smoothed_path);
-
-
-}
-
-
-void CoursePlanner::planAvoidanceCb(const path_msgs::PlanAvoidanceGoalConstPtr &goal_msg)
-{
-    ROS_INFO("Avoidance planner received request for avoidance plan");
-    const path_msgs::Obstacle& obstacle = goal_msg->obstacle;
-    //const geometry_msgs::PoseStamped& goal = goal_msg->goal;
-    path_geom::PathPose obstacle_gp;
-    obstacle_gp.pos_.x()=obstacle.position.x;
-    obstacle_gp.pos_.y()=obstacle.position.y;
-    //path_geom::PathPose robot_gp=pose2PathPose(current.pose);
-    geometry_msgs::PoseStamped robot_pose;
-    bool has_pose = getWorldPose("map","base_link",robot_pose);
-    if (!has_pose) {
-        ROS_ERROR("cannot find robot pose with TF");
-        return;
-    }
-
-    PathPose robot_gp=pose2PathPose(robot_pose.pose);
-
-
-
-    path_msgs::PathSequence path;
-    processPlanAvoidance(obstacle_gp, robot_gp, path);
-    path_msgs::PlanAvoidanceResult success;
-    success.path = path;
-    plan_avoidance_server_.setSucceeded(success);
-    //path_publisher_.publish(path);
-    avoidance_pub_.publish(path);
-
-}
-
-
-void CoursePlanner::processPlanAvoidance(const PathPose &obstacle_gp, const PathPose &robot_gp,
-                                         path_msgs::PathSequence& path)
-{
-
-    Circle obstacle(obstacle_gp.pos_,obstacle_radius_);
-    Circle ext_obstacle(obstacle_gp.pos_,obstacle_radius_+avoidance_radius_);
-    vector<int> indices;
-    findCircleOnCourse(ext_obstacle,active_segments_,indices);
-    int robot_idx;
-    Eigen::Vector2d nearest;
-    findPosOnCourse(robot_gp,active_segments_, robot_idx, nearest);
-    if (indices.empty()) {
-        // obstacle not relevant
-        return;
-    }
-
-    std::vector<std::shared_ptr<path_geom::Shape>> avoidance_path1, avoidance_path2, avoidance_path;
-
-    ROS_INFO("NEW Obstacle center %f %f",obstacle_gp.pos_.x(),obstacle_gp.pos_.y());
-    // first and second segment might be the same
-    int first_idx = indices.front();
-    for (int i=0;i<2;++i) {
-        if (first_idx<0) {
-            first_idx = active_segments_.size()-1;
-        }
-        auto& first_segment = active_segments_[first_idx];
-        Tangentor::tangentPath(first_segment,obstacle,avoidance_radius_,true,avoidance_path1);
-        if (avoidance_path1.size()==3) {
-            break;
-        }
-        --first_idx;
-    }
-
-    ROS_INFO_STREAM("found "<< avoidance_path1.size() << " tangent arcs");
-    if (avoidance_path1.size()!=3) {
-        ROS_INFO("failed to find adequate avoidance course");
-        return;
-    }
-    auto obstacle_circle = std::dynamic_pointer_cast<Circle>(avoidance_path1[2]);
-    if (!obstacle_circle) {
-        ROS_INFO("fail in obstacle avoidance");
-        return;
-    }
-    obstacle_circle->setArcAngle(2*M_PI);
-    int second_idx = indices.back();
-    for (int i=0;i<3;++i) {
-
-        if (second_idx>=(int)active_segments_.size()) {
-            second_idx = 0;
-        }
-        auto& second_segment = active_segments_[second_idx];
-        Tangentor::tangentPath(second_segment,*obstacle_circle,avoidance_radius_,false,avoidance_path2);
-        if (avoidance_path2.size()==3) {
-            break;
-        }
-        ++second_idx;
-    }
-    if (avoidance_path2.size()!=3) {
-        ROS_INFO("failed to find adequate avoidance course from obstacle back to course");
-        return;
-    }
-    ROS_INFO(" path size found %ld ",avoidance_path2.size());
-    path_msgs::PathSequence path_raw;
-    // remove last elememnt from first path part as it is contained in second path
-    avoidance_path1.pop_back();
-
-    // cerate the complete path from robot to finish
-
-
-    int idx = robot_idx;
-    int cnt = active_segments_.size();
-    while (idx!=first_idx && idx<(int)active_segments_.size()) {
-        avoidance_path.push_back(active_segments_[idx]);
-        ++idx;
-        --cnt;
-    }
-
-    avoidance_path.insert(avoidance_path.end(),avoidance_path1.begin(), avoidance_path1.end());
-    avoidance_path.insert(avoidance_path.end(),avoidance_path2.begin(), avoidance_path2.end());
-
-    bool success =avoidance_path.front()->selectStartPoint(nearest);
-    ROS_INFO_STREAM("ronot pos is "<<robot_gp.pos_);
-
-    ROS_INFO_STREAM("original line is "<<avoidance_path.front()->startPoint().x()<< " "
-                    <<avoidance_path.front()->startPoint().y());
-    if (!success) {
-        ROS_INFO_STREAM("failed tos et start point "<<nearest.x()<< " "<< nearest.y());
-
-    } else {
-        ROS_INFO_STREAM("set start point "<<nearest.x()<< " "<< nearest.y());
-    }
-    // add remaining parts of original course
-
-    for (int idx=second_idx+1;idx<(int)active_segments_.size();++idx) {
-        ROS_INFO("adding segment %u",idx);
-        avoidance_path.push_back(active_segments_[idx]);
-    }
-
-    active_segments_ = avoidance_path;
-
-    for (auto &s: avoidance_path) {
-        PathPoseVec gposes;
-        s->toPoses(resolution_,gposes,path_geom::FORWARD,false);
-        addGeomPoses(gposes, path_raw);
-    }
-
-    path_raw.header.frame_id = "map";
-    path_raw.header.stamp = ros::Time::now();
-    path = postprocess(path_raw);
-
-}
 
 void CoursePlanner::createCourse(XmlRpc::XmlRpcValue &segment_array, const geometry_msgs::Pose& start_pose,
                                  vector<shared_ptr<Shape>>& segments,
@@ -325,31 +149,6 @@ void CoursePlanner::segments2Path(const vector<shared_ptr<Shape> > &segments,
 }
 
 
-void CoursePlanner::startPoseCb(const geometry_msgs::PoseStampedConstPtr &pose_stamped)
-{
-
-    path_msgs::PathSequence path_raw = path_msgs::PathSequence();
-
-
-    path_raw.header.frame_id = "map";
-    path_raw.header.stamp = ros::Time::now();
-    geometry_msgs::PoseArray poses;
-    geometry_msgs::Pose pose;
-    pose=pose_stamped->pose;
-    createCourse(segment_array_,pose,course_segments_, path_raw);
-    active_segments_ = course_segments_;
-    path_ = postprocess(path_raw);
-    publish(path_, path_raw);
-    for(const path_msgs::DirectionalPath& path : path_raw.paths) {
-        for (const geometry_msgs::PoseStamped& spose : path.poses) {
-            poses.poses.push_back(spose.pose);
-        }
-    }
-    poses.header.frame_id="map";
-    posearray_pub_.publish(poses);
-
-
-}
 
 
 void CoursePlanner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
