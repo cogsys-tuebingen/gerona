@@ -26,12 +26,18 @@ PathFollowerServer::PathFollowerServer(PathFollower &follower)
 void PathFollowerServer::spin()
 {
     ros::Rate rate(50);
+    ros::Rate idle_rate(5);
 
     while(ros::ok()) {
         try {
             ros::spinOnce();
             update();
-            rate.sleep();
+
+            if(follow_path_server_.isActive()) {
+                rate.sleep();
+            } else {
+                idle_rate.sleep();
+            }
         } catch (const EmergencyBreakException &e) {
             ROS_ERROR("Emergency Break [status %d]: %s", e.status_code, e.what());
             follower_.emergencyStop();
