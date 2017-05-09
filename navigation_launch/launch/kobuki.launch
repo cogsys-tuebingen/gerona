@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="robot_controller" default="differential_orthexp" />
+
+    <include file="$(find navigation_launch)/launch/laser_filter_kobuki.launch" />
+
+    <remap from="cmd_vel" to="cmd_vel_hl" />
+
+    <include file="$(find navigation_launch)/launch/rviz_controlled.launch">
+        <arg name="robot_controller" value="$(arg robot_controller)" />
+        <arg name="use_hector" value="true" />
+        <arg name="use_planner_default" value="true" />
+        <arg name="use_laser_obstacles" value="true" />
+    </include>
+
+    <param name="path_follower/local_planner/algorithm" value="NULL" />
+    <param name="highlevel_dummy/target_speed" value="0.6" />
+    <param name="highlevel_dummy/obstacle_radius" value="0.27" />
+
+    <param name="/path_follower/collision_avoider/collision_box/crit_length" value="0.4" />
+    <param name="/path_follower/collision_avoider/collision_box/max_length" value="0.4" />
+    <param name="/path_follower/collision_avoider/collision_box/min_length" value="0.3" />
+    <param name="/path_follower/collision_avoider/collision_box/velocity_factor" value="1.0" />
+    <param name="/path_follower/collision_avoider/collision_box/velocity_saturation" value="1.0" />
+    <param name="/path_follower/collision_avoider/collision_box/width" value="0.30" />
+
+
+    <group ns="path_follower" >
+        <group ns="controller" >
+            <group ns="differential_orthexp" >
+                <param name="look_ahead_dist" value="1.0" />
+                <param name="k" value="4.0" />
+                <param name="k_o" value="0.15" />
+                <param name="k_g" value="0.3" />
+                <param name="k_w" value="0.7" />
+                <param name="k_curv" value="0.3" />
+            </group>
+        </group>
+    </group>
+
+    <param name="highlevel_dummy/planner/reversed" value="true" />
+    <param name="highlevel_dummy/planner/goal_dist_threshold" value="0.15" />
+    <param name="highlevel_dummy/planner/goal_angle_threshold" value="25" />
+    <param name="highlevel_dummy/planner/allow_forward" value="true" />
+    <param name="highlevel_dummy/planner/allow_backward" value="true" />
+    <param name="highlevel_dummy/planner/ackermann_la" value="0.8" />
+    <param name="highlevel_dummy/planner/ackermann_steer_steps" value="2" />
+    <param name="highlevel_dummy/planner/ackermann_max_steer_angle" value="40" />
+    <param name="highlevel_dummy/planner/ackermann_steer_delta" value="20" />
+
+    <param name="path_planner/algorithm" value="2d" />
+    <param name="path_planner/algorithm" value="generic" />
+
+
+</launch>
