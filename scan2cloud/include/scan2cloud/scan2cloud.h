@@ -17,6 +17,7 @@ class ScanConverter {
         void spin();
      private:
         ros::NodeHandle node_;
+        ros::NodeHandle private_node_;
         laser_geometry::LaserProjection projector_;
         tf::TransformListener tfListener_;
 

@@ -153,6 +153,7 @@ public:
     ros::Publisher getMarkerArrayPublisher();
 
 private:
+    ros::NodeHandle nh_;
     ros::NodeHandle private_nh_;
     ros::Publisher vis_pub_;
     ros::Publisher marray_vis_pub_;

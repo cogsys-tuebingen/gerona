@@ -1,11 +1,13 @@
 #include "../../include/scan2cloud/scan2cloud.h"
 
-ScanConverter::ScanConverter():node_("~"){
+ScanConverter::ScanConverter():
+    private_node_("~")
+{
     // init parameter with a default value
-    node_.param<std::string>("baseFrame",baseFrame_,"base_link");
+    private_node_.param<std::string>("baseFrame",baseFrame_,"base_link");
 
-    node_.param<double>("cloudFilterMean",cloudFilterMean_,50.0);
-    node_.param<double>("cloudFilterStdD",cloudFilterStdD_,1.0);
+    private_node_.param<double>("cloudFilterMean",cloudFilterMean_,50.0);
+    private_node_.param<double>("cloudFilterStdD",cloudFilterStdD_,1.0);
 
 
     scan_sub_front_ = node_.subscribe<sensor_msgs::LaserScan>(
