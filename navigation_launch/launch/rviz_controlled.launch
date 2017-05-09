@@ -8,8 +8,6 @@ path_control using the action interface. It is thus good for testing and
 demonstrating the navigation framework.
 -->
 <launch>
-    <arg name="robot_controller" default="kinematic_HBZ_TT" /> <!--$(optenv ROBOT_CONTROLLER kinematic_HBZ_TT)" />-->
-
     <arg name="use_laser_obstacles" default="false" />
 
     <arg name="use_planner_cost" default="false" />
@@ -29,8 +27,6 @@ demonstrating the navigation framework.
     </node>
 
     <include file="$(find navigation_launch)/launch/navigation.launch">
-      <arg name="robot_controller" value="$(arg robot_controller)" />
-
       <arg name="use_laser_obstacles" value="$(arg use_laser_obstacles)" />
 
       <arg name="use_karto" value="$(arg use_karto)" />

@@ -3,16 +3,7 @@
 Launch the path follower with the Stanley controller for a car-like bi-steerable robot.
 -->
 <launch>
-    <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
-        <param name="controller_type" value="2steer_stanley" />
-    </node>
-
     <group ns="path_follower">
-        <param name="min_velocity" value="0.5" />
-        <param name="max_velocity" value="0.7" />
-        <param name="waypoint_tolerance" value="0.8" />
-        <param name="goal_tolerance" value="0.45" />
-
         <group ns="controller">
             <!-- parameters, that are dependent of the controller or the robot model -->
             <group ns="2steer_stanley">
@@ -22,37 +13,5 @@ Launch the path follower with the Stanley controller for a car-like bi-steerable
                 <param name="max_steering_angle" value="0.52359877559"/> <!-- 30° -->
             </group>
         </group>
-
-        <group ns="collision_avoider">
-            <group ns="collision_box">
-                <param name="width" value="0.4" />
-                <param name="crit_length" value="0.6" />
-                <param name="min_length" value="1.0" />
-                <param name="max_length" value="1.5" />
-                <param name="velocity_factor" value="1.0" />
-                <param name="velocity_saturation" value="1.0" />
-            </group>
-        </group>
-
-        <group ns="supervisor">
-            <param name="use_waypoint_timeout" value="false" />
-            <group ns="waypoint_timeout">
-                <param name="time" value="30.0" />
-            </group>
-
-            <param name="use_distance_to_path" value="false" />
-            <group ns="distance_to_path">
-                <param name="max_dist" value="2.0" />
-            </group>
-
-            <param name="use_path_lookout" value="false" />
-            <group ns="path_lookout">
-                <param name="obstacle_scale_distance" value="1.0" />
-                <param name="obstacle_scale_lifetime" value="5.0" />
-                <param name="path_width" value="0.5" />
-            </group>
-        </group>
-
-    </group>
-  
+    </group>  
 </launch>

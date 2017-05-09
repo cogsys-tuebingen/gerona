@@ -1,15 +1,19 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="robot_controller" default="differential_orthexp" />
-
     <include file="$(find navigation_launch)/launch/rviz_controlled.launch">
-        <arg name="robot_controller" value="$(arg robot_controller)" />
         <arg name="use_hector" value="true" />
         <arg name="use_planner_default" value="true" />
     </include>
 
-    <param name="path_follower/local_planner/algorithm" value="NULL" />
-    <param name="highlevel_dummy/target_speed" value="0.8" />
-    <param name="highlevel_dummy/obstacle_radius" value="0.5" />
+    <group ns="highlevel_dummy">
+        <param name="target_speed" value="0.8" />
+        <param name="obstacle_radius" value="0.5" />
+    </group>
 
+    <group ns="path_follower" >
+        <param name="controller_type" value="differential_orthexp" />
+        <group ns="local_planner">
+            <param name="algorithm" value="NULL" />
+        </group>
+    </group>
 </launch>

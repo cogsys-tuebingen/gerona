@@ -6,8 +6,6 @@ To use any obstacle avoidance, you further need a node that publishes a
 pointcloud that is used for obstacle detection.
 -->
 <launch>
-    <arg name="robot_controller" default="$(optenv ROBOT_CONTROLLER kinematic_HBZ)" />
-
     <arg name="use_laser_obstacles" default="false" />
 
     <arg name="use_planner_cost" default="false" />
@@ -43,8 +41,6 @@ pointcloud that is used for obstacle detection.
 
     <include file="$(find path_control)/launch/path_control.launch" />
 
-    <include file="$(find path_follower)/launch/follower.launch">
-        <arg name="controller_type" value="$(arg robot_controller)" />
-    </include>
+    <include file="$(find path_follower)/launch/follower.launch" />
 
 </launch>

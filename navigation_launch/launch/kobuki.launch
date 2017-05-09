@@ -1,31 +1,34 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="robot_controller" default="differential_orthexp" />
-
     <include file="$(find navigation_launch)/launch/laser_filter_kobuki.launch" />
 
     <remap from="cmd_vel" to="cmd_vel_hl" />
 
     <include file="$(find navigation_launch)/launch/rviz_controlled.launch">
-        <arg name="robot_controller" value="$(arg robot_controller)" />
         <arg name="use_hector" value="true" />
         <arg name="use_planner_default" value="true" />
         <arg name="use_laser_obstacles" value="true" />
     </include>
 
-    <param name="path_follower/local_planner/algorithm" value="NULL" />
-    <param name="highlevel_dummy/target_speed" value="0.6" />
-    <param name="highlevel_dummy/obstacle_radius" value="0.27" />
+    <group ns="highlevel_dummy">
+        <param name="target_speed" value="0.6" />
+        <param name="obstacle_radius" value="0.27" />
 
-    <param name="/path_follower/collision_avoider/collision_box/crit_length" value="0.4" />
-    <param name="/path_follower/collision_avoider/collision_box/max_length" value="0.4" />
-    <param name="/path_follower/collision_avoider/collision_box/min_length" value="0.3" />
-    <param name="/path_follower/collision_avoider/collision_box/velocity_factor" value="1.0" />
-    <param name="/path_follower/collision_avoider/collision_box/velocity_saturation" value="1.0" />
-    <param name="/path_follower/collision_avoider/collision_box/width" value="0.30" />
-
+        <group ns="planner">
+            <param name="reversed" value="true" />
+            <param name="goal_dist_threshold" value="0.15" />
+            <param name="goal_angle_threshold" value="25" />
+            <param name="allow_forward" value="true" />
+            <param name="allow_backward" value="true" />
+            <param name="ackermann_la" value="0.8" />
+            <param name="ackermann_steer_steps" value="2" />
+            <param name="ackermann_max_steer_angle" value="40" />
+            <param name="ackermann_steer_delta" value="20" />
+        </group>
+    </group>
 
     <group ns="path_follower" >
+        <param name="controller_type" value="differential_orthexp" />
         <group ns="controller" >
             <group ns="differential_orthexp" >
                 <param name="look_ahead_dist" value="1.0" />
@@ -36,20 +39,26 @@
                 <param name="k_curv" value="0.3" />
             </group>
         </group>
+
+        <group ns="collision_avoider">
+            <group ns="collision_box">
+                <param name="crit_length" value="0.4" />
+                <param name="max_length" value="0.4" />
+                <param name="min_length" value="0.3" />
+                <param name="velocity_factor" value="1.0" />
+                <param name="velocity_saturation" value="1.0" />
+                <param name="width" value="0.30" />
+            </group>
+        </group>
+
+        <group ns="local_planner">
+            <param name="algorithm" value="NULL" />
+        </group>
     </group>
 
-    <param name="highlevel_dummy/planner/reversed" value="true" />
-    <param name="highlevel_dummy/planner/goal_dist_threshold" value="0.15" />
-    <param name="highlevel_dummy/planner/goal_angle_threshold" value="25" />
-    <param name="highlevel_dummy/planner/allow_forward" value="true" />
-    <param name="highlevel_dummy/planner/allow_backward" value="true" />
-    <param name="highlevel_dummy/planner/ackermann_la" value="0.8" />
-    <param name="highlevel_dummy/planner/ackermann_steer_steps" value="2" />
-    <param name="highlevel_dummy/planner/ackermann_max_steer_angle" value="40" />
-    <param name="highlevel_dummy/planner/ackermann_steer_delta" value="20" />
-
-    <param name="path_planner/algorithm" value="2d" />
-    <param name="path_planner/algorithm" value="generic" />
-
+    <group ns="path_planner" >
+        <param name="algorithm" value="2d" />
+        <param name="algorithm" value="generic" />
+    </group>
 
 </launch>
