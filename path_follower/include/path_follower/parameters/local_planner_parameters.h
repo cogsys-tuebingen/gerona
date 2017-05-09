@@ -8,11 +8,11 @@ struct LocalPlannerParameters : public Parameters
 {
     //Parameters for the Local Planner
     P<std::string> local_planner;
-    P<bool> c1, c2;
-    P<double> s1, s2, s3, s4, s5, s6;
-    P<int> nnodes,depth,ic,ia;
-    P<double> uinterval,dis2p, adis, fdis, s_angle, lmf, mu, ef;
-    P<bool> use_v;
+    P<bool> use_distance_to_path_constraint, use_distance_to_obstacle_constraint;
+    P<double> score_weight_distance_to_path, score_weight_delta_distance_to_path, score_weight_curvature, score_weight_delta_curvature, score_weight_level, score_weight_distance_to_obstacles;
+    P<int> max_num_nodes,max_depth,curve_segment_subdivisions,intermediate_angles;
+    P<double> update_interval,distance_to_path_constraint, safety_distance_surrounding, safety_distance_forward, max_steering_angle, step_scale, mu, ef;
+    P<bool> use_velocity;
 
     LocalPlannerParameters(Parameters* parent):
         Parameters("local_planner", parent),
@@ -20,54 +20,70 @@ struct LocalPlannerParameters : public Parameters
         local_planner(this, "algorithm", "AStar", "Algorithm to be used by the Local Planner."),
 
         //Constraints
-        c1(this, "c1", true,
-           "Determines whether the first constraint is used or not. (Distance to global path)"),
-        c2(this, "c2", true,
-           "Determines whether the second constraint is used or not. (Distance to nearest obstacle)"),
+        use_distance_to_path_constraint(this,
+                                        "use_distance_to_path_constraint",
+                                        true,
+                                        "Determines whether the first constraint is used or not. (Distance to global path)"),
+        use_distance_to_obstacle_constraint(this,
+                                            "use_distance_to_obstacle_constraint",
+                                            true,
+                                            "Determines whether the second constraint is used or not. (Distance to nearest obstacle)"),
 
         //Scorers
-        s1(this, "s1", 3.5,
-           "Determines whether the first scorer is used or not. (Distance to global path (P))"),
-        s2(this, "s2", 1.5,
-           "Determines whether the second  scorer is used or not. (Distance to global path (D))"),
-        s3(this, "s3", 2.0,
-           "Determines whether the third scorer is used or not. (Curvature of the point (P))"),
-        s4(this, "s4", 1.0,
-           "Determines whether the fouth scorer is used or not. (Curvature of the point (D))"),
-        s5(this, "s5", 1.5,
-           "Determines whether the fifth scorer is used or not. (Tree level reached)"),
-        s6(this, "s6", 5.0,
-           "Determines whether the sixth scorer is used or not. (Distance to nearest obstacle)"),
+        score_weight_distance_to_path(this,
+                                      "score_weight_distance_to_path",
+                                      3.5,
+                                      "Determines whether the first scorer is used or not. (Distance to global path (P))"),
+        score_weight_delta_distance_to_path(this,
+                                            "score_weight_delta_distance_to_path",
+                                            1.5,
+                                            "Determines whether the second  scorer is used or not. (Distance to global path (D))"),
+        score_weight_curvature(this,
+                               "score_weight_curvature",
+                               2.0,
+                               "Determines whether the third scorer is used or not. (Curvature of the point (P))"),
+        score_weight_delta_curvature(this,
+                                     "score_weight_delta_curvature",
+                                     1.0,
+                                     "Determines whether the fouth scorer is used or not. (Curvature of the point (D))"),
+        score_weight_level(this,
+                           "score_weight_level",
+                           1.5,
+                           "Determines whether the fifth scorer is used or not. (Tree level reached)"),
+        score_weight_distance_to_obstacles(this,
+                                           "score_weight_distance_to_obstacles",
+                                           5.0,
+                                           "Determines whether the sixth scorer is used or not. (Distance to nearest obstacle)"),
 
         //Other local planner parameters
-        nnodes(this, "nnodes", 400,
-               "Determines the maximum number of nodes used by the local planner"),
-        depth(this, "depth", 10,
-               "Determines the maximum depth of the tree used by the local planner"),
-        ic(this, "ic", 7,
-               "Determines the number of intermediate configurations in a curve"),
-        ia(this, "ia", 0,
-               "Determines the number of intermediate angles between 0 and +-s_angle"),
-        uinterval(this, "uinterval", 0.125,
-                  "Determines the update interval in seconds of the local planner"),
-        dis2p(this, "dis2p", 0.8,
-              "Determines how far from the path should the local planner perform"),
-        adis(this, "adis", 0.65,
-              "Determines the security distance around the robot"),
-        fdis(this, "fdis", 0.55,
-              "Determines the extra security distance in front of the robot"),
-        s_angle(this, "s_angle", 35.0,
-                "Determines the steering angle (in degrees) for the local planner"),
-        lmf(this, "lmf", 12.0,
-                "Determines the multiplying factor of the intended length of the local path"),
+        max_num_nodes(this, "max_num_nodes", 400,
+                      "Determines the maximum number of nodes used by the local planner"),
+        max_depth(this, "max_depth", 10,
+                  "Determines the maximum depth of the tree used by the local planner"),
+        curve_segment_subdivisions(this, "curve_segment_subdivisions", 7,
+                                   "Determines the number of subdivisions of curve segments in the final path"),
+        intermediate_angles(this, "intermediate_angles", 0,
+                            "Determines the number of intermediate angles between 0 and +-s_angle for the expansion of a node"),
+        update_interval(this, "update_interval", 0.125,
+                        "Determines the update interval in seconds of the local planner"),
+        distance_to_path_constraint(this, "distance_to_path_constraint", 0.8,
+                                    "Determines how far from the path should the local planner perform"),
+        safety_distance_surrounding(this, "safety_distance_surrounding", 0.65,
+                                    "Determines the security distance around the robot"),
+        safety_distance_forward(this, "safety_distance_forward", 0.55,
+                                "Determines the extra security distance in front of the robot"),
+        max_steering_angle(this, "max_steering_angle", 35.0,
+                           "Determines the steering angle (in degrees) for the local planner"),
+        step_scale(this, "step_scale", 1.20,
+                   "Scales the size of individual steps during the search"),
         mu(this, "mu", 0.005,
            "Determines the coefficient of friction"),
         ef(this, "ef", 2.0,
-           "Determines the multiplying factor for the argument of std::exp function in the dis2obst scorer"),
-        use_v(this, "use_v", true,
-              "Determines if the current velocity is used by the local planner")
+           "Exponential factor the dis2obst scorer (std::exp(<ef>/distance(point, obstacle)) - 1.0"),
+        use_velocity(this, "use_velocity", true,
+                     "Determines if the current velocity is used by the local planner")
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     {
     }
 };

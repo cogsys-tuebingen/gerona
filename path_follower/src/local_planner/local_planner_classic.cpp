@@ -7,10 +7,10 @@
 #include <pcl_ros/point_cloud.h>
 #include <path_follower/utils/pose_tracker.h>
 
-std::size_t LocalPlannerClassic::nnodes_ = 300;
+std::size_t LocalPlannerClassic::max_num_nodes_ = 300;
 int LocalPlannerClassic::ic_ = 3;
 int LocalPlannerClassic::nsucc_ = 3;
-int LocalPlannerClassic::li_level = 10;
+int LocalPlannerClassic::max_level_ = 10;
 std::vector<double> LocalPlannerClassic::RT;
 std::vector<double> LocalPlannerClassic::D_THETA;
 double LocalPlannerClassic::TH = 0.0;
@@ -79,7 +79,7 @@ void LocalPlannerClassic::getSuccessors(LNode*& current, std::size_t& nsize, std
                     nodes.at(nsize) = succ;
                     successors.push_back(&nodes.at(nsize));
                     nsize++;
-                    if(nsize >= nnodes_){
+                    if(nsize >= max_num_nodes_){
                         add_n = false;
                     }
                 }
@@ -336,7 +336,7 @@ void LocalPlannerClassic::setVelocity(double velocity){
 
 void LocalPlannerClassic::setStep(){
     double dis = velocity_ * update_interval_.toSec();
-    step_ = length_MF*dis/(double)li_level;
+    step_ = length_MF*dis;
     D_THETA.clear();
     for(std::size_t i = 0; i < RT.size(); ++i){
         //in the presentation psi = d/R
@@ -744,12 +744,12 @@ void LocalPlannerClassic::setLLP(){
 
 void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double adis, double fdis, double s_angle,
                                     int ia, double lmf, int max_level, double mu, double ef){
-    nnodes_ = nnodes;
+    max_num_nodes_ = nnodes;
     ic_ = ic;
     TH = s_angle*M_PI/180.0;
     length_MF = lmf;
     mudiv_ = 9.81*mu;
-    li_level = max_level;
+    max_level_ = max_level;
     RT.clear();
     for(int i = 0; i <= ia; ++i){
         RT.push_back(L/std::tan(((double)(i + 1)/(ia + 1))*TH));
@@ -758,7 +758,7 @@ void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double adi
     nsucc_ = 2*RT.size() + 1;
     Curvature_Scorer::setMaxC(RT.back());
     CurvatureD_Scorer::setMaxC(RT.back());
-    Level_Scorer::setLevel(li_level);
+    Level_Scorer::setLevel(max_level_);
     Dis2Path_Constraint::setLimit(dis2p);
     Dis2Obst_Scorer::setFactor(ef);
     GL = RL + 2.0*adis;
@@ -778,7 +778,7 @@ void LocalPlannerClassic::printVelocity(){
 }
 
 void LocalPlannerClassic::printLevelReached() const{
-        ROS_INFO_STREAM("Reached Level: " << r_level << "/" << li_level);
+        ROS_INFO_STREAM("Reached Level: " << r_level << "/" << max_level_);
 }
 
 void LocalPlannerClassic::checkQuarters(LNode child, LNode* parent, LNode& first, LNode& mid, LNode& second){
@@ -924,7 +924,7 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     setD2P(wpose);
     initConstraints();
 
-    std::vector<LNode> nodes(nnodes_);
+    std::vector<LNode> nodes(max_num_nodes_);
     LNode* obj = nullptr;
     LNode* best_non_reconf = nullptr;
 
@@ -942,7 +942,7 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
     LNode* current;
 
-    while(!isQueueEmpty() && (isQueueEmpty()?nodes.at(nnodes - 1).level_:queueFront()->level_) < li_level && nnodes < nnodes_){
+    while(!isQueueEmpty() && (isQueueEmpty()?nodes.at(nnodes - 1).level_:queueFront()->level_) < max_level_ && nnodes < max_num_nodes_){
         pop(current);
         if(std::abs(dis2last - current->s) <= 0.05){
             obj = current;

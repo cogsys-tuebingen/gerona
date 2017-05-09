@@ -117,8 +117,8 @@ private:
     static constexpr double RW = 0.61;
     static std::vector<LNode> EMPTYTWINS;
 
-    static std::size_t nnodes_;
-    static int ic_, nsucc_, li_level;
+    static std::size_t max_num_nodes_;
+    static int ic_, nsucc_, max_level_;
     static double TH, length_MF, mudiv_;
     static double GL, GW, FL, beta1;
     static std::vector<double> D_THETA, RT;
