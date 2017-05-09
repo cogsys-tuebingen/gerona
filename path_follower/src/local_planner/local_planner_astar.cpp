@@ -1,9 +1,6 @@
 /// HEADER
 #include <path_follower/local_planner/local_planner_astar.h>
 
-/// PROJECT
-
-
 LocalPlannerAStar::LocalPlannerAStar()
 {
 

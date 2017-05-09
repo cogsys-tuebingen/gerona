@@ -23,7 +23,7 @@
 #include <boost/variant.hpp>
 
 /// FORWARD DECLARATIONS
-class ControllerFactory;
+class FollowerFactory;
 class CoursePredictor;
 class Visualizer;
 class SupervisorChain;
@@ -104,7 +104,7 @@ public:
      * @brief getControllerFactory accesses the controller factory
      * @return  the controller factory
      */
-    ControllerFactory& getControllerFactory();
+    FollowerFactory& getFollowerFactory();
 
     /**
      * @brief getOptions accesses the path following options
@@ -162,7 +162,7 @@ private:
     std::shared_ptr<PoseTracker> pose_tracker_;
 
     //! The controller factory is used to create controllers, local planners and obstacle avoiders
-    std::unique_ptr<ControllerFactory> controller_factory_;
+    std::unique_ptr<FollowerFactory> follower_factory_;
 
     //! The currently used config for path following, set by the latest goal
     std::shared_ptr<PathFollowerConfig> config_;

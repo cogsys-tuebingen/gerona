@@ -4,7 +4,7 @@
 #include <path_follower/utils/parameters.h>
 #include <path_follower/utils/obstacle_cloud.h>
 #include <path_follower/utils/pose_tracker.h>
-#include <path_follower/factory/controller_factory.h>
+#include <path_follower/factory/follower_factory.h>
 #include <pcl_ros/point_cloud.h>
 #include <tf/tf.h>
 #include <fstream>
@@ -59,7 +59,7 @@ int dumpParameters(PathFollower& pf, const std::string& filename)
 
     ROS_INFO("generating parameter list");
     std::vector<std::shared_ptr<RobotController>> controllers;
-    pf.getControllerFactory().loadAllControllers(controllers);
+    pf.getFollowerFactory().loadAll(controllers);
 
     std::vector<std::string> lines;
     Parameters::visitParameters([&file, &lines](const Parameters::ParamInfo& info) {

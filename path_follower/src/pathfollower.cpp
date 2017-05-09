@@ -20,7 +20,7 @@
 #include <path_follower/supervisor/distancetopathsupervisor.h>
 // Utils
 #include <path_follower/utils/path_exceptions.h>
-#include <path_follower/factory/controller_factory.h>
+#include <path_follower/factory/follower_factory.h>
 #include <path_follower/utils/coursepredictor.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/supervisor/supervisorchain.h>
@@ -38,7 +38,7 @@ const double WAYPOINT_ANGLE_DIFF_TOL = 0.01*M_PI/180.0;
 PathFollower::PathFollower(ros::NodeHandle &nh):
     node_handle_(nh),
     pose_tracker_(new PoseTracker(opt_, nh)),
-    controller_factory_(new ControllerFactory(*this)),
+    follower_factory_(new FollowerFactory(*this)),
     supervisors_(new SupervisorChain()),
     course_predictor_(new CoursePredictor(pose_tracker_.get())),
     visualizer_(Visualizer::getInstance()),
@@ -245,9 +245,9 @@ PoseTracker& PathFollower::getPoseTracker()
     return *pose_tracker_;
 }
 
-ControllerFactory& PathFollower::getControllerFactory()
+FollowerFactory &PathFollower::getFollowerFactory()
 {
-    return *controller_factory_;
+    return *follower_factory_;
 }
 
 std::string PathFollower::getFixedFrameId() const
@@ -405,7 +405,7 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
     if(pos != config_cache_.end()) {
         config_ = pos->second;
     } else {
-        config_ = controller_factory_->construct(config_name);
+        config_ = follower_factory_->construct(config_name);
         config_cache_[config_name] = config_;
     }
 

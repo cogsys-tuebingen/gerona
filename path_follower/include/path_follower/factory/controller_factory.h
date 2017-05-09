@@ -2,6 +2,7 @@
 #define CONTROLLER_FACTORY_H
 
 #include <path_follower/utils/path_follower_config.h>
+#include <path_follower/factory/abstract_factory.h>
 
 #include <memory>
 #include <functional>
@@ -21,13 +22,13 @@ class PathFollower;
 
 class PoseTracker;
 
-class ControllerFactory
+class ControllerFactory : public AbstractFactory
 {
 public:
-    ControllerFactory(PathFollower &follower);
+    ControllerFactory(const PathFollowerParameters &opt);
 
 public:
-    std::shared_ptr<PathFollowerConfig> construct(const PathFollowerConfigName &config);
+    std::shared_ptr<RobotController> makeController(const std::string &name);
 
     template <typename Controller>
     static void registerController(const std::string& type, const std::string& collision_detector)
@@ -40,19 +41,11 @@ public:
 
     void loadAllControllers(std::vector<std::shared_ptr<RobotController>>& out);
 
-private:
-    std::shared_ptr<RobotController> makeController(const std::string &name);
-    std::shared_ptr<CollisionAvoider> makeObstacleAvoider(const std::string &name);
+    std::string getDefaultCollisionAvoider(const std::string& controller) const;
 
-    std::shared_ptr<LocalPlanner> makeConstrainedLocalPlanner(const std::string &name);
-    std::shared_ptr<LocalPlanner> makeLocalPlanner(const std::string &name);
-
-    static std::string toLower(const std::string& s);
 
 private:
-    PathFollower &follower_;
     const PathFollowerParameters& opt_;
-    PoseTracker& pose_tracker_;
 
     pluginlib::ClassLoader<RobotController> controller_loader;
     static std::map<std::string, std::function<std::shared_ptr<RobotController>()>> controller_constructors_;

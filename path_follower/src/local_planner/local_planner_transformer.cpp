@@ -4,6 +4,10 @@
 /// PROJECT
 
 #include <path_follower/utils/pose_tracker.h>
+#include <path_follower/factory/local_planner_factory.h>
+
+REGISTER_LOCAL_PLANNER(LocalPlannerTransformer, Transformer);
+
 
 LocalPlannerTransformer::LocalPlannerTransformer()
 {

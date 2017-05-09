@@ -72,7 +72,11 @@ add_library(${PROJECT_NAME} SHARED
     src/path_follower_server.cpp
     src/pathfollower.cpp
 
+    src/factory/abstract_factory.cpp
+    src/factory/follower_factory.cpp
     src/factory/controller_factory.cpp
+    src/factory/local_planner_factory.cpp
+    src/factory/collision_avoider_factory.cpp
 
     src/utils/parameters.cpp
     src/utils/visualizer.cpp
