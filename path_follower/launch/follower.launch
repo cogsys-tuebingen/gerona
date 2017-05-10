@@ -15,7 +15,7 @@ Please make sure, you add an according launch file, if you implement a new contr
     <!-- default settings for the follower -->
     <group ns="path_follower">
         <param name="min_velocity" value="0.5" />
-        <param name="max_velocity" value="0.7" />
+        <param name="max_velocity" value="2.5" />
         <param name="waypoint_tolerance" value="0.8" />
         <param name="goal_tolerance" value="0.1" />
 

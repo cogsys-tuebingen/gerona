@@ -76,7 +76,7 @@ struct LocalPlannerParameters : public Parameters
                            "Determines the steering angle (in degrees) for the local planner"),
         step_scale(this, "step_scale", 1.20,
                    "Scales the size of individual steps during the search"),
-        mu(this, "mu", 0.1
+        mu(this, "mu", 0.1,
            "Determines the coefficient of friction"),
         ef(this, "ef", 2.0,
            "Exponential factor the dis2obst scorer (std::exp(<ef>/distance(point, obstacle)) - 1.0"),

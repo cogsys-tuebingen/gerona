@@ -43,7 +43,7 @@ demonstrating the navigation framework.
 
     <param name="path_follower/local_planner/algorithm" value="NULL" />
 
-    <!-- default values: -->
+    <!-- default values:
     <param name="path_follower/local_planner/c1" value="true" />
     <param name="path_follower/local_planner/c2" value="true" />
 
@@ -67,6 +67,6 @@ demonstrating the navigation framework.
     <param name="path_follower/local_planner/mu" value="0.1" />
     <param name="path_follower/local_planner/ef" value="2.0" />
     <param name="path_follower/local_planner/use_v" value="true" />
-    <!-- -->
+    -->
 
 </launch>

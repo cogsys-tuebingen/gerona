@@ -137,26 +137,8 @@ void LocalPlannerClassic::setDistances(LNode& current){
             }
         }
         if(closest_index == 0){
-            const Waypoint& p0 = waypoints[0];
-            const Waypoint& p1 = waypoints[1];
-            double x = p1.x - p0.x;
-            double y = p1.y - p0.y;
-            double a_next = std::atan2(y,x);
-            x = current.x - p0.x;
-            y = current.y - p0.y;
-            double a_point = std::atan2(y,x);
-            double adiff = std::abs(MathHelper::AngleClamp(a_next - a_point));
-            double theta_diff = pose[2] - global_path_.theta_p(1);
-            ROS_INFO("theta: %f, a_point: %f, theta_diff: %f", pose[2]*180.0/M_PI, global_path_.theta_p(1)*180.0/M_PI, theta_diff*180.0/M_PI);
-            if(adiff > M_PI_2){
-                double h = std::hypot(p0.x - current.x, p0.y - current.y);
-                double angle_fact = -M_PI/4.0;
-                if(theta_diff >= M_PI_2) angle_fact  = M_PI/4.0;
-                else angle_fact = M_PI/4.0;
-                ROS_INFO("angle_fact: %f", angle_fact);
-                dis = h*std::cos(angle_fact);
-                closest_dist = h*std::sin(angle_fact);
-            }
+            const Waypoint& wp = waypoints[0];
+            closest_dist = std::hypot(wp.x - current.x, wp.y - current.y);
         }
     }
     if(closest_index == index2){
