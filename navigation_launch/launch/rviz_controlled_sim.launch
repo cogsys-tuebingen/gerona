@@ -17,7 +17,8 @@
     </include>
 
     <param name="path_planner/render_open_cells" value="true" />
-    <param name="path_planner/algorithm" value="generic" />
+    <!-- param name="path_planner/algorithm" value="generic" / -->
+    <param name="path_planner/algorithm" value="2d" />
     <param name="path_planner/optimization/optimize_cost" value="false" />
     <param name="path_planner/optimization/publish_gradient" value="false" />
     <param name="path_planner/optimization/weight/data" value="0.25" />
@@ -25,18 +26,19 @@
     <param name="path_planner/optimization/weight/cost" value="1.0" />
     <param name="path_planner/optimization/tolerance" value="1e-5" />
 
-    <param name="path_follower/local_planner/algorithm" value="NULL" />
-    <param name="path_follower/supervisor/use_path_lookout" value="true" />
-    <param name="path_follower/supervisor/use_waypoint_timeout" value="true" />
+    <!-- param name="path_follower/local_planner/algorithm" value="NULL" / -->
+    <param name="path_follower/local_planner/algorithm" value="AStarR" />
+    <param name="path_follower/supervisor/use_path_lookout" value="false" />
+    <param name="path_follower/supervisor/use_waypoint_timeout" value="false" />
     <param name="path_follower/supervisor/use_distance_to_path" value="false" />
     <param name="path_follower/supervisor/path_lookout/obstacle_scale_distance" value="2" />
     <param name="path_follower/supervisor/path_lookout/obstacle_scale_lifetime" value="2" />
     <param name="path_follower/supervisor/path_lookout/path_width" value="0.8" />
-    <param name="path_follower/supervisor/distance_to_path/max_dist" value="2.0" />
+    <param name="path_follower/supervisor/distance_to_path/max_dist" value="4.0" />
 
     <param name="highlevel_dummy/grow_obstacles" value="true" />
     <param name="highlevel_dummy/obstacle_radius" value="0.5" />
-    <param name="highlevel_dummy/target_speed" value="1.0" />
+    <param name="highlevel_dummy/target_speed" value="1.5" />
 
     <param name="highlevel_dummy/planner/reversed" value="true" />
     <param name="highlevel_dummy/planner/goal_dist_threshold" value="0.15" />

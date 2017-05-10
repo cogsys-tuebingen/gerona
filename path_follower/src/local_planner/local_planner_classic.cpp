@@ -106,6 +106,12 @@ bool LocalPlannerClassic::isInGraph(const LNode& current, std::vector<LNode>& no
 }
 
 void LocalPlannerClassic::setDistances(LNode& current){
+
+    Eigen::Vector3d pose = pose_tracker_->getRobotPose();
+    if(std::abs(global_path_.theta_p(0) - pose[2]) > M_PI/2){
+        current.d2o = 1.0;
+    }
+
     double closest_dist = std::numeric_limits<double>::infinity();
     std::size_t closest_index = 0;
     for(std::size_t i = index1; i <= index2; ++i) {
@@ -140,10 +146,16 @@ void LocalPlannerClassic::setDistances(LNode& current){
             y = current.y - p0.y;
             double a_point = std::atan2(y,x);
             double adiff = std::abs(MathHelper::AngleClamp(a_next - a_point));
+            double theta_diff = pose[2] - global_path_.theta_p(1);
+            ROS_INFO("theta: %f, a_point: %f, theta_diff: %f", pose[2]*180.0/M_PI, global_path_.theta_p(1)*180.0/M_PI, theta_diff*180.0/M_PI);
             if(adiff > M_PI_2){
                 double h = std::hypot(p0.x - current.x, p0.y - current.y);
-                dis = h*std::cos(adiff);
-                closest_dist = h*std::sin(adiff);
+                double angle_fact = -M_PI/4.0;
+                if(theta_diff >= M_PI_2) angle_fact  = M_PI/4.0;
+                else angle_fact = M_PI/4.0;
+                ROS_INFO("angle_fact: %f", angle_fact);
+                dis = h*std::cos(angle_fact);
+                closest_dist = h*std::sin(angle_fact);
             }
         }
     }
@@ -161,6 +173,7 @@ void LocalPlannerClassic::setDistances(LNode& current){
             }
         }
     }
+
     current.d2p = closest_dist;
     current.npp = waypoints[closest_index];
     current.s = current.npp.s + dis;
@@ -911,6 +924,7 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     setDistances(wpose);
 
     double dis2last = global_path_.s(global_path_.n()-1);
+    //double dis2last = std::hypot(pose(0)-global_path_.p(global_path_.n() - 1), pose(1)-global_path_.q(global_path_.n() - 1));
 
     //this needs to be a parameter
     double min_dist_to_goal = 0.8;
@@ -969,11 +983,13 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     reconfigureTree(obj, nodes, best_rec);
     //!
     if(obj != nullptr){
-        return processPath(obj, local_wps);
-    } else if(best_non_reconf){
-        return processPath(best_non_reconf, local_wps);;
-    } else {
-        return false;
-    }
+            return processPath(obj, local_wps);
+        } else if(best_non_reconf){
+            return processPath(best_non_reconf, local_wps);;
+        } else {
+            return false;
+        }
+
+
 }
 

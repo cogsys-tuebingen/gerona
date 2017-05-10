@@ -43,30 +43,30 @@ demonstrating the navigation framework.
 
     <param name="path_follower/local_planner/algorithm" value="NULL" />
 
-    <!-- default values:
+    <!-- default values: -->
     <param name="path_follower/local_planner/c1" value="true" />
     <param name="path_follower/local_planner/c2" value="true" />
 
-    <param name="path_follower/local_planner/s1" value="0.0" />
-    <param name="path_follower/local_planner/s2" value="0.0" />
-    <param name="path_follower/local_planner/s3" value="0.0" />
-    <param name="path_follower/local_planner/s4" value="0.0" />
-    <param name="path_follower/local_planner/s5" value="0.0" />
-    <param name="path_follower/local_planner/s6" value="0.0" />
+    <param name="path_follower/local_planner/s1" value="3.5" />
+    <param name="path_follower/local_planner/s2" value="1.5" />
+    <param name="path_follower/local_planner/s3" value="4.0" />
+    <param name="path_follower/local_planner/s4" value="3.0" />
+    <param name="path_follower/local_planner/s5" value="1.5" />
+    <param name="path_follower/local_planner/s6" value="5.0" />
 
-    <param name="path_follower/local_planner/nnodes" value="300" />
+    <param name="path_follower/local_planner/nnodes" value="400" />
     <param name="path_follower/local_planner/depth" value="10" />
-    <param name="path_follower/local_planner/ic" value="3" />
+    <param name="path_follower/local_planner/ic" value="7" />
     <param name="path_follower/local_planner/ia" value="0" />
-    <param name="path_follower/local_planner/uinterval" value="1.0" />
-    <param name="path_follower/local_planner/lmf" value="1.0" />
-    <param name="path_follower/local_planner/dis2p" value="0.3" />
-    <param name="path_follower/local_planner/adis" value="0.1" />
-    <param name="path_follower/local_planner/fdis" value="0.2" />
-    <param name="path_follower/local_planner/s_angle" value="25.0" />
-    <param name="path_follower/local_planner/mu" value="0.6" />
-    <param name="path_follower/local_planner/ef" value="1.0" />
+    <param name="path_follower/local_planner/uinterval" value="0.125" />
+    <param name="path_follower/local_planner/lmf" value="12.0" />
+    <param name="path_follower/local_planner/dis2p" value="1.8" />
+    <param name="path_follower/local_planner/adis" value="0.35" />
+    <param name="path_follower/local_planner/fdis" value="0.5" />
+    <param name="path_follower/local_planner/s_angle" value="35.0" />
+    <param name="path_follower/local_planner/mu" value="0.1" />
+    <param name="path_follower/local_planner/ef" value="2.0" />
     <param name="path_follower/local_planner/use_v" value="true" />
-    -->
+    <!-- -->
 
 </launch>
