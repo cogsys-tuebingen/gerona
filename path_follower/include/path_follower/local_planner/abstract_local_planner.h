@@ -54,7 +54,7 @@ protected:
 
     virtual void setParams(const LocalPlannerParameters& opt) = 0;
 
-    Path::Ptr setPath(const std::__cxx11::string &frame_id, SubPath& local_wps, ros::Time& now);
+    Path::Ptr setPath(const std::string &frame_id, SubPath& local_wps, ros::Time& now);
 
 protected:
     RobotController* controller_;
