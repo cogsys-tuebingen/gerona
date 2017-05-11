@@ -26,7 +26,7 @@
     <param name="path_planner/optimization/weight/cost" value="1.0" />
     <param name="path_planner/optimization/tolerance" value="1e-5" />
 
-    <param name="path_follower/local_planner/algorithm" value="AStarR" />
+    <param name="path_follower/local_planner/algorithm" value="Null" />
     <param name="path_follower/supervisor/use_path_lookout" value="true" />
     <param name="path_follower/supervisor/use_waypoint_timeout" value="true" />
     <param name="path_follower/supervisor/use_distance_to_path" value="false" />

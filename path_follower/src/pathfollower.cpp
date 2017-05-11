@@ -12,7 +12,7 @@
 #include <tf_conversions/tf_eigen.h>
 
 /// PROJECT
-#include <path_follower/local_planner/local_planner.h>
+#include <path_follower/local_planner/abstract_local_planner.h>
 #include <path_follower/controller/robotcontroller.h>
 // Supervisors
 #include <path_follower/supervisor/pathlookout.h>

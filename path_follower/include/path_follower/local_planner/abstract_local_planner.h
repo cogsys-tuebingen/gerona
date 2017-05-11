@@ -8,15 +8,15 @@
 #include <path_follower/utils/path_interpolated.h>
 #include <path_follower/parameters/local_planner_parameters.h>
 #include <path_follower/local_planner/constraint.h>
-#include <path_follower/local_planner/dis2path_constraint.h>
-#include <path_follower/local_planner/dis2obst_constraint.h>
+#include <path_follower/local_planner/constraints/dis2path_constraint.h>
+#include <path_follower/local_planner/constraints/dis2obst_constraint.h>
 #include <path_follower/local_planner/scorer.h>
-#include <path_follower/local_planner/dis2pathd_scorer.h>
-#include <path_follower/local_planner/dis2pathp_scorer.h>
-#include <path_follower/local_planner/dis2obst_scorer.h>
-#include <path_follower/local_planner/level_scorer.h>
-#include <path_follower/local_planner/curvature_scorer.h>
-#include <path_follower/local_planner/curvatured_scorer.h>
+#include <path_follower/local_planner/scorers/dis2pathd_scorer.h>
+#include <path_follower/local_planner/scorers/dis2pathp_scorer.h>
+#include <path_follower/local_planner/scorers/dis2obst_scorer.h>
+#include <path_follower/local_planner/scorers/level_scorer.h>
+#include <path_follower/local_planner/scorers/curvature_scorer.h>
+#include <path_follower/local_planner/scorers/curvatured_scorer.h>
 
 class PathFollower;
 class PoseTracker;
