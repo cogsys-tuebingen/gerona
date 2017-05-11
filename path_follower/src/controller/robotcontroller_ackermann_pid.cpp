@@ -133,7 +133,7 @@ void RobotController_Ackermann_Pid::publishMoveCommand(const MoveCommand &cmd) c
 
 void RobotController_Ackermann_Pid::selectWaypoint()
 {
-    double tolerance = global_opt_->wp_tolerance();
+    double tolerance = PathFollowerParameters::getInstance()->wp_tolerance();
 
     // increase tolerance, when driving backwards
     if(getDirSign() < 0) {
@@ -244,7 +244,7 @@ float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
 {
     float velocity = velocity_;
 
-    if(abs(steer_angle) > global_opt_->steer_slow_threshold()) {
+    if(abs(steer_angle) > PathFollowerParameters::getInstance()->steer_slow_threshold()) {
         ROS_INFO_STREAM_THROTTLE_NAMED(2, MODULE, "slowing down");
         velocity *= 0.75;
     }
@@ -252,7 +252,7 @@ float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
 
     // Reduce maximal velocity, when driving backwards.
     if(dir_sign_ < 0) {
-        velocity = min(velocity, 0.4f * global_opt_->max_velocity());
+        velocity = min(velocity, 0.4f * PathFollowerParameters::getInstance()->max_velocity());
     }
 
     // linearly reduce velocity, if the goal is within 2s*velocity (e.g. when driving with
@@ -262,18 +262,20 @@ float RobotController_Ackermann_Pid::controlVelocity(float steer_angle) const
     float distance_to_next_wp = std::sqrt(next_wp_local_.dot(next_wp_local_));
     float dist_to_path_end = path_->getRemainingSubPathDistance() + distance_to_next_wp;
     if (dist_to_path_end < 2*velocity) {
-        velocity = std::max(0.1f + dist_to_path_end / 2.0f, global_opt_->min_velocity());
+        velocity = std::max(0.1f + dist_to_path_end / 2.0f, PathFollowerParameters::getInstance()->min_velocity());
     }
     //ROS_INFO("dist:      %f", dist_to_path_end);
     //ROS_INFO("v: %f", velocity);
 
 
     // make sure, the velocity is in the allowed range
-    if (velocity < global_opt_->min_velocity()) {
-        velocity = global_opt_->min_velocity();
+    double min_v = PathFollowerParameters::getInstance()->min_velocity();
+    double max_v = PathFollowerParameters::getInstance()->max_velocity();
+    if (velocity < min_v) {
+        velocity = min_v;
         ROS_WARN_THROTTLE_NAMED(5, MODULE, "Velocity is below minimum. It is set to minimum velocity.");
-    } else if (velocity > global_opt_->max_velocity()) {
-        velocity = global_opt_->max_velocity();
+    } else if (velocity > max_v) {
+        velocity = max_v;
         ROS_WARN_THROTTLE_NAMED(5, MODULE, "Velocity is above maximum. Reduce to maximum velocity.");
     }
 

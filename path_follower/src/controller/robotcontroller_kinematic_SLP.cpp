@@ -62,7 +62,7 @@ void RobotController_Kinematic_SLP::initialize()
     ind_ = 0;
 
     // desired velocity
-    vn_ = std::min(global_opt_->max_velocity(), velocity_);
+    vn_ = std::min(PathFollowerParameters::getInstance()->max_velocity(), velocity_);
     ROS_DEBUG_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 
 
@@ -234,7 +234,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     //TODO: consider the minimum excitation speed
     v = v * exp(-exponent);
 
-    cmd_.speed = getDirSign()*std::max((double)global_opt_->min_velocity(), fabs(v));
+    cmd_.speed = getDirSign()*std::max((double)PathFollowerParameters::getInstance()->min_velocity(), fabs(v));
 
     ///***///
 

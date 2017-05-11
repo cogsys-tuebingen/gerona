@@ -72,7 +72,7 @@ void RobotController_OFC::initialize()
     RobotController::initialize();
 
     // desired velocity
-    vn_ = std::min(global_opt_->max_velocity(), velocity_);
+    vn_ = std::min(PathFollowerParameters::getInstance()->max_velocity(), velocity_);
     ROS_DEBUG_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 
     //reset the PID variables
@@ -197,7 +197,7 @@ RobotController::MoveCommandStatus RobotController_OFC::computeMoveCommand(MoveC
     e_prev_lin_ = e_lin;
     e_prev_ang_ = e_ang;
 
-    cmd_.speed = boost::algorithm::clamp(v, 0.0, global_opt_->max_velocity());
+    cmd_.speed = boost::algorithm::clamp(v, 0.0, PathFollowerParameters::getInstance()->max_velocity());
     cmd_.rotation = boost::algorithm::clamp(w, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
 
     *cmd = cmd_;

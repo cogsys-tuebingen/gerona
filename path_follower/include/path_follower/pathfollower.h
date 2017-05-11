@@ -13,7 +13,6 @@
 #include <visualization_msgs/Marker.h>
 
 /// PROJECT
-#include <path_follower/parameters/path_follower_parameters.h>
 #include <path_follower/utils/path_follower_config.h>
 
 /// SYSTEM
@@ -36,6 +35,8 @@ class ObstacleCloud;
 class MoveCommand;
 
 class PoseTracker;
+class PathFollowerParameters;
+class LocalPlannerParameters;
 
 /**
  * @brief The PathFollower class is a facade for the complete following subsystem.
@@ -180,7 +181,9 @@ private:
     Visualizer* visualizer_;
 
     //! All general path following parameters
-    PathFollowerParameters opt_;
+    const PathFollowerParameters& opt_;
+
+    const LocalPlannerParameters& opt_l_;
 
     //! The last received obstacle cloud
     std::shared_ptr<ObstacleCloud const> obstacle_cloud_;

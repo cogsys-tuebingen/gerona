@@ -1,5 +1,7 @@
 #include <path_follower/pathfollower.h>
-
+#include <path_follower/parameters/path_follower_parameters.h>
+#include <path_follower/parameters/supervisor_parameters.h>
+#include <path_follower/parameters/local_planner_parameters.h>
 /// SYSTEM
 #include <Eigen/Core>
 #include <cslibs_utils/MathHelper.h>
@@ -37,12 +39,14 @@ const double WAYPOINT_ANGLE_DIFF_TOL = 0.01*M_PI/180.0;
 
 PathFollower::PathFollower(ros::NodeHandle &nh):
     node_handle_(nh),
-    pose_tracker_(new PoseTracker(opt_, nh)),
+    pose_tracker_(new PoseTracker(*PathFollowerParameters::getInstance(), nh)),
     follower_factory_(new FollowerFactory(*this)),
     supervisors_(new SupervisorChain()),
     course_predictor_(new CoursePredictor(pose_tracker_.get())),
     visualizer_(Visualizer::getInstance()),
-    path_(new Path("map")),
+    opt_(*PathFollowerParameters::getInstance()),
+    opt_l_(*LocalPlannerParameters::getInstance()),
+    path_(new Path(opt_.world_frame())),
     pending_error_(-1),
     is_running_(false),
     vel_(0.0)
@@ -58,26 +62,28 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
     // register callback for new waypoint event.
     path_->registerNextWaypointCallback([this]() { supervisors_->notifyNewWaypoint(); });
 
-    if (opt_.supervisor.use_path_lookout()) {
+    const SupervisorParameters& opt_s = *SupervisorParameters::getInstance();
+
+    if (opt_s.use_path_lookout()) {
         supervisors_->addSupervisor( Supervisor::Ptr(new PathLookout(*pose_tracker_)) );
     }
 
     // Waypoint timeout
-    if (opt_.supervisor.use_waypoint_timeout()) {
+    if (opt_s.use_waypoint_timeout()) {
         Supervisor::Ptr waypoint_timeout(
-                    new WaypointTimeout(ros::Duration( opt_.supervisor.waypoint_timeout_time())));
+                    new WaypointTimeout(ros::Duration( opt_s.waypoint_timeout_time())));
         supervisors_->addSupervisor(waypoint_timeout);
     }
 
     // Distance to path
-    if (opt_.supervisor.use_distance_to_path()) {
+    if (opt_s.use_distance_to_path()) {
         supervisors_->addSupervisor(Supervisor::Ptr(
-                                        new DistanceToPathSupervisor(opt_.supervisor.distance_to_path_max_dist())));
+                                        new DistanceToPathSupervisor(opt_s.distance_to_path_max_dist())));
     }
 
 
     // path marker
-    g_robot_path_marker_.header.frame_id = "odom";
+    g_robot_path_marker_.header.frame_id = PathFollowerParameters::getInstance()->odom_frame();
     g_robot_path_marker_.header.stamp = ros::Time();
     g_robot_path_marker_.ns = "global robot path";
     g_robot_path_marker_.id = 75;
@@ -162,7 +168,10 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
         if(obstacle_cloud_ != nullptr){
             current_config_->local_planner_->setObstacleCloud(obstacle_cloud_);
         }
-        if(opt_.local_planner.use_velocity()){
+
+        const LocalPlannerParameters& opt_l = *LocalPlannerParameters::getInstance();
+
+        if(opt_l.use_velocity()){
             current_config_->local_planner_->setVelocity(pose_tracker_->getVelocity().linear);
         }
 
@@ -384,7 +393,7 @@ PathFollowerConfigName PathFollower::goalToConfig(const FollowPathGoal &goal) co
         config.controller = opt_.controller();
     }
     if(config.local_planner.empty()) {
-        config.local_planner = opt_.local_planner.local_planner();
+        config.local_planner = opt_l_.local_planner();
     }
     if(config.collision_avoider.empty()) {
         config.collision_avoider = opt_.collision_avoider();

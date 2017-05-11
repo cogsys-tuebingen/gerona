@@ -14,7 +14,6 @@ RobotController::RobotController()
     : pnh_("~"),
       pose_tracker_(nullptr),
       collision_avoider_(nullptr),
-      global_opt_(nullptr),
       visualizer_(Visualizer::getInstance()),
       velocity_(0.0f),
       dir_sign_(1.0f),
@@ -50,11 +49,10 @@ RobotController::RobotController()
     robot_path_marker_.color.b = 1.0;
 }
 
-void RobotController::init(PoseTracker *pose_tracker, CollisionAvoider *collision_avoider, const PathFollowerParameters *options)
+void RobotController::init(PoseTracker *pose_tracker, CollisionAvoider *collision_avoider)
 {
     pose_tracker_ = pose_tracker;
     collision_avoider_ = collision_avoider;
-    global_opt_ = options;
 }
 
 std::string RobotController::getFixedFrame() const
@@ -62,7 +60,7 @@ std::string RobotController::getFixedFrame() const
     if(path_) {
         return path_->getFrameId();
     } else {
-        return "map";
+        return PathFollowerParameters::getInstance()->world_frame();
     }
 }
 
@@ -291,7 +289,7 @@ RobotController::ControlStatus RobotController::execute()
         stopMotion();
         return MCS2CS(status);
     } else {
-        CollisionAvoider::State state(path_, *global_opt_);
+        CollisionAvoider::State state(path_, *PathFollowerParameters::getInstance());
         bool cmd_modified = collision_avoider_->avoid(&cmd, state);
 
         if (!cmd.isValid()) {

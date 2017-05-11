@@ -4,6 +4,9 @@
 #include <path_follower/utils/obstacle_cloud.h>
 #include <path_follower/utils/pose_tracker.h>
 
+#include <path_follower/parameters/path_follower_parameters.h>
+#include <path_follower/parameters/local_planner_parameters.h>
+
 #include <pcl_ros/point_cloud.h>
 
 AbstractLocalPlanner::AbstractLocalPlanner()
@@ -17,18 +20,18 @@ AbstractLocalPlanner::AbstractLocalPlanner()
 
 }
 
-void AbstractLocalPlanner::init(RobotController* controller, PoseTracker* pose_tracker,
-                        const LocalPlannerParameters& opt)
+void AbstractLocalPlanner::init(RobotController* controller, PoseTracker* pose_tracker)
 {
     controller_ = controller;
     pose_tracker_ = pose_tracker;
-    opt_ = &opt;
+
+    opt_ = LocalPlannerParameters::getInstance();
 
     update_interval_ = ros::Duration (opt_->update_interval());
 
     transformer_ = &pose_tracker_->getTransformListener();
 
-    setParams(opt);
+    setParams(*opt_);
 }
 
 AbstractLocalPlanner::~AbstractLocalPlanner()
@@ -47,18 +50,21 @@ void AbstractLocalPlanner::setGlobalPath(Path::Ptr path)
 
     ros::Time now = ros::Time::now();
 
-    tf::StampedTransform initial_map_to_odom_;
-    if(transformer_->waitForTransform("map", "odom", now, ros::Duration(1.0))) {
-        transformer_->lookupTransform("map", "odom", now, initial_map_to_odom_);
+    std::string world_frame = PathFollowerParameters::getInstance()->world_frame();
+    std::string odom_frame = PathFollowerParameters::getInstance()->odom_frame();
+
+    tf::StampedTransform initial_map_to_odom_;    
+    if(transformer_->waitForTransform(world_frame, odom_frame, now, ros::Duration(1.0))) {
+        transformer_->lookupTransform(world_frame, odom_frame, now, initial_map_to_odom_);
         return;
     }
-    if(transformer_->waitForTransform("map", "odom", ros::Time(0), ros::Duration(1.0))) {
+    if(transformer_->waitForTransform(world_frame, odom_frame, ros::Time(0), ros::Duration(1.0))) {
         ROS_WARN_NAMED("global_path", "cannot transform map to odom, using latest");
-        transformer_->lookupTransform("map", "odom", ros::Time(0), initial_map_to_odom_);
+        transformer_->lookupTransform(world_frame, odom_frame, ros::Time(0), initial_map_to_odom_);
         return;
     }
 
-    ROS_ERROR_NAMED("global_path", "cannot transform map to odom");
+    ROS_ERROR_NAMED("global_path", "cannot transform %s to %s", world_frame.c_str(), odom_frame.c_str());
 }
 
 bool AbstractLocalPlanner::isNull() const

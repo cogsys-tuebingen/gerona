@@ -2,7 +2,8 @@
 #include <path_follower/local_planner/high_speed/local_planner_classic.h>
 
 /// PROJECT
-
+#include <path_follower/parameters/local_planner_parameters.h>
+#include <path_follower/parameters/path_follower_parameters.h>
 #include <path_follower/utils/obstacle_cloud.h>
 #include <pcl_ros/point_cloud.h>
 #include <path_follower/utils/pose_tracker.h>
@@ -302,7 +303,7 @@ bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
     }
     global_path_.set_s_new(local_wps.at(i_new).s);
     smoothAndInterpolate(local_wps);
-    last_local_path_.interpolatePath(local_wps, "odom");
+    last_local_path_.interpolatePath(local_wps, PathFollowerParameters::getInstance()->odom_frame());
     local_wps = (SubPath)last_local_path_;
     if(close_to_goal){
         //wlp_ is the part of the local path that actually gets followed

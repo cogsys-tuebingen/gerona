@@ -1,4 +1,5 @@
 #include <path_follower/supervisor/pathlookout.h>
+#include <path_follower/parameters/path_follower_parameters.h>
 
 #define DEBUG_PATHLOOKOUT 0
 
@@ -24,7 +25,7 @@ const std::string MODULE = "s_pathlookout";
 }
 
 PathLookout::PathLookout(PoseTracker &pose_tracker):
-    obstacle_frame_("map"),
+    obstacle_frame_(PathFollowerParameters::getInstance()->world_frame()),
     pose_tracker_(pose_tracker)
 {
     #if DEBUG_PATHLOOKOUT

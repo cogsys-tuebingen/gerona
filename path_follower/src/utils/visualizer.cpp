@@ -1,4 +1,5 @@
 #include <path_follower/utils/visualizer.h>
+#include <path_follower/parameters/path_follower_parameters.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <tf/tf.h>
@@ -112,10 +113,15 @@ void Visualizer::drawCircle(int id, const geometry_msgs::Point &center, double r
 void Visualizer::drawMark(int id, const geometry_msgs::Point &pos, const std::string &ns, float r, float g, float b,
                           const std::string &frame) const
 {
+    std::string fixed_frame = frame;
+    if(fixed_frame.empty()) {
+        fixed_frame = PathFollowerParameters::getInstance()->world_frame();
+    }
+
     visualization_msgs::Marker marker;
     marker.pose.position = pos;
     marker.ns = ns;
-    marker.header.frame_id = frame;
+    marker.header.frame_id = fixed_frame;
     marker.header.stamp = ros::Time();
     marker.action = visualization_msgs::Marker::ADD;
     marker.id = id;
@@ -135,10 +141,15 @@ void Visualizer::drawMark(int id, const geometry_msgs::Point &pos, const std::st
 void Visualizer::drawText(int id, const geometry_msgs::Point &pos, const std::string &text, const std::string &ns,
                           float r, float g, float b, const std::string &frame, double live) const
 {
+    std::string fixed_frame = frame;
+    if(fixed_frame.empty()) {
+        fixed_frame = PathFollowerParameters::getInstance()->world_frame();
+    }
+
     visualization_msgs::Marker marker;
     marker.pose.position = pos;
     marker.ns = ns;
-    marker.header.frame_id = frame;
+    marker.header.frame_id = fixed_frame;
     marker.header.stamp = ros::Time();
     marker.action = visualization_msgs::Marker::ADD;
     marker.id = id;

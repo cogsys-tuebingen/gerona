@@ -30,7 +30,7 @@ Parameters::Parameters(const std::string& ns)
 
     registerInstance(this);
 }
-Parameters::Parameters(const std::string& ns, Parameters* parent)
+Parameters::Parameters(const std::string& ns, const Parameters* parent)
     : parent_(parent)
 {
     ns_ = parent_->ns_ + ns;

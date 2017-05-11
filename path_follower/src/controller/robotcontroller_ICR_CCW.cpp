@@ -55,7 +55,7 @@ RobotController_ICR_CCW::RobotController_ICR_CCW():
 
     marker_pub_ = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
 
-    ekf_path_marker_.header.frame_id = "map";
+    ekf_path_marker_.header.frame_id = getFixedFrame();
     ekf_path_marker_.header.stamp = ros::Time();
     ekf_path_marker_.ns = "ekf_path_namespace";
     ekf_path_marker_.id = 51;
@@ -77,7 +77,7 @@ RobotController_ICR_CCW::RobotController_ICR_CCW():
     ekf_path_marker_.color.b = 1.0;
 
 
-    path_aug_marker_.header.frame_id = "map";
+    path_aug_marker_.header.frame_id = getFixedFrame();
     path_aug_marker_.header.stamp = ros::Time();
     path_aug_marker_.ns = "path_aug_namespace";
     path_aug_marker_.id = 52;
@@ -116,7 +116,7 @@ void RobotController_ICR_CCW::initialize()
     RobotController::initialize();
 
     // desired velocity
-    vn_ = std::min(global_opt_->max_velocity(), velocity_);
+    vn_ = std::min(PathFollowerParameters::getInstance()->max_velocity(), velocity_);
     ROS_DEBUG_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 
     //reset the ekf path points
@@ -318,7 +318,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
     //TODO: consider the minimum excitation speed
     double v = vn_ * exp(-exponent);
 
-    cmd_.speed = getDirSign()*std::max((double)global_opt_->min_velocity(), fabs(v));
+    cmd_.speed = getDirSign()*std::max((double)PathFollowerParameters::getInstance()->min_velocity(), fabs(v));
 
     ///***///
 

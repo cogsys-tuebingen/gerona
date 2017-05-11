@@ -56,7 +56,7 @@ void RobotController_Potential_Field::initialize()
     initializeMarkers();
 
     // desired velocity
-    vn_ = std::min(global_opt_->max_velocity(), velocity_);
+    vn_ = std::min(PathFollowerParameters::getInstance()->max_velocity(), velocity_);
     ROS_DEBUG_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 }
 

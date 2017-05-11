@@ -2,7 +2,7 @@
 #include <path_follower/local_planner/high_speed_local_planner.h>
 
 /// PROJECT
-
+#include <path_follower/parameters/path_follower_parameters.h>
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/pose_tracker.h>
 
@@ -21,15 +21,19 @@ void HighSpeedLocalPlanner::setGlobalPath(Path::Ptr path)
 bool HighSpeedLocalPlanner::transform2Odo(ros::Time& now)
 {
     tf::StampedTransform now_map_to_odom;
+
+    std::string world_frame = PathFollowerParameters::getInstance()->world_frame();
+    std::string odom_frame = PathFollowerParameters::getInstance()->odom_frame();
+
     try{//Try to get the latest avaiable Transform
-        transformer_->lookupTransform("map", "odom", ros::Time(0), now_map_to_odom);
+        transformer_->lookupTransform(world_frame, odom_frame, ros::Time(0), now_map_to_odom);
     }catch(tf::TransformException ex){//if not available, then wait
         (void) ex;
-        if(!transformer_->waitForTransform("map", "odom", now, ros::Duration(0.1))){
+        if(!transformer_->waitForTransform(world_frame, odom_frame, now, ros::Duration(0.1))){
             ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
             return false;
         }
-        transformer_->lookupTransform("map", "odom", now, now_map_to_odom);
+        transformer_->lookupTransform(world_frame, odom_frame, now, now_map_to_odom);
     }
 
     tf::Transform transform_correction = now_map_to_odom.inverse();
@@ -72,9 +76,9 @@ Path::Ptr HighSpeedLocalPlanner::updateLocalPath()
         waypoints = (SubPath) global_path_;
         wlp_.wps.clear();
 
-        std::string frame_id = "odom";
+        std::string odom_frame = PathFollowerParameters::getInstance()->odom_frame();
 
-        Path::Ptr local_path(new Path(frame_id));
+        Path::Ptr local_path(new Path(odom_frame));
 
         if(!transform2Odo(now)){
             ROS_WARN_THROTTLE(1, "cannot calculate local path, transform to odom not known");
@@ -97,7 +101,7 @@ Path::Ptr HighSpeedLocalPlanner::updateLocalPath()
             return local_path;
         }
 
-        return setPath(frame_id, local_wps, now);
+        return setPath(odom_frame, local_wps, now);
 
     } else {
         return nullptr;

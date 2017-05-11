@@ -128,7 +128,7 @@ protected:
 public:
     RobotController();
 
-    virtual void init(PoseTracker* pose_tracker, CollisionAvoider* collision_avoider, const PathFollowerParameters* options);
+    virtual void init(PoseTracker* pose_tracker, CollisionAvoider* collision_avoider);
 
     virtual ~RobotController() {}
 
@@ -175,8 +175,6 @@ protected:
 
     PoseTracker* pose_tracker_;
     CollisionAvoider* collision_avoider_;
-
-    const PathFollowerParameters* global_opt_;
 
     Visualizer *visualizer_;
 

@@ -2,7 +2,7 @@
 #include <path_follower/local_planner/local_planner_transformer.h>
 
 /// PROJECT
-
+#include <path_follower/parameters/path_follower_parameters.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/factory/local_planner_factory.h>
 
@@ -21,20 +21,21 @@ Path::Ptr LocalPlannerTransformer::updateLocalPath()
 
     ros::Time now = ros::Time::now();
 
+    std::string world_frame = PathFollowerParameters::getInstance()->world_frame();
+    std::string odom_frame = PathFollowerParameters::getInstance()->odom_frame();
+
     // only calculate a new local path, if enough time has passed.
     // TODO: also replan for other reasons, e.g. the global path has changed, ...
     if(last_update_ + update_interval_ < now) {
-        std::string frame_id = "odom";
-
         // only look at the first sub path for now
         // calculate the corrective transformation to map from world coordinates to odom
-        if(!transformer_->waitForTransform("map", frame_id, ros::Time(0), ros::Duration(0.1))) {
+        if(!transformer_->waitForTransform(world_frame, odom_frame, ros::Time(0), ros::Duration(0.1))) {
             ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
             return false;
         }
 
         tf::StampedTransform now_map_to_odom;
-        transformer_->lookupTransform("map", frame_id, ros::Time(0), now_map_to_odom);
+        transformer_->lookupTransform(world_frame, odom_frame, ros::Time(0), now_map_to_odom);
 
         tf::Transform transform_correction = now_map_to_odom.inverse();
 
@@ -68,7 +69,7 @@ Path::Ptr LocalPlannerTransformer::updateLocalPath()
         }
 
         // here we just use the subpath without planning and checking constraints / scorerers
-        return setPath(frame_id, local_wps, now);
+        return setPath(odom_frame, local_wps, now);
 
     } else {
         return nullptr;

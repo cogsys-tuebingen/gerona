@@ -169,11 +169,11 @@ protected:
     // abstract class
     Parameters();
     Parameters(const std::string& ns);
-    Parameters(const std::string& ns, Parameters* parent);
+    Parameters(const std::string& ns, const Parameters *parent);
     ~Parameters();
 
 private:
-    Parameters* parent_;
+    const Parameters* parent_;
     std::string ns_;
     std::vector<ParamInfo> params_;
 

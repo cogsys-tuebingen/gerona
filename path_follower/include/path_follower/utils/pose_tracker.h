@@ -11,7 +11,7 @@ class PathFollowerParameters;
 class PoseTracker
 {
 public:
-    PoseTracker(PathFollowerParameters& opt, ros::NodeHandle& nh);
+    PoseTracker(const PathFollowerParameters& opt, ros::NodeHandle& nh);
 
     bool isLocal() const;
     void setLocal(bool local);
@@ -45,7 +45,7 @@ private:
     bool getWorldPose(Eigen::Vector3d *pose_vec, geometry_msgs::Pose* pose_msg = nullptr) const;
 
 private:
-    PathFollowerParameters& opt_;
+    const PathFollowerParameters& opt_;
     tf::TransformListener pose_listener_;
 
     //! Subscriber for odometry messages.

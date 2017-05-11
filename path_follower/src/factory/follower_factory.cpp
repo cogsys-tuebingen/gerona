@@ -20,8 +20,8 @@ FollowerFactory::FollowerFactory(PathFollower &follower)
       follower_(follower),
       pose_tracker_(follower.getPoseTracker()),
 
-      controller_factory_(new ControllerFactory(opt_)),
-      local_planner_factory_(new LocalPlannerFactory(opt_.local_planner)),
+      controller_factory_(new ControllerFactory(*PathFollowerParameters::getInstance())),
+      local_planner_factory_(new LocalPlannerFactory(*LocalPlannerParameters::getInstance())),
       collision_avoider_factory_(new CollisionAvoiderFactory)
 {
 
@@ -51,9 +51,9 @@ std::shared_ptr<PathFollowerConfig> FollowerFactory::construct(const PathFollowe
     // wiring
     result.collision_avoider_->setTransformListener(&pose_tracker_.getTransformListener());
 
-    result.local_planner_->init(result.controller_.get(), &pose_tracker_, opt_.local_planner);
+    result.local_planner_->init(result.controller_.get(), &pose_tracker_);
 
-    result.controller_->init(&pose_tracker_, result.collision_avoider_.get(), &opt_);
+    result.controller_->init(&pose_tracker_, result.collision_avoider_.get());
 
     pose_tracker_.setLocal(!result.local_planner_->isNull());
 

@@ -6,7 +6,6 @@
 #include <cslibs_utils/Stopwatch.h>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/path_interpolated.h>
-#include <path_follower/parameters/local_planner_parameters.h>
 #include <path_follower/local_planner/constraint.h>
 #include <path_follower/local_planner/constraints/dis2path_constraint.h>
 #include <path_follower/local_planner/constraints/dis2obst_constraint.h>
@@ -22,13 +21,15 @@ class PathFollower;
 class PoseTracker;
 class ObstacleCloud;
 
+class PathFollowerParameters;
+class LocalPlannerParameters;
+
 class AbstractLocalPlanner
 {
 public:
     virtual ~AbstractLocalPlanner();
 
-    virtual void init(RobotController *controller, PoseTracker *pose_tracker,
-                      const LocalPlannerParameters &opt);
+    virtual void init(RobotController *controller, PoseTracker *pose_tracker);
 
     virtual void setGlobalPath(Path::Ptr path);
 

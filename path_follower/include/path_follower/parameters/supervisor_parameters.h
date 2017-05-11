@@ -1,11 +1,18 @@
 #ifndef SUPERVISOR_PARAMETERS_H
 #define SUPERVISOR_PARAMETERS_H
 
+#include <path_follower/parameters/path_follower_parameters.h>
 #include <path_follower/utils/parameters.h>
 #include <rosconsole/macros_generated.h>
 
 struct SupervisorParameters : public Parameters
 {
+    static const SupervisorParameters* getInstance()
+    {
+        static SupervisorParameters instance(PathFollowerParameters::getInstance());
+        return &instance;
+    }
+
     // supervisors
     P<bool> use_path_lookout;
     P<bool> use_waypoint_timeout;
@@ -14,7 +21,8 @@ struct SupervisorParameters : public Parameters
     P<double> distance_to_path_max_dist;
     P<float> waypoint_timeout_time;
 
-    SupervisorParameters(Parameters* parent):
+private:
+    SupervisorParameters(const Parameters* parent):
         Parameters("supervisor", parent),
 
         use_path_lookout(this, "use_path_lookout",  false,

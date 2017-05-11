@@ -71,7 +71,7 @@ void RobotController_Dynamic_Window::initialize()
     RobotController::initialize();
 
     // desired velocity
-    vn_ = std::min(global_opt_->max_velocity(), velocity_);
+    vn_ = std::min(PathFollowerParameters::getInstance()->max_velocity(), velocity_);
     ROS_DEBUG_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 }
 
@@ -364,7 +364,7 @@ bool RobotController_Dynamic_Window::checkAdmissibleVelocities(){
 void RobotController_Dynamic_Window::findNextVelocityPair()
 {
     double v_wind_b = std::max(0.0, v_cmd_ - opt_.lin_acc()*opt_.T_dwa());
-    double v_wind_t = std::min((double)global_opt_->max_velocity(), v_cmd_ + opt_.lin_acc()*opt_.T_dwa());
+    double v_wind_t = std::min((double)PathFollowerParameters::getInstance()->max_velocity(), v_cmd_ + opt_.lin_acc()*opt_.T_dwa());
 
     double w_wind_l = std::max(-opt_.max_ang_vel(), w_cmd_ - opt_.ang_acc()*opt_.T_dwa());
     double w_wind_r = std::min(opt_.max_ang_vel(), w_cmd_ + opt_.ang_acc()*opt_.T_dwa());
@@ -407,7 +407,7 @@ void RobotController_Dynamic_Window::findNextVelocityPair()
     for(uint i = 0; i < vels_and_objfunc.size(); i++){
         if(get<0>(vels_and_objfunc[i]) > max_obj){
             max_obj = get<0>(vels_and_objfunc[i]);
-            v_cmd_ = boost::algorithm::clamp(get<1>(vels_and_objfunc[i]), 0.0, global_opt_->max_velocity());
+            v_cmd_ = boost::algorithm::clamp(get<1>(vels_and_objfunc[i]), 0.0, PathFollowerParameters::getInstance()->max_velocity());
             w_cmd_ = boost::algorithm::clamp(get<2>(vels_and_objfunc[i]), -opt_.max_ang_vel(), opt_.max_ang_vel());
         }
     }

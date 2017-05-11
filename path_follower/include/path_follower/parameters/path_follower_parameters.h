@@ -3,11 +3,15 @@
 
 #include <path_follower/utils/parameters.h>
 #include <rosconsole/macros_generated.h>
-#include <path_follower/parameters/local_planner_parameters.h>
-#include <path_follower/parameters/supervisor_parameters.h>
 
 struct PathFollowerParameters : public Parameters
 {
+    static const PathFollowerParameters* getInstance()
+    {
+        static PathFollowerParameters instance;
+        return &instance;
+    }
+
     P<std::string> controller;
     P<std::string> collision_avoider;
     P<std::string> world_frame;
@@ -20,10 +24,7 @@ struct PathFollowerParameters : public Parameters
     P<float> max_velocity;
     P<bool> abort_if_obstacle_ahead;
 
-
-    LocalPlannerParameters local_planner;
-    SupervisorParameters supervisor;
-
+private:
     PathFollowerParameters():
 
         controller(this, "controller_type", "ackermann_purepursuit", "Defines, which controller is used."),
@@ -45,11 +46,7 @@ struct PathFollowerParameters : public Parameters
         abort_if_obstacle_ahead(this, "abort_if_obstacle_ahead",  false,
                                 "If set to true, path execution is aborted, if an obstacle is"
                                 " detected on front of the robot. If false, the robot will"
-                                " stop, but not abort (the obstacle might move away)."),
-
-
-        local_planner(this),
-        supervisor(this)
+                                " stop, but not abort (the obstacle might move away).")
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     {

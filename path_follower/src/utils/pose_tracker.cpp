@@ -6,7 +6,7 @@
 
 using namespace Eigen;
 
-PoseTracker::PoseTracker(PathFollowerParameters &opt, ros::NodeHandle& nh)
+PoseTracker::PoseTracker(const PathFollowerParameters &opt, ros::NodeHandle& nh)
     : opt_(opt),
       local_(false)
 {
@@ -136,15 +136,6 @@ bool PoseTracker::transformToGlobal(const geometry_msgs::PoseStamped &local_org,
 
 geometry_msgs::Twist PoseTracker::getVelocity() const
 {
-    //    geometry_msgs::Twist twist;
-    //    try {
-    //        pose_listener_.lookupTwist("odom", robot_frame_, ros::Time(0), ros::Duration(0.01), twist);
-
-    //    } catch (tf::TransformException& ex) {
-    //        ROS_ERROR("error with transform robot pose: %s", ex.what());
-    //        return geometry_msgs::Twist();
-    //    }
-    //    return twist;
     return odometry_.twist.twist;
 }
 

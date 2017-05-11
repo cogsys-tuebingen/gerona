@@ -102,7 +102,7 @@ public:
      * @param frame TF-Frame, in which the position is given.
      */
     void drawMark(int id, const geometry_msgs::Point &pos, const std::string& ns, float r, float g, float b,
-                  const std::string &frame="map") const;
+                  const std::string &frame="") const;
 
     /**
      * @brief Publish a marker to display some text.
@@ -117,7 +117,7 @@ public:
      * @param live  Lifetime of the marker.
      */
     void drawText(int id, const geometry_msgs::Point &pos, const std::string &text, const std::string& ns,
-                  float r, float g, float b, const std::string &frame="map", double live = 1) const;
+                  float r, float g, float b, const std::string &frame="", double live = 1) const;
 
     /**
      * @brief Draw an arrow to visualize the steering angle.

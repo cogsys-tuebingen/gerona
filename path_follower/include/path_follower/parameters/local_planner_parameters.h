@@ -3,9 +3,16 @@
 
 #include <path_follower/utils/parameters.h>
 #include <rosconsole/macros_generated.h>
+#include <path_follower/parameters/path_follower_parameters.h>
 
 struct LocalPlannerParameters : public Parameters
 {
+    static const LocalPlannerParameters* getInstance()
+    {
+        static LocalPlannerParameters instance(PathFollowerParameters::getInstance());
+        return &instance;
+    }
+
     //Parameters for the Local Planner
     P<std::string> local_planner;
     P<bool> use_distance_to_path_constraint, use_distance_to_obstacle_constraint;
@@ -14,7 +21,8 @@ struct LocalPlannerParameters : public Parameters
     P<double> update_interval,distance_to_path_constraint, safety_distance_surrounding, safety_distance_forward, max_steering_angle, step_scale, mu, ef;
     P<bool> use_velocity;
 
-    LocalPlannerParameters(Parameters* parent):
+private:
+    LocalPlannerParameters(const Parameters* parent):
         Parameters("local_planner", parent),
 
         local_planner(this, "algorithm", "AStar", "Algorithm to be used by the Local Planner."),

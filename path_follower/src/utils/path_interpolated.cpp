@@ -4,6 +4,7 @@
 // PROJECT
 #include <path_follower/utils/cubic_spline_interpolation.h>
 #include <cslibs_utils/MathHelper.h>
+#include <path_follower/parameters/path_follower_parameters.h>
 
 // SYSTEM
 #include <deque>
@@ -13,7 +14,7 @@
 using namespace Eigen;
 
 PathInterpolated::PathInterpolated()
-    : frame_id_("map"),
+    : frame_id_(PathFollowerParameters::getInstance()->world_frame()),
       N_(0),
       s_new_(0),
 	  s_prim_(0)

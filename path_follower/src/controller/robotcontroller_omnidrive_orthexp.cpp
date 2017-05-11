@@ -100,7 +100,7 @@ void RobotController_Omnidrive_OrthogonalExponential::initialize()
     e_theta_curr_ = pose_tracker_->getRobotPose()[2];
 
     // desired velocity
-    vn_ = std::min(global_opt_->max_velocity(), velocity_);
+    vn_ = std::min(PathFollowerParameters::getInstance()->max_velocity(), velocity_);
     ROS_WARN_STREAM_NAMED(MODULE, "velocity_: " << velocity_ << ", vn: " << vn_);
 }
 
