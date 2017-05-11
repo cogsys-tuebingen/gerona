@@ -68,7 +68,7 @@ void RobotController_Dynamic_SLP::initialize()
 
     // desired velocity
     vn_ = std::min(global_opt_->max_velocity(), velocity_);
-    ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
+    ROS_DEBUG_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 
     //calculate the maximal allowed torque (this should be defined as constant later)
     max_torque_ = opt_.gearbox()*opt_.Kt()*opt_.max_current();

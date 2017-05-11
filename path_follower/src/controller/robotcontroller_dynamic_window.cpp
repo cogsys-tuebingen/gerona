@@ -72,7 +72,7 @@ void RobotController_Dynamic_Window::initialize()
 
     // desired velocity
     vn_ = std::min(global_opt_->max_velocity(), velocity_);
-    ROS_WARN_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
+    ROS_DEBUG_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
 }
 
 void RobotController_Dynamic_Window::reset()
