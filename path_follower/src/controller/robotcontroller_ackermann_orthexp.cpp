@@ -32,10 +32,7 @@ RobotController_Ackermann_OrthogonalExponential::RobotController_Ackermann_Ortho
     view_direction_(LookInDrivingDirection),
     vn_(0.0),
     theta_des_(90.0*M_PI/180.0),
-    Ts_(0.02),
-    curv_sum_(1e-3),
-    distance_to_goal_(1e6),
-    distance_to_obstacle_(1e3)
+    Ts_(0.02)
 {
     look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
                                                        &RobotController_Ackermann_OrthogonalExponential::lookAtCommand, this);
@@ -182,55 +179,13 @@ RobotController::MoveCommandStatus RobotController_Ackermann_OrthogonalExponenti
         throw std::runtime_error("unknown view direction mode");
         break;
     }
-
-    //***//
-
-    //compute the look-ahead curvature
-
-    double look_ahead_cum_sum = 0;
-    curv_sum_ = 1e-10;
-
-    for (unsigned int i = proj_ind_ + 1; i < path_interpol.n(); i++){
-
-        look_ahead_cum_sum += hypot(path_interpol.p(i) - path_interpol.p(i-1), path_interpol.q(i) - path_interpol.q(i-1));
-        curv_sum_ += fabs(path_interpol.curvature(i));
-
-        if(look_ahead_cum_sum - opt_.look_ahead_dist() >= 0){
-            break;
-        }
-    }
-
-
-    double cum_sum_to_goal = 0;
-
-    for(unsigned int i = proj_ind_ + 1; i < path_interpol.n(); i++){
-
-        cum_sum_to_goal += hypot(path_interpol.p(i) - path_interpol.p(i-1), path_interpol.q(i) - path_interpol.q(i-1));
-
-    }
-    distance_to_goal_ = cum_sum_to_goal;
-
-    double angular_vel = pose_tracker_->getVelocity().angular.z;
     //***//
     
-   //make sure there are no nans in exponent
-   if(distance_to_obstacle_ == 0) {
-	distance_to_obstacle_ = 1;
-   }
 
     //control
 
-    double exponent = opt_.k_curv()*fabs(curv_sum_)
-            + opt_.k_w()*fabs(angular_vel)
-            + opt_.k_o()/distance_to_obstacle_
-            + opt_.k_g()/distance_to_goal_;
-
-    if(distance_to_goal_ <= 0.3){
-    	cmd_.speed = vn_*exp(-exponent); 
-     }
-    else	
-        cmd_.speed = std::max(vn_*exp(-exponent),0.5);
-
+    double exp_factor = RobotController::exponentialSpeedControl();
+    cmd_.speed = vn_ * exp_factor;
     cmd_.direction_angle = atan(-opt_.k()*orth_proj) + theta_p - theta_meas;
 
     //***//

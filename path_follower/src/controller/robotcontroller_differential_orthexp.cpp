@@ -32,10 +32,7 @@ RobotController_Differential_OrthogonalExponential::RobotController_Differential
     vn_(0.0),
     theta_des_(90.0*M_PI/180.0),
     Ts_(0.02),
-    alpha_e_(0.0),
-    curv_sum_(1e-3),
-    distance_to_goal_(1e6),
-    distance_to_obstacle_(1e3)
+    alpha_e_(0.0)
 {
     look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
                                                        &RobotController_Differential_OrthogonalExponential::lookAtCommand, this);
@@ -172,7 +169,7 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
         // do nothing
         break;
     case LookInDrivingDirection:
-        theta_des_ = cmd_.direction_angle + current_pose[2];//std::atan2(q[ind+1] - y_meas, p[ind+1] - x_meas);
+        theta_des_ = cmd_.direction_angle + current_pose[2];
         break;
     case Rotate:
         theta_des_ += 0.01;
@@ -184,46 +181,11 @@ RobotController::MoveCommandStatus RobotController_Differential_OrthogonalExpone
 
     //***//
 
-    //Calculate the look-ahead curvature
-
-    double look_ahead_cum_sum = 0;
-    curv_sum_ = 1e-10;
-
-
-    for (unsigned int i = proj_ind_ + 1; i < path_interpol.n(); i++){
-
-        look_ahead_cum_sum += hypot(path_interpol.p(i) - path_interpol.p(i-1), path_interpol.q(i) - path_interpol.q(i-1));
-        curv_sum_ += fabs(path_interpol.curvature(i));
-
-        if(look_ahead_cum_sum - opt_.look_ahead_dist() >= 0){
-            break;
-        }
-    }
-
-
-    double cum_sum_to_goal = 0;
-
-    for(unsigned int i = proj_ind_ + 1; i < path_interpol.n(); i++){
-
-        cum_sum_to_goal += hypot(path_interpol.p(i) - path_interpol.p(i-1), path_interpol.q(i) - path_interpol.q(i-1));
-
-    }
-    distance_to_goal_ = cum_sum_to_goal;
-
-    //distance_to_goal_ = hypot(x_meas - path_interpol.p(path_interpol.n()-1), y_meas - path_interpol.q(path_interpol.n()-1));
-
-    double angular_vel = pose_tracker_->getVelocity().angular.z;
-    //***//
-
 
     //control
 
-    double exponent = opt_.k_curv()*fabs(curv_sum_)
-            + opt_.k_w()*fabs(angular_vel)
-            + opt_.k_o()/distance_to_obstacle_
-            + opt_.k_g()/distance_to_goal_;
-
-    cmd_.speed = std::max(vn_*exp(-exponent),0.2);
+    double exp_factor = RobotController::exponentialSpeedControl();
+    cmd_.speed = vn_ * exp_factor;
 
     double last_alpha_e = alpha_e_;
     alpha_e_ = atan(-opt_.k()*orth_proj);

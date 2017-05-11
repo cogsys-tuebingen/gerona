@@ -104,8 +104,9 @@ RobotController::MoveCommandStatus RobotController_2Steer_Stanley::computeMoveCo
 
     phi = boost::algorithm::clamp(phi, -params_.max_steering_angle(), params_.max_steering_angle());
 
+    double exp_factor = RobotController::exponentialSpeedControl();
     move_cmd_.setDirection(getDirSign() * (float) phi);
-    move_cmd_.setVelocity(getDirSign() * (float) velocity_);
+    move_cmd_.setVelocity(getDirSign() * (float) velocity_ * exp_factor);
 
 #ifdef TEST_OUTPUT
     publishTestOutput(proj_ind_, d, theta_e, phi, v);

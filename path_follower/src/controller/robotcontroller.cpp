@@ -386,7 +386,11 @@ double RobotController::exponentialSpeedControl()
     exp_control_array.data[3] = fact_goal;
     exp_control_pub_.publish(exp_control_array);
 
-    return fact_curv + fact_w + fact_obst + fact_goal;
+//    ROS_INFO("k_curv: %f, k_o: %f, k_w: %f, k_g: %f, look_ahead: %f, obst_thresh: %f",
+//             k_curv_, k_o_, k_w_, k_g_, look_ahead_dist_, obst_threshold_);
+
+    double exponent = fact_curv + fact_w + fact_obst + fact_goal;
+    return exp(-exponent);
 }
 
 RobotController::ControlStatus RobotController::execute()

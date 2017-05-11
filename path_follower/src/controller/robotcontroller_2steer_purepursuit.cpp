@@ -98,8 +98,9 @@ RobotController::MoveCommandStatus RobotController_2Steer_PurePursuit::computeMo
         return RobotController::MoveCommandStatus::ERROR;
     }
 
+    double exp_factor = RobotController::exponentialSpeedControl();
     move_cmd_.setDirection(getDirSign() * (float) phi);
-    move_cmd_.setVelocity(getDirSign() * (float) velocity_);
+    move_cmd_.setVelocity(getDirSign() * (float) velocity_ * exp_factor);
 
     *cmd = move_cmd_;
 

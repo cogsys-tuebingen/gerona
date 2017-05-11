@@ -150,8 +150,9 @@ RobotController::MoveCommandStatus RobotController_Unicycle_InputScaling::comput
 
     v2 = boost::algorithm::clamp(v2, -params_.max_angular_velocity(), params_.max_angular_velocity());
 
+    double exp_factor = RobotController::exponentialSpeedControl();
     move_cmd_.setRotationalVelocity(v2);
-    move_cmd_.setVelocity(getDirSign() * v1);
+    move_cmd_.setVelocity(getDirSign() * v1 * exp_factor);
     *cmd = move_cmd_;
 
 

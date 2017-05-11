@@ -35,10 +35,7 @@ RobotController_Kinematic_SLP::RobotController_Kinematic_SLP():
     Ts_(0.02),
     ind_(0),
     xe_(0),
-    ye_(0),
-    curv_sum_(1e-3),
-    distance_to_goal_(1e6),
-    distance_to_obstacle_(1e3)
+    ye_(0)
 {
 
 }
@@ -64,8 +61,6 @@ void RobotController_Kinematic_SLP::initialize()
     // desired velocity
     vn_ = std::min(global_opt_->max_velocity(), velocity_);
     ROS_DEBUG_STREAM("velocity_: " << velocity_ << ", vn: " << vn_);
-
-
 }
 
 void RobotController_Kinematic_SLP::start()
@@ -112,7 +107,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     }
 
 
-    ///calculate the control for the current point on the path
+    ///Compute the control for the current point on the path
 
     //robot direction angle in path coordinates
     double theta_e = MathHelper::AngleDelta(path_interpol.theta_p(ind_), theta_meas);
@@ -140,29 +135,6 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
         ROS_WARN_THROTTLE(1, "Driving backwards...");
     }
 
-    ///***///
-
-    ///Calculate the parameters for exponential speed control
-
-    //calculate the curvature, and stop when the look-ahead distance is reached (w.r.t. orthogonal projection)
-    double s_cum_sum = 0;
-    curv_sum_ = 1e-10;
-
-    for (unsigned int i = ind_ + 1; i < path_interpol.n(); i++){
-
-        s_cum_sum = path_interpol.s(i) - path_interpol.s(ind_);
-        curv_sum_ += fabs(path_interpol.curvature(i));
-
-        if(s_cum_sum - opt_.look_ahead_dist() >= 0){
-            break;
-        }
-    }
-
-    //calculate the distance from the orthogonal projection to the goal, w.r.t. path
-    distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(proj_ind_);
-
-    //get the robot's current angular velocity
-    double angular_vel = pose_tracker_->getVelocity().angular.z;
     ///***///
 
 
@@ -219,20 +191,10 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     ///***///
 
+    ///Speed control
 
-    ///Exponential speed control
-
-    //ensure valid values
-    if (distance_to_obstacle_ == 0 || !std::isfinite(distance_to_obstacle_)) distance_to_obstacle_ = 1e10;
-    if (distance_to_goal_ == 0 || !std::isfinite(distance_to_goal_)) distance_to_goal_ = 1e10;
-
-    double exponent = opt_.k_curv()*fabs(curv_sum_)
-            + opt_.k_w()*fabs(angular_vel)
-            + opt_.k_o()/distance_to_obstacle_
-            + opt_.k_g()/distance_to_goal_;
-
-    //TODO: consider the minimum excitation speed
-    v = v * exp(-exponent);
+    double exp_factor = RobotController::exponentialSpeedControl();
+    v = v * exp_factor;
 
     cmd_.speed = getDirSign()*std::max((double)global_opt_->min_velocity(), fabs(v));
 
@@ -250,7 +212,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
     ///***///
 
 
-    ///Calculate the index of the new point
+    ///Compute the index of the new point
 
     double s_diff = std::numeric_limits<double>::max();
     uint old_ind = ind_;

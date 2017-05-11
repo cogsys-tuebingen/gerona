@@ -9,12 +9,15 @@ Launch the path follower with the "OrthExp" controller and omnidirectional kinem
             <group ns="omnidrive_orthexp">
                 <param name="kp" value="1.5" />
                 <param name="kd" value="1.0" />
+
                 <param name="look_ahead_dist" value="2.0" />
                 <param name="k" value="2.0" />
                 <param name="k_o" value="0.2" />
                 <param name="k_g" value="0.4" />
                 <param name="k_w" value="0.75" />
                 <param name="k_curv" value="0.005" />
+                <param name="obst_threshold" value="3.0" />
+
             </group>
         </group>
     </group>  
