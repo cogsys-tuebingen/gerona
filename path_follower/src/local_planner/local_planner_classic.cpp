@@ -737,31 +737,36 @@ void LocalPlannerClassic::setLLP(){
     setLLP(last_local_path_.n());
 }
 
-void LocalPlannerClassic::setParams(int nnodes, int ic, double dis2p, double adis, double fdis, double s_angle,
-                                    int ia, double lmf, int max_level, double mu, double ef){
-    max_num_nodes_ = nnodes;
-    ic_ = ic;
-    TH = s_angle*M_PI/180.0;
-    length_MF = lmf;
-    mudiv_ = 9.81*mu;
-    max_level_ = max_level;
+void LocalPlannerClassic::setParams(const LocalPlannerParameters& opt)
+{
+    max_num_nodes_ = opt.max_num_nodes();
+    ic_ = opt.curve_segment_subdivisions();
+    TH = opt.max_steering_angle()*M_PI/180.0;
+    length_MF = opt.step_scale();
+    mudiv_ = 9.81*opt.mu();
+    max_level_ = opt.max_depth();
     RT.clear();
+
+    int ia = opt.intermediate_angles();
     for(int i = 0; i <= ia; ++i){
         RT.push_back(L/std::tan(((double)(i + 1)/(ia + 1))*TH));
     }
+
     //left, right, forward
     nsucc_ = 2*RT.size() + 1;
     Curvature_Scorer::setMaxC(RT.back());
     CurvatureD_Scorer::setMaxC(RT.back());
     Level_Scorer::setLevel(max_level_);
-    Dis2Path_Constraint::setLimit(dis2p);
-    Dis2Obst_Scorer::setFactor(ef);
-    GL = RL + 2.0*adis;
-    FL = GL + 2.0*fdis;
-    GW = RW + 2.0*adis;
-    beta1 = std::acos(GL/std::sqrt(GL*GL + GW*GW));
+    Dis2Path_Constraint::setLimit(opt.distance_to_path_constraint());
+    Dis2Obst_Scorer::setFactor(opt.ef());
 
-    obstacle_threshold_ = fdis;
+    obstacle_threshold_ = opt.safety_distance_forward();
+
+    double surround_distance = opt.safety_distance_surrounding();
+    GL = RL + 2.0*surround_distance;
+    FL = GL + 2.0*obstacle_threshold_;
+    GW = RW + 2.0*surround_distance;
+    beta1 = std::acos(GL/std::sqrt(GL*GL + GW*GW));
 }
 
 void LocalPlannerClassic::printVelocity(){

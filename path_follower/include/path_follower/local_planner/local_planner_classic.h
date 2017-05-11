@@ -13,8 +13,6 @@ public:
 
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
     virtual void setVelocity(double velocity) override;
-    virtual void setParams(int nnodes, int ic, double dis2p, double adis, double fdis, double s_angle,
-                           int ia, double lmf, int max_level, double mu, double ef) override;
 
 protected:
     void getSuccessors(LNode*& current, std::size_t& nsize, std::vector<LNode*>& successors,
@@ -30,6 +28,8 @@ protected:
     void checkQuarters(LNode child, LNode* parent, LNode& first, LNode& mid, LNode& second);
 
     bool createAlternative(LNode*& s_p, LNode& alt, bool allow_lines = false);
+
+    virtual void setParams(const LocalPlannerParameters &opt) override;
 
 private:
     void setDistances(LNode& current);

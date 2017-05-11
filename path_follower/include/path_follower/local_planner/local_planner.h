@@ -6,6 +6,7 @@
 #include <cslibs_utils/Stopwatch.h>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/path_interpolated.h>
+#include <path_follower/parameters/local_planner_parameters.h>
 #include <path_follower/local_planner/constraint.h>
 #include <path_follower/local_planner/dis2path_constraint.h>
 #include <path_follower/local_planner/dis2obst_constraint.h>
@@ -26,7 +27,8 @@ class LocalPlanner
 public:
     virtual ~LocalPlanner();
 
-    virtual void init(RobotController *controller, PoseTracker *pose_tracker, const ros::Duration& update_interval);
+    virtual void init(RobotController *controller, PoseTracker *pose_tracker,
+                      const LocalPlannerParameters &opt);
 
     virtual void setGlobalPath(Path::Ptr path);
 
@@ -39,8 +41,6 @@ public:
     virtual Path::Ptr updateLocalPath(Path::Ptr& wlp) = 0;
 
     virtual bool isNull() const;
-    virtual void setParams(int nnodes, int ic, double dis2p, double adis, double fdis, double s_angle,
-                           int ia, double lmf, int max_level, double mu, double ef) = 0;
 
     void setObstacleCloud(const std::shared_ptr<ObstacleCloud const> &msg);
 
@@ -50,11 +50,14 @@ public:
 protected:
     LocalPlanner();
 
+    virtual void setParams(const LocalPlannerParameters& opt) = 0;
 
 protected:
     RobotController* controller_;
     PoseTracker* pose_tracker_;
     tf::Transformer* transformer_;
+
+    const LocalPlannerParameters* opt_;
 
     std::vector<Constraint::Ptr> constraints;
     std::vector<Scorer::Ptr> scorers;

@@ -51,19 +51,11 @@ std::shared_ptr<PathFollowerConfig> FollowerFactory::construct(const PathFollowe
     // wiring
     result.collision_avoider_->setTransformListener(&pose_tracker_.getTransformListener());
 
-    ros::Duration uinterval(opt_.local_planner.update_interval());
-    result.local_planner_->init(result.controller_.get(), &pose_tracker_, uinterval);
+    result.local_planner_->init(result.controller_.get(), &pose_tracker_, opt_.local_planner);
 
     result.controller_->init(&pose_tracker_, result.collision_avoider_.get(), &opt_);
 
     pose_tracker_.setLocal(!result.local_planner_->isNull());
-
-    LocalPlannerParameters local = opt_.local_planner;
-    result.local_planner_->setParams(local.max_num_nodes(), local.curve_segment_subdivisions(), local.distance_to_path_constraint(), local.safety_distance_surrounding(),
-                                     local.safety_distance_forward(),local.max_steering_angle(), local.intermediate_angles(), local.step_scale(),
-                                     local.max_depth(), local.mu(), local.ef());
-
-    ROS_WARN_STREAM("nnodes: " << local.max_num_nodes());
 
     return std::make_shared<PathFollowerConfig>(result);
 }

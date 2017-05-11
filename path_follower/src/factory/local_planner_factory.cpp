@@ -2,17 +2,6 @@
 #include <path_follower/factory/local_planner_factory.h>
 
 #include <path_follower/local_planner/local_planner_null.h>
-#include <path_follower/local_planner/local_planner_transformer.h>
-#include <path_follower/local_planner/local_planner_bfs_static.h>
-#include <path_follower/local_planner/local_planner_bfs_reconf.h>
-#include <path_follower/local_planner/local_planner_astar_n_static.h>
-#include <path_follower/local_planner/local_planner_astar_g_static.h>
-#include <path_follower/local_planner/local_planner_astar_n_reconf.h>
-#include <path_follower/local_planner/local_planner_astar_g_reconf.h>
-#include <path_follower/local_planner/local_planner_thetastar_n_static.h>
-#include <path_follower/local_planner/local_planner_thetastar_g_static.h>
-#include <path_follower/local_planner/local_planner_thetastar_n_reconf.h>
-#include <path_follower/local_planner/local_planner_thetastar_g_reconf.h>
 
 std::map<std::string, std::function<std::shared_ptr<LocalPlanner>()>> LocalPlannerFactory::planner_constructors_;
 

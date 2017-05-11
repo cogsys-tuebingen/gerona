@@ -13,8 +13,7 @@ public:
 
     virtual Path::Ptr updateLocalPath(Path::Ptr& wlp) override;
     virtual bool isNull() const override;
-    virtual void setParams(int nnodes, int ic, double dis2p, double adis, double fdis, double s_angle,
-                           int ia, double lmf, int max_level, double mu, double ef) override;
+    virtual void setParams(const LocalPlannerParameters& opt) override;
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) override;
     virtual void setVelocity(double velocity) override;
 };

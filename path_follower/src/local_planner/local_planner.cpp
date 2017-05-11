@@ -8,18 +8,24 @@
 LocalPlanner::LocalPlanner()
     : controller_(nullptr),
       pose_tracker_(nullptr),
-      transformer_(nullptr)
+      transformer_(nullptr),
+      opt_(nullptr)
 {
 
 }
 
-void LocalPlanner::init(RobotController* controller, PoseTracker* pose_tracker, const ros::Duration& update_interval)
+void LocalPlanner::init(RobotController* controller, PoseTracker* pose_tracker,
+                        const LocalPlannerParameters& opt)
 {
     controller_ = controller;
     pose_tracker_ = pose_tracker;
-    update_interval_ = update_interval;
+    opt_ = &opt;
+
+    update_interval_ = ros::Duration (opt_->update_interval());
 
     transformer_ = &pose_tracker_->getTransformListener();
+
+    setParams(opt);
 }
 
 LocalPlanner::~LocalPlanner()
