@@ -7,8 +7,10 @@
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
 #include <path_follower/collision_avoidance/collision_avoider.h>
+#include <path_follower/utils/obstacle_cloud.h>
 
-/// THIRD PARTY
+///SYSTEM
+#include <pcl_ros/point_cloud.h>
 
 RobotController::RobotController()
     : pnh_("~"),
@@ -17,14 +19,25 @@ RobotController::RobotController()
       visualizer_(Visualizer::getInstance()),
       velocity_(0.0f),
       dir_sign_(1.0f),
-      interpolated_(false)
+      interpolated_(false),
+      proj_ind_(0),
+      k_curv_(0.0),
+      k_o_(0.0),
+      k_g_(0.0),
+      k_w_(0.0),
+      look_ahead_dist_(0.0),
+      obst_threshold_(0.0),
+      curv_sum_(0.0)
 {
     orth_proj_ = std::numeric_limits<double>::max();
+    distance_to_goal_ = 1e5;
+    distance_to_obstacle_ = 1e5;
 
     initPublisher(&cmd_pub_);
 
     points_pub_ = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
     interp_path_pub_ = nh_.advertise<nav_msgs::Path>("interp_path", 10);
+    exp_control_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("exp_control_parameters", 10);
 
     // path marker
     robot_path_marker_.header.frame_id = getFixedFrame();
@@ -83,9 +96,18 @@ void RobotController::initialize()
 
 void RobotController::reset()
 {
+    //reset the interpolation
     interpolated_ = false;
     //reset the index of the orthogonal projection
     proj_ind_ = 0;
+
+    //reset the parameters for the exponential speed control
+    k_curv_ = getParameters().k_curv();
+    k_o_ = getParameters().k_o();
+    k_g_ = getParameters().k_g();
+    k_w_ = getParameters().k_w();
+    look_ahead_dist_ = getParameters().look_ahead_dist();
+    obst_threshold_ = getParameters().obst_threshold();
 
 }
 
@@ -271,6 +293,102 @@ bool RobotController::isGoalReached(MoveCommand *cmd)
         }
     }
     return false;
+}
+
+double RobotController::exponentialSpeedControl()
+{
+
+    //compute the curvature, and stop when the look-ahead distance is reached (w.r.t. orthogonal projection)
+    double s_cum_sum = 0;
+    curv_sum_ = 0.0;
+
+    for (unsigned int i = proj_ind_ + 1; i < path_interpol.n(); i++){
+
+        s_cum_sum = path_interpol.s(i) - path_interpol.s(proj_ind_);
+        curv_sum_ += std::abs(path_interpol.curvature(i));
+
+        if(s_cum_sum - look_ahead_dist_ >= 0){
+            break;
+        }
+    }
+
+    //compute the distance from the orthogonal projection to the goal, w.r.t. path
+    distance_to_goal_ = path_interpol.s(path_interpol.n()-1) - path_interpol.s(proj_ind_);
+
+    //get the robot's current angular velocity
+    double angular_vel = pose_tracker_->getVelocity().angular.z;
+
+    double obst_angle = 0.0;
+
+    double min_dist = std::numeric_limits<double>::infinity();
+    if(collision_avoider_->hasObstacles()) {
+        auto obstacle_cloud = collision_avoider_->getObstacles();
+        const pcl::PointCloud<pcl::PointXYZ>& cloud = *obstacle_cloud->cloud;
+        if(cloud.header.frame_id == "base_link" || cloud.header.frame_id == "/base_link") {
+            for(const pcl::PointXYZ& pt : cloud) {
+
+                if(std::sqrt(pt.x*pt.x + pt.y*pt.y + pt.z*pt.z) < min_dist){
+
+                    obst_angle = std::atan2(pt.y, pt.x);
+                }
+                min_dist = std::min<double>(min_dist, std::sqrt(pt.x*pt.x + pt.y*pt.y + pt.z*pt.z));
+            }
+
+        } else {
+            tf::Transform trafo = pose_tracker_->getRelativeTransform(pose_tracker_->getRobotFrameId(), cloud.header.frame_id, ros::Time(0), ros::Duration(0));
+            for(const pcl::PointXYZ& pt : cloud) {
+
+                tf::Point pt_cloud(pt.x, pt.y, pt.z);
+                tf::Point pt_robot = trafo * pt_cloud;
+
+                if(pt_robot.length() < min_dist){
+                    obst_angle = std::atan2(pt_robot.getY(), pt_robot.getX());
+                }
+
+                min_dist = std::min<double>(min_dist, pt_robot.length());
+            }
+        }
+    }
+
+    distance_to_obstacle_ = min_dist;
+
+    //ensure valid values
+    if (!std::isnormal(distance_to_obstacle_)) distance_to_obstacle_ = 1e5;
+    if (!std::isnormal(distance_to_goal_)) distance_to_goal_ = 1e5;
+
+    //consider only the obstacles closer than a threshold, and slow down only when driving forward
+    double epsilon_o = 0.0;
+    if(distance_to_obstacle_ <= obst_threshold_){
+        epsilon_o = k_o_/distance_to_obstacle_;
+    }
+    //consider the obstacle orientation for backward driving
+    if(getDirSign() < 0){
+        obst_angle -= M_PI;
+    }
+
+    double fact_curv = k_curv_*curv_sum_;
+    if (!std::isnormal(fact_curv)) fact_curv = 0.0;
+    double fact_w = k_w_*fabs(angular_vel);
+    if (!std::isnormal(fact_w)) fact_w = 0.0;
+    double fact_obst = epsilon_o*std::max(0.0, cos(obst_angle));
+    if (!std::isnormal(fact_obst)) fact_obst = 0.0;
+    double fact_goal = k_g_/distance_to_goal_;
+    if (!std::isnormal(fact_goal)) fact_goal = 0.0;
+
+    //publish the factors of the exponential speed control
+    std_msgs::Float64MultiArray exp_control_array;
+    exp_control_array.data.resize(4);
+    exp_control_array.data[0] = fact_curv;
+    exp_control_array.data[1] = fact_w;
+    exp_control_array.data[2] = fact_obst;
+    exp_control_array.data[3] = fact_goal;
+    exp_control_pub_.publish(exp_control_array);
+
+//    ROS_INFO("k_curv: %f, k_o: %f, k_w: %f, k_g: %f, look_ahead: %f, obst_thresh: %f",
+//             k_curv_, k_o_, k_w_, k_g_, look_ahead_dist_, obst_threshold_);
+
+    double exponent = fact_curv + fact_w + fact_obst + fact_goal;
+    return exp(-exponent);
 }
 
 RobotController::ControlStatus RobotController::execute()

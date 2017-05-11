@@ -13,6 +13,7 @@
 // SYSTEM
 #include <deque>
 #include <Eigen/Dense>
+#include <boost/algorithm/clamp.hpp>
 
 #include <path_follower/factory/controller_factory.h>
 
@@ -33,10 +34,7 @@ RobotController_Omnidrive_OrthogonalExponential::RobotController_Omnidrive_Ortho
     vn_(0.0),
     theta_des_(90.0*M_PI/180.0),
     Ts_(0.02),
-    e_theta_curr_(0),
-    curv_sum_(1e-3),
-    distance_to_goal_(1e6),
-    distance_to_obstacle_(1e3)
+    e_theta_curr_(0)
 {
     look_at_cmd_sub_ = pnh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
                                                        &RobotController_Omnidrive_OrthogonalExponential::lookAtCommand, this);
@@ -197,69 +195,16 @@ RobotController::MoveCommandStatus RobotController_Omnidrive_OrthogonalExponenti
 
     //***//
 
-    //Calculate the look-ahead curvature
-
-    //calculate the curvature, and stop when the look-ahead distance is reached (w.r.t. orthogonal projection)
-    double s_cum_sum = 0;
-    curv_sum_ = 1e-10;
-
-    for (unsigned int i = proj_ind_ + 1; i < path_interpol.n(); i++){
-
-        s_cum_sum = path_interpol.s(i) - path_interpol.s(proj_ind_);
-        curv_sum_ += std::abs(path_interpol.curvature(i));
-
-        if(s_cum_sum - opt_.look_ahead_dist() >= 0){
-            break;
-        }
-    }
-
-    double cum_sum_to_goal = 0;
-
-    for(unsigned int i = proj_ind_ + 1; i < path_interpol.n(); i++){
-
-        cum_sum_to_goal += hypot(path_interpol.p(i) - path_interpol.p(i-1), path_interpol.q(i) - path_interpol.q(i-1));
-
-    }
-    distance_to_goal_ = cum_sum_to_goal;
-
-    double angular_vel = pose_tracker_->getVelocity().angular.z;
-    //***//
-
 
     //control
 
-    double exponent = opt_.k_curv()*curv_sum_
-            + opt_.k_w()*fabs(angular_vel)
-            + opt_.k_o()/distance_to_obstacle_
-            + opt_.k_g()/distance_to_goal_;
-
-    ROS_WARN_THROTTLE_NAMED(1, MODULE, "params:\ndistance to goal: %f\n"
-                                       "distance to obstacles: %f\n"
-                                       "angular vel.: %f\n"
-                                       "curvature: %f",
-                            distance_to_goal_, distance_to_obstacle_, angular_vel, curv_sum_);
-
-    ROS_WARN_THROTTLE_NAMED(1, MODULE, "factor: %f\t%f\n"
-                                       "distance to goal: %f\n"
-                                       "distance to obstacles: %f\n"
-                                       "angular vel.: %f\n"
-                                       "curvature: %f",
-                            exponent, std::exp(-exponent),
-                            opt_.k_g()/distance_to_goal_, opt_.k_o()/distance_to_obstacle_, opt_.k_w()*fabs(angular_vel), opt_.k_curv()*fabs(curv_sum_));
+    double exp_factor = RobotController::exponentialSpeedControl();
 
 
-    cmd_.speed = std::max(vn_*std::exp(-exponent),0.2);
-
+    cmd_.speed = vn_* exp_factor;
     cmd_.direction_angle = atan(-opt_.k()*orth_proj) + theta_p - theta_meas;
-
-    cmd_.rotation = opt_.kp()*e_theta_curr_ + opt_.kd()*e_theta_prim;
-
-    if(cmd_.rotation > opt_.max_angular_velocity()) {
-        cmd_.rotation = opt_.max_angular_velocity();
-    } else if(cmd_.rotation < -opt_.max_angular_velocity()) {
-        cmd_.rotation = -opt_.max_angular_velocity();
-    }
-
+    double omega = opt_.kp()*e_theta_curr_ + opt_.kd()*e_theta_prim;
+    cmd_.rotation = boost::algorithm::clamp(omega, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
     //***//
 
 

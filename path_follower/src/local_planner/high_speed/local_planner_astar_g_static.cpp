@@ -4,7 +4,7 @@
 /// PROJECT
 #include <path_follower/factory/local_planner_factory.h>
 
-REGISTER_LOCAL_PLANNER(LocalPlannerAStarGStatic, AStarG);
+REGISTER_LOCAL_PLANNER(LocalPlannerAStarGStatic, HS_AStarG);
 
 LocalPlannerAStarGStatic::LocalPlannerAStarGStatic()
 {

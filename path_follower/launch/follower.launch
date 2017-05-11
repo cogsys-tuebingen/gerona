@@ -67,7 +67,6 @@ Please make sure, you add an according launch file, if you implement a new contr
     <include file="$(find path_follower)/launch/follower_omnidrive_orthexp.launch" />
     <include file="$(find path_follower)/launch/follower_potential_field.launch" />
     <include file="$(find path_follower)/launch/follower_potential_field_TT.launch" />
-    <include file="$(find path_follower)/launch/follower_scitos_orthexp.launch" />
     <include file="$(find path_follower)/launch/follower_unicycle_inputscaling.launch" />
 
 </launch>

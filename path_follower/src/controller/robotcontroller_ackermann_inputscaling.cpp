@@ -242,8 +242,9 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Inputscaling::compu
 	// This is the accurate steering angle for 4 wheel steering (TODO: wrong!!!)
 	const float delta = (float) asin(params_.factor_steering_angle() * sin(phi_));
 
+    double exp_factor = RobotController::exponentialSpeedControl();
 	move_cmd_.setDirection(delta);
-	move_cmd_.setVelocity(getDirSign() * (float) v1_);
+    move_cmd_.setVelocity(getDirSign() * (float) v1_ * exp_factor);
 	*cmd = move_cmd_;
 
 	return RobotController::MoveCommandStatus::OKAY;

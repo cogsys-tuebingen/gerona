@@ -52,16 +52,11 @@
                 <param name="b" value="0.2" />
 
                 <param name="look_ahead_dist" value="1.5" />
-                <!--
-                <param name="k_o" value="0.7" />
-                <param name="k_g" value="1.9" />
-                <param name="k_w" value="0.1" />
-                <param name="k_curv" value="0.01" />
-                -->
-                <param name="k_o" value="0.35789" />
-                <param name="k_g" value="0.0" />
+                <param name="k_o" value="0.0" />
+                <param name="k_g" value="0.5" />
                 <param name="k_w" value="0.0" />
                 <param name="k_curv" value="0.0" />
+                <param name="obst_threshold" value="3.0" />
 
             </group>
         </group>

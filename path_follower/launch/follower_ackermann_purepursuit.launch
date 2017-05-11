@@ -11,6 +11,13 @@ Launch the path follower with the pure pursuit controller for a car-like (Ackerm
                 <param name="factor_lookahead_distance_backward" value="0.4" />
                 <param name="vehicle_length" value="0.34" />
                 <param name="factor_steering_angle" value="1.0" />
+
+                <param name="look_ahead_dist" value="1.0" />
+                <param name="k_o" value="0.0" />
+                <param name="k_g" value="0.5" />
+                <param name="k_w" value="0.0" />
+                <param name="k_curv" value="0.0" />
+                <param name="obst_threshold" value="3.0" />
             </group>
         </group>
     </group>  

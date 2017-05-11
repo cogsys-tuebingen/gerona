@@ -108,11 +108,23 @@ protected:
 
     struct ControllerParameters : public Parameters {
         P<double> goal_tolerance;
+        P<double> look_ahead_dist;
+        P<double> k_o;
+        P<double> k_g;
+        P<double> k_w;
+        P<double> k_curv;
+        P<double> obst_threshold;
 
         ControllerParameters(const std::string& controller_name) :
             Parameters("controller/" + controller_name),
 
-            goal_tolerance(this, "goal_tolerance", 0.3, "minimum distance at which the robot stops")
+            goal_tolerance(this, "goal_tolerance", 0.3, "minimum distance at which the robot stops"),
+            look_ahead_dist(this, "look_ahead_dist", 0.5, ""),
+            k_o(this, "k_o", 0.3, ""),
+            k_g(this, "k_g", 0.4, ""),
+            k_w(this, "k_w", 0.5, ""),
+            k_curv(this, "k_curv", 0.05, ""),
+            obst_threshold(this, "obst_threshold", 2.0, "")
         {}
     };
 
@@ -123,6 +135,7 @@ protected:
     virtual void findOrthogonalProjection();
     virtual bool isGoalReached(MoveCommand *cmd);
 
+    virtual double exponentialSpeedControl();
 
     /* REGULAR METHODS */
 public:
@@ -220,6 +233,31 @@ protected:
     uint proj_ind_;
     //orthogonal projection
     double orth_proj_;
+
+    ///parameters of the exponential speed control
+
+    //path curvature factor
+    double k_curv_;
+    //obtacle distance factor
+    double k_o_;
+    //distance to goal factor
+    double k_g_;
+    //rotation factor
+    double k_w_;
+    //curvature look ahead distance factor
+    double look_ahead_dist_;
+    //threshold at which obstacles are considered
+    double obst_threshold_;
+
+    //cumulative curvature sum w.r.t. path
+    double curv_sum_;
+    //cumulative distance to goal sum w.r.t. path
+    double distance_to_goal_;
+    //distance to the nearest obstacle
+    double distance_to_obstacle_;
+
+    //publish the parameters of the exponential speed control
+    ros::Publisher exp_control_pub_;
 };
 
 #endif // ROBOTCONTROLLER_H

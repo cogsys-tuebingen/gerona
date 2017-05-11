@@ -4,7 +4,7 @@
 /// PROJECT
 #include <path_follower/factory/local_planner_factory.h>
 
-REGISTER_LOCAL_PLANNER(LocalPlannerBFSStatic, BFS);
+REGISTER_LOCAL_PLANNER(LocalPlannerBFSStatic, HS_BFS);
 
 
 LocalPlannerBFSStatic::LocalPlannerBFSStatic()

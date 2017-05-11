@@ -4,7 +4,7 @@
 /// PROJECT
 #include <path_follower/factory/local_planner_factory.h>
 
-REGISTER_LOCAL_PLANNER(LocalPlannerBFSReconf, BFSR);
+REGISTER_LOCAL_PLANNER(LocalPlannerBFSReconf, HS_BFSR);
 
 
 LocalPlannerBFSReconf::LocalPlannerBFSReconf()

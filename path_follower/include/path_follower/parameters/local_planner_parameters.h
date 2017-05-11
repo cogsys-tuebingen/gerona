@@ -25,7 +25,7 @@ private:
     LocalPlannerParameters(const Parameters* parent):
         Parameters("local_planner", parent),
 
-        local_planner(this, "algorithm", "AStar", "Algorithm to be used by the Local Planner."),
+        local_planner(this, "algorithm", "NULL", "Algorithm to be used by the Local Planner."),
 
         //Constraints
         use_distance_to_path_constraint(this,
