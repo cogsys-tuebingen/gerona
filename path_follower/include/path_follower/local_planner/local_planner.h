@@ -1,72 +1,39 @@
-#ifndef LOCAL_PLANNER_H
-#define LOCAL_PLANNER_H
+#ifndef LOCAL_PLANNER_IMPLEMENTED_H
+#define LOCAL_PLANNER_IMPLEMENTED_H
 
 /// PROJECT
-#include <cslibs_utils/MathHelper.h>
-#include <cslibs_utils/Stopwatch.h>
-#include <path_follower/utils/path.h>
-#include <path_follower/utils/path_interpolated.h>
-#include <path_follower/parameters/local_planner_parameters.h>
-#include <path_follower/local_planner/constraint.h>
-#include <path_follower/local_planner/dis2path_constraint.h>
-#include <path_follower/local_planner/dis2obst_constraint.h>
-#include <path_follower/local_planner/scorer.h>
-#include <path_follower/local_planner/dis2pathd_scorer.h>
-#include <path_follower/local_planner/dis2pathp_scorer.h>
-#include <path_follower/local_planner/dis2obst_scorer.h>
-#include <path_follower/local_planner/level_scorer.h>
-#include <path_follower/local_planner/curvature_scorer.h>
-#include <path_follower/local_planner/curvatured_scorer.h>
+#include <path_follower/local_planner/abstract_local_planner.h>
 
-class PathFollower;
-class PoseTracker;
-class ObstacleCloud;
+/// SYSTEM
+#include <ros/time.h>
 
-class LocalPlanner
+class LocalPlannerImplemented : public AbstractLocalPlanner
 {
 public:
-    virtual ~LocalPlanner();
+    LocalPlannerImplemented();
 
-    virtual void init(RobotController *controller, PoseTracker *pose_tracker,
-                      const LocalPlannerParameters &opt);
+    virtual Path::Ptr updateLocalPath() override;
 
-    virtual void setGlobalPath(Path::Ptr path);
+    virtual void setGlobalPath(Path::Ptr path) override;
+private:
+    bool transform2Odo(ros::Time& now);
 
-    virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) = 0;
+    void printSCTimeUsage();
 
-    virtual void setVelocity(double velocity) = 0;
-
-    virtual void reset();
-
-    virtual Path::Ptr updateLocalPath(Path::Ptr& wlp) = 0;
-
-    virtual bool isNull() const;
-
-    void setObstacleCloud(const std::shared_ptr<ObstacleCloud const> &msg);
-
-    void addConstraint(Constraint::Ptr constraint);
-    void addScorer(Scorer::Ptr scorer, double weight);
-
+    virtual void printNodeUsage(std::size_t& nnodes) const = 0;
+    virtual void printVelocity() = 0;
+    virtual void printLevelReached() const = 0;
+    virtual bool algo(Eigen::Vector3d& pose, SubPath& local_wps,
+                     std::size_t& nnodes) = 0;
 protected:
-    LocalPlanner();
+    SubPath waypoints, wlp_;
+    SubPath waypoints_map;
 
-    virtual void setParams(const LocalPlannerParameters& opt) = 0;
+    bool close_to_goal;
 
-protected:
-    RobotController* controller_;
-    PoseTracker* pose_tracker_;
-    tf::Transformer* transformer_;
+    std::vector<SubPath> all_local_paths_;
 
-    const LocalPlannerParameters* opt_;
-
-    std::vector<Constraint::Ptr> constraints;
-    std::vector<Scorer::Ptr> scorers;
-
-    PathInterpolated global_path_;
-
-    ros::Duration update_interval_;
-
-    std::shared_ptr<ObstacleCloud const> obstacle_cloud_, last_obstacle_cloud_;
+    ros::Time last_update_;
 };
 
-#endif // LOCAL_PLANNER_H
+#endif // LOCAL_PLANNER_IMPLEMENTED_H

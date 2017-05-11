@@ -21,15 +21,14 @@ void LocalPlannerNull::setGlobalPath(Path::Ptr path)
      * this local planner does nothing, so the global path is
      * equal to the local path!
      */
-    LocalPlanner::setGlobalPath(path);
+    AbstractLocalPlanner::setGlobalPath(path);
 
     controller_->setGlobalPath(path);
     controller_->setPath(path);
 }
 
-Path::Ptr LocalPlannerNull::updateLocalPath(Path::Ptr& wlp)
+Path::Ptr LocalPlannerNull::updateLocalPath()
 {
-    (void) wlp;
     // do nothing
     return nullptr;
 }

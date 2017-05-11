@@ -2,7 +2,7 @@
 #define LOCAL_PLANNER_CLASSIC_H
 
 /// PROJECT
-#include <path_follower/local_planner/local_planner_implemented.h>
+#include <path_follower/local_planner/local_planner.h>
 
 class LocalPlannerClassic : public LocalPlannerImplemented
 {
@@ -52,9 +52,9 @@ private:
 
     void initIndexes(Eigen::Vector3d& pose);
 
-    void setLLP(std::size_t index);
+    void setLastLocalPaths(std::size_t index);
 
-    void setLLP();
+    void setLastLocalPaths();
 
     void retrievePath(LNode* obj, SubPath& local_wps, double& l);
 

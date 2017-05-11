@@ -8,7 +8,7 @@
 #include <path_follower/factory/collision_avoider_factory.h>
 
 #include <path_follower/controller/robotcontroller.h>
-#include <path_follower/local_planner/local_planner.h>
+#include <path_follower/local_planner/abstract_local_planner.h>
 #include <path_follower/collision_avoidance/collision_avoider.h>
 
 #include <path_follower/utils/pose_tracker.h>

@@ -25,7 +25,7 @@ public:
 
     inline double p(const unsigned int i) const {
         return p_.at(i);
-	}
+    }
     inline double q(const unsigned int i) const {
         return q_.at(i);
     }
@@ -73,7 +73,7 @@ public:
 
     inline double theta_p(const unsigned int i) const {
         return atan2(q_prim_.at(i), p_prim_.at(i));
-	}
+    }
 
     inline std::string frame_id() const {
         return frame_id_;

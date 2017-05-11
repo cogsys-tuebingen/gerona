@@ -3,7 +3,7 @@
 
 #include <path_follower/local_planner/local_planner_null.h>
 
-std::map<std::string, std::function<std::shared_ptr<LocalPlanner>()>> LocalPlannerFactory::planner_constructors_;
+std::map<std::string, std::function<std::shared_ptr<AbstractLocalPlanner>()>> LocalPlannerFactory::planner_constructors_;
 
 LocalPlannerFactory::LocalPlannerFactory(const LocalPlannerParameters &opt)
     : opt_(opt),
@@ -13,9 +13,9 @@ LocalPlannerFactory::LocalPlannerFactory(const LocalPlannerParameters &opt)
 
 }
 
-std::shared_ptr<LocalPlanner> LocalPlannerFactory::makeConstrainedLocalPlanner(const std::string& name)
+std::shared_ptr<AbstractLocalPlanner> LocalPlannerFactory::makeConstrainedLocalPlanner(const std::string& name)
 {
-    std::shared_ptr<LocalPlanner> local_planner = makeLocalPlanner(name);
+    std::shared_ptr<AbstractLocalPlanner> local_planner = makeLocalPlanner(name);
 
     //Begin Constraints and Scorers Construction
     if(opt_.use_distance_to_path_constraint()){
@@ -59,7 +59,7 @@ std::shared_ptr<LocalPlanner> LocalPlannerFactory::makeConstrainedLocalPlanner(c
     return local_planner;
 }
 
-std::shared_ptr<LocalPlanner> LocalPlannerFactory::makeLocalPlanner(const std::string &name)
+std::shared_ptr<AbstractLocalPlanner> LocalPlannerFactory::makeLocalPlanner(const std::string &name)
 {
     std::string name_low = toLower(name);
 
@@ -93,8 +93,8 @@ std::shared_ptr<LocalPlanner> LocalPlannerFactory::makeLocalPlanner(const std::s
     if(planner_loader_.isClassAvailable(name)) {
         ROS_INFO("Loading robot controller plugin '%s'", name.c_str());
 
-        planner_constructors_[name_low] = [this, name]() -> std::shared_ptr<LocalPlanner> {
-            return std::shared_ptr<LocalPlanner>(planner_loader_.createUnmanagedInstance(name));
+        planner_constructors_[name_low] = [this, name]() -> std::shared_ptr<AbstractLocalPlanner> {
+            return std::shared_ptr<AbstractLocalPlanner>(planner_loader_.createUnmanagedInstance(name));
         };
 
         return planner_constructors_[name_low]();

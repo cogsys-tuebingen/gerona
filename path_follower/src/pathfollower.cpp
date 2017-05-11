@@ -112,15 +112,15 @@ void PathFollower::setObstacles(const std::shared_ptr<ObstacleCloud const> &msg)
 {
     obstacle_cloud_ = msg;
 
-    if(config_) {
-        config_->collision_avoider_->setObstacles(msg);
+    if(current_config_) {
+        current_config_->collision_avoider_->setObstacles(msg);
     }
 }
 
 
 boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
 {
-    ROS_ASSERT(config_);
+    ROS_ASSERT(current_config_);
 
     FollowPathFeedback feedback;
     FollowPathResult result;
@@ -135,7 +135,7 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
 
     } else {
         course_predictor_->update();
-        config_->controller_->setCurrentPose(pose_tracker_->getRobotPose());
+        current_config_->controller_->setCurrentPose(pose_tracker_->getRobotPose());
     }
 
     // Ask supervisor whether path following can continue
@@ -153,23 +153,22 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
 
     }
 
-    if(config_->local_planner_->isNull()) {
+    if(current_config_->local_planner_->isNull()) {
         is_running_ = execute(feedback, result);
 
     } else  {
         //End Constraints and Scorers Construction
         publishPathMarker();
         if(obstacle_cloud_ != nullptr){
-            config_->local_planner_->setObstacleCloud(obstacle_cloud_);
+            current_config_->local_planner_->setObstacleCloud(obstacle_cloud_);
         }
         if(opt_.local_planner.use_velocity()){
-            config_->local_planner_->setVelocity(pose_tracker_->getVelocity().linear);
+            current_config_->local_planner_->setVelocity(pose_tracker_->getVelocity().linear);
         }
 
         bool path_search_failure = false;
-        Path::Ptr local_path_whole(new Path("odom"));
         try {
-            Path::Ptr local_path = config_->local_planner_->updateLocalPath(local_path_whole);
+            Path::Ptr local_path = current_config_->local_planner_->updateLocalPath();
             path_search_failure = local_path && local_path->empty();
             if(local_path && !path_search_failure) {
                 nav_msgs::Path path;
@@ -198,7 +197,7 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
         if(path_search_failure) {
             ROS_ERROR_STREAM_THROTTLE(1, "no local path found.");
             feedback.status = path_msgs::FollowPathFeedback::MOTION_STATUS_NO_LOCAL_PATH;
-            config_->controller_->stopMotion();
+            current_config_->controller_->stopMotion();
 
             // avoid RViz bug with empty paths!
             nav_msgs::Path path;
@@ -212,13 +211,13 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
             return feedback;
 
         } else {
-            if(local_path_whole->subPathCount() > 0){
+            const std::vector<SubPath>& all_local_paths = current_config_->local_planner_->getAllLocalPaths();
+            if(!all_local_paths.empty()) {
                 nav_msgs::Path wpath;
                 wpath.header.stamp = ros::Time::now();
-                wpath.header.frame_id = local_path_whole->getFrameId();
-                for(int i = 0, sub = local_path_whole->subPathCount(); i < sub; ++i) {
-                    const SubPath& p = local_path_whole->getSubPath(i);
-                    for(const Waypoint& wp : p.wps) {
+                wpath.header.frame_id = current_config_->controller_->getFixedFrame();
+                for(const SubPath& path : all_local_paths) {
+                    for(const Waypoint& wp : path.wps) {
                         geometry_msgs::PoseStamped pose;
                         pose.pose.position.x = wp.x;
                         pose.pose.position.y = wp.y;
@@ -272,16 +271,16 @@ bool PathFollower::isRunning() const
 
 void PathFollower::start()
 {
-    ROS_ASSERT(config_);
+    ROS_ASSERT(current_config_);
     //path_idx_.reset();
 
     course_predictor_->reset();
-    config_->controller_->reset();
+    current_config_->controller_->reset();
 
-    config_->controller_->start();
+    current_config_->controller_->start();
 
-    config_->local_planner_->setGlobalPath(path_);
-    config_->local_planner_->setVelocity(vel_);
+    current_config_->local_planner_->setGlobalPath(path_);
+    current_config_->local_planner_->setVelocity(vel_);
 
     g_robot_path_marker_.header.stamp = ros::Time();
     g_robot_path_marker_.points.clear();
@@ -291,12 +290,12 @@ void PathFollower::start()
 
 void PathFollower::stop(int status)
 {
-    ROS_ASSERT(config_);
+    ROS_ASSERT(current_config_);
 
     is_running_ = false;
 
-    config_->controller_->reset();
-    config_->controller_->stopMotion();
+    current_config_->controller_->reset();
+    current_config_->controller_->stopMotion();
 
     pending_error_ = status;
 }
@@ -309,7 +308,7 @@ void PathFollower::emergencyStop()
 
 bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& result)
 {
-    ROS_ASSERT(config_);
+    ROS_ASSERT(current_config_);
     /* TODO:
       * The global use of the result-constants as status codes is a bit problematic, as there are feedback
       * states, which do not imply that the path execution is finished (and thus there is no result to send).
@@ -330,7 +329,7 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
     }
 
     if(path_->empty()) {
-        config_->controller_->reset();
+        current_config_->controller_->reset();
         result.status = FollowPathResult::RESULT_STATUS_SUCCESS;
         ROS_WARN("no path");
         return DONE;
@@ -338,12 +337,12 @@ bool PathFollower::execute(FollowPathFeedback& feedback, FollowPathResult& resul
 
     visualizer_->drawArrow(getFixedFrameId(), 0, pose_tracker_->getRobotPoseMsg(), "slam pose", 2.0, 0.7, 1.0);
 
-    RobotController::ControlStatus status = config_->controller_->execute();
+    RobotController::ControlStatus status = current_config_->controller_->execute();
 
     switch(status)
     {
     case RobotController::ControlStatus::REACHED_GOAL:
-        if(!config_->local_planner_->isNull()) {
+        if(!current_config_->local_planner_->isNull()) {
             result.status = FollowPathResult::RESULT_STATUS_SUCCESS;
             return DONE;
             //feedback.status = FollowPathFeedback::MOTION_STATUS_OBSTACLE;
@@ -403,19 +402,19 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
 
     auto pos = config_cache_.find(config_name);
     if(pos != config_cache_.end()) {
-        config_ = pos->second;
+        current_config_ = pos->second;
     } else {
-        config_ = follower_factory_->construct(config_name);
-        config_cache_[config_name] = config_;
+        current_config_ = follower_factory_->construct(config_name);
+        config_cache_[config_name] = current_config_;
     }
 
-    ROS_ASSERT(config_);
+    ROS_ASSERT(current_config_);
     if(obstacle_cloud_) {
-        config_->collision_avoider_->setObstacles(obstacle_cloud_);
+        current_config_->collision_avoider_->setObstacles(obstacle_cloud_);
     }
 
     vel_ = goal.follower_options.velocity;
-    config_->controller_->setVelocity(vel_);
+    current_config_->controller_->setVelocity(vel_);
 
     pending_error_ = -1;
 
@@ -440,20 +439,20 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
     ROS_INFO_STREAM("Following path with " << goal.path.paths.size() << " segments.");
 
     ROS_INFO_STREAM("using follower configuration:\n- controller: " << config_name.controller <<
-                    "\n- avoider: " << typeid(*config_->collision_avoider_).name() <<
+                    "\n- avoider: " << typeid(*current_config_->collision_avoider_).name() <<
                     "\n- local planner: " << config_name.local_planner);
 }
 
 void PathFollower::setPath(const path_msgs::PathSequence& path)
 {
-    ROS_ASSERT(config_);
+    ROS_ASSERT(current_config_);
 
     path_->clear();
 
     // find segments
-    findSegments(path, config_->controller_->isOmnidirectional());
+    findSegments(path, current_config_->controller_->isOmnidirectional());
 
-    config_->controller_->reset();
+    current_config_->controller_->reset();
 }
 
 namespace {

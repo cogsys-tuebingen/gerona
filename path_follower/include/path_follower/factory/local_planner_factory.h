@@ -8,14 +8,14 @@
 #include <functional>
 #include <pluginlib/class_loader.h>
 
-class LocalPlanner;
+class AbstractLocalPlanner;
 
 class LocalPlannerFactory : public AbstractFactory
 {
 public:
     LocalPlannerFactory(const LocalPlannerParameters& opt);
 
-    std::shared_ptr<LocalPlanner> makeConstrainedLocalPlanner(const std::string &name);
+    std::shared_ptr<AbstractLocalPlanner> makeConstrainedLocalPlanner(const std::string &name);
 
     template <typename Planner>
     static void registerPlanner(const std::string& type)
@@ -26,13 +26,13 @@ public:
     }
 
 private:
-    std::shared_ptr<LocalPlanner> makeLocalPlanner(const std::string &name);
+    std::shared_ptr<AbstractLocalPlanner> makeLocalPlanner(const std::string &name);
 
 private:
     const LocalPlannerParameters& opt_;
 
-    pluginlib::ClassLoader<LocalPlanner> planner_loader_;
-    static std::map<std::string, std::function<std::shared_ptr<LocalPlanner>()>> planner_constructors_;
+    pluginlib::ClassLoader<AbstractLocalPlanner> planner_loader_;
+    static std::map<std::string, std::function<std::shared_ptr<AbstractLocalPlanner>()>> planner_constructors_;
 };
 
 

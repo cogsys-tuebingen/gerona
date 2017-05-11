@@ -191,6 +191,12 @@ struct SubPath
         wps.push_back(wp);
     }
 
+    template <typename... Args>
+    void emplace_back(Args&&... args)
+    {
+        wps.emplace_back(std::forward<Args>(args)...);
+    }
+
     std::vector<Waypoint> wps;
     bool forward;
 };

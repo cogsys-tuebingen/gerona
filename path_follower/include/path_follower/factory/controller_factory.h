@@ -16,7 +16,7 @@ class Duration;
 class PathFollowerParameters;
 
 class RobotController;
-class LocalPlanner;
+class AbstractLocalPlanner;
 class CollisionAvoider;
 class PathFollower;
 

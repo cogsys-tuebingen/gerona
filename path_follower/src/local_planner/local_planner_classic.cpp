@@ -175,7 +175,7 @@ void LocalPlannerClassic::setDistances(LNode& current){
                 findClosestObstaclePoint(obstacle_cloud_, pt, dist_to_closest_obst, closest_x, closest_y, has_obstacle_in_current_cloud);
             }
         }
-        if(!obstacle_cloud_->empty()){
+        if(obstacle_cloud_ && obstacle_cloud_->empty()){
             tf::Point pt(current.x, current.y, current.orientation);
             findClosestObstaclePoint(obstacle_cloud_, pt, dist_to_closest_obst, closest_x, closest_y, has_obstacle_in_current_cloud);
         }
@@ -270,7 +270,7 @@ void LocalPlannerClassic::retrieveContinuity(LNode& wpose){
             }
         }
         curv = last_local_path_.curvature(index);
-        setLLP(index + 1);
+        setLastLocalPaths(index + 1);
     }else{
         curv = global_path_.curvature(index1);
     }
@@ -304,9 +304,9 @@ bool LocalPlannerClassic::processPath(LNode* obj,SubPath& local_wps){
     smoothAndInterpolate(local_wps);
     last_local_path_.interpolatePath(local_wps, "odom");
     local_wps = (SubPath)last_local_path_;
-    if(tooClose){
+    if(close_to_goal){
         //wlp_ is the part of the local path that actually gets followed
-        wlp_.wps.insert(wlp_.wps.end(),local_wps.begin(),local_wps.end());
+        all_local_paths_.push_back(local_wps);
     }
     return true;
 }
@@ -727,14 +727,16 @@ double LocalPlannerClassic::Score(const LNode& current){
     return score;
 }
 
-void LocalPlannerClassic::setLLP(std::size_t index){
+void LocalPlannerClassic::setLastLocalPaths(std::size_t index){
     SubPath tmp_p = (SubPath)last_local_path_;
-    wlp_.wps.clear();
-    wlp_.wps.assign(tmp_p.begin(),tmp_p.begin() + index);
+    SubPath tmp_p_short;
+    tmp_p_short.wps.assign(tmp_p.begin(), tmp_p.begin() + index);
+    all_local_paths_.clear();
+    all_local_paths_.push_back(tmp_p_short);
 }
 
-void LocalPlannerClassic::setLLP(){
-    setLLP(last_local_path_.n());
+void LocalPlannerClassic::setLastLocalPaths(){
+    setLastLocalPaths(last_local_path_.n());
 }
 
 void LocalPlannerClassic::setParams(const LocalPlannerParameters& opt)
@@ -916,8 +918,8 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     //this needs to be a parameter
     double min_dist_to_goal = 0.8;
     if(std::abs(dis2last - wpose.s) < min_dist_to_goal){
-        tooClose = true;
-        setLLP();
+        close_to_goal = true;
+        setLastLocalPaths();
         return false;
     }
 
@@ -947,7 +949,7 @@ bool LocalPlannerClassic::algo(Eigen::Vector3d& pose, SubPath& local_wps,
         pop(current);
         if(std::abs(dis2last - current->s) <= 0.05){
             obj = current;
-            tooClose = true;
+            close_to_goal = true;
             break;
         }
         push2Closed(current);

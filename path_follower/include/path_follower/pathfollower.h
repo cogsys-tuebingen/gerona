@@ -27,7 +27,7 @@ class FollowerFactory;
 class CoursePredictor;
 class Visualizer;
 class SupervisorChain;
-class LocalPlanner;
+class AbstractLocalPlanner;
 class RobotController;
 class Path;
 class CollisionAvoider;
@@ -165,7 +165,7 @@ private:
     std::unique_ptr<FollowerFactory> follower_factory_;
 
     //! The currently used config for path following, set by the latest goal
-    std::shared_ptr<PathFollowerConfig> config_;
+    std::shared_ptr<PathFollowerConfig> current_config_;
 
     //! Cache of already used configs
     std::map<PathFollowerConfigName, std::shared_ptr<PathFollowerConfig>> config_cache_;

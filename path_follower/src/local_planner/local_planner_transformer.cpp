@@ -14,14 +14,8 @@ LocalPlannerTransformer::LocalPlannerTransformer()
 
 }
 
-void LocalPlannerTransformer::printNodeUsage(std::size_t& nnodes) const{
-    (void)nnodes;
-}
-
-bool LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& local_wps,
-                                  std::size_t& nnodes)
+Path::Ptr LocalPlannerTransformer::updateLocalPath()
 {
-    (void) nnodes;
     // this planner does not "plan" locally, but transforms the global path to the odometry frame
     // to eliminate odometry drift
 
@@ -30,30 +24,29 @@ bool LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& local_wps,
     // only calculate a new local path, if enough time has passed.
     // TODO: also replan for other reasons, e.g. the global path has changed, ...
     if(last_update_ + update_interval_ < now) {
-        //ROS_INFO("updating local path");
-        // only look at the first sub path for now
+        std::string frame_id = "odom";
 
+        // only look at the first sub path for now
         // calculate the corrective transformation to map from world coordinates to odom
-        if(!transformer_->waitForTransform("map", "odom", ros::Time(0), ros::Duration(0.1))) {
+        if(!transformer_->waitForTransform("map", frame_id, ros::Time(0), ros::Duration(0.1))) {
             ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
             return false;
         }
 
         tf::StampedTransform now_map_to_odom;
-        transformer_->lookupTransform("map", "odom", ros::Time(0), now_map_to_odom);
+        transformer_->lookupTransform("map", frame_id, ros::Time(0), now_map_to_odom);
 
         tf::Transform transform_correction = now_map_to_odom.inverse();
 
         // transform the waypoints from world to odom
-        for(Waypoint& wp : waypoints) {
-            tf::Point pt(wp.x, wp.y, 0);
+        SubPath transformed_waypoints;
+        for(std::size_t i = 0, n = global_path_.n(); i < n; ++i) {
+            tf::Point pt(global_path_.p(i), global_path_.q(i), 0);
             pt = transform_correction * pt;
-            wp.x = pt.x();
-            wp.y = pt.y();
 
-            tf::Quaternion rot = tf::createQuaternionFromYaw(wp.orientation);
+            tf::Quaternion rot = tf::createQuaternionFromYaw(global_path_.theta_p(i));
             rot = transform_correction * rot;
-            wp.orientation = tf::getYaw(rot);
+            transformed_waypoints.emplace_back(pt.x(), pt.y(), tf::getYaw(rot));
         }
 
         // find the subpath that starts closest to the robot
@@ -61,22 +54,25 @@ bool LocalPlannerTransformer::algo(Eigen::Vector3d& pose, SubPath& local_wps,
 
         double closest_dist = std::numeric_limits<double>::infinity();
         std::size_t start = 0;
-        for(std::size_t i = 0; i < waypoints.size(); ++i) {
-            const Waypoint& wp = waypoints[i];
+        for(std::size_t i = 0; i < transformed_waypoints.size(); ++i) {
+            const Waypoint& wp = transformed_waypoints[i];
             double dist = std::hypot(wp.x - pose(0), wp.y - pose(1));
             if(dist < closest_dist) {
                 closest_dist = dist;
                 start = i;
             }
         }
-        std::vector<Waypoint> local_wps;
-        for(std::size_t i = start, n = std::min(start + 100, waypoints.size()); i < n; ++i) {
-            local_wps.push_back(waypoints[i]);
+        SubPath local_wps;
+        for(std::size_t i = start, n = std::min(start + 100, transformed_waypoints.size()); i < n; ++i) {
+            local_wps.push_back(transformed_waypoints[i]);
         }
-    }
 
-    // here we just use the subpath without planning and checking constraints / scorerers
-    return true;
+        // here we just use the subpath without planning and checking constraints / scorerers
+        return setPath(frame_id, local_wps, now);
+
+    } else {
+        return nullptr;
+    }
 }
 
 void LocalPlannerTransformer::setParams(const LocalPlannerParameters& opt){
@@ -89,7 +85,3 @@ void LocalPlannerTransformer::setVelocity(geometry_msgs::Twist::_linear_type vec
 void LocalPlannerTransformer::setVelocity(double velocity){
     (void) velocity;
 }
-
-void LocalPlannerTransformer::printVelocity(){}
-
-void LocalPlannerTransformer::printLevelReached() const{}

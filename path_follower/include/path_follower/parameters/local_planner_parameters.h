@@ -66,7 +66,7 @@ struct LocalPlannerParameters : public Parameters
                             "Determines the number of intermediate angles between 0 and +-s_angle for the expansion of a node"),
         update_interval(this, "update_interval", 0.125,
                         "Determines the update interval in seconds of the local planner"),
-        distance_to_path_constraint(this, "distance_to_path_constraint", 1.8,
+        distance_to_path_constraint(this, "distance_to_path_constraint", 2.5,
                                     "Determines how far from the path should the local planner perform"),
         safety_distance_surrounding(this, "safety_distance_surrounding", 0.65,
                                     "Determines the security distance around the robot"),

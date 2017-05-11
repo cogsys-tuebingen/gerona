@@ -116,11 +116,12 @@ add_library(${PROJECT_NAME} SHARED
     src/controller/robotcontroller_dynamic_window.cpp
     src/controller/robotcontroller_OFC.cpp
 
-    src/local_planner/local_planner.cpp
+    src/local_planner/abstract_local_planner.cpp
     src/local_planner/local_planner_null.cpp
-    src/local_planner/local_planner_implemented.cpp
-    src/local_planner/local_planner_classic.cpp
     src/local_planner/local_planner_transformer.cpp
+
+    src/local_planner/local_planner.cpp
+    src/local_planner/local_planner_classic.cpp
     src/local_planner/local_planner_static.cpp
     src/local_planner/local_planner_reconf.cpp
     src/local_planner/local_planner_bfs.cpp
