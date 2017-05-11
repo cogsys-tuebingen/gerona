@@ -128,7 +128,6 @@ add_library(${PROJECT_NAME} SHARED
     src/local_planner/local_planner_bfs_reconf.cpp
     src/local_planner/local_planner_star.cpp
     src/local_planner/local_planner_astar.cpp
-    src/local_planner/local_planner_thetastar.cpp
     src/local_planner/local_planner_star_n.cpp
     src/local_planner/local_planner_star_g.cpp
     src/local_planner/local_planner_star_static.cpp
@@ -137,10 +136,6 @@ add_library(${PROJECT_NAME} SHARED
     src/local_planner/local_planner_astar_g_static.cpp
     src/local_planner/local_planner_astar_n_reconf.cpp
     src/local_planner/local_planner_astar_g_reconf.cpp
-    src/local_planner/local_planner_thetastar_n_static.cpp
-    src/local_planner/local_planner_thetastar_g_static.cpp
-    src/local_planner/local_planner_thetastar_n_reconf.cpp
-    src/local_planner/local_planner_thetastar_g_reconf.cpp
     src/local_planner/constraint.cpp
     src/local_planner/dis2path_constraint.cpp
     src/local_planner/dis2obst_constraint.cpp
