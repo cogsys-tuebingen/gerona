@@ -4,7 +4,7 @@
 /// PROJECT
 #include <path_follower/factory/local_planner_factory.h>
 
-REGISTER_LOCAL_PLANNER(LocalPlannerAStarGReconf, AStarGR);
+REGISTER_LOCAL_PLANNER(LocalPlannerAStarGReconf, HS_AStarGR);
 
 
 LocalPlannerAStarGReconf::LocalPlannerAStarGReconf()
