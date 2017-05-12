@@ -1,10 +1,13 @@
 <?xml version="1.0"?>
 <package>
-  <name>path_planner</name>
+  <name>roimap</name>
   <version>1.0.0</version>
-  <description>The path_planner package</description>
 
-  <author email="sebastian.buck@uni-tuebingen.de">Sebastian Buck</author>
+  <description>
+	Get a region of interest defined by the boundaries of a known area.
+  </description>
+
+  <author email="richard.hanten@uni-tuebingen.de">Richard Hanten</author>
 
   <maintainer email="goran.huskic@uni-tuebingen.de">Goran Huskic</maintainer>
   <maintainer email="sebastian.buck@uni-tuebingen.de">Sebastian Buck</maintainer>
@@ -16,21 +19,10 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>nav_msgs</build_depend>
-  <build_depend>path_msgs</build_depend>
-  <build_depend>cslibs_path_planning</build_depend>
   <build_depend>roscpp</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_depend>tf</build_depend>
-  <build_depend>roslib</build_depend>
-  <build_depend>pcl_ros</build_depend>
 
   <run_depend>nav_msgs</run_depend>
-  <run_depend>path_msgs</run_depend>
-  <run_depend>cslibs_path_planning</run_depend>
   <run_depend>roscpp</run_depend>
-  <run_depend>std_msgs</run_depend>
-  <run_depend>tf</run_depend>
-  <run_depend>roslib</run_depend>
 
   <export>
   </export>
