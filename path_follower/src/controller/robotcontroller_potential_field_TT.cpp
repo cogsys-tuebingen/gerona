@@ -3,7 +3,6 @@
 
 // THIRD PARTY
 #include <tf/tf.h>
-#include <nav_msgs/Path.h>
 
 // PROJECT
 #include <path_follower/utils/pose_tracker.h>

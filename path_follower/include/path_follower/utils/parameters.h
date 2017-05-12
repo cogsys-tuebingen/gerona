@@ -10,6 +10,15 @@
 #include <functional>
 
 /**
+ * @brief convert a type into a name for parameter descriptions.
+ */
+template <typename T>
+std::string type2name()
+{
+    return std::string("unknown (") + typeid(T).name() + ")";
+}
+
+/**
  * @brief Wrapper for ROS parameter access that encourages the user to add a description for each parameter and provides
  *        methods to export a list of all parameters for documentation.
  *
@@ -66,6 +75,7 @@ public:
     struct ParamInfo
     {
         std::string name;
+        std::string type;
         std::string description;
         std::string default_value;
     };
@@ -186,6 +196,7 @@ private:
 
         ParamInfo pi;
         pi.name = param_name;
+        pi.type = type2name<T>();
         pi.description = desc;
         pi.default_value = ss_def_val.str();
 

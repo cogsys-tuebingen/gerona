@@ -4,13 +4,9 @@
 /// THIRD PARTY
 #include <geometry_msgs/PoseStamped.h>
 #include <visualization_msgs/MarkerArray.h>
-#include <nav_msgs/Path.h>
 
 /// SYSTEM
 #include <pcl_ros/point_cloud.h>
-#include <Eigen/Core>
-#include <Eigen/Dense>
-
 
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>

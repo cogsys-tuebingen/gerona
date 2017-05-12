@@ -64,13 +64,14 @@ int dumpParameters(PathFollower& pf, const std::string& filename)
     std::vector<std::string> lines;
     Parameters::visitParameters([&file, &lines](const Parameters::ParamInfo& info) {
         std::stringstream line;
-        line<< info.name << "\t| " << info.default_value << "\t| " << info.description;
+        line<< "| " << info.name << "\t| " << info.type << "\t| " << info.default_value << "\t| " << info.description << " |";
         lines.push_back(line.str());
     });
 
     std::sort(lines.begin(), lines.end());
 
-    file << "| Name | Default | Description |" << '\n';
+    file << "| Name | Type | Default | Description |" << '\n';
+    file << "| ---- | ---- | ------- | ----------- |" << '\n';
     for(const std::string& line : lines) {
         file << line << '\n';
     }

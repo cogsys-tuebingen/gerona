@@ -4,8 +4,6 @@
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/parameters.h>
 
-#include <visualization_msgs/Marker.h>
-
 #include <ros/ros.h>
 
 class RobotController_Ackermann_Inputscaling: public RobotController

@@ -2,8 +2,6 @@
 #include <path_follower/controller/robotcontroller_kinematic_SLP.h>
 
 // THIRD PARTY
-#include <nav_msgs/Path.h>
-#include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
 // PROJECT
@@ -16,7 +14,6 @@
 // SYSTEM
 #include <cmath>
 #include <deque>
-#include <Eigen/Dense>
 #include <boost/algorithm/clamp.hpp>
 
 

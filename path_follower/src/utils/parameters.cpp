@@ -65,3 +65,38 @@ void Parameters::visitParameters(std::function<void(const ParamInfo&)> visitor)
         }
     }
 }
+
+
+template <>
+std::string type2name<double>()
+{
+    return "double";
+}
+template <>
+std::string type2name<float>()
+{
+    return "double";
+}
+
+template <>
+std::string type2name<int>()
+{
+    return "int";
+}
+template <>
+std::string type2name<bool>()
+{
+    return "bool";
+}
+
+template <>
+std::string type2name<std::string>()
+{
+    return "string";
+}
+
+template <>
+std::string type2name<const char*>()
+{
+    return "string";
+}

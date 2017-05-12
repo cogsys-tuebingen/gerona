@@ -9,7 +9,6 @@
 
 // PROJECT
 #include <path_follower/parameters/path_follower_parameters.h>
-#include <path_follower/utils/cubic_spline_interpolation.h>
 #include <path_follower/utils/extended_kalman_filter.h>
 #include <cslibs_utils/MathHelper.h>
 
@@ -21,8 +20,6 @@
 // SYSTEM
 #include <cmath>
 #include <deque>
-#include <Eigen/Core>
-#include <Eigen/Dense>
 #include <boost/algorithm/clamp.hpp>
 
 #include <path_follower/factory/controller_factory.h>

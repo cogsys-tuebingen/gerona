@@ -2,12 +2,7 @@
 #define ROBOTCONTROLLER_ICR_CCW_H
 
 /// THIRD PARTY
-#include <Eigen/Core>
-#include <nav_msgs/Path.h>
 #include <geometry_msgs/PointStamped.h>
-#include "std_msgs/MultiArrayLayout.h"
-#include "std_msgs/MultiArrayDimension.h"
-#include "std_msgs/Float64MultiArray.h"
 
 /// PROJECT
 #include <path_follower/utils/parameters.h>

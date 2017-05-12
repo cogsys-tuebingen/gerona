@@ -2,15 +2,11 @@
 #define ROBOTCONTROLLER_POTENTIAL_FIELD_TT_H
 
 /// THIRD PARTY
-#include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/PoseStamped.h>
 
 /// SYSTEM
 #include <pcl_ros/point_cloud.h>
-#include <Eigen/Core>
-#include <Eigen/Dense>
-
 
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>

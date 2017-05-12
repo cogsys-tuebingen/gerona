@@ -11,9 +11,6 @@
 #include <visualization_msgs/Marker.h>
 
 #include <deque>
-#include <Eigen/Core>
-#include <Eigen/Dense>
-
 #include <limits>
 #include <boost/algorithm/clamp.hpp>
 

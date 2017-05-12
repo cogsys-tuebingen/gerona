@@ -5,6 +5,7 @@
 #include <ros/node_handle.h>
 #include <geometry_msgs/Twist.h>
 #include <Eigen/Core>
+#include <Eigen/Dense>
 #include <visualization_msgs/Marker.h>
 #include "std_msgs/MultiArrayLayout.h"
 #include "std_msgs/MultiArrayDimension.h"

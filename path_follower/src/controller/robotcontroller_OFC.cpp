@@ -2,8 +2,6 @@
 #include <path_follower/controller/robotcontroller_OFC.h>
 
 // THIRD PARTY
-#include <nav_msgs/Path.h>
-#include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
 
@@ -20,8 +18,6 @@
 // SYSTEM
 #include <cmath>
 #include <deque>
-#include <Eigen/Core>
-#include <Eigen/Dense>
 #include <boost/algorithm/clamp.hpp>
 #include <pcl_ros/point_cloud.h>
 #include <pluginlib/class_list_macros.h>

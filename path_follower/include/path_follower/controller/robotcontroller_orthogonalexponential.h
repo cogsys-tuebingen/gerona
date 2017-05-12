@@ -1,52 +1,60 @@
-#ifndef ROBOTCONTROLLER_OFC_H
-#define ROBOTCONTROLLER_OFC_H
+#ifndef ROBOTCONTROLLER_ORTHEXP_H
+#define ROBOTCONTROLLER_ORTHEXP_H
 
 /// THIRD PARTY
 #include <geometry_msgs/PointStamped.h>
+#include <std_msgs/String.h>
+#include <sensor_msgs/LaserScan.h>
 
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/parameters.h>
 
 
-class RobotController_OFC: public RobotController
+class RobotController_OrthogonalExponential: public RobotController
 {
 public:
-    RobotController_OFC();
+    RobotController_OrthogonalExponential();
 
     //! Immediately stop any motion.
     virtual void stopMotion();
 
+    virtual void start();
+
+
 protected:
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
-    virtual void initialize();
+
+    virtual bool isOmnidirectional() const
+    {
+        return true;
+    }
+
+    void lookAtCommand(const std_msgs::StringConstPtr& cmd);
+    void lookAt(const geometry_msgs::PointStampedConstPtr& look_at);
+    void laserBack(const sensor_msgs::LaserScanConstPtr& scan_back);
+    void laserFront(const sensor_msgs::LaserScanConstPtr& scan_front);
+
+    virtual void computeControl();
+
+private:
+    void initialize();
+
+    void findMinDistance();
+
+    void keepHeading();
+    void lookInDrivingDirection();
+    void rotate();
 
 protected:
     struct ControllerParameters : public RobotController::ControllerParameters
     {
-        P<double> kp_lin;
-        P<double> ki_lin;
-        P<double> kd_lin;
-        P<double> kp_ang;
-        P<double> ki_ang;
-        P<double> kd_ang;
-        P<double> goal_x;
-        P<double> goal_y;
         P<double> max_angular_velocity;
 
-        ControllerParameters():
-            RobotController::ControllerParameters("ofc"),
-
-            kp_lin(this, "kp_lin", 1.0, ""),
-            ki_lin(this, "ki_lin", 0.1, ""),
-            kd_lin(this, "kd_lin", 0.1, ""),
-            kp_ang(this, "kp_ang", 1.0, ""),
-            ki_ang(this, "ki_ang", 0.1, ""),
-            kd_ang(this, "kd_ang", 0.1, ""),
-            goal_x(this, "goal_x", 2.0, ""),
-            goal_y(this, "goal_y", 0.0, ""),
-            max_angular_velocity(this, "max_angular_velocity", 0.5, "")
+        ControllerParameters(const std::string& name = "orthexp"):
+            RobotController::ControllerParameters(name),
+            max_angular_velocity(this, "max_angular_velocity", 2.0, "")
         {}
     } opt_;
 
@@ -57,7 +65,7 @@ protected:
 
     struct Command
     {
-        RobotController_OFC *parent_;
+        RobotController_OrthogonalExponential *parent_;
 
         //! Speed of the movement.
         float speed;
@@ -68,9 +76,9 @@ protected:
 
 
         // initialize all values to zero
-        Command(RobotController_OFC *parent):
+        Command(RobotController_OrthogonalExponential *parent):
             parent_(parent),
-            speed(0.0f), direction_angle(0.0f), rotation(0.0f)
+            speed(0.0f), direction_angle(0.0f)
         {}
 
         operator MoveCommand()
@@ -106,42 +114,32 @@ protected:
 
     Command cmd_;
 
-    //nominal velocity
+    ros::NodeHandle nh_;
+
+    ros::Subscriber look_at_sub_;
+    ros::Subscriber look_at_cmd_sub_;
+
+    ros::Subscriber laser_sub_front_;
+    ros::Subscriber laser_sub_back_;
+
+    std::vector<float> ranges_front_;
+    std::vector<float> ranges_back_;
+
+    enum ViewDirection {
+        KeepHeading,
+        LookAtPoint,
+        LookInDrivingDirection,
+        Rotate
+    };
+
+    ViewDirection view_direction_;
+    geometry_msgs::Point look_at_;
+
     double vn_;
-    //sampling time
+    double theta_des_;
     double Ts_;
 
-    //previous time stamp for PID
-    ros::Time T_prev_;
-    //previous time stamp for the target's velocity
-    ros::Time previous_t_;
-    //previous error value
-    double e_prev_lin_;
-    double e_prev_ang_;
-    //integral sum for the PID controller
-    double e_sum_lin_;
-    double e_sum_ang_;
-
-    //the moment when the person moved for the last time
-    ros::Time last_movement_;
-
-    //previous target position vector
-    tf::Vector3 target_vec_prev_;
-
-    //a deque of 10 last measured velocity values
-    std::deque<double> meas_velocities_;
-    //counter used to update the deque
-    int counter_;
-    //mean velocity
-    double mean_vel_;
-
-    //publish the desired goal position
-    ros::Publisher goal_pub;
-    //publish the target (person) position
-    ros::Publisher target_pub;
-    //publish the error vector
-    ros::Publisher err_vec_pub;
-
+    double alpha_e_;
 };
+#endif // ROBOTCONTROLLER_ORTHEXP_H
 
-#endif // ROBOTCONTROLLER_OFC_H

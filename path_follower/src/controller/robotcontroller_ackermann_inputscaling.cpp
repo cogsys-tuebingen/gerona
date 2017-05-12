@@ -5,19 +5,11 @@
 #include <geometry_msgs/Twist.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
-
 #include <cslibs_utils/MathHelper.h>
-#include <visualization_msgs/Marker.h>
-
 #include <deque>
-#include <Eigen/Core>
-#include <Eigen/Dense>
-
 #include <limits>
 #include <boost/algorithm/clamp.hpp>
-
 #include <time.h>
-
 #include <path_follower/factory/controller_factory.h>
 
 REGISTER_ROBOT_CONTROLLER(RobotController_Ackermann_Inputscaling, ackermann_inputscaling, ackermann);

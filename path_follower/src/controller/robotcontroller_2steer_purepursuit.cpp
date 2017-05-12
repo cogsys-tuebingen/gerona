@@ -13,11 +13,7 @@
 
 #include <cslibs_utils/MathHelper.h>
 
-#include <visualization_msgs/Marker.h>
-
 #include <deque>
-#include <Eigen/Core>
-#include <Eigen/Dense>
 
 #ifdef TEST_OUTPUT
 #include <std_msgs/Float64MultiArray.h>

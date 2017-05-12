@@ -2,7 +2,6 @@
 #define ROBOTCONTROLLER_KINEMATIC_SLP_H
 
 /// THIRD PARTY
-#include <Eigen/Core>
 #include <geometry_msgs/PointStamped.h>
 
 /// PROJECT

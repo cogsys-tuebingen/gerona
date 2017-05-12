@@ -7,12 +7,7 @@
 #include <path_follower/utils/visualizer.h>
 
 #include <cslibs_utils/MathHelper.h>
-
-#include <visualization_msgs/Marker.h>
-
 #include <deque>
-#include <Eigen/Core>
-#include <Eigen/Dense>
 
 #include <limits>
 #include <boost/algorithm/clamp.hpp>

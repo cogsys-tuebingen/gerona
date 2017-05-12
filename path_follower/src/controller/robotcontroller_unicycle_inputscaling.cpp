@@ -8,11 +8,7 @@
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
 
-#include <visualization_msgs/Marker.h>
-
 #include <deque>
-#include <Eigen/Core>
-#include <Eigen/Dense>
 
 #include <limits>
 #include <boost/algorithm/clamp.hpp>
