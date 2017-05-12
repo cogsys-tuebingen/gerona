@@ -31,7 +31,9 @@ public:
 
         speech_pub_ = nh.advertise<std_msgs::String>("speech", 0);
 
-        pnh_.param("target_frame", target_frame_, std::string("map"));
+        std::string default_world_frame = nh_.param("csnavigation/world_frame", std::string("map"));
+        pnh_.param("world_frame", world_frame_, default_world_frame);
+
         // target speed
         pnh_.param("target_speed", target_speed_, 1.0);
 
@@ -69,7 +71,7 @@ private:
 
     tf::TransformListener tfl_;
 
-    std::string target_frame_;
+    std::string world_frame_;
     double target_speed_;
     int failure_mode_;
 
@@ -166,12 +168,12 @@ private:
 
         ROS_INFO_STREAM("goal: " << goal.goal);
 
-        if(pose->header.frame_id != target_frame_) {
-            if(!tfl_.waitForTransform(target_frame_, pose->header.frame_id, pose->header.stamp, ros::Duration(10.0))) {
-                ROS_ERROR_STREAM("cannot drive to goal, the transformation between " << target_frame_ << " and " << pose->header.frame_id << " is not known");
+        if(pose->header.frame_id != world_frame_) {
+            if(!tfl_.waitForTransform(world_frame_, pose->header.frame_id, pose->header.stamp, ros::Duration(10.0))) {
+                ROS_ERROR_STREAM("cannot drive to goal, the transformation between " << world_frame_ << " and " << pose->header.frame_id << " is not known");
             }
             tf::StampedTransform trafo;
-            tfl_.lookupTransform(target_frame_, pose->header.frame_id, pose->header.stamp, trafo);
+            tfl_.lookupTransform(world_frame_, pose->header.frame_id, pose->header.stamp, trafo);
 
             tf::Pose old_pose;
             tf::poseMsgToTF(pose->pose, old_pose);
@@ -179,7 +181,7 @@ private:
             tf::Pose map_pose = trafo * old_pose;
             tf::poseTFToMsg(map_pose, goal.goal.pose.pose);
 
-            goal.goal.pose.header.frame_id = target_frame_;
+            goal.goal.pose.header.frame_id = world_frame_;
         }
 
         client_.cancelAllGoals();

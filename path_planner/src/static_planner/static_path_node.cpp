@@ -1,5 +1,5 @@
 /// COMPONENT
-#include "planner_node.h"
+#include "../planner_node.h"
 
 /// SYSTEM
 #include <math.h>
@@ -120,7 +120,7 @@ struct StaticPathPlanner : public Planner
         tf::poseMsgToTF(goal->goal.pose.pose, pose_);
         //        pose = tf::Transform(tf::createIdentityQuaternion(), tf::Vector3(0,0,0));
 
-        path_raw.header.frame_id = "map";
+        path_raw.header.frame_id = world_frame_;
         path_raw.header.stamp = ros::Time::now();
         geometry_msgs::PoseArray poses;
 
@@ -146,7 +146,7 @@ struct StaticPathPlanner : public Planner
                 poses.poses.push_back(spose.pose);
             }
         }
-        poses.header.frame_id="map";
+        poses.header.frame_id = world_frame_;
         posearray_pub_.publish(poses);
         feedback(path_msgs::PlanPathFeedback::STATUS_DONE);
 

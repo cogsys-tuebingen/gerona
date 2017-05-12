@@ -1,10 +1,15 @@
 <?xml version="1.0"?>
 <package>
   <name>scan2cloud</name>
-  <version>0.0.0</version>
+  <version>1.0.0</version>
   <description>The scan2cloud package</description>
 
-  <maintainer email="yutschiin@todo.todo">yutschiin</maintainer>
+  <author email="yutschiin@todo.todo">yutschiin</author>
+
+  <maintainer email="goran.huskic@uni-tuebingen.de">Goran Huskic</maintainer>
+  <maintainer email="sebastian.buck@uni-tuebingen.de">Sebastian Buck</maintainer>
+  <maintainer email="julian.jordan@uni-tuebingen.de">Julian Jordan</maintainer>
+  <maintainer email="adrian.zwiener@uni-tuebingen.de">Adrian Zwiener</maintainer>
 
   <license>BSD</license>
 

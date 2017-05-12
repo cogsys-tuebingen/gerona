@@ -9,7 +9,7 @@
 #define PATH_PLANNER_NODE_HPP
 
 /// COMPONENT
-#include "planner_node.h"
+#include "../planner_node.h"
 
 /// PROJECT
 #include <cslibs_path_planning/generic/Algorithms.hpp>
@@ -391,7 +391,7 @@ struct PathPlanner : public Planner
 
         // set timestamp of the received goal for the path message, so they can be associated
         path_out.header.stamp = goal_timestamp;
-        path_out.header.frame_id = "map";
+        path_out.header.frame_id = world_frame_;
 
         path_msgs::DirectionalPath* path = &path_out.paths.back();
 
@@ -425,7 +425,7 @@ struct PathPlanner : public Planner
 
         // set timestamp of the received goal for the path message, so they can be associated
         path_out.header.stamp = goal_timestamp;
-        path_out.header.frame_id = "map";
+        path_out.header.frame_id = world_frame_;
 
         path_msgs::DirectionalPath* path = &path_out.paths.back();
 

@@ -9,7 +9,9 @@
 // SYSTEM
 #include <deque>
 #include <nav_msgs/Path.h>
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #include <interpolation.h>
+#pragma GCC diagnostic pop
 
 using namespace Eigen;
 

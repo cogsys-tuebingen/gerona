@@ -213,7 +213,8 @@ protected:
     ros::Publisher map_pub;
     tf::TransformListener tfl;
 
-    std::string base_frame_;
+    std::string world_frame_;
+    std::string robot_frame_;
 
     lib_path::SimpleGridMap2d * map_info;
     double map_rotation_yaw_;

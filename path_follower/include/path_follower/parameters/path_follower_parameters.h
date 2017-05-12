@@ -3,6 +3,7 @@
 
 #include <path_follower/utils/parameters.h>
 #include <rosconsole/macros_generated.h>
+#include <ros/node_handle.h>
 
 struct PathFollowerParameters : public Parameters
 {
@@ -12,6 +13,10 @@ struct PathFollowerParameters : public Parameters
         return &instance;
     }
 
+private:
+    ros::NodeHandle nh;
+
+public:
     P<std::string> controller;
     P<std::string> collision_avoider;
     P<std::string> world_frame;
@@ -29,9 +34,17 @@ private:
 
         controller(this, "controller_type", "ackermann_purepursuit", "Defines, which controller is used."),
         collision_avoider(this, "collision_avoider", "", "Defines, which collisison avoider is used."),
-        world_frame(this, "world_frame",  "map", "Name of the world frame."),
-        robot_frame(this, "robot_frame",  "base_link", "Name of the robot frame."),
-        odom_frame(this, "odom_frame",  "odom", "Name of the odometry frame."),
+
+        world_frame(this, "world_frame",
+                    nh.param("csnavigation/world_frame", std::string("map")),
+                    "Name of the world frame."),
+        robot_frame(this, "robot_frame",
+                    nh.param("csnavigation/robot_frame", std::string("base_link")),
+                    "Name of the robot frame."),
+        odom_frame(this, "odom_frame",
+                   nh.param("csnavigation/odom_frame", std::string("odom")),
+                   "Name of the odometry frame."),
+
         wp_tolerance(this, "waypoint_tolerance",  0.20 , ""),
         goal_tolerance(this, "goal_tolerance",  0.15 , ""),
         steer_slow_threshold(this, "steer_slow_threshold",  0.25 ,
@@ -48,7 +61,7 @@ private:
                                 " detected on front of the robot. If false, the robot will"
                                 " stop, but not abort (the obstacle might move away).")
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     {
         if(max_velocity() < min_velocity()) {
             ROS_ERROR("min velocity larger than max velocity!");
