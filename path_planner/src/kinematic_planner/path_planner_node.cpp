@@ -9,7 +9,7 @@
 #define PATH_PLANNER_NODE_HPP
 
 /// COMPONENT
-#include "planner_node.h"
+#include "../planner_node.h"
 
 /// PROJECT
 #include <cslibs_path_planning/generic/Algorithms.hpp>

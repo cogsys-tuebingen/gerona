@@ -13,7 +13,7 @@
 #ifndef COURSE_PLANNER_H
 #define COURSE_PLANNER_H
 
-#include "planner_node.h"
+#include "../planner_node.h"
 #include <memory>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>

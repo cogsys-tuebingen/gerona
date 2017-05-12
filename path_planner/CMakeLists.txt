@@ -55,7 +55,7 @@ install(TARGETS ${PROJECT_NAME}
         RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 
 ## Generic Search (cslibs_path_planning)
-add_executable(${PROJECT_NAME}_node src/path_planner_node.cpp)
+add_executable(${PROJECT_NAME}_node src/kinematic_planner/path_planner_node.cpp)
 add_dependencies(${PROJECT_NAME}_node path_msgs_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_node
   ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
@@ -63,18 +63,8 @@ target_link_libraries(${PROJECT_NAME}_node
 install(TARGETS ${PROJECT_NAME}_node
         RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 
-### D-Star
-#add_executable(dyn_path_planner_node src/dyn_path_planner_node.cpp)
-#add_dependencies(dyn_path_planner_node path_msgs_generate_messages_cpp)
-#target_link_libraries(dyn_path_planner_node
-#  path_planner ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
-#)
-#install(TARGETS dyn_path_planner_node
-#        RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
-
-
 ## Static Path "Planner"
-add_executable(static_path_node src/static_path_node.cpp)
+add_executable(static_path_node src/static_planner/static_path_node.cpp)
 add_dependencies(static_path_node path_msgs_generate_messages_cpp)
 target_link_libraries(static_path_node
   ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
@@ -84,26 +74,25 @@ install(TARGETS static_path_node
 
 
 add_executable(course_planner_node
-    src/course/segment.cpp
-    src/course/transition.cpp
-    src/course/node.cpp
-    src/course/course_map.cpp
-    src/course/search.cpp
-    src/course/path_builder.cpp
-    src/course/analyzer.cpp
-    src/course_planner_node.cpp
-    src/course_planner.cpp
-    src/planner_node.cpp
+    src/course_planner/course/segment.cpp
+    src/course_planner/course/transition.cpp
+    src/course_planner/course/node.cpp
+    src/course_planner/course/course_map.cpp
+    src/course_planner/course/search.cpp
+    src/course_planner/course/path_builder.cpp
+    src/course_planner/course/analyzer.cpp
+    src/course_planner/course_planner_node.cpp
+    src/course_planner/course_planner.cpp
 )
 add_dependencies(course_planner_node path_msgs_generate_messages_cpp)
 target_link_libraries(course_planner_node
-  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+  ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
 install(TARGETS course_planner_node
         RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 
 
-add_executable(pub_goal_pose src/pub_goal_pose.cpp)
+add_executable(pub_goal_pose src/tools/pub_goal_pose.cpp)
 target_link_libraries(pub_goal_pose
   ${catkin_LIBRARIES}
 )
@@ -117,7 +106,7 @@ if(${OMPL_FOUND})
     if(${OMPLAPP_LIBRARIES})
         include_directories(${OMPL_INCLUDE_DIRS})
 
-        add_executable(ompl_planner_node src/ompl_planner_node.cpp)
+        add_executable(ompl_planner_node src/ompl_planner/ompl_planner_node.cpp)
         add_dependencies(ompl_planner_node path_msgs_generate_messages_cpp)
 
         target_link_libraries(ompl_planner_node
@@ -140,7 +129,7 @@ endif()
 if(${SBPL_FOUND})
     include_directories(${SBPL_INCLUDE_DIRS})
 
-    add_executable(sbpl_planner_node src/sbpl_planner_node.cpp)
+    add_executable(sbpl_planner_node src/sbpl_planner/sbpl_planner_node.cpp)
     add_dependencies(sbpl_planner_node path_msgs_generate_messages_cpp)
 
     target_link_libraries(sbpl_planner_node

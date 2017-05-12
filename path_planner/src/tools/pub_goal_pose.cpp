@@ -1,5 +1,5 @@
 /// COMPONENT
-#include "planner_node.h"
+#include "../planner_node.h"
 
 /// SYSTEM
 #include <math.h>
