@@ -95,10 +95,11 @@ void PathController::publishGoalMessage()
 {
     geometry_msgs::PoseStamped goal_msg = current_goal_->goal.pose;
     if(goal_msg.header.frame_id.empty()) {
-        goal_msg.header.frame_id = "map";
+        ROS_ERROR("invalid goal without frame id received.");
+    } else {
+        goal_msg.header.stamp = ros::Time::now();
+        goal_pub_.publish(goal_msg);
     }
-    goal_msg.header.stamp = ros::Time::now();
-    goal_pub_.publish(goal_msg);
 }
 
 bool PathController::processGoal()

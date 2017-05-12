@@ -169,9 +169,15 @@ tf::Transform PoseTracker::getRelativeTransform(const std::string &fixed_frame, 
         pose_listener_.lookupTransform(fixed_frame, frame, time, trafo);
 
     } else {
-        ROS_WARN_STREAM_THROTTLE(0.1, "cannot lookup relative transform from " << fixed_frame << " to " << frame << " at time " << time
+        ros::Time latest_time(0);
+        if(!pose_listener_.canTransform(fixed_frame, frame, latest_time)) {
+            throw std::runtime_error(std::string("the transformation between ") + fixed_frame +
+                                     " and " + frame + " does not exist.");
+        }
+
+        ROS_WARN_STREAM_THROTTLE(0.1, "cannot lookup relative transform from " << fixed_frame << " to " << frame << " at time " << latest_time
                         << ". Using latest transform");
-        pose_listener_.lookupTransform(fixed_frame, frame, ros::Time(0), trafo);
+        pose_listener_.lookupTransform(fixed_frame, frame, latest_time, trafo);
     }
     return trafo;
 }

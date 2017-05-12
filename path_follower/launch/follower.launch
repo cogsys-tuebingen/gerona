@@ -57,7 +57,6 @@ Please make sure, you add an according launch file, if you implement a new contr
     <include file="$(find path_follower)/launch/follower_ackermann_purepursuit.launch" />
     <include file="$(find path_follower)/launch/follower_ackermann_stanley.launch" />
     <include file="$(find path_follower)/launch/follower_differential_orthexp.launch" />
-    <include file="$(find path_follower)/launch/follower_dynamic_SLP.launch" />
     <include file="$(find path_follower)/launch/follower_dynamic_window.launch" />
     <include file="$(find path_follower)/launch/follower_ICR_CCW.launch" />
     <include file="$(find path_follower)/launch/follower_kinematic_HBZ.launch" />
