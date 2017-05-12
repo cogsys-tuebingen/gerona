@@ -9,6 +9,10 @@
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/parameters.h>
+#include <cslibs_utils/MathHelper.h>
+
+// SYSTEM
+#include <boost/algorithm/clamp.hpp>
 
 
 class RobotController_OrthogonalExponential: public RobotController
@@ -50,11 +54,11 @@ private:
 protected:
     struct ControllerParameters : public RobotController::ControllerParameters
     {
-        P<double> max_angular_velocity;
+        P<double> max_ang_velocity;
 
         ControllerParameters(const std::string& name = "orthexp"):
             RobotController::ControllerParameters(name),
-            max_angular_velocity(this, "max_angular_velocity", 2.0, "")
+            max_ang_velocity(this, "max_angular_velocity", 0.5, "")
         {}
     } opt_;
 

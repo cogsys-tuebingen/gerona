@@ -35,6 +35,7 @@ void RobotController_OrthogonalExponential::stopMotion()
 {
     cmd_.speed = 0;
     cmd_.direction_angle = 0;
+    cmd_.rotation = 0;
 
     MoveCommand mcmd = cmd_;
     publishMoveCommand(mcmd);

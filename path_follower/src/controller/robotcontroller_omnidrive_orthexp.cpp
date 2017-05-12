@@ -2,10 +2,6 @@
 #include <path_follower/parameters/path_follower_parameters.h>
 #include <path_follower/controller/robotcontroller_omnidrive_orthexp.h>
 #include <path_follower/utils/pose_tracker.h>
-#include <cslibs_utils/MathHelper.h>
-
-// SYSTEM
-#include <boost/algorithm/clamp.hpp>
 
 #include <path_follower/factory/controller_factory.h>
 
@@ -39,5 +35,5 @@ void RobotController_Omnidrive_OrthogonalExponential::computeControl()
     cmd_.speed = vn_* exp_factor;
     cmd_.direction_angle = atan(-opt_.k()*orth_proj_) + path_interpol.theta_p(proj_ind_) - current_pose[2];
     double omega = opt_.kp()*e_theta_curr_ + opt_.kd()*e_theta_prim;
-    cmd_.rotation = boost::algorithm::clamp(omega, -opt_.max_angular_velocity(), opt_.max_angular_velocity());
+    cmd_.rotation = boost::algorithm::clamp(omega, -opt_.max_ang_velocity(), opt_.max_ang_velocity());
 }

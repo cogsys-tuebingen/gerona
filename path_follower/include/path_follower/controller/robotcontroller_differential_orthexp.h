@@ -14,6 +14,7 @@ public:
 
 protected:
     virtual void computeControl();
+    virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
 private:
     struct ControllerParameters : public RobotController_OrthogonalExponential::ControllerParameters

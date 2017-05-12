@@ -6,18 +6,10 @@ Launch the path follower with the kinematic controller for a unicycle robot.
     <group ns="path_follower">
         <group ns="controller">
             <!-- parameters, that are dependent of the controller or the robot model -->
-            <group ns="differential_orthexp">
+            <group ns="unicycle_inputscaling">
                 <param name="vehicle_length" value="0.5" />
                 <param name="k" value="2.0" />
                 <param name="max_angular_velocity" value="0.8" />
-
-                <param name="look_ahead_dist" value="1.0" />
-                <param name="k_o" value="0.0" />
-                <param name="k_g" value="0.5" />
-                <param name="k_w" value="0.0" />
-                <param name="k_curv" value="0.0" />
-                <param name="obst_threshold" value="3.0" />
-
             </group>
         </group>
     </group>
