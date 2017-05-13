@@ -385,9 +385,9 @@ PathFollowerConfigName PathFollower::goalToConfig(const FollowPathGoal &goal) co
 {
     PathFollowerConfigName config;
 
-    config.controller = goal.robot_controller.data;
-    config.local_planner = goal.local_planner.data;
-    config.collision_avoider = goal.collision_avoider.data;
+    config.controller = goal.follower_options.robot_controller.data;
+    config.local_planner = goal.follower_options.local_planner.data;
+    config.collision_avoider = goal.follower_options.collision_avoider.data;
 
     if(config.controller.empty()) {
         config.controller = opt_.controller();

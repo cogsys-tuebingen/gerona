@@ -6,9 +6,6 @@ std_msgs/String planning_algorithm
 # planning_channel: [optional] The topic on which to request a new path, can be empty.
 std_msgs/String planning_channel
 
-# following_algorithm: [optional] The controller to use for path following
-std_msgs/String following_algorithm
-
 # type: The type of goal this message specifies:
 #  GOAL_TYPE_POSE: Find a path to the pose specified in <pose>
 #  GOAL_TYPE_MAP: Find a path that ends in a cell of <map> which has a value of at least <map_search_min_value>

@@ -6,15 +6,6 @@ path_msgs/FollowerOptions follower_options
 # path: The path to follow
 path_msgs/PathSequence path
 
-# robot_controller: [optional] name of the controller to use
-std_msgs/String robot_controller
-
-# local_planner: [optional] name of the local planner to use
-std_msgs/String local_planner
-
-# collision_avoider: [optional] name of the collision avoider to use
-std_msgs/String collision_avoider
-
 ---
 # RESULT DEFINITION
 

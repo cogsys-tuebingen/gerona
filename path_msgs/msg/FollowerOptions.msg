@@ -9,3 +9,12 @@ uint8 init_mode
 
 # velocity: Driving speed of the robot (interpreted as recommended value)
 float32 velocity
+
+# robot_controller: [optional] name of the controller to use
+std_msgs/String robot_controller
+
+# local_planner: [optional] name of the local planner to use
+std_msgs/String local_planner
+
+# collision_avoider: [optional] name of the collision avoider to use
+std_msgs/String collision_avoider

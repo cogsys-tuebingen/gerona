@@ -148,8 +148,6 @@ private:
         goal.goal.planning_channel.data = pnh_.param("planning_channel", std::string(""));
         goal.goal.planning_algorithm.data = pnh_.param("planning_algorithm", std::string(""));
 
-        goal.goal.following_algorithm.data = pnh_.param("following_algorithm", std::string(""));
-
         goal.planner_options.grow_obstacles = pnh_.param("grow_obstacles", true);
         goal.planner_options.obstacle_growth_radius = pnh_.param("obstacle_radius", 1.0);
 
