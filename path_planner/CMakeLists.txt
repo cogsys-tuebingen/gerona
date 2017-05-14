@@ -96,6 +96,7 @@ add_executable(pub_goal_pose src/tools/pub_goal_pose.cpp)
 target_link_libraries(pub_goal_pose
   ${catkin_LIBRARIES}
 )
+add_dependencies(pub_goal_pose path_msgs_generate_messages_cpp)
 install(TARGETS pub_goal_pose
         RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 
