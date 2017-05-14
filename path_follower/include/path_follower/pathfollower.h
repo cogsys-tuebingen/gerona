@@ -132,7 +132,7 @@ private:
     void setPath(const path_msgs::PathSequence& path);
 
     //! Split path into subpaths at turning points.
-    void findSegments(const path_msgs::PathSequence& path, bool only_one_segment);
+    void findSegments(const path_msgs::PathSequence& path);
 
     //! Publish to the global path_points
     void publishPathMarker();

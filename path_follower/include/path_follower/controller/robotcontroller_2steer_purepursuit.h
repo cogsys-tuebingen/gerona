@@ -20,9 +20,6 @@ public:
 	virtual void start();
 	void reset();
 	void setPath(Path::Ptr path);
-	virtual bool isOmnidirectional() const {
-		return false;
-	}
 
 protected:
 	virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);

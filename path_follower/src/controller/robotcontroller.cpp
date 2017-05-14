@@ -189,11 +189,6 @@ RobotController::ControlStatus RobotController::MCS2CS(RobotController::MoveComm
     }
 }
 
-bool RobotController::isOmnidirectional() const
-{
-    return false;
-}
-
 void RobotController::publishPathMarker()
 {
     Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();

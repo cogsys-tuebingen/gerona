@@ -30,11 +30,6 @@ protected:
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
 
-    virtual bool isOmnidirectional() const
-    {
-        return true;
-    }
-
     void lookAtCommand(const std_msgs::StringConstPtr& cmd);
     void lookAt(const geometry_msgs::PointStampedConstPtr& look_at);
     void laserBack(const sensor_msgs::LaserScanConstPtr& scan_back);

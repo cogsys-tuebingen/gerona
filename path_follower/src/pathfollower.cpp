@@ -459,7 +459,7 @@ void PathFollower::setPath(const path_msgs::PathSequence& path)
     path_->clear();
 
     // find segments
-    findSegments(path, current_config_->controller_->isOmnidirectional());
+    findSegments(path);
 
     current_config_->controller_->reset();
 }
@@ -472,7 +472,7 @@ double angleDifference(double s1, double s2) {
 }
 }
 
-void PathFollower::findSegments(const path_msgs::PathSequence& path, bool only_one_segment)
+void PathFollower::findSegments(const path_msgs::PathSequence& path)
 {
     vector<SubPath> subpaths;
 

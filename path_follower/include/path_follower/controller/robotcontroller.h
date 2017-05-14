@@ -46,9 +46,6 @@ public:
     //! Immediatley stop any motion.
     virtual void stopMotion() = 0;
 
-    //! Return true, if the robot is capable of omnidirectional movement.
-    virtual bool isOmnidirectional() const;
-
     //! Is called when the execution of a new path is started. Can be used for initialization stuff.
     virtual void start() {}
 
