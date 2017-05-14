@@ -10,13 +10,32 @@
 
 class AbstractLocalPlanner;
 
+/**
+ * @brief The LocalPlannerFactory class is responsible for creating instance
+ *        of the LocalPlanner class.
+ * @see LocalPlanner
+ */
 class LocalPlannerFactory : public AbstractFactory
 {
 public:
+    /**
+     * @brief LocalPlannerFactory
+     * @param opt Configuration to use when creating local planners
+     */
     LocalPlannerFactory(const LocalPlannerParameters& opt);
 
+    /**
+     * @brief makeConstrainedLocalPlanner creates an instance of the LocalPlanner identified by <name>.
+     *        It also adds constraints based on the current configuration.
+     * @param name The name of the local planner to instanciate
+     * @return A shared pointer to the local planner
+     */
     std::shared_ptr<AbstractLocalPlanner> makeConstrainedLocalPlanner(const std::string &name);
 
+    /**
+     * @brief registerPlanner registers the class <Planner> with the identifier <type>.
+     * @param type Identifier for creating instances of type <Planner>
+     */
     template <typename Planner>
     static void registerPlanner(const std::string& type)
     {

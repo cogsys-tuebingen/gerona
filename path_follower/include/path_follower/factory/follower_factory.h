@@ -16,13 +16,31 @@ class PathFollower;
 class PathFollowerParameters;
 class PoseTracker;
 
+/**
+ * @brief The FollowerFactory class is responsible for creating instances of all
+ *        classes necessary for path following.
+ * @see CollisionAvoider
+ */
 class FollowerFactory : public AbstractFactory
 {
 public:
+    /**
+     * @brief FollowerFactory
+     * @param follower the instance of path follower
+     */
     FollowerFactory(PathFollower &follower);
 
+    /**
+     * @brief construct creates instances of all necessary classes needed for following a path.
+     * @param config The names of the requested classes of RobotController, LocalPlanner and CollisionAvoider
+     * @return A shared pointer to a collection of all constructed objects
+     */
     std::shared_ptr<PathFollowerConfig> construct(const PathFollowerConfigName &config);
 
+    /**
+     * @brief loadAll Creates instances of all robot controllers
+     * @param controllers A list containing an instance of each available robot controller
+     */
     void loadAll(std::vector<std::shared_ptr<RobotController> > &controllers);
 
 private:
