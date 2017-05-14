@@ -109,65 +109,6 @@ struct NonHolonomicNeighborhoodPrecise :
 
 
 
-struct LinearExpansion
-{
-    LinearExpansion()
-    {
-    }
-
-    template <class T, class Map>
-    bool expand(const T* start, const T* goal, const Map* map_ptr) {
-        start_ = *start;
-        goal_ = *goal;
-
-        bresenham.setGrid(map_ptr, std::floor(start_.x), std::floor(start_.y), std::floor(goal_.x),std::floor(goal_.y));
-
-        double theta = std::atan2(goal_.y-start_.y,goal_.x-start_.x);
-
-        unsigned x,y;
-        while(bresenham.next()) {
-            bresenham.coordinates(x,y);
-            if(!map_ptr->isFree(x,y,theta)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    template <class T, class Map>
-    static bool canExpand(const T* start, const T* goal, const Map* map_ptr)
-    {
-        return instance().expand(start,goal, map_ptr);
-    }
-
-    static LinearExpansion& instance()
-    {
-        static LinearExpansion inst;
-        return inst;
-    }
-
-    template <class PathT>
-    void get(PathT* out)
-    {
-        typedef typename PathT::value_type NodeT;
-        NodeT node;
-        NodeT::init(node, goal_.x, goal_.y);
-        out->push_back(node);
-    }
-
-    template <class PathT>
-    static void getPath(PathT* out)
-    {
-        instance().get(out);
-    }
-
-    Bresenham2d bresenham;
-    Pose2d start_;
-    Pose2d goal_;
-};
-
-
 
 template <typename Algorithm>
 struct MapGoalTest
@@ -268,8 +209,6 @@ struct PathPlanner : public Planner
 {
     enum { SCALE = 1 };
 
-    //typedef NonHolonomicNeighborhoodPrecise<70, 240> NHNeighbor;
-    //typedef NonHolonomicNeighborhoodPrecise<35, 120> NHNeighbor;
     typedef NonHolonomicNeighborhoodPrecise<40, 120> NHNeighbor;
     typedef NonHolonomicNeighborhoodNoEndOrientation<120, 200> NHNeighborNoEndOrientation;
 
@@ -278,11 +217,7 @@ struct PathPlanner : public Planner
                               Pose2d, GridMap2d, NHNeighbor, NoExpansion,
                               HeuristicL2, DirectionalStateSpaceManager, PriorityQueueManager);
 
-    //  TODO: make these two (or more?) selectable:
-    //typedef AStarNoOrientationSearch<> AStar;
-    //    typedef AStarSearch<NonHolonomicNeighborhood<40, 360, NonHolonomicNeighborhoodMoves::FORWARD/*_BACKWARD*/> > AStarAckermann; // Ackermann
-    //typedef AStarSearch<NonHolonomicNeighborhoodPrecise<40, 250, NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD>,
-    //                    NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermann; // Ackermann
+    // PRECOMPILED CONFIGURATIONS
     typedef AStarDynamicHybridHeuristicsSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD_BACKWARD, true>,
     NoExpansion, Pose2d, GridMap2d, 1000> AStarAckermannReversed; // Ackermann
     typedef AStarDynamicSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD_BACKWARD, false>,
@@ -295,24 +230,16 @@ struct PathPlanner : public Planner
     typedef AStarDynamicSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD, true>,
     NoExpansion, Pose2d, GridMap2d, 100> AStarSummitForwardReversed; // Summit Only Forward
 
-    //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, true> > AStarAckermannRS;
-    //    typedef AStarSearch<NHNeighbor, ReedsSheppExpansion<100, true, false> > AStarAckermannRSForward;
-
     typedef AStar2dSearch<DirectNeighborhood<8, 1> > AStarOmnidrive; // Omnidrive
-    //typedef AStarSearch<NonHolonomicNeighborhood<40, 250, NonHolonomicNeighborhoodMoves::FORWARD> > AStarOmnidrive;
 
     typedef AStarDynamicHybridHeuristicsSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD_BACKWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsy;
     typedef AStarDynamicHybridHeuristicsSearch<SteeringNeighborhood<40, 2, 15, 60, 120, SteeringMoves::FORWARD, true>, NoExpansion, Pose2d, GridMap2d, 500 > AStarPatsyForward;
-    //    typedef AStarHybridHeuristicsSearch<NonHolonomicNeighborhoodPrecise<30, 150, NonHolonomicNeighborhoodMoves::FORWARD>,
-    //    ReedsSheppExpansion<100, true, false> > AStarPatsyRSForward;
-
 
     typedef AStarDynamicSearch<DynamicSteeringNeighborhood,
     NoExpansion, Pose2d, GridMap2d, 100> AStarSteeringDynamic; // Generic Steering Planner
 
     typedef AStarAckermannReversed AStarAckermann;
     typedef AStarOmnidrive AStar2D;
-    //    typedef AStarOmnidrive AStar;
 
     enum class Algo {
         ACKERMANN = 0,

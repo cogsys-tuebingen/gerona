@@ -92,6 +92,12 @@ protected:
      */
     path_msgs::PathSequence interpolatePath(const path_msgs::PathSequence &path, double max_distance);
 
+    /**
+     * @brief simplifyPath uses heuristics to try to simplify the given path
+     * @param path The path to simplify.
+     * @note Using this function only makes sense for non-kinematic paths!
+     * @return  the simplified path.
+     */
     path_msgs::PathSequence simplifyPath(const path_msgs::PathSequence &path);
 
     /**
@@ -104,6 +110,11 @@ protected:
      */
     path_msgs::PathSequence smoothPath(const path_msgs::PathSequence& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
 
+    /**
+     * @brief optimizePathCost generates a new path based on <path> by performing gradient descent with the current costmap.
+     * @param path the path to optimize
+     * @return optimized path
+     */
     path_msgs::PathSequence optimizePathCost(const path_msgs::PathSequence& path);
 
     /**
