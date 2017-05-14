@@ -18,6 +18,9 @@ template <typename T>
 class PointCloud;
 }
 
+/**
+ * @brief The ObstacleCloud class represents all currently known obstacles.
+ */
 class ObstacleCloud
 {
 public:
@@ -28,15 +31,31 @@ public:
     using ObstaclePoint = pcl::PointXYZ;
     using Cloud = pcl::PointCloud<ObstaclePoint>;
 
+    /**
+     * @brief cloud the current obstacle cloud
+     */
     boost::shared_ptr<Cloud> cloud;
 
     ObstacleCloud();
     ObstacleCloud(const boost::shared_ptr<Cloud>& c);
     ObstacleCloud(const boost::shared_ptr<Cloud const>& c);
 
+    /**
+     * @brief empty
+     * @return true, iff no obstacle exists
+     */
     bool empty() const;
+
+    /**
+     * @brief clear removes all current obstacles.
+     */
     void clear();
 
+    /**
+     * @brief transformCloud applies <transform> to all points in the current cloud
+     * @param transform a transformation to apply to all points
+     * @param target_frame, the new frame to set for this cloud
+     */
     void transformCloud(const tf::Transform& transform, const std::string& target_frame);
 };
 

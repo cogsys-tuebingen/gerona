@@ -7,6 +7,12 @@ class RobotController;
 class AbstractLocalPlanner;
 class CollisionAvoider;
 
+/**
+ * @brief The PathFollowerConfigName struct represents a configuration for
+ *        following a path. This configuration is used by the factories to create
+ *        instances of the nescessary classes in the form of PathFollowerConfig.
+ * @see PathFollowerConfig
+ */
 struct PathFollowerConfigName
 {
     std::string controller;
@@ -29,6 +35,10 @@ struct PathFollowerConfigName
     }
 };
 
+/**
+ * @brief The PathFollowerConfig struct holds instances of the necessary classes
+ *        for path following and represents a single configuration.
+ */
 struct PathFollowerConfig
 {
     //! The robot controller is responsible for everything that is dependend on robot model and controller type.

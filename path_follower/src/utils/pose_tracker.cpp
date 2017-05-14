@@ -159,10 +159,10 @@ const geometry_msgs::Pose &PoseTracker::getRobotPoseMsg() const
 
 tf::Transform PoseTracker::getRelativeTransform(const std::string &frame, const ros::Time &time, const ros::Duration& max_wait) const
 {
-    return getRelativeTransform(getRobotFrameId(), frame, time, max_wait);
+    return getTransform(getRobotFrameId(), frame, time, max_wait);
 }
 
-tf::Transform PoseTracker::getRelativeTransform(const std::string &fixed_frame, const std::string &frame, const ros::Time &time, const ros::Duration& max_wait) const
+tf::Transform PoseTracker::getTransform(const std::string &fixed_frame, const std::string &frame, const ros::Time &time, const ros::Duration& max_wait) const
 {
     tf::StampedTransform trafo;
     if(pose_listener_.waitForTransform(fixed_frame, frame, time, max_wait)) {

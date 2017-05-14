@@ -335,7 +335,7 @@ double RobotController::exponentialSpeedControl()
             }
 
         } else {
-            tf::Transform trafo = pose_tracker_->getRelativeTransform(pose_tracker_->getRobotFrameId(), cloud.header.frame_id, ros::Time(0), ros::Duration(0));
+            tf::Transform trafo = pose_tracker_->getTransform(pose_tracker_->getRobotFrameId(), cloud.header.frame_id, ros::Time(0), ros::Duration(0));
             for(const pcl::PointXYZ& pt : cloud) {
 
                 tf::Point pt_cloud(pt.x, pt.y, pt.z);

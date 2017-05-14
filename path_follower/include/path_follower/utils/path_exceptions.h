@@ -7,6 +7,10 @@
 
 #include <path_msgs/FollowPathResult.h>
 
+/**
+ * @brief The EmergencyBreakException struct is thrown on unrecoverable errors and
+ *        should be caught up-stream to halt the robot.
+ */
 struct EmergencyBreakException : public std::runtime_error
 {
     EmergencyBreakException(const std::string& what,
