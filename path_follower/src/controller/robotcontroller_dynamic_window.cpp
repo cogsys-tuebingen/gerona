@@ -152,7 +152,7 @@ void RobotController_Dynamic_Window::searchMinObstDist(){
         }
 
     } else {
-        tf::Transform trafo = pose_tracker_->getRelativeTransform(pose_tracker_->getFixedFrameId(), cloud.header.frame_id, ros::Time(0), ros::Duration(0));
+        tf::Transform trafo = pose_tracker_->getTransform(pose_tracker_->getFixedFrameId(), cloud.header.frame_id, ros::Time(0), ros::Duration(0));
         for(const pcl::PointXYZ& pt : cloud) {
             tf::Point pt_cloud(pt.x, pt.y, pt.z);
             tf::Point pt_ff = trafo * pt_cloud;

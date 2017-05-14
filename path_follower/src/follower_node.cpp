@@ -23,7 +23,7 @@ void importCloud(const ObstacleCloud::Cloud::ConstPtr& sensor_cloud, PathFollowe
     auto& pose_tracker = pf->getPoseTracker();
 
     try {
-        tf::Transform fixed_to_sensor = pose_tracker.getRelativeTransform(pose_tracker.getFixedFrameId(), sensor_frame, now, ros::Duration(0.1));
+        tf::Transform fixed_to_sensor = pose_tracker.getTransform(pose_tracker.getFixedFrameId(), sensor_frame, now, ros::Duration(0.1));
 
         auto obstacle_cloud = std::make_shared<ObstacleCloud>(sensor_cloud);
         obstacle_cloud->transformCloud(fixed_to_sensor, pose_tracker.getFixedFrameId());

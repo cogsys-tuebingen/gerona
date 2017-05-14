@@ -86,7 +86,7 @@ RobotController::MoveCommandStatus RobotController_OFC::computeMoveCommand(MoveC
 
 
     ///get the person's velocity
-    tf::Transform target_tf_robot = pose_tracker_->getRelativeTransform(pose_tracker_->getRobotFrameId(), "target", ros::Time::now(), ros::Duration(0.01));
+    tf::Transform target_tf_robot = pose_tracker_->getTransform(pose_tracker_->getRobotFrameId(), "target", ros::Time::now(), ros::Duration(0.01));
     tf::Vector3 target_vec = target_tf_robot.getOrigin();
 
     if(std::abs(target_vec.length() - target_vec_prev_.length()) > 1e-1){
