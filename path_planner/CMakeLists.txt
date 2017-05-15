@@ -54,7 +54,7 @@ install(TARGETS ${PROJECT_NAME}
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 
-## Generic Search (cslibs_path_planning)
+## Generic (kinematic) search (cslibs_path_planning)
 add_executable(${PROJECT_NAME}_node src/kinematic_planner/path_planner_node.cpp)
 add_dependencies(${PROJECT_NAME}_node path_msgs_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_node

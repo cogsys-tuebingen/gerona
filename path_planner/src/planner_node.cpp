@@ -73,9 +73,9 @@ Planner::Planner()
         nh_priv.param("optimization/tolerance", cost_optimization_tolerance, 1e-5);
     }
 
-    nh_priv.param("use_cloud", use_cloud_, false);
-    nh_priv.param("use_scan_front", use_scan_front_, true);
-    nh_priv.param("use_scan_back", use_scan_back_, true);
+    nh_priv.param("use_cloud", use_cloud_, true);
+    nh_priv.param("use_scan_front", use_scan_front_, false);
+    nh_priv.param("use_scan_back", use_scan_back_, false);
 
     if(use_cloud_) {
         ROS_INFO_STREAM("subscribing to obstacle cloud topic " << nh.resolveName(std::string("obstacle_cloud")));
@@ -83,10 +83,10 @@ Planner::Planner()
         //        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("/obstacle_cloud", 0, boost::bind(&Planner::cloudCallback, this, _1));
     }
     if(use_scan_front_) {
-        sub_front = nh_priv.subscribe<sensor_msgs::LaserScan>("/scan/front/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, true));
+        sub_front = nh_priv.subscribe<sensor_msgs::LaserScan>("scan/front/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, true));
     }
     if(use_scan_back_) {
-        sub_back = nh_priv.subscribe<sensor_msgs::LaserScan>("/scan/back/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, false));
+        sub_back = nh_priv.subscribe<sensor_msgs::LaserScan>("scan/back/filtered", 0, boost::bind(&Planner::laserCallback, this, _1, false));
     }
 
 

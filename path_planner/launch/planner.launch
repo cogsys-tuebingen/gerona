@@ -6,7 +6,6 @@
         <param name="use_map_service" value="false" />
         <param name="map_service" value="/dynamic_map" />
         <param name="map_topic" value="/map" />
-        <param name="map_cloud" value="true" />
         <param name="use_unknown_cells" value="true" />
         <param name="use_cost_map" value="false" />
 

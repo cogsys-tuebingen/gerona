@@ -256,8 +256,7 @@ struct PathPlanner : public Planner
     {
         nh_priv.param("render_open_cells", render_open_cells_, false);
 
-        std::string algo = "ackermann";
-        nh_priv.param("algorithm", algo, algo);
+        nh_priv.param("algorithm", algo, std::string("generic"));
 
         nh_priv.param("oversearch_distance", search_options.oversearch_distance, search_options.oversearch_distance);
         ROS_INFO_STREAM("oversearch distance is " << search_options.oversearch_distance);
