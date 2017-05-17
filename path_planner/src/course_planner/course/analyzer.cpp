@@ -5,13 +5,12 @@
 #include "search.h"
 
 Analyzer::Analyzer(Search &search)
-    : pnh_("~"),
-      search(search)
+    : search(search)
 {
-    pnh_.param("course/penalty/backwards", backward_penalty_factor, 2.5);
-    pnh_.param("course/penalty/turn", turning_penalty, 5.0);
+}
 
-    pnh_.param("course/turning/straight", turning_straight_segment, 0.7);
+Analyzer::~Analyzer()
+{
 }
 
 Eigen::Vector2d Analyzer::findStartPointOnSegment(const Node* node) const
@@ -58,44 +57,6 @@ Eigen::Vector2d Analyzer::findEndPointOnSegment(const Node* node, const Transiti
     }
 }
 
-double  Analyzer::calculateStraightCost(Node* node, const Eigen::Vector2d& start_point_on_segment, const Eigen::Vector2d& end_point_on_segment) const
-{
-    double cost = 0.0;
-    bool segment_forward = isSegmentForward(node->next_segment, start_point_on_segment, end_point_on_segment);
-    double distance_to_end = (end_point_on_segment - start_point_on_segment).norm();
-    if(segment_forward) {
-        cost += distance_to_end;
-    } else {
-        cost += backward_penalty_factor * distance_to_end;
-    }
-
-    bool prev_segment_forward = isPreviousSegmentForward(node);
-    if(prev_segment_forward != segment_forward) {
-        // single turn
-        cost += turning_straight_segment;
-        cost += turning_penalty;
-
-    } else if(segment_forward != node->curve_forward) {
-        // double turn
-        cost += 2 * turning_straight_segment;
-        cost += 2 * turning_penalty;
-    }
-
-    return cost;
-}
-
-double Analyzer::calculateCurveCost(Node *node) const
-{
-    if(node->curve_forward) {
-        return node->transition->arc_length();
-    } else {
-        return backward_penalty_factor * node->transition->arc_length();
-    }
-}
-
-
-
-
 bool Analyzer::isPreviousSegmentForward(const Node* node) const
 {
     if(node->prev) {
@@ -121,12 +82,23 @@ double Analyzer::calculateEffectiveLengthOfNextSegment(const Node* node) const
 
 
 
-bool Analyzer::isSegmentForward(const Segment* segment, const Eigen::Vector2d& pos, const Eigen::Vector2d& target) const
+bool Analyzer::isSegmentForward(const Segment* segment,
+                                const Eigen::Vector2d& pos,
+                                const Eigen::Vector2d& target) const
 {
     Eigen::Vector2d segment_dir = segment->line.endPoint() - segment->line.startPoint();
     Eigen::Vector2d move_dir = target - pos;
+    ROS_DEBUG_STREAM("check segment " <<
+                    segment->line.startPoint()(0) << ", " << segment->line.startPoint()(1) <<
+                    " -> " <<
+                    segment->line.endPoint()(0) << ", " << segment->line.endPoint()(1) <<
+                    " with " <<
+                    pos(0) << ", " << pos(1) <<
+                    " -> " <<
+                    target(0) << ", " << target(1));
     if(move_dir.norm() < 0.1) {
-        ROS_WARN_STREAM("effective segment size is small: " << move_dir.norm());
+        ROS_WARN_STREAM_THROTTLE(1, "effective segment size is small: " << move_dir.norm() <<
+                                 ". This can result in wrong paths!");
     }
     return segment_dir.dot(move_dir) >= 0.0;
 }

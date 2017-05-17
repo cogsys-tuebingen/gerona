@@ -15,14 +15,13 @@ public:
     friend class Search;
 
     Analyzer(Search& search);
+    virtual ~Analyzer();
 
     Eigen::Vector2d findStartPointOnSegment(const Node* node) const;
     Eigen::Vector2d findStartPointOnSegment(const Node* node, const Transition* transition) const;
     Eigen::Vector2d findEndPointOnSegment(const Node* node) const;
     Eigen::Vector2d findEndPointOnSegment(const Node* node, const Transition* transition) const;
 
-    double calculateStraightCost(Node* current_node, const Eigen::Vector2d &start_point_on_segment, const Eigen::Vector2d &end_point_on_segment) const;
-    double calculateCurveCost(Node* current_node) const;
     double calculateEffectiveLengthOfNextSegment(const Node* node) const;
 
     bool isSegmentForward(const Segment* segment, const Eigen::Vector2d& pos, const Eigen::Vector2d& target) const;
@@ -33,13 +32,7 @@ public:
     std::string signature(const Node* head) const;
 
 private:
-    ros::NodeHandle pnh_;
-
     Search& search;
-
-    double backward_penalty_factor;
-    double turning_straight_segment;
-    double turning_penalty;
 
 };
 

@@ -159,6 +159,7 @@ add_library(${PROJECT_NAME} SHARED
 target_link_libraries(${PROJECT_NAME}
     ${ALGLIB_LIBRARIES} ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES} ${PCL_LIBRARIES}
 )
+add_dependencies(${PROJECT_NAME} ${path_msgs_EXPORTED_TARGETS})
 
 
 add_executable(${PROJECT_NAME}_node

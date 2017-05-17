@@ -115,6 +115,12 @@ struct StaticPathPlanner : public Planner
 
     void execute(const path_msgs::PlanPathGoalConstPtr &goal)
     {
+        if(!generatePath()) {
+            path_msgs::PlanPathResult failure;
+            server_.setSucceeded(failure);
+            return;
+        }
+
         path_msgs::PathSequence path_raw = path_msgs::PathSequence();
 
         tf::poseMsgToTF(goal->goal.pose.pose, pose_);
@@ -178,6 +184,42 @@ struct StaticPathPlanner : public Planner
     }
 
 private:
+
+    bool generatePath()
+    {
+        ros::NodeHandle nh("~");
+        XmlRpc::XmlRpcValue segment_array;
+        nh.param("segments", segment_array, segment_array);
+
+        if(segment_array.getType() != XmlRpc::XmlRpcValue::TypeArray) {
+            ROS_FATAL_STREAM("segments type is not array: " << segment_array.toXml());
+            return false;
+        }
+
+        for(int i =0; i < segment_array.size(); i++)
+        {
+            XmlRpc::XmlRpcValue& segment = segment_array[i];
+            if(segment.getType() != XmlRpc::XmlRpcValue::TypeArray) {
+                ROS_FATAL_STREAM("segment type is not array: " << segment.toXml());
+                return false;
+            }
+
+            if(segment.size() == 1) {
+                addStraight(segment[0]);
+
+            } else if(segment.size() == 2) {
+                addCurve(segment[0], segment[1]);
+
+            } else {
+                ROS_FATAL_STREAM("segment with " << segment.size() << " elements is not defined");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+private:
     double resolution_;
     std::vector< std::shared_ptr<Segment> > segments_;
 
@@ -191,37 +233,6 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "path_planner");
 
     StaticPathPlanner planner;
-
-    {
-        ros::NodeHandle nh("~");
-        XmlRpc::XmlRpcValue segment_array;
-        nh.param("segments", segment_array, segment_array);
-
-        if(segment_array.getType() != XmlRpc::XmlRpcValue::TypeArray) {
-            ROS_FATAL_STREAM("segments type is not array: " << segment_array.toXml());
-            std::abort();
-        }
-
-        for(int i =0; i < segment_array.size(); i++)
-        {
-            XmlRpc::XmlRpcValue& segment = segment_array[i];
-            if(segment.getType() != XmlRpc::XmlRpcValue::TypeArray) {
-                ROS_FATAL_STREAM("segment type is not array: " << segment.toXml());
-                std::abort();
-            }
-
-            if(segment.size() == 1) {
-                planner.addStraight(segment[0]);
-
-            } else if(segment.size() == 2) {
-                planner.addCurve(segment[0], segment[1]);
-
-            } else {
-                ROS_FATAL_STREAM("segment with " << segment.size() << " elements is not defined");
-                std::abort();
-            }
-        }
-    }
 
     ros::WallRate r(2);
     while(ros::ok()){

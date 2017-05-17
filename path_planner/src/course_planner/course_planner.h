@@ -32,28 +32,14 @@ public:
     CoursePlanner();
 
     virtual bool supportsGoalType(int type) const override;
-
-    void execute(const path_msgs::PlanPathGoalConstPtr &goal);
-
     virtual path_msgs::PathSequence plan (const path_msgs::PlanPathGoal &goal,
                                           const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-                                          const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
-
-        throw std::logic_error("should not be called");
-    }
-
+                                          const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) override;
     void tick();
 
-    void addCurve(double angle, double radius);
-
-    void findCircleOnCourse(const path_geom::Circle& obstacle, const std::vector<std::shared_ptr<path_geom::Shape>>& course, std::vector<int>& indices );
-
-    void findPosOnCourse(const path_geom::PathPose& gp, const std::vector<std::shared_ptr<path_geom::Shape>>& course,
-                        int& nearest_idx,Eigen::Vector2d& nearest);
 private:
     double resolution_ = 0.1;
 
-    XmlRpc::XmlRpcValue segment_array_;
     XmlRpc::XmlRpcValue map_segment_array_;
 
     CourseMap course_;
@@ -97,17 +83,6 @@ private:
         return pose;
     }
     void addGeomPoses(const path_geom::PathPoseVec& gposes, path_msgs::PathSequence& path);
-
-
-    /**
-      evil hack should be provided by feedback of follower
-      */
-    bool getWorldPose(const std::string& world_frame, const std::string& robot_frame,geometry_msgs::PoseStamped& result) const;
-    tf::TransformListener pose_listener_;
-
-
-    path_msgs::PathSequence planWithStaticPath(const path_msgs::PlanPathGoalConstPtr &goal);
-    path_msgs::PathSequence planWithMap(const path_msgs::PlanPathGoalConstPtr &goal);
 };
 
 #endif // COURSE_PLANNER_H

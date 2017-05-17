@@ -9,14 +9,14 @@
 template <typename Algorithm>
 struct NearCourseTest
 {
-    NearCourseTest(const CourseMap& parent, Algorithm& algo, const nav_msgs::OccupancyGrid& map, const lib_path::SimpleGridMap2d* map_info)
+    NearCourseTest(const CourseMap& parent, Algorithm& algo, const lib_path::SimpleGridMap2d* map_info)
         : parent(parent),
-          algo(algo), map(map), map_info(map_info),
-          res(map.info.resolution),
-          ox(map.info.origin.position.x),
-          oy(map.info.origin.position.y),
-          w(map.info.width),
-          h(map.info.height),
+          algo(algo), map_info(map_info),
+          res(map_info->getResolution()),
+          ox(map_info->getOrigin().x),
+          oy(map_info->getOrigin().y),
+          w(map_info->getWidth()),
+          h(map_info->getHeight()),
 
           candidates(0)
     {
@@ -31,8 +31,6 @@ struct NearCourseTest
     {
         double wx, wy;
         map_info->cell2pointSubPixel(node->x,node->y, wx, wy);
-
-        ROS_INFO_STREAM("test node " << wx <<  " / " << wy);
 
         const double min_necessary_dist_to_crossing = 0.0;
 
@@ -56,6 +54,8 @@ struct NearCourseTest
             if(min_dist_to_crossing > min_necessary_dist_to_crossing) {
                 algo.addGoalCandidate(node, closest_segment->line.distanceTo(point.pos_));
                 ++candidates;
+
+                ROS_DEBUG_STREAM("found node " << wx <<  " / " << wy);
             }
 
         }
@@ -71,7 +71,6 @@ struct NearCourseTest
     const CourseMap& parent;
 
     Algorithm& algo;
-    const nav_msgs::OccupancyGrid& map;
     const lib_path::SimpleGridMap2d * map_info;
 
     double res;

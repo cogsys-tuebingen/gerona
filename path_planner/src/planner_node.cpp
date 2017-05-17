@@ -386,12 +386,11 @@ void Planner::updateGoalCallback(const geometry_msgs::PoseStampedConstPtr &goal)
 void Planner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
 {
     Stopwatch sw_global;
-    ROS_INFO("planner: got request");
 
     Stopwatch sw;
     sw.reset();
     path_msgs::PathSequence path = findPath(*goal);
-    ROS_INFO_STREAM("findPath took " << sw.msElapsed() << "ms");
+    ROS_DEBUG_STREAM("findPath took " << sw.msElapsed() << "ms");
 
     if(path.paths.empty()) {
         feedback(path_msgs::PlanPathFeedback::STATUS_PLANNING_FAILED);
@@ -406,7 +405,7 @@ void Planner::execute(const path_msgs::PlanPathGoalConstPtr &goal)
         success.path = path;
         server_.setSucceeded(success);
     }
-    ROS_INFO_STREAM("execution took " << sw_global.msElapsed() << "ms");
+    ROS_INFO_STREAM("path planning took " << sw_global.msElapsed() << "ms");
 }
 
 path_msgs::PathSequence Planner::findPath(const path_msgs::PlanPathGoal& request)
@@ -499,7 +498,7 @@ path_msgs::PathSequence Planner::findPath(const path_msgs::PlanPathGoal& request
         empty_map.info.origin.orientation.w = 1.0;
         empty_map.data.resize(empty_map.info.width * empty_map.info.height, 0);
 
-        ROS_INFO_STREAM("no map to use, generate empty map");
+        ROS_DEBUG_STREAM("no map to use, generate empty map");
         updateMap(empty_map, false);
     }
 
@@ -515,25 +514,25 @@ path_msgs::PathSequence Planner::findPath(const path_msgs::PlanPathGoal& request
 
     sw.reset();
     preprocess(request);
-    ROS_INFO_STREAM("preprocessing took " << sw.msElapsed() << "ms");
+    ROS_DEBUG_STREAM("preprocessing took " << sw.msElapsed() << "ms");
 
 
     sw.reset();
     path_msgs::PathSequence path_raw = doPlan(request);
-    ROS_INFO_STREAM("planning took " << sw.msElapsed() << "ms");
+    ROS_DEBUG_STREAM("planning took " << sw.msElapsed() << "ms");
 
     path_msgs::PathSequence path;
     if(post_process_ && !path_raw.paths.empty()) {
         sw.reset();
         path = postprocess(path_raw);
-        ROS_INFO_STREAM("postprocessing took " << sw.msElapsed() << "ms");
+        ROS_DEBUG_STREAM("postprocessing took " << sw.msElapsed() << "ms");
     } else {
         path = path_raw;
     }
 
     sw.reset();
     publish(path, path_raw);
-    ROS_INFO_STREAM("publish took " << sw.msElapsed() << "ms");
+    ROS_DEBUG_STREAM("publish took " << sw.msElapsed() << "ms");
     return path;
 }
 
@@ -621,7 +620,7 @@ path_msgs::PathSequence Planner::postprocess(const path_msgs::PathSequence& path
 
     Stopwatch sw;
 
-    ROS_INFO("postprocessing");
+    ROS_DEBUG("postprocessing");
 
     feedback(path_msgs::PlanPathFeedback::STATUS_POST_PROCESSING);
 
@@ -633,27 +632,27 @@ path_msgs::PathSequence Planner::postprocess(const path_msgs::PathSequence& path
     if(post_process_optimize_cost_) {
         sw.restart();
         working_copy = optimizePathCost(working_copy);
-        ROS_INFO_STREAM("optimizing cost took " << sw.msElapsed() << "ms");
+        ROS_DEBUG_STREAM("optimizing cost took " << sw.msElapsed() << "ms");
     }
 
     sw.restart();
     path_msgs::PathSequence interpolated_path = interpolatePath(working_copy, 0.5);
-    ROS_INFO_STREAM("interpolation took " << sw.msElapsed() << "ms");
+    ROS_DEBUG_STREAM("interpolation took " << sw.msElapsed() << "ms");
 
 
     sw.restart();
     path_msgs::PathSequence smoothed_path = smoothPath(interpolated_path, 0.6, 0.15);
-    ROS_INFO_STREAM("smoothing took " << sw.msElapsed() << "ms");
+    ROS_DEBUG_STREAM("smoothing took " << sw.msElapsed() << "ms");
 
 
     sw.restart();
     path_msgs::PathSequence final_interpolated_path = interpolatePath(smoothed_path, 0.1);
-    ROS_INFO_STREAM("final interpolation took " << sw.msElapsed() << "ms");
+    ROS_DEBUG_STREAM("final interpolation took " << sw.msElapsed() << "ms");
 
 
     sw.restart();
     path_msgs::PathSequence final_smoothed_path = smoothPath(final_interpolated_path, 2.0, 0.4);
-    ROS_INFO_STREAM("final smoothing took " << sw.msElapsed() << "ms");
+    ROS_DEBUG_STREAM("final smoothing took " << sw.msElapsed() << "ms");
 
     return final_smoothed_path;
 }
@@ -697,7 +696,7 @@ path_msgs::PathSequence Planner::doPlan(const path_msgs::PlanPathGoal &request)
         return empty();
     }
 
-    ROS_INFO("starting search");
+    ROS_DEBUG("starting search");
 
     feedback(path_msgs::PlanPathFeedback::STATUS_PLANNING);
 
@@ -731,7 +730,7 @@ path_msgs::PathSequence Planner::doPlan(const path_msgs::PlanPathGoal &request)
         spin.sleep();
     }
 
-    ROS_INFO_STREAM("sub-planner done or aborted");
+    ROS_DEBUG_STREAM("sub-planner done or aborted");
 
     thread_mutex.lock();
     path_msgs::PathSequence path = thread_result;

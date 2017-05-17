@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<launch>
+<node name="course_planner" type="course_planner_node" pkg="path_planner" output="screen" respawn="true">
+    <remap from="plan_path" to="/plan_path_course" />
+
+    <param name="use_map_topic" value="false" />
+    <param name="use_map_service" value="false" />
+    <param name="map_service" value="/static_map" />
+
+    <param name="course/resolution" value="0.065" />
+    <param name="obstacle_radius" value="1.0" />
+
+    <param name="course/radius" value="0.9" />
+    <param name="course/penalty/backwards" value="10.0" />
+    <param name="course/penalty/turn" value="50.0" />
+
+    <param name="course/turning/straight" value="0.7" />
+
+
+    <param name="size/forward" value="0.4" />
+    <param name="size/backward" value="-0.6" />
+    <param name="size/width" value="0.5" />
+
+    <rosparam param="course/map_segments">
+        [
+            [[-2.0, 1.0], [-2.0, 0.0]],
+
+            [[-2.0, 0.0], [13.5, 0.0]],
+            [[13.5, -30.0], [13.5, 52.4]],
+            [[13.5, 52.4],[8.0, 52.4]],
+            [[8.0, 52.4], [8.0, 50.4]],
+            [[8.0, 50.4], [13.5, 50.4]],
+            [[12.5, 50.4], [12.5, -30.0]],
+            [[13.5, 1.0], [-2.0, 1.0]],
+
+            [[9.5, 52.4],[8.7, 59.0]],
+            [[7.2, 59.0], [8.0, 52.4]],
+            [[8.7, 59.0], [7.2, 59.0]],
+
+
+            [[13.5, -24.5], [2.5, -24.5]],
+            [[13.5, -25.5], [2.5, -25.5]],
+        ]
+    </rosparam>
+
+</node>
+</launch>

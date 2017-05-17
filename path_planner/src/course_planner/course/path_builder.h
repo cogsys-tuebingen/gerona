@@ -2,19 +2,21 @@
 #define PATH_BUILDER_H
 
 #include <cslibs_path_planning/geometry/shape.h>
+#include <path_msgs/PathSequence.h>
+#include "analyzer.h"
 #include "node.h"
 
-class PathBuilder
+class PathBuilder : public Analyzer
 {
 public:
-    PathBuilder();
+    PathBuilder(Search &search);
 
-    operator std::vector<path_geom::PathPose>() {
+    operator path_msgs::PathSequence() {
         return build();
     }
 
-    std::vector<path_geom::PathPose> build() const;
-    void addPath(const std::vector<path_geom::PathPose>& path);
+    path_msgs::PathSequence build() const;
+    void addPath(const path_msgs::PathSequence& path);
 
     void insertTangentPoint(const Segment* start_segment, Eigen::Vector2d start_pt);
 
@@ -24,7 +26,10 @@ public:
     void extendWithStraightTurningSegment(const Eigen::Vector2d &pt, double length);
 
 private:
-    std::vector<path_geom::PathPose> res;
+    void insertPose(const Eigen::Vector2d& pt, double c_yaw);
+
+private:
+    path_msgs::PathSequence res;
 };
 
 #endif // PATH_BUILDER_H

@@ -20,7 +20,7 @@ bool comp (const Node* lhs, const Node* rhs)
 
 Search::Search(const CourseMap& generator)
     : pnh_("~"),
-      analyzer(*this),
+      cost_calculator_(*this),
       generator_(generator)
 {    
     pnh_.param("size/forward", size_forward, 0.4);
@@ -29,44 +29,34 @@ Search::Search(const CourseMap& generator)
 
     pnh_.param("max_distance_for_direct_try", max_distance_for_direct_try, 7.0);
     pnh_.param("max_time_for_direct_try", max_time_for_direct_try, 1.0);
-
-
-    std::string map_service = "/static_map";
-    pnh_.param("map_service",map_service, map_service);
-
-    map_service_client_ = pnh_.serviceClient<nav_msgs::GetMap> (map_service);
 }
 
 
-std::vector<path_geom::PathPose> Search::findPath(const path_geom::PathPose& start_pose, const path_geom::PathPose& end_pose)
+path_msgs::PathSequence Search::findPath(lib_path::SimpleGridMap2d * map,
+                                         const path_msgs::PlanPathGoal &goal,
+                                         const path_geom::PathPose& start_pose,
+                                         const path_geom::PathPose& end_pose)
 {
+    map_info = map;
 
-    nav_msgs::GetMap map_service;
-    if(!map_service_client_.exists()) {
-        map_service_client_.waitForExistence();
-    }
-    if(!map_service_client_.call(map_service)) {
-        ROS_ERROR("map service lookup failed");
-        return {};
-    }
-
-    initMaps(map_service.response.map);
+    world_frame_ = goal.goal.pose.header.frame_id;
+    time_stamp_ = goal.goal.pose.header.stamp;
 
     double distance = (start_pose.pos_ - end_pose.pos_).norm();
     if(distance <= max_distance_for_direct_try) {
         auto direct = tryDirectPath(start_pose, end_pose);
-        if(!direct.empty()) {
+        if(!direct.paths.empty()) {
             return direct;
         }
     }
 
-    if(!findAppendices(map_service.response.map, start_pose, end_pose)) {
+    if(!findAppendices(start_pose, end_pose)) {
         return {};
     }
 
 
     if(start_segment == end_segment) {
-        PathBuilder path_builder;
+        PathBuilder path_builder(*this);
         path_builder.addPath(start_appendix);
 
         path_builder.insertTangentPoint(start_segment, start_pt);
@@ -81,11 +71,11 @@ std::vector<path_geom::PathPose> Search::findPath(const path_geom::PathPose& sta
 }
 
 
-std::vector<path_geom::PathPose> Search::tryDirectPath(const path_geom::PathPose& start, const path_geom::PathPose& end)
+path_msgs::PathSequence Search::tryDirectPath(const path_geom::PathPose& start, const path_geom::PathPose& end)
 {
 //    {
 //        AStarPatsyReversed algo_forward;
-//        algo_forward.setMap(map_info.get());
+//        algo_forward.setMap(map_info);
 //        algo_forward.setTimeLimit(max_time_for_direct_try);
 //        auto path = algo_forward.findPath(convertToMap(start), convertToMap(end));
 
@@ -95,7 +85,7 @@ std::vector<path_geom::PathPose> Search::tryDirectPath(const path_geom::PathPose
 //    }
     {
         AStarPatsyReversedTurning algo_turning;
-        algo_turning.setMap(map_info.get());
+        algo_turning.setMap(map_info);
         algo_turning.setTimeLimit(max_time_for_direct_try * 10);
         auto path = algo_turning.findPath(convertToMap(start), convertToMap(end));
 
@@ -107,7 +97,7 @@ std::vector<path_geom::PathPose> Search::tryDirectPath(const path_geom::PathPose
     return {};
 }
 
-std::vector<path_geom::PathPose> Search::performDijkstraSearch()
+path_msgs::PathSequence Search::performDijkstraSearch()
 {
     initNodes();
 
@@ -131,10 +121,10 @@ std::vector<path_geom::PathPose> Search::performDijkstraSearch()
             for(const Transition& next_transition : transitions) {
                 Node* neighbor = &nodes.at(&next_transition);
 
-                double curve_cost = analyzer.calculateCurveCost(current_node);
-                double straight_cost = analyzer.calculateStraightCost(current_node,
-                                                                      analyzer.findStartPointOnSegment(current_node),
-                                                                      analyzer.findEndPointOnSegment(current_node, &next_transition));
+                double curve_cost = cost_calculator_.calculateCurveCost(current_node);
+                double straight_cost = cost_calculator_.calculateStraightCost(current_node,
+                                                                      cost_calculator_.findStartPointOnSegment(current_node),
+                                                                      cost_calculator_.findEndPointOnSegment(current_node, &next_transition));
 
                 double new_cost = current_node->cost + curve_cost + straight_cost;
 
@@ -153,7 +143,7 @@ std::vector<path_geom::PathPose> Search::performDijkstraSearch()
         }
     }
 
-    PathBuilder path_builder;
+    PathBuilder path_builder(*this);
     path_builder.addPath(start_appendix);
     path_builder.addPath(best_path);
     path_builder.addPath(end_appendix);
@@ -171,41 +161,10 @@ void Search::enqueueStartingNodes(std::set<Node*, bool(*)(const Node*, const Nod
 
             // distance from start_pt to transition
             Eigen::Vector2d  end_point_on_segment = node->curve_forward ? next_transition.path.front() : next_transition.path.back();
-            node->cost = analyzer.calculateStraightCost(node, start_pt, end_point_on_segment);
+            node->cost = cost_calculator_.calculateStraightCost(node, start_pt, end_point_on_segment);
             queue.insert(node);
         }
     }
-}
-
-void Search::initMaps(const nav_msgs::OccupancyGrid& map)
-{
-    unsigned w = map.info.width;
-    unsigned h = map.info.height;
-
-    bool replace = !map_info  ||
-            map_info->getWidth() != w ||
-            map_info->getHeight() != h;
-
-    if(replace){
-        map_info.reset(new lib_path::CollisionGridMap2d(map.info.width, map.info.height, tf::getYaw(map.info.origin.orientation), map.info.resolution, size_forward, size_backward, size_width));
-    }
-
-    std::vector<uint8_t> data(w*h);
-    int i = 0;
-
-    /// Map data
-    /// -1: unknown -> 0
-    /// 0:100 probabilities -> 1 - 100
-    for(std::vector<int8_t>::const_iterator it = map.data.begin(); it != map.data.end(); ++it) {
-        data[i++] = std::min(100, *it + 1);
-    }
-
-    map_info->setLowerThreshold(50);
-    map_info->setUpperThreshold(70);
-    map_info->setNoInformationValue(-1);
-
-    map_info->set(data, w, h);
-    map_info->setOrigin(lib_path::Point2d(map.info.origin.position.x, map.info.origin.position.y));
 }
 
 void Search::initNodes()
@@ -225,16 +184,18 @@ void Search::initNodes()
     }
 }
 
-bool Search::findAppendices(const nav_msgs::OccupancyGrid& map, const path_geom::PathPose& start_pose, const path_geom::PathPose& end_pose)
+bool Search::findAppendices(const path_geom::PathPose& start_pose, const path_geom::PathPose& end_pose)
 {
-    ROS_WARN_STREAM("searching appendices");
+    ROS_DEBUG_STREAM("searching appendices");
 
-    start_appendix = findAppendix<AStarPatsyForward, AStarPatsyForwardTurning>(map, start_pose, "start");
-    if(start_appendix.empty()) {
+    start_appendix = findAppendix<AStarPatsyForward, AStarPatsyForwardTurning>(start_pose, "start");
+    if(start_appendix.paths.empty()) {
         return false;
     }
 
-    path_geom::PathPose start = start_appendix.back();
+    geometry_msgs::PoseStamped start_msg = start_appendix.paths.back().poses.back();
+    path_geom::PathPose start(start_msg.pose.position.x, start_msg.pose.position.y,
+                              tf::getYaw(start_msg.pose.orientation));
     start_segment = generator_.findClosestSegment(start, M_PI / 8, 0.5);
     start_pt = start_segment->line.nearestPointTo(start.pos_);
     if(!start_segment) {
@@ -243,39 +204,42 @@ bool Search::findAppendices(const nav_msgs::OccupancyGrid& map, const path_geom:
     }
 
 
-    end_appendix = findAppendix<AStarPatsyReversed, AStarPatsyReversedTurning>(map, end_pose, "end");
-    if(end_appendix.empty()) {
+    end_appendix = findAppendix<AStarPatsyReversed, AStarPatsyReversedTurning>(end_pose, "end");
+    if(end_appendix.paths.empty()) {
         return false;
     }
-    std::reverse(end_appendix.begin(), end_appendix.end());
+//    std::reverse(end_appendix.begin(), end_appendix.end());
 
-    path_geom::PathPose end = end_appendix.front();
+    geometry_msgs::PoseStamped end_msg = end_appendix.paths.front().poses.front();
+    path_geom::PathPose end(end_msg.pose.position.x, end_msg.pose.position.y,
+                              tf::getYaw(end_msg.pose.orientation));
+
     end_segment = generator_.findClosestSegment(end, M_PI / 8, 0.5);
-    end_pt = end_segment->line.nearestPointTo(end.pos_);
     if(!end_segment) {
         ROS_ERROR_STREAM("cannot find a path for  end pose " << end.pos_);
         return false;
     }
+    end_pt = end_segment->line.nearestPointTo(end.pos_);
 
     return true;
 }
 
 template <typename AlgorithmForward, typename AlgorithmFull>
-std::vector<path_geom::PathPose> Search::findAppendix(const nav_msgs::OccupancyGrid &map, const path_geom::PathPose& pose, const std::string& type)
+path_msgs::PathSequence Search::findAppendix(const path_geom::PathPose& pose, const std::string& type)
 {
     lib_path::Pose2d pose_map = convertToMap(pose);
 
     AlgorithmForward algo_forward;
-    algo_forward.setMap(map_info.get());
+    algo_forward.setMap(map_info);
 
-    NearCourseTest<AlgorithmForward> goal_test_forward(generator_, algo_forward, map, map_info.get());
-    auto path_start = algo_forward.findPath(pose_map, goal_test_forward, 0);
+    NearCourseTest<AlgorithmForward> goal_test_forward(generator_, algo_forward, map_info);
+    auto path_start = algo_forward.findPath(pose_map, goal_test_forward, [](){});
     if(path_start.empty()) {
         ROS_WARN_STREAM("cannot connect to " << type << " without turning");
         AlgorithmFull algo_forward_turn;
-        NearCourseTest<AlgorithmFull> goal_test_forward_turn(generator_, algo_forward_turn, map, map_info.get());
-        algo_forward_turn.setMap(map_info.get());
-        path_start = algo_forward_turn.findPath(pose_map, goal_test_forward_turn, 0);
+        NearCourseTest<AlgorithmFull> goal_test_forward_turn(generator_, algo_forward_turn, map_info);
+        algo_forward_turn.setMap(map_info);
+        path_start = algo_forward_turn.findPath(pose_map, goal_test_forward_turn, [](){});
         if(path_start.empty()) {
             ROS_ERROR_STREAM("cannot connect to " << type);
             return {};
@@ -297,14 +261,35 @@ path_geom::PathPose Search::convertToWorld(const NodeT& node)
     return path_geom::PathPose(tmpx, tmpy, node.theta/* - tf::getYaw(map.info.origin.orientation)*/);
 }
 
-std::vector<path_geom::PathPose> Search::convertToWorld(const std::vector<NodeT>& path)
+path_msgs::PathSequence Search::convertToWorld(const std::vector<NodeT>& path_raw)
 {
-    std::vector<path_geom::PathPose> res;
-    for(const auto& node : path) {
-        res.push_back(convertToWorld(node));
+    if(path_raw.empty()) {
+        return {};
     }
 
-    return res;
+    path_msgs::PathSequence path_out;
+    path_out.paths.emplace_back();
+
+    path_out.header.stamp = time_stamp_;
+    path_out.header.frame_id = world_frame_;
+
+    path_msgs::DirectionalPath* path = &path_out.paths.back();
+
+    path->forward = true;
+
+    if(path_raw.size() > 0) {
+        for(const auto& next_map : path_raw) {
+            geometry_msgs::PoseStamped pose;
+            map_info->cell2pointSubPixel(next_map.x,next_map.y,pose.pose.position.x,
+                                         pose.pose.position.y);
+
+            pose.pose.orientation = tf::createQuaternionMsgFromYaw(next_map.theta);
+
+            path->poses.push_back(pose);
+        }
+    }
+
+    return path_out;
 }
 
 lib_path::Pose2d  Search::convertToMap(const path_geom::PathPose& pt)
@@ -324,13 +309,13 @@ lib_path::Pose2d  Search::convertToMap(const path_geom::PathPose& pt)
 void Search::generatePathCandidate(Node* node)
 {
     // finish the path -> connect to end point
-    double additional_cost = analyzer.calculateStraightCost(node, analyzer.findStartPointOnSegment(node), end_pt);
+    double additional_cost = cost_calculator_.calculateStraightCost(node, cost_calculator_.findStartPointOnSegment(node), end_pt);
     node->cost += additional_cost;
 
-    ROS_WARN_STREAM("found candidate with signature " << analyzer.signature(node) << " with cost " << node->cost);
+    ROS_DEBUG_STREAM("found candidate with signature " << cost_calculator_.signature(node) << " with cost " << node->cost);
     if(node->cost < min_cost) {
         min_cost = node->cost;
-        best_path.clear();
+        best_path = path_msgs::PathSequence();
 
         std::deque<const Node*> transitions;
         Node* tmp = node;
@@ -342,9 +327,14 @@ void Search::generatePathCandidate(Node* node)
             tmp = tmp->prev;
         }
 
-        PathBuilder path_builder;
+        PathBuilder path_builder(*this);
         generatePath(transitions, path_builder);
         best_path = path_builder;
+
+        ROS_DEBUG_STREAM("best path has " << best_path.paths.size() << " paths");
+        for(const auto& path : best_path.paths) {
+            ROS_DEBUG_STREAM("* poses: " << path.poses.size() << ", direction: " << (bool) path.forward);
+        }
     }
 }
 
@@ -352,20 +342,20 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, PathB
 {
     path_builder.insertTangentPoint(start_segment, start_pt);
 
-    bool segment_forward = analyzer.isStartSegmentForward(path_transitions.front());
+    bool segment_forward = cost_calculator_.isStartSegmentForward(path_transitions.front());
 
-    ROS_INFO_STREAM("generating path from " << path_transitions.size() << " transitions");
+    ROS_DEBUG_STREAM("generating path from " << path_transitions.size() << " transitions");
     for(std::size_t i = 0, n = path_transitions.size(); i < n; ++i) {
         const Node* current_node = path_transitions[i];
 
-        double eff_len = analyzer.calculateEffectiveLengthOfNextSegment(current_node);
+        double eff_len = cost_calculator_.calculateEffectiveLengthOfNextSegment(current_node);
         if(eff_len < std::numeric_limits<double>::epsilon()) {
             // the segment has no length -> only insert the transition curve
             path_builder.insertCurveSegment(current_node);
             continue;
         }
 
-        bool next_segment_forward = analyzer.isNextSegmentForward(current_node);
+        bool next_segment_forward = cost_calculator_.isNextSegmentForward(current_node);
 
         // insert turning point?
         if(next_segment_forward == segment_forward) {
@@ -383,17 +373,17 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, PathB
                  */
 
                 if(current_node->curve_forward) {
-                    path_builder.extendWithStraightTurningSegment(current_node->transition->path.front(), analyzer.turning_straight_segment);
+                    path_builder.extendWithStraightTurningSegment(current_node->transition->path.front(), cost_calculator_.turning_straight_segment);
                 } else {
-                    path_builder.extendWithStraightTurningSegment(current_node->transition->path.back(), analyzer.turning_straight_segment);
+                    path_builder.extendWithStraightTurningSegment(current_node->transition->path.back(), cost_calculator_.turning_straight_segment);
                 }
 
                 path_builder.insertCurveSegment(current_node);
 
                 if(current_node->curve_forward) {
-                    path_builder.extendAlongTargetSegment(current_node, analyzer.turning_straight_segment);
+                    path_builder.extendAlongTargetSegment(current_node, cost_calculator_.turning_straight_segment);
                 } else {
-                    path_builder.extendAlongSourceSegment(current_node, analyzer.turning_straight_segment);
+                    path_builder.extendAlongSourceSegment(current_node, cost_calculator_.turning_straight_segment);
                 }
             }
 
@@ -412,7 +402,7 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, PathB
                      *            *
                      */
                     path_builder.insertCurveSegment(current_node);
-                    path_builder.extendAlongTargetSegment(current_node, analyzer.turning_straight_segment);
+                    path_builder.extendAlongTargetSegment(current_node, cost_calculator_.turning_straight_segment);
 
                 } else {
                     // segment (S) forward + curve (C) backward + next segment (N) is backward
@@ -424,7 +414,7 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, PathB
                      * > > > > > >v> > > > *******
                      *   S                     Extension before curve along target segment of C
                      */
-                    path_builder.extendAlongTargetSegment(current_node, analyzer.turning_straight_segment);
+                    path_builder.extendAlongTargetSegment(current_node, cost_calculator_.turning_straight_segment);
                     path_builder.insertCurveSegment(current_node);
                 }
 
@@ -440,7 +430,7 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, PathB
                      *            * Extension before curve along source segment of C
                      *            *
                      */
-                    path_builder.extendAlongSourceSegment(current_node, analyzer.turning_straight_segment);
+                    path_builder.extendAlongSourceSegment(current_node, cost_calculator_.turning_straight_segment);
                     path_builder.insertCurveSegment(current_node);
 
                 } else {
@@ -454,7 +444,7 @@ void Search::generatePath(const std::deque<const Node*>& path_transitions, PathB
                      *   N                     Extension after curve along source segment of C
                      */
                     path_builder.insertCurveSegment(current_node);
-                    path_builder.extendAlongSourceSegment(current_node, analyzer.turning_straight_segment);
+                    path_builder.extendAlongSourceSegment(current_node, cost_calculator_.turning_straight_segment);
                 }
             }
         }

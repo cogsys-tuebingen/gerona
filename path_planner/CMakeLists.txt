@@ -49,6 +49,7 @@ add_library(${PROJECT_NAME} SHARED src/planner_node.cpp)
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
+add_dependencies(${PROJECT_NAME} ${path_msgs_EXPORTED_TARGETS})
 install(TARGETS ${PROJECT_NAME}
         ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
@@ -81,6 +82,7 @@ add_executable(course_planner_node
     src/course_planner/course/search.cpp
     src/course_planner/course/path_builder.cpp
     src/course_planner/course/analyzer.cpp
+    src/course_planner/course/cost_calculator.cpp
     src/course_planner/course_planner_node.cpp
     src/course_planner/course_planner.cpp
 )
