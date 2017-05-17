@@ -9,8 +9,10 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <cslibs_path_planning/generic/SteeringNode.hpp>
 #include <cslibs_path_planning/generic/SteeringNeighborhood.hpp>
+#include <cslibs_path_planning/generic/DynamicSteeringNeighborhood.h>
 #include <path_msgs/PathSequence.h>
 #include <path_msgs/PlanPathGoal.h>
+#include <path_msgs/PlannerOptions.h>
 
 #include "node.h"
 #include "path_builder.h"
@@ -21,27 +23,10 @@ class CourseMap;
 class Search
 {
 public:
-//    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD, false>,
-//    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyForward;
-//    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD, true>,
-//    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyReversed;
+    typedef lib_path::AStarDynamicSearch<lib_path::DynamicSteeringNeighborhood,
+    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 100> AStarSteeringDynamic; // Generic Steering Planner
 
-//    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, false>,
-//    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyForwardTurning;
-//    typedef lib_path::AStarSearch<lib_path::NonHolonomicNeighborhood<40, 160, lib_path::NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, true>,
-//    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyReversedTurning;
-
-    typedef lib_path::AStarDynamicSearch<lib_path::SteeringNeighborhood<40, 4, 15, 60, 120, lib_path::SteeringMoves::FORWARD, false>,
-    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyForward;
-    typedef lib_path::AStarDynamicSearch<lib_path::SteeringNeighborhood<40, 4, 15, 60, 120, lib_path::SteeringMoves::FORWARD, true>,
-    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyReversed;
-
-    typedef lib_path::AStarDynamicSearch<lib_path::SteeringNeighborhood<40, 4, 15, 60, 120, lib_path::SteeringMoves::FORWARD_BACKWARD, false>,
-    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyForwardTurning;
-    typedef lib_path::AStarDynamicSearch<lib_path::SteeringNeighborhood<40, 4, 15, 60, 120, lib_path::SteeringMoves::FORWARD_BACKWARD, true>,
-    lib_path::NoExpansion, lib_path::Pose2d, lib_path::GridMap2d, 500 > AStarPatsyReversedTurning;
-
-    typedef AStarPatsyForward::NodeT NodeT;
+    typedef AStarSteeringDynamic::NodeT NodeT;
 
     friend class Analyzer;
 
@@ -53,8 +38,7 @@ public:
 private:
     path_msgs::PathSequence tryDirectPath(const path_geom::PathPose& start, const path_geom::PathPose& end);
 
-    template <typename AlgorithmForward, typename AlgorithmFull>
-    path_msgs::PathSequence findAppendix(const path_geom::PathPose& pose, const std::string& type);
+    path_msgs::PathSequence findAppendix(const path_geom::PathPose& pose, const std::string& type, bool reversed);
     bool findAppendices(const path_geom::PathPose& start_pose, const path_geom::PathPose& end_pose);
 
     path_msgs::PathSequence performDijkstraSearch();
@@ -69,10 +53,13 @@ private:
     path_msgs::PathSequence convertToWorld(const std::vector<NodeT>& path);
     lib_path::Pose2d convertToMap(const path_geom::PathPose& node);
 
+    void updateDynamicParameters();
+
 private:
     ros::NodeHandle pnh_;
 
     CostCalculator cost_calculator_;
+    path_msgs::PlannerOptions options_;
     const CourseMap& generator_;
 
     // appendix parameters

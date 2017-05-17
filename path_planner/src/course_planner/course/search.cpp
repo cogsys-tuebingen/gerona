@@ -39,6 +39,7 @@ path_msgs::PathSequence Search::findPath(lib_path::SimpleGridMap2d * map,
 {
     map_info = map;
 
+    options_ = goal.options;
     world_frame_ = goal.goal.pose.header.frame_id;
     time_stamp_ = goal.goal.pose.header.stamp;
 
@@ -71,20 +72,36 @@ path_msgs::PathSequence Search::findPath(lib_path::SimpleGridMap2d * map,
 }
 
 
+void Search::updateDynamicParameters()
+{
+    using lib_path::DynamicSteeringNeighborhood;
+    DynamicSteeringNeighborhood::goal_dist_threshold = options_.goal_dist_threshold;
+    DynamicSteeringNeighborhood::goal_angle_threshold = options_.goal_angle_threshold_degree / 180. * M_PI;
+    DynamicSteeringNeighborhood::reversed = options_.reversed;
+
+    bool forward = options_.allow_forward;
+    bool backward = options_.allow_backward;
+    if(!forward && !backward) {
+        // if neither direction is allowed (empty message), we default to full planning
+        forward = true;
+        backward = true;
+    }
+    DynamicSteeringNeighborhood::allow_forward = forward;
+    DynamicSteeringNeighborhood::allow_backward = backward;
+
+    DynamicSteeringNeighborhood::MAX_STEER_ANGLE = options_.ackermann_max_steer_angle_degree;
+    DynamicSteeringNeighborhood::STEER_DELTA = options_.ackermann_steer_delta_degree;
+    DynamicSteeringNeighborhood::steer_steps = options_.ackermann_steer_steps;
+    DynamicSteeringNeighborhood::LA = options_.ackermann_la;
+}
+
 path_msgs::PathSequence Search::tryDirectPath(const path_geom::PathPose& start, const path_geom::PathPose& end)
 {
-//    {
-//        AStarPatsyReversed algo_forward;
-//        algo_forward.setMap(map_info);
-//        algo_forward.setTimeLimit(max_time_for_direct_try);
-//        auto path = algo_forward.findPath(convertToMap(start), convertToMap(end));
-
-//        if(!path.empty()) {
-//            return convertToWorld(path);
-//        }
-//    }
     {
-        AStarPatsyReversedTurning algo_turning;
+        AStarSteeringDynamic algo_turning;
+
+        updateDynamicParameters();
+
         algo_turning.setMap(map_info);
         algo_turning.setTimeLimit(max_time_for_direct_try * 10);
         auto path = algo_turning.findPath(convertToMap(start), convertToMap(end));
@@ -188,7 +205,7 @@ bool Search::findAppendices(const path_geom::PathPose& start_pose, const path_ge
 {
     ROS_DEBUG_STREAM("searching appendices");
 
-    start_appendix = findAppendix<AStarPatsyForward, AStarPatsyForwardTurning>(start_pose, "start");
+    start_appendix = findAppendix(start_pose, "start", false);
     if(start_appendix.paths.empty()) {
         return false;
     }
@@ -204,7 +221,7 @@ bool Search::findAppendices(const path_geom::PathPose& start_pose, const path_ge
     }
 
 
-    end_appendix = findAppendix<AStarPatsyReversed, AStarPatsyReversedTurning>(end_pose, "end");
+    end_appendix = findAppendix(end_pose, "end", true);
     if(end_appendix.paths.empty()) {
         return false;
     }
@@ -224,22 +241,25 @@ bool Search::findAppendices(const path_geom::PathPose& start_pose, const path_ge
     return true;
 }
 
-template <typename AlgorithmForward, typename AlgorithmFull>
-path_msgs::PathSequence Search::findAppendix(const path_geom::PathPose& pose, const std::string& type)
+path_msgs::PathSequence Search::findAppendix(const path_geom::PathPose& pose, const std::string& type, bool reversed)
 {
     lib_path::Pose2d pose_map = convertToMap(pose);
 
-    AlgorithmForward algo_forward;
-    algo_forward.setMap(map_info);
+    using lib_path::DynamicSteeringNeighborhood;
+    updateDynamicParameters();
+    DynamicSteeringNeighborhood::reversed = reversed;
+    DynamicSteeringNeighborhood::allow_forward = true;
+    DynamicSteeringNeighborhood::allow_backward = false;
 
-    NearCourseTest<AlgorithmForward> goal_test_forward(generator_, algo_forward, map_info);
-    auto path_start = algo_forward.findPath(pose_map, goal_test_forward, [](){});
+    AStarSteeringDynamic algo;
+    algo.setMap(map_info);
+
+    NearCourseTest<AStarSteeringDynamic> goal_test(generator_, algo, map_info);
+    auto path_start = algo.findPath(pose_map, goal_test, [](){});
     if(path_start.empty()) {
         ROS_WARN_STREAM("cannot connect to " << type << " without turning");
-        AlgorithmFull algo_forward_turn;
-        NearCourseTest<AlgorithmFull> goal_test_forward_turn(generator_, algo_forward_turn, map_info);
-        algo_forward_turn.setMap(map_info);
-        path_start = algo_forward_turn.findPath(pose_map, goal_test_forward_turn, [](){});
+        DynamicSteeringNeighborhood::allow_backward = true;
+        path_start = algo.findPath(pose_map, goal_test, [](){});
         if(path_start.empty()) {
             ROS_ERROR_STREAM("cannot connect to " << type);
             return {};
