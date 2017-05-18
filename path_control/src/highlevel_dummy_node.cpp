@@ -31,7 +31,7 @@ public:
 
         speech_pub_ = nh.advertise<std_msgs::String>("speech", 0);
 
-        std::string default_world_frame = nh_.param("csnavigation/world_frame", std::string("map"));
+        std::string default_world_frame = nh_.param("gerona/world_frame", std::string("map"));
         pnh_.param("world_frame", world_frame_, default_world_frame);
 
         // target speed

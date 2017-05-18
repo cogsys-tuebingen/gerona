@@ -53,7 +53,7 @@ protected:
 
         ControllerParameters(const std::string& name = "orthexp"):
             RobotController::ControllerParameters(name),
-            max_ang_velocity(this, "max_angular_velocity", 0.5, "")
+            max_ang_velocity(this, "max_angular_velocity", 0.5, " Maximum angular velocity.")
         {}
     } opt_;
 

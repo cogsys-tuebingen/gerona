@@ -87,10 +87,10 @@ protected:
         ControllerParameters():
             RobotController::ControllerParameters("potential_field"),
 
-            kAtt(this, "kAtt", 0.2, ""),
-            kRep(this, "kRep", 0.5, ""),
-            dist_thresh(this, "dist_thres", 2.5, ""),
-            max_angular_velocity(this, "max_angular_velocity", 0.8, "")
+            kAtt(this, "kAtt", 0.2, "Factor for the attractive force influence."),
+            kRep(this, "kRep", 0.5, "Factor for the repulsive force influence."),
+            dist_thresh(this, "dist_thres", 2.5, "Distance at which the obstacles are taken into account."),
+            max_angular_velocity(this, "max_angular_velocity", 0.8, "Maximum angular velocity.")
         {}
     } opt_;
 

@@ -116,13 +116,13 @@ protected:
         ControllerParameters(const std::string& controller_name) :
             Parameters("controller/" + controller_name),
 
-            goal_tolerance(this, "goal_tolerance", 0.3, "minimum distance at which the robot stops"),
-            look_ahead_dist(this, "look_ahead_dist", 0.5, ""),
-            k_o(this, "k_o", 0.3, ""),
-            k_g(this, "k_g", 0.4, ""),
-            k_w(this, "k_w", 0.5, ""),
-            k_curv(this, "k_curv", 0.05, ""),
-            obst_threshold(this, "obst_threshold", 2.0, "")
+            goal_tolerance(this, "goal_tolerance", 0.3, "Minimum distance at which the robot stops in front of the goal."),
+            look_ahead_dist(this, "look_ahead_dist", 0.5, "Distance in path coordinates in front of the robot."),
+            k_o(this, "k_o", 0.3, "The obstacle factor. If increased, the robot speed decreases, as it approaches obstacles."),
+            k_g(this, "k_g", 0.4, "The goal position factor. If increased, the robot speed decreases, as it approaches the goal position."),
+            k_w(this, "k_w", 0.5, "The rotation factor. If increased, the robot speed decreases, as the rotation increases."),
+            k_curv(this, "k_curv", 0.05, "The curvature factor. If increased, the robot speed decreases, as the curvature increases."),
+            obst_threshold(this, "obst_threshold", 2.0, "The threshold at which the obstacles are taken into account.")
         {}
     };
 

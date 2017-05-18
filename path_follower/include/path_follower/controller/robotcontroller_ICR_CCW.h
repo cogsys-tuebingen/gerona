@@ -36,23 +36,13 @@ private:
         P<double> k1;
         P<double> k2;
         P<double> max_angular_velocity;
-        P<double> look_ahead_dist;
-        P<double> k_o;
-        P<double> k_g;
-        P<double> k_w;
-        P<double> k_curv;
 
         ControllerParameters():
             RobotController::ControllerParameters("icr_ccw"),
 
-            k1(this, "k1", 1.0, ""),
-            k2(this, "k2", 1.0, ""),
-            max_angular_velocity(this, "max_angular_velocity", 0.8, ""),
-            look_ahead_dist(this, "look_ahead_dist", 0.5, ""),
-            k_o(this, "k_o", 0.3, ""),
-            k_g(this, "k_g", 0.4, ""),
-            k_w(this, "k_w", 0.5, ""),
-            k_curv(this, "k_curv", 0.05, "")
+            k1(this, "k1", 1.0, "Factor for tuning the angular velocity command."),
+            k2(this, "k2", 1.0, "Factor for tuning the angular velocity command."),
+            max_angular_velocity(this, "max_angular_velocity", 0.8, "Maximum angular velocity.")
         {}
     } opt_;
 

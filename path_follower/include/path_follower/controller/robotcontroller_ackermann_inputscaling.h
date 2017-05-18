@@ -34,16 +34,16 @@ private:
 		ControllerParameters() :
             RobotController::ControllerParameters("ackermann_inputscaling"),
 
-			vehicle_length(this, "vehicle_length", 0.3, "axis-centre distance"),
-			k_forward(this, "k_forward", 7.0, "Tuning factor for forward driving"),
-			k_backward(this, "k_backward", 7.0, "Tuning factor for backward driving"),
-			factor_k1(this, "factor_k1", 1.0, "Factor for k1"),
-			factor_k2(this, "factor_k2", 3.0, "Factor for k2"),
-			factor_k3(this, "factor_k3", 3.0, "Factor for k3"),
+            vehicle_length(this, "vehicle_length", 0.3, "Axis-centre distance."),
+            k_forward(this, "k_forward", 7.0, "Tuning factor for forward driving."),
+            k_backward(this, "k_backward", 7.0, "Tuning factor for backward driving."),
+            factor_k1(this, "factor_k1", 1.0, "Factor for the steering angle speed."),
+            factor_k2(this, "factor_k2", 3.0, "Factor for the steering angle speed."),
+            factor_k3(this, "factor_k3", 3.0, "Factor for the steering angle speed."),
 			factor_steering_angle(this, "factor_steering_angle", 1.0,
-										 "Set 1.0 for one axis steering, 0.5 for two axis steering"),
-			max_steering_angle(this, "max_steering_angle", M_PI / 3, "Maximum steering angle"),
-			max_steering_angle_speed(this, "max_steering_angle_speed", 1.7, "Maximum steering angle speed")
+                                         "Set 1.0 for one axis steering, 0.5 for two axis steering."),
+            max_steering_angle(this, "max_steering_angle", M_PI / 3, "Maximum steering angle."),
+            max_steering_angle_speed(this, "max_steering_angle_speed", 1.7, "Maximum steering angle speed.")
 		{}
 
 	} params_;

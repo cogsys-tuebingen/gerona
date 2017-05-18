@@ -22,7 +22,7 @@ private:
         ControllerParameters():
             RobotController_OrthogonalExponential::ControllerParameters("ackermann_orthexp"),
 
-            k(this, "k", 1.5, "")
+            k(this, "k", 1.5, "Factor for regulating the convergence to the path.")
         {}
     } opt_;
 

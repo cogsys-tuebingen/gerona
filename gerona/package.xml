@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package>
-  <name>csnavigation</name>
+  <name>gerona</name>
   <version>1.0.0</version>
   <description>
-	The csnavigation stack contains packages for path planning and following.
+        The GeRoNa stack contains packages for path planning and following.
   </description>
 
   <author email="goran.huskic@uni-tuebingen.de">Goran Huskic</author>

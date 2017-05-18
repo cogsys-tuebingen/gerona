@@ -98,21 +98,21 @@ protected:
         ControllerParameters():
             RobotController::ControllerParameters("dynamic_window"),
 
-            angle_fact(this, "angle_fact", 0.2, ""),
-            disobst_fact(this, "disobst_fact", 0.2, ""),
-            v_fact(this, "v_fact", 2.0, ""),
-            lin_acc(this, "lin_acc", 2.0, ""),
-            ang_acc(this, "ang_acc", 0.5, ""),
-            lin_dec(this, "lin_dec", 0.5, ""),
-            ang_dec(this, "ang_dec", 0.01, ""),
-            T_dwa(this, "T_dwa", 0.125, ""),
-            v_step(this, "v_step", 0.05, ""),
-            w_step(this, "w_step", 0.05, ""),
-            fact_T(this, "fact_T", 5.0, ""),
-            step_T(this, "step_T", 0.4, ""),
-            obst_dist_thresh(this, "obst_dist_thresh", 0.6, ""),
-            max_ang_vel(this, "max_ang_vel", 0.5, ""),
-            initial_vel_fact(this, "initial_vel_fact", 0.2, "")
+            angle_fact(this, "angle_fact", 0.2, "Factor for regulating the target heading term."),
+            disobst_fact(this, "disobst_fact", 0.2, "Factor for regulating the obstacle distance (clearance) term."),
+            v_fact(this, "v_fact", 2.0, "Factor for regulating velocity term."),
+            lin_acc(this, "lin_acc", 2.0, "Linear acceleration."),
+            ang_acc(this, "ang_acc", 0.5, "Angular acceleration,"),
+            lin_dec(this, "lin_dec", 0.5, "Linear deceleration."),
+            ang_dec(this, "ang_dec", 0.01, "Angular deceleration."),
+            T_dwa(this, "T_dwa", 0.125, "Time length defining the dynamic window."),
+            v_step(this, "v_step", 0.05, "Linear velocity step of the dynamic window."),
+            w_step(this, "w_step", 0.05, "Angular velocity step of the dynamic window."),
+            fact_T(this, "fact_T", 5.0, "Factor for multiplying the dynamic window time length."),
+            step_T(this, "step_T", 0.4, "Time step inside the dynamic window time lenght"),
+            obst_dist_thresh(this, "obst_dist_thresh", 0.6, "Threshold at which the obstacles are taken into account."),
+            max_ang_vel(this, "max_ang_vel", 0.5, "Maximum angular velocity."),
+            initial_vel_fact(this, "initial_vel_fact", 0.2, "Factor for scaling the initial velocity commands.")
         {}
     } opt_;
 

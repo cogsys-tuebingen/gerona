@@ -43,13 +43,13 @@ private:
         ControllerParameters():
             RobotController::ControllerParameters("kinematic_SLP"),
 
-            k1(this, "k1", 1.0, ""),
-            k2(this, "k2", 1.0, ""),
-            gamma(this, "gamma", 1.0, ""),
-            theta_a(this, "theta_a", M_PI/4.0, ""),
-            epsilon(this, "epsilon", 0.5, ""),
-            b(this, "b", 0.2, ""),
-            max_angular_velocity(this, "max_angular_velocity", 0.8, "")
+            k1(this, "k1", 1.0, "Factor for tuning the speed of the virtual vehicle."),
+            k2(this, "k2", 1.0, "Factor for tuning the angular velocity command."),
+            gamma(this, "gamma", 1.0, "Factor for tuning the angular velocity command."),
+            theta_a(this, "theta_a", M_PI/4.0, "Factor for tuning the transient maneuvers."),
+            epsilon(this, "epsilon", 0.5, "Error threshold for the speed control."),
+            b(this, "b", 0.2, "Factor for tuning the speed control."),
+            max_angular_velocity(this, "max_angular_velocity", 0.8, "Maximum angular velocity")
         {}
     } opt_;
 

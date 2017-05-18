@@ -16,9 +16,9 @@
       <arg name="use_planner_default" value="$(arg use_planner_default)" />
     </include>
 
-    <param name="csnavigation/world_frame" value="odom" />
-    <param name="csnavigation/odom_frame" value="odom" />
-    <param name="csnavigation/robot_frame" value="base_link" />
+    <param name="gerona/world_frame" value="odom" />
+    <param name="gerona/odom_frame" value="odom" />
+    <param name="gerona/robot_frame" value="base_link" />
 
 <!--
     <param name="path_follower/world_frame" value="odom" />

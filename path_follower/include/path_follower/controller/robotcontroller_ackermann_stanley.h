@@ -27,11 +27,11 @@ private:
 		ControllerParameters() :
             RobotController::ControllerParameters("ackermann_stanley"),
 
-			vehicle_length(this, "vehicle_length", 0.3, "axis-centre distance"),
-			k_forward(this, "k_forward", 7.0, "Tuning factor for forward driving"),
-			k_backward(this, "k_backward", 7.0, "Tuning factor for backward driving"),
+            vehicle_length(this, "vehicle_length", 0.3, "Axis-centre distance."),
+            k_forward(this, "k_forward", 7.0, "Tuning factor for forward driving."),
+            k_backward(this, "k_backward", 7.0, "Tuning factor for backward driving."),
 			factor_steering_angle(this, "factor_steering_angle", 1.0,
-										 "Set 1.0 for one axis steering, 0.5 for two axis steering")
+                                         "Set 1.0 for one axis steering, 0.5 for two axis steering.")
 		{}
 
 	} params_;

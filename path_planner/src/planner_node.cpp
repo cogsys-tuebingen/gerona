@@ -97,10 +97,10 @@ Planner::Planner()
     cost_pub = nh_priv.advertise<nav_msgs::OccupancyGrid>("cost", 1, true);
     map_pub = nh_priv.advertise<nav_msgs::OccupancyGrid>("map", 1, true);
 
-    std::string default_world_frame = nh.param("csnavigation/world_frame", std::string("map"));
+    std::string default_world_frame = nh.param("gerona/world_frame", std::string("map"));
     nh_priv.param("world_frame", world_frame_, default_world_frame);
 
-    std::string default_robot_frame = nh.param("csnavigation/robot_frame", std::string("base_link"));
+    std::string default_robot_frame = nh.param("gerona/robot_frame", std::string("base_link"));
     nh_priv.param("robot_frame", robot_frame_, default_robot_frame);
 
 

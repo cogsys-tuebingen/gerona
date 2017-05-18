@@ -1,4 +1,4 @@
-# Generic Navigation for Wheeled Mobile Robots
+# GeRoNa: Generic Robot Navigation
 
 This project contains a set of [ROS](ros.org) packages which provide a navigation suite, including path planning on a given map, controlling of the robot to follow this path and obstacle avoidance while driving.
 
@@ -43,7 +43,7 @@ More Information
 
 For more information please refer to
 
-https://github.com/cogsys-tuebingen/csnavigation/wiki
+https://github.com/cogsys-tuebingen/gerona/wiki
 
 or
 

@@ -24,9 +24,9 @@ private:
         ControllerParameters():
             RobotController_OrthogonalExponential::ControllerParameters("omnidrive_orthexp"),
 
-            k(this, "k", 1.5, ""),
-            kp(this, "kp", 0.4, ""),
-            kd(this, "kd", 0.2, "")
+            k(this, "k", 1.5, "Factor for regulating the convergence to the path."),
+            kp(this, "kp", 0.4, "P component of the rotation control."),
+            kd(this, "kd", 0.2, "D component of the rotation control.")
         {}
     } opt_;
 

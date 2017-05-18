@@ -35,9 +35,9 @@ private:
 		ControllerParameters() :
             RobotController::ControllerParameters("2steer_purepursuit"),
 
-            k_forward(this, "k_forward", 1.2, "lookahead distance factor while driving forwards"),
-			k_backward(this, "k_forward", 1.2, "lookahead distance factor while driving backwards"),
-			vehicle_length(this, "vehicle_length", 0.34, "axis-centre distance")
+            k_forward(this, "k_forward", 1.2, "Look-ahead distance factor while driving forwards."),
+            k_backward(this, "k_forward", 1.2, "Look-ahead distance factor while driving backwards."),
+            vehicle_length(this, "vehicle_length", 0.34, "Axis-centre distance.")
 		{}
 
 	} params_;

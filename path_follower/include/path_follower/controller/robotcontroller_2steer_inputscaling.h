@@ -32,11 +32,11 @@ private:
 		ControllerParameters() :
             RobotController::ControllerParameters("2steer_inputscaling"),
 
-			vehicle_length(this, "vehicle_length", 0.3, "axis-centre distance"),
-			k_forward(this, "k_forward", 7.0, "Tuning factor for forward driving"),
-			k_backward(this, "k_backward", 7.0, "Tuning factor for backward driving"),
-			max_steering_angle(this, "max_steering_angle", M_PI / 3, "Maximum steering angle"),
-			max_steering_angle_speed(this, "max_steering_angle_speed", 1.7, "Maximum steering angle speed")
+            vehicle_length(this, "vehicle_length", 0.3, "Axis-centre distance."),
+            k_forward(this, "k_forward", 7.0, "Tuning factor for forward driving."),
+            k_backward(this, "k_backward", 7.0, "Tuning factor for backward driving."),
+            max_steering_angle(this, "max_steering_angle", M_PI / 3.0, "Maximum steering angle."),
+            max_steering_angle_speed(this, "max_steering_angle_speed", 1.7, "Maximum steering angle speed.")
 		{}
 
 	} params_;

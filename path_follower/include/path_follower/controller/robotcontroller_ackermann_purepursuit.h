@@ -38,12 +38,12 @@ private:
             RobotController::ControllerParameters("ackermann_purepursuit"),
 
 			factor_lookahead_distance_forward(this, "factor_lookahead_distance_forward", 0.8,
-														 "lookahead distance factor while driving forwards"),
+                                                         "Lookahead distance factor while driving forward."),
 			factor_lookahead_distance_backward(this, "factor_lookahead_distance_forward", 0.8,
-														 "lookahead distance factor while driving backwards"),
-			vehicle_length(this, "vehicle_length", 0.34, "axis-centre distance"),
+                                                         "Lookahead distance factor while driving backwards."),
+            vehicle_length(this, "vehicle_length", 0.34, "Axis-centre distance."),
 			factor_steering_angle(this, "factor_steering_angle", 1.0,
-										 "Set 1.0 for one axis steering, 0.5 for two axis steering")
+                                         "Set 1.0 for one axis steering, 0.5 for two axis steering.")
 		{}
 
 	} params_;
