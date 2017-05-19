@@ -5,7 +5,7 @@ This project contains a set of [ROS](ros.org) packages which provide a navigatio
 The packages are build with the goal to get a modular, easily extensible framework, where new modules (e.g. kinematic model of a new robot, new obstacle avoidance algorithms, etc) can be added with minimal effort.
 
 The following video demonstrates various supported robot kinematics:
-[![CS::Navigation Video](https://img.youtube.com/vi/E4WQxFMxUJk/0.jpg)](https://www.youtube.com/watch?v=E4WQxFMxUJk)
+[![GeRoNa: Generic Robot Navigation Video](https://img.youtube.com/vi/Ppdi7dQ7Vzw/0.jpg)](https://www.youtube.com/watch?v=Ppdi7dQ7Vzw)
 
 
 Quick Start
