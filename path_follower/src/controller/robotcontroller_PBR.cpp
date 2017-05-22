@@ -125,6 +125,9 @@ void RobotController_PBR::initialize()
     //reset the augmented path
     x_aug_.clear();
     y_aug_.clear();
+
+    //reset the index of the orthogonal projection
+    ind_ = 0;
 }
 
 
