@@ -1,5 +1,5 @@
 // HEADER
-#include <path_follower/controller/robotcontroller_ICR_CCW.h>
+#include <path_follower/controller/robotcontroller_PBR.h>
 
 // THIRD PARTY
 #include <nav_msgs/Path.h>
@@ -24,12 +24,12 @@
 
 #include <path_follower/factory/controller_factory.h>
 
-REGISTER_ROBOT_CONTROLLER(RobotController_ICR_CCW, ICR_CCW, default_collision_avoider);
+REGISTER_ROBOT_CONTROLLER(RobotController_PBR, PBR, default_collision_avoider);
 
 using namespace Eigen;
 
 
-RobotController_ICR_CCW::RobotController_ICR_CCW():
+RobotController_PBR::RobotController_PBR():
     RobotController(),
     cmd_(this),
     vn_(0),
@@ -46,7 +46,7 @@ RobotController_ICR_CCW::RobotController_ICR_CCW():
     last_time_ = ros::Time::now();
 
     wheel_vel_sub_ = nh_.subscribe<std_msgs::Float64MultiArray>("/wheel_velocities", 10,
-                                                                   &RobotController_ICR_CCW::WheelVelocities, this);
+                                                                   &RobotController_PBR::WheelVelocities, this);
 
     ICR_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("ICR_parameters", 10);
 
@@ -97,7 +97,7 @@ RobotController_ICR_CCW::RobotController_ICR_CCW():
 
 }
 
-void RobotController_ICR_CCW::stopMotion()
+void RobotController_PBR::stopMotion()
 {
 
     cmd_.speed = 0;
@@ -108,7 +108,7 @@ void RobotController_ICR_CCW::stopMotion()
     publishMoveCommand(mcmd);
 }
 
-void RobotController_ICR_CCW::initialize()
+void RobotController_PBR::initialize()
 {
     RobotController::initialize();
 
@@ -128,7 +128,7 @@ void RobotController_ICR_CCW::initialize()
 }
 
 
-void RobotController_ICR_CCW::WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array)
+void RobotController_PBR::WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array)
 {
 
     double frw = array->data[0];
@@ -150,30 +150,30 @@ void RobotController_ICR_CCW::WheelVelocities(const std_msgs::Float64MultiArray:
 
 }
 
-void RobotController_ICR_CCW::start()
+void RobotController_PBR::start()
 {
 
 }
 
-void RobotController_ICR_CCW::reset()
+void RobotController_PBR::reset()
 {
     RobotController::reset();
 }
 
 
-void RobotController_ICR_CCW::setPath(Path::Ptr path)
+void RobotController_PBR::setPath(Path::Ptr path)
 {
     RobotController::setPath(path);
 }
 
-void RobotController_ICR_CCW::setCurrentPose(const Eigen::Vector3d& pose) {
+void RobotController_PBR::setCurrentPose(const Eigen::Vector3d& pose) {
 
     ekf_.correct(pose);
     pose_ekf_ << ekf_.x_(0), ekf_.x_(1), ekf_.x_(2);
     ICR_ekf_  << ekf_.x_(3), ekf_.x_(4), ekf_.x_(5);
 }
 
-RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(MoveCommand *cmd)
+RobotController::MoveCommandStatus RobotController_PBR::computeMoveCommand(MoveCommand *cmd)
 {
     // omni drive can rotate.
     *cmd = MoveCommand(true);
@@ -363,7 +363,7 @@ RobotController::MoveCommandStatus RobotController_ICR_CCW::computeMoveCommand(M
         return MoveCommandStatus::OKAY;
 }
 
-void RobotController_ICR_CCW::publishMoveCommand(const MoveCommand &cmd) const
+void RobotController_PBR::publishMoveCommand(const MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
     msg.linear.x  = cmd.getVelocity();

@@ -1,5 +1,5 @@
-#ifndef ROBOTCONTROLLER_ICR_CCW_H
-#define ROBOTCONTROLLER_ICR_CCW_H
+#ifndef ROBOTCONTROLLER_PBR_H
+#define ROBOTCONTROLLER_PBR_H
 
 /// THIRD PARTY
 #include <geometry_msgs/PointStamped.h>
@@ -10,10 +10,10 @@
 
 #include <path_follower/utils/extended_kalman_filter.h>
 
-class RobotController_ICR_CCW: public RobotController
+class RobotController_PBR: public RobotController
 {
 public:
-    RobotController_ICR_CCW();
+    RobotController_PBR();
     virtual void stopMotion();
     virtual void start();
 
@@ -38,7 +38,7 @@ private:
         P<double> max_angular_velocity;
 
         ControllerParameters():
-            RobotController::ControllerParameters("icr_ccw"),
+            RobotController::ControllerParameters("PBR"),
 
             k1(this, "k1", 1.0, "Factor for tuning the angular velocity command."),
             k2(this, "k2", 1.0, "Factor for tuning the angular velocity command."),
@@ -53,7 +53,7 @@ private:
 
     struct Command
     {
-        RobotController_ICR_CCW *parent_;
+        RobotController_PBR *parent_;
 
         //! Speed of the movement.
         float speed;
@@ -64,7 +64,7 @@ private:
 
 
         // initialize all values to zero
-        Command(RobotController_ICR_CCW *parent):
+        Command(RobotController_PBR *parent):
             parent_(parent),
             speed(0.0f), direction_angle(0.0f), rotation(0.0f)
         {}
@@ -160,5 +160,5 @@ private:
     std::vector<double> y_aug_;
 };
 
-#endif // ROBOTCONTROLLER_ICR_CCW_H
+#endif // ROBOTCONTROLLER_PBR_H
 

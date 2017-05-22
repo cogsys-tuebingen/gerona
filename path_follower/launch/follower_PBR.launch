@@ -3,7 +3,7 @@
     <group ns="path_follower">
         <group ns="controller">
             <!-- parameters, that are dependent of the controller or the robot model -->
-            <group ns="icr_ccw">
+            <group ns="PBR">
                 <param name="k1" value="5.0" />
                 <param name="k2" value="5.0" />
 

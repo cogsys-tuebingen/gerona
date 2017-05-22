@@ -21,7 +21,7 @@ demonstrating the navigation framework.
     <arg name="use_hector" default="false" />
 
     <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy" output="screen" respawn="true">
-        <param name="target_speed" value="2.5" />
+        <param name="target_speed" value="1.0" />
         <param name="failure_mode" value="replan" />
         <remap from="rviz_goal" to="/move_base_simple/goal" />
     </node>

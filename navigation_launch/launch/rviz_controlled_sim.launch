@@ -53,7 +53,7 @@
 
     <param name="highlevel_dummy/grow_obstacles" value="true" />
     <param name="highlevel_dummy/obstacle_radius" value="0.5" />
-    <param name="highlevel_dummy/target_speed" value="2.5" />
+    <param name="highlevel_dummy/target_speed" value="1.0" />
 
     <param name="highlevel_dummy/planner/reversed" value="true" />
     <param name="highlevel_dummy/planner/goal_dist_threshold" value="0.15" />

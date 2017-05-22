@@ -99,7 +99,7 @@ add_library(${PROJECT_NAME} SHARED
     src/controller/robotcontroller.cpp
     src/controller/robotcontroller_orthogonalexponential.cpp
     src/controller/robotcontroller_ackermann_pid.cpp
-    src/controller/robotcontroller_ICR_CCW.cpp
+    src/controller/robotcontroller_PBR.cpp
     src/controller/robotcontroller_ackermann_orthexp.cpp
     src/controller/robotcontroller_ackermann_purepursuit.cpp
     src/controller/robotcontroller_ackermann_inputscaling.cpp
