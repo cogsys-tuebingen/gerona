@@ -14,27 +14,68 @@
 // SYSTEM
 #include <boost/algorithm/clamp.hpp>
 
-
+/**
+ * @brief The RobotController_OrthogonalExponential class is the base class for all orthexp algorithms
+ */
 class RobotController_OrthogonalExponential: public RobotController
 {
 public:
+    /**
+     * @brief RobotController_2Steer_Stanley
+     */
     RobotController_OrthogonalExponential();
 
     //! Immediately stop any motion.
     virtual void stopMotion();
-
+    /**
+     * @brief start
+     */
     virtual void start();
 
 
 protected:
+    /**
+     * @brief computeMoveCommand computes the command velocity for the robot
+     *
+     * The command velocity is computed for each controller differently. This is the core of
+     * every controller. For more details, please visit: https://github.com/cogsys-tuebingen/gerona/wiki/controllers
+     * On this wiki page, you will find references for each controller, where more mathematical and experimental details
+     * can be found.
+     *
+     * @param cmd
+     */
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
+    /**
+     * @brief publishMoveCommand publishes the computed move command
+     *
+     * The command velocity is set depending on the kinematics of the robot. E.g. for
+     * differential drives the command input is (v, w), where v is linear, and w angular velocity,
+     * and for an Ackermann drive, the command input is (v, phi), where v is linear velocity, and
+     * phi is the steering angle. For an omnidirectional vehicle, it is possible to directly set
+     * the linear velocity and the direction angle, while the rotation is set independently.
+     *
+     * @param cmd
+     */
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
-
+    /**
+     * @brief lookAtCommand defines whether the robot should look at a certain point while driving
+     * @param cmd
+     */
     void lookAtCommand(const std_msgs::StringConstPtr& cmd);
+    /**
+     * @brief lookAt defines the point at which the robot should look at while driving
+     * @param look_at
+     */
     void lookAt(const geometry_msgs::PointStampedConstPtr& look_at);
     void laserBack(const sensor_msgs::LaserScanConstPtr& scan_back);
     void laserFront(const sensor_msgs::LaserScanConstPtr& scan_front);
-
+    /**
+     * @brief computeControl computes the command velocity specific for every orthogonal-exponential controller
+     *
+     * Orthogonal-exponential controller is in principle the same for every wheeled robot, but the command
+     * output is computed differently for different kinematic types.
+     *
+     */
     virtual void computeControl();
 
 private:

@@ -9,9 +9,19 @@
 class RobotController_Omnidrive_OrthogonalExponential: public RobotController_OrthogonalExponential
 {
 public:
+    /**
+     * @brief RobotController_Omnidrive_OrthogonalExponential
+     */
     RobotController_Omnidrive_OrthogonalExponential();
 
 protected:
+    /**
+     * @brief computeControl computes the command velocity specific for every orthogonal-exponential controller
+     *
+     * Orthogonal-exponential controller is in principle the same for every wheeled robot, but the command
+     * output is computed differently for different kinematic types.
+     *
+     */
     virtual void computeControl();
 
 private:

@@ -26,7 +26,9 @@ class CoursePredictor;
 class CollisionAvoider;
 
 class PathFollowerParameters;
-
+/**
+ * @brief The RobotController class is the base class for other control algorithms
+ */
 class RobotController
 {
     /* DATA */
@@ -102,8 +104,6 @@ protected:
     virtual void initPublisher(ros::Publisher* pub) const;
 
 
-    ////interpolation///
-
     struct ControllerParameters : public Parameters {
         P<double> goal_tolerance;
         P<double> look_ahead_dist;
@@ -128,11 +128,29 @@ protected:
 
     virtual const ControllerParameters& getParameters() const = 0;
 
-    ////-------------////
 
+    /**
+     * @brief findOrthogonalProjection is called to find the shortest distance from the robot to the path.
+     *
+     * This distance is signed, and the index of the nearest point on the path is saved.
+     */
     virtual void findOrthogonalProjection();
+    /**
+     * @brief isGoalReached checks if the end (of a subpath) is reached, by using the moving frame on the path.
+     *
+     * This moving frame is determined by the orthogonal projection. If the last point of the last subpath is
+     * reached, the path following task is done.
+     */
     virtual bool isGoalReached(MoveCommand *cmd);
-
+    /**
+     * @brief exponentialSpeedControl computes a regulating factor with which the command speed should be multiplied.
+     *
+     * This speed control is depending on the distance to the closest obstacle, distance to the goal position, current
+     * angular velocity, as well as the curvature of path in front of the robot. Every controller is able to use this
+     * function for a simple and efficient way to assure safe and accurate navigation even in cluttered and dynamic
+     * environments. For more information, see "Huskić, Buck and Zell; IAS 2016."
+     * @param cmd
+     */
     virtual double exponentialSpeedControl();
 
     /* REGULAR METHODS */

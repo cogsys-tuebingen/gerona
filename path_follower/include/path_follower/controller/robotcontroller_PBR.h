@@ -13,18 +13,56 @@
 class RobotController_PBR: public RobotController
 {
 public:
+    /**
+     * @brief RobotController_PBR
+     */
     RobotController_PBR();
+    /**
+     * @brief stopMotion stops the robot
+     */
     virtual void stopMotion();
+    /**
+     * @brief start
+     */
     virtual void start();
-
+    /**
+     * @brief setCurrentPose corrects the EKF state
+     * @param current robot pose measurement
+     */
     virtual void setCurrentPose(const Eigen::Vector3d&);
 
 protected:
+    /**
+     * @brief computeMoveCommand computes the command velocity for the robot
+     *
+     * The command velocity is computed for each controller differently. This is the core of
+     * every controller. For more details, please visit: https://github.com/cogsys-tuebingen/gerona/wiki/controllers
+     * On this wiki page, you will find references for each controller, where more mathematical and experimental details
+     * can be found.
+     *
+     * @param cmd
+     */
     virtual MoveCommandStatus computeMoveCommand(MoveCommand* cmd);
+    /**
+     * @brief publishMoveCommand publishes the computed move command
+     *
+     * The command velocity is set depending on the kinematics of the robot. E.g. for
+     * differential drives the command input is (v, w), where v is linear, and w angular velocity,
+     * and for an Ackermann drive, the command input is (v, phi), where v is linear velocity, and
+     * phi is the steering angle. For an omnidirectional vehicle, it is possible to directly set
+     * the linear velocity and the direction angle, while the rotation is set independently.
+     *
+     * @param cmd
+     */
     virtual void publishMoveCommand(const MoveCommand &cmd) const;
-
+    /**
+     * @brief initialize
+     */
     virtual void initialize();
-
+    /**
+     * @brief WheelVelocities preditcs the EKF state
+     * @param array representing the velocities of each wheel
+     */
     void WheelVelocities(const std_msgs::Float64MultiArray::ConstPtr& array);
 
 private:

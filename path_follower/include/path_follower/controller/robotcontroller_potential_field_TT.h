@@ -13,11 +13,19 @@
 #include <path_follower/utils/parameters.h>
 #include <path_follower/controller/robotcontroller_potential_field.h>
 
-
+/**
+ * @brief The Potential_Field class is the potential field class for target tracking (TT)
+ *
+ * This is basically the classical potential field method, where the goal position is always
+ * set dynamically to the recognized target/person.
+ */
 /// The Potential_Field class
 class RobotController_Potential_Field_TT : public RobotController_Potential_Field
 {
 public:
+    /**
+     * @brief RobotController_Potential_Field_TT
+     */
     RobotController_Potential_Field_TT();
 
 protected:
