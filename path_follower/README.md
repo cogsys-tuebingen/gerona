@@ -8,7 +8,7 @@ Each controller has one or more implementations, depending on its compatibility 
 
 The HBZ controller has two implementations:
 * `HBZ` (used for regular path following),
-* `HBZ_TT` (used for target tracking),
+* `HBZ_TT` (used for target tracking, will be released soon),
 
 where "TT" is short for "target tracking". This target tracking feature can be used for tracking of any dynamic object (e.g. another robot). We used it to follow a human jogger outdoors.
 
