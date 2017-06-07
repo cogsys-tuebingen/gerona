@@ -26,7 +26,7 @@ before_script:
   - git clone gitlab@gitlab.cs.uni-tuebingen.de:libs/cslibs_utils
   - cd ..
   - rosdep update
-
+  - apt-get install -y $(rosdep install --from-paths -i -y -s src | grep 'sudo -H apt-get install -y' |cut -c 30- | paste -s)
 
 stages:
   - build
@@ -35,26 +35,17 @@ indigo:
   stage: build
   image: ros:indigo
   script:
-    - source /opt/ros/$(ls /opt/ros/ | sort -r | head -n 1)/setup.bash
-    - ls -R
-    - rosdep install -y -r -i --from-paths src
     - catkin_make
 
 jade:
   stage: build
   image: ros:jade
   script:
-    - source /opt/ros/$(ls /opt/ros/ | sort -r | head -n 1)/setup.bash
-    - ls -R
-    - rosdep install -y -r -i --from-paths src
     - catkin_make
 
 kinetic:
   stage: build
   image: ros:kinetic
   script:
-    - source /opt/ros/$(ls /opt/ros/ | sort -r | head -n 1)/setup.bash
-    - ls -R
-    - rosdep install -y -r -i --from-paths src
     - catkin_make
 
