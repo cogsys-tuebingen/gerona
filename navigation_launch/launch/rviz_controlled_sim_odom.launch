@@ -51,6 +51,19 @@
     <param name="path_follower/supervisor/path_lookout/path_width" value="0.8" />
     <param name="path_follower/supervisor/distance_to_path/max_dist" value="4.0" />
 
+    <group ns="path_follower">
+        <group ns="collision_avoider">
+            <group ns="collision_box">
+                <param name="width" value="0.4" />
+                <param name="crit_length" value="0.4" />
+                <param name="min_length" value="0.6" />
+                <param name="max_length" value="1.0" />
+                <param name="velocity_factor" value="1.0" />
+                <param name="velocity_saturation" value="1.0" />
+            </group>
+        </group>
+    </group>
+
     <param name="highlevel_dummy/grow_obstacles" value="true" />
     <param name="highlevel_dummy/obstacle_radius" value="0.5" />
     <param name="highlevel_dummy/target_speed" value="2.5" />

@@ -118,6 +118,8 @@ struct MapGoalTest
         : algo(algo),
           start(start),
           has_heuristic_goal(false),
+          map_search_min_value(map_search_min_value),
+          map_search_min_candidates(map_search_min_candidates),
           min_dist(min_dist),
           map_info(map_info), map(map),
           res(map.info.resolution),
