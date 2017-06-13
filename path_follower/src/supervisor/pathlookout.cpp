@@ -227,7 +227,7 @@ float PathLookout::weightObstacle(cv::Point2f robot_pos, ObstacleTracker::Tracke
 std::list<cv::Point2f> PathLookout::findObstaclesInCloud(const std::shared_ptr<ObstacleCloud const> &obstacles_container)
 {    
     if (path_.size() < 2) {
-        ROS_WARN_NAMED(MODULE, "Path has less than 2 waypoints. No obstacle lookout is done.");
+        ROS_WARN_NAMED(MODULE, "Path has fewer than 2 waypoints. No obstacle lookout is done.");
         return std::list<cv::Point2f>(); // return empty cloud
     }
 

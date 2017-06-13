@@ -36,11 +36,11 @@ public:
      * @brief Predict and smooth direction of movement.
      *
      * The direction is smoothed by sampling a small number of recent positions and fitting a line to them.
-     * Please note: at the beginning, when there are less than 2 position samples, a zero vector is returned. Thus make
+     * Please note: at the beginning, when there are fewer than 2 position samples, a zero vector is returned. Thus make
      * sure always to check the result using `result.isZero()`, befor using the vector.
      *
      * @return Vector pointing in the direction of movement, relative to robot orientation. Zero, if no direction could
-     *         be computed (e.g. at initialization, when there are less than 2 position samples).
+     *         be computed (e.g. at initialization, when there are fewer than 2 position samples).
      */
     Eigen::Vector2d smoothedDirection() const;
 
