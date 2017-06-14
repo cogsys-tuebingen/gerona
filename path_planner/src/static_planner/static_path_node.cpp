@@ -191,6 +191,8 @@ private:
         XmlRpc::XmlRpcValue segment_array;
         nh.param("segments", segment_array, segment_array);
 
+        segments_.clear();
+
         if(segment_array.getType() != XmlRpc::XmlRpcValue::TypeArray) {
             ROS_FATAL_STREAM("segments type is not array: " << segment_array.toXml());
             return false;
