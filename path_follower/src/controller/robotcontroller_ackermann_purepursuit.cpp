@@ -87,7 +87,8 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 
     double exp_factor = RobotController::exponentialSpeedControl();
 	move_cmd_.setDirection(params_.factor_steering_angle() * (float) delta);
-    move_cmd_.setVelocity(getDirSign() * (float) velocity_ * exp_factor);
+    double v = getDirSign() * (float) velocity_ * exp_factor;
+    move_cmd_.setVelocity(v);
 
 
 	*cmd = move_cmd_;

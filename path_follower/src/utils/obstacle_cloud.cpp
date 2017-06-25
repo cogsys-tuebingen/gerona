@@ -39,3 +39,15 @@ void ObstacleCloud::transformCloud(const tf::Transform& transform, const std::st
 
     cloud->header.frame_id = target_frame;
 }
+
+ros::Time ObstacleCloud::getStamp() const
+{
+    ros::Time time;
+    time.fromNSec(cloud->header.stamp * 1e3);
+    return time;
+}
+
+std::string ObstacleCloud::getFrameId() const
+{
+    return cloud->header.frame_id;
+}

@@ -12,6 +12,7 @@
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Int32MultiArray.h>
 #include <tf_conversions/tf_eigen.h>
+#include <path_msgs/PathSequence.h>
 
 /// PROJECT
 #include <path_follower/local_planner/abstract_local_planner.h>
@@ -28,6 +29,7 @@
 #include <path_follower/supervisor/supervisorchain.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/collision_avoidance/collision_avoider.h>
+
 
 using namespace path_msgs;
 using namespace std;
@@ -53,7 +55,7 @@ PathFollower::PathFollower(ros::NodeHandle &nh):
 {
 
 
-    local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("local_path", 1, true);
+    local_path_pub_ = node_handle_.advertise<path_msgs::PathSequence>("local_path", 1, true);
     whole_local_path_pub_ = node_handle_.advertise<nav_msgs::Path>("whole_local_path", 1, true);
     marker_pub_ = node_handle_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
 
@@ -135,6 +137,12 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
         start();
     }
 
+    if (path_->empty()) {
+        ROS_ERROR("tried to follow an empty path!");
+        stop(FollowPathResult::RESULT_STATUS_INTERNAL_ERROR);
+        return result;
+    }
+
     if (!pose_tracker_->updateRobotPose()) {
         ROS_ERROR("do not known own pose");
         stop(FollowPathResult::RESULT_STATUS_SLAM_FAIL);
@@ -180,18 +188,22 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
             Path::Ptr local_path = current_config_->local_planner_->updateLocalPath();
             path_search_failure = local_path && local_path->empty();
             if(local_path && !path_search_failure) {
-                nav_msgs::Path path;
+                path_msgs::PathSequence path;
                 path.header.stamp = ros::Time::now();
                 path.header.frame_id = getFixedFrameId();
                 for(int i = 0, sub = local_path->subPathCount(); i < sub; ++i) {
                     const SubPath& p = local_path->getSubPath(i);
+                    path_msgs::DirectionalPath sub_path;
+                    sub_path.forward = p.forward;
+                    sub_path.header = path.header;
                     for(const Waypoint& wp : p.wps) {
                         geometry_msgs::PoseStamped pose;
                         pose.pose.position.x = wp.x;
                         pose.pose.position.y = wp.y;
                         pose.pose.orientation = tf::createQuaternionMsgFromYaw(wp.orientation);
-                        path.poses.push_back(pose);
+                        sub_path.poses.push_back(pose);
                     }
+                    path.paths.push_back(sub_path);
                 }
                 local_path_pub_.publish(path);
             }
@@ -208,13 +220,10 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
             feedback.status = path_msgs::FollowPathFeedback::MOTION_STATUS_NO_LOCAL_PATH;
             current_config_->controller_->stopMotion();
 
-            // avoid RViz bug with empty paths!
-            nav_msgs::Path path;
+            // publish an empty path
+            path_msgs::PathSequence path;
             path.header.stamp = ros::Time::now();
             path.header.frame_id = getFixedFrameId();
-            geometry_msgs::PoseStamped pose;
-            pose.pose.position.x = std::numeric_limits<double>::quiet_NaN();
-            path.poses.push_back(pose);
             local_path_pub_.publish(path);
 
             return feedback;
@@ -481,7 +490,9 @@ void PathFollower::findSegments(const path_msgs::PathSequence& path)
         for(const geometry_msgs::PoseStamped& ps : dp.poses) {
             sp.wps.emplace_back(ps);
         }
-        subpaths.push_back(sp);
+        if(sp.size() > 1) {
+            subpaths.push_back(sp);
+        }
     }
 
     path_->setPath(subpaths);

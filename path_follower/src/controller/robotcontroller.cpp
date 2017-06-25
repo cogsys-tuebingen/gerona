@@ -79,11 +79,14 @@ std::string RobotController::getFixedFrame() const
 
 void RobotController::computeMovingDirection()
 {
+    ROS_INFO_STREAM("path length " << path_->subPathCount());
     // decide whether to drive forward or backward
     if (path_->getCurrentSubPath().forward) {
         setDirSign(1.f);
+        ROS_INFO_STREAM("following forwards path segment of length " << path_->getCurrentSubPath().size());
     } else {
         setDirSign(-1.f);
+        ROS_WARN_STREAM("following backwards path segment of length " << path_->getCurrentSubPath().size());
     }
 }
 
@@ -217,7 +220,7 @@ void RobotController::findOrthogonalProjection()
     //without this, the robot would reach the goal, without even driving
     int old_ind = proj_ind_;
 
-    for (unsigned int i = proj_ind_; i < path_interpol.n(); i++){
+    for (unsigned int i = proj_ind_, n = path_interpol.n(); i < n; i++){
 
         dist = hypot(x_meas - path_interpol.p(i), y_meas - path_interpol.q(i));
         if((dist < orth_proj_) && (i - old_ind <= 3)){
@@ -227,7 +230,15 @@ void RobotController::findOrthogonalProjection()
 
             dx = x_meas - path_interpol.p(proj_ind_);
             dy = y_meas - path_interpol.q(proj_ind_);
+        }
 
+        // debuging information
+        if(i == n - 1) {
+            if(proj_ind_ != i) {
+                ROS_DEBUG_STREAM("projection: dist:" << dist
+                                 << ", orth_proj: " << orth_proj_
+                                 << ", old_ind: " << old_ind);
+            }
         }
     }
 
@@ -252,6 +263,9 @@ bool RobotController::isGoalReached(MoveCommand *cmd)
     Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
     double x_meas = current_pose[0];
     double y_meas = current_pose[1];
+
+    ROS_DEBUG_STREAM("checking goal reached: projected index: " << proj_ind_
+                     << ", last index: " << path_interpol.n()-1);
 
     // check for the subpaths, and see if the goal is reached
     if(proj_ind_ == path_interpol.n()-1) {
@@ -367,7 +381,7 @@ double RobotController::exponentialSpeedControl()
     if (!std::isnormal(fact_w)) fact_w = 0.0;
     double fact_obst = epsilon_o*std::max(0.0, cos(obst_angle));
     if (!std::isnormal(fact_obst)) fact_obst = 0.0;
-    double fact_goal = k_g_/distance_to_goal_;
+    double fact_goal = std::min(3.0, k_g_/distance_to_goal_); // TODO: remove this hack to avoid non-moving robot!
     if (!std::isnormal(fact_goal)) fact_goal = 0.0;
 
     //publish the factors of the exponential speed control
@@ -381,7 +395,6 @@ double RobotController::exponentialSpeedControl()
 
 //    ROS_INFO("k_curv: %f, k_o: %f, k_w: %f, k_g: %f, look_ahead: %f, obst_thresh: %f",
 //             k_curv_, k_o_, k_w_, k_g_, look_ahead_dist_, obst_threshold_);
-
     double exponent = fact_curv + fact_w + fact_obst + fact_goal;
     return exp(-exponent);
 }
@@ -391,7 +404,7 @@ RobotController::ControlStatus RobotController::execute()
     if(!path_) {
        return ControlStatus::ERROR;
     }
- 
+
     publishPathMarker();
 
     MoveCommand cmd;

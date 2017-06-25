@@ -4,6 +4,7 @@
 #include <memory>
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Core>
+#include <ros/time.h>
 
 namespace tf
 {
@@ -57,6 +58,18 @@ public:
      * @param target_frame, the new frame to set for this cloud
      */
     void transformCloud(const tf::Transform& transform, const std::string& target_frame);
+
+    /**
+     * @brief getStamp
+     * @return the time stamp of this cloud
+     */
+    ros::Time getStamp() const;
+
+    /**
+     * @brief getFrameId
+     * @return the frame id of this cloud
+     */
+    std::string getFrameId() const;
 };
 
 #endif // OBSTACLE_CLOUD_H

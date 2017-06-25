@@ -153,7 +153,7 @@ struct MapGoalTest
 
         const int8_t& val = map.data.at(idx);
 
-        if(val > map_search_min_value) {
+        if(val >= map_search_min_value) {
             if(has_heuristic_goal) {
                 double dist_to_heuristic_goal = std::hypot(wx - heuristic_goal.x, wy - heuristic_goal.y);
                 algo.addGoalCandidate(node, dist_to_heuristic_goal);
@@ -361,6 +361,7 @@ struct PathPlanner : public Planner
         path->forward = forward;
 
         if(path_raw.size() > 0) {
+            geometry_msgs::PoseStamped last_pose;
             for(const auto& next_map : path_raw) {
                 geometry_msgs::PoseStamped pose;
                 map_info->cell2pointSubPixel(next_map.x,next_map.y,pose.pose.position.x,
@@ -376,9 +377,14 @@ struct PathPlanner : public Planner
                     path = &path_out.paths.back();
 
                     path->forward = forward;
+
+                    path->poses.push_back(last_pose);
+
                 }
 
                 path->poses.push_back(pose);
+
+                last_pose = pose;
             }
         }
 
@@ -459,7 +465,7 @@ struct PathPlanner : public Planner
         try {
             typename Algorithm::PathT path;
             MapGoalTest<Algorithm> goal_test(algo, from_world,
-                                             request.goal.map_search_min_value > 0 ? request.goal.map_search_min_value : 32,
+                                             request.goal.map_search_min_value > 0 ? request.goal.map_search_min_value : 100,
                                              request.goal.map_search_min_candidates > 0 ? request.goal.map_search_min_candidates : 64,
                                              request.goal.min_dist,
                                              request.goal.map, map_info);

@@ -53,6 +53,7 @@ void PathFollowerServer::update()
 {
     if (follow_path_server_.isActive()) {
         if(follow_path_server_.isPreemptRequested()) {
+            ROS_INFO("preempt is requested");
             followPathPreemptCB();
 
         } else {
@@ -90,6 +91,7 @@ void PathFollowerServer::followPathGoalCB()
     if(follower_.isRunning()) {
         if(latest_goal_->follower_options.init_mode != path_msgs::FollowerOptions::INIT_MODE_CONTINUE) {
             follower_.stop(path_msgs::FollowPathResult::RESULT_STATUS_SUCCESS);
+            last_preempt_.reset();
         }
     }
 
@@ -105,5 +107,7 @@ void PathFollowerServer::followPathPreemptCB()
     }
     follow_path_server_.setPreempted();
 
-    last_preempt_ = ros::Time::now();
+    if(latest_goal_->follower_options.init_mode == path_msgs::FollowerOptions::INIT_MODE_CONTINUE) {
+        last_preempt_ = ros::Time::now();
+    }
 }

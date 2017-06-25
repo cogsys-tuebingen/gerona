@@ -300,13 +300,13 @@ void PathSequenceDisplay::processMessage( const path_msgs::PathSequence::ConstPt
             bool forward = msg->paths[k].forward;
             const auto& color = forward ? color_forward : color_backward;
 
-            if(k > 0) {
-                // for later segments we need to re-render the last point of the preceeding path
-                const geometry_msgs::Point& pos = msg->paths[k-1].poses.back().pose.position;
-                Ogre::Vector3 xpos = transform * Ogre::Vector3( pos.x, pos.y, pos.z );
-                manual_object->position( xpos.x, xpos.y, xpos.z );
-                manual_object->colour(color);
-            }
+//            if(k > 0) {
+//                // for later segments we need to re-render the last point of the preceeding path
+//                const geometry_msgs::Point& pos = msg->paths[k-1].poses.back().pose.position;
+//                Ogre::Vector3 xpos = transform * Ogre::Vector3( pos.x, pos.y, pos.z );
+//                manual_object->position( xpos.x, xpos.y, xpos.z );
+//                manual_object->colour(color);
+//            }
 
             for(const geometry_msgs::PoseStamped& pose : msg->paths[k].poses)
             {

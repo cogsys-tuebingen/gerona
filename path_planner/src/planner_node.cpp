@@ -312,6 +312,7 @@ void Planner::visualizePath(const path_msgs::PathSequence& path, int id, double 
 
     for(const path_msgs::DirectionalPath& dpath : path.paths) {
         for (const geometry_msgs::PoseStamped& spose : dpath.poses) {
+
             const geometry_msgs::Pose& pose = spose.pose;
             tf::Transform transform;
             tf::poseMsgToTF(pose, transform);

@@ -58,17 +58,6 @@ private:
 
     void retrievePath(LNode* obj, SubPath& local_wps, double& l);
 
-    void smoothAndInterpolate(SubPath& local_wps);
-
-    SubPath interpolatePath(const SubPath& path, double max_distance);
-
-    void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
-
-    SubPath smoothPath(const SubPath& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
-
-    std::vector<SubPath> segmentPath(const SubPath &path);
-
-    SubPath smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance);
 
     void setStep();
 

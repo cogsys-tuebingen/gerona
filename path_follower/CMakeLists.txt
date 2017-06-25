@@ -121,6 +121,8 @@ add_library(${PROJECT_NAME} SHARED
     src/local_planner/local_planner_null.cpp
     src/local_planner/local_planner_transformer.cpp
 
+    src/local_planner/low_speed/local_planner_astar.cpp
+
     src/local_planner/high_speed_local_planner.cpp
     src/local_planner/high_speed/local_planner_classic.cpp
     src/local_planner/high_speed/local_planner_static.cpp

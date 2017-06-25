@@ -50,12 +50,20 @@ public:
 
     virtual std::vector<SubPath> getAllLocalPaths() const;
 
+    static void smoothAndInterpolate(SubPath& local_wps);
+    static SubPath interpolatePath(const SubPath& path, double max_distance);
+    static void subdividePath(SubPath& result, Waypoint low, Waypoint up, double max_distance);
+    static SubPath smoothPath(const SubPath& path, double weight_data, double weight_smooth, double tolerance = 0.000001);
+    static SubPath smoothPathSegment(const SubPath& path, double weight_data, double weight_smooth, double tolerance);
+
+
 protected:
     AbstractLocalPlanner();
 
     virtual void setParams(const LocalPlannerParameters& opt) = 0;
 
-    Path::Ptr setPath(const std::string &frame_id, SubPath& local_wps, ros::Time& now);
+    void setPath(const Path::Ptr &local_wps, const ros::Time& now);
+    Path::Ptr setPath(const std::string &frame_id, const SubPath& local_wps, const ros::Time& now);
 
 protected:
     RobotController* controller_;

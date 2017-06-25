@@ -46,7 +46,15 @@ void Path::switchToNextWaypoint()
 
 bool Path::empty() const
 {
-    return path_.empty();
+    if(path_.empty()) {
+        return true;
+    }
+    for(const auto& sp : path_) {
+        if(!sp.empty()) {
+            return false;
+        }
+    }
+    return true;
 }
 
 size_t Path::subPathCount() const
@@ -86,7 +94,7 @@ const Waypoint &Path::getWaypoint(size_t idx) const
 
 const Waypoint &Path::getCurrentWaypoint() const
 {
-    return (*current_sub_path_)[next_waypoint_idx_];
+    return (*current_sub_path_).at(next_waypoint_idx_);
 }
 
 const Waypoint &Path::getLastWaypoint() const
@@ -115,6 +123,10 @@ void Path::computeWaypointToEndDistances()
 {
     if (isDone()) {
         wp_distance_to_end_.clear();
+        return;
+    }
+
+    if(wp_distance_to_end_.empty()) {
         return;
     }
 

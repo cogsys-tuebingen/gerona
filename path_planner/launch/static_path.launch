@@ -13,6 +13,7 @@
 
                 <!-- S-curve-->                 
 		<!-- rosparam param="segments">[[1.0], [1.57, 1.0], [0.3], [-3.141592, 1.0], [0.7], [3.141592, 1.0], [1.5]]</rosparam -->
+		<rosparam param="segments">[[-4.0], [1.57, -4.0]]</rosparam>
 
                 <!-- U-curve -->
 		<!-- rosparam param="segments">[[4.5], [3.14, 1.0], [4.0]]</rosparam -->
@@ -33,7 +34,7 @@
                 <!--rosparam param="segments">[[3.5], [1.0471975512, 1.0], [-1.0471975512, 1.0], [3.5]]</rosparam -->
 
 		<!-- little oval -->
-                <rosparam param="segments">[[3.141592, 4.0], [4.0], [3.141592, 4.0], [4.0]]</rosparam>
+                <!-- <rosparam param="segments">[[3.141592, 4.0], [4.0], [3.141592, 4.0], [4.0]]</rosparam>-->
 
 		<!-- 3x little oval -->
 		<!-- rosparam param="segments">[[3.141592, 4.0], [4.0], [3.141592, 4.0], [4.0], [3.141592, 4.0], [4.0], [3.141592, 4.0], [4.0], [3.141592, 4.0], [4.0], [3.141592, 4.0], [4.0]]</rosparam -->
