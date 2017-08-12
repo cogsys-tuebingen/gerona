@@ -26,7 +26,7 @@ before_script:
   - git clone gitlab@gitlab.cs.uni-tuebingen.de:libs/cslibs_utils
   - cd ..
   - rosdep update
-  - apt-get install -y $(rosdep install --from-paths -i -y -s src | grep 'sudo -H apt-get install -y' |cut -c 30- | paste -s)
+  - apt-get install -y $(rosdep install --from-paths -i -y -s src | grep 'apt-get install' | rev | cut -f1 -d' ' | rev | paste -s)
 
 stages:
   - build

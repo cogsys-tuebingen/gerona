@@ -629,7 +629,7 @@ void LocalPlannerAStar::updateMap()
 
 bool LocalPlannerAStar::integrateObstacles()
 {
-    double max_range = 8.0;
+//    double max_range = 8.0;
 
     ros::Time time = obstacle_cloud_->getStamp();
     std::string fixed_frame = pose_tracker_->getFixedFrameId();
