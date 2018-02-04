@@ -190,9 +190,19 @@ RobotController::MoveCommandStatus RobotController_OrthogonalExponential::comput
 void RobotController_OrthogonalExponential::publishMoveCommand(const MoveCommand &cmd) const
 {
     geometry_msgs::Twist msg;
-    msg.linear.x  = cmd.getVelocity();
-    msg.linear.y  = 0;
-    msg.angular.z = cmd.getDirectionAngle();
+    if(cmd.getDirectionAngle() == 0){
+        msg.linear.x  = cmd.getVelocity();
+        msg.linear.y  = 0;
+
+    }
+    else{
+        Vector2f v = cmd.getVelocityVector();
+            msg.linear.x  = v[0];
+            msg.linear.y  = v[1];
+    }
+
+    msg.angular.z = cmd.getRotationalVelocity();
+
 
     cmd_pub_.publish(msg);
 }

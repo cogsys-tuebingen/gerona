@@ -1,5 +1,5 @@
 // HEADER
-#include "robotcontroller_kinematic_HBZ.h"
+#include <path_follower/controller/robotcontroller_kinematic_HBZ.h>
 
 // THIRD PARTY
 #include <nav_msgs/Path.h>
