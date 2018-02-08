@@ -37,7 +37,6 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
 )
 
-find_package(OpenCV REQUIRED)
 find_package(PCL REQUIRED)
 find_package(ALGLIB REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -48,6 +47,28 @@ catkin_package(
     DEPENDS Eigen3 ALGLIB
     CATKIN_DEPENDS path_msgs nav_msgs control_msgs cslibs_utils
 )
+
+#########################
+## OpenCV 3.3.1 Bugfix ##
+#########################
+
+find_package(OpenCV 3 REQUIRED)
+if (${OpenCV_VERSION} MATCHES "3.3.1")
+  foreach(__cvcomponent ${OpenCV_LIB_COMPONENTS})
+    set (__original_cvcomponent ${__cvcomponent})
+    if(NOT __cvcomponent MATCHES "^opencv_")
+      set(__cvcomponent opencv_${__cvcomponent})
+    endif()
+    if (TARGET ${__cvcomponent})
+      set_target_properties(${__cvcomponent} PROPERTIES
+          MAP_IMPORTED_CONFIG_DEBUG ""
+          MAP_IMPORTED_CONFIG_RELEASE ""
+          MAP_IMPORTED_CONFIG_RELWITHDEBINFO ""
+          MAP_IMPORTED_CONFIG_MINSIZEREL ""
+      )
+    endif()
+  endforeach(__cvcomponent)
+endif()
 
 ###########
 ## Build ##
