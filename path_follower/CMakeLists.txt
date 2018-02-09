@@ -3,7 +3,7 @@ project(path_follower)
 
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
-add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function -Wno-deprecated-register)
+add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function)
 
 ## Enforce that we use C++11
 include(CheckCXXCompilerFlag)
