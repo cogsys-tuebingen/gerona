@@ -52,7 +52,7 @@ catkin_package(
 ## OpenCV 3.3.1 Bugfix ##
 #########################
 
-find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV REQUIRED)
 if (${OpenCV_VERSION} MATCHES "3.3.1")
   foreach(__cvcomponent ${OpenCV_LIB_COMPONENTS})
     set (__original_cvcomponent ${__cvcomponent})
