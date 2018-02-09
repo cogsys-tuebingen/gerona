@@ -33,19 +33,19 @@ stages:
 
 indigo:
   stage: build
-  image: ros:indigo
+  image: ros:indigo-perception
   script:
     - catkin_make
 
 jade:
   stage: build
-  image: ros:jade
+  image: ros:jade-perception
   script:
     - catkin_make
 
 kinetic:
   stage: build
-  image: ros:kinetic
+  image: ros:kinetic-perception
   script:
     - catkin_make
 
