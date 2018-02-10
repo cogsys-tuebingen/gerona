@@ -232,64 +232,6 @@ install(TARGETS test_output_2_csv
         RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 
 
-#############
-## Testing ##
-#############
-
-if(CATKIN_ENABLE_TESTING)
-
-## Add gtest based cpp test target and link libraries
-catkin_add_gtest(test_pathlookout
-  test/test_pathlookout.cpp
-  include/${PROJECT_NAME}/supervisor/supervisor.h
-  src/utils/parameters.cpp
-  src/utils/visualizer.cpp
-  src/utils/path.cpp
-  src/supervisor/pathlookout.cpp
-  src/supervisor/obstacletracker.cpp
-)
-if(TARGET test_pathlookout)
-  target_link_libraries(test_pathlookout ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
-endif()
-
-find_package(rostest REQUIRED)
-add_rostest_gtest(test_obstacletracker
-  test/test_obstacletracker.test
-  test/test_obstacletracker.cpp
-  include/${PROJECT_NAME}/supervisor/supervisor.h
-  src/utils/parameters.cpp
-  src/utils/visualizer.cpp
-  src/utils/path.cpp
-  src/supervisor/pathlookout.cpp
-  src/supervisor/obstacletracker.cpp
-)
-if(TARGET test_obstacletracker)
-  target_link_libraries(test_obstacletracker ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
-endif()
-
-
-catkin_add_gtest(test_pidcontroller
-  test/test_pidcontroller.cpp
-  include/${PROJECT_NAME}/utils/pidcontroller.hpp
-)
-if(TARGET test_pidcontroller)
-  target_link_libraries(test_pidcontroller ${catkin_LIBRARIES})
-endif()
-
-
-catkin_add_gtest(test_path
-  test/test_path.cpp
-  src/utils/path.cpp
-)
-if(TARGET test_path)
-  target_link_libraries(test_path ${catkin_LIBRARIES})
-endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
-
-endif()
-
 # this is to list all launch files in qtcreator
 file(GLOB_RECURSE ${PROJECT_NAME}_launch_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} FOLLOW_SYMLINKS launch/*.launch)
 add_custom_target(${PROJECT_NAME}_list_all_launch_files SOURCES ${${PROJECT_NAME}_launch_files})
