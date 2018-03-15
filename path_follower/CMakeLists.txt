@@ -35,6 +35,10 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   pcl_conversions
   pluginlib
+  cv_bridge
+  image_transport
+  sensor_msgs
+  model_based_planner
 )
 
 find_package(PCL REQUIRED)
@@ -114,6 +118,7 @@ add_library(${PROJECT_NAME} SHARED
     src/utils/movecommand.cpp
     src/utils/path_interpolated.cpp
     src/utils/extended_kalman_filter.cpp
+    src/utils/elevation_map.cpp
 
     src/collision_avoidance/collision_detector.cpp
     src/collision_avoidance/collision_detector_polygon.cpp
@@ -141,6 +146,8 @@ add_library(${PROJECT_NAME} SHARED
     src/controller/robotcontroller_dynamic_window.cpp
     src/controller/robotcontroller_OFC.cpp
     src/controller/robotcontroller_kinematic_HBZ.cpp
+    src/controller/robotcontroller_modelbased.cpp
+    src/controller/robotcontroller_ackermann_modelbased.cpp
 
     src/local_planner/abstract_local_planner.cpp
     src/local_planner/local_planner_null.cpp
@@ -165,6 +172,7 @@ add_library(${PROJECT_NAME} SHARED
     src/local_planner/high_speed/local_planner_astar_g_static.cpp
     src/local_planner/high_speed/local_planner_astar_n_reconf.cpp
     src/local_planner/high_speed/local_planner_astar_g_reconf.cpp
+    src/local_planner/model_based/local_planner_model.cpp
 
     src/local_planner/constraint.cpp
     src/local_planner/constraints/dis2path_constraint.cpp

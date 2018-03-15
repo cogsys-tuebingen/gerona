@@ -79,6 +79,17 @@ public:
         return frame_id_;
     }
 
+    inline void get_end(Waypoint &wp)
+    {
+        const unsigned int i = p_.size()-1;
+
+        wp.x = p_[i];
+        wp.y = q_[i];
+        wp.orientation = std::atan2(q_prim_[i],p_prim_[i]);
+        wp.s = s_[i];
+
+    }
+
 	operator nav_msgs::Path() const;
     operator SubPath() const;
 

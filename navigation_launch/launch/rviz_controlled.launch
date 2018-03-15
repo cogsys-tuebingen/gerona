@@ -13,6 +13,7 @@ demonstrating the navigation framework.
     <arg name="use_planner_cost" default="false" />
     <arg name="use_planner_dynamic" default="false" />
     <arg name="use_planner_static" default="false" />
+    <arg name="use_planner_goal" default="false" />
     <arg name="use_planner_default" default="true" />
     
     <arg name="use_karto" default="false" />
@@ -37,6 +38,7 @@ demonstrating the navigation framework.
       <arg name="use_planner_cost" value="$(arg use_planner_cost)" />
       <arg name="use_planner_dynamic" value="$(arg use_planner_dynamic)" />
       <arg name="use_planner_static" value="$(arg use_planner_static)" />
+      <arg name="use_planner_goal" value="$(arg use_planner_goal)" />
       <arg name="use_planner_default" value="$(arg use_planner_default)" />
 
     </include>

@@ -7,10 +7,14 @@
         <arg name="use_planner_cost" default="false" />
         <arg name="use_planner_dynamic" default="false" />
         <arg name="use_planner_static" default="false" />
-	
+        <arg name="use_planner_goal" default="false" />
+
 	<!-- default: must be checked last -->
         <arg name="use_planner_default" default="true" />
 
+
+        <include file="$(find path_planner)/launch/goal_planner.launch" if="$(arg use_planner_goal)" />
+        <group unless="$(arg use_planner_goal)">
 
 	<include file="$(find path_planner)/launch/static_path.launch" if="$(arg use_planner_static)" />
 	<group unless="$(arg use_planner_static)">
@@ -24,5 +28,6 @@
 	      <include file="$(find path_planner)/launch/planner.launch" if="$(arg use_planner_default)" />
             </group>
           </group>
+        </group>
         </group>
 </launch>

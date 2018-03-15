@@ -1,0 +1,40 @@
+<launch>
+<arg name="pub_odom" default="0" />
+<node if="$(arg pub_odom)" pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 /map /odom 100" />
+
+<node name="localmap" type="localmap_node" pkg="localmap">
+
+<remap from="/camera_info"       to="/camera/depth/camera_info"/>
+<remap from="/depth_image"       to="/camera/depth/image_raw"/>
+
+<param name="mapFrame" type="string" value="map"/>
+<param name="mapResolution" type="int" value="640"/>
+<param name="mapSize" type="double" value="6"/>
+<param name="numBlocks" type="int" value="8"/>
+<param name="processMode" type="int" value="1"/>
+<param name="transform2BaseLink" type="bool" value="false"/>
+<param name="removeLeftImageCols" type="int" value="6"/>
+<param name="fuseMode" type="int" value="0"/>
+
+
+<!--param name="leftBorderRemoveCols" type="int" value="6"/>
+
+<param name="imageSizeX" type="int" value="512"/>
+<param name="pixelResolution" type="double" value="200.0"/>
+
+<param name="leftBorderRemoveStartRow" type="int" value="0"/>
+<param name="fovDilationSize" type="int" value="10"/>
+
+<param name="min_xval" type="double" value="-0.8"/>
+<param name="min_yval" type="double" value="-1.5"/>
+<param name="max_xval" type="double" value="2.2"/>
+<param name="max_yval" type="double" value="1.5"/>
+<param name="minVisibleX" type="double" value="254.0"/>
+
+<param name="transposeImage" type="bool" value="false"/>
+<remap from="z_image" to="/elevation_map" /-->
+	
+</node>
+
+
+</launch>

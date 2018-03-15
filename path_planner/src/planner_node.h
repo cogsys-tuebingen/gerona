@@ -148,6 +148,10 @@ protected:
     void visualizePath(const path_msgs::PathSequence& path, int id = 0, double alpha = 0.5);
     void visualizePathLine(const path_msgs::PathSequence &path, int id);
 
+    geometry_msgs::PoseStamped lookupPose();
+    tf::StampedTransform lookupTransform(const std::string& from, const std::string& to, const ros::Time& stamp);
+
+
 private:
     void laserCallback(const sensor_msgs::LaserScanConstPtr& scan, bool front);
     void integrateLaserScan(const sensor_msgs::LaserScan &scan);
@@ -159,9 +163,6 @@ private:
 
     void calculateGradient(cv::Mat& gx, cv::Mat& gy);
     void publishGradient(const cv::Mat &gx, const cv::Mat &gy);
-
-    geometry_msgs::PoseStamped lookupPose();
-    tf::StampedTransform lookupTransform(const std::string& from, const std::string& to, const ros::Time& stamp);
 
     path_msgs::PathSequence findPath(const path_msgs::PlanPathGoal &request);
 

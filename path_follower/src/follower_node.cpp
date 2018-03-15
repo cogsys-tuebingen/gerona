@@ -3,9 +3,11 @@
 #include <path_follower/path_follower_server.h>
 #include <path_follower/utils/parameters.h>
 #include <path_follower/utils/obstacle_cloud.h>
+#include <path_follower/utils/elevation_map.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/factory/follower_factory.h>
 #include <pcl_ros/point_cloud.h>
+#include <sensor_msgs/Image.h>
 #include <tf/tf.h>
 #include <fstream>
 
@@ -34,6 +36,13 @@ void importCloud(const ObstacleCloud::Cloud::ConstPtr& sensor_cloud, PathFollowe
                          pose_tracker.getFixedFrameId() << ": " << e.what());
     }
 }
+
+void importElevationMap(const ElevationMap::EMap& sensor_image, PathFollower* pf)
+{
+    auto elevation_map = std::make_shared<ElevationMap>(sensor_image);
+    pf->setElevationMap(elevation_map);
+}
+
 }
 
 void showHelp(const std::string& program)
@@ -126,6 +135,9 @@ int main(int argc, char** argv) {
     ros::Subscriber obstacle_cloud_sub_ =
             nh.subscribe<ObstacleCloud::Cloud>("obstacle_cloud", 10,
                                         boost::bind(&importCloud, _1, &pf));
+    ros::Subscriber elevation_map_sub_ =
+                nh.subscribe<ElevationMap::EMapType>("elevation_map", 1,
+                                            boost::bind(&importElevationMap, _1, &pf));
 
     server.spin();
 

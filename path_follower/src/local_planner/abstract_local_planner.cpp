@@ -78,11 +78,25 @@ void AbstractLocalPlanner::setObstacleCloud(const std::shared_ptr<ObstacleCloud 
     obstacle_cloud_ = msg;
 }
 
+void AbstractLocalPlanner::setElevationMap(const std::shared_ptr<ElevationMap const> &msg)
+{
+    last_elevation_map_ = elevation_map_;
+    elevation_map_ = msg;
+}
+
+
 
 void AbstractLocalPlanner::addConstraint(Constraint::Ptr constraint)
 {
     constraints.push_back(constraint);
 }
+
+void AbstractLocalPlanner::setVelocity(geometry_msgs::Twist velocity)
+{
+    setVelocity(velocity.linear);
+}
+
+
 
 void AbstractLocalPlanner::addScorer(Scorer::Ptr scorer, double weight)
 {

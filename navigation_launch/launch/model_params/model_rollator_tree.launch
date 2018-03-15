@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<launch>
+<include file="$(find navigation_launch)/launch/model_params/rollator_score_params.launch" />
+<group ns="path_follower" >
+
+	<group ns="model_based_planner" >
+
+		<!-- General -->
+            <param name="model_planner_type" value="TreeDWA_AngularVel_Goal_WSPL" />
+
+		<!-- Planner -->
+            <param name="max_num_nodes" value="10000" />
+            <param name="max_depth" value="4" />
+            <param name="curve_segment_subdivisions" value="20" />
+            <param name="look_ahead_time" value="3.0" />
+
+	    <param name="number_of_splits" value="3" />
+            <param name="steering_angle_delta" value="0.1" />
+            <param name="number_of_splits_first_level" value="9" />
+            <param name="steering_angle_delta_first_level" value="0.1" />
+
+<!--	    <param name="number_of_splits" value="3" />
+            <param name="steering_angle_delta" value="0.15" />
+            <param name="number_of_splits_first_level" value="7" />
+            <param name="steering_angle_delta_first_level" value="0.15" />
+-->
+            
+
+    	</group>
+</group>
+</launch>
