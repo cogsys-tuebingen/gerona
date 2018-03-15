@@ -15,10 +15,6 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>opencv</build_depend>
-
-  <run_depend>opencv</run_depend>
-
   <export>
   </export>
 </package>
