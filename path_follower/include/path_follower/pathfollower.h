@@ -11,6 +11,7 @@
 #include <sensor_msgs/LaserScan.h>
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
+#include <sensor_msgs/Image.h>
 
 /// PROJECT
 #include <path_follower/utils/path_follower_config.h>
@@ -20,6 +21,8 @@
 #include <ros/publisher.h>
 #include <memory>
 #include <boost/variant.hpp>
+#include <sensor_msgs/Image.h>
+
 
 /// FORWARD DECLARATIONS
 class FollowerFactory;
@@ -32,6 +35,7 @@ class Path;
 class CollisionAvoider;
 
 class ObstacleCloud;
+class ElevationMap;
 class MoveCommand;
 
 class PoseTracker;
@@ -71,6 +75,12 @@ public:
      * @param cloud is the latest obstacle cloud
      */
     void setObstacles(const std::shared_ptr<ObstacleCloud const>& cloud);
+
+    /**
+         * @brief setElevationMap updates the current elevation map for the follower
+         * @param elevationMap is the latest elevation map
+         */
+    void setElevationMap(const std::shared_ptr<ElevationMap const>& elevationMap);
 
     /**
      * @brief isRunning returns the current state
@@ -187,6 +197,9 @@ private:
 
     //! The last received obstacle cloud
     std::shared_ptr<ObstacleCloud const> obstacle_cloud_;
+    //! The last received elevation map
+    std::shared_ptr<ElevationMap const> elevation_map_;
+
     //! Path driven by the robot
     visualization_msgs::Marker g_robot_path_marker_;
 

@@ -125,6 +125,15 @@ void PathFollower::setObstacles(const std::shared_ptr<ObstacleCloud const> &msg)
     }
 }
 
+void PathFollower::setElevationMap(const std::shared_ptr<ElevationMap const> &msg)
+{
+    elevation_map_ = msg;
+    /*
+    if(current_config_) {
+        current_config_->collision_avoider_->setElevationMap(msg);
+    }*/
+}
+
 
 boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
 {
@@ -176,11 +185,17 @@ boost::variant<FollowPathFeedback, FollowPathResult> PathFollower::update()
         if(obstacle_cloud_ != nullptr){
             current_config_->local_planner_->setObstacleCloud(obstacle_cloud_);
         }
+        if(elevation_map_ != nullptr){
+            current_config_->local_planner_->setElevationMap(elevation_map_);
+        }
+
 
         const LocalPlannerParameters& opt_l = *LocalPlannerParameters::getInstance();
 
         if(opt_l.use_velocity()){
-            current_config_->local_planner_->setVelocity(pose_tracker_->getVelocity().linear);
+            //current_config_->local_planner_->setVelocity(pose_tracker_->getVelocity().linear);
+            current_config_->local_planner_->setVelocity(pose_tracker_->getVelocity());
+
         }
 
         bool path_search_failure = false;

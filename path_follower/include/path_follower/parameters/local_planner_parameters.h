@@ -20,6 +20,7 @@ struct LocalPlannerParameters : public Parameters
     P<int> max_num_nodes,max_depth,curve_segment_subdivisions,intermediate_angles;
     P<double> update_interval,distance_to_path_constraint, safety_distance_surrounding, safety_distance_forward, max_steering_angle, step_scale, mu, ef;
     P<bool> use_velocity;
+    P<double> min_velocity, min_distance_to_goal;
 
 private:
     LocalPlannerParameters(const Parameters* parent):
@@ -89,7 +90,12 @@ private:
         ef(this, "ef", 2.0,
            "Exponential factor the dis2obst scorer (std::exp(<ef>/distance(point, obstacle)) - 1.0"),
         use_velocity(this, "use_velocity", true,
-                     "Determines if the current velocity is used by the local planner")
+                     "Determines if the current velocity is used by the local planner"),
+        min_velocity(this, "min_velocity", 0.5,
+                     "Minimum velocity for planning"),
+        min_distance_to_goal(this, "min_distance_to_goal", 0.2,
+                     "If goal is within this distance stop")
+
 
       /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     {

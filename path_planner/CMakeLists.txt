@@ -73,6 +73,16 @@ target_link_libraries(static_path_node
 install(TARGETS static_path_node
         RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 
+## Goal Path "Planner"
+add_executable(goal_planner_node src/goal_planner/goal_planner_node.cpp)
+add_dependencies(goal_planner_node path_msgs_generate_messages_cpp)
+target_link_libraries(goal_planner_node
+  ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+)
+install(TARGETS goal_planner_node
+        RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
+
+
 
 add_executable(course_planner_node
     src/course_planner/course/segment.cpp

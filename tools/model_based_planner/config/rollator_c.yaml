@@ -1,0 +1,40 @@
+%YAML:1.0
+---
+Robot:
+   baseLinkPosCoord: [ 0., 0. ]
+Chassis:
+   chassisfileName: "Rollator.png"
+   chassisImageCenter: [ -1., -1. ]
+   chassisImageValueOffset: 0.
+   chassisImageValueScale: 2.
+   chassisModelYSize: 0.55
+   chassisPosRobot: [ 0.04, 0. ]
+   testChassis: 1
+Wheels:
+   wheelPosRobotX: 0.287
+   wheelPosRobotFrontY: 0.26
+   wheelPosRobotRearY: 0.31
+   wheelJointPosFront: [ 0., 0. ]
+   wheelRadiusFront: 0.1025
+   wheelWidthFront: 0.06
+   wheelLatRadiusFront: 0.05
+   wheelJointPosRear: [ 0., 0. ]
+   wheelRadiusRear: 0.1025
+   wheelWidthRear: 0.06
+   wheelLatRadiusRear: 0.05
+   frontWheelsTurnable: 1
+   wheelRotTestSteps: 0
+   wheelRotTestStepSize: 0   
+Proc:
+   numAngleStep: 360
+   heightScale: 1000.0
+   mapBaseHeight: 10000
+   wheelGroundLevel: 20000
+   maxHeight: 30000
+   pixelSize: 0.00625
+   imagePosBLMinX: -0.8
+   imagePosBLMinY: -1.5
+   validThresholdFactor: 0.95
+   convertImage: 0
+
+

@@ -34,6 +34,11 @@
   <build_depend>pluginlib</build_depend>
   <build_depend>libalglib-dev</build_depend>
   <build_depend>cv_bridge</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>model_based_planner</build_depend>
+
+
 
 
   <run_depend>actionlib</run_depend>
@@ -50,6 +55,9 @@
   <run_depend>pluginlib</run_depend>
   <run_depend>tf_conversions</run_depend>
   <run_depend>cv_bridge</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>model_based_planner</run_depend>
 
   <test_depend>rosunit</test_depend>
   <test_depend>rostest</test_depend>

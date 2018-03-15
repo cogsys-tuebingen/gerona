@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<launch>
+<group ns="path_follower" >
+
+	<group ns="model_based_planner" >
+
+		<!-- General
+            <param name="robot_config_file" value="$(find model_based_planner2)/config/summit_sc2.yaml" />
+            <param name="elevation_map_config_file" value="$(find de_localmap)/config/dem_local_1024_10.yaml" />  -->
+            
+		<!-- Scorer -->
+            <param name="grav_angle_threshold" value="0.1" />
+            <param name="tip_angle_threshold" value="0.1" />
+            <param name="delta_angle_threshold" value="0.1" />
+  	    <param name="min_wheel_support_threshold" value="0.7" />
+   	    <param name="allow_not_visible" value="false" />
+
+	    <param name="no_wheel_support_near_threshold" value="2.0" />
+	    <param name="no_wheel_support_rotate_threshold" value="0.7" />
+	    <param name="min_pose_steps_penalty_threshold" value="0.8" />
+
+            <param name="score_weight_mean_grav_angle" value="0.0" />
+            <param name="score_weight_max_grav_angle" value="0.0" />
+            <param name="score_weight_mean_angle_difference" value="0.0" />
+            <param name="score_weight_max_angle_difference" value="0.0" />
+            <param name="score_weight_mean_tip_angle" value="0.0" />
+            <param name="score_weight_max_tip_angle" value="0.0" />
+            <param name="score_weight_mean_wheel_support" value="0.0" />
+            <param name="score_weight_min_wheel_support" value="0.0" />
+
+            <param name="score_weight_delta_curvature" value="0.0" />
+            <param name="score_weight_level" value="0.0" />
+
+            <param name="score_weight_distance_to_goal" value="2.0" />
+            <param name="score_weight_angle_to_goal" value="-1.0" />
+	    <param name="score_weight_last_vel_diff" value="-1.0" />
+	    
+
+            <param name="score_weight_end_out_of_image" value="0.0" />
+            <param name="score_weight_end_no_wheel_support" value="-1000.0" />
+            <param name="score_weight_end_no_wheel_support_far" value="-10.0" />
+            <param name="score_weight_end_not_visible" value="0.0" />
+            <param name="score_weight_end_valid" value="0.0" />
+            <param name="score_weight_end_exceed_angle" value="-1000.0" />
+            <param name="score_weight_end_goal_reached" value="10000.0" />
+            <param name="score_weight_end_low_pose_count_penalty" value="-1000.0" />
+            <param name="score_weight_end_chassis_collision" value="-1000.0" />
+            <param name="target_goal_distance" value="0.2" />
+    	</group>
+</group>
+</launch>

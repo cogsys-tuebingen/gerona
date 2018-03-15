@@ -1,0 +1,13 @@
+%YAML:1.0
+---
+Proc:
+   numAngleStep: 360
+   heightScale: 1000.
+   mapBaseHeight: 10000
+   wheelGroundLevel: 20000
+   maxHeight: 30000
+   pixelSize: 0.015625
+   imagePosBLMinX: -5
+   imagePosBLMinY: -5
+   validThresholdFactor: 9.4999998807907104e-01
+   convertImage: 0

@@ -20,6 +20,7 @@
 class PathFollower;
 class PoseTracker;
 class ObstacleCloud;
+class ElevationMap;
 
 class PathFollowerParameters;
 class LocalPlannerParameters;
@@ -33,6 +34,8 @@ public:
 
     virtual void setGlobalPath(Path::Ptr path);
 
+    virtual void setVelocity(geometry_msgs::Twist velocity);
+
     virtual void setVelocity(geometry_msgs::Twist::_linear_type vector) = 0;
 
     virtual void setVelocity(double velocity) = 0;
@@ -44,6 +47,8 @@ public:
     virtual bool isNull() const;
 
     void setObstacleCloud(const std::shared_ptr<ObstacleCloud const> &msg);
+    void setElevationMap(const std::shared_ptr<ElevationMap const> &msg);
+
 
     void addConstraint(Constraint::Ptr constraint);
     void addScorer(Scorer::Ptr scorer, double weight);
@@ -80,6 +85,8 @@ protected:
     ros::Duration update_interval_;
 
     std::shared_ptr<ObstacleCloud const> obstacle_cloud_, last_obstacle_cloud_;
+    std::shared_ptr<ElevationMap const> elevation_map_, last_elevation_map_;
+
 
     ros::Time last_update_;
 };

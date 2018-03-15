@@ -1,0 +1,176 @@
+<?xml version="1.0"?>
+<launch>
+<arg name="use_laser_obstacles" default="true" />
+<arg name="is_simulation" default="false" />
+<arg name="publish_map2odom" default="false" />
+
+
+<node if="$(arg publish_map2odom)" pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 /map /odom 100" />
+
+	<!--include if="$(arg use_laser_obstacles)" file="$(find navigation_launch)/launch/laser_filter_rollator.launch" /-->
+  
+
+    <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy" output="screen" respawn="true">
+        <param name="target_speed" value="1.0" />
+        <param name="failure_mode" value="replan" />
+        <remap from="rviz_goal" to="/move_base_simple/goal" />
+    </node>
+
+
+
+    
+
+<include file="$(find path_planner)/launch/goal_planner.launch" />
+    
+<include file="$(find path_control)/launch/path_control.launch" />
+
+<!--include file="$(find rgbd2dem)/launch/depth2dem_480_int.launch" /-->
+
+<!--Load Summit model planner parameters /-->
+<!--include file="$(find rollator_main2)/params/model_rollator_tree.launch" /-->
+<include file="$(find navigation_launch)/launch/model_params/model_rollator_tree.launch" />
+
+<!--Specific parameters /-->
+
+
+<node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
+        
+    </node>
+
+
+	<group ns="path_follower" >
+	<!--param name="collision_avoider" value="default_collision_avoider" /-->
+
+	<group ns="model_based_planner" >
+		<param name="robot_config_file" value="$(find model_based_planner)/config/rollator_c.yaml" />
+            	<param name="elevation_map_config_file" value="$(find localmap)/config/dem_local_768_8.yaml" /> -->
+            	<param name="look_ahead_time" value="5.0" />
+
+	</group>
+
+        <group ns="local_planner">
+            <param name="algorithm" value="HS_Model" />
+	    <param name="safety_distance_forward" value="0.5" />
+	    
+        </group>                
+
+        <param name="controller_type" value="kinematic_hbz" />
+        <!--param name="controller_type" value="ackermann_purepursuit" /-->
+        <group ns="controller" >
+            <group ns="kinematic_hbz" >
+                <param name="k1" value="1.0" />
+                <param name="k2" value="1.0" />
+
+                <param name="lambda" value="1" />
+                <param name="theta_a" value="2.0*0.78539816339" />
+
+                <!-- param name="k1" value="5.0" />
+                <param name="k2" value="10" />
+
+                <param name="lambda" value="2" />
+                <param name="theta_a" value="2.0*0.78539816339" / -->
+
+                <!-- coarse gravel -->
+                <!-- param name="x_ICR" value="0.2244"/>
+                <param name="y_ICR_l" value="0.4845" />
+                <param name="y_ICR_r" value="-0.474" />
+                <param name="alpha_l" value="0.87974" />
+                <param name="alpha_r" value="0.89856" / -->
+
+                <!-- grass -->
+                <param name="x_ICR" value="0.0"/>
+                <param name="y_ICR_l" value="0.2335" />
+                <param name="y_ICR_r" value="-0.2335" />
+                <param name="alpha_l" value="1.0" />
+                <param name="alpha_r" value="1.0" />
+
+                <!-- corridor -->
+                <!-- param name="x_ICR" value="0.259"/>
+                <param name="y_ICR_l" value="0.4786" />
+                <param name="y_ICR_r" value="-0.3496" />
+                <param name="alpha_l" value="0.8045" />
+                <param name="alpha_r" value="0.827" / -->
+
+
+                <param name="max_angular_velocity" value="0.2" />
+                <param name="epsilon" value="0.5" />
+                <param name="b" value="0.2" />
+
+                <param name="look_ahead_dist" value="1.5" />
+                <param name="k_o" value="0.3" />
+                <param name="k_g" value="0.4" />
+                <param name="k_w" value="0.5" />
+                <param name="k_curv" value="0.05" />
+
+                <param name="des_dist" value="2.0" />
+                <param name="k_l" value="1.0" />
+            </group>
+        </group>
+
+
+    </group>
+
+    <!-- default settings for the follower -->
+    <group ns="path_follower">
+        <param name="min_velocity" value="0.45" />
+        <param name="max_velocity" value="0.55" />
+        <param name="waypoint_tolerance" value="0.3" />
+        <param name="goal_tolerance" value="0.1" />
+
+        <group ns="collision_avoider">
+            <group ns="collision_box">
+                <param name="width" value="0.1" />
+                <param name="crit_length" value="0.1" />
+                <param name="min_length" value="0.1" />
+                <param name="max_length" value="0.11" />
+                <param name="velocity_factor" value="1.0" />
+                <param name="velocity_saturation" value="-1.0" />
+            </group>
+        </group>
+
+        <group ns="supervisor">
+            <param name="use_waypoint_timeout" value="false" />
+
+            <param name="use_distance_to_path" value="false" />
+            <group ns="distance_to_path">
+                <param name="max_dist" value="2.0" />
+            </group>
+
+            <param name="use_path_lookout" value="false" />
+            <group ns="path_lookout">
+                <param name="obstacle_scale_distance" value="1.0" />
+                <param name="obstacle_scale_lifetime" value="5.0" />
+                <param name="path_width" value="0.5" />
+            </group>
+        </group>
+    </group>
+
+    <!-- load common parameters -->
+    <include file="$(find path_follower)/launch/follower_2steer_inputscaling.launch" />
+    <include file="$(find path_follower)/launch/follower_2steer_purepursuit.launch" />
+    <include file="$(find path_follower)/launch/follower_2steer_stanley.launch" />
+    <include file="$(find path_follower)/launch/follower_ackermann_inputscaling.launch" />
+    <include file="$(find path_follower)/launch/follower_ackermann_orthexp.launch" />
+    <include file="$(find path_follower)/launch/follower_ackermann_pid.launch" />
+    <include file="$(find path_follower)/launch/follower_ackermann_purepursuit.launch" />
+    <include file="$(find path_follower)/launch/follower_ackermann_stanley.launch" />
+    <include file="$(find path_follower)/launch/follower_differential_orthexp.launch" />
+    <include file="$(find path_follower)/launch/follower_dynamic_window.launch" />
+    <include file="$(find path_follower)/launch/follower_PBR.launch" />
+    <include file="$(find path_follower)/launch/follower_kinematic_HBZ.launch" />
+    <include file="$(find path_follower)/launch/follower_kinematic_HBZ_TT.launch" />
+    <include file="$(find path_follower)/launch/follower_kinematic_SLP.launch" />
+    <include file="$(find path_follower)/launch/follower_OFC.launch" />
+    <include file="$(find path_follower)/launch/follower_omnidrive_orthexp.launch" />
+    <include file="$(find path_follower)/launch/follower_potential_field.launch" />
+    <include file="$(find path_follower)/launch/follower_potential_field_TT.launch" />
+    <include file="$(find path_follower)/launch/follower_unicycle_inputscaling.launch" />
+
+
+
+
+
+
+
+
+</launch>

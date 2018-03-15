@@ -1,0 +1,42 @@
+%YAML:1.0
+% was -500 cam distance to 0 is 500mm, model minimum is set to 0 level
+---
+Robot:
+   baseLinkPosCoord: [ 0., 0. ]
+   chassisTestTipAngleThreshold: 0.99
+Chassis:
+   chassisfileName: "summit_wl_16b_512.png"
+   chassisImageCenter: [ -1., -1. ]
+   chassisImageValueOffset: -440 
+   chassisImageValueScale: 0.015258789
+   chassisModelYSize: 0.385
+   chassisPosRobot: [ -0.025, 0. ]
+   testChassis: 0
+Wheels:
+   wheelPosRobotX: 0.229
+   wheelPosRobotFrontY: 0.234
+   wheelPosRobotRearY: 0.234
+   wheelJointPosFront: [ 0., 0. ]
+   wheelRadiusFront: 0.12
+   wheelWidthFront: 0.14
+   wheelLatRadiusFront: 0.2
+   wheelJointPosRear: [ 0., 0. ]
+   wheelRadiusRear: 0.12
+   wheelWidthRear: 0.14
+   wheelLatRadiusRear: 0.2
+   frontWheelsTurnable: 0
+   wheelRotTestSteps: 0
+   wheelRotTestStepSize: 0   
+Proc:
+   numAngleStep: 360
+   heightScale: 1000.0
+   mapBaseHeight: 10000
+   wheelGroundLevel: 20000
+   maxHeight: 30000
+   pixelSize: 0.00625
+   imagePosBLMinX: 0.75
+   imagePosBLMinY: -1.0
+   validThresholdFactor: 0.95
+   convertImage: 0
+
+

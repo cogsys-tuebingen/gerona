@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package>
+  <name>model_based_planner</name>
+  <version>1.0.0</version>
+  <description>The model_based_planner package</description>
+
+  <author email="julian.jordan@uni-tuebingen.de">Julian Jordan</author>
+
+  <maintainer email="goran.huskic@uni-tuebingen.de">Goran Huskic</maintainer>
+  <maintainer email="sebastian.buck@uni-tuebingen.de">Sebastian Buck</maintainer>
+  <maintainer email="julian.jordan@uni-tuebingen.de">Julian Jordan</maintainer>
+  <maintainer email="adrian.zwiener@uni-tuebingen.de">Adrian Zwiener</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <export>
+  </export>
+</package>
