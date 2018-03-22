@@ -4,7 +4,7 @@
 #include <path_follower/utils/parameters.h>
 #include <rosconsole/macros_generated.h>
 #include <path_follower/parameters/path_follower_parameters.h>
-#include <model_based_planner/config_modelbasedplanner.h>
+#include <model_based_planner2/config_modelbasedplanner.h>
 
 struct ModelParameters : public Parameters
 {
@@ -87,7 +87,8 @@ public:
     P<int> number_of_splits_first_level; //int firstLevelSplits;
     P<double> steering_angle_delta_first_level; //float firstLevelDeltaTheta;
 
-
+    P<int> number_of_splits_first_level_linear; //int firstLevelSplits;
+    P<double> linear_vel_delta_first_level; //float firstLevelDeltaTheta;
 
 
     void AssignParams(ModelBasedPlannerConfig &config)
@@ -152,6 +153,11 @@ public:
 
         config.expanderConfig_.firstLevelSplits = number_of_splits_first_level();
         config.expanderConfig_.firstLevelDeltaTheta = steering_angle_delta_first_level();
+
+        config.expanderConfig_.firstLevelLinearSplits = number_of_splits_first_level_linear();
+        config.expanderConfig_.firstLevelDeltaLinear = linear_vel_delta_first_level();
+
+
     }
 
 
@@ -204,8 +210,9 @@ public:
         number_of_splits(this, "number_of_splits", 3, "number_of_splits for node expansion"),
         steering_angle_delta(this, "steering_angle_delta", 0.4, "Angle change for node expansion"),
         number_of_splits_first_level(this, "number_of_splits_first_level", 7, "number_of_splits for node expansion"),
-        steering_angle_delta_first_level(this, "steering_angle_delta_first_level", 0.2, "Angle change for node expansion")
-
+        steering_angle_delta_first_level(this, "steering_angle_delta_first_level", 0.2, "Angle change for node expansion"),
+        number_of_splits_first_level_linear(this, "number_of_splits_first_level_linear", 3, "number_of_linear velocity splits for node expansion"),
+        linear_vel_delta_first_level(this, "linear_vel_delta_first_level", 0.1, "Angle change for node expansion")
 
 
 
