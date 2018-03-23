@@ -4,7 +4,7 @@
 #include <path_follower/utils/parameters.h>
 #include <rosconsole/macros_generated.h>
 #include <path_follower/parameters/path_follower_parameters.h>
-#include <model_based_planner2/config_modelbasedplanner.h>
+#include <model_based_planner/config_modelbasedplanner.h>
 
 struct ModelParameters : public Parameters
 {
