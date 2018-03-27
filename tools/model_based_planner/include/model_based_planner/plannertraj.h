@@ -48,6 +48,20 @@ public:
         scorer_.SetGoal(goal_);
     }
 
+    virtual void SetPathMap(const std::vector<cv::Point3f> &path)
+    {
+
+        path_.clear();
+        path_.reserve(path.size());
+
+        for (int tl = 0; tl < path.size();++tl)
+        {
+            path_.push_back(PoseToImgPose(path[tl]));
+        }
+
+        scorer_.SetGoal(goal_);
+    }
+
     void FinishedPlanning()
     {
         TrajNode* bestNodeParent = bestNode_->GetFirstNode();
