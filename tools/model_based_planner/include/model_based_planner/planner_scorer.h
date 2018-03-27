@@ -39,6 +39,7 @@ struct NodeScorer_Base
 
     PlannerScorerConfig config_;
     cv::Point3f goal_;
+    std::vector<cv::Point3f> path_;
     float goalDistanceCutoff_;
     cv::Point3f curRobotPose_;
     cv::Point2f lastCmdVel_;
@@ -81,6 +82,13 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
     void SetGoal(const cv::Point3f goal)
     {
         goal_ = goal;
+
+    }
+
+    void SetPath(const std::vector<cv::Point3f> &path)
+    {
+        if (path.empty())return;
+        goal_ = path[path.size()-1];
 
     }
 
