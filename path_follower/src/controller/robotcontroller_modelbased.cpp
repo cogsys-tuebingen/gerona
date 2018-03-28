@@ -182,6 +182,7 @@ RobotController::MoveCommandStatus RobotController_ModelBased::computeMoveComman
     cv::Point3f goal(target_.x,target_.y,target_.orientation);
 
     model_based_planner_->SetGoalMap(goal);
+    model_based_planner_->SetPathMap(currentPath_);
 
     doPlan_ = true;
 
@@ -219,6 +220,29 @@ bool RobotController_ModelBased::GetTransform(ros::Time time,std::string targetF
 
 }
 
+
+void RobotController_ModelBased::TransformPath(tf::Transform trans)
+{
+    currentPath_.clear();
+    for (unsigned int tl = 0; tl < path_interpol.n();++tl)
+    {
+        cv::Point3f resP;
+        tf::Point pt(path_interpol.p(tl), path_interpol.q(tl), 0);
+        pt = trans * pt;
+        resP.x = pt.x();
+        resP.y = pt.y();
+
+        tf::Quaternion rot = tf::createQuaternionFromYaw(path_interpol.s(tl));
+        rot = trans * rot;
+        resP.z = tf::getYaw(rot);
+
+        currentPath_.push_back(resP);
+    }
+
+
+}
+
+
 bool RobotController_ModelBased::targetTransform2base(ros::Time& now)
 {
     tf::StampedTransform now_map_to_base;
@@ -248,6 +272,7 @@ bool RobotController_ModelBased::targetTransform2base(ros::Time& now)
     rot = transform_correction * rot;
     target_.orientation = tf::getYaw(rot);
 
+    TransformPath(transform_correction);
     return true;
 }
 

@@ -11,17 +11,41 @@
 /**
  * @brief Planner base class with templates for expander and scorer
  */
-template <typename TE, typename TS>
+template <typename TS>
 class PlannerTraj : public PlannerBase
 {
 public:
 
     //typedef std::shared_ptr<PlannerTraj> Ptr;
 
+    void CreateNodeExpander(std::string expanderName)
+    {
+        if (expanderName == NodeExpander_AVNI::NE_NAME)
+        {
+            expander_ = NodeExpander_AVNI::Create();
+            return;
+        }
+        if (expanderName == NodeExpander_AVT::NE_NAME)
+        {
+            expander_ = NodeExpander_AVT::Create();
+            return;
+        }
+        if (expanderName == NodeExpander_LAVT::NE_NAME)
+        {
+            expander_ = NodeExpander_LAVT::Create();
+            return;
+        }
+
+        expander_ = NodeExpander_AVNI::Create();
+
+    }
+
     virtual void Initialize(ModelBasedPlannerConfig &config)
     {
         PlannerBase::Initialize(config);
-        expander_.SetConfig(config_.expanderConfig_,config.procConfig_.pixelSize);
+        CreateNodeExpander(config_.nodeExpanderType_);
+
+        expander_->SetConfig(config_.expanderConfig_,config_.procConfig_.pixelSize);
         scorer_.SetConfig(config_.scorerConfig_, config_.procConfig_.validThreshold,config_.procConfig_.notVisibleThreshold, config_.plannerConfig_.subSampleTimeStep);
     }
 
@@ -39,7 +63,7 @@ public:
     void SetPlannerExpanderParameters(PlannerExpanderConfig &config)
     {
         config_.expanderConfig_ = config;
-        expander_.SetConfig(config_.expanderConfig_,config_.procConfig_.pixelSize);
+        expander_->SetConfig(config_.expanderConfig_,config_.procConfig_.pixelSize);
     }
 
     virtual void SetGoalMap(const cv::Point3f goal)
@@ -59,7 +83,8 @@ public:
             path_.push_back(PoseToImgPose(path[tl]));
         }
 
-        scorer_.SetGoal(goal_);
+        scorer_.SetPath(path_);
+
     }
 
     void FinishedPlanning()
@@ -193,7 +218,7 @@ public:
 
 protected:
     TS scorer_;
-    TE expander_;
+    INodeExpander::Ptr expander_;
 
 };
 

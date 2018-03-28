@@ -151,6 +151,53 @@ private:
 
     }
 
+    bool TransformPath(const path_msgs::PathSequenceConstPtr &path, std::string targetFrame, path_msgs::PathSequence &result )
+    {
+        result.header.frame_id = targetFrame;
+        result.header.stamp = path->header.stamp;
+        result.paths.clear();
+        try{//Try to get the latest avaiable Transform
+            for (int pl = 0; pl < path->paths.size();++pl)
+            {
+                path_msgs::DirectionalPath dpath;
+
+                dpath.forward = true;
+                for (int dl = 0; dl < path->paths[pl].poses.size();++dl)
+                {
+                    geometry_msgs::PoseStamped resPose;
+                    tfl_.transformPose(targetFrame,path->paths[pl].poses[dl],resPose);
+                    dpath.poses.push_back(resPose);
+                }
+                result.paths.push_back(dpath);
+            }
+
+        }catch(tf::TransformException ex){//if not available, then wait
+            (void) ex;
+            if(!tfl_.waitForTransform(targetFrame, path->header.frame_id, path->header.stamp, ros::Duration(0.05))){
+                ROS_WARN_STREAM_THROTTLE(1, "cannot lookup transform from :" << targetFrame << " to " << path->header.frame_id);
+                return false;
+            }
+            for (int pl = 0; pl < path->paths.size();++pl)
+            {
+                path_msgs::DirectionalPath dpath;
+
+                dpath.forward = true;
+                for (int dl = 0; dl < path->paths[pl].poses.size();++dl)
+                {
+                    geometry_msgs::PoseStamped resPose;
+                    tfl_.transformPose(targetFrame,path->paths[pl].poses[dl],resPose);
+                    dpath.poses.push_back(resPose);
+                }
+                result.paths.push_back(dpath);
+            }
+        }
+
+        return true;
+
+
+    }
+
+
     geometry_msgs::PoseStamped GetPoseFromTransform(tf::StampedTransform tf) {
         //clumsy conversions--points, vectors and quaternions are different data types in tf vs geometry_msgs
         geometry_msgs::PoseStamped stPose;
@@ -257,7 +304,12 @@ private:
         //follow_path_client_.
 
         path_msgs::FollowPathGoal path_action_goal;
-        path_action_goal.path = *path;
+
+        if (path->header.frame_id != world_frame_)
+        {
+            TransformPath(path,world_frame_,path_action_goal.path);
+        }
+        else path_action_goal.path = *path;
         path_action_goal.follower_options.velocity = target_speed_;
         path_action_goal.follower_options.init_mode = init_mode_;
 

@@ -11,14 +11,14 @@
 /**
  * @brief Implementation of the A*-like planner. The closed set can be disabled of the expander parameters do not produce nodes that are close enough. This saves some computation time
  */
-template <typename TE, typename TS>
-class PI_AStar : public PlannerTraj<TE, TS>
+template <typename TS>
+class PI_AStar : public PlannerTraj<TS>
 {
 public:
-    typedef std::shared_ptr<PI_AStar<TE,TS> > Ptr;
-    static PI_AStar<TE,TS>::Ptr Create(){ return std::make_shared< PI_AStar<TE,TS>  >() ; }
+    typedef std::shared_ptr<PI_AStar<TS> > Ptr;
+    static PI_AStar<TS>::Ptr Create(){ return std::make_shared< PI_AStar<TS>  >() ; }
 
-    typedef PlannerTraj<TE, TS> TB;
+    typedef PlannerTraj< TS> TB;
     using TB::openSet_;
     using TB::config_;
     using TB::CreateTrajectory;
@@ -61,7 +61,7 @@ public:
 
             //const int numSplits = expander_.GetNumberChildren(curNode->level_);
 
-            const int numSplits = expander_.Expand(curNode->level_, curNode->endCmd_,tempCmds_);
+            const int numSplits = expander_->Expand(curNode->level_, curNode->endCmd_,tempCmds_);
 
             for (int i = 0; i < numSplits;++i)
             {

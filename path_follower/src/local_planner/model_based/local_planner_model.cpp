@@ -215,7 +215,9 @@ Path::Ptr LocalPlannerModel::updateLocalPath_LocalMap()
     //cv::Point3f goal(target_.x,target_.y,target_.orientation);
     cv::Point3f goal(path_end_.x, path_end_.y,path_end_.orientation);
 
+
     model_based_planner_->SetGoalMap(goal);
+    model_based_planner_->SetPathMap(currentPath_);
 
 
 
@@ -439,6 +441,16 @@ void LocalPlannerModel::setGlobalPath(Path::Ptr path)
 {
     AbstractLocalPlanner::setGlobalPath(path);
     global_path_.get_end(path_end_);
+
+    currentPath_.clear();
+    currentPath_.reserve(global_path_.n());
+
+    for (int tl = 0; tl < global_path_.n();++tl)
+    {
+        cv::Point3f p(global_path_.p(tl), global_path_.q(tl),global_path_.s(tl));
+        currentPath_.push_back(p);
+    }
+
     close_to_goal_ = false;
 
 }
