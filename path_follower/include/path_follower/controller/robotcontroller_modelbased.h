@@ -160,6 +160,7 @@ protected:
     Command cmd_;
     Waypoint target_;
     Waypoint goal_;
+    std::vector<cv::Point3f> currentPath_;
     tf::Transformer* transformer_;
     int commandStatus;
     bool doPlan_;
@@ -193,6 +194,8 @@ protected:
     void imageCallback (const sensor_msgs::ImageConstPtr& image);
 
     bool GetTransform(ros::Time time,std::string targetFrame, std::string sourceFrame, tf::StampedTransform &trans);
+
+    void TransformPath(tf::Transform trans);
 
 
 

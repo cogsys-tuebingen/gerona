@@ -71,6 +71,7 @@ struct PlannerScorerConfig
 
         f_goalDistance = 1.0;
         f_goalOrientation = -2.0;
+        f_pathDistance = -1.0;
         f_lastCmdVelDiff = -2.0;
 
         end_outOfImage = 0;
@@ -109,7 +110,8 @@ struct PlannerScorerConfig
     float f_numNotVisible;// factor
     float f_goalDistance; // factor
     float f_goalOrientation; // factor
-    float f_lastCmdVelDiff;
+    float f_lastCmdVelDiff; // factor
+    float f_pathDistance; // factor
 
     float end_outOfImage; // offset
     float end_noWheelSupport; // offset

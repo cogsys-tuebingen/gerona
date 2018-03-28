@@ -6,7 +6,9 @@
 	<group ns="model_based_planner" >
 
 		<!-- General -->
-            <param name="model_planner_type" value="TreeDWA_AngularVel_Goal_WSPL" />
+            <param name="model_planner_type" value="TreeDWA" />
+            <param name="model_node_expander_type" value="angular_vel" />
+            <param name="model_scorer_type" value="goal_scorer" />
 
 		<!-- Planner -->
             <param name="max_num_nodes" value="10000" />

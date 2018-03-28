@@ -14,14 +14,14 @@
 /**
  * @brief Depth first search implementation, The closed set can be disabled of the expander parameters do not produce nodes that are close enough. This saves some computation time.
  */
-template <typename TE, typename TS>
-class PI_Tree : public PlannerTraj<TE, TS>
+template <typename TS>
+class PI_Tree : public PlannerTraj< TS>
 {
 public:
-    typedef std::shared_ptr<PI_Tree<TE,TS> > Ptr;
-    static PI_Tree<TE,TS>::Ptr Create(){ return std::make_shared< PI_Tree<TE,TS>  >() ; }
+    typedef std::shared_ptr<PI_Tree<TS> > Ptr;
+    static PI_Tree<TS>::Ptr Create(){ return std::make_shared< PI_Tree<TS>  >() ; }
 
-    typedef PlannerTraj<TE, TS> TB;
+    typedef PlannerTraj< TS> TB;
     using TB::config_;
     using TB::CreateTrajectory;
     using TB::bestScore_;
@@ -82,7 +82,7 @@ public:
         if (closedSet_.Test(start->level_,start->end_->pose)) return;
 #endif
 
-        const int numSplits = expander_.Expand(start->level_,start->endCmd_,tempCmds_);
+        const int numSplits = expander_->Expand(start->level_,start->endCmd_,tempCmds_);
 
         std::vector<TrajNode*> newNodes(numSplits);
 

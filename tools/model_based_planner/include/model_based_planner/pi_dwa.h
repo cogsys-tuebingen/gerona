@@ -9,14 +9,14 @@
 /**
  * @brief DWA implementation
  */
-template <typename TE, typename TS>
-class PI_DWA : public PlannerTraj<TE, TS>
+template < typename TS>
+class PI_DWA : public PlannerTraj< TS>
 {
 public:
-    typedef std::shared_ptr<PI_DWA<TE,TS> > Ptr;
-    static PI_DWA<TE,TS>::Ptr Create(){ return std::make_shared< PI_DWA<TE,TS>  >() ; }
+    typedef std::shared_ptr<PI_DWA<TS> > Ptr;
+    static PI_DWA<TS>::Ptr Create(){ return std::make_shared< PI_DWA<TS>  >() ; }
 
-    typedef PlannerTraj<TE, TS> TB;
+    typedef PlannerTraj<TS> TB;
     using TB::config_;
     using TB::CreateTrajectory;
     using TB::bestScore_;
@@ -48,7 +48,7 @@ public:
         TrajNode *startNode = GetStartNode();
 
 
-        const int numSplits = expander_.Expand(0,startNode->endCmd_,tempCmds_);
+        const int numSplits = expander_->Expand(0,startNode->endCmd_,tempCmds_);
 
         for (int i = 0; i < numSplits;++i)
         {

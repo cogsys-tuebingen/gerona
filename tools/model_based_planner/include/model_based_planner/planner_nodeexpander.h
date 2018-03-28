@@ -10,7 +10,18 @@
 /**
  * @brief Base class for different node expanders
  */
-struct NodeExpander_Base
+
+struct INodeExpander
+{
+    typedef std::shared_ptr<INodeExpander > Ptr;
+
+    virtual int Expand(int lvl, const cv::Point2f &curCmd, std::vector<cv::Point2f> &resCmds) = 0;
+    virtual void SetConfig(const PlannerExpanderConfig &config, const float pixelSize) = 0;
+
+
+};
+
+struct NodeExpander_Base : INodeExpander
 {
     void SetConfig(const PlannerExpanderConfig &config, const float pixelSize)
     {
@@ -47,6 +58,7 @@ struct NodeExpander_Base
         }
     }
 
+protected:
     PlannerExpanderConfig config_;
     float numSplitsPerSide_;
     float numSplitsPerSideFirst_;
@@ -60,9 +72,15 @@ struct NodeExpander_Base
 /**
  * @brief Node expander with linear and angular velocity changes
  */
-struct NodeExpander_LAVT_T : public NodeExpander_Base
+struct NodeExpander_LAVT : public NodeExpander_Base
 {
-    NodeExpander_LAVT_T()
+    typedef std::shared_ptr<NodeExpander_LAVT> Ptr;
+    static NodeExpander_LAVT::Ptr Create(){ return std::make_shared< NodeExpander_LAVT >() ; }
+
+    static constexpr const char* const NE_NAME = "linear_angular_vel_rel";
+
+
+    NodeExpander_LAVT()
     {
 
     }
@@ -293,9 +311,14 @@ struct NodeExpander_LAVT_T : public NodeExpander_Base
  * @brief Node expander with constant linear velocity, only angular velocity changes. The angular velocity is added up at each tree level.
  * The resulting angular velocity therefore can be deltaT*maxLevels
  */
-struct NodeExpander_AVT_T : public NodeExpander_Base
+struct NodeExpander_AVT : public NodeExpander_Base
 {
-    NodeExpander_AVT_T()
+    typedef std::shared_ptr<NodeExpander_AVT> Ptr;
+    static NodeExpander_AVT::Ptr Create(){ return std::make_shared< NodeExpander_AVT >() ; }
+
+    static constexpr const char* const NE_NAME = "angular_vel_rel";
+
+    NodeExpander_AVT()
     {
 
     }
@@ -334,9 +357,14 @@ struct NodeExpander_AVT_T : public NodeExpander_Base
 /**
  * @brief Node expander with constant linear velocity, only angular velocity changes. The maximum angular velocity is deltaT.
  */
-struct NodeExpander_AVNI_T : public NodeExpander_Base
+struct NodeExpander_AVNI : public NodeExpander_Base
 {
-    NodeExpander_AVNI_T()
+    typedef std::shared_ptr<NodeExpander_AVNI> Ptr;
+    static NodeExpander_AVNI::Ptr Create(){ return std::make_shared< NodeExpander_AVNI >() ; }
+
+    static constexpr const char* const NE_NAME = "angular_vel";
+
+    NodeExpander_AVNI()
     {
 
     }

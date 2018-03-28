@@ -45,9 +45,11 @@ public:
 
 
 
+
     virtual void Initialize(ModelBasedPlannerConfig &config)
     {
         config_ = config;
+
         SetupNodes();
 
         //procConfig_ = config.procConfig_;

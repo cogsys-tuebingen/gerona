@@ -94,6 +94,9 @@ protected:
     bool close_to_goal_;
     float lowerVelocity_;
 
+    std::vector<cv::Point3f> currentPath_;
+
+
     ros::Time last_update_;
 
     int numFrames_;
