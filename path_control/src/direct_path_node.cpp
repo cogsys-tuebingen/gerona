@@ -228,7 +228,12 @@ private:
         ROS_INFO("Send goal...");
 
 
+        if (pose->header.frame_id == "")
+        {
+            ROS_WARN("Path frame id is empty. Canceling all goals!");
+            follow_path_client_.cancelAllGoals();
 
+        }
 
 
         geometry_msgs::PoseStamped transGoal;
@@ -293,6 +298,12 @@ private:
         ROS_INFO("Send Path...");
         follow_path_client_.waitForServer();
 
+        if (path->header.frame_id == "")
+        {
+            ROS_WARN("Path frame id is empty. Canceling all goals!");
+            follow_path_client_.cancelAllGoals();
+
+        }
 
         if (path->paths.empty())
         {
