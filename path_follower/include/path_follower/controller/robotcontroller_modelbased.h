@@ -76,7 +76,8 @@ protected:
     struct ControllerParameters : public RobotController::ControllerParameters
     {
         // Command Execution
-        P<bool> use_velocity;
+        P<bool> use_lin_velocity;
+        P<bool> use_ang_velocity;
         P<int> min_traj_nodes;
         P<double> threshold_velocity;
 
@@ -86,7 +87,8 @@ protected:
         ControllerParameters():
             RobotController::ControllerParameters("modelbased"),
             // Command execution
-            use_velocity(this, "use_velocity", false, "Determines if the current velocity is used by the local planner"),
+            use_lin_velocity(this, "use_lin_velocity", false, "Determines if the current linear velocity is used by the local planner"),
+            use_ang_velocity(this, "use_ang_velocity", false, "Determines if the current angular velocity is used by the local planner"),
             min_traj_nodes(this, "min_traj_nodes", 15, "Minimum number of poses in result trajectory"),
             threshold_velocity(this, "threshold_velocity", 1.0, "Lower velocity bound for model based path search"),
             pose_output_folder(this, "pose_output_folder", "", "Output folder for debug output")

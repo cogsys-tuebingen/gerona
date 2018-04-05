@@ -78,7 +78,7 @@ public:
         path_.clear();
         path_.reserve(path.size());
 
-        for (int tl = 0; tl < path.size();++tl)
+        for (unsigned int tl = 0; tl < path.size();++tl)
         {
             path_.push_back(PoseToImgPose(path[tl]));
         }
@@ -89,7 +89,10 @@ public:
 
     void FinishedPlanning()
     {
+        if (bestNode_ == nullptr) return;
+
         TrajNode* bestNodeParent = bestNode_->GetFirstNode();
+        if (bestNodeParent == nullptr) return;
 
         scorer_.SetLastCmdVel(bestNodeParent->startCmd_);
 
@@ -120,7 +123,7 @@ public:
         startNode->SetEnd(0);
         //startNode->Reset();
 
-        scorer_.SetRobotPose(curImgRobotPose_,curImgVelocity_.x*config_.plannerConfig_.lookAheadTime);
+        scorer_.SetRobotPose(curImgRobotPose_,config_.procConfig_.pixelSizeInv* config_.expanderConfig_.maxLinVel*config_.plannerConfig_.lookAheadTime);
         scorer_.SetLastCmdVel(curImgVelocity_);
         return startNode;
 
@@ -129,7 +132,7 @@ public:
 
     inline bool NextNodeAvailable() const
     {
-        return curNodeIdx_<allNodes_.size();
+        return (unsigned int)curNodeIdx_ < allNodes_.size();
     }
 
     inline TrajNode* GetNextNode()

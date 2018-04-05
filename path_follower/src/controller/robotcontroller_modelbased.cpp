@@ -93,7 +93,11 @@ void RobotController_ModelBased::initialize()
         //config.wheelsConfig_.wheelPosRobotRearY*2.0;
 
         model_based_planner_ = IModelBasedPlanner::Create(config);
-
+        if (!model_based_planner_)
+        {
+            ROS_ERROR_STREAM_THROTTLE(1, "Error Creating model based planner instance. ");
+            return;
+        }
         initialized_ = true;
 
         cv::Point3f n_pose(0,0,0);
@@ -337,10 +341,19 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
     }
 
-    if (!opt_.use_velocity())
+    if (!opt_.use_lin_velocity() && !opt_.use_ang_velocity())
     {
         cv::Point2f vel(opt_.threshold_velocity(),0);
         model_based_planner_->SetVelocity(vel);
+    }
+    else
+    {
+        geometry_msgs::Twist gVel = pose_tracker_->getVelocity();
+        cv::Point2f nvel(gVel.linear.x,gVel.angular.z);
+        if (!opt_.use_ang_velocity()) nvel.y = 0;
+        if (!opt_.use_lin_velocity()) nvel.x = opt_.threshold_velocity();
+
+        model_based_planner_->SetVelocity(nvel);
     }
 
     model_based_planner_->UpdateDEM(inputImage);
