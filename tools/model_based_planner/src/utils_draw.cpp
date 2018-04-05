@@ -84,7 +84,7 @@ void DrawProc::DrawPath(ScaledDrawProc &drawProc,std::vector<cv::Point3f> path)
 {
     if (path.empty()) return;
 
-    for (int tl = 1; tl < path.size();++tl)
+    for (unsigned int tl = 1; tl < path.size();++tl)
     {
         cv::Point2f p1;
         p1.x = path[tl-1].x;

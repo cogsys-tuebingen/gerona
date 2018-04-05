@@ -412,7 +412,7 @@ struct NodeScorer_Path_T : public NodeScorer_Goal_T
         goal_ = path[path.size()-1];
 
         path2_.clear();
-        for (int tl = 0; tl < path.size();++tl )
+        for (unsigned int tl = 0; tl < path.size();++tl )
         {
             path2_.push_back(cv::Point2f(path[tl].x,path[tl].y));
         }
@@ -452,7 +452,7 @@ struct NodeScorer_Path_T : public NodeScorer_Goal_T
 
         float curDis = 99999999999.0f;
 
-        for (int tl = 1; tl < path2_.size();++tl)
+        for (unsigned int tl = 1; tl < path2_.size();++tl)
         {
             float tdis = SqDistancePtSegment(path2_[tl-1],path2_[tl],p);
             if (tdis < curDis) curDis = tdis;

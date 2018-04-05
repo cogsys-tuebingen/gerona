@@ -23,6 +23,11 @@ struct INodeExpander
 
 struct NodeExpander_Base : INodeExpander
 {
+    NodeExpander_Base()
+    {
+
+    }
+
     void SetConfig(const PlannerExpanderConfig &config, const float pixelSize)
     {
         config_ = config;
@@ -30,12 +35,13 @@ struct NodeExpander_Base : INodeExpander
 
         numSplitsPerSideFirst_ = (float)(config.firstLevelSplits/2);
 
-        numSplitsLinearFirst_ = (float) (config.firstLevelLinearSplits/2);
+        numSplitsLinearPerSideFirst_ = (float) (config.firstLevelLinearSplits/2);
 
         deltaLinImage_ = config.firstLevelDeltaLinear/pixelSize;
 
-        minVelImage_ = config.minLinVel/pixelSize;
-        maxVelImage_ = config.maxLinVel/pixelSize;
+        minLinVelImage_ = config.minLinVel/pixelSize;
+        maxLinVelImage_ = config.maxLinVel/pixelSize;
+        maxAngVelImage_ = config.maxAngVel;
 
 
     }
@@ -62,9 +68,10 @@ protected:
     PlannerExpanderConfig config_;
     float numSplitsPerSide_;
     float numSplitsPerSideFirst_;
-    float numSplitsLinearFirst_;
+    float numSplitsLinearPerSideFirst_;
     float deltaLinImage_;
-    float minVelImage_,maxVelImage_;
+    float minLinVelImage_,maxLinVelImage_;
+    float maxAngVelImage_;
 
 
 };
@@ -85,22 +92,82 @@ struct NodeExpander_LAVT : public NodeExpander_Base
 
     }
 
+#define LINVELEPSILON 0.01f
+
+
+
+void GetVels(const float curVel,const float minvel,const float maxvel, const float delta, const int stepsPerSide, std::vector<float> &linVels) const
+{
+
+    linVels.clear();
+
+    float clampedvel = curVel;
+
+    if (clampedvel <= minvel+LINVELEPSILON)
+    {
+        clampedvel = minvel;
+
+    }
+    else
+    {
+        for (int tl = 1; tl < stepsPerSide+1;tl++)
+        {
+            float tlVel = clampedvel - delta * (float)tl;
+
+            if (tlVel > minvel+LINVELEPSILON)
+            {
+                linVels.push_back(tlVel);
+            }
+            else
+            {
+                linVels.push_back(minvel);
+                break;
+            }
+
+
+        }
+    }
+    if (clampedvel >= maxvel-LINVELEPSILON)
+    {
+        clampedvel = maxvel;
+
+    }
+    else
+    {
+        for (int tl = 1; tl < stepsPerSide+1;tl++)
+        {
+            float tlVel = clampedvel + delta * (float)tl;
+
+            if (tlVel < maxvel-LINVELEPSILON)
+            {
+                linVels.push_back(tlVel);
+            }
+            else
+            {
+                linVels.push_back(maxvel);
+                break;
+            }
+        }
+    }
+
+    linVels.push_back(clampedvel);
+
+    std::sort(linVels.begin(),linVels.end());
+
+}
+
 
     inline int Expand(int lvl, const cv::Point2f &curCmd, std::vector<cv::Point2f> &resCmds)
     {
-        int resultSplits = 0;
+        int resSplites = 0;
 
-
-        int numSplits = config_.numSplits;
         float deltaT = config_.deltaTheta;
         float splitsPerSide = numSplitsPerSide_;
-        int numLinSplits = 1;
         float numLinSplitsPerSide = 0;
         float deltaLin = 0;
 
         if (config_.firstLevelSplits > 0 && lvl < 1)
         {
-            numSplits = config_.firstLevelSplits;
             deltaT = config_.firstLevelDeltaTheta;
             splitsPerSide = numSplitsPerSideFirst_;
 
@@ -108,200 +175,31 @@ struct NodeExpander_LAVT : public NodeExpander_Base
 
         if (config_.firstLevelLinearSplits > 0 && lvl < 1)
         {
-            numLinSplits = config_.firstLevelLinearSplits;
             deltaLin = deltaLinImage_;
-            numLinSplitsPerSide = numSplitsLinearFirst_;
-        }
-
-        cv::Point2f cmd = curCmd;
-
-
-        cmd.y = -deltaT*splitsPerSide;
-        cmd.x += -deltaLin*numLinSplitsPerSide;
-
-        float orgDeltaT = cmd.y;
-
-        bool capLinMin = false;
-        bool capLinMax = false;
-        //bool doExpand = true;
-
-
-        if (cmd.x >= maxVelImage_)
-        {
-            cmd.x = maxVelImage_;
-            numLinSplits = 1;
-        }
-
-        if (cmd.x+ (float)(numLinSplits-1)*deltaLin < minVelImage_)
-        {
-            cmd.x = minVelImage_;
-            numLinSplits = 1;
+            numLinSplitsPerSide = numSplitsLinearPerSideFirst_;
         }
 
 
-        //cmd.y = -deltaTheta_*(float)numSplitsPerSide_;
-        for (int ls = 0; ls < numLinSplits;++ls)
-        {
-            //doExpand = true;
-            capLinMin = false;
-            capLinMax = false;
+        std::vector<float> linVels;
+        if (numLinSplitsPerSide == 0) linVels.push_back(curCmd.x);
+        else GetVels(curCmd.x,minLinVelImage_,maxLinVelImage_,deltaLin,numLinSplitsPerSide,linVels);
 
-            if (cmd.x+deltaLinImage_ <= minVelImage_-COMMANDEPSILON)
-            {
-                continue;
+
+        std::vector<float> angVels;
+        if (splitsPerSide == 0) linVels.push_back(curCmd.y);
+        else GetVels(curCmd.y,-maxAngVelImage_,maxAngVelImage_,deltaT,splitsPerSide,angVels);
+
+        for(auto const& linVel: linVels) {
+            for(auto const& angVel: angVels) {
+                cv::Point2f cmd(linVel,angVel);
+                resCmds[resSplites] = cmd;
+
+                resSplites++;
             }
-
-            if (cmd.x-deltaLinImage_ >= maxVelImage_ + COMMANDEPSILON )
-            {
-                continue;
-            }
-
-
-            if (cmd.x <= minVelImage_-COMMANDEPSILON && cmd.x+deltaLinImage_ >= minVelImage_-COMMANDEPSILON)
-            {
-                capLinMin = true;
-            }
-
-            if (cmd.x >= maxVelImage_-COMMANDEPSILON && cmd.x-deltaLinImage_ <= maxVelImage_-COMMANDEPSILON)
-            {
-                capLinMax = true;
-            }
-
-            //if (cmd.x >= minVelImage_-COMMANDEPSILON )
-            {
-                for (int tl = 0; tl < numSplits;++tl)
-                {
-                    if (std::abs(cmd.y) < COMMANDEPSILON) cmd.y = 0;
-                    resCmds[resultSplits] = cmd;
-                    if (capLinMin) resCmds[resultSplits].x = minVelImage_;
-                    if (capLinMax) resCmds[resultSplits].x = maxVelImage_;
-
-                    cmd.y += deltaT;
-                    ++resultSplits;
-                }
-            }
-            cmd.x += deltaLin;
-            cmd.y = orgDeltaT;
         }
 
-        return resultSplits;
+        return resSplites;
     }
-
-    inline int ExpandOld(int lvl, const cv::Point2f &curCmd, std::vector<cv::Point2f> &resCmds)
-    {
-        int resultSplits = 0;
-
-
-        int numSplits = config_.numSplits;
-        float deltaT = config_.deltaTheta;
-        float splitsPerSide = numSplitsPerSide_;
-        int numLinSplits = 1;
-        float numLinSplitsPerSide = 0;
-        float deltaLin = 0;
-
-        if (config_.firstLevelSplits > 0 && lvl < 1)
-        {
-            numSplits = config_.firstLevelSplits;
-            deltaT = config_.firstLevelDeltaTheta;
-            splitsPerSide = numSplitsPerSideFirst_;
-
-        }
-
-        if (config_.firstLevelLinearSplits > 0 && lvl < 1)
-        {
-            numLinSplits = config_.firstLevelLinearSplits;
-            deltaLin = deltaLinImage_;
-            numLinSplitsPerSide = numSplitsLinearFirst_;
-        }
-
-        cv::Point2f cmd = curCmd;
-
-
-        cmd.y = -deltaT*splitsPerSide;
-        cmd.x += -deltaLin*numLinSplitsPerSide;
-
-        float orgDeltaT = cmd.y;
-
-        bool capLinMin = false;
-        bool capLinMax = false;
-        //bool doExpand = true;
-
-        //cmd.y = -deltaTheta_*(float)numSplitsPerSide_;
-        for (int ls = 0; ls < config_.firstLevelLinearSplits;++ls)
-        {
-            //doExpand = true;
-            capLinMin = false;
-            capLinMax = false;
-
-            if (cmd.x+deltaLinImage_ <= minVelImage_-COMMANDEPSILON || cmd.x-deltaLinImage_ >= maxVelImage_ + COMMANDEPSILON )
-            {
-                if (ls == 0 && cmd.x > maxVelImage_)
-                {
-                    ls = config_.firstLevelLinearSplits;
-                    capLinMax = true;
-                }
-                else if (ls == config_.firstLevelLinearSplits-1 && cmd.x < minVelImage_)
-                {
-                    capLinMin = true;
-                } else continue;
-            }
-            if (cmd.x <= minVelImage_-COMMANDEPSILON && cmd.x+deltaLinImage_ >= minVelImage_-COMMANDEPSILON)
-            {
-                capLinMin = true;
-            }
-
-            if (cmd.x >= maxVelImage_-COMMANDEPSILON && cmd.x-deltaLinImage_ <= maxVelImage_-COMMANDEPSILON)
-            {
-                capLinMax = true;
-            }
-
-            //if (cmd.x >= minVelImage_-COMMANDEPSILON )
-            {
-                for (int tl = 0; tl < numSplits;++tl)
-                {
-                    if (std::abs(cmd.y) < COMMANDEPSILON) cmd.y = 0;
-                    resCmds[resultSplits] = cmd;
-                    if (capLinMin) resCmds[resultSplits].x = minVelImage_;
-                    if (capLinMax) resCmds[resultSplits].x = maxVelImage_;
-
-                    cmd.y += deltaT;
-                    ++resultSplits;
-                }
-            }
-            cmd.x += deltaLin;
-            cmd.y = orgDeltaT;
-        }
-
-        return resultSplits;
-    }
-
-    /*
-        else
-        {
-            int numSplits;
-            float deltaT;
-            float splitsPerSide;
-
-            GetParams(lvl,numSplits,deltaT,splitsPerSide);
-
-            cv::Point2f cmd = curCmd;
-
-            cmd.y += -deltaT*splitsPerSide;
-            //cmd.y = -deltaTheta_*(float)numSplitsPerSide_;
-
-            for (int tl = 0; tl < numSplits;++tl)
-            {
-                if (std::abs(cmd.y) < COMMANDEPSILON) cmd.y = 0;
-                resCmds[tl] = cmd;
-
-                cmd.y += deltaT;
-
-            }
-        }
-
-
-    }
-*/
 
 };
 

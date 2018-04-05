@@ -154,6 +154,8 @@ struct PlannerExpanderConfig
         minLinVel = 0.1;
         maxLinVel = 1.0;
 
+        maxAngVel = 3.14159265359;
+
     }
 
     float deltaTheta;
@@ -165,6 +167,7 @@ struct PlannerExpanderConfig
     float firstLevelDeltaLinear;
 
     float minLinVel,maxLinVel;
+    float maxAngVel;
 
 };
 
