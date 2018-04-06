@@ -168,12 +168,24 @@ RobotController::MoveCommandStatus RobotController_ModelBased::computeMoveComman
 
     ros::Time now = ros::Time::now();
 
+    //RobotController::findOrthogonalProjection();
+
+
+
     if(!targetTransform2base(now)){
         ROS_WARN_THROTTLE(1, "MBC: cannot transform goal! World to Odom not known!");
         return MoveCommandStatus::ERROR;
     }
 
+    if (commandStatus == MBC_CommandStatus::REACHED_GOAL)
+    {
+        ROS_INFO_THROTTLE(1, "MBC: Reached Goal!");
+        return MoveCommandStatus::REACHED_GOAL;
+    }
+
     if(commandStatus != MBC_CommandStatus::OKAY){
+
+
         ROS_WARN_THROTTLE(1, "MBC: no valid path found!");
         return MoveCommandStatus::ERROR;
     }
@@ -419,25 +431,48 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
     }
 
+    if (result->end_ == nullptr)
+    {
+        ROS_WARN_STREAM("Model based controller: No valid trajectory found! ");
+        commandStatus = MBC_CommandStatus::ERROR;
+        stopMotion();
+        return;
+
+    }
+
+    bool reachedGoal = result->end_->validState == PERS_GOALREACHED;
+
+
     if (result->poseResults_.size() < 2)
     {
 
         ROS_WARN_STREAM("Model based controller: Result trajectory only contains current position! #poses: " << result->poseResults_.size() );
-        commandStatus = MBC_CommandStatus::COLLISON;
+        commandStatus = reachedGoal? MBC_CommandStatus::REACHED_GOAL : MBC_CommandStatus::COLLISON;
         stopMotion();
         return;
     }
 
-    bool reachedGoal = false;
-    if  (result->end_ != nullptr && result->end_->validState == PERS_GOALREACHED) reachedGoal = true;
 
     if ((int)result->poseResults_.size() < opt_.min_traj_nodes() && (!reachedGoal) )
     {
         ROS_WARN_STREAM("Model based controller: Result trajectory to short: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes());
-        commandStatus = MBC_CommandStatus::COLLISON;
+        commandStatus = reachedGoal? MBC_CommandStatus::REACHED_GOAL : MBC_CommandStatus::COLLISON;
         stopMotion();
         return;
     }
+
+    /*
+    if ((int)result->poseResults_.size() < opt_.min_traj_nodes() && reachedGoal)
+    {
+        ROS_INFO_STREAM("Model based controller: Reached Goal!");
+        commandStatus = MBC_CommandStatus::REACHED_GOAL;
+        cmd_.speed = 0;
+        cmd_.rotation = 0;
+        cmd_.direction_angle = 0;
+        publishMoveCommand(cmd_);
+
+        return;
+    }*/
 
     cv::Point2f resCmd = result->poseResults_[1].cmd;
     cv::Point3f respose = result->poseResults_[1].pose;
