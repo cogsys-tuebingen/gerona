@@ -273,7 +273,7 @@ bool RobotController::isGoalReached(MoveCommand *cmd)
         // check if we reached the actual goal or just the end of a subpath
         if (path_->isDone()) {
 
-            MoveCommand cmd_stop;
+            MoveCommand cmd_stop(true);
             cmd_stop.setVelocity(0.0);
             cmd_stop.setDirection(0.0);
             cmd_stop.setRotationalVelocity(0.0);
