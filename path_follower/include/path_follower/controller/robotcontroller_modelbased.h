@@ -41,7 +41,7 @@ public:
 protected:
 
     /// Sets the goal position.
-    virtual void setGoalPosition();
+    //virtual void setGoalPosition();
 
     /**
      * @brief computeMoveCommand computes the command velocity for the robot
@@ -71,6 +71,7 @@ protected:
      */
     virtual void initialize();
 
+    bool CheckNextPath();
 
 
     struct ControllerParameters : public RobotController::ControllerParameters
@@ -190,7 +191,7 @@ protected:
     void start();
 
     void reset();
-    void setPath(Path::Ptr path);
+    //void setPath(Path::Ptr path);
 
 
 
