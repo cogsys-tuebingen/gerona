@@ -168,7 +168,7 @@ RobotController::MoveCommandStatus RobotController_ModelBased::computeMoveComman
 
     ros::Time now = ros::Time::now();
 
-    //RobotController::findOrthogonalProjection();
+    RobotController::findOrthogonalProjection();
 
 
 
@@ -447,16 +447,37 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
     {
 
         ROS_WARN_STREAM("Model based controller: Result trajectory only contains current position! #poses: " << result->poseResults_.size() );
-        commandStatus = reachedGoal? MBC_CommandStatus::REACHED_GOAL : MBC_CommandStatus::COLLISON;
+        //commandStatus = reachedGoal? MBC_CommandStatus::REACHED_GOAL : MBC_CommandStatus::COLLISON;
+        commandStatus = MBC_CommandStatus::COLLISON;
         stopMotion();
         return;
     }
 
+    /*
+    if ((int)result->poseResults_.size() < opt_.min_traj_nodes() && (reachedGoal) )
+    {
+        ROS_WARN_STREAM("Model based controller: Result trajectory to short: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes());
+        //commandStatus = reachedGoal? MBC_CommandStatus::REACHED_GOAL : MBC_CommandStatus::COLLISON;
+        commandStatus = MBC_CommandStatus::REACHED_GOAL;
+        stopMotion();
+        return;
+    }
+    */
 
     if ((int)result->poseResults_.size() < opt_.min_traj_nodes() && (!reachedGoal) )
     {
         ROS_WARN_STREAM("Model based controller: Result trajectory to short: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes());
-        commandStatus = reachedGoal? MBC_CommandStatus::REACHED_GOAL : MBC_CommandStatus::COLLISON;
+        //commandStatus = reachedGoal? MBC_CommandStatus::REACHED_GOAL : MBC_CommandStatus::COLLISON;
+        commandStatus = MBC_CommandStatus::COLLISON;
+        stopMotion();
+        return;
+    }
+
+    if ((int)result->poseResults_.size() < opt_.min_traj_nodes_goal() && (reachedGoal) )
+    {
+        ROS_WARN_STREAM("Model based controller: Result trajectory to short: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes());
+        commandStatus = MBC_CommandStatus::REACHED_GOAL;
+        //commandStatus = MBC_CommandStatus::COLLISON;
         stopMotion();
         return;
     }

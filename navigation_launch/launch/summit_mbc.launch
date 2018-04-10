@@ -51,8 +51,9 @@
             <group ns="modelbased" >
 
 	    <param name="threshold_velocity" value="0.8" />
-            <param name="use_velocity" value="false" />
-	    <param name="min_traj_nodes" value="40" />
+            <param name="use_lin_velocity" value="false" />
+            <param name="use_ang_velocity" value="false" />
+            <param name="min_traj_nodes" value="40" />
 	    <!--param name="pose_output_folder" value="/media/robot/data/ModelObstacle/MBC_obstacles" /-->
 
 
