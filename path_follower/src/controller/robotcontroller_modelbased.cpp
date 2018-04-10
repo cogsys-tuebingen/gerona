@@ -145,22 +145,69 @@ void RobotController_ModelBased::reset()
 }
 
 
+/*
 void RobotController_ModelBased::setPath(Path::Ptr path)
 {
     RobotController::setPath(path);
     path_interpol.get_end(goal_);
 }
+*/
 
-
-
+/*
 void RobotController_ModelBased::setGoalPosition()
 {
 
 
 }
+*/
+
+bool RobotController_ModelBased::CheckNextPath()
+{
 
 
+    path_->switchToNextSubPath();
+    // check if we reached the actual goal or just the end of a subpath
+    if (path_->isDone()) {
 
+        /*
+        MoveCommand cmd_stop(true);
+        cmd_stop.setVelocity(0.0);
+        cmd_stop.setDirection(0.0);
+        cmd_stop.setRotationalVelocity(0.0);
+
+        *cmd = cmd_stop;
+        * */
+
+        Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
+        double x_meas = current_pose[0];
+        double y_meas = current_pose[1];
+
+
+        double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
+                                             y_meas - path_interpol.q(path_interpol.n()-1));
+
+        ROS_INFO_THROTTLE(1, "Final positioning error: %f m", distance_to_goal_eucl);
+        return true;
+
+    } else {
+        //reset the orthogonal projection
+
+        ROS_INFO("Next subpath...");
+        // interpolate the next subpath
+        path_interpol.interpolatePath(path_);
+        publishInterpolatedPath();
+
+
+        // recompute the driving direction
+        computeMovingDirection();
+
+        path_interpol.get_end(goal_);
+
+        return false;
+    }
+
+    return false;
+}
 
 RobotController::MoveCommandStatus RobotController_ModelBased::computeMoveCommand(MoveCommand *cmd)
 {
@@ -168,31 +215,35 @@ RobotController::MoveCommandStatus RobotController_ModelBased::computeMoveComman
 
     ros::Time now = ros::Time::now();
 
-    RobotController::findOrthogonalProjection();
+    //RobotController::findOrthogonalProjection();
 
 
 
-    if(!targetTransform2base(now)){
-        ROS_WARN_THROTTLE(1, "MBC: cannot transform goal! World to Odom not known!");
-        return MoveCommandStatus::ERROR;
-    }
-
-    if (commandStatus == MBC_CommandStatus::REACHED_GOAL)
+    if (commandStatus == MBC_CommandStatus::REACHED_GOAL )
     {
         ROS_INFO_THROTTLE(1, "MBC: Reached Goal!");
         return MoveCommandStatus::REACHED_GOAL;
     }
 
-    if(commandStatus != MBC_CommandStatus::OKAY){
-
-
+    if(commandStatus != MBC_CommandStatus::OKAY)
+    {
         ROS_WARN_THROTTLE(1, "MBC: no valid path found!");
         return MoveCommandStatus::ERROR;
     }
 
 
+    /*
     if(RobotController::isGoalReached(cmd)){
         return RobotController::MoveCommandStatus::REACHED_GOAL;
+    }
+    */
+
+
+    path_interpol.get_end(goal_);
+
+    if(!targetTransform2base(now)){
+        ROS_WARN_THROTTLE(1, "MBC: cannot transform goal! World to Odom not known!");
+        return MoveCommandStatus::ERROR;
     }
 
     cv::Point3f goal(target_.x,target_.y,target_.orientation);
@@ -475,11 +526,16 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
     if ((int)result->poseResults_.size() < opt_.min_traj_nodes_goal() && (reachedGoal) )
     {
-        ROS_WARN_STREAM("Model based controller: Result trajectory to short: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes());
-        commandStatus = MBC_CommandStatus::REACHED_GOAL;
-        //commandStatus = MBC_CommandStatus::COLLISON;
-        stopMotion();
-        return;
+        bool lastPath = CheckNextPath();
+
+        if (lastPath)
+        {
+            ROS_WARN_STREAM("Model based controller: Result trajectory to short: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes());
+            commandStatus = MBC_CommandStatus::REACHED_GOAL;
+            //commandStatus = MBC_CommandStatus::COLLISON;
+            stopMotion();
+            return;
+        }
     }
 
     /*
