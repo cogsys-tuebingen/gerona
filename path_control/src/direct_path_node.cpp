@@ -227,6 +227,8 @@ private:
     {
         ROS_INFO("Send goal...");
 
+        //ros::Time pTime = pose->header.stamp;
+        //ros::Time zTime = ros::Time(0);
 
         if (pose->header.frame_id == "")
         {
@@ -245,7 +247,9 @@ private:
 
 
         tf::StampedTransform map2base;
-        hasTransform = GetTransform(base_frame_,world_frame_,pose->header.stamp,map2base);
+        //hasTransform = GetTransform(base_frame_,world_frame_,pose->header.stamp,map2base);
+        hasTransform = GetTransform(world_frame_,base_frame_,pose->header.stamp,map2base);
+        //hasTransform = GetTransform(base_frame_,world_frame_,zTime,map2base);
         if (!hasTransform) return;
 
         geometry_msgs::PoseStamped basePose = GetPoseFromTransform(map2base);
