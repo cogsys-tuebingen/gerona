@@ -126,6 +126,8 @@ private:
     int removeWindowEndRow_;
 
     bool output16U_;
+
+    int useLatestTransform_;
     //bool useMultiChannel_;
 
     double mapScale_,mapOffset_, mapZeroLevel_,mapNotVisibleLevel_;
