@@ -530,7 +530,7 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
         if (lastPath)
         {
-            ROS_WARN_STREAM("Model based controller: Result trajectory to short: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes());
+            ROS_INFO_STREAM("Model based controller: Remaining Poses to Goal: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes_goal());
             commandStatus = MBC_CommandStatus::REACHED_GOAL;
             //commandStatus = MBC_CommandStatus::COLLISON;
             stopMotion();
