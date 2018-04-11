@@ -53,7 +53,8 @@ public:
         pnh_.param("target_speed", target_speed_, 1.0);
 
         // default init mode
-        pnh_.param("init_mode", init_mode_, (int)FollowerOptions::INIT_MODE_CONTINUE);
+        //pnh_.param("init_mode", init_mode_, (int)FollowerOptions::INIT_MODE_CONTINUE);
+        pnh_.param("init_mode", init_mode_, (int)FollowerOptions::INIT_MODE_STOP);
 
         // num interpolations of path points
         pnh_.param("num_interpolate_poses", num_interpolate_poses_, 10);
