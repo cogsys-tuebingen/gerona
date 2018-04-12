@@ -149,6 +149,7 @@ add_library(${PROJECT_NAME} SHARED
     src/controller/robotcontroller_kinematic_HBZ.cpp
     src/controller/robotcontroller_modelbased.cpp
     src/controller/robotcontroller_ackermann_modelbased.cpp
+    src/controller/robotcontroller_ekm.cpp
 
     src/local_planner/abstract_local_planner.cpp
     src/local_planner/local_planner_null.cpp
