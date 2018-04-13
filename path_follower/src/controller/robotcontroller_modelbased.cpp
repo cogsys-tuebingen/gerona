@@ -74,6 +74,11 @@ void RobotController_ModelBased::initialize()
 
     m_opt_.AssignParams(config);
 
+    config.expanderConfig_.minLinVel = opt_.min_linear_velocity();
+    config.expanderConfig_.maxLinVel = opt_.max_linear_velocity();
+    config.expanderConfig_.maxAngVel = opt_.max_angular_velocity();
+
+
     config.Setup();
 
     if (!initialized_)
@@ -406,7 +411,7 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
     if (!opt_.use_lin_velocity() && !opt_.use_ang_velocity())
     {
-        cv::Point2f vel(opt_.threshold_velocity(),0);
+        cv::Point2f vel(opt_.max_linear_velocity(),0);
         model_based_planner_->SetVelocity(vel);
     }
     else
@@ -414,7 +419,7 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
         geometry_msgs::Twist gVel = pose_tracker_->getVelocity();
         cv::Point2f nvel(gVel.linear.x,gVel.angular.z);
         if (!opt_.use_ang_velocity()) nvel.y = 0;
-        if (!opt_.use_lin_velocity()) nvel.x = opt_.threshold_velocity();
+        if (!opt_.use_lin_velocity()) nvel.x = opt_.max_linear_velocity();
 
         model_based_planner_->SetVelocity(nvel);
     }

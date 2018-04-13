@@ -117,9 +117,9 @@ Path::Ptr LocalPlannerModel::updateLocalPath_BaseLink()
     SubPath local_wps;
     local_wps.forward = true;
 
-    if (!use_velocity_)
+    if (!opt_->use_velocity())
     {
-        cv::Point2f vel(lowerVelocity_,0);
+        cv::Point2f vel(opt_->max_linear_velocity(),0);
         model_based_planner_->SetVelocity(vel);
     }
 
@@ -261,9 +261,9 @@ Path::Ptr LocalPlannerModel::updateLocalPath_LocalMap()
     SubPath local_wps;
     local_wps.forward = true;
 
-    if (!use_velocity_)
+    if (!opt_->use_velocity())
     {
-        cv::Point2f vel(lowerVelocity_,0);
+        cv::Point2f vel(opt_->max_linear_velocity(),0);
         model_based_planner_->SetVelocity(vel);
     }
 
@@ -346,7 +346,7 @@ void LocalPlannerModel::setVelocity(geometry_msgs::Twist vector)
     cur_vel.x = vector.linear.x;
     cur_vel.y = vector.angular.z;
 
-    if (cur_vel.x < lowerVelocity_) cur_vel.x = lowerVelocity_;
+    //if (cur_vel.x < opt_->min_linear_velocity) cur_vel.x = lowerVelocity_;
 
     model_based_planner_->SetVelocity(cur_vel);
 
@@ -359,7 +359,7 @@ void LocalPlannerModel::setVelocity(geometry_msgs::Twist::_linear_type vector)
     cur_vel.x = vector.x;
     cur_vel.y = 0;
 
-    if (cur_vel.x < lowerVelocity_) cur_vel.x = lowerVelocity_;
+    //if (cur_vel.x < lowerVelocity_) cur_vel.x = lowerVelocity_;
 
     model_based_planner_->SetVelocity(cur_vel);
 
@@ -372,7 +372,7 @@ void LocalPlannerModel::setVelocity(double velocity)
     cur_vel.x = velocity;
     cur_vel.y = 0;
 
-    if (cur_vel.x < lowerVelocity_) cur_vel.x = lowerVelocity_;
+    //if (cur_vel.x < lowerVelocity_) cur_vel.x = lowerVelocity_;
 
     model_based_planner_->SetVelocity(cur_vel);
 }
@@ -386,12 +386,16 @@ void LocalPlannerModel::reset()
 void LocalPlannerModel::setParams(const LocalPlannerParameters& opt)
 {
 
-    use_velocity_ = opt.use_velocity();
-    lowerVelocity_ = opt.min_velocity();
+    //use_velocity_ = opt.use_velocity();
+    //lowerVelocity_ = opt.min_linear_velocity();
 
     //ModelBasedPlannerConfig config;
 
     m_opt_.AssignParams(config_);
+
+    config_.expanderConfig_.minLinVel = opt_->min_linear_velocity();
+    config_.expanderConfig_.maxLinVel = opt_->max_linear_velocity();
+    config_.expanderConfig_.maxAngVel = opt_->max_angular_velocity();
 
 
     config_.Setup();
