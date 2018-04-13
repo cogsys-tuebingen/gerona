@@ -198,7 +198,9 @@ Path::Ptr LocalPlannerModel::updateLocalPath_LocalMap()
     //if (path_end_.x == 0 && path_end_.y == 0 && path_end_.orientation == 0) return local_path;
 
 
+    tf::Transform transLocalMap = pose_tracker_->getTransform(map_frame, local_frame,mapTime,ros::Duration(0.01));
 
+    /*
     tf::StampedTransform transLocalMap;
     if (!GetTransform(mapTime, map_frame, local_frame, transLocalMap))
     {
@@ -206,6 +208,7 @@ Path::Ptr LocalPlannerModel::updateLocalPath_LocalMap()
 
         return local_path;
     }
+    */
 
     model_based_planner_->SetDEMPos(cv::Point2f(transLocalMap.getOrigin().x(), transLocalMap.getOrigin().y()));
 
@@ -221,6 +224,9 @@ Path::Ptr LocalPlannerModel::updateLocalPath_LocalMap()
 
 
 
+    tf::Transform trans = pose_tracker_->getTransform(map_frame, robot_frame,mapTime,ros::Duration(0.01));
+
+    /*
     tf::StampedTransform trans;
     if (!GetTransform(now, map_frame, robot_frame, trans))
     {
@@ -228,6 +234,7 @@ Path::Ptr LocalPlannerModel::updateLocalPath_LocalMap()
 
         return local_path;
     }
+    */
 
     cv::Point3f pose;
 
@@ -610,6 +617,11 @@ bool LocalPlannerModel::algo(SubPath& local_wps)
 
     if (result == nullptr) return false;
 
+    if (result != nullptr && result->end_ != nullptr)
+    {
+        ROS_INFO_STREAM("End State: " << result->end_->validState << " : " << PoseEvalResults::GetValidStateString(result->end_->validState));
+
+    }
 
     local_wps.wps.clear();
 
@@ -630,6 +642,10 @@ bool LocalPlannerModel::algo(SubPath& local_wps)
         local_wps.push_back(wp);
 
     }
+
+    bool reachedGoal = result->end_->validState == PERS_GOALREACHED;
+    if (reachedGoal) return true;
+
     if (!TestPath(local_wps)) return false;
 
     return true;
