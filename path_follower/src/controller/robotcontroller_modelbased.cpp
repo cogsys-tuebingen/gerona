@@ -373,6 +373,8 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
     if (map_frame != robot_frame)
     {
+        tf::Transform transLocalMap =pose_tracker_->getTransform(map_frame ,localMapFrame_,now,ros::Duration(0.01));
+        /*
         tf::StampedTransform transLocalMap;
         if (!GetTransform(now, map_frame, localMapFrame_, transLocalMap))
         {
@@ -380,10 +382,12 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
             return;
         }
+        */
 
         model_based_planner_->SetDEMPos(cv::Point2f(transLocalMap.getOrigin().x(), transLocalMap.getOrigin().y()));
 
 
+        /*
         tf::StampedTransform trans;
         if (!GetTransform(now, map_frame, robot_frame, trans))
         {
@@ -391,6 +395,9 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
             return;
         }
+        */
+        tf::Transform trans =pose_tracker_->getTransform(map_frame ,robot_frame,now,ros::Duration(0.01));
+
 
         
         pose.x = trans.getOrigin().x();

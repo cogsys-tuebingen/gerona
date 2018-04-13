@@ -5,6 +5,7 @@
 #include "plannerutils.h"
 #include <memory>
 #include <config_planner.h>
+#include "utils_math_approx.h"
 
 
 
@@ -206,12 +207,6 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
             return false;
         }
 
-        if (results.GetMinWheelSupport() < config_.minWheelSupportThreshold)
-        {
-            results.validState = (results.poseCounter*poseTimeStep_ > config_.noWheelSupportNearThreshold)?  PERS_LOWWHEELSUPPORT_FAR : PERS_LOWWHEELSUPPORT;
-
-            return false;
-        }
 
         if (results.gravAngle > config_.gravAngleThreshold)
         {
@@ -233,6 +228,14 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         {
             return false;
         }
+
+        if (results.GetMinWheelSupport() < config_.minWheelSupportThreshold)
+        {
+            results.validState = (results.poseCounter*poseTimeStep_ > config_.noWheelSupportNearThreshold)?  PERS_LOWWHEELSUPPORT_FAR : PERS_LOWWHEELSUPPORT;
+
+            return false;
+        }
+
 
         const cv::Point2f goalDiff(goal_.x- results.pose.x,goal_.y- results.pose.y);
 
@@ -269,6 +272,14 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         //return 0;
     }
 
+    inline float GetAngleDifference(const float &a, const float &b) const
+    {
+        float res = a-b;
+        if (res > CV_PIF) res = res - CV_2PIF;
+        if (res < -CV_PIF) res = res + CV_2PIF;
+        return std::abs(res);
+    }
+
     inline void CalcGoalDistance(TrajNode &current) const
     {
         const cv::Point2f rPos(curRobotPose_.x,curRobotPose_.y);
@@ -289,7 +300,8 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         const float distVal = distDiff/goalDistanceCutoff_;
 
         const float angleToGoal = atan2(diffPos.y,diffPos.x);
-        const float angleDiff = std::abs(end.z -angleToGoal);
+        //const float angleDiff = std::abs(end.z -angleToGoal);
+        const float angleDiff = std::abs(GetAngleDifference(end.z ,angleToGoal));
 
         current.scores[11] = distVal;
         current.scores[12] = angleDiff;
@@ -379,7 +391,7 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         current.finalScores[10] = current.scores[10];
         current.finalScores[11] = current.scores[11]*config_.f_goalDistance;
         current.finalScores[12] = current.scores[12]*config_.f_goalOrientation;
-        current.finalScores[13] = current.scores[12]*config_.f_goalOrientation;
+        current.finalScores[13] = (current.scores[13]*levelNorm)*config_.f_pathDistance;
         current.finalScores[14] = endFactor;
         current.finalScores[15] = lowPoseCountPenalty;
         //current.finalScores[15] = lastCmdVelDiff * config_.f_lastCmdVelDiff ;
