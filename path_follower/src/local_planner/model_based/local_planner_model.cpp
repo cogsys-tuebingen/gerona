@@ -133,7 +133,7 @@ Path::Ptr LocalPlannerModel::updateLocalPath_BaseLink()
     //std::string odom_frame = PathFollowerParameters::getInstance()->odom_frame();
     std::string robot_frame = PathFollowerParameters::getInstance()->robot_frame();
 
-    PublishDebugImage();
+    //PublishDebugImage();
 
     if(!transformWPS(robot_frame,odom_frame,local_wps,now )){
         ROS_WARN_THROTTLE(1, "cannot calculate local path, transform to odom not known");
@@ -278,7 +278,7 @@ Path::Ptr LocalPlannerModel::updateLocalPath_LocalMap()
         return local_path;
     }
 
-    PublishDebugImage();
+    //PublishDebugImage();
 
     if(!transformWPS(map_frame,odom_frame,local_wps,now )){
         ROS_WARN_THROTTLE(1, "cannot calculate local path, transform to odom not known");
@@ -456,7 +456,7 @@ void LocalPlannerModel::setGlobalPath(Path::Ptr path)
     currentPath_.clear();
     currentPath_.reserve(global_path_.n());
 
-    for (int tl = 0; tl < global_path_.n();++tl)
+    for (unsigned int tl = 0; tl < global_path_.n();++tl)
     {
         cv::Point3f p(global_path_.p(tl), global_path_.q(tl),global_path_.s(tl));
         currentPath_.push_back(p);
@@ -608,7 +608,7 @@ bool LocalPlannerModel::algo(SubPath& local_wps)
     //ROS_INFO_STREAM_THROTTLE(1,"Model based planner took " << totalPlanningTime_/(double)frameCounter_ << "ms");
     ROS_INFO_STREAM_THROTTLE(1,"Model based planner took " << curMS << " Avg: " << totalPlanningTime_/(double)numFrames_ << "ms" << " Frames: " << numFrames_);
 
-
+    PublishDebugImage();
 
     //model_based_planner_->Plan();
 
