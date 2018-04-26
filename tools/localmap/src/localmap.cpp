@@ -94,6 +94,8 @@ DE_Localmap::DE_Localmap() :
     blockMap_.Setup();
     blockMap_.SetSafeBlocksTo(mapOffset_);
 
+    poseEstimator_.Initialize(nodeP_);
+
 }
 
 
@@ -241,7 +243,7 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
     {
 
         if (!GetTransform(ros::Time(0),baseFrame_, cameraFrame, cam2Base_)) {
-            ROS_ERROR_STREAM("Error looking up Camera to Map transform: " << cameraFrame << " to " << mapFrame_);
+            ROS_ERROR_STREAM("Error looking up Camera to Base transform: " << cameraFrame << " to " << baseFrame_);
 
             return;
 
@@ -275,7 +277,12 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
     timeval tZstart;
     gettimeofday(&tZstart, NULL);
 
+    poseEstimator_.UpdateLocalMap(blockMap_.currentMap_,blockMap_.origin_);
 
+    if (poseEstimator_.UseEstimate())
+    {
+        poseEstimator_.GetEstimate(base2map);
+    }
     tf::Transform cam2map;
     cam2map = base2map*cam2Base_;
 

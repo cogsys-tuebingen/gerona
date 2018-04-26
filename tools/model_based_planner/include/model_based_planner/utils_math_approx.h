@@ -45,10 +45,27 @@ namespace Utils_Math_Approx
       ret = ret * sqrt(1.0-x);
       ret = ret - 2 * negate * ret;
       return negate * 3.14159265358979 + ret;
+    }    
+    static inline float  fasin (float x)
+    {
+      //float x8, x4, x2;
+      const float x2 = x * x;
+      const float x4 = x2 * x2;
+      const float x8 = x4 * x4;
+      /* evaluate polynomial using a mix of Estrin's and Horner's scheme */
+      return (((4.5334220547132049e-2f * x2 - 1.1226216762576600e-2f) * x4 +
+               (2.6334281471361822e-2f * x2 + 2.0596336163223834e-2f)) * x8 +
+              (3.0582043602875735e-2f * x2 + 4.4630538556294605e-2f) * x4 +
+              (7.5000364034134126e-2f * x2 + 1.6666666300567365e-1f)) * x2 * x + x;
     }
+
+
 #else
 static inline float facos(const float x) {
   return acos(x);
+}
+static inline float fasin(const float x) {
+  return asin(x);
 }
 #endif
 
