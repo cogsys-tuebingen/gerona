@@ -16,7 +16,7 @@
 
 //#include <tf_conversions/tf_eigen.h>
 #include "blockmap.h"
-
+#include "utils_pose_estimator.h"
 
 
 /// Define if point cloud map is required
@@ -142,7 +142,7 @@ private:
     //bool hasPoseEstimator_;
     //PoseEstimator poseEstimator_;
 
-
+    UtilsPoseEstimator poseEstimator_;
 
 
 
