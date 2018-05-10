@@ -24,7 +24,7 @@ void ScanConverter::scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan_in
     try{
         if(!tfListener_.waitForTransform(
                     scan_in->header.frame_id,
-                    "base_link",
+                    baseFrame_,
                     scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
                     wait_tf_timeout)){
             ROS_DEBUG_THROTTLE(60.0, "ignore scan");
@@ -34,10 +34,10 @@ void ScanConverter::scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan_in
         // range_max value, move the cutof to 99% of the range.
         double range_cutoff = scan_in->range_max * 0.99;
         if (is_back) {
-            projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_back_, tfListener_, range_cutoff);
+            projector_.transformLaserScanToPointCloud(baseFrame_, *scan_in, cloud_back_, tfListener_, range_cutoff);
             cbScanback_ = true;
         } else {
-            projector_.transformLaserScanToPointCloud("base_link", *scan_in, cloud_front_, tfListener_, range_cutoff);
+            projector_.transformLaserScanToPointCloud(baseFrame_, *scan_in, cloud_front_, tfListener_, range_cutoff);
             cbScanfront_ = true;
         }
     } catch(...) {

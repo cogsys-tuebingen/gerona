@@ -34,7 +34,7 @@ std::string PoseTracker::getFixedFrameId() const
 
 std::string PoseTracker::getRobotFrameId() const
 {
-    return "base_link";
+    return opt_.robot_frame();
 }
 
 

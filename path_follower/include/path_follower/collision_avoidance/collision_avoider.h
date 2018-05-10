@@ -31,6 +31,7 @@ public:
     virtual ~CollisionAvoider() {}
 
     void setTransformListener(const tf::TransformListener *tf_listener);
+    void setRobotFrameId(const std::string& frame_id);
 
     bool hasObstacles() const;
     std::shared_ptr<ObstacleCloud const> getObstacles() const;
@@ -53,6 +54,7 @@ protected:
     std::shared_ptr<ObstacleCloud const> obstacles_;
 
     const tf::TransformListener *tf_listener_;
+    std::string robot_frame_;
 };
 
 #endif // COLLISION_AVOIDER_H

@@ -5,7 +5,8 @@
 #include <path_follower/utils/obstacle_cloud.h>
 
 CollisionAvoider::CollisionAvoider()
-    : tf_listener_(nullptr)
+    : tf_listener_(nullptr),
+      robot_frame_("base_link")
 {
 
 }
@@ -13,6 +14,11 @@ CollisionAvoider::CollisionAvoider()
 void CollisionAvoider::setTransformListener(const tf::TransformListener *tf_listener)
 {
     tf_listener_ = tf_listener;
+}
+
+void CollisionAvoider::setRobotFrameId(const std::string& frame_id)
+{
+    robot_frame_ = frame_id;
 }
 
 bool CollisionAvoider::hasObstacles() const
