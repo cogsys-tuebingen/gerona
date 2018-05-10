@@ -6,7 +6,7 @@ using namespace std;
 CollisionDetectorPolygon::PolygonWithTfFrame CollisionDetectorOmnidrive::getPolygon(float width, float length, float course_angle, float curve_enlarge_factor) const
 {
     PolygonWithTfFrame pwf;
-    pwf.frame = "base_link";
+    pwf.frame = robot_frame_;
 
     // rotate about course_angle (box should point in driving direction)
     tf::Transform rot(tf::Quaternion(tf::Vector3(0,0,1), course_angle));
