@@ -122,7 +122,7 @@ private:
             tfl_.lookupTransform(targetFrame, sourceFrame, time, trans);
         }catch(tf::TransformException ex){//if not available, then wait
             (void) ex;
-            if(!tfl_.waitForTransform(targetFrame, sourceFrame, time, ros::Duration(0.05))){
+            if(!tfl_.waitForTransform(targetFrame, sourceFrame, time, ros::Duration(0.5))){
                 ROS_WARN_STREAM_THROTTLE(1, "cannot lookup transform from :" << targetFrame << " to " << sourceFrame);
                 return false;
             }
@@ -140,8 +140,8 @@ private:
             tfl_.transformPose(targetFrame,*pose,result);
         }catch(tf::TransformException ex){//if not available, then wait
             (void) ex;
-            if(!tfl_.waitForTransform(targetFrame, pose->header.frame_id, pose->header.stamp, ros::Duration(0.05))){
-                ROS_WARN_STREAM_THROTTLE(1, "cannot lookup transform from :" << targetFrame << " to " << pose->header.frame_id);
+            if(!tfl_.waitForTransform(targetFrame, pose->header.frame_id, pose->header.stamp, ros::Duration(0.5))){
+                ROS_WARN_STREAM_THROTTLE(1, "cannot lookup transform from: " << targetFrame << " to " << pose->header.frame_id);
                 return false;
             }
             tfl_.transformPose(targetFrame,*pose,result);
@@ -174,7 +174,7 @@ private:
 
         }catch(tf::TransformException ex){//if not available, then wait
             (void) ex;
-            if(!tfl_.waitForTransform(targetFrame, path->header.frame_id, path->header.stamp, ros::Duration(0.05))){
+            if(!tfl_.waitForTransform(targetFrame, path->header.frame_id, path->header.stamp, ros::Duration(1.0))){
                 ROS_WARN_STREAM_THROTTLE(1, "cannot lookup transform from :" << targetFrame << " to " << path->header.frame_id);
                 return false;
             }
@@ -224,6 +224,20 @@ private:
         return stPose;
     }
 
+    bool TestVectorLength(tf::Point start, tf::Point end)
+    {
+        const double epsilon = 0.01;
+        return (sqrt(start.dot(end)) > epsilon);
+
+    }
+
+    bool TestVectorLength(tf::Vector3 dir)
+    {
+        const double epsilon = 0.01;
+        return (sqrt(dir.dot(dir)) > epsilon);
+
+    }
+
     void goalCb(const geometry_msgs::PoseStampedConstPtr &pose)
     {
         ROS_INFO("Send goal...");
@@ -241,7 +255,17 @@ private:
 
         geometry_msgs::PoseStamped transGoal;
 
-        bool hasTransform = TransformPose(pose,world_frame_,transGoal);
+
+
+        boost::shared_ptr<geometry_msgs::PoseStamped> posePtr = boost::make_shared<geometry_msgs::PoseStamped>();
+
+        //geometry_msgs::PoseStamped pose2 = pose;
+
+        *posePtr.get() = *pose.get();
+
+        posePtr->header.stamp =  ros::Time(0);
+
+        bool hasTransform = TransformPose(posePtr,world_frame_,transGoal);
 
         if (!hasTransform) return;
 
@@ -267,6 +291,13 @@ private:
         tf::pointMsgToTF(transGoal.pose.position,end);
 
         tf::Vector3 dir = end-start;
+
+        if (!TestVectorLength(dir))
+        {
+            ROS_WARN("End too close to start, |end-start| < 0.01m !!");
+            return;
+        }
+
         for (int x = 1; x < num_interpolate_poses_-1;x++)
         {
 
