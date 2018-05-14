@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(localmap)
 
+#set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_CXX_FLAGS "-std=c++11 -march=native ${CMAKE_CXX_FLAGS}")
+
 set(CMAKE_BUILD_TYPE Release)
 
 if(NOT ${CMAKE_BUILD_TYPE} STREQUAL Debug)
@@ -20,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
     image_transport
     sensor_msgs
     pcl_ros
+    model_based_planner
     )
 
 ## System dependencies are found with CMake's conventions

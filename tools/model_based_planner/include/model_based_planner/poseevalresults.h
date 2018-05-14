@@ -320,6 +320,17 @@ enum PER_STATES
      */
     int caContactX1,caContactX2,caContactY1,caContactY2;
 
+    /**
+     * @brief z values of base_link for both configurations
+     */
+    float z1,z2;
+
+    /**
+     * @brief roll and pitch angles for both configurations
+     */
+    float r1,p1,r2,p2;
+
+
 
     int stableWheelPairIdx;
 
