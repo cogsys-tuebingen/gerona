@@ -227,6 +227,10 @@ public:
     //! Clear path and reset current subpath/waypoint.
     void clear();
 
+
+    //! Resets the current waypoint index and current subpath
+    void reset();
+
     //! Set a new path. Current sub path and waypoint are set to the beginning of the path
     void setPath(const std::vector<SubPath> &path);
 
