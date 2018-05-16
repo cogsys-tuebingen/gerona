@@ -273,7 +273,7 @@ private:
 
         tf::StampedTransform map2base;
         //hasTransform = GetTransform(base_frame_,world_frame_,pose->header.stamp,map2base);
-        hasTransform = GetTransform(world_frame_,base_frame_,pose->header.stamp,map2base);
+        hasTransform = GetTransform(world_frame_,base_frame_,posePtr->header.stamp,map2base);
         //hasTransform = GetTransform(base_frame_,world_frame_,zTime,map2base);
         if (!hasTransform) return;
 

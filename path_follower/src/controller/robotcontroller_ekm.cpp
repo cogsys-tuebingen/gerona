@@ -76,7 +76,7 @@ double RobotController_EKM::computeSpeed()
 void RobotController_EKM::DerivePathInterp(double fact)
 {
     phi_p_.clear();
-    for (int i = 0; i < path_interpol.n()-1;++i)
+    for (unsigned int i = 0; i < path_interpol.n()-1;++i)
     {
         double x_p = (path_interpol.p(i+1)-path_interpol.p(i))*fact;
         double y_p = (path_interpol.q(i+1)-path_interpol.q(i))*fact;
