@@ -24,6 +24,7 @@ void LocalPlannerNull::setGlobalPath(Path::Ptr path)
     AbstractLocalPlanner::setGlobalPath(path);
 
     controller_->setGlobalPath(path);
+    //path->reset(); // TODO: Check for other fix. Follower crashed when too short paths with only 1 subpath were set
     controller_->setPath(path);
 }
 

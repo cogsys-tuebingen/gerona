@@ -11,6 +11,13 @@ void Path::clear()
     wp_distance_to_end_.clear();
 }
 
+void Path::reset()
+{
+    current_sub_path_ = path_.begin();
+    next_waypoint_idx_ = 0;
+    computeWaypointToEndDistances();
+}
+
 void Path::setPath(const std::vector<SubPath> &path)
 {
     path_ = path;
@@ -28,7 +35,8 @@ void Path::registerNextWaypointCallback(NextWaypointCallback_t func)
 void Path::switchToNextSubPath()
 {
     // only proceed, if there is a next sub path
-    if (current_sub_path_ != path_.end()) {
+    std::vector<SubPath>::iterator  endIter = path_.end();
+    if (current_sub_path_ != endIter) {
         ++current_sub_path_;
         next_waypoint_idx_ = 0;
         fireNextWaypointCallback();
