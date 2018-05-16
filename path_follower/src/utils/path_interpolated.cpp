@@ -39,6 +39,7 @@ void PathInterpolated::interpolatePath(const Path::Ptr path, const bool hack) {
         waypoints.insert(waypoints.end(), path->getCurrentSubPath().wps.begin(), path->getCurrentSubPath().wps.end());
 
         if(hack){
+            int originalNumWaypoints = waypoints.size();
             // (messy) hack!!!!!
             // remove waypoints that are closer than 0.1 meters to the starting point
             Waypoint start = waypoints.front();
@@ -57,14 +58,24 @@ void PathInterpolated::interpolatePath(const Path::Ptr path, const bool hack) {
             }
 
             // eliminate subpaths containing only the same points
-            if(waypoints.size() > 0)
+            if(waypoints.size() > 1)
                 break;
+
+            //special case where all waypoints are below 0.1m, keep at least last two waypoints
+            if (originalNumWaypoints >= 2 && waypoints.size() < 2)
+            {
+                waypoints.insert(waypoints.end(), path->getCurrentSubPath().wps.begin(), path->getCurrentSubPath().wps.end());
+                while (waypoints.size() > 2) waypoints.pop_front();
+                break;
+            }
 
             path->switchToNextSubPath();
         }else{
             break;
         }
     }
+    // In case path->switchToNextSubPath(); was called a reset is required
+    path->reset();
 
     try {
         interpolatePath(waypoints);
