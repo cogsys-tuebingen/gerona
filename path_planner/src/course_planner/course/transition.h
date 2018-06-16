@@ -2,6 +2,7 @@
 #define TRANSITION_H
 
 #include <Eigen/Core>
+#include <vector>
 
 class Segment;
 
