@@ -42,10 +42,5 @@ The controller can also be set via the ROS parameter
 More Information
 ----------------
 
-For more information please refer to
+For more information please refer to the [wiki](https://github.com/cogsys-tuebingen/gerona/wiki).
 
-https://github.com/cogsys-tuebingen/gerona/wiki
-
-or
-
-https://gitlab.cs.uni-tuebingen.de/apps/navigation/wikis/home.
