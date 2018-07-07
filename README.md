@@ -8,6 +8,19 @@ The following video demonstrates various supported robot kinematics:
 
 [![GeRoNa: Generic Robot Navigation Video](https://img.youtube.com/vi/Ppdi7dQ7Vzw/0.jpg)](https://www.youtube.com/watch?v=Ppdi7dQ7Vzw)
 
+Installation
+------------
+
+First, install the dependencies. For example, from your workspace root directory:
+
+    cd src
+    git clone gitlab@gitlab.cs.uni-tuebingen.de:libs/cslibs_path_planning 
+    git clone gitlab@gitlab.cs.uni-tuebingen.de:libs/cslibs_utils
+    cd ..
+
+    rosdep install --from-paths -i -y src
+    
+Then you can either use `catkin_make`, `catkin_make_isolated` or [catkin build](https://github.com/catkin/catkin_tools) to build the software.
 
 Quick Start
 -----------
