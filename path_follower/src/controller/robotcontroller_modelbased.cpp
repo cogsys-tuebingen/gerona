@@ -74,6 +74,11 @@ void RobotController_ModelBased::initialize()
 
     m_opt_.AssignParams(config);
 
+    config.expanderConfig_.minLinVel = opt_.min_linear_velocity();
+    config.expanderConfig_.maxLinVel = opt_.max_linear_velocity();
+    config.expanderConfig_.maxAngVel = opt_.max_angular_velocity();
+
+
     config.Setup();
 
     if (!initialized_)
@@ -93,7 +98,11 @@ void RobotController_ModelBased::initialize()
         //config.wheelsConfig_.wheelPosRobotRearY*2.0;
 
         model_based_planner_ = IModelBasedPlanner::Create(config);
-
+        if (!model_based_planner_)
+        {
+            ROS_ERROR_STREAM_THROTTLE(1, "Error Creating model based planner instance. ");
+            return;
+        }
         initialized_ = true;
 
         cv::Point3f n_pose(0,0,0);
@@ -141,22 +150,69 @@ void RobotController_ModelBased::reset()
 }
 
 
+/*
 void RobotController_ModelBased::setPath(Path::Ptr path)
 {
     RobotController::setPath(path);
     path_interpol.get_end(goal_);
 }
+*/
 
-
-
+/*
 void RobotController_ModelBased::setGoalPosition()
 {
 
 
 }
+*/
+
+bool RobotController_ModelBased::CheckNextPath()
+{
 
 
+    path_->switchToNextSubPath();
+    // check if we reached the actual goal or just the end of a subpath
+    if (path_->isDone()) {
 
+        /*
+        MoveCommand cmd_stop(true);
+        cmd_stop.setVelocity(0.0);
+        cmd_stop.setDirection(0.0);
+        cmd_stop.setRotationalVelocity(0.0);
+
+        *cmd = cmd_stop;
+        * */
+
+        Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
+        double x_meas = current_pose[0];
+        double y_meas = current_pose[1];
+
+
+        double distance_to_goal_eucl = hypot(x_meas - path_interpol.p(path_interpol.n()-1),
+                                             y_meas - path_interpol.q(path_interpol.n()-1));
+
+        ROS_INFO_THROTTLE(1, "Final positioning error: %f m", distance_to_goal_eucl);
+        return true;
+
+    } else {
+        //reset the orthogonal projection
+
+        ROS_INFO("Next subpath...");
+        // interpolate the next subpath
+        path_interpol.interpolatePath(path_);
+        publishInterpolatedPath();
+
+
+        // recompute the driving direction
+        computeMovingDirection();
+
+        path_interpol.get_end(goal_);
+
+        return false;
+    }
+
+    return false;
+}
 
 RobotController::MoveCommandStatus RobotController_ModelBased::computeMoveCommand(MoveCommand *cmd)
 {
@@ -164,24 +220,41 @@ RobotController::MoveCommandStatus RobotController_ModelBased::computeMoveComman
 
     ros::Time now = ros::Time::now();
 
-    if(!targetTransform2base(now)){
-        ROS_WARN_THROTTLE(1, "MBC: cannot transform goal! World to Odom not known!");
-        return MoveCommandStatus::ERROR;
+    //RobotController::findOrthogonalProjection();
+
+
+
+    if (commandStatus == MBC_CommandStatus::REACHED_GOAL )
+    {
+        ROS_INFO_THROTTLE(1, "MBC: Reached Goal!");
+        return MoveCommandStatus::REACHED_GOAL;
     }
 
-    if(commandStatus != MBC_CommandStatus::OKAY){
+    if(commandStatus != MBC_CommandStatus::OKAY)
+    {
         ROS_WARN_THROTTLE(1, "MBC: no valid path found!");
         return MoveCommandStatus::ERROR;
     }
 
 
+    /*
     if(RobotController::isGoalReached(cmd)){
         return RobotController::MoveCommandStatus::REACHED_GOAL;
+    }
+    */
+
+
+    path_interpol.get_end(goal_);
+
+    if(!targetTransform2base(now)){
+        ROS_WARN_THROTTLE(1, "MBC: cannot transform goal! World to Odom not known!");
+        return MoveCommandStatus::ERROR;
     }
 
     cv::Point3f goal(target_.x,target_.y,target_.orientation);
 
     model_based_planner_->SetGoalMap(goal);
+    model_based_planner_->SetPathMap(currentPath_);
 
     doPlan_ = true;
 
@@ -219,6 +292,29 @@ bool RobotController_ModelBased::GetTransform(ros::Time time,std::string targetF
 
 }
 
+
+void RobotController_ModelBased::TransformPath(tf::Transform trans)
+{
+    currentPath_.clear();
+    for (unsigned int tl = 0; tl < path_interpol.n();++tl)
+    {
+        cv::Point3f resP;
+        tf::Point pt(path_interpol.p(tl), path_interpol.q(tl), 0);
+        pt = trans * pt;
+        resP.x = pt.x();
+        resP.y = pt.y();
+
+        tf::Quaternion rot = tf::createQuaternionFromYaw(path_interpol.s(tl));
+        rot = trans * rot;
+        resP.z = tf::getYaw(rot);
+
+        currentPath_.push_back(resP);
+    }
+
+
+}
+
+
 bool RobotController_ModelBased::targetTransform2base(ros::Time& now)
 {
     tf::StampedTransform now_map_to_base;
@@ -248,6 +344,7 @@ bool RobotController_ModelBased::targetTransform2base(ros::Time& now)
     rot = transform_correction * rot;
     target_.orientation = tf::getYaw(rot);
 
+    TransformPath(transform_correction);
     return true;
 }
 
@@ -281,6 +378,8 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
     if (map_frame != robot_frame)
     {
+        tf::Transform transLocalMap =pose_tracker_->getTransform(map_frame ,localMapFrame_,now,ros::Duration(0.01));
+        /*
         tf::StampedTransform transLocalMap;
         if (!GetTransform(now, map_frame, localMapFrame_, transLocalMap))
         {
@@ -288,10 +387,12 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
             return;
         }
+        */
 
         model_based_planner_->SetDEMPos(cv::Point2f(transLocalMap.getOrigin().x(), transLocalMap.getOrigin().y()));
 
 
+        /*
         tf::StampedTransform trans;
         if (!GetTransform(now, map_frame, robot_frame, trans))
         {
@@ -299,6 +400,9 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
             return;
         }
+        */
+        tf::Transform trans =pose_tracker_->getTransform(map_frame ,robot_frame,now,ros::Duration(0.01));
+
 
         
         pose.x = trans.getOrigin().x();
@@ -312,10 +416,19 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
     }
 
-    if (!opt_.use_velocity())
+    if (!opt_.use_lin_velocity() && !opt_.use_ang_velocity())
     {
-        cv::Point2f vel(opt_.threshold_velocity(),0);
+        cv::Point2f vel(opt_.max_linear_velocity(),0);
         model_based_planner_->SetVelocity(vel);
+    }
+    else
+    {
+        geometry_msgs::Twist gVel = pose_tracker_->getVelocity();
+        cv::Point2f nvel(gVel.linear.x,gVel.angular.z);
+        if (!opt_.use_ang_velocity()) nvel.y = 0;
+        if (!opt_.use_lin_velocity()) nvel.x = opt_.max_linear_velocity();
+
+        model_based_planner_->SetVelocity(nvel);
     }
 
     model_based_planner_->UpdateDEM(inputImage);
@@ -381,25 +494,74 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
     }
 
+    if (result->end_ == nullptr)
+    {
+        ROS_WARN_STREAM("Model based controller: No valid trajectory found! ");
+        commandStatus = MBC_CommandStatus::ERROR;
+        stopMotion();
+        return;
+
+    }
+
+    bool reachedGoal = result->end_->validState == PERS_GOALREACHED;
+
+
     if (result->poseResults_.size() < 2)
     {
 
         ROS_WARN_STREAM("Model based controller: Result trajectory only contains current position! #poses: " << result->poseResults_.size() );
+        //commandStatus = reachedGoal? MBC_CommandStatus::REACHED_GOAL : MBC_CommandStatus::COLLISON;
         commandStatus = MBC_CommandStatus::COLLISON;
         stopMotion();
         return;
     }
 
-    bool reachedGoal = false;
-    if  (result->end_ != nullptr && result->end_->validState == PERS_GOALREACHED) reachedGoal = true;
+    /*
+    if ((int)result->poseResults_.size() < opt_.min_traj_nodes() && (reachedGoal) )
+    {
+        ROS_WARN_STREAM("Model based controller: Result trajectory to short: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes());
+        //commandStatus = reachedGoal? MBC_CommandStatus::REACHED_GOAL : MBC_CommandStatus::COLLISON;
+        commandStatus = MBC_CommandStatus::REACHED_GOAL;
+        stopMotion();
+        return;
+    }
+    */
 
     if ((int)result->poseResults_.size() < opt_.min_traj_nodes() && (!reachedGoal) )
     {
         ROS_WARN_STREAM("Model based controller: Result trajectory to short: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes());
+        //commandStatus = reachedGoal? MBC_CommandStatus::REACHED_GOAL : MBC_CommandStatus::COLLISON;
         commandStatus = MBC_CommandStatus::COLLISON;
         stopMotion();
         return;
     }
+
+    if ((int)result->poseResults_.size() < opt_.min_traj_nodes_goal() && (reachedGoal) )
+    {
+        bool lastPath = CheckNextPath();
+
+        if (lastPath)
+        {
+            ROS_INFO_STREAM("Model based controller: Remaining Poses to Goal: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes_goal());
+            commandStatus = MBC_CommandStatus::REACHED_GOAL;
+            //commandStatus = MBC_CommandStatus::COLLISON;
+            stopMotion();
+            return;
+        }
+    }
+
+    /*
+    if ((int)result->poseResults_.size() < opt_.min_traj_nodes() && reachedGoal)
+    {
+        ROS_INFO_STREAM("Model based controller: Reached Goal!");
+        commandStatus = MBC_CommandStatus::REACHED_GOAL;
+        cmd_.speed = 0;
+        cmd_.rotation = 0;
+        cmd_.direction_angle = 0;
+        publishMoveCommand(cmd_);
+
+        return;
+    }*/
 
     cv::Point2f resCmd = result->poseResults_[1].cmd;
     cv::Point3f respose = result->poseResults_[1].pose;

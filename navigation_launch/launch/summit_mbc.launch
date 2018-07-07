@@ -7,7 +7,7 @@
 
 <node if="$(arg publish_map2odom)" pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 /map /odom 100" />
 
-<include if="$(arg use_laser_obstacles)" file="$(find navigation_launch)/launch/laser_filter_rollator.launch" />
+<include if="$(arg use_laser_obstacles)" file="$(find navigation_launch)/launch/laser_filter_summit.launch" />
   
 
 <node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy" output="screen" respawn="true">
@@ -51,8 +51,9 @@
             <group ns="modelbased" >
 
 	    <param name="threshold_velocity" value="0.8" />
-            <param name="use_velocity" value="false" />
-	    <param name="min_traj_nodes" value="40" />
+            <param name="use_lin_velocity" value="false" />
+            <param name="use_ang_velocity" value="false" />
+            <param name="min_traj_nodes" value="40" />
 	    <!--param name="pose_output_folder" value="/media/robot/data/ModelObstacle/MBC_obstacles" /-->
 
 

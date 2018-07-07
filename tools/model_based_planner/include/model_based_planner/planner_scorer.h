@@ -5,6 +5,7 @@
 #include "plannerutils.h"
 #include <memory>
 #include <config_planner.h>
+#include "utils_math_approx.h"
 
 
 
@@ -39,6 +40,9 @@ struct NodeScorer_Base
 
     PlannerScorerConfig config_;
     cv::Point3f goal_;
+    std::vector<cv::Point3f> path_;
+    std::vector<cv::Point2f> path2_;
+
     float goalDistanceCutoff_;
     cv::Point3f curRobotPose_;
     cv::Point2f lastCmdVel_;
@@ -52,6 +56,8 @@ struct NodeScorer_Base
  */
 struct NodeScorer_Goal_T : public NodeScorer_Base
 {
+    static constexpr const char* const NS_NAME = "goal_scorer";
+
     /*
      * Score[0] = sumGravAngle
      * Score[1] = maxGravAngle
@@ -81,6 +87,24 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
     void SetGoal(const cv::Point3f goal)
     {
         goal_ = goal;
+
+    }
+
+    void SetPath(const std::vector<cv::Point3f> &path)
+    {
+        if (path.empty())
+        {
+            path_.clear();
+            path2_.clear();
+            return;
+
+        }
+        goal_ = path[path.size()-1];
+
+        path_.clear();
+        path2_.clear();
+
+
 
     }
 
@@ -183,12 +207,6 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
             return false;
         }
 
-        if (results.GetMinWheelSupport() < config_.minWheelSupportThreshold)
-        {
-            results.validState = (results.poseCounter*poseTimeStep_ > config_.noWheelSupportNearThreshold)?  PERS_LOWWHEELSUPPORT_FAR : PERS_LOWWHEELSUPPORT;
-
-            return false;
-        }
 
         if (results.gravAngle > config_.gravAngleThreshold)
         {
@@ -210,6 +228,14 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         {
             return false;
         }
+
+        if (results.GetMinWheelSupport() < config_.minWheelSupportThreshold)
+        {
+            results.validState = (results.poseCounter*poseTimeStep_ > config_.noWheelSupportNearThreshold)?  PERS_LOWWHEELSUPPORT_FAR : PERS_LOWWHEELSUPPORT;
+
+            return false;
+        }
+
 
         const cv::Point2f goalDiff(goal_.x- results.pose.x,goal_.y- results.pose.y);
 
@@ -246,6 +272,14 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         //return 0;
     }
 
+    inline float GetAngleDifference(const float &a, const float &b) const
+    {
+        float res = a-b;
+        if (res > CV_PIF) res = res - CV_2PIF;
+        if (res < -CV_PIF) res = res + CV_2PIF;
+        return std::abs(res);
+    }
+
     inline void CalcGoalDistance(TrajNode &current) const
     {
         const cv::Point2f rPos(curRobotPose_.x,curRobotPose_.y);
@@ -266,7 +300,8 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         const float distVal = distDiff/goalDistanceCutoff_;
 
         const float angleToGoal = atan2(diffPos.y,diffPos.x);
-        const float angleDiff = std::abs(end.z -angleToGoal);
+        //const float angleDiff = std::abs(end.z -angleToGoal);
+        const float angleDiff = std::abs(GetAngleDifference(end.z ,angleToGoal));
 
         current.scores[11] = distVal;
         current.scores[12] = angleDiff;
@@ -320,6 +355,9 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         }
         float lastCmdVelDiff = GetLastCmdVelDiff(current);
 
+        float levelNorm = 1.0f;
+        if (current.level_ != 0) levelNorm = 1.0f/(float)current.level_;
+
         current.fScore_ =
                 (current.scores[0]*normalize)*config_.f_meanGA +
                 current.scores[1]*config_.f_maxGA +
@@ -328,12 +366,13 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
                 (current.scores[4]*normalize)*config_.f_meanTA +
                 current.scores[5]*config_.f_maxTA +
                 current.scores[6]*config_.f_poseC +
-                current.scores[7]*config_.f_aVelD +
+                (current.scores[7]*levelNorm)*config_.f_aVelD +
                 (current.scores[8]*normalize)*config_.f_meanWS +
                 current.scores[9]*config_.f_minWS +
                 current.scores[10]*config_.f_numNotVisible +
                 current.scores[11]*config_.f_goalDistance+
                 current.scores[12]*config_.f_goalOrientation+
+                (current.scores[13]*levelNorm)*config_.f_pathDistance+
                 lastCmdVelDiff * config_.f_lastCmdVelDiff +
                 lowPoseCountPenalty+
                 endFactor;
@@ -352,9 +391,10 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         current.finalScores[10] = current.scores[10];
         current.finalScores[11] = current.scores[11]*config_.f_goalDistance;
         current.finalScores[12] = current.scores[12]*config_.f_goalOrientation;
-        current.finalScores[13] = endFactor;
-        current.finalScores[14] = lowPoseCountPenalty;
-        current.finalScores[15] = lastCmdVelDiff * config_.f_lastCmdVelDiff ;
+        current.finalScores[13] = (current.scores[13]*levelNorm)*config_.f_pathDistance;
+        current.finalScores[14] = endFactor;
+        current.finalScores[15] = lowPoseCountPenalty;
+        //current.finalScores[15] = lastCmdVelDiff * config_.f_lastCmdVelDiff ;
 
 
     }
@@ -362,6 +402,104 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
 
 
 };
+
+
+
+struct NodeScorer_Path_T : public NodeScorer_Goal_T
+{
+
+    static constexpr const char* const NS_NAME = "path_scorer";
+
+
+    void SetPath(const std::vector<cv::Point3f> &path)
+    {
+        if (path.empty())
+        {
+            path_.clear();
+            path2_.clear();
+            return;
+
+        }
+        path_ = path;
+        goal_ = path[path.size()-1];
+
+        path2_.clear();
+        for (unsigned int tl = 0; tl < path.size();++tl )
+        {
+            path2_.push_back(cv::Point2f(path[tl].x,path[tl].y));
+        }
+
+
+    }
+
+
+    inline float SqDistancePtSegment(const cv::Point2f &a, const cv::Point2f &b, const cv::Point2f &p ) const
+    {
+        cv::Point2f n = b - a;
+        cv::Point2f pa = a - p;
+
+        float c = n.dot( pa );
+
+        // Closest point is a
+        if ( c > 0.0f )
+            return pa.dot(  pa );
+
+        cv::Point2f bp = p - b;
+
+        // Closest point is b
+        if ( n.dot( bp ) > 0.0f )
+            return bp.dot( bp );
+
+        // Closest point is between a and b
+        cv::Point2f e = pa - n * (c / n.dot( n ));
+
+        return e.dot( e );
+    }
+
+    inline float GetMinPathDistance(const cv::Point3f p3)const
+    {
+        if (path2_.empty()) return 0;
+
+        cv::Point2f p(p3.x,p3.y);
+
+        float curDis = 99999999999.0f;
+
+        for (unsigned int tl = 1; tl < path2_.size();++tl)
+        {
+            float tdis = SqDistancePtSegment(path2_[tl-1],path2_[tl],p);
+            if (tdis < curDis) curDis = tdis;
+        }
+        return sqrt(curDis);
+
+    }
+
+    inline void ScoreNode(TrajNode &current)  const
+    {
+        float velDiff = 0;
+        if (current.parent_ != nullptr) velDiff = std::abs(current.endCmd_.y);
+        current.scores[7] += velDiff;
+
+        current.scores[13] += GetMinPathDistance( current.end_->pose);
+
+        /*
+        const cv::Point3f end = current.end_->pose;
+
+        const cv::Point3f diff = goal_ - end;
+        const cv::Point2f diffPos(diff.x,diff.y);
+        const float dist = sqrt(diffPos.dot(diffPos));
+        const float angleToGoal = atan2(diffPos.y,diffPos.x);
+        const float angleDiff = fabs(end.z -angleToGoal);
+
+        current.scores[11] = dist;
+        current.scores[12] = angleDiff;
+        */
+
+        //return 0;
+    }
+
+};
+
+
 
 /**
  * @brief Scorer without goal position, currently not supported

@@ -26,6 +26,9 @@ public:
     P<std::string> robot_config_file;
     P<std::string> elevation_map_config_file;
     P<std::string> model_planner_type;
+    P<std::string> model_node_expander_type;
+    P<std::string> model_scorer_type;
+
 
 
     //Planner
@@ -61,6 +64,7 @@ public:
 
     P<double> score_weight_distance_to_goal; // float f_goalDistance;
     P<double> score_weight_angle_to_goal; // float f_goalOrientation;
+    P<double> score_weight_distance_to_path; // float f_pathDistance;
     P<double> score_weight_last_vel_diff; // float f_lastCmdVelDiff;
 
 
@@ -94,6 +98,8 @@ public:
     void AssignParams(ModelBasedPlannerConfig &config)
     {
         config.plannerType_ = model_planner_type();
+        config.nodeExpanderType_ = model_node_expander_type();
+        config.scorerType_ = model_scorer_type();
 
 
         //Planner
@@ -132,6 +138,7 @@ public:
 
         config.scorerConfig_.f_goalDistance = score_weight_distance_to_goal();
         config.scorerConfig_.f_goalOrientation = score_weight_angle_to_goal();
+        config.scorerConfig_.f_pathDistance = score_weight_distance_to_path();
         config.scorerConfig_.f_lastCmdVelDiff = score_weight_last_vel_diff();
 
         config.scorerConfig_.end_outOfImage = score_weight_end_out_of_image();
@@ -167,7 +174,9 @@ public:
         //Other local planner parameters
         robot_config_file(this, "robot_config_file", "", "Path to robot configuration file"),
         elevation_map_config_file(this, "elevation_map_config_file", "", "Path to elevation_map configuration file"),
-        model_planner_type(this, "model_planner_type", "AStar_AngularVel_WSPL", "Type of model based planner used"),
+        model_planner_type(this, "model_planner_type", "AStar", "Type of model based planner used"),
+        model_node_expander_type(this, "model_node_expander_type", "angular_vel", "Type of node expander used"),
+        model_scorer_type(this, "model_scorer_type", "path_scorer", "Type of model based scorer used"),
         // Planner
         max_num_nodes(this, "max_num_nodes", 10000, "Determines the maximum number of nodes used by the local planner"),
         max_depth(this, "max_depth", 3, "Determines the maximum depth of the tree used by the local planner"),
@@ -195,6 +204,7 @@ public:
         score_weight_level(this,"score_weight_level", 0.0, "Determines whether the fifth scorer is used or not. (Tree level reached)"),
         score_weight_distance_to_goal(this,"score_weight_distance_to_goal",-1.0,"Determines whether the first scorer is used or not. (Distance to global path (P))"),
         score_weight_angle_to_goal(this,"score_weight_angle_to_goal",-1.0,"Determines whether the third scorer is used or not. (Curvature of the point (P))"),
+        score_weight_distance_to_path(this,"score_weight_distance_to_path",-1.0," (Distance to global path (P))"),
         score_weight_last_vel_diff(this,"score_weight_last_vel_diff",-1.0,"Difference to last command velocity"),
         score_weight_end_out_of_image(this,"score_weight_end_out_of_image",-1.0,"score_weight_end_out_of_image"),
         score_weight_end_no_wheel_support(this,"score_weight_end_no_wheel_support",-100.0,"score_weight_end_no_wheel_support"),

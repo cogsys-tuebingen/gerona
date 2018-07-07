@@ -325,7 +325,7 @@ void PoseWriter::WritePoses(const Trajectory *traj, cv::Point2f mapOrigin, cv::P
     fstreamPose << curTime << ";" << robotWorldPose.x << ";" << robotWorldPose.y << ";" << robotWorldPose.z << ";" << mapOrigin.x << ";" << mapOrigin.y << ";"<<std::endl;
     fstreamPose << PoseHeaderRed() << std::endl;
 
-    for (int tl = 0; tl < traj->poseResults_.size();tl++)
+    for (unsigned int tl = 0; tl < traj->poseResults_.size();tl++)
     {
         fstreamPose << Pose2StringRed(traj->poseResults_[tl]) << std::endl;
 
@@ -365,7 +365,7 @@ void WriteProcConf(std::string filename, const ProcConfig &pc,const std::string 
 
 void PoseWriter::WriteConfig(const ModelBasedPlannerConfig &config,const std::string &modelFile)
 {
-    ProcConfig conf = config.procConfig_;
+    //ProcConfig conf = config.procConfig_;
     WriteProcConf(outputFolder_ + "/procConf.txt",config.procConfig_, modelFile);
 
 }
@@ -410,7 +410,7 @@ void PoseWriter::WritePoses(const Trajectory *traj, cv::Point2f mapOrigin)
     fstreamPose << curTime << ";" << mapOrigin.x << ";" << mapOrigin.y << ";"<<std::endl;
     fstreamPose << PoseHeaderRed() << std::endl;
 
-    for (int tl = 0; tl < traj->poseResults_.size();tl++)
+    for (unsigned int tl = 0; tl < traj->poseResults_.size();tl++)
     {
         fstreamPose << Pose2StringRed(traj->poseResults_[tl]) << std::endl;
 

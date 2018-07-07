@@ -54,6 +54,7 @@ DE_Localmap::DE_Localmap() :
     nodeP_.param("mapNotVisibleLevel", mapNotVisibleLevel_,1000.0);
 
     nodeP_.param("transform2BaseLink", transform2BaseLink_,true);
+    nodeP_.param("useLatestTransform", useLatestTransform_,0);
 
     nodeP_.param("removeLeftImageCols", removeLeftImageCols_,-1);
 
@@ -93,6 +94,8 @@ DE_Localmap::DE_Localmap() :
     blockMap_.Setup();
     blockMap_.SetSafeBlocksTo(mapOffset_);
 
+    poseEstimator_.Initialize(nodeP_);
+
 }
 
 
@@ -128,7 +131,7 @@ bool DE_Localmap::GetTransform(ros::Time time,std::string targetFrame, std::stri
     }catch(tf::TransformException ex){//if not available, then wait
         (void) ex;
         if(!tf_listener.waitForTransform(targetFrame, sourceFrame, time, ros::Duration(0.05))){
-            ROS_WARN_STREAM_THROTTLE_NAMED(0.5,"DE_Localmap","cannot lookup transform from: " << targetFrame << " to " << sourceFrame);
+            ROS_WARN_STREAM_THROTTLE(0.5,"DE_Localmap: cannot lookup transform from: " << targetFrame << " to " << sourceFrame);
             return false;
         }
         tf_listener.lookupTransform(targetFrame, sourceFrame, time, trans);
@@ -233,13 +236,14 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
 
     std::string cameraFrame = depth->header.frame_id;
     ros::Time timeStamp = depth->header.stamp;
-
+    if (useLatestTransform_ == 1) timeStamp = ros::Time::now();
+    if (useLatestTransform_ == 2) timeStamp = ros::Time(0);
 
     if (!hasCam2Base_)
     {
 
-        if (!GetTransform(timeStamp,baseFrame_, cameraFrame, cam2Base_)) {
-            ROS_ERROR_STREAM("Error looking up Camera to Map transform: " << cameraFrame << " to " << mapFrame_);
+        if (!GetTransform(ros::Time(0),baseFrame_, cameraFrame, cam2Base_)) {
+            ROS_ERROR_STREAM("Error looking up Camera to Base transform: " << cameraFrame << " to " << baseFrame_);
 
             return;
 
@@ -251,7 +255,7 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
     tf::StampedTransform base2map;
     bool lookUpOk = GetTransform(timeStamp,mapFrame_, baseFrame_, base2map);
     if (!lookUpOk) {
-        ROS_ERROR_STREAM("Error looking up Base to Map transform: " << cameraFrame << " to " << mapFrame_);
+        ROS_ERROR_STREAM("Error looking up Base to Map transform: " << baseFrame_ << " to " << mapFrame_ << " Time: " << timeStamp);
 
         return;
 
@@ -273,7 +277,12 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
     timeval tZstart;
     gettimeofday(&tZstart, NULL);
 
+    poseEstimator_.UpdateLocalMap(blockMap_.currentMap_,blockMap_.origin_);
 
+    if (poseEstimator_.UseEstimate())
+    {
+        poseEstimator_.GetEstimate(base2map);
+    }
     tf::Transform cam2map;
     cam2map = base2map*cam2Base_;
 
@@ -378,13 +387,14 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
 
 
 #ifdef ELEVATION_CLOUD_DEBUG
-    if (imageCloud_pub_.getNumSubscribers() > 0) UtilsDem2PC::PublishCloud(depth->header.stamp,mapFrame_,blockMap_.currentMap_,imageCloud_pub_,blockMap_.origin_, blockMap_.pixelResolution_);
+    if (imageCloud_pub_.getNumSubscribers() > 0) UtilsDem2PC::PublishCloud(timeStamp,mapFrame_,blockMap_.currentMap_,imageCloud_pub_,blockMap_.origin_, blockMap_.pixelResolution_);
 #endif
 
     if (zImagePub_.getNumSubscribers() > 0)
     {
         cv_bridge::CvImage out_z_image;
         out_z_image.header   = depth->header; // Same timestamp and tf frame as input image
+        out_z_image.header.stamp   = timeStamp; // Same timestamp and tf frame as input image
         out_z_image.header.frame_id   = resultFrameID; // Same timestamp and tf frame as input image
         if (resultImg.type() == CV_32F)
         {
@@ -404,6 +414,7 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
 
         cv_bridge::CvImage out_assign_image;
         out_assign_image.header   = depth->header; // Same timestamp and tf frame as input image
+        out_assign_image.header.stamp   = timeStamp; // Same timestamp and tf frame as input image
         out_assign_image.encoding = sensor_msgs::image_encodings::TYPE_32FC1; // Or whatever
         out_assign_image.image    = cAssign_; // Your cv::Mat
         assignImagePub_.publish(out_assign_image.toImageMsg());

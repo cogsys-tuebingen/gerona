@@ -117,9 +117,9 @@ Path::Ptr LocalPlannerModel::updateLocalPath_BaseLink()
     SubPath local_wps;
     local_wps.forward = true;
 
-    if (!use_velocity_)
+    if (!opt_->use_velocity())
     {
-        cv::Point2f vel(lowerVelocity_,0);
+        cv::Point2f vel(opt_->max_linear_velocity(),0);
         model_based_planner_->SetVelocity(vel);
     }
 
@@ -133,7 +133,7 @@ Path::Ptr LocalPlannerModel::updateLocalPath_BaseLink()
     //std::string odom_frame = PathFollowerParameters::getInstance()->odom_frame();
     std::string robot_frame = PathFollowerParameters::getInstance()->robot_frame();
 
-    PublishDebugImage();
+    //PublishDebugImage();
 
     if(!transformWPS(robot_frame,odom_frame,local_wps,now )){
         ROS_WARN_THROTTLE(1, "cannot calculate local path, transform to odom not known");
@@ -198,7 +198,9 @@ Path::Ptr LocalPlannerModel::updateLocalPath_LocalMap()
     //if (path_end_.x == 0 && path_end_.y == 0 && path_end_.orientation == 0) return local_path;
 
 
+    tf::Transform transLocalMap = pose_tracker_->getTransform(map_frame, local_frame,mapTime,ros::Duration(0.01));
 
+    /*
     tf::StampedTransform transLocalMap;
     if (!GetTransform(mapTime, map_frame, local_frame, transLocalMap))
     {
@@ -206,6 +208,7 @@ Path::Ptr LocalPlannerModel::updateLocalPath_LocalMap()
 
         return local_path;
     }
+    */
 
     model_based_planner_->SetDEMPos(cv::Point2f(transLocalMap.getOrigin().x(), transLocalMap.getOrigin().y()));
 
@@ -215,10 +218,15 @@ Path::Ptr LocalPlannerModel::updateLocalPath_LocalMap()
     //cv::Point3f goal(target_.x,target_.y,target_.orientation);
     cv::Point3f goal(path_end_.x, path_end_.y,path_end_.orientation);
 
+
     model_based_planner_->SetGoalMap(goal);
+    model_based_planner_->SetPathMap(currentPath_);
 
 
 
+    tf::Transform trans = pose_tracker_->getTransform(map_frame, robot_frame,mapTime,ros::Duration(0.01));
+
+    /*
     tf::StampedTransform trans;
     if (!GetTransform(now, map_frame, robot_frame, trans))
     {
@@ -226,6 +234,7 @@ Path::Ptr LocalPlannerModel::updateLocalPath_LocalMap()
 
         return local_path;
     }
+    */
 
     cv::Point3f pose;
 
@@ -259,9 +268,9 @@ Path::Ptr LocalPlannerModel::updateLocalPath_LocalMap()
     SubPath local_wps;
     local_wps.forward = true;
 
-    if (!use_velocity_)
+    if (!opt_->use_velocity())
     {
-        cv::Point2f vel(lowerVelocity_,0);
+        cv::Point2f vel(opt_->max_linear_velocity(),0);
         model_based_planner_->SetVelocity(vel);
     }
 
@@ -269,7 +278,7 @@ Path::Ptr LocalPlannerModel::updateLocalPath_LocalMap()
         return local_path;
     }
 
-    PublishDebugImage();
+    //PublishDebugImage();
 
     if(!transformWPS(map_frame,odom_frame,local_wps,now )){
         ROS_WARN_THROTTLE(1, "cannot calculate local path, transform to odom not known");
@@ -344,7 +353,7 @@ void LocalPlannerModel::setVelocity(geometry_msgs::Twist vector)
     cur_vel.x = vector.linear.x;
     cur_vel.y = vector.angular.z;
 
-    if (cur_vel.x < lowerVelocity_) cur_vel.x = lowerVelocity_;
+    //if (cur_vel.x < opt_->min_linear_velocity) cur_vel.x = lowerVelocity_;
 
     model_based_planner_->SetVelocity(cur_vel);
 
@@ -357,7 +366,7 @@ void LocalPlannerModel::setVelocity(geometry_msgs::Twist::_linear_type vector)
     cur_vel.x = vector.x;
     cur_vel.y = 0;
 
-    if (cur_vel.x < lowerVelocity_) cur_vel.x = lowerVelocity_;
+    //if (cur_vel.x < lowerVelocity_) cur_vel.x = lowerVelocity_;
 
     model_based_planner_->SetVelocity(cur_vel);
 
@@ -370,7 +379,7 @@ void LocalPlannerModel::setVelocity(double velocity)
     cur_vel.x = velocity;
     cur_vel.y = 0;
 
-    if (cur_vel.x < lowerVelocity_) cur_vel.x = lowerVelocity_;
+    //if (cur_vel.x < lowerVelocity_) cur_vel.x = lowerVelocity_;
 
     model_based_planner_->SetVelocity(cur_vel);
 }
@@ -384,12 +393,16 @@ void LocalPlannerModel::reset()
 void LocalPlannerModel::setParams(const LocalPlannerParameters& opt)
 {
 
-    use_velocity_ = opt.use_velocity();
-    lowerVelocity_ = opt.min_velocity();
+    //use_velocity_ = opt.use_velocity();
+    //lowerVelocity_ = opt.min_linear_velocity();
 
     //ModelBasedPlannerConfig config;
 
     m_opt_.AssignParams(config_);
+
+    config_.expanderConfig_.minLinVel = opt_->min_linear_velocity();
+    config_.expanderConfig_.maxLinVel = opt_->max_linear_velocity();
+    config_.expanderConfig_.maxAngVel = opt_->max_angular_velocity();
 
 
     config_.Setup();
@@ -439,6 +452,16 @@ void LocalPlannerModel::setGlobalPath(Path::Ptr path)
 {
     AbstractLocalPlanner::setGlobalPath(path);
     global_path_.get_end(path_end_);
+
+    currentPath_.clear();
+    currentPath_.reserve(global_path_.n());
+
+    for (unsigned int tl = 0; tl < global_path_.n();++tl)
+    {
+        cv::Point3f p(global_path_.p(tl), global_path_.q(tl),global_path_.s(tl));
+        currentPath_.push_back(p);
+    }
+
     close_to_goal_ = false;
 
 }
@@ -585,7 +608,7 @@ bool LocalPlannerModel::algo(SubPath& local_wps)
     //ROS_INFO_STREAM_THROTTLE(1,"Model based planner took " << totalPlanningTime_/(double)frameCounter_ << "ms");
     ROS_INFO_STREAM_THROTTLE(1,"Model based planner took " << curMS << " Avg: " << totalPlanningTime_/(double)numFrames_ << "ms" << " Frames: " << numFrames_);
 
-
+    PublishDebugImage();
 
     //model_based_planner_->Plan();
 
@@ -594,6 +617,11 @@ bool LocalPlannerModel::algo(SubPath& local_wps)
 
     if (result == nullptr) return false;
 
+    if (result != nullptr && result->end_ != nullptr)
+    {
+        ROS_INFO_STREAM("End State: " << result->end_->validState << " : " << PoseEvalResults::GetValidStateString(result->end_->validState));
+
+    }
 
     local_wps.wps.clear();
 
@@ -614,6 +642,10 @@ bool LocalPlannerModel::algo(SubPath& local_wps)
         local_wps.push_back(wp);
 
     }
+
+    bool reachedGoal = result->end_->validState == PERS_GOALREACHED;
+    if (reachedGoal) return true;
+
     if (!TestPath(local_wps)) return false;
 
     return true;

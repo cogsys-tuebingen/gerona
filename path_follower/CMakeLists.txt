@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(path_follower)
 
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
+#set(CMAKE_BUILD_TYPE Debug)
 
 add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function)
 
@@ -148,6 +149,7 @@ add_library(${PROJECT_NAME} SHARED
     src/controller/robotcontroller_kinematic_HBZ.cpp
     src/controller/robotcontroller_modelbased.cpp
     src/controller/robotcontroller_ackermann_modelbased.cpp
+    src/controller/robotcontroller_ekm.cpp
 
     src/local_planner/abstract_local_planner.cpp
     src/local_planner/local_planner_null.cpp

@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="path_control" type="direct_path_node" name="direct_path_node"
+    		output="screen" respawn="true" clear_params="true">
+        <param name="nonaction_velocity" value="1.0" />
+        <param name="num_replan_attempts" value="10" />
+        <param name="init_mode" value="1" />
+    </node>
+</launch>

@@ -50,6 +50,7 @@ std::shared_ptr<PathFollowerConfig> FollowerFactory::construct(const PathFollowe
 
     // wiring
     result.collision_avoider_->setTransformListener(&pose_tracker_.getTransformListener());
+    result.collision_avoider_->setRobotFrameId(pose_tracker_.getRobotFrameId());
 
     result.local_planner_->init(result.controller_.get(), &pose_tracker_);
 

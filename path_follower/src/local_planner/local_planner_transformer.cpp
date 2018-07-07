@@ -31,7 +31,7 @@ Path::Ptr LocalPlannerTransformer::updateLocalPath()
         // calculate the corrective transformation to map from world coordinates to odom
         if(!transformer_->waitForTransform(world_frame, odom_frame, ros::Time(0), ros::Duration(0.1))) {
             ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
-            return false;
+            return {};
         }
 
         tf::StampedTransform now_map_to_odom;

@@ -80,6 +80,27 @@ void DrawProc::DrawGoal(ScaledDrawProc &drawProc,cv::Point3f goal,cv::Point3f ro
 
 }
 
+void DrawProc::DrawPath(ScaledDrawProc &drawProc,std::vector<cv::Point3f> path)
+{
+    if (path.empty()) return;
+
+    for (unsigned int tl = 1; tl < path.size();++tl)
+    {
+        cv::Point2f p1;
+        p1.x = path[tl-1].x;
+        p1.y = path[tl-1].y;
+
+        cv::Point2f p2;
+        p2.x = path[tl].x;
+        p2.y = path[tl].y;
+
+        drawProc.DrawLineScaled(p1,p2,cv::Scalar(10,124,200),2);
+
+    }
+
+}
+
+
 
 void DrawProc::SetupDrawProc(ScaledDrawProc &drawProc,cv::Mat &img, float scaleFactor)
 {

@@ -196,7 +196,10 @@ struct ModelBasedPlannerConfig
 
     ModelBasedPlannerConfig()
     {
-        plannerType_ = "AStar_AngularVel_WSPL";
+        plannerType_ = "AStar";
+        nodeExpanderType_ = "angular_vel";
+        scorerType_ = "path_scorer";
+
     }
 
     void Setup()
@@ -306,6 +309,9 @@ struct ModelBasedPlannerConfig
     WheelsConfig wheelsConfig_;
 
     std::string plannerType_;
+    std::string nodeExpanderType_;
+    std::string scorerType_;
+
 
     std::string getFolderName(const std::string &s);
 

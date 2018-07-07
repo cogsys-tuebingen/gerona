@@ -90,9 +90,12 @@ protected:
 
     bool initialized_;
 
-    bool use_velocity_;
+    //bool use_velocity_;
     bool close_to_goal_;
-    float lowerVelocity_;
+    //float lowerVelocity_;
+
+    std::vector<cv::Point3f> currentPath_;
+
 
     ros::Time last_update_;
 

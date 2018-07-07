@@ -210,24 +210,45 @@ int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
     results.wheelEvalResults_[2].zPos = z2;
     results.wheelEvalResults_[3].zPos = z3;
 
+    const float absZInv1 = results.n1.z == 0 ? 0 : 1.0f/std::abs(results.n1.z);
+    const float absZInv2 = results.n2.z == 0 ? 0 : 1.0f/std::abs(results.n2.z);
+
+    const float dx1 = (-results.n1.x*absZInv1)*procConfig_.heightPixelRatio;
+    const float dy1 = ( results.n1.y*absZInv1)*procConfig_.heightPixelRatio;
+
+    const float dx2 = (-results.n2.x*absZInv2)*procConfig_.heightPixelRatio;
+    const float dy2 = ( results.n2.y*absZInv2)*procConfig_.heightPixelRatio;
+
+    results.dx1 = dx1;
+    results.dy1 = dy1;
+    results.dx2 = dx2;
+    results.dy2 = dy2;
+
+    const cv::Point2f w1  = desc.wheelPositionsImage_[cw1];//+wheels_[cw1].descriptors_[angleIdx].jointPosImg_;
+    const cv::Point2f w2  = desc.wheelPositionsImage_[cw2];//+wheels_[cw2].descriptors_[angleIdx].jointPosImg_;
+
+    cv::Point2f blPos = desc.baseLinkPosImage_;
+
+    cv::Point2f w12bl = w1-blPos;
+    cv::Point2f w22bl = w2-blPos;
+
+    results.z1 = (float)results.wheelEvalResults_[cw1].zPos - (w12bl.x * dx1 + w12bl.y * dy1)*procConfig_.heightScaleInv;
+    results.z2 = (float)results.wheelEvalResults_[cw2].zPos - (w22bl.x * dx2 + w22bl.y * dy2)*procConfig_.heightScaleInv;
+
+    //results.z1 = (results.z1-procConfig_.mapBaseHeight)*procConfig_.heightScaleInv;
+    //results.z2 = (results.z2-procConfig_.mapBaseHeight)*procConfig_.heightScaleInv;
+
+    results.r1 = Utils_Math_Approx::fasin(n1y);//*0.7;
+    results.p1 = Utils_Math_Approx::fasin(n1x);//*0.7;
+    results.r2 = Utils_Math_Approx::fasin(n2y);//*0.7;
+    results.p2 = Utils_Math_Approx::fasin(n2x);//*0.7;
+
+
+
     results.validState = PERS_VALID;
 
     if (chassisModel_.TestChassis())
-    {
-
-        const float absZInv1 = results.n1.z == 0 ? 0 : 1.0f/std::abs(results.n1.z);
-        const float absZInv2 = results.n2.z == 0 ? 0 : 1.0f/std::abs(results.n2.z);
-
-        const float dx1 = (-results.n1.x*absZInv1)*procConfig_.heightPixelRatio;
-        const float dy1 = ( results.n1.y*absZInv1)*procConfig_.heightPixelRatio;
-
-        const float dx2 = (-results.n2.x*absZInv2)*procConfig_.heightPixelRatio;
-        const float dy2 = ( results.n2.y*absZInv2)*procConfig_.heightPixelRatio;
-
-
-        const cv::Point2f w1  = desc.wheelPositionsImage_[cw1];//+wheels_[cw1].descriptors_[angleIdx].jointPosImg_;
-        const cv::Point2f w2  = desc.wheelPositionsImage_[cw2];//+wheels_[cw2].descriptors_[angleIdx].jointPosImg_;
-
+    {        
 
         const ChassisDescriptor chassisDesc = chassisModel_.GetDescriptorIdx(angleIdx);
 
@@ -251,10 +272,6 @@ int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
 
 
 
-        results.dx1 = dx1;
-        results.dy1 = dy1;
-        results.dx2 = dx2;
-        results.dy2 = dy2;
 
         results.start1 = startValA;
         results.start2 = startValB;

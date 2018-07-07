@@ -45,9 +45,11 @@ public:
 
 
 
+
     virtual void Initialize(ModelBasedPlannerConfig &config)
     {
         config_ = config;
+
         SetupNodes();
 
         //procConfig_ = config.procConfig_;
@@ -268,6 +270,7 @@ protected:
     cv::Point2f curImgVelocity_;
     cv::Point3f curImgRobotPose_;
 
+    std::vector<cv::Point3f> path_;
     cv::Point3f goal_;
 
 

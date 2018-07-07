@@ -36,6 +36,7 @@ public:
 
     //static void DrawRobot(ScaledDrawProc &drawProc,IModelBasedPlanner &planner);
     void DrawGoal(ScaledDrawProc &drawProc,cv::Point3f goal,cv::Point3f robotPos);
+    void DrawPath(ScaledDrawProc &drawProc,std::vector<cv::Point3f> path);
 
     void DrawRobotScaled(ScaledDrawProc &drawProc, RobotModel &model, PoseEvalResults &results);
     void DrawRobotWheelScaled(ScaledDrawProc &proc, WheelModel &model, cv::Point2f pos, int angleIdx,cv::Point2i contact);

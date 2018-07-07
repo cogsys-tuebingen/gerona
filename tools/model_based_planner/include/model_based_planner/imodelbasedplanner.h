@@ -89,6 +89,12 @@ public:
      */
     virtual void SetGoalMap(const cv::Point3f goal) = 0;
 
+    /**
+     * @brief Sets a path in world coordinates
+     */
+    virtual void SetPathMap(const std::vector<cv::Point3f> &path) = 0;
+
+
 
     /**
      * @brief Update the current planner parameters, re-initializes the planner if the maximum number of nodes changed

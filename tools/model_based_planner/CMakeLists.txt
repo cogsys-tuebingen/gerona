@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(model_based_planner)
 
+#set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_CXX_FLAGS "-std=c++11 -march=native ${CMAKE_CXX_FLAGS}")
+
 set(CMAKE_BUILD_TYPE Release)
 
 # Set to use AVX code path. If not set SSE is used
