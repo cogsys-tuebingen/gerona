@@ -10,6 +10,8 @@
 
 
 // SYSTEM
+#include <cmath>
+
 
 REGISTER_ROBOT_CONTROLLER(RobotController_EKM, ekm, default_collision_avoider);
 
@@ -64,6 +66,8 @@ void RobotController_EKM::reset()
 void RobotController_EKM::setPath(Path::Ptr path)
 {
     RobotController::setPath(path);
+    DerivePathInterp(1.0/opt_.ts());
+
 }
 
 /*
@@ -73,19 +77,66 @@ double RobotController_EKM::computeSpeed()
 }
 */
 
+
+void diffArr(std::vector<double> in, std::vector<double> &out)
+{
+    out.clear();
+    for (unsigned int i = 0; i < in.size()-1;++i)
+    {
+        out.push_back(in[i+1]-in[i]);
+
+    }
+    out.push_back(0);
+}
+
 void RobotController_EKM::DerivePathInterp(double fact)
 {
+    const double ds = 0.01;
+    const double zeroOff = 0.0001;
+    const double ids = 1.0/0.01;
     phi_p_.clear();
+    rho_.clear();
+    std::vector<double> dx,dy;
+    std::vector<double> ddx,ddy;
+
     for (unsigned int i = 0; i < path_interpol.n()-1;++i)
     {
-        double x_p = (path_interpol.p(i+1)-path_interpol.p(i))*fact;
-        double y_p = (path_interpol.q(i+1)-path_interpol.q(i))*fact;
+        dx.push_back(path_interpol.p(i+1)-path_interpol.p(i));
+        dy.push_back(path_interpol.q(i+1)-path_interpol.q(i));
+    }
+    dx.push_back(0);
+    dy.push_back(0);
+
+    diffArr(dx,ddx);
+    diffArr(dy,ddy);
+
+
+
+
+    for (unsigned int i = 0; i < path_interpol.n();++i)
+    {
+        const double tdx = dx[i];
+        const double tdy = dy[i];
+        const double tddx = ddx[i];
+        const double tddy = ddy[i];
+        const double x_p = tdx*fact;
+        const double y_p = tdy*fact;
         phi_p_.push_back(atan2(y_p,x_p));
+
+        const double Rc_n = std::pow(std::pow(tdx*ids,2) + std::pow(tdy*ids,2),1.5);
+
+        const double Rc_d = std::abs( (tdx*ids)* ((tddy*ids)*ids) - (tdy*ids)* ((tddx*ids)*ids) );
+
+        //Rc_d = abs((np.diff(x_p[0:x_p.size-1])/ds)*((np.diff(np.diff(y_p)/ds)/ds))-(np.diff(y_p[0:y_p.size-1])/ds)*((np.diff(np.diff(x_p)/ds)/ds)))
+
+        rho_.push_back(Rc_n / (Rc_d+zeroOff) );
+
 
     }
 }
 
-double GetAngleDifference(double a, double b)
+
+double GetAngleDifferenceOld(double a, double b)
 {
     if (a > 3.0 && b < -3.0)
     {
@@ -98,6 +149,24 @@ double GetAngleDifference(double a, double b)
 
     return a-b;
 }
+
+double ang_continuos(double ang_past, double ang_now)
+{
+    double a = ang_now-ang_past;
+    double n = 0;
+
+        if (std::abs(a) > 1.8*M_PI)
+        {
+
+            n = (int)std::abs(1.1*a)/ (int)M_PI;
+
+            if (a > 1.8*M_PI) return ang_now - n*M_PI;
+
+            if (a < 1.8*M_PI) return ang_now + n*M_PI;
+        }
+        else return ang_now;
+}
+
 
 RobotController::MoveCommandStatus RobotController_EKM::computeMoveCommand(MoveCommand *cmd)
 {
@@ -123,7 +192,9 @@ RobotController::MoveCommandStatus RobotController_EKM::computeMoveCommand(MoveC
 
     int k_p = proj_ind_+opt_.n();
 
-    DerivePathInterp(1.0/opt_.ts());
+    //DerivePathInterp(1.0/opt_.ts());
+
+    double kv = 0.6;
 
     double xpr = current_pose(0);
     double ypr = current_pose(1);
@@ -132,8 +203,10 @@ RobotController::MoveCommandStatus RobotController_EKM::computeMoveCommand(MoveC
     double x_d = path_interpol.p(k_p);
     double y_d = path_interpol.q(k_p);
 
-    double xp_d = opt_.u_d()*cos(phi_p_[k_p]);
-    double yp_d = opt_.u_d()*sin(phi_p_[k_p]);
+    double rc= (tanh(kv*rho_[k_p]));
+
+    double xp_d = opt_.u_d()*cos(phi_p_[k_p]) * rc;
+    double yp_d = opt_.u_d()*sin(phi_p_[k_p]) * rc;
 
     double x_t = x_d - xpr;
     double y_t = y_d - ypr;
@@ -149,11 +222,11 @@ RobotController::MoveCommandStatus RobotController_EKM::computeMoveCommand(MoveC
         prev_phi_d_ = phi_d;
         has_prev_phi_d_ = true;
     }
-    double phip_d = GetAngleDifference(phi_d,prev_phi_d_)/opt_.ts();
+    double phip_d = ang_continuos(phi_d,prev_phi_d_)/opt_.ts();
 
     prev_phi_d_ = phi_d;
 
-    double phi_t = GetAngleDifference(phi_d , phi);
+    double phi_t = ang_continuos(phi_d , phi);
 
     double nu_p  = phip_d+ opt_.lw()*tanh(opt_.kw()*phi_t/opt_.lw());
 

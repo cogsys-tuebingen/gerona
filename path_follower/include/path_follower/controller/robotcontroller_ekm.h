@@ -174,6 +174,7 @@ private:
     //std::vector<double> x_p_;
     //std::vector<double> y_p_;
     std::vector<double> phi_p_;
+    std::vector<double> rho_;
     double prev_phi_d_;
     bool has_prev_phi_d_;
     //double phi_;
