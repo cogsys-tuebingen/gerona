@@ -89,6 +89,25 @@ void diffArr(std::vector<double> in, std::vector<double> &out)
     out.push_back(0);
 }
 
+
+double ang_continuos(double ang_past, double ang_now)
+{
+    double a = ang_now-ang_past;
+    double n = 0;
+
+        if (std::abs(a) > 1.8*M_PI)
+        {
+
+            n = (int)std::abs(1.1*a)/ (int)M_PI;
+
+            if (a > 1.8*M_PI) return ang_now - n*M_PI;
+
+            if (a < 1.8*M_PI) return ang_now + n*M_PI;
+        }
+        else return ang_now;
+}
+
+
 void RobotController_EKM::DerivePathInterp(double fact)
 {
     const double ds = 0.01;
@@ -121,7 +140,11 @@ void RobotController_EKM::DerivePathInterp(double fact)
         const double tddy = ddy[i];
         const double x_p = tdx*fact;
         const double y_p = tdy*fact;
-        phi_p_.push_back(atan2(y_p,x_p));
+
+        double tphi = atan2(y_p,x_p);
+        double pphi = 0;
+        if (phi_p_.size() > 0) pphi = phi_p_.back();
+        phi_p_.push_back(ang_continuos(pphi,tphi));
 
         const double Rc_n = std::pow(std::pow(tdx*ids,2) + std::pow(tdy*ids,2),1.5);
 
@@ -130,6 +153,8 @@ void RobotController_EKM::DerivePathInterp(double fact)
         //Rc_d = abs((np.diff(x_p[0:x_p.size-1])/ds)*((np.diff(np.diff(y_p)/ds)/ds))-(np.diff(y_p[0:y_p.size-1])/ds)*((np.diff(np.diff(x_p)/ds)/ds)))
 
         rho_.push_back(Rc_n / (Rc_d+zeroOff) );
+
+        ROS_ERROR_STREAM(" phi_p:  " << phi_p_.back() << " rho: " << rho_.back() );
 
 
     }
@@ -150,22 +175,6 @@ double GetAngleDifferenceOld(double a, double b)
     return a-b;
 }
 
-double ang_continuos(double ang_past, double ang_now)
-{
-    double a = ang_now-ang_past;
-    double n = 0;
-
-        if (std::abs(a) > 1.8*M_PI)
-        {
-
-            n = (int)std::abs(1.1*a)/ (int)M_PI;
-
-            if (a > 1.8*M_PI) return ang_now - n*M_PI;
-
-            if (a < 1.8*M_PI) return ang_now + n*M_PI;
-        }
-        else return ang_now;
-}
 
 
 RobotController::MoveCommandStatus RobotController_EKM::computeMoveCommand(MoveCommand *cmd)
@@ -222,14 +231,18 @@ RobotController::MoveCommandStatus RobotController_EKM::computeMoveCommand(MoveC
         prev_phi_d_ = phi_d;
         has_prev_phi_d_ = true;
     }
-    double phip_d = ang_continuos(phi_d,prev_phi_d_)/opt_.ts();
+    double phip_d = ( phi_d - prev_phi_d_)/opt_.ts();
 
     prev_phi_d_ = phi_d;
 
-    double phi_t = ang_continuos(phi_d , phi);
+    //double phi_t = ang_continuos(phi_d , phi);
+    double phi_t = (phi_d - phi);
 
     double nu_p  = phip_d+ opt_.lw()*tanh(opt_.kw()*phi_t/opt_.lw());
 
+
+    //u = np.append(u,(nu_x[k]*np.cos(phi[k])+ nu_y[k]*np.sin(phi[k])+ nu_p[k]*d*np.sin(alpha)))
+    //w = np.append(w,(nu_p[k]))
 
     double u = (nu_x*cos(phi)+ nu_y*sin(phi)+ nu_p*opt_.a()*sin(opt_.alpha()));
     double w = (nu_p);
