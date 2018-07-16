@@ -35,7 +35,7 @@ void PoseWriter::Init(std::string parentFolder)
     startUS_ = zImgMsElapsed;
     poseCounter_ = 0;
 
-    system(("mkdir " + outputFolder_).c_str());
+    int res = system(("mkdir " + outputFolder_).c_str());
 
 
 }
