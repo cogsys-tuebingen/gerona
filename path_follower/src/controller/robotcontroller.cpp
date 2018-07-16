@@ -129,6 +129,11 @@ bool RobotController::reachedGoal(const Eigen::Vector3d& pose) const
 
 void RobotController::setPath(Path::Ptr path)
 {
+    if (path->subPathCount() == 0) {
+        throw EmergencyBreakException("No sub paths",
+                                      path_msgs::FollowPathResult::RESULT_STATUS_TF_FAIL);
+    }
+
     path_ = path;
 
     robot_path_marker_.points.clear();
