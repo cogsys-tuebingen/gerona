@@ -27,6 +27,9 @@ before_script:
   - cd ..
   - rosdep update
   - apt-get install -y $(rosdep install --from-paths -i -y -s src | grep 'apt-get install' | rev | cut -f1 -d' ' | rev | paste -s)
+  # install optional dependencies
+  #- apt-get install ros-$(ls /opt/ros/ | sort -r | head -n 1)-sbpl
+  - git clone https://github.com/sbpl/sbpl
 
 stages:
   - build
