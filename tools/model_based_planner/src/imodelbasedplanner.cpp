@@ -40,6 +40,13 @@ IModelBasedPlanner::Ptr IModelBasedPlanner::Create(ModelBasedPlannerConfig &conf
             res->Initialize(config);
             return res;
         }
+
+        if (config.scorerType_ == NodeScorer_PathNG_T::NS_NAME)
+        {
+            PI_AStar<NodeScorer_PathNG_T>::Ptr res = PI_AStar<NodeScorer_PathNG_T>::Create();
+            res->Initialize(config);
+            return res;
+        }
         // Org PI_AStar<NodeExpander_AVT_T,NodeScorer_Goal_T>::Ptr res = PI_AStar<NodeExpander_AVT_T,NodeScorer_Goal_T>::Create();
 
     }
@@ -57,6 +64,12 @@ IModelBasedPlanner::Ptr IModelBasedPlanner::Create(ModelBasedPlannerConfig &conf
             res->Initialize(config);
             return res;
         }
+        if (config.scorerType_ == NodeScorer_PathNG_T::NS_NAME)
+        {
+            PI_Tree<NodeScorer_PathNG_T>::Ptr res = PI_Tree<NodeScorer_PathNG_T>::Create();
+            res->Initialize(config);
+            return res;
+        }
     }
     if (config.plannerType_ == "DWA")
     {
@@ -69,6 +82,12 @@ IModelBasedPlanner::Ptr IModelBasedPlanner::Create(ModelBasedPlannerConfig &conf
         if (config.scorerType_ == NodeScorer_Path_T::NS_NAME)
         {
             PI_DWA<NodeScorer_Path_T>::Ptr res = PI_DWA<NodeScorer_Path_T>::Create();
+            res->Initialize(config);
+            return res;
+        }
+        if (config.scorerType_ == NodeScorer_PathNG_T::NS_NAME)
+        {
+            PI_DWA<NodeScorer_PathNG_T>::Ptr res = PI_DWA<NodeScorer_PathNG_T>::Create();
             res->Initialize(config);
             return res;
         }

@@ -499,7 +499,87 @@ struct NodeScorer_Path_T : public NodeScorer_Goal_T
 
 };
 
+struct NodeScorer_PathNG_T : public NodeScorer_Path_T
+{
 
+    static constexpr const char* const NS_NAME = "ngpath_scorer";
+
+
+    inline bool CheckPose(PoseEvalResults &results)
+    {
+
+        if (results.TestWheelZValues(validThreshold_))
+        {
+            //results.validState = PERS_NOWHEELSUPPORT;
+            //if (results.poseCounter > config_.noWheelSupportNearThreshold) results.validState = PERS_LOWWHEELSUPPORT_FAR;
+
+            results.validState = ((float)results.poseCounter*poseTimeStep_ > config_.noWheelSupportNearThreshold || (std::abs(results.pose.z - curRobotPose_.z) > config_.noWheelSupportRotateThreshold) ) ? PERS_LOWWHEELSUPPORT_FAR : PERS_NOWHEELSUPPORT;
+
+            return false;
+        }
+
+        if (results.TestWheelZValues(notVisibleThreshold_))
+        {
+            results.validState = PERS_NOTVISIBLE;
+            if (config_.allowNotVisible)
+            {
+                results.a1 = 0;
+                results.a2 = 0;
+
+                results.n1.x = 0;
+                results.n1.y = 0;
+                results.n1.z = 1;
+                results.n2.x = 0;
+                results.n2.y = 0;
+                results.n2.z = 1;
+                return true;
+            }
+            return false;
+
+        }
+
+
+        if (results.validState == PERS_OUTOFIMAGE)
+        {
+            return false;
+        }
+
+
+        if (results.gravAngle > config_.gravAngleThreshold)
+        {
+            results.validState = PERS_EXCEEDGRAVANGLE;
+            return false;
+        }
+        if (results.tipAngle > config_.tipAngleThreshold)
+        {
+            results.validState = PERS_EXCEEDTIPANGLE;
+            return false;
+        }
+        if (results.deltaAngle > config_.deltaAngleThreshold)
+        {
+            results.validState = PERS_EXCEEDDELTAANGLE;
+            return false;
+        }
+
+        if (results.validState == PERS_CHASSISCOLLISION)
+        {
+            return false;
+        }
+
+        if (results.GetMinWheelSupport() < config_.minWheelSupportThreshold)
+        {
+            results.validState = (results.poseCounter*poseTimeStep_ > config_.noWheelSupportNearThreshold)?  PERS_LOWWHEELSUPPORT_FAR : PERS_LOWWHEELSUPPORT;
+
+            return false;
+        }
+
+
+
+        return true;
+
+    }
+
+};
 
 /**
  * @brief Scorer without goal position, currently not supported

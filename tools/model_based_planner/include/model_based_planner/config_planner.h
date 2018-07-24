@@ -85,6 +85,7 @@ struct PlannerScorerConfig
         end_chassisCollision = -9997;
         allowNotVisible = true;
 
+        targetGoalDistance = 0.2;
 
     }
 
@@ -124,6 +125,8 @@ struct PlannerScorerConfig
     float end_chassisCollision;// offset
 
     float targetGoalDistance; // in m
+
+    //Calculated
     float targetGoalDistanceImage; // in pixels
     float targetGoalDistanceImageSqr; // in pixels^2
 
