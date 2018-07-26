@@ -428,6 +428,32 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
         if (!opt_.use_ang_velocity()) nvel.y = 0;
         if (!opt_.use_lin_velocity()) nvel.x = opt_.max_linear_velocity();
 
+        // Testing
+
+        if (config.expanderConfig_.firstLevelLinearSplits == 0)
+        {
+            nvel.x += opt_.lin_acc_step();
+        }
+
+
+        if (nvel.x > opt_.max_linear_velocity()) nvel.x = opt_.max_linear_velocity();
+
+        if (opt_.k_g() > 0 && opt_.lin_acc_step() > 0)
+        {
+            cv::Point3f tgoal = currentPath_.back();
+            cv::Point3f diff = tgoal-pose;
+            float distanceToGoal = sqrt( diff.x*diff.x + diff.y*diff.y);
+
+            if (distanceToGoal < opt_.k_g())
+            {
+                nvel.x -= opt_.lin_acc_step();
+            }
+
+            if (nvel.x < opt_.min_linear_velocity()) nvel.x = opt_.min_linear_velocity();
+        }
+
+        //
+
         model_based_planner_->SetVelocity(nvel);
     }
 
@@ -562,6 +588,9 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
         return;
     }*/
+
+
+
 
     cv::Point2f resCmd = result->poseResults_[1].cmd;
     cv::Point3f respose = result->poseResults_[1].pose;
