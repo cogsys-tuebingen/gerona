@@ -82,6 +82,7 @@ protected:
         P<int> min_traj_nodes, min_traj_nodes_goal;
         P<double> min_linear_velocity;
         P<double> max_linear_velocity;
+        P<double> lin_acc_step;
         P<double> max_angular_velocity;
 
         P<std::string> pose_output_folder;
@@ -96,6 +97,7 @@ protected:
             min_traj_nodes_goal(this, "min_traj_nodes_goal", 15, "Minimum number of poses in result trajectory when goal is reachable"),
             min_linear_velocity(this, "min_linear_velocity", 0.1, "Lower velocity bound for model based path search"),
             max_linear_velocity(this, "max_linear_velocity", 1.0, "Lower velocity bound for model based path search"),
+            lin_acc_step(this, "lin_acc_step", 0.05, "Acceleration per time step"),
             max_angular_velocity(this, "max_angular_velocity", 0.5, "Lower velocity bound for model based path search"),
             pose_output_folder(this, "pose_output_folder", "", "Output folder for debug output")
 
