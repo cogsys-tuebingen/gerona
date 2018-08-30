@@ -277,10 +277,10 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
     timeval tZstart;
     gettimeofday(&tZstart, NULL);
 
-    poseEstimator_.UpdateLocalMap(blockMap_.currentMap_,blockMap_.origin_);
 
     if (poseEstimator_.UseEstimate())
     {
+        poseEstimator_.UpdateLocalMap(blockMap_.currentMap_,blockMap_.origin_);
         poseEstimator_.GetEstimate(base2map);
     }
     tf::Transform cam2map;
