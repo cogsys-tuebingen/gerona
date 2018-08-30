@@ -14,7 +14,7 @@
 <param name="processMode" type="int" value="0"/>
 <param name="transform2BaseLink" type="bool" value="false"/>
 <param name="robot_config_file" value="$(find model_based_planner2)/config/summit_sc.yaml" />
-<param name="usePoseEstimator" type="bool" value="true"/>
+<param name="usePoseEstimator" type="bool" value="false"/>
 <param name="mapSkipVal_" type="int" value="30"/>
           	       
 
