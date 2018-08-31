@@ -18,8 +18,56 @@ void BlockMap::Setup()
 
     UpdateCenter(cv::Point2f(0,0));
 
+    curPos_ = cv::Point3f(0,0,0);
+    curNormal_ = cv::Point3f(0,0,1);
+
+
+}
+void BlockMap::SetPose(cv::Point3f normal, cv::Point3f pos)
+{
+    curNormal_ = normal;
+    curPos_ = pos;
 }
 
+void BlockMap::SetSafeBlocksTo()
+{
+    //const float heightPixelRatio = heightScale/pixelSizeInv;
+    const float heightPixelRatio = heightScale_/pixelResolution_;
+    const float absZInv1 = curNormal_.z == 0 ? 0 : 1.0f/std::abs(curNormal_.z);
+
+    const float dx1 = (-curNormal_.x*absZInv1)*heightPixelRatio;
+    const float dy1 = ( curNormal_.y*absZInv1)*heightPixelRatio;
+
+
+    cv::Point2i safeBlockOrigin((numBlocks_-safeBlocks_)/2,(numBlocks_-safeBlocks_)/2);
+    cv::Point2i safeBlockSize(safeBlocks_,safeBlocks_);
+
+    cv::Rect drawRect(safeBlockOrigin.x*blockResolution_,safeBlockOrigin.y*blockResolution_,safeBlockSize.x*blockResolution_,safeBlockSize.y*blockResolution_);
+
+    cv::Point2f mapPos = RobotPos2MapPos(cv::Point2f(curPos_.x,curPos_.y));
+
+    cv::Point2f wcPos1( (mapPos.x)-drawRect.x, (mapPos.y)-drawRect.y);
+
+    float startVal = (curPos_.z*heightScale_)- wcPos1.x*dx1 - wcPos1.y*dy1;
+
+    startVal += mapBaseLevel_;
+    cv::Mat tmat = currentMap_(drawRect);
+
+    float *mapPtr;
+
+    for (int y = 0; y < tmat.rows;++y)
+    {
+        mapPtr = tmat.ptr<float>(y);
+        for (int x = 0; x < tmat.cols;++x)
+        {
+            mapPtr[x] = (startVal + dx1*(float)x + dy1*(float)y);
+        }
+    }
+
+
+}
+
+/*
 void BlockMap::SetSafeBlocksTo(float val)
 {
     cv::Point2i safeBlockOrigin((numBlocks_-safeBlocks_)/2,(numBlocks_-safeBlocks_)/2);
@@ -31,6 +79,45 @@ void BlockMap::SetSafeBlocksTo(float val)
     tmat.setTo(val);
 
 }
+
+
+void BlockMap::SetSafeBlocksTo(const cv::Point3f &normal, const cv::Point3f &pos, const float &heightScale)
+{
+    //const float heightPixelRatio = heightScale/pixelSizeInv;
+    const float heightPixelRatio = heightScale/pixelResolution_;
+    const float absZInv1 = normal.z == 0 ? 0 : 1.0f/std::abs(normal.z);
+
+    const float dx1 = (-normal.x*absZInv1)*heightPixelRatio;
+    const float dy1 = ( normal.y*absZInv1)*heightPixelRatio;
+
+
+    cv::Point2i safeBlockOrigin((numBlocks_-safeBlocks_)/2,(numBlocks_-safeBlocks_)/2);
+    cv::Point2i safeBlockSize(safeBlocks_,safeBlocks_);
+
+    cv::Rect drawRect(safeBlockOrigin.x*blockResolution_,safeBlockOrigin.y*blockResolution_,safeBlockSize.x*blockResolution_,safeBlockSize.y*blockResolution_);
+
+    cv::Point2f wcPos1( (pos.x*pixelResolution_)-drawRect.x, (pos.y*pixelResolution_)-drawRect.y);
+
+    float startVal = (pos.z*heightScale)- wcPos1.x*dx1 - wcPos1.y*dy1;
+
+    startVal += mapBaseLevel_;
+    cv::Mat tmat = currentMap_(drawRect);
+
+    float *mapPtr;
+
+    for (int y = 0; y < tmat.rows;++y)
+    {
+        mapPtr = tmat.ptr<float>(y);
+        for (int x = 0; x < tmat.cols;++x)
+        {
+            mapPtr[x] = (startVal + dx1*(float)x + dy1*(float)y);
+        }
+    }
+
+
+}
+*/
+
 
 void BlockMap::SetMapTo(float val)
 {
@@ -60,6 +147,14 @@ cv::Point2d BlockMap::RobotPos2MapPos(cv::Point2d pos)
     cv::Point2d mapPos = pos-cv::Point2d(origin_.x, origin_.y);
 
     cv::Point2d pixelPos = mapPos*pixelResolution_;
+
+    return pixelPos;
+}
+cv::Point2f BlockMap::RobotPos2MapPos(cv::Point2f pos)
+{
+    cv::Point2f mapPos = pos-origin_;
+
+    cv::Point2f pixelPos = mapPos*pixelResolution_;
 
     return pixelPos;
 }
@@ -131,7 +226,7 @@ void BlockMap::CenterMap(const cv::Point2i &newCenterBlock)
     if (width <= 0 || height <= 0)
     {
         UtilsDepthImage::SetToZero(currentMap_);
-        SetSafeBlocksTo(mapBaseLevel_);
+        SetSafeBlocksTo();
         //currentMap_.setTo(0);
         //return;
     }
@@ -159,7 +254,7 @@ void BlockMap::CenterMap(const cv::Point2i &newCenterBlock)
 
     if (abs(shiftBlocks.x) >= safeBlocks_ || abs(shiftBlocks.y) >= safeBlocks_ )
     {
-        SetSafeBlocksTo(mapBaseLevel_);
+        SetSafeBlocksTo();
 
     }
 

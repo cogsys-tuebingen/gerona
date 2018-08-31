@@ -92,9 +92,13 @@ DE_Localmap::DE_Localmap() :
     blockMap_.mapNotVisibleLevel_ = mapNotVisibleLevel_;
     blockMap_.mapBaseLevel_ = mapOffset_;
     blockMap_.Setup();
-    blockMap_.SetSafeBlocksTo(mapOffset_);
+    //blockMap_.SetSafeBlocksTo();
+    blockMap_.heightScale_ = mapScale_;
 
-    poseEstimator_.Initialize(nodeP_);
+    initBlockMap_ = true;
+
+
+
 
 }
 
@@ -261,6 +265,29 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
 
     }
 
+
+    {
+        cv::Point3f pos(base2map.getOrigin().x(),base2map.getOrigin().y(),base2map.getOrigin().z());
+
+        tf::Vector3 upVec(0,0,1.0);
+
+        tf::Transform tempTrans;
+
+        tempTrans.setIdentity();
+
+        tempTrans.setRotation(base2map.getRotation());
+
+        tf::Vector3 tf_normal = tempTrans*upVec;
+
+
+        cv::Point3f normal(tf_normal.x(),tf_normal.y(),tf_normal.z());
+
+        blockMap_.SetPose(normal,pos);
+
+
+    }
+
+
     cv::Point2f robotPos;
     robotPos.x = (base2map.getOrigin().x());
     robotPos.y = (base2map.getOrigin().y());
@@ -278,11 +305,6 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
     gettimeofday(&tZstart, NULL);
 
 
-    if (poseEstimator_.UseEstimate())
-    {
-        poseEstimator_.UpdateLocalMap(blockMap_.currentMap_,blockMap_.origin_);
-        poseEstimator_.GetEstimate(base2map);
-    }
     tf::Transform cam2map;
     cam2map = base2map*cam2Base_;
 
@@ -316,6 +338,12 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
 
 
     blockMap_.ReCenter(robotPos*(1.0));
+
+    if (initBlockMap_)
+    {
+        blockMap_.SetSafeBlocksTo();
+        initBlockMap_ = false;
+    }
 
 
     proc_.minXVal_ = blockMap_.origin_.x;

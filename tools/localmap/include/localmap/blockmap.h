@@ -36,6 +36,7 @@ public:
      * @brief Converts the world to map coordinates
      */
     cv::Point2d RobotPos2MapPos(cv::Point2d pos);
+    cv::Point2f RobotPos2MapPos(cv::Point2f pos);
     /**
      * @brief Sets new center coorditnes
      */
@@ -45,14 +46,32 @@ public:
      */
     void Setup();
     /**
-     * @brief Set center blocks to given value
-     */
-    void SetSafeBlocksTo(float val);
-    /**
      * @brief Set whole map to given value
      */
     void SetMapTo(float val);
 
+
+    /*
+    /**
+     * @brief Set blocks around robot using current orientation
+     *//*
+    void SetSafeBlocksTo(const cv::Point3f &normal, const cv::Point3f &pos, const float &heightPixelRatio);
+    /**
+     * @brief Set center blocks to given value
+     *//*
+    void SetSafeBlocksTo(float val);
+    */
+
+    /**
+     * @brief Set center blocks to a plane based on vehicle pose
+     */
+    void SetSafeBlocksTo();
+
+
+    /**
+     * @brief Set current vehicle pose used for filling safe blocks
+     */
+    void SetPose(cv::Point3f normal, cv::Point3f pos);
 
     cv::Point2f center_;
     cv::Point2f origin_;
@@ -62,9 +81,13 @@ public:
     int numBlocks_;
     float mapNotVisibleLevel_;
     float mapBaseLevel_;
+    float heightScale_;
 
     cv::Mat currentMap_;
     cv::Mat baseLinkMap_;
+
+    cv::Point3f curNormal_;
+    cv::Point3f curPos_;
 
 private:
 

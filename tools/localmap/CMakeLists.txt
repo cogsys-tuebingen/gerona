@@ -23,7 +23,6 @@ find_package(catkin REQUIRED COMPONENTS
     image_transport
     sensor_msgs
     pcl_ros
-    model_based_planner
     )
 
 ## System dependencies are found with CMake's conventions
