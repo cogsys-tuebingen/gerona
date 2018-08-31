@@ -8,6 +8,7 @@
 <remap from="/depth_image"       to="/asus_xtion/depth/image_raw"/>
 
 <param name="mapFrame" type="string" value="odom"/>
+<param name="baseLinkFrame" type="string" value="base_footprint"/>
 <param name="mapResolution" type="int" value="768"/>
 <param name="mapSize" type="double" value="8"/>
 <param name="numBlocks" type="int" value="8"/>

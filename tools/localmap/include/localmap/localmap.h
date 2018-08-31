@@ -16,7 +16,7 @@
 
 //#include <tf_conversions/tf_eigen.h>
 #include "blockmap.h"
-#include "utils_pose_estimator.h"
+//#include "utils_pose_estimator.h"
 
 
 /// Define if point cloud map is required
@@ -138,14 +138,7 @@ private:
     //CVAlignedMat::ptr acZImg_,acAssign_;
     BlockMap blockMap_;
 
-    //bool usePoseEstimator_;
-    //bool hasPoseEstimator_;
-    //PoseEstimator poseEstimator_;
-
-    UtilsPoseEstimator poseEstimator_;
-
-
-
+    bool initBlockMap_;
 
 };
 
