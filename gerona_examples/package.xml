@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>gerona_examples</name>
+  <version>1.0.0</version>
+  <description>The gerona_examples package provides launch files for easy demonstration of GeRoNa</description>
+
+  <author email="sebastian.buck@uni-tuebingen.de">Sebastian Buck</author>
+
+  <maintainer email="goran.huskic@uni-tuebingen.de">Goran Huskic</maintainer>
+  <maintainer email="sebastian.buck@uni-tuebingen.de">Sebastian Buck</maintainer>
+  <maintainer email="julian.jordan@uni-tuebingen.de">Julian Jordan</maintainer>
+  <maintainer email="adrian.zwiener@uni-tuebingen.de">Adrian Zwiener</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>path_msgs</exec_depend>
+  <exec_depend>path_control</exec_depend>
+  <exec_depend>path_planner</exec_depend>
+  <exec_depend>path_follower</exec_depend>
+  <exec_depend>path_rviz</exec_depend>
+
+  <exec_depend>turtlebot_stage</exec_depend>
+  <exec_depend>amcl</exec_depend>
+
+  <export>
+  </export>
+</package>

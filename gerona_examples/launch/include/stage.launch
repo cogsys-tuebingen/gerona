@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="world_file"     default="$(find turtlebot_stage)/maps/stage/robopark_plan.world"/>
+   
+    <param name="/use_sim_time" value="true"/>
+
+
+    <node pkg="stage_ros" type="stageros" name="stageros" args=" $(arg world_file)">
+        <param name="base_watchdog_timeout" value="0.5"/>
+        <remap from="odom" to="odom"/>
+        <remap from="base_pose_ground_truth" to="base_pose_ground_truth"/>
+        <remap from="base_scan" to="/scan"/>
+    </node>
+
+    <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter">
+        <rosparam command="load" file="$(find navigation_launch)/config/laser_config_kobuki.yaml" />
+        <remap from="scan" to="/scan" />
+        <remap from="scan_filtered" to="/scan_filtered" />
+    </node>
+</launch>

@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<launch>
+    <group ns="highlevel_dummy">
+        <param name="target_speed" value="0.8" />
+        <param name="obstacle_radius" value="0.45" />
+
+        <group ns="planner">
+            <param name="reversed" value="true" />
+            <param name="goal_dist_threshold" value="0.15" />
+            <param name="goal_angle_threshold" value="25" />
+            <param name="allow_forward" value="true" />
+            <param name="allow_backward" value="true" />
+            <param name="ackermann_la" value="0.8" />
+            <param name="ackermann_steer_steps" value="2" />
+            <param name="ackermann_max_steer_angle" value="40" />
+            <param name="ackermann_steer_delta" value="20" />
+        </group>
+    </group>
+
+    <group ns="path_follower" >
+        <param name="controller_type" value="kinematic_hbz" />
+        <group ns="controller" >
+            <group ns="differential_orthexp" >
+                <param name="look_ahead_dist" value="1.0" />
+                <param name="k" value="2.0" />
+                <param name="k_o" value="0.2" />
+                <param name="k_g" value="0.3" />
+                <param name="k_w" value="0.3" />
+                <param name="k_curv" value="0.0" />
+            </group>
+        </group>
+
+        <group ns="local_planner">
+            <param name="algorithm" value="NULL" />
+        </group>
+
+        <group ns="supervisor" >
+            <param name="use_path_lookout" value="true" />
+            <param name="use_waypoint_timeout" value="false" />
+            <param name="use_distance_to_path" value="false" />
+        </group>
+    </group>
+
+    <group ns="path_planner" >
+        <param name="algorithm" value="generic" />
+    </group>
+</launch>
