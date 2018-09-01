@@ -4,8 +4,8 @@
 
 <node name="localmap" type="localmap_node" pkg="localmap">
 
-<remap from="/camera_info"       to="/asus_xtion/depth/camera_info"/>
-<remap from="/depth_image"       to="/asus_xtion/depth/image_raw"/>
+<remap from="/camera_info"       to="/camera/depth/camera_info"/>
+<remap from="/depth_image"       to="/camera/depth/image_raw"/>
 
 <param name="mapFrame" type="string" value="odom"/>
 <param name="baseLinkFrame" type="string" value="base_footprint"/>
@@ -14,7 +14,7 @@
 <param name="numBlocks" type="int" value="8"/>
 <param name="processMode" type="int" value="0"/>
 <param name="transform2BaseLink" type="bool" value="false"/>
-<param name="robot_config_file" value="$(find model_based_planner2)/config/summit_sc.yaml" />
+<param name="robot_config_file" value="$(find model_based_planner)/config/summit_sc.yaml" />
 <param name="usePoseEstimator" type="bool" value="false"/>
 <param name="mapSkipVal_" type="int" value="30"/>
           	       

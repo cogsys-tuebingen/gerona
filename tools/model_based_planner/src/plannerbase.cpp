@@ -82,8 +82,8 @@ Trajectory* PlannerBase::GetBLResultTrajectory()
 cv::Mat PlannerBase::DrawDebugImage(float scalingFactor, bool drawRobot)
 {
     DrawProc dp;
-    dp.drawZMin_ = - config_.procConfig_.mapBaseHeight/30;
-    dp.drawZMax_ =  config_.procConfig_.mapBaseHeight/30;
+    dp.drawZMin_ = - config_.procConfig_.mapBaseHeight/10;
+    dp.drawZMax_ =  config_.procConfig_.mapBaseHeight/10;
 
 
     cv::Mat dem = poseEstimator_.GetDEM();

@@ -1,0 +1,45 @@
+%YAML:1.0
+% 
+% base plate to ground distance 0.13228m
+% base size length: 0.809m width: 0.417m  
+% edge height: 0.04344m edge length: 0.04982m  (-0.35275 to -0.40257)
+---
+Robot:
+   baseLinkPosCoord: [ 0., 0. ]
+   chassisTestTipAngleThreshold: 0.99
+Chassis:
+   chassisfileName: "husky.png"
+   chassisImageCenter: [ -1., -1. ]
+   chassisImageValueOffset: 0 
+   chassisImageValueScale: 1.0
+   chassisModelYSize: 0.421
+   chassisPosRobot: [ 0.0, 0. ]
+   testChassis: 1
+Wheels:
+   wheelPosRobotX: 0.256
+   wheelPosRobotFrontY: 0.2854
+   wheelPosRobotRearY: 0.2854
+   wheelJointPosFront: [ 0., 0. ]
+   wheelRadiusFront: 0.1651
+   wheelWidthFront: 0.1143
+   wheelLatRadiusFront: 0.4
+   wheelJointPosRear: [ 0., 0. ]
+   wheelRadiusRear: 0.1651
+   wheelWidthRear: 0.1143
+   wheelLatRadiusRear: 0.4
+   frontWheelsTurnable: 0
+   wheelRotTestSteps: 0
+   wheelRotTestStepSize: 0   
+Proc:
+   numAngleStep: 360
+   heightScale: 1000.0
+   mapBaseHeight: 10000
+   wheelGroundLevel: 20000
+   maxHeight: 30000
+   pixelSize: 0.00625
+   imagePosBLMinX: 0.75
+   imagePosBLMinY: -1.0
+   validThresholdFactor: 0.95
+   convertImage: 0
+
+

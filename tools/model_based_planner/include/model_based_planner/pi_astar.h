@@ -23,6 +23,7 @@ public:
     using TB::config_;
     using TB::CreateTrajectory;
     using TB::bestScore_;
+    using TB::bestNode_;
     using TB::GetStartNode;
     using TB::scorer_;
     using TB::expander_;
@@ -79,6 +80,21 @@ public:
             }
 
 
+        }
+
+        /// TODO: test if no sub optimal paths are chosen
+        while (!openSet_.empty())
+        {
+            TrajNode* curNode = openSet_.top();
+            openSet_.pop();
+
+            //leaves_.push_back(&out);
+            if (curNode->fScore_ > bestScore_)
+            {
+                bestNode_ = curNode;
+                bestScore_ = curNode->fScore_;
+
+            }
         }
 
     }
