@@ -462,10 +462,10 @@ void DrawProc::DrawRobotScaled(ScaledDrawProc &drawProc, RobotModel &model, Pose
     DrawRobotWheelScaled(drawProc,model.GetWheel(2),curPos+rDesc.wheelPositionsImage_[2],waIdx2,results.wheelEvalResults_[2].contactPoint);
     DrawRobotWheelScaled(drawProc,model.GetWheel(3),curPos+rDesc.wheelPositionsImage_[3],waIdx3,results.wheelEvalResults_[3].contactPoint);
 
-    //drawProc.PutText(curPos+rDesc.wheelPositionsImage_[0]*1.2,"0",cv::Scalar(255,0,255));
-    //drawProc.PutText(curPos+rDesc.wheelPositionsImage_[1]*1.2,"1",cv::Scalar(255,0,255));
-    //drawProc.PutText(curPos+rDesc.wheelPositionsImage_[2]*1.2,"2",cv::Scalar(255,0,255));
-    //drawProc.PutText(curPos+rDesc.wheelPositionsImage_[3]*1.2,"3",cv::Scalar(255,0,255));
+    drawProc.PutText(curPos+rDesc.wheelPositionsImage_[0]*1.2,"0",cv::Scalar(255,0,255));
+    drawProc.PutText(curPos+rDesc.wheelPositionsImage_[1]*1.2,"1",cv::Scalar(255,0,255));
+    drawProc.PutText(curPos+rDesc.wheelPositionsImage_[2]*1.2,"2",cv::Scalar(255,0,255));
+    drawProc.PutText(curPos+rDesc.wheelPositionsImage_[3]*1.2,"3",cv::Scalar(255,0,255));
 
 
     drawProc.DrawLineScaled(pos,curPos,cv::Scalar(0,0,255));

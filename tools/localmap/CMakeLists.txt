@@ -6,11 +6,11 @@ project(localmap)
 
 set(CMAKE_BUILD_TYPE Release)
 
-if(NOT ${CMAKE_BUILD_TYPE} STREQUAL Debug)
-    add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function -Wno-deprecated-register)
-    add_definitions("-std=c++11 -Ofast -g -rdynamic -march=native -ffast-math -mmmx -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mpopcnt -mavx -mfma -mavx2 -mfpmath=both")
-
-endif()
+#if(NOT ${CMAKE_BUILD_TYPE} STREQUAL Debug)
+#    add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function -Wno-deprecated-#register)
+#    add_definitions("-std=c++11 -Ofast -g -rdynamic -march=native -ffast-math -mmmx -msse -msse2 -msse3 -mssse3 -#msse4.1 -msse4.2 -mpopcnt -mavx -mfma -mavx2 -mfpmath=both")
+#
+#endif()
 
 
 ## Find catkin macros and libraries
