@@ -1,19 +1,21 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(model_based_planner)
 
-#set(CMAKE_BUILD_TYPE Debug)
-#set(CMAKE_CXX_FLAGS "-std=c++11 -march=native ${CMAKE_CXX_FLAGS}")
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS "-std=c++11 -march=native ${CMAKE_CXX_FLAGS}")
 
-set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE RelWithDebInfo)
+#set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_CXX_FLAGS "-std=c++11 -march=native -O3 -ffast-math ${CMAKE_CXX_FLAGS}")
 
 # Set to use AVX code path. If not set SSE is used
-add_definitions(-DUSE_AVX2)
+#add_definitions(-DUSE_AVX2)
 
-if(NOT ${CMAKE_BUILD_TYPE} STREQUAL Debug)
-    add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function -Wno-deprecated-register)
-    add_definitions("-std=c++11 -Ofast -g -rdynamic -march=native -ffast-math -mmmx -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mpopcnt -mavx -mfma -mavx2 -mfpmath=both")
-
-endif()
+#if(NOT ${CMAKE_BUILD_TYPE} STREQUAL Debug)
+#    add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function -Wno-deprecated-register)
+#    add_definitions("-std=c++11 -Ofast -g -rdynamic -march=native -ffast-math -mmmx -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mpopcnt -mavx -mfma -mavx2 -mfpmath=both")
+#
+#endif()
 
 if(${CMAKE_BUILD_TYPE} STREQUAL RELWITHDEBINFO)
     add_definitions(-fno-omit-frame-pointer)
