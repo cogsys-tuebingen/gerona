@@ -75,8 +75,8 @@ cv::Mat PoseEstimator::DrawDebugImage(PoseEvalResults &results)
     DrawProc dp;
     ProcConfig procConfig_ = robotModel_.GetProcConfig();
 
-    dp.drawZMin_ = - procConfig_.mapBaseHeight/30;
-    dp.drawZMax_ =  procConfig_.mapBaseHeight/30;
+    dp.drawZMin_ = - procConfig_.mapBaseHeight/20;
+    dp.drawZMax_ =  procConfig_.mapBaseHeight/20;
 
     cv::Mat dem = dem_;
 
