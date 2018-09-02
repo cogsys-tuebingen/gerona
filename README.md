@@ -55,5 +55,7 @@ The controller can also be set via the ROS parameter
 More Information
 ----------------
 
+Please take a look at the [example launch files](gerona_examples) for how to customize parameters in your launch files.
+
 For more information please refer to the [wiki](https://github.com/cogsys-tuebingen/gerona/wiki).
 
