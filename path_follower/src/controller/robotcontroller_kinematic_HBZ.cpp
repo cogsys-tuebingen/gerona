@@ -51,7 +51,7 @@ RobotController_Kinematic_HBZ::RobotController_Kinematic_HBZ():
     delta_(0)
 {
 
-    wheel_velocities_ = nh_.subscribe<std_msgs::Float64MultiArray>("/wheel_velocities", 10,
+    wheel_velocities_ = nh_.subscribe<std_msgs::Float64MultiArray>("wheel_velocities", 10,
                                                                    &RobotController_Kinematic_HBZ::WheelVelocities, this);
 
 }

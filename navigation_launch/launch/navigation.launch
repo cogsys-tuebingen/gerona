@@ -22,8 +22,8 @@ pointcloud that is used for obstacle detection.
     <!-- obstacle cloud (simply converting laser scans to cloud) -->
     <node name="obstacle_cloud" type="scan2cloud_node" pkg="scan2cloud"
           output="screen" if="$(arg use_laser_obstacles)">
-        <remap from="/scan/front/filtered" to="/scan_filtered" />
-        <remap from="cloud/total" to="/obstacle_cloud" />
+        <remap from="/scan/front/filtered" to="scan_filtered" />
+        <remap from="cloud/total" to="obstacle_cloud" />
     </node>
 
     <include file="$(find navigation_launch)/launch/mapping.launch">

@@ -24,9 +24,9 @@ RobotController_OrthogonalExponential::RobotController_OrthogonalExponential():
     Ts_(0.02),
     alpha_e_(0.0)
 {
-    look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("/look_at/cmd", 10,
+    look_at_cmd_sub_ = nh_.subscribe<std_msgs::String>("look_at/cmd", 10,
                                                        &RobotController_OrthogonalExponential::lookAtCommand, this);
-    look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("/look_at", 10,
+    look_at_sub_ = nh_.subscribe<geometry_msgs::PointStamped>("look_at", 10,
                                                               &RobotController_OrthogonalExponential::lookAt, this);
     lookInDrivingDirection();
 }
