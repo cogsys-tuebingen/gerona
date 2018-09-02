@@ -6,7 +6,7 @@
  */
 
 /// COMPONENT
-#include "planner_node.h"
+#include "../planner_node.h"
 
 /// SYSTEM
 #include <iostream>
@@ -51,7 +51,7 @@ struct OMPLPlanner : public Planner
 
     virtual bool supportsGoalType(int type) const override
     {
-        return type == path_msgs::PlanPathGoal::GOAL_TYPE_POSE;
+        return type == path_msgs::Goal::GOAL_TYPE_POSE;
     }
 
 private:
@@ -69,9 +69,10 @@ private:
         return map_info->isInMap((int) x,(int) y) && map_info->isFree(x,y);
     }
 
-    nav_msgs::Path plan (const geometry_msgs::PoseStamped &goal,
+    path_msgs::PathSequence plan(const path_msgs::PlanPathGoal &goal_msg,
                const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-               const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
+               const lib_path::Pose2d& , const lib_path::Pose2d& ) override
+    {
         setup.clear();
 
         ob::ScopedState<> start_state(setup.getStateSpace());
@@ -105,9 +106,14 @@ private:
 
         setup.solve(5);
 
-        nav_msgs::Path path;
-        path.header.frame_id = "/map";
-        path.header.stamp = goal.header.stamp;
+        // publish solution
+        path_msgs::PathSequence path_sequence;
+        path_sequence.header.frame_id = goal_msg.goal.pose.header.frame_id;
+        path_sequence.header.stamp = goal_msg.goal.pose.header.stamp;
+
+        path_sequence.paths.emplace_back();
+        path_msgs::DirectionalPath& path = path_sequence.paths.back();
+
 
         const std::size_t ns = setup.getProblemDefinition()->getSolutionCount();
         OMPL_INFORM("Found %d solutions", (int)ns);
@@ -139,7 +145,7 @@ private:
                 path.poses.push_back(pose);
             }
         }
-        return path;
+        return path_sequence;
     }
 
     ob::OptimizationObjectivePtr getPathLengthObjective(const ob::SpaceInformationPtr& si)
