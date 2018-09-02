@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- GeRoNa -->
+    <group ns="summit_xl_a">
+        <remap from="cmd_vel" to="move_base/cmd_vel" />
+        <remap from="scan/front/filtered" to="front_laser/scan" />
+        <remap from="odom" to="odometry/filtered_odom" />
+        
+        <include file="$(find navigation_launch)/launch/rviz_controlled.launch">
+            <arg name="use_hector" value="false" />
+            <arg name="use_planner_default" value="true" />
+            <arg name="use_laser_obstacles" value="true" />
+        </include>
+
+        <!-- GeRoNa parameters for this stage robot -->
+        <include file="$(find gerona_examples)/launch/include/gerona_gazebo_params_summit_xl.launch" />
+
+    </group>
+
+    <!-- gazebo -->
+    <include file="$(find summit_xl_gazebo)/launch/summit_xl_gazebo.launch">
+        <arg name="launch_rviz" value="false" />
+        <arg name="amcl_and_mapserver_a" value="true" />
+    </include>
+
+    <!-- Enable dead reckoning 
+    <node pkg="tf" type="static_transform_publisher" name="odom_to_map_link" args="0 0 0 0 0 0 /odom /map 10" />-->
+
+    <!-- RViz -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gerona_examples)/rviz/robot_navigation_gazebo_summit_xl.rviz"/>
+    
+</launch>
