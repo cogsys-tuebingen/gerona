@@ -6,7 +6,7 @@
     <arg name="initial_pose_a" default="0.0"/>
 
     <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
-        <param name="frame_id" value="/map"/>
+        <param name="frame_id" value="map"/>
     </node>
 
     <include file="$(find turtlebot_navigation)/launch/includes/amcl/amcl.launch.xml">

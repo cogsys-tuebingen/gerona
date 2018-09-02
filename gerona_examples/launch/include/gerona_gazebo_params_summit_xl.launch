@@ -1,7 +1,14 @@
 <?xml version="1.0"?>
 <launch>
+        
+    <group ns="gerona" >
+        <param name="world_frame" value="summit_xl_a_map" />
+        <param name="odom_frame" value="summit_xl_a_odom" />
+        <param name="robot_frame" value="summit_xl_a_base_link" />
+    </group>
+
     <group ns="highlevel_dummy">
-        <param name="target_speed" value="0.8" />
+        <param name="target_speed" value="1.5" />
         <param name="obstacle_radius" value="0.45" />
 
         <group ns="planner">
@@ -9,7 +16,7 @@
             <param name="goal_dist_threshold" value="0.15" />
             <param name="goal_angle_threshold" value="25" />
             <param name="allow_forward" value="true" />
-            <param name="allow_backward" value="true" />
+            <param name="allow_backward" value="false" />
             <param name="ackermann_la" value="0.8" />
             <param name="ackermann_steer_steps" value="2" />
             <param name="ackermann_max_steer_angle" value="40" />
@@ -19,6 +26,15 @@
 
     <group ns="path_follower" >
         <param name="controller_type" value="kinematic_hbz" />
+        <group ns="controller" >
+            <group ns="kinematic_hbz">                
+                <param name="k1" value="8.0" />
+                <param name="k2" value="100" />
+
+                <param name="lambda" value="2" />
+                <param name="theta_a" value="2.0*0.78539816339" />
+            </group>
+        </group>
 
         <group ns="local_planner">
             <param name="algorithm" value="NULL" />
@@ -34,4 +50,9 @@
     <group ns="path_planner" >
         <param name="algorithm" value="generic" />
     </group>
+
+    <group ns="obstacle_cloud" >
+        <param name="baseFrame" value="summit_xl_a_base_link" />
+    </group>
+
 </launch>
