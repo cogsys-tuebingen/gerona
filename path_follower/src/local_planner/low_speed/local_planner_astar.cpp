@@ -506,7 +506,7 @@ Path::Ptr LocalPlannerAStar::calculateAvoidingPath(const std::string &frame)
     arrow.position.z = 0;
     arrow.orientation = tf::createQuaternionMsgFromYaw(hgoal.theta);
 
-    Visualizer::getInstance()->drawArrow("/map", 0, arrow, "heuristic_goal", 0.0, 0.0, 0.0, 0.0);
+    Visualizer::getInstance()->drawArrow("map", 0, arrow, "heuristic_goal", 0.0, 0.0, 0.0, 0.0);
 
     SearchOptions search_options;
     search_options.penalty_backward = 1.0;// 1.1;

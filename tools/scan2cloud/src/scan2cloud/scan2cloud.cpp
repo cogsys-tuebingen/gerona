@@ -11,9 +11,9 @@ ScanConverter::ScanConverter():
 
 
     scan_sub_front_ = node_.subscribe<sensor_msgs::LaserScan>(
-                "/scan/front/filtered", 1, boost::bind(&ScanConverter::scanCallback, this, _1, false));
+                "scan/front/filtered", 1, boost::bind(&ScanConverter::scanCallback, this, _1, false));
     scan_sub_back_  = node_.subscribe<sensor_msgs::LaserScan>(
-                "/scan/back/filtered", 1, boost::bind(&ScanConverter::scanCallback, this ,_1, true));
+                "scan/back/filtered", 1, boost::bind(&ScanConverter::scanCallback, this ,_1, true));
     point_cloud_publisher_ = node_.advertise<sensor_msgs::PointCloud2>("cloud/total", 1, false);
 }
 
@@ -27,7 +27,8 @@ void ScanConverter::scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan_in
                     baseFrame_,
                     scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
                     wait_tf_timeout)){
-            ROS_DEBUG_THROTTLE(60.0, "ignore scan");
+            ROS_ERROR_STREAM_THROTTLE(1.0, "cannot transform "  << (is_back ? "back" : "front") 
+                << " from frame " << scan_in->header.frame_id << " to " << baseFrame_);
             return;
         }
         // as (at least in the simulation) there are end-of-range scans slightly below the
