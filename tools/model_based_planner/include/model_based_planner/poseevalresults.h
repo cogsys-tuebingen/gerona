@@ -285,13 +285,23 @@ enum PER_STATES
     cv::Point2f cmd;
 
     /**
-     * @brief normal #1 of robot pose
+     * @brief normal #1 of robot pose in world coordinates
      */
     cv::Point3f n1;
     /**
-     * @brief normal #2 of robot pose
+     * @brief normal #2 of robot pose in world coordinates
      */
     cv::Point3f n2;
+
+    /**
+     * @brief normal #1 of robot pose in robot coordinates
+     */
+    cv::Point3f nr1;
+    /**
+     * @brief normal #2 of robot pose in robot coordinates
+     */
+    cv::Point3f nr2;
+
     //cv::Point3f nSel;
     /**
      * @brief angle to gravity
