@@ -4,8 +4,8 @@ project(model_based_planner)
 #set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_CXX_FLAGS "-std=c++11 -march=native ${CMAKE_CXX_FLAGS}")
 
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
-#set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE RelWithDebInfo)
+set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS "-std=c++11 -march=native -O3 -ffast-math ${CMAKE_CXX_FLAGS}")
 
 # Set to use AVX code path if possible. If not set SSE is used, on some machines sse performs better than avx (strange...)
@@ -17,9 +17,9 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -march=native -O3 -ffast-math ${CMAKE_CXX_FLAGS}
 #
 #endif()
 
-if(${CMAKE_BUILD_TYPE} STREQUAL RELWITHDEBINFO)
-    add_definitions(-fno-omit-frame-pointer)
-endif()
+#if(${CMAKE_BUILD_TYPE} STREQUAL RELWITHDEBINFO)
+#    add_definitions(-fno-omit-frame-pointer)
+#endif()
 
 
 find_package(catkin REQUIRED)

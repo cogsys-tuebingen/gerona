@@ -5,6 +5,7 @@ project(localmap)
 #set(CMAKE_CXX_FLAGS "-std=c++11 -march=native ${CMAKE_CXX_FLAGS}")
 
 set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_CXX_FLAGS "-std=c++11 -march=native -O3 -ffast-math ${CMAKE_CXX_FLAGS}")
 
 #if(NOT ${CMAKE_BUILD_TYPE} STREQUAL Debug)
 #    add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function -Wno-deprecated-#register)
