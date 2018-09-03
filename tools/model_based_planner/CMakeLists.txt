@@ -8,7 +8,7 @@ set(CMAKE_BUILD_TYPE RelWithDebInfo)
 #set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS "-std=c++11 -march=native -O3 -ffast-math ${CMAKE_CXX_FLAGS}")
 
-# Set to use AVX code path. If not set SSE is used
+# Set to use AVX code path if possible. If not set SSE is used, on some machines sse performs better than avx (strange...)
 #add_definitions(-DUSE_AVX2)
 
 #if(NOT ${CMAKE_BUILD_TYPE} STREQUAL Debug)
