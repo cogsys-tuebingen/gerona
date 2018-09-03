@@ -363,7 +363,7 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
     }
 
-    ros::Time now = image->header.stamp;
+    ros::Time mapTime = image->header.stamp;
 
 
     if (!doPlan_) return;
@@ -378,7 +378,7 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
     if (map_frame != robot_frame)
     {
-        tf::Transform transLocalMap =pose_tracker_->getTransform(map_frame ,localMapFrame_,now,ros::Duration(0.01));
+        tf::Transform transLocalMap =pose_tracker_->getTransform(map_frame ,localMapFrame_,mapTime,ros::Duration(0.04));
         /*
         tf::StampedTransform transLocalMap;
         if (!GetTransform(now, map_frame, localMapFrame_, transLocalMap))
@@ -401,7 +401,8 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
             return;
         }
         */
-        tf::Transform trans =pose_tracker_->getTransform(map_frame ,robot_frame,now,ros::Duration(0.01));
+        ros::Time now = ros::Time::now();
+        tf::Transform trans =pose_tracker_->getTransform(map_frame ,robot_frame,now,ros::Duration(0.04));
 
 
         
