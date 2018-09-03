@@ -176,24 +176,31 @@ int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
     const float lA = Utils_Math_Approx::frsqrt(nAx*nAx+nAy*nAy+lw1_4Sqr);
     const float lB = Utils_Math_Approx::frsqrt(nBx*nBx+nBy*nBy+lw2_4Sqr);
 
-
     const float n1x = nAx*lA;
     const float n1y = nAy*lA;
-
-    results.n1.x = desc.cosa_*n1x - desc.sina_*n1y;
-    results.n1.y = desc.sina_*n1x + desc.cosa_*n1y;
-    //results.n1.x = n1x;
-    //results.n1.y = n1y;
-    results.n1.z = lw1_4*lA;
 
     const float n2x = nBx*lB;
     const float n2y = nBy*lB;
 
-    results.n2.x = desc.cosa_*n2x - desc.sina_*n2y;
-    results.n2.y = desc.sina_*n2x + desc.cosa_*n2y;
-    //results.n2.x = n2x;
-    //results.n2.y = n2y;
-    results.n2.z = lw2_4*lB;
+    results.nr1.x = n1x;
+    results.nr1.y = -n1y;
+    results.nr1.z = lw1_4*lA;
+
+
+    results.nr2.x = n2x;
+    results.nr2.y = -n2y;
+    results.nr2.z = lw2_4*lB;
+
+
+
+    results.n1.x = desc.cosa_*n1x + desc.sina_*n1y;
+    results.n1.y = (desc.sina_*n1x - desc.cosa_*n1y);
+    results.n1.z = results.nr1.z;
+
+
+    results.n2.x = desc.cosa_*n2x + desc.sina_*n2y;
+    results.n2.y = (desc.sina_*n2x - desc.cosa_*n2y);
+    results.n2.z = results.nr2.z;
 
     const float agA = Utils_Math_Approx::facos(lw1_4*lA);
     const float agB = Utils_Math_Approx::facos(lw2_4*lB);
@@ -210,14 +217,21 @@ int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
     results.wheelEvalResults_[2].zPos = z2;
     results.wheelEvalResults_[3].zPos = z3;
 
-    const float absZInv1 = results.n1.z == 0 ? 0 : 1.0f/std::abs(results.n1.z);
-    const float absZInv2 = results.n2.z == 0 ? 0 : 1.0f/std::abs(results.n2.z);
+    //const float absZInv1 = results.n1.z == 0 ? 0 : 1.0f/std::abs(results.n1.z);
+    //const float absZInv2 = results.n2.z == 0 ? 0 : 1.0f/std::abs(results.n2.z);
+    const float absZInv1 = results.n1.z == 0 ? 0 : 1.0f/(results.n1.z);
+    const float absZInv2 = results.n2.z == 0 ? 0 : 1.0f/(results.n2.z);
 
-    const float dx1 = ( results.n1.x*absZInv1)*procConfig_.heightPixelRatio;
-    const float dy1 = ( results.n1.y*absZInv1)*procConfig_.heightPixelRatio;
+    const float tn1x = desc.cosa_*n1x + desc.sina_*n1y;
+    const float tn1y = desc.sina_*n1x - desc.cosa_*n1y;
+    const float tn2x = desc.cosa_*n2x + desc.sina_*n2y;
+    const float tn2y = desc.sina_*n2x - desc.cosa_*n2y;
 
-    const float dx2 = ( results.n2.x*absZInv2)*procConfig_.heightPixelRatio;
-    const float dy2 = ( results.n2.y*absZInv2)*procConfig_.heightPixelRatio;
+    const float dx1 = -( tn1x*absZInv1)*procConfig_.heightPixelRatio;
+    const float dy1 = -( tn1y*absZInv1)*procConfig_.heightPixelRatio;
+
+    const float dx2 = -( tn2x*absZInv2)*procConfig_.heightPixelRatio;
+    const float dy2 = -( tn2y*absZInv2)*procConfig_.heightPixelRatio;
 
     results.dx1 = dx1;
     results.dy1 = dy1;
@@ -266,12 +280,13 @@ int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
         const float startValB = (results.wheelEvalResults_[cw2].zPos*procConfig_.heightScale)- wcPos2.x*dx2 - wcPos2.y*dy2;
 
 
+        int cx1 = 0;
+        int cy1 = 0;
 
-
-
-
-        float testW1 = startValA + dx1*wcPos1.x + dy1*wcPos1.y;
-        float testW2 = startValB + dx2*wcPos2.x + dy2*wcPos2.y;
+        ////TESTING
+        /*
+        //float testW1 = startValA + dx1*wcPos1.x + dy1*wcPos1.y;
+        //float testW2 = startValB + dx2*wcPos2.x + dy2*wcPos2.y;
 
         int twIdx3 = (cw1+1)%4;
         const cv::Point2f w3  = desc.wheelPositionsImage_[twIdx3];//+wheels_[2].descriptors_[angleIdx].jointPosImg_;
@@ -297,12 +312,38 @@ int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
         float test4b = startValB + dx2*wcPos4.x + dy2*wcPos4.y;
 
 
+        float eps = 0.001;
+
+        if (cw1 == 0)
+        {
+            if ( std::abs(test3a-z1*procConfig_.heightScale) > eps ||
+                 std::abs(test3b-z1*procConfig_.heightScale) > eps ||
+                 std::abs(test4a-z3*procConfig_.heightScale) > eps ||
+                 std::abs(test4b-z3*procConfig_.heightScale) > eps)
+            {
+                cx1 = 1;
+            }
+        }
+
+        if (cw1 == 1)
+        {
+            if ( std::abs(test3a-z2*procConfig_.heightScale) > eps ||
+                 std::abs(test3b-z2*procConfig_.heightScale) > eps ||
+                 std::abs(test4a-z0*procConfig_.heightScale) > eps ||
+                 std::abs(test4b-z0*procConfig_.heightScale) > eps)
+            {
+                cy1 = 2;
+            }
+        }
+        */
+        ////TESTING
+
+
         results.start1 = startValA;
         results.start2 = startValB;
 
 
-        int cx1 = 0;
-        int cy1 = 0;
+
         int chassisTestA = chassisModel_.EvaluateNP(dem,startValA,dx1,dy1,robotCenter+desc.chassisPosImage_,angleIdx,cx1,cy1);
 
         int cx2 = 0;

@@ -222,6 +222,7 @@ public:
     }
 
     cv::Mat DrawDebugImage(float scalingFactor, bool drawRobot);
+    cv::Mat DrawDebugImage(PoseEvalResults results, float scalingFactor, bool drawRobot);
 
 
 

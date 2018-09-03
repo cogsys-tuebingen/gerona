@@ -136,4 +136,45 @@ cv::Mat PlannerBase::DrawDebugImage(float scalingFactor, bool drawRobot)
 
 }
 
+cv::Mat PlannerBase::DrawDebugImage(PoseEvalResults result, float scalingFactor, bool drawRobot)
+{
+    DrawProc dp;
+    dp.drawZMin_ = - config_.procConfig_.mapBaseHeight/20;
+    dp.drawZMax_ =  config_.procConfig_.mapBaseHeight/20;
+
+
+    cv::Mat dem = poseEstimator_.GetDEM();
+
+    cv::Mat drawMat = dp.D16SImageToRGB(dem,config_.procConfig_.mapBaseHeight+ dp.drawZMin_,config_.procConfig_.mapBaseHeight+dp.drawZMax_);
+
+    dp.DrawMapStates(dem,drawMat,config_.procConfig_);
+
+
+    ScaledDrawProc sdp;
+
+    dp.SetupDrawProc(sdp,drawMat,scalingFactor);
+
+    result.SetWheelAnglesGlobal(result.pose.z);
+    result.wheelEvalResults_[0].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
+    result.wheelEvalResults_[1].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
+    result.wheelEvalResults_[2].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
+    result.wheelEvalResults_[3].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
+
+
+
+    if (drawRobot) dp.DrawRobotScaled(sdp,*poseEstimator_.GetRobotModel(),result);
+
+
+    //dp.DrawTrajectories(sdp,trajectories_,iplanner->GetResultTrajectory());
+
+
+    //dp.DrawGoal(sdp,goal_,curImgRobotPose_);
+    //dp.DrawPath(sdp,path_);
+
+
+    return sdp.GetImage();
+
+
+}
+
 
