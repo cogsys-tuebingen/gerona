@@ -12,11 +12,15 @@
  * @brief Include SIMD functions depending on requested CPU architecture
  */
 
-#ifdef USE_AVX2
+
+#if defined(USE_AVX2) && defined(__AVX2__)
 #include "utils_diff_axv.h"
-#else
+#elif __SSE4_2__
 #include "utils_diff_sse.h"
+#else
+#include "utils_diff_nosimd.h"
 #endif
+
 
 
 
