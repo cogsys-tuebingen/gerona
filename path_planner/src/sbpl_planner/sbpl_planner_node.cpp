@@ -9,7 +9,7 @@
 #define SBPL_PLANNER_NODE_H
 
 /// COMPONENT
-#include "planner_node.h"
+#include "../planner_node.h"
 
 /// PROJECT
 #include <cslibs_path_planning/common/SimpleGridMap2d.h>
@@ -21,6 +21,7 @@
 #include <sbpl/planners/planner.h>
 #include <ros/package.h>
 
+using namespace std;
 using namespace lib_path;
 
 /**
@@ -43,7 +44,7 @@ struct SBPLPathPlanner : public Planner
 
     virtual bool supportsGoalType(int type) const override
     {
-        return type == path_msgs::PlanPathGoal::GOAL_TYPE_POSE;
+        return type == path_msgs::Goal::GOAL_TYPE_POSE;
     }
 
     void initEnvironment(EnvironmentNAVXYTHETALAT& env) {
@@ -109,9 +110,14 @@ struct SBPLPathPlanner : public Planner
     }
 
     void convertSolution(EnvironmentNAVXYTHETALAT& env, vector<int> solution_stateIDs,
-                         nav_msgs::Path& path){
+                         path_msgs::PathSequence& paths){
+
+        paths.paths.emplace_back();
+        path_msgs::DirectionalPath& path = paths.paths.back();
+
         vector<sbpl_xy_theta_pt_t> xythetaPath;
         env.ConvertStateIDPathintoXYThetaPath(&solution_stateIDs, &xythetaPath);
+
         for (unsigned int i = 0; i < xythetaPath.size(); i++) {
             geometry_msgs::PoseStamped pose;
             pose.pose.position.x = xythetaPath.at(i).x + map_info->getOrigin().x;
@@ -121,9 +127,9 @@ struct SBPLPathPlanner : public Planner
         }
     }
 
-    nav_msgs::Path plan(const geometry_msgs::PoseStamped &goal,
+    path_msgs::PathSequence plan(const path_msgs::PlanPathGoal &goal_msg,
               const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-              const lib_path::Pose2d&, const lib_path::Pose2d&)
+              const lib_path::Pose2d&, const lib_path::Pose2d&) override
     {
         params.startx = from_world.x - map_info->getOrigin().x;
         params.starty = from_world.y - map_info->getOrigin().y;
@@ -154,9 +160,11 @@ struct SBPLPathPlanner : public Planner
         env.PrintTimeStat(stdout);
 
         // publish solution
-        nav_msgs::Path path;
-        path.header.frame_id = goal.header.frame_id;
-        path.header.stamp = goal.header.stamp;
+        path_msgs::PathSequence path;
+
+        path.header.frame_id = goal_msg.goal.pose.header.frame_id;
+        path.header.stamp = goal_msg.goal.pose.header.stamp;
+
         convertSolution(env, solution_stateIDs, path);
 
         return path;

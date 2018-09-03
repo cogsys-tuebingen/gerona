@@ -45,7 +45,7 @@ RobotController_PBR::RobotController_PBR():
     ICR_ekf_  = Eigen::Vector3d::Zero();
     last_time_ = ros::Time::now();
 
-    wheel_vel_sub_ = nh_.subscribe<std_msgs::Float64MultiArray>("/wheel_velocities", 10,
+    wheel_vel_sub_ = nh_.subscribe<std_msgs::Float64MultiArray>("wheel_velocities", 10,
                                                                    &RobotController_PBR::WheelVelocities, this);
 
     ICR_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("ICR_parameters", 10);

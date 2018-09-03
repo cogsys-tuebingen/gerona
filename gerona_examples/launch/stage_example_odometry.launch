@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- GeRoNa -->
+    <include file="$(find navigation_launch)/launch/rviz_controlled.launch">
+        <arg name="use_hector" value="false" />
+        <arg name="use_planner_default" value="true" />
+        <arg name="use_laser_obstacles" value="true" />
+    </include>
+
+    <!-- GeRoNa parameters for this stage robot -->
+    <include file="$(find gerona_examples)/launch/include/gerona_stage_params.launch" />
+
+    <!-- STAGE -->
+    <include file="$(find gerona_examples)/launch/include/stage.launch" />
+
+    <!-- Enable dead reckoning -->
+    <node pkg="tf" type="static_transform_publisher" name="odom_to_map_link" args="0 0 0 0 0 0 /odom /map 10" />
+
+    <!-- RViz -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gerona_examples)/rviz/robot_navigation_stage.rviz"/>
+    
+</launch>

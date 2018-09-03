@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- GeRoNa -->
+    <remap from="scan/front/filtered" to="/hokuyo_scan" />
+    
+    <include file="$(find navigation_launch)/launch/rviz_controlled.launch">
+        <arg name="use_hector" value="false" />
+        <arg name="use_planner_default" value="true" />
+        <arg name="use_laser_obstacles" value="true" />
+    </include>
+
+    <!-- GeRoNa parameters for this stage robot -->
+    <include file="$(find gerona_examples)/launch/include/gerona_gazebo_params_pioneer.launch" />
+
+
+    <!-- gazebo -->    
+    <include file="$(find gazebo_ros)/launch/empty_world.launch" >
+	    <arg name="world_name" default="$(find summit_xl_gazebo)/worlds/summit_xl_office.world"/>
+		<arg name="paused" value="false"/>
+		<arg name="use_sim_time" value="true"/>
+		<arg name="headless" value="false"/>
+		<arg name="gui" value="true"/>
+    </include>
+
+    <include file="$(find p3at_tutorial)/launch/upload_pioneer3at.xml"/>
+
+    <!-- push robot_description to factory and spawn robot in gazebo -->
+    <node name="spawn_pioneer" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model Pioneer3at" respawn="false" output="screen" />
+
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+    <!-- amcl and map server base-->
+    <include file="$(find summit_xl_localization)/launch/map_server.launch">
+        <arg name="prefix" value=""/>
+        <arg name="map_file" value="willow_garage/willow_garage.yaml"/>
+    </include>
+    <include file="$(find summit_xl_localization)/launch/amcl.launch">
+        <arg name="scan_topic" value="hokuyo_scan" />
+        <arg name="base_frame" value="base_link" />
+        <arg name="prefix" value=""/>
+        <arg name="odom_model_type" value="diff"/>
+        <arg name="x_init_pose" value="0.0"/>
+        <arg name="y_init_pose" value="0.0"/>
+        <arg name="z_init_pose" value="0.0"/>
+    </include>
+
+    <!-- RViz -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gerona_examples)/rviz/robot_navigation_gazebo_pioneer.rviz"/>
+    
+</launch>

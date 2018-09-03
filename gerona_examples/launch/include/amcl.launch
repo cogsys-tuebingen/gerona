@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>  
+    <arg name="map_file"     default="$(find turtlebot_stage)/maps/robopark_plan.yaml"/>
+    <arg name="initial_pose_x" default="2.0"/>
+    <arg name="initial_pose_y" default="2.0"/>
+    <arg name="initial_pose_a" default="0.0"/>
+
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
+        <param name="frame_id" value="map"/>
+    </node>
+
+    <include file="$(find turtlebot_navigation)/launch/includes/amcl/amcl.launch.xml">
+        <arg name="scan_topic" value="scan_filtered"/>
+        <arg name="use_map_topic" value="true"/>
+        <arg name="initial_pose_x" value="$(arg initial_pose_x)"/>
+        <arg name="initial_pose_y" value="$(arg initial_pose_y)"/>
+        <arg name="initial_pose_a" value="$(arg initial_pose_a)"/>
+    </include>
+</launch>

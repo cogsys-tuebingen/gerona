@@ -53,5 +53,5 @@ else()
     set(OMPL_INCLUDE_DIRS "")
 endif()
 
-find_package_handle_standard_args(OMPL DEFAULT_MSG OMPL_LIBRARIES OMPL_INCLUDE_DIRS)
+find_package_handle_standard_args(OMPL DEFAULT_MSG OMPL_LIBRARIES OMPLAPP_LIBRARIES OMPL_INCLUDE_DIRS)
 

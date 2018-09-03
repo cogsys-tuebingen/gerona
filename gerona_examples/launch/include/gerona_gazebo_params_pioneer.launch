@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<launch>
+        
+    <group ns="gerona" >
+        <param name="world_frame" value="map" />
+        <param name="odom_frame" value="odom" />
+        <param name="robot_frame" value="base_link" />
+    </group>
+
+    <group ns="highlevel_dummy">
+        <param name="target_speed" value="1.5" />
+        <param name="obstacle_radius" value="0.45" />
+
+        <group ns="planner">
+            <param name="reversed" value="false" />
+            <param name="goal_dist_threshold" value="0.25" />
+            <param name="goal_angle_threshold" value="5" />
+            <param name="allow_forward" value="true" />
+            <param name="allow_backward" value="false" />
+            <param name="ackermann_la" value="1.0" />
+            <param name="ackermann_steer_steps" value="2" />
+            <param name="ackermann_max_steer_angle" value="40" />
+            <param name="ackermann_steer_delta" value="20" />
+        </group>
+    </group>
+
+    <group ns="path_follower" >
+        <param name="controller_type" value="kinematic_hbz" />
+        <group ns="controller" >
+            <group ns="kinematic_hbz">                
+                <param name="k1" value="5.0" />
+                <param name="k2" value="10" />
+
+                <param name="lambda" value="1" />
+                <param name="theta_a" value="2.0*0.78539816339" />
+
+
+
+                <param name="max_angular_velocity" value="1.5" />
+            </group>
+        </group>
+
+        <group ns="local_planner">
+            <param name="algorithm" value="NULL" />
+        </group>
+
+        <group ns="supervisor" >
+            <param name="use_path_lookout" value="true" />
+            <param name="use_waypoint_timeout" value="false" />
+            <param name="use_distance_to_path" value="false" />
+        </group>
+    </group>
+
+    <group ns="path_planner" >
+        <param name="algorithm" value="generic" />
+    </group>
+
+    <group ns="obstacle_cloud" >
+        <param name="baseFrame" value="base_link" />
+    </group>
+
+</launch>
