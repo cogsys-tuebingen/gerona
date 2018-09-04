@@ -12,6 +12,7 @@ DE_Localmap::DE_Localmap() :
 
     cameraInfoSub_ = nodeG_.subscribe ("/camera_info", 1, &DE_Localmap::ci_callback, this);
 
+    mapResetSub_ = nodeG_.subscribe ("/localmap_reset_trigger", 1, &DE_Localmap::mr_callback, this);
 
 #ifdef ELEVATION_CLOUD_DEBUG
     imageCloud_pub_ =    nodeG_.advertise<sensor_msgs::PointCloud2>("/elevation_cloud",1);
@@ -159,6 +160,17 @@ void DE_Localmap::ci_callback(const sensor_msgs::CameraInfoConstPtr& info)
     ROS_INFO_STREAM("Received camera info!");
 
 }
+
+void DE_Localmap::mr_callback(const std_msgs::Int8ConstPtr& data)
+{
+    blockMap_.SetMapTo(0);
+    blockMap_.SetSafeBlocksTo();
+
+    ROS_WARN_STREAM("Localmap: Resetting!");
+
+}
+
+
 
 cv::Point2f DE_Localmap::ConvertPoint(cv::Point2f &p)
 {

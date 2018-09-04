@@ -73,6 +73,18 @@ public:
      * @throws std::runtime_error if the transform is not availble at all
      */
     tf::Transform getTransform(const std::string& fixed_frame, const std::string& frame, const ros::Time& time, const ros::Duration &max_wait) const;
+
+    /**
+     * @brief getTransform returns the latest transformation between the two given frames.
+     *        If the transformation is not available at all, an std::runtime_error is thrown.
+     * @param fixed_frame Name of the parent frame
+     * @param frame Name of the child frame
+     * @return  The transform at time <time> if possible, otherwise at time 0.
+     * @throws std::runtime_error if the transform is not availble at all
+     */
+    tf::Transform getTransformLatest(const std::string &fixed_frame, const std::string &frame) const;
+
+
     /**
      * @brief getRelativeTransform returns the transformation between the robot frame and the given frame at time <time>.
      *        If the transformation is not availible at time <time>, the latest transform will be returned.
