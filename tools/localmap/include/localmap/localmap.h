@@ -8,6 +8,7 @@
 #include "sensor_msgs/image_encodings.h"
 #include <cv_bridge/cv_bridge.h>
 #include "sensor_msgs/CameraInfo.h"
+#include "std_msgs/Int8.h"
 
 #include <tf/transform_listener.h>
 
@@ -52,6 +53,10 @@ public:
      */
     cv::Point2f ConvertPoint(cv::Point2f &p);
     void ci_callback(const sensor_msgs::CameraInfoConstPtr& info);
+
+
+    void mr_callback(const std_msgs::Int8ConstPtr& data);
+
     /**
      * @brief Lookup a tf transform
      */
@@ -80,6 +85,9 @@ private:
     ros::Subscriber depthSub_;
 
     ros::Subscriber cameraInfoSub_;
+
+    ros::Subscriber mapResetSub_;
+
 
     ros::Publisher zImagePub_;
     ros::Publisher assignImagePub_;

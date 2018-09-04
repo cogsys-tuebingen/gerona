@@ -162,6 +162,21 @@ tf::Transform PoseTracker::getRelativeTransform(const std::string &frame, const 
     return getTransform(getRobotFrameId(), frame, time, max_wait);
 }
 
+tf::Transform PoseTracker::getTransformLatest(const std::string &fixed_frame, const std::string &frame) const
+{
+    tf::StampedTransform trafo;
+    ros::Time zero = ros::Time(0);
+    if(!pose_listener_.canTransform(fixed_frame, frame, zero)) {
+        throw std::runtime_error(std::string("the transformation between ") + fixed_frame +
+                                 " and " + frame + " does not exist.");
+    }
+
+    pose_listener_.lookupTransform(fixed_frame, frame, zero, trafo);
+
+    return trafo;
+}
+
+
 tf::Transform PoseTracker::getTransform(const std::string &fixed_frame, const std::string &frame, const ros::Time &time, const ros::Duration& max_wait) const
 {
     tf::StampedTransform trafo;
