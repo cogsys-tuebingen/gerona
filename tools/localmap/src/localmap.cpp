@@ -78,6 +78,11 @@ DE_Localmap::DE_Localmap() :
     nodeP_.param("baseLinkFrame", baseFrame_,std::string("base_link"));
     nodeP_.param("localMapFrame", localMapFrame_,std::string("local_map"));
 
+    nodeP_.param("transformWaitTime", transformWaitTime_,0.1);
+    nodeP_.param("resetWaitTime", resetWaitTime_,0.3);
+
+
+
     numRegistered_ = 0;
     totalRegisterTime_ = 0;
 
@@ -135,7 +140,7 @@ bool DE_Localmap::GetTransform(ros::Time time,std::string targetFrame, std::stri
         tf_listener.lookupTransform(targetFrame, sourceFrame, time, trans);
     }catch(tf::TransformException ex){//if not available, then wait
         (void) ex;
-        if(!tf_listener.waitForTransform(targetFrame, sourceFrame, time, ros::Duration(0.05))){
+        if(!tf_listener.waitForTransform(targetFrame, sourceFrame, time, ros::Duration(transformWaitTime_))){ //ros::Duration(0.05))){
             ROS_WARN_STREAM_THROTTLE(0.5,"DE_Localmap: cannot lookup transform from: " << targetFrame << " to " << sourceFrame);
             return false;
         }
@@ -163,6 +168,8 @@ void DE_Localmap::ci_callback(const sensor_msgs::CameraInfoConstPtr& info)
 
 void DE_Localmap::mr_callback(const std_msgs::Int8ConstPtr& data)
 {
+    ros::Duration durWait(resetWaitTime_);
+    durWait.sleep();
     blockMap_.SetMapTo(0);
     blockMap_.SetSafeBlocksTo();
 
@@ -271,7 +278,7 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
     tf::StampedTransform base2map;
     bool lookUpOk = GetTransform(timeStamp,mapFrame_, baseFrame_, base2map);
     if (!lookUpOk) {
-        ROS_ERROR_STREAM("Error looking up Base to Map transform: " << baseFrame_ << " to " << mapFrame_ << " Time: " << timeStamp);
+        ROS_ERROR_STREAM_THROTTLE(0.5,"Error looking up Base to Map transform: " << baseFrame_ << " to " << mapFrame_ << " Time: " << timeStamp);
 
         return;
 
