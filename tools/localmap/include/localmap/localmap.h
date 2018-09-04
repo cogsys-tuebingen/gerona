@@ -148,6 +148,8 @@ private:
 
     bool initBlockMap_;
 
+    double transformWaitTime_,resetWaitTime_;
+
 };
 
 
