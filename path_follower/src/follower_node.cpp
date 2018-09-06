@@ -8,6 +8,7 @@
 #include <path_follower/factory/follower_factory.h>
 #include <pcl_ros/point_cloud.h>
 #include <sensor_msgs/Image.h>
+#include <std_msgs/Int8.h>
 #include <tf/tf.h>
 #include <fstream>
 
@@ -42,6 +43,13 @@ void importElevationMap(const ElevationMap::EMap& sensor_image, PathFollower* pf
     auto elevation_map = std::make_shared<ElevationMap>(sensor_image);
     pf->setElevationMap(elevation_map);
 }
+
+void importExternalErrorStop(const std_msgs::Int8ConstPtr& emergencyStop, PathFollower* pf)
+{
+    int errorMsg = (int)emergencyStop->data;
+    pf->setExternalError(errorMsg);
+}
+
 
 }
 
@@ -138,6 +146,9 @@ int main(int argc, char** argv) {
     ros::Subscriber elevation_map_sub_ =
                 nh.subscribe<ElevationMap::EMapType>("elevation_map", 1,
                                             boost::bind(&importElevationMap, _1, &pf));
+    ros::Subscriber external_error_sub_ =
+                nh.subscribe<std_msgs::Int8>("external_error", 1,
+                                            boost::bind(&importExternalErrorStop, _1, &pf));
 
     server.spin();
 

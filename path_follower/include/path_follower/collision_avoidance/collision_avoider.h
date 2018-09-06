@@ -36,6 +36,7 @@ public:
     bool hasObstacles() const;
     std::shared_ptr<ObstacleCloud const> getObstacles() const;
     void setObstacles(std::shared_ptr<ObstacleCloud const> obstacles);
+    void setExternalError(int externalError);
 
     /**
      * @brief Determines, if there are obstacles, which are blocking the path and adjusts the
@@ -52,7 +53,7 @@ protected:
 
 protected:
     std::shared_ptr<ObstacleCloud const> obstacles_;
-
+    int externalError_;
     const tf::TransformListener *tf_listener_;
     std::string robot_frame_;
 };

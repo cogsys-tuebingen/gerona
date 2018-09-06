@@ -11,6 +11,12 @@ using namespace Eigen;
 bool CollisionDetectorAckermann::avoid(MoveCommand * const cmd,
                                     const CollisionAvoider::State &state)
 {
+    if (externalError_ !=  0)
+    {
+        cmd->setVelocity(0);
+        if (cmd->canRotate()) cmd->setRotationalVelocity(0);
+        return true;
+    }
     velocity_ = cmd->getVelocity();
 
     return CollisionDetectorPolygon::avoid(cmd, state);
