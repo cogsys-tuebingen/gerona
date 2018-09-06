@@ -149,7 +149,7 @@ public:
         return &config_;
     }
 
-    inline void CalculateAngleDiff(const PoseEvalResults &prevPER, PoseEvalResults &PER) const
+    inline void CalculateAngleDiff2(const PoseEvalResults &prevPER, PoseEvalResults &PER) const
     {
         if (prevPER.validState == PERS_NOTASSIGNED || prevPER.validState == PERS_NOTVISIBLE) PER.deltaAngle = 0;
         else
@@ -164,6 +164,21 @@ public:
             const float nd1 = na1.dot(nb1);
             const float nd2 = na2.dot(nb2);
             PER.deltaAngle = Utils_Math_Approx::facos(std::min(nd1,nd2));
+            PER.poseCounter = prevPER.poseCounter+1;
+        }
+    }
+
+    inline void CalculateAngleDiff(const PoseEvalResults &prevPER, PoseEvalResults &PER) const
+    {
+        if (prevPER.validState == PERS_NOTASSIGNED || prevPER.validState == PERS_NOTVISIBLE) PER.deltaAngle = 0;
+        else
+        {
+            const float nd11 = prevPER.n1.dot(PER.n1);
+            const float nd12 = prevPER.n1.dot(PER.n2);
+            const float nd21 = prevPER.n2.dot(PER.n1);
+            const float nd22 = prevPER.n2.dot(PER.n2);
+
+            PER.deltaAngle = Utils_Math_Approx::facos(std::min(std::min(nd11,nd12),std::min(nd21,nd22)));
             PER.poseCounter = prevPER.poseCounter+1;
         }
     }
