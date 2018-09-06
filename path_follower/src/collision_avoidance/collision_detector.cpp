@@ -9,6 +9,13 @@ const std::string MODULE = "collision_avoider";
 bool CollisionDetector::avoid(MoveCommand * const cmd,
                              const CollisionAvoider::State &state)
 {
+
+    if (externalError_ !=  0)
+    {
+        cmd->setVelocity(0);
+        if (cmd->canRotate()) cmd->setRotationalVelocity(0);
+        return true;
+    }
     float course = cmd->getDirectionAngle(); //TODO: use CoursePredictor instead of command?
 
     //! Factor which defines, how much the box is enlarged in curves.

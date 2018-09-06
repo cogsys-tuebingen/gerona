@@ -125,6 +125,15 @@ void PathFollower::setObstacles(const std::shared_ptr<ObstacleCloud const> &msg)
     }
 }
 
+void PathFollower::setExternalError(const int &extError)
+{
+    if(current_config_) {
+        if (extError != 0)ROS_WARN("External Error Detected!.");
+        if (extError == 0)ROS_WARN("External Fixed!.");
+        current_config_->collision_avoider_->setExternalError(extError);
+    }
+}
+
 void PathFollower::setElevationMap(const std::shared_ptr<ElevationMap const> &msg)
 {
     elevation_map_ = msg;

@@ -9,8 +9,13 @@
 class NoneAvoider : public CollisionAvoider
 {
 public:
-    virtual bool avoid(MoveCommand* const, const State &)
+    virtual bool avoid(MoveCommand* const cmd, const State &)
     {
+        if (externalError_ !=  0)
+        {
+            cmd->setVelocity(0);
+            return true;
+        }
         // pass
         return false;
     }

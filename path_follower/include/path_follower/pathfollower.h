@@ -83,6 +83,13 @@ public:
     void setElevationMap(const std::shared_ptr<ElevationMap const>& elevationMap);
 
     /**
+         * @brief setExternalError set to != 0 if an external error prevents the robot from operating normally
+         * @param extError error message
+         */
+    void setExternalError(const int &extError);
+
+
+    /**
      * @brief isRunning returns the current state
      * @return true, iff a path is being followed
      */

@@ -39,3 +39,8 @@ void CollisionAvoider::setObstacles(std::shared_ptr<ObstacleCloud const> obstacl
 {
     obstacles_ = obstacles;
 }
+
+void CollisionAvoider::setExternalError(int externalError)
+{
+    externalError_ = externalError;
+}
