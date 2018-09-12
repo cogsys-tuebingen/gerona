@@ -34,6 +34,7 @@ public:
     using TB::FinishedPlanning;
     using TB::NextNodeAvailable;
     using TB::ClearPrioQueue;
+    using TB::GetBLResultTrajectory;
 
 
 
@@ -99,6 +100,65 @@ public:
 
     }
 
+    void Replan()
+    {
+        Trajectory *result = GetBLResultTrajectory();
+        bool doReplan = false;
+        if (result == nullptr)
+        {
+            doReplan = true;
+        }
+        else if (result->end_ == nullptr)
+        {
+            doReplan = true;
+        }
+        else if (result->poseResults_.size() < config_.plannerConfig_.minNumberNodes)
+        {
+            bool reachedGoal = result->end_->validState == PERS_GOALREACHED;
+
+            if (reachedGoal)
+            {
+                doReplan = false;
+            } else
+            {
+                doReplan = true;
+            }
+
+        }
+
+        if (!doReplan) return;
+
+        PlannerExpanderConfig curConfig = config_.expanderConfig_;
+        PlannerExpanderConfig newConfig = config_.expanderConfig_;
+
+        newConfig.deltaTheta = (curConfig.firstLevelSplits > 0 ? curConfig.firstLevelDeltaTheta: curConfig.deltaTheta )/(float)config_.plannerConfig_.replanFactor;
+        newConfig.numSplits =  (curConfig.firstLevelSplits > 0 ? curConfig.firstLevelSplits: curConfig.numSplits )*config_.plannerConfig_.replanFactor;
+        newConfig.firstLevelDeltaLinear = -1;
+        newConfig.firstLevelDeltaTheta = -1;
+        newConfig.firstLevelLinearSplits = -1;
+        newConfig.firstLevelSplits = -1;
+        expander_->SetConfig(newConfig,config_.procConfig_.pixelSize);
+
+        if ( ((float) newConfig.numSplits * newConfig.deltaTheta)/2.0f > config_.expanderConfig_.maxAngVel)
+        {
+            int oneSide =  (int)std::ceil(config_.expanderConfig_.maxAngVel / newConfig.deltaTheta);
+            newConfig.numSplits = oneSide*2+1;
+        }
+
+        ClearPrioQueue();
+
+        TrajNode *startNode = GetStartNode();
+
+#ifdef USE_CLOSED_SET
+        closedSet_.Setup(config_.plannerConfig_.maxLevel,1.0,0.0174533);
+#endif
+        IterateStar(startNode);
+
+        FinishedPlanning();
+
+        expander_->SetConfig(curConfig,config_.procConfig_.pixelSize);
+
+    }
 
     cv::Point2f Plan()
     {
@@ -113,6 +173,14 @@ public:
         IterateStar(startNode);
 
         FinishedPlanning();
+
+
+        /// Testing replan with finer resolution if planning fails
+        if (config_.plannerConfig_.replanFactor > 0 && config_.plannerConfig_.minNumberNodes > 0)
+        {
+              Replan();
+
+        }
 
 
         return cv::Point2f(0,0);

@@ -77,7 +77,7 @@ void RobotController_ModelBased::initialize()
     config.expanderConfig_.minLinVel = opt_.min_linear_velocity();
     config.expanderConfig_.maxLinVel = opt_.max_linear_velocity();
     config.expanderConfig_.maxAngVel = opt_.max_angular_velocity();
-
+    config.plannerConfig_.minNumberNodes = opt_.min_traj_nodes();
 
     config.Setup();
 
