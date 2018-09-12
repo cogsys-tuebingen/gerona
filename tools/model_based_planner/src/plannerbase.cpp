@@ -82,11 +82,31 @@ Trajectory* PlannerBase::GetBLResultTrajectory()
 cv::Mat PlannerBase::DrawDebugImage(float scalingFactor, bool drawRobot)
 {
     DrawProc dp;
-    dp.drawZMin_ = - config_.procConfig_.mapBaseHeight/20;
-    dp.drawZMax_ =  config_.procConfig_.mapBaseHeight/20;
+    //dp.drawZMin_ = - config_.procConfig_.mapBaseHeight/20;
+    //dp.drawZMax_ =  config_.procConfig_.mapBaseHeight/20;
+
 
 
     cv::Mat dem = poseEstimator_.GetDEM();
+
+    short minVal = config_.procConfig_.maxHeight,maxVal = 0;
+    short *demPtr;
+    for (int y = 0; y < dem.rows;++y)
+    {
+        demPtr = dem.ptr<short>(y);
+        for (int x = 0; x < dem.cols;++x)
+        {
+            if (demPtr[x] > config_.procConfig_.notVisibleLevel)
+            {
+                if (demPtr[x] > maxVal) maxVal = demPtr[x];
+                if (demPtr[x] < minVal) minVal = demPtr[x];
+
+            }
+        }
+    }
+    dp.drawZMin_ = minVal- config_.procConfig_.mapBaseHeight;
+    dp.drawZMax_ = maxVal- config_.procConfig_.mapBaseHeight;
+
 
     cv::Mat drawMat = dp.D16SImageToRGB(dem,config_.procConfig_.mapBaseHeight+ dp.drawZMin_,config_.procConfig_.mapBaseHeight+dp.drawZMax_);
 
@@ -139,12 +159,31 @@ cv::Mat PlannerBase::DrawDebugImage(float scalingFactor, bool drawRobot)
 cv::Mat PlannerBase::DrawDebugImage(PoseEvalResults result, float scalingFactor, bool drawRobot)
 {
     DrawProc dp;
-    dp.drawZMin_ = - config_.procConfig_.mapBaseHeight/20;
-    dp.drawZMax_ =  config_.procConfig_.mapBaseHeight/20;
+    //dp.drawZMin_ = - config_.procConfig_.mapBaseHeight/20;
+    //dp.drawZMax_ =  config_.procConfig_.mapBaseHeight/20;
+
 
 
     cv::Mat dem = poseEstimator_.GetDEM();
 
+    short minVal = config_.procConfig_.maxHeight,maxVal = 0;
+    short *demPtr;
+    for (int y = 0; y < dem.rows;++y)
+    {
+        demPtr = dem.ptr<short>(y);
+        for (int x = 0; x < dem.cols;++x)
+        {
+            if (demPtr[x] > config_.procConfig_.notVisibleLevel)
+            {
+                if (demPtr[x] > maxVal) maxVal = demPtr[x];
+                if (demPtr[x] < minVal) minVal = demPtr[x];
+
+            }
+        }
+    }
+    dp.drawZMin_ = minVal- config_.procConfig_.mapBaseHeight;
+    dp.drawZMax_ = maxVal- config_.procConfig_.mapBaseHeight;
+    
     cv::Mat drawMat = dp.D16SImageToRGB(dem,config_.procConfig_.mapBaseHeight+ dp.drawZMin_,config_.procConfig_.mapBaseHeight+dp.drawZMax_);
 
     dp.DrawMapStates(dem,drawMat,config_.procConfig_);

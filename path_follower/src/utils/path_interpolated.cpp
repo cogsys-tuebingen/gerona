@@ -69,13 +69,14 @@ void PathInterpolated::interpolatePath(const Path::Ptr path, const bool hack) {
                 break;
             }
 
-            path->switchToNextSubPath();
+            //path->switchToNextSubPath();
         }else{
             break;
         }
     }
     // In case path->switchToNextSubPath(); was called a reset is required
-    path->reset();
+    // why?? limits the number of subpathes to 2!?
+    //path->reset();
 
     try {
         interpolatePath(waypoints);
