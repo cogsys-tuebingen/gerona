@@ -15,6 +15,8 @@ struct PlannerConfig
         lookAheadTime = 2.0;
         trajectoryTimeStep = 0.3;
         subSampleTimeStep = 0.03;
+        replanFactor = -1;
+        minNumberNodes = -1;
     }
 
     void Setup()
@@ -27,6 +29,8 @@ struct PlannerConfig
     int maxLevel;
     int numSubSamples;
     float lookAheadTime;
+    int replanFactor;
+    int minNumberNodes;
 
 
     // calculated

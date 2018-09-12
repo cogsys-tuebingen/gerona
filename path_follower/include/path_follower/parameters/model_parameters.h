@@ -37,6 +37,8 @@ public:
     P<int> curve_segment_subdivisions;//        int numSubSamples;
     P<double> look_ahead_time;//        float lookAheadTime;
 
+    P<int> replan_factor;//        int replanFactor;
+
     //
 
     // Scorer
@@ -107,6 +109,7 @@ public:
         config.plannerConfig_.maxLevel = max_depth();
         config.plannerConfig_.numSubSamples = curve_segment_subdivisions();
         config.plannerConfig_.lookAheadTime = look_ahead_time();
+        config.plannerConfig_.replanFactor = replan_factor();
 
 
         //Scorer
@@ -182,6 +185,7 @@ public:
         max_depth(this, "max_depth", 3, "Determines the maximum depth of the tree used by the local planner"),
         curve_segment_subdivisions(this, "curve_segment_subdivisions", 20, "Determines the number of subdivisions of curve segments in the final path"),
         look_ahead_time(this, "look_ahead_time", 3.0, "look ahead time for model based planner"),
+        replan_factor(this, "replan_factor", -1, " multiply number of splits and divide delta theta by this factor for replanning. <0 to disable replanning"),
         // Model based scores
         grav_angle_threshold(this, "grav_angle_threshold", 0.2, "Min value for angle between robot and gravity "),
         delta_angle_threshold(this, "delta_angle_threshold", 0.1, "Min value for angle between old and new robot pose "),
