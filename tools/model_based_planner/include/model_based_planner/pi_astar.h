@@ -84,6 +84,7 @@ public:
         }
 
         /// TODO: test if no sub optimal paths are chosen
+        /*
         while (!openSet_.empty())
         {
             TrajNode* curNode = openSet_.top();
@@ -97,6 +98,7 @@ public:
 
             }
         }
+        */
 
     }
 
