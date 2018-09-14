@@ -129,8 +129,8 @@ cv::Scalar DrawProc::GetEndStateColor(int validState)
     switch (validState)
     {
     case PERS_EXCEEDDELTAANGLE:    return cv::Scalar(255,0,255);
-    case PERS_EXCEEDGRAVANGLE:     return cv::Scalar(0,0,255);
-    case PERS_EXCEEDTIPANGLE:      return cv::Scalar(255,0,0);
+    case PERS_EXCEEDTIPANGLE:     return cv::Scalar(0,0,255);
+    case PERS_EXCEEDGRAVANGLE:      return cv::Scalar(255,0,0);
 
     case PERS_GOALREACHED:         return cv::Scalar(150,255,150);
     case PERS_VALID:               return cv::Scalar(0,255,0);
@@ -138,6 +138,9 @@ cv::Scalar DrawProc::GetEndStateColor(int validState)
     case PERS_LOWWHEELSUPPORT:     return cv::Scalar(10,255,255);
     case PERS_NOWHEELSUPPORT:      return cv::Scalar(10,255,255);
     case PERS_LOWWHEELSUPPORT_FAR: return cv::Scalar(150,255,255);
+
+    case PERS_CHASSISCOLLISION: return cv::Scalar(255,255,0);
+
 
     case PERS_NOTVISIBLE:          return cv::Scalar(10,10,10);
     case PERS_NOTASSIGNED:         return cv::Scalar(50,50,50);
@@ -187,8 +190,8 @@ void DrawProc::DrawTrajectories(ScaledDrawProc &sdp, const std::vector<TrajNode*
             }
 
             //cv::Scalar color(0 ,(int)(255- (resAngle/2.0)*255), (int)((resAngle/2.0)*255));
-            cv::Scalar color(0 ,(int)(255.0- (resAngle)*255.0), (int)((resAngle)*255.0));
-            if (curAngle == 1) color = cv::Scalar ((int)((resAngle)*255.0) ,(int)(255.0- (resAngle)*255.0), 0);
+            cv::Scalar color((int)((resAngle)*255.0) ,(int)(255.0- (resAngle)*255.0), 0);
+            if (curAngle == 1) color = cv::Scalar (0 ,(int)(255.0- (resAngle)*255.0), (int)((resAngle)*255.0));
             if (curAngle == 2) color = cv::Scalar ((int)((resAngle)*255.0) ,(int)(255.0- (resAngle)*255.0), (int)((resAngle)*255.0));
 
 
