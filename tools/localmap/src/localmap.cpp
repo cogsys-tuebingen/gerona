@@ -82,6 +82,10 @@ DE_Localmap::DE_Localmap() :
     nodeP_.param("resetWaitTime", resetWaitTime_,0.3);
 
 
+    nodeP_.param("postProcessType", postProcessType_,0);
+    nodeP_.param("postProcessSize", postProcessSize_,3);
+
+
 
     numRegistered_ = 0;
     totalRegisterTime_ = 0;
@@ -402,6 +406,24 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
         resultImg = tempImg;
 
     }
+
+
+
+    if (postProcessType_ > 0)
+    {
+        cv::Mat tempImg;
+
+        switch (postProcessType_) {
+        case 1: cv::medianBlur(resultImg,tempImg,postProcessSize_);  break;
+        case 2: {cv::Mat structElem = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(postProcessSize_,postProcessSize_)); cv::morphologyEx(resultImg,tempImg,cv::MORPH_OPEN,structElem); }  break;
+        case 3: {cv::Mat structElem = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(postProcessSize_,postProcessSize_)); cv::morphologyEx(resultImg,tempImg,cv::MORPH_CLOSE,structElem); }  break;
+        default: tempImg=resultImg; break;
+        }
+        resultImg = tempImg;
+
+
+    }
+
 
 
 

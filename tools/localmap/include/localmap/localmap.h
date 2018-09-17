@@ -103,6 +103,8 @@ private:
     sensor_msgs::CameraInfo camInfo_;
     bool hasCamInfo_;
     bool hasCam2Base_;
+    int postProcessType_;
+    int postProcessSize_;
 
     std::string baseFrame_;
     std::string mapFrame_;
@@ -149,6 +151,9 @@ private:
     bool initBlockMap_;
 
     double transformWaitTime_,resetWaitTime_;
+
+
+
 
 };
 
