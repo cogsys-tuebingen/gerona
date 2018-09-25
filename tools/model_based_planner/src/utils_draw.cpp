@@ -76,7 +76,7 @@ void DrawProc::DrawGoal(ScaledDrawProc &drawProc,cv::Point3f goal,cv::Point3f ro
 {
 
 
-    drawProc.DrawLineScaled(cv::Point2f(robotPos.x,robotPos.y),cv::Point2f(goal.x,goal.y),cv::Scalar(200,124,10),3);
+    drawProc.DrawLineScaled(cv::Point2f(robotPos.x,robotPos.y),cv::Point2f(goal.x,goal.y),cv::Scalar(200,124,10),2);
 
 }
 
@@ -128,20 +128,25 @@ cv::Scalar DrawProc::GetEndStateColor(int validState)
 {
     switch (validState)
     {
-    case PERS_EXCEEDDELTAANGLE:    return cv::Scalar(100,10,255);
-    case PERS_EXCEEDGRAVANGLE:     return cv::Scalar(10,100,255);
-    case PERS_EXCEEDTIPANGLE:      return cv::Scalar(100,100,255);
-    case PERS_GOALREACHED:         return cv::Scalar(10,255,100);
-    case PERS_NOTVISIBLE:          return cv::Scalar(100,255,10);
+    case PERS_EXCEEDDELTAANGLE:    return cv::Scalar(255,0,255);
+    case PERS_EXCEEDTIPANGLE:     return cv::Scalar(0,0,255);
+    case PERS_EXCEEDGRAVANGLE:      return cv::Scalar(255,0,0);
 
-    case PERS_LOWWHEELSUPPORT:     return cv::Scalar(255,10,10);
-    case PERS_NOWHEELSUPPORT:      return cv::Scalar(255,100,100);
+    case PERS_GOALREACHED:         return cv::Scalar(150,255,150);
+    case PERS_VALID:               return cv::Scalar(0,255,0);
 
+    case PERS_LOWWHEELSUPPORT:     return cv::Scalar(10,255,255);
+    case PERS_NOWHEELSUPPORT:      return cv::Scalar(10,255,255);
+    case PERS_LOWWHEELSUPPORT_FAR: return cv::Scalar(150,255,255);
+
+    case PERS_CHASSISCOLLISION: return cv::Scalar(255,255,0);
+
+
+    case PERS_NOTVISIBLE:          return cv::Scalar(10,10,10);
     case PERS_NOTASSIGNED:         return cv::Scalar(50,50,50);
     case PERS_OUTOFIMAGE:          return cv::Scalar(155,155,155);
     case PERS_SAFE_OUTOFIMAGE:     return cv::Scalar(155,155,155);
-    case PERS_VALID:               return cv::Scalar(0,255,0);
-    default :                       return cv::Scalar(255,255,255);
+    default :                      return cv::Scalar(255,255,255);
     }
 
 }
@@ -185,9 +190,9 @@ void DrawProc::DrawTrajectories(ScaledDrawProc &sdp, const std::vector<TrajNode*
             }
 
             //cv::Scalar color(0 ,(int)(255- (resAngle/2.0)*255), (int)((resAngle/2.0)*255));
-            cv::Scalar color(0 ,(int)(255- (resAngle)*255), (int)((resAngle)*255));
-            if (curAngle == 1) color = cv::Scalar ((int)((resAngle)*255) ,(int)(255- (resAngle)*255), 0);
-            if (curAngle == 2) color = cv::Scalar (128 ,(int)(255- (resAngle)*255), (int)((resAngle)*255));
+            cv::Scalar color((int)((resAngle)*255.0) ,(int)(255.0- (resAngle)*255.0), 0);
+            if (curAngle == 1) color = cv::Scalar (0 ,(int)(255.0- (resAngle)*255.0), (int)((resAngle)*255.0));
+            if (curAngle == 2) color = cv::Scalar ((int)((resAngle)*255.0) ,(int)(255.0- (resAngle)*255.0), (int)((resAngle)*255.0));
 
 
             //float tgravAngle = (maxAngle-0.95)*(1.0/0.05);
@@ -462,10 +467,10 @@ void DrawProc::DrawRobotScaled(ScaledDrawProc &drawProc, RobotModel &model, Pose
     DrawRobotWheelScaled(drawProc,model.GetWheel(2),curPos+rDesc.wheelPositionsImage_[2],waIdx2,results.wheelEvalResults_[2].contactPoint);
     DrawRobotWheelScaled(drawProc,model.GetWheel(3),curPos+rDesc.wheelPositionsImage_[3],waIdx3,results.wheelEvalResults_[3].contactPoint);
 
-    drawProc.PutText(curPos+rDesc.wheelPositionsImage_[0]*1.2,"0",cv::Scalar(255,0,255));
-    drawProc.PutText(curPos+rDesc.wheelPositionsImage_[1]*1.2,"1",cv::Scalar(255,0,255));
-    drawProc.PutText(curPos+rDesc.wheelPositionsImage_[2]*1.2,"2",cv::Scalar(255,0,255));
-    drawProc.PutText(curPos+rDesc.wheelPositionsImage_[3]*1.2,"3",cv::Scalar(255,0,255));
+    //drawProc.PutText(curPos+rDesc.wheelPositionsImage_[0]*1.2,"0",cv::Scalar(255,0,255));
+    //drawProc.PutText(curPos+rDesc.wheelPositionsImage_[1]*1.2,"1",cv::Scalar(255,0,255));
+    //drawProc.PutText(curPos+rDesc.wheelPositionsImage_[2]*1.2,"2",cv::Scalar(255,0,255));
+    //drawProc.PutText(curPos+rDesc.wheelPositionsImage_[3]*1.2,"3",cv::Scalar(255,0,255));
 
 
     drawProc.DrawLineScaled(pos,curPos,cv::Scalar(0,0,255));

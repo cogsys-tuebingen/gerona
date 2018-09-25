@@ -14,8 +14,8 @@ Installation
 First, install the dependencies. For example, from your workspace root directory:
 
     cd src
-    git clone gitlab@gitlab.cs.uni-tuebingen.de:libs/cslibs_path_planning 
-    git clone gitlab@gitlab.cs.uni-tuebingen.de:libs/cslibs_utils
+    git clone https://github.com/cogsys-tuebingen/cslibs_path_planning
+    git clone https://github.com/cogsys-tuebingen/cslibs_utility
     cd ..
 
     rosdep install --from-paths -i -y src

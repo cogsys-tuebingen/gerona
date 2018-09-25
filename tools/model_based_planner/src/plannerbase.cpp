@@ -82,9 +82,9 @@ Trajectory* PlannerBase::GetBLResultTrajectory()
 cv::Mat PlannerBase::DrawDebugImage(float scalingFactor, bool drawRobot)
 {
     DrawProc dp;
+    dp.conf = config_;
     //dp.drawZMin_ = - config_.procConfig_.mapBaseHeight/20;
     //dp.drawZMax_ =  config_.procConfig_.mapBaseHeight/20;
-
 
 
     cv::Mat dem = poseEstimator_.GetDEM();
@@ -148,7 +148,7 @@ cv::Mat PlannerBase::DrawDebugImage(float scalingFactor, bool drawRobot)
 
 
     dp.DrawGoal(sdp,goal_,curImgRobotPose_);
-    dp.DrawPath(sdp,path_);
+    //dp.DrawPath(sdp,path_);
 
 
     return sdp.GetImage();
@@ -159,6 +159,8 @@ cv::Mat PlannerBase::DrawDebugImage(float scalingFactor, bool drawRobot)
 cv::Mat PlannerBase::DrawDebugImage(PoseEvalResults result, float scalingFactor, bool drawRobot)
 {
     DrawProc dp;
+    dp.conf = config_;
+
     //dp.drawZMin_ = - config_.procConfig_.mapBaseHeight/20;
     //dp.drawZMax_ =  config_.procConfig_.mapBaseHeight/20;
 

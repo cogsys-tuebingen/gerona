@@ -78,6 +78,7 @@ void RobotController_ModelBased::initialize()
     config.expanderConfig_.maxLinVel = opt_.max_linear_velocity();
     config.expanderConfig_.maxAngVel = opt_.max_angular_velocity();
     config.plannerConfig_.minNumberNodes = opt_.min_traj_nodes();
+	
 
     config.Setup();
 
@@ -533,8 +534,30 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
     bool reachedGoal = result->end_->validState == PERS_GOALREACHED;
 
+    if ((int)result->poseResults_.size() < opt_.min_traj_nodes_goal() && (reachedGoal) )
+    {
+        bool lastPath = CheckNextPath();
 
-    if (result->poseResults_.size() < 2)
+        if (lastPath)
+        {
+            ROS_INFO_STREAM("Model based controller: Remaining Poses to Goal: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes_goal());
+            commandStatus = MBC_CommandStatus::REACHED_GOAL;
+            //commandStatus = MBC_CommandStatus::COLLISON;
+            stopMotion();
+            return;
+        }
+    }
+
+    if ((int)result->poseResults_.size() < opt_.min_traj_nodes() && (!reachedGoal) )
+    {
+        ROS_WARN_STREAM("Model based controller: Result trajectory to short: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes());
+        //commandStatus = reachedGoal? MBC_CommandStatus::REACHED_GOAL : MBC_CommandStatus::COLLISON;
+        commandStatus = MBC_CommandStatus::COLLISON;
+        stopMotion();
+        return;
+    }
+
+    if (result->poseResults_.size() < 2 && (!reachedGoal) )
     {
 
         ROS_WARN_STREAM("Model based controller: Result trajectory only contains current position! #poses: " << result->poseResults_.size() );
@@ -555,28 +578,9 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
     }
     */
 
-    if ((int)result->poseResults_.size() < opt_.min_traj_nodes() && (!reachedGoal) )
-    {
-        ROS_WARN_STREAM("Model based controller: Result trajectory to short: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes());
-        //commandStatus = reachedGoal? MBC_CommandStatus::REACHED_GOAL : MBC_CommandStatus::COLLISON;
-        commandStatus = MBC_CommandStatus::COLLISON;
-        stopMotion();
-        return;
-    }
 
-    if ((int)result->poseResults_.size() < opt_.min_traj_nodes_goal() && (reachedGoal) )
-    {
-        bool lastPath = CheckNextPath();
 
-        if (lastPath)
-        {
-            ROS_INFO_STREAM("Model based controller: Remaining Poses to Goal: " << result->poseResults_.size() << " Min: " << opt_.min_traj_nodes_goal());
-            commandStatus = MBC_CommandStatus::REACHED_GOAL;
-            //commandStatus = MBC_CommandStatus::COLLISON;
-            stopMotion();
-            return;
-        }
-    }
+
 
     /*
     if ((int)result->poseResults_.size() < opt_.min_traj_nodes() && reachedGoal)
