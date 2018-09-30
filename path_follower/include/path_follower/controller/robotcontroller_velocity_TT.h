@@ -11,6 +11,10 @@
 #include <path_follower/utils/parameters.h>
 
 
+/// SYSTEM
+#include <nav_msgs/Odometry.h>
+
+
 class RobotController_Velocity_TT: public RobotController
 {
 public:
@@ -77,14 +81,34 @@ protected:
     {
         P<double> dist_thresh;
         P<double> krep;
+        P<double> katt;
+        P<int> input_type;
+        P<bool> use_odom_twist;
+        P<int> number_target_poses;
+        P<double> robot_radius;
+        P<double> dest_distance;
+        P<double> min_scale_fact;
+        P<double> dist_scale_fact;
+        P<double> max_angular_velocity;
+        P<double> kangular;
 
 
 
-        ControllerParameters(const std::string& name = "ekm"):
+        ControllerParameters(const std::string& name = "velocity_TT"):
 
             RobotController::ControllerParameters(name),
-            dist_thresh(this, "dist_thresh", 1, "dist_thresh description."),
-            krep(this, "krep", 0.1, "krep description")
+            dist_thresh(this, "dist_thresh", 0.5, "dist_thresh description."),
+            krep(this, "krep", 0.1, "repulsive force wight"),
+            katt(this, "katt", 0.2, "attractive force weight"),
+            input_type(this, "input_type", 0, "input type: 0 = odom, 1 = Path, 2 = TF "),
+            use_odom_twist(this, "use_odom_twist", false, "set to true if odom.twist should be used, otherwise velocity is estimated."),
+            number_target_poses(this, "number_target_poses", 3, "number of target poses used for velocity estimate "),
+            robot_radius(this, "robot_radius", 0.25, "radius of enclosing circle of the robot"),
+            dest_distance(this, "dest_distance", 0.3, "desired distance to target"),
+            min_scale_fact(this, "min_scale_fact", 0.1, "min velocity adjustment factor"),
+            dist_scale_fact(this, "dist_scale_fact", 100.0, "factor by which velociy adjustment increases by distance"),
+            max_angular_velocity(this, "max_angular_velocity", 0.8, "max_angular_velocity"),
+            kangular(this, "kangular", 3.0, "angular_velocity adjustment rate")
 
         {}
     } opt_;
@@ -94,14 +118,15 @@ protected:
         return opt_;
     }
 
+    /*
     struct Command
     {
         RobotController_Velocity_TT *parent_;
 
         //! Speed of the movement.
-        float speed;
+        float vx;
         //! Direction of movement as angle to the current robot orientation.
-        float direction_angle;
+        float vy;
         //! rotational velocity.
         float rotation;
 
@@ -109,31 +134,34 @@ protected:
         // initialize all values to zero
         Command(RobotController_Velocity_TT *parent):
             parent_(parent),
-            speed(0.0f), direction_angle(0.0f), rotation(0.0f)
+            vx(0.0f), vy(0.0f), rotation(0.0f)
         {}
 
         operator MoveCommand()
         {
+            Eigen::Vector2f dir(vx,vy);
+            dir[0] = vx;
+            dir[1] = vy;
             MoveCommand mcmd(true);
-            mcmd.setDirection(direction_angle);
-            mcmd.setVelocity(speed);
+            mcmd.setDirection(dir);
+            mcmd.setVelocity(sqrt(vx*vx+vy*vy));
             mcmd.setRotationalVelocity(rotation);
             return mcmd;
         }
 
         bool isValid()
         {
-            if ( std::isnan(speed) || std::isinf(speed)
-                 || std::isnan(direction_angle) || std::isinf(direction_angle)
+            if ( std::isnan(vx) || std::isinf(vx)
+                 || std::isnan(vy) || std::isinf(vy)
                  || std::isnan(rotation) || std::isinf(rotation) )
             {
                 ROS_FATAL("Non-numerical values in command: %d,%d,%d,%d,%d,%d",
-                          std::isnan(speed), std::isinf(speed),
-                          std::isnan(direction_angle), std::isinf(direction_angle),
+                          std::isnan(vx), std::isinf(vx),
+                          std::isnan(vy), std::isinf(vy),
                           std::isnan(rotation), std::isinf(rotation));
                 // fix this instantly, to avoid further problems.
-                speed = 0.0;
-                direction_angle = 0.0;
+                vx = 0.0;
+                vy = 0.0;
                 rotation = 0.0;
 
                 return false;
@@ -144,17 +172,39 @@ protected:
     };
 
     Command cmd_;
+    */
 
 
     void reset();
     void setPath(Path::Ptr path);
 
-    cv::Vec2f CalcForceRep();
-    cv::Vec2f CalcForceRep(const pcl::PointCloud<pcl::PointXYZ>& cloud);
+    void odomCallback (const nav_msgs::OdometryConstPtr& odom);
+
+    void processPose(const geometry_msgs::PoseStamped &odom);
+
+
+    cv::Vec2f estimateVel();
+
+    cv::Vec2f CalcForceRep(bool &hasObst);
+    cv::Vec2f CalcForceRep(const pcl::PointCloud<pcl::PointXYZ>& cloud, bool &hasObst);
+    cv::Vec2f CalcForceAtt();
+
+    enum INPUT_TYPE{ VELTT_IT_ODOM = 0, VELTT_IT_PATH, VELTT_IT_TF};
+
+    geometry_msgs::PoseStamped Odom2Pose(nav_msgs::Odometry dom);
+
+    bool  poseToGlobalPose(geometry_msgs::PoseStamped in_pose, geometry_msgs::PoseStamped &global);
+    bool  poseToLocalPose(geometry_msgs::PoseStamped in_pose, geometry_msgs::PoseStamped &local);
+
+
 
 private:
 
-    std::queue<geometry_msgs::PoseStamped> targetPoses_;
+    std::deque<geometry_msgs::PoseStamped> targetPoses_;
+    ros::Subscriber subTargetOdom_;
+
+    cv::Vec2f lastTargetDir_;
+    //cv::Vec2f lastTargetPos_;
 
 
 
