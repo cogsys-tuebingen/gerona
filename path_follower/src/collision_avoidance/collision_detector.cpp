@@ -69,6 +69,8 @@ bool CollisionDetector::avoid(MoveCommand * const cmd,
     if(collision) {
         // stop motion
         cmd->setVelocity(0);
+        if (cmd->canRotate()) cmd->setRotationalVelocity(0);
+
     }
     return collision;
 }
