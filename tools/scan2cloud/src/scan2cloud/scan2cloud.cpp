@@ -19,7 +19,7 @@ ScanConverter::ScanConverter():
 
 void ScanConverter::scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan_in, bool is_back)
 {
-    ros::Duration wait_tf_timeout = is_back ? ros::Duration(0.0) : ros::Duration(0.1);
+    ros::Duration wait_tf_timeout = is_back ? ros::Duration(0.1) : ros::Duration(0.1);
 
     try{
         if(!tfListener_.waitForTransform(
