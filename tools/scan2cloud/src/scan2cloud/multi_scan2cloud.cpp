@@ -4,39 +4,6 @@
 
 
 
-void ToPoints(const sensor_msgs::LaserScan &scan, const std::vector<bool> &scan_mask, std::vector<tf::Point> &points)
-{
-    double curAngle = scan.angle_min;
-    points.clear();
-    if (points.capacity() < scan.ranges.size()) points.reserve(scan.ranges.size());
-
-    for (int i = 0; i < scan.ranges.size(); ++i)
-    {
-        double rd = (double)scan.ranges[i];
-        tf::Point p(cos(curAngle)*rd,sin(curAngle)*rd,0);
-        if (scan_mask[i] && !std::isnan(rd)) points.push_back(p);
-        curAngle += scan.angle_increment;
-
-    }
-
-}
-
-void ToPoints(const sensor_msgs::LaserScan &scan, std::vector<tf::Point> &points)
-{
-    double curAngle = scan.angle_min;
-    points.clear();
-    if (points.capacity() < scan.ranges.size()) points.reserve(scan.ranges.size());
-
-    for (int i = 0; i < scan.ranges.size(); ++i)
-    {
-        double rd = (double)scan.ranges[i];
-        tf::Point p(cos(curAngle)*rd,sin(curAngle)*rd,0);
-        if (!std::isnan(rd)) points.push_back(p);
-        curAngle += scan.angle_increment;
-
-    }
-
-}
 
 
 inline float tukey(const float &x, const float &k)
@@ -101,7 +68,43 @@ ScanProcessor::ScanProcessor()
     use_dist_ = true;
     threshold_w_ = 1.5f;
     windowSize_ = 15;
+    minRange_ = 0.03f;
 }
+
+void ScanProcessor::ToPoints(const sensor_msgs::LaserScan &scan, const std::vector<bool> &scan_mask, std::vector<tf::Point> &points)
+{
+    double curAngle = scan.angle_min;
+    points.clear();
+    if (points.capacity() < scan.ranges.size()) points.reserve(scan.ranges.size());
+
+    for (int i = 0; i < scan.ranges.size(); ++i)
+    {
+        double rd = (double)scan.ranges[i];
+        tf::Point p(cos(curAngle)*rd,sin(curAngle)*rd,0);
+        if (scan_mask[i] && !std::isnan(rd) && rd > minRange_) points.push_back(p);
+        curAngle += scan.angle_increment;
+
+    }
+
+}
+
+void ScanProcessor::ToPoints(const sensor_msgs::LaserScan &scan, std::vector<tf::Point> &points)
+{
+    double curAngle = scan.angle_min;
+    points.clear();
+    if (points.capacity() < scan.ranges.size()) points.reserve(scan.ranges.size());
+
+    for (int i = 0; i < scan.ranges.size(); ++i)
+    {
+        double rd = (double)scan.ranges[i];
+        tf::Point p(cos(curAngle)*rd,sin(curAngle)*rd,0);
+        if (!std::isnan(rd) && rd > minRange_) points.push_back(p);
+        curAngle += scan.angle_increment;
+
+    }
+
+}
+
 
 void ScanProcessor::ProcessScan(const sensor_msgs::LaserScan &scan, const std::vector<bool> scanMask, std::vector<tf::Point> &out_points)
 {

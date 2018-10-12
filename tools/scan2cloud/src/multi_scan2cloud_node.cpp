@@ -19,6 +19,7 @@ public:
         private_node_.param<bool>("useLatestTransform",proc_.always_use_latest_transform_obstacles_,true);
         private_node_.param<float>("tfTimeout",proc_.tf_timeout_,0.05f);
         private_node_.param<int>("filterWindowSize",proc_.windowSize_,15);
+        private_node_.param<float>("minRange",proc_.minRange_,0.03f);
 
 
         GetScanMask(private_node_,"maskFront",maskFront_);
