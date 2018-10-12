@@ -19,6 +19,8 @@ public:
     void TransformCloud(const std::vector<tf::Point> &in, const std::string frame_id, const ros::Time stamp, std::vector<tf::Point> & out);
     void CreateCloud(const std::vector<tf::Point> &obstacle_points, const std::string frame_id, const ros::Time stamp, sensor_msgs::PointCloud2 &cloud);
     void CreateCloud(const std::vector<tf::Point> &obstacle_points1, const std::vector<tf::Point> &obstacle_points2, const std::string frame_id, const ros::Time stamp, sensor_msgs::PointCloud2 &cloud);
+    void ToPoints(const sensor_msgs::LaserScan &scan, const std::vector<bool> &scan_mask, std::vector<tf::Point> &points);
+    void ToPoints(const sensor_msgs::LaserScan &scan, std::vector<tf::Point> &points);
 
     float tukey_k_;
     float threshold_w_;
@@ -30,6 +32,7 @@ public:
     bool always_use_latest_transform_obstacles_;
     std::string fixed_frame_;
     float tf_timeout_;
+    float minRange_;
 private:
     std::vector<tf::Point> points1_;
     std::vector<tf::Point> points2_;
