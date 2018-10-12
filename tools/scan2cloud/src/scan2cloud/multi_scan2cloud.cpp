@@ -94,6 +94,60 @@ void NoiseFilter(const std::vector<tf::Point> &in_points, const float &threshold
 
 }
 
+inline bool TestSegmentDist(const tf::Point &P1,const tf::Point &P2, const float &minDist, const bool useDist)
+{
+    return useDist? norm(P1-P2) < minDist*norm(P1) : norm(P1-P2) < minDist;
+}
+
+void SegmentFilter(const std::vector<tf::Point> &in_points, const float &distThresh, const int &windowSize, const int minPoints, const float &minSegmentSize, const bool useDist, std::vector<tf::Point> &out_points)
+{
+    out_points.clear();
+    if (out_points.capacity() < in_points.size()) out_points.reserve(in_points.size());
+    if (in_points.size() == 0) return;
+
+    const float sqrDistance = distThresh*distThresh;
+    int k = 0;
+    bool found;
+    std::vector<tf::Point> curSegment;
+    curSegment.reserve(in_points.size());
+    curSegment.push_back(in_points[0]);
+    for (int i = 1; i < in_points.size(); ++i)
+    {
+        found = false;
+        const tf::Point &curP = in_points[i];
+
+        for (k = i; k < i+windowSize && k < in_points.size();++k)
+        {
+            if (TestSegmentDist(curSegment.back(),curP,distThresh,useDist) )
+            {
+                curSegment.push_back(curP);
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            if (curSegment.size() > minPoints && norm(curSegment.front()-curSegment.back()) > minSegmentSize)
+            {
+                out_points.insert( out_points.end(), curSegment.begin(), curSegment.end() );
+
+            }
+            curSegment.clear();
+            curSegment.push_back(curP);
+        }
+
+
+
+    }
+    if (curSegment.size() > minPoints && norm(curSegment.front()-curSegment.back()) > minSegmentSize)
+    {
+        out_points.insert( out_points.end(), curSegment.begin(), curSegment.end() );
+
+    }
+
+}
+
 
 ScanProcessor::ScanProcessor()
 {
@@ -101,13 +155,35 @@ ScanProcessor::ScanProcessor()
     use_dist_ = true;
     threshold_w_ = 1.5f;
     windowSize_ = 15;
+    filterType_ = 0;
+    minPoints_ = 10;
+    minSegmentSize_ = 0.05;
+
 }
 
 void ScanProcessor::ProcessScan(const sensor_msgs::LaserScan &scan, const std::vector<bool> scanMask, std::vector<tf::Point> &out_points)
 {
     ToPoints(scan,scanMask,points1_);
-    if (use_dist_) NoiseFilterDist(points1_,threshold_w_,tukey_k_,windowSize_,points2_);
-    else NoiseFilter(points1_,threshold_w_,tukey_k_,windowSize_,points2_);
+    switch (filterType_)
+    {
+    case 1:
+    {
+        if (use_dist_) NoiseFilterDist(points1_,threshold_w_,tukey_k_,windowSize_,points2_);
+        else NoiseFilter(points1_,threshold_w_,tukey_k_,windowSize_,points2_);
+
+        break;
+    }
+    case 2:
+    {
+        SegmentFilter(points1_,threshold_w_,windowSize_,minPoints_,minSegmentSize_,use_dist_,points2_);
+        break;
+    }
+    default:
+    {
+        points2_ = points1_;
+        break;
+    }
+    }
     TransformCloud(points2_,scan.header.frame_id,scan.header.stamp,out_points);
     //CreateCloud(points1_,cloud);
 

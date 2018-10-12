@@ -20,6 +20,9 @@ public:
         private_node_.param<float>("tfTimeout",proc_.tf_timeout_,0.05f);
         private_node_.param<int>("filterWindowSize",proc_.windowSize_,15);
 
+        private_node_.param<int>("filterType",proc_.filterType_,1);
+        private_node_.param<int>("minPoints",proc_.minPoints_,15);
+        private_node_.param<float>("minSegmentSize",proc_.minSegmentSize_,0.05f);
 
         GetScanMask(private_node_,"maskFront",maskFront_);
         GetScanMask(private_node_,"maskBack",maskBack_);

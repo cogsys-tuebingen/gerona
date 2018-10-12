@@ -24,6 +24,9 @@ public:
     float threshold_w_;
     int windowSize_;
     bool use_dist_;
+    int filterType_;
+    int minPoints_;
+    float minSegmentSize_;
     bool always_use_latest_transform_obstacles_;
     std::string fixed_frame_;
     float tf_timeout_;
