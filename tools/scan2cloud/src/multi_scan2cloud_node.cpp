@@ -2,7 +2,7 @@
 #include <tf/transform_listener.h>
 #include <sensor_msgs/PointCloud2.h>
 
-#include "../../scan2cloud/include/scan2cloud/multi_scan2cloud.h"
+#include "../../scan2cloud/include/scan2cloud/scan_processor.h"
 
 class Scan2CloudHelper {
 public:

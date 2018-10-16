@@ -1,6 +1,6 @@
 
 
-#include "../../include/scan2cloud/multi_scan2cloud.h"
+#include "../../include/scan2cloud/scan_processor.h"
 
 
 
@@ -129,6 +129,7 @@ ScanProcessor::ScanProcessor()
     minPoints_ = 10;
     minSegmentSize_ = 0.05;
     minRange_ = 0.03f;
+    useMask_ = false;
 }
 
 void ScanProcessor::ToPoints(const sensor_msgs::LaserScan &scan, const std::vector<bool> &scan_mask, std::vector<tf::Point> &points)
@@ -168,7 +169,9 @@ void ScanProcessor::ToPoints(const sensor_msgs::LaserScan &scan, std::vector<tf:
 
 void ScanProcessor::ProcessScan(const sensor_msgs::LaserScan &scan, const std::vector<bool> scanMask, std::vector<tf::Point> &out_points)
 {
-    ToPoints(scan,scanMask,points1_);
+    if (useMask_)ToPoints(scan,scanMask,points1_);
+    else ToPoints(scan,scanMask,points1_);
+
     switch (filterType_)
     {
     case 1:
