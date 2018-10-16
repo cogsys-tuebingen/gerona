@@ -142,7 +142,7 @@ void ScanProcessor::ToPoints(const sensor_msgs::LaserScan &scan, const std::vect
     {
         double rd = (double)scan.ranges[i];
         tf::Point p(cos(curAngle)*rd,sin(curAngle)*rd,0);
-        if (scan_mask[i] && !std::isnan(rd) && rd > minRange_ && InAngleRange(curAngle)) points.push_back(p);
+        if (scan_mask[i] && !std::isnan(rd) && rd > minRange_ ) points.push_back(p);
         curAngle += scan.angle_increment;
 
     }
@@ -159,17 +159,35 @@ void ScanProcessor::ToPoints(const sensor_msgs::LaserScan &scan, std::vector<tf:
     {
         double rd = (double)scan.ranges[i];
         tf::Point p(cos(curAngle)*rd,sin(curAngle)*rd,0);
-        if (!std::isnan(rd) && rd > minRange_  && InAngleRange(curAngle)) points.push_back(p);
+        if (!std::isnan(rd) && rd > minRange_) points.push_back(p);
         curAngle += scan.angle_increment;
 
     }
 
 }
 
+void ScanProcessor::ToPoints(const sensor_msgs::LaserScan &scan, const float angleMin, const float angleMax, std::vector<tf::Point> &points)
+{
+    double curAngle = scan.angle_min;
+    points.clear();
+    if (points.capacity() < scan.ranges.size()) points.reserve(scan.ranges.size());
 
-void ScanProcessor::ProcessScan(const sensor_msgs::LaserScan &scan, const std::vector<bool> scanMask, std::vector<tf::Point> &out_points)
+    for (int i = 0; i < scan.ranges.size(); ++i)
+    {
+        double rd = (double)scan.ranges[i];
+        tf::Point p(cos(curAngle)*rd,sin(curAngle)*rd,0);
+        if (!std::isnan(rd) && rd > minRange_ && curAngle > angleMin && curAngle < angleMax) points.push_back(p);
+        curAngle += scan.angle_increment;
+
+    }
+}
+
+
+
+void ScanProcessor::ProcessScan(const sensor_msgs::LaserScan &scan, const std::vector<bool> scanMask, const tf::Point angleMinMax, std::vector<tf::Point> &out_points)
 {
     if (useMask_)ToPoints(scan,scanMask,points1_);
+    else if (useAngleFilter_)ToPoints(scan,angleMinMax.x(),angleMinMax.y(),points1_);
     else ToPoints(scan,points1_);
 
     switch (filterType_)
@@ -398,8 +416,6 @@ void ScanProcessor::SetParams(const ros::NodeHandle &private_node_)
     private_node_.param<int>("filterType",filterType_,1);
     private_node_.param<int>("minPoints",minPoints_,15);
     private_node_.param<float>("minSegmentSize",minSegmentSize_,0.05f);
-    private_node_.param<float>("angleFilterMin",angleFilterMin_,-5.0f);
-    private_node_.param<float>("angleFilterMax",angleFilterMax_,5.0f);
     private_node_.param<bool>("useAngleFilter",useAngleFilter_,false);
 
 
