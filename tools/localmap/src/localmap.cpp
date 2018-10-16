@@ -71,7 +71,7 @@ DE_Localmap::DE_Localmap() :
     proc_.minAssignValue_ = tval;
 
     nodeP_.param("minDepthThreshold", tval,0.4);
-    proc_.minDepthThreshold_ = tval;
+    //proc_.minDepthThreshold_ = tval;
 
 
     nodeP_.param("mapFrame", mapFrame_,std::string("map"));
@@ -85,6 +85,19 @@ DE_Localmap::DE_Localmap() :
     nodeP_.param("postProcessType", postProcessType_,0);
     nodeP_.param("postProcessSize", postProcessSize_,3);
 
+    std::vector<float> testPlaneNormal_default = {1.0,0,0};
+
+    nodeP_.param<std::vector<float> >("testPlaneNormal", testPlaneNormal_, testPlaneNormal_default);
+
+    cv::Point3f tn(testPlaneNormal_[0],testPlaneNormal_[1],testPlaneNormal_[2]);
+    double length = sqrt(tn.dot(tn));
+    tn = tn * (1.0/length);
+    testPlaneNormal_[0] = tn.x;
+    testPlaneNormal_[1] = tn.y;
+    testPlaneNormal_[2] = tn.z;
+
+    nodeP_.param("testPlaneDistance", testPlaneDistance_,0.5f);
+    nodeP_.param("doTestPlane", proc_.testPlane_,false);
 
 
     numRegistered_ = 0;
@@ -309,6 +322,13 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
 
 
     }
+
+    tf::Vector3 planePointBase(testPlaneNormal_[0]*testPlaneDistance_,testPlaneNormal_[1]*testPlaneDistance_,testPlaneNormal_[2]*testPlaneDistance_);
+    tf::Vector3 planeNormalBase(testPlaneNormal_[0],testPlaneNormal_[1],testPlaneNormal_[2]);
+
+    tf::Vector3 planePointMap = base2map*planePointBase;
+    tf::Vector3 planeNormalMap = base2map*planeNormalBase;
+    proc_.SetPlane(cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()),cv::Point3f(planeNormalMap.x(),planeNormalMap.y(),planeNormalMap.z()));
 
 
     cv::Point2f robotPos;
