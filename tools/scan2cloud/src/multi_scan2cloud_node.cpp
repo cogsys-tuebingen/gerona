@@ -13,17 +13,6 @@ public:
         // init parameter with a default value
         private_node_.param<std::string>("fixedFrame",fixed_frame_,"base_link");
 
-        private_node_.param<float>("filterK",proc_.tukey_k_,0.1f);
-        private_node_.param<float>("filterThresh",proc_.threshold_w_,1.5f);
-        private_node_.param<bool>("useDistance",proc_.use_dist_,true);
-        private_node_.param<bool>("useLatestTransform",proc_.always_use_latest_transform_obstacles_,true);
-        private_node_.param<float>("tfTimeout",proc_.tf_timeout_,0.05f);
-        private_node_.param<int>("filterWindowSize",proc_.windowSize_,8);
-        private_node_.param<float>("minRange",proc_.minRange_,0.03f);
-
-        private_node_.param<int>("filterType",proc_.filterType_,1);
-        private_node_.param<int>("minPoints",proc_.minPoints_,15);
-        private_node_.param<float>("minSegmentSize",proc_.minSegmentSize_,0.05f);
 
         GetScanMask(private_node_,"maskFront",maskFront_);
         GetScanMask(private_node_,"maskBack",maskBack_);
