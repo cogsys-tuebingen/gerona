@@ -24,14 +24,32 @@ public:
     float minXVal_;
     float minYVal_;
     float minAssignValue_;
-    float minDepthThreshold_;
+    //float minDepthThreshold_;
+
+    bool testPlane_;
+    float px,py,pz,d;
 
 
     ZImageProc()
     {
-        minDepthThreshold_ = 0.4f;
+        //minDepthThreshold_ = 0.4f;
         minAssignValue_ = 0.5;
+        testPlane_ = false;
 
+
+    }
+
+    inline bool TestPlane(const float&x, const float &y, const float &z) const
+    {
+        return ((x*px+y*py+z*pz+d < 0) && testPlane_);
+    }
+
+    void SetPlane(cv::Point3f p, cv::Point3f norm)
+    {
+        d = -p.dot(norm);
+        px = norm.x;
+        py = norm.y;
+        pz = norm.z;
 
     }
 
@@ -54,11 +72,45 @@ public:
     }
 
 
+    inline bool ProjectAndTest(const float &xl,const float &yl, const float &oz, float &rx, float &ry, float &rz) const
+    {
+        const float tx = ((float(xl)-cx)*fxi)*oz;
+        const float ty = ((float(yl)-cy)*fyi)*oz;
+        const float tz = oz;
+
+        rx = tx*r11+ty*r12+tz*r13+t1;
+        ry = tx*r21+ty*r22+tz*r23+t2;
+        rz = tx*r31+ty*r32+tz*r33+t3;
+
+        return !(std::isnan(rx) || TestPlane(rx,ry,rz) );
+
+    }
+
+    inline void ToMapCoord(const float &rx, const float &ry, const float &rz, float &posX, float &posY, float &posZ ) const
+    {
+#ifndef TRANSPOSE_TRANSFORM
+
+    // normal
+    posX = (rx-minXVal_) * pixelResolution_;
+    posY = (ry-minYVal_) * pixelResolution_;
+    posZ = rz;
+
+#else
+
+    // Transposed
+    posY = (rx-minXVal_) * pixelResolution_;
+    posX = (ry-minYVal_) * pixelResolution_;
+    posZ = rz;
+#endif
+    }
+
+
+
 
     /**
      * @brief Uses an inverse bilinear interpolation to interpolate the z values of neighbouring pixels (without min max calculation)
      */
-    void ProcessDepthImage(const cv::Mat &inD, cv::Mat &zImg, cv::Mat &assignVal, const float scale, const float baseLevel, const float zeroLevel, const float minVisX = 0.0f)
+    void ProcessDepthImage(const cv::Mat &inD, cv::Mat &zImg, cv::Mat &assignVal, const float scale, const float baseLevel, const float zeroLevel, const float minVisX = 0.0f) const
     {
 
         int resolutionX = zImg.cols;
@@ -100,33 +152,11 @@ public:
 
             for  (xl = 0; xl < inD.cols;++xl)
             {
-                oz = ptrD[xl];
-                tx = ((float(xl)-cx)*fxi)*oz;
-                ty = ((float(yl)-cy)*fyi)*oz;
-                tz = oz;
 
-                rx = tx*r11+ty*r12+tz*r13+t1;
-                ry = tx*r21+ty*r22+tz*r23+t2;
-                rz = tx*r31+ty*r32+tz*r33+t3;
+                if (!ProjectAndTest((float)xl,(float)yl,oz,rx,ry,rz)) continue;
 
-                if (std::isnan(tx)) continue;
+                ToMapCoord(rx, ry, rz, posX, posY, posZ);
 
-
-#ifndef TRANSPOSE_TRANSFORM
-
-                // normal
-
-                posX = (rx-minXVal_) * pixelResolution_;
-                posY = (ry-minYVal_) * pixelResolution_;
-                posZ = rz;
-
-#else
-
-                // Transposed
-                posY = (rx-minXVal_) * pixelResolution_;
-                posX = (ry-minYVal_) * pixelResolution_;
-                posZ = rz;
-#endif
 
                 flposX = floor(posX);
                 flposY = floor(posY);
@@ -200,7 +230,7 @@ public:
     /**
      * @brief Uses the mean over all nearest neighbour pixels
      */
-    void ProcessDepthImageNN(const cv::Mat &inD, cv::Mat &zImg, cv::Mat &assignVal, cv::Vec4i &minMax, const float scale, const float baseLevel, const float zeroLevel, const float minVisX = 0.0f)
+    void ProcessDepthImageNN(const cv::Mat &inD, cv::Mat &zImg, cv::Mat &assignVal, cv::Vec4i &minMax, const float scale, const float baseLevel, const float zeroLevel, const float minVisX = 0.0f) const
     {
         int resolutionX = zImg.cols-1;
         int resolutionY = zImg.rows-1;
@@ -242,34 +272,10 @@ public:
             for  (xl = 0; xl < inD.cols;++xl)
             {
                 oz = ptrD[xl];
-                if (oz < minDepthThreshold_) continue;
+                if (!ProjectAndTest((float)xl,(float)yl,oz,rx,ry,rz)) continue;
 
-                tx = ((float(xl)-cx)*fxi)*oz;
-                ty = ((float(yl)-cy)*fyi)*oz;
-                tz = oz;
+                ToMapCoord(rx, ry, rz, posX, posY, posZ);
 
-                rx = tx*r11+ty*r12+tz*r13+t1;
-                ry = tx*r21+ty*r22+tz*r23+t2;
-                rz = tx*r31+ty*r32+tz*r33+t3;
-
-                if (std::isnan(tx)) continue;
-
-
-#ifndef TRANSPOSE_TRANSFORM
-
-                // normal
-
-                posX = (rx-minXVal_) * pixelResolution_;
-                posY = (ry-minYVal_) * pixelResolution_;
-                posZ = rz;
-
-#else
-
-                // Transposed
-                posY = (rx-minXVal_) * pixelResolution_;
-                posX = (ry-minYVal_) * pixelResolution_;
-                posZ = rz;
-#endif
 
 
                 flPosXi = (int)round(posX);
@@ -300,7 +306,7 @@ public:
     /**
      * @brief Only uses the nearest neighbour with highest z-value
      */
-    void ProcessDepthImageMaxNN(const cv::Mat &inD, cv::Mat &zImg, cv::Mat &assignVal, cv::Vec4i &minMax, const float scale, const float baseLevel, const float zeroLevel, const float minVisX = 0.0f)
+    void ProcessDepthImageMaxNN(const cv::Mat &inD, cv::Mat &zImg, cv::Mat &assignVal, cv::Vec4i &minMax, const float scale, const float baseLevel, const float zeroLevel, const float minVisX = 0.0f) const
     {
         int resolutionX = zImg.cols-1;
         int resolutionY = zImg.rows-1;
@@ -345,34 +351,9 @@ public:
             for  (xl = 0; xl < inD.cols;++xl)
             {
                 oz = ptrD[xl];
-                if (oz < minDepthThreshold_) continue;
+                if (!ProjectAndTest((float)xl,(float)yl,oz,rx,ry,rz)) continue;
 
-                tx = ((float(xl)-cx)*fxi)*oz;
-                ty = ((float(yl)-cy)*fyi)*oz;
-                tz = oz;
-
-                rx = tx*r11+ty*r12+tz*r13+t1;
-                ry = tx*r21+ty*r22+tz*r23+t2;
-                rz = tx*r31+ty*r32+tz*r33+t3;
-
-                if (std::isnan(tx)) continue;
-
-
-#ifndef TRANSPOSE_TRANSFORM
-
-                // normal
-
-                posX = (rx-minXVal_) * pixelResolution_;
-                posY = (ry-minYVal_) * pixelResolution_;
-                posZ = rz;
-
-#else
-
-                // Transposed
-                posY = (rx-minXVal_) * pixelResolution_;
-                posX = (ry-minYVal_) * pixelResolution_;
-                posZ = rz;
-#endif
+                ToMapCoord(rx, ry, rz, posX, posY, posZ);
 
 
                 flPosXi = (int)round(posX);
@@ -402,7 +383,7 @@ public:
     /**
      * @brief Uses an inverse bilinear interpolation to interpolate the z values of neighbouring pixels
      */
-    void ProcessDepthImage(const cv::Mat &inD, cv::Mat &zImg, cv::Mat &assignVal, cv::Vec4i &minMax, const float scale, const float baseLevel, const float zeroLevel, const float minVisX = 0.0f)
+    void ProcessDepthImage(const cv::Mat &inD, cv::Mat &zImg, cv::Mat &assignVal, cv::Vec4i &minMax, const float scale, const float baseLevel, const float zeroLevel, const float minVisX = 0.0f) const
     {
         int resolutionX = zImg.cols-1;
         int resolutionY = zImg.rows-1;
@@ -448,34 +429,10 @@ public:
             for  (xl = 0; xl < inD.cols;++xl)
             {
                 oz = ptrD[xl];
-                if (oz < minDepthThreshold_) continue;
+                if (!ProjectAndTest((float)xl,(float)yl,oz,rx,ry,rz)) continue;
 
-                tx = ((float(xl)-cx)*fxi)*oz;
-                ty = ((float(yl)-cy)*fyi)*oz;
-                tz = oz;
+                ToMapCoord(rx, ry, rz, posX, posY, posZ);
 
-                rx = tx*r11+ty*r12+tz*r13+t1;
-                ry = tx*r21+ty*r22+tz*r23+t2;
-                rz = tx*r31+ty*r32+tz*r33+t3;
-
-                if (std::isnan(tx)) continue;
-
-
-
-#ifndef TRANSPOSE_TRANSFORM
-
-                // normal
-                posX = (rx-minXVal_) * pixelResolution_;
-                posY = (ry-minYVal_) * pixelResolution_;
-                posZ = rz;
-
-#else
-
-                // Transposed
-                posY = (rx-minXVal_) * pixelResolution_;
-                posX = (ry-minYVal_) * pixelResolution_;
-                posZ = rz;
-#endif
 
                 flposX = floor(posX);
                 flposY = floor(posY);

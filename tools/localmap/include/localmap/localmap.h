@@ -152,6 +152,10 @@ private:
 
     double transformWaitTime_,resetWaitTime_;
 
+    float testPlaneDistance_;
+    std::vector<float> testPlaneNormal_;
+
+
 
 
 
