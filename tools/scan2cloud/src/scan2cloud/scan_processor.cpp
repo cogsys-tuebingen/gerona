@@ -142,7 +142,7 @@ void ScanProcessor::ToPoints(const sensor_msgs::LaserScan &scan, const std::vect
     {
         double rd = (double)scan.ranges[i];
         tf::Point p(cos(curAngle)*rd,sin(curAngle)*rd,0);
-        if (scan_mask[i] && !std::isnan(rd) && rd > minRange_) points.push_back(p);
+        if (scan_mask[i] && !std::isnan(rd) && rd > minRange_ && InAngleRange(curAngle)) points.push_back(p);
         curAngle += scan.angle_increment;
 
     }
@@ -159,7 +159,7 @@ void ScanProcessor::ToPoints(const sensor_msgs::LaserScan &scan, std::vector<tf:
     {
         double rd = (double)scan.ranges[i];
         tf::Point p(cos(curAngle)*rd,sin(curAngle)*rd,0);
-        if (!std::isnan(rd) && rd > minRange_) points.push_back(p);
+        if (!std::isnan(rd) && rd > minRange_  && InAngleRange(curAngle)) points.push_back(p);
         curAngle += scan.angle_increment;
 
     }
@@ -170,7 +170,7 @@ void ScanProcessor::ToPoints(const sensor_msgs::LaserScan &scan, std::vector<tf:
 void ScanProcessor::ProcessScan(const sensor_msgs::LaserScan &scan, const std::vector<bool> scanMask, std::vector<tf::Point> &out_points)
 {
     if (useMask_)ToPoints(scan,scanMask,points1_);
-    else ToPoints(scan,scanMask,points1_);
+    else ToPoints(scan,points1_);
 
     switch (filterType_)
     {
@@ -381,5 +381,31 @@ void ScanProcessor::TransformCloud(const std::vector<tf::Point> &in, const std::
 
 
 }
+
+
+void ScanProcessor::SetParams(const ros::NodeHandle &private_node_)
+{
+    private_node_.param<std::string>("fixedFrame",fixed_frame_,"base_link");
+
+    private_node_.param<float>("filterK",tukey_k_,0.1f);
+    private_node_.param<float>("filterThresh",threshold_w_,1.5f);
+    private_node_.param<bool>("useDistance",use_dist_,true);
+    private_node_.param<bool>("useLatestTransform",always_use_latest_transform_obstacles_,true);
+    private_node_.param<float>("tfTimeout",tf_timeout_,0.05f);
+    private_node_.param<int>("filterWindowSize",windowSize_,8);
+    private_node_.param<float>("minRange",minRange_,0.03f);
+
+    private_node_.param<int>("filterType",filterType_,1);
+    private_node_.param<int>("minPoints",minPoints_,15);
+    private_node_.param<float>("minSegmentSize",minSegmentSize_,0.05f);
+    private_node_.param<float>("angleFilterMin",angleFilterMin_,-5.0f);
+    private_node_.param<float>("angleFilterMax",angleFilterMax_,5.0f);
+    private_node_.param<bool>("useAngleFilter",useAngleFilter_,false);
+
+
+
+}
+
+
 
 

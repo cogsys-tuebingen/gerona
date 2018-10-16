@@ -13,6 +13,8 @@ class ScanProcessor
 public:
     ScanProcessor();
 
+    void SetParams(const ros::NodeHandle &nh);
+
     void ProcessScan(const sensor_msgs::LaserScan &scan, const std::vector<bool> scanMask, std::vector<tf::Point> &out_points);
     void TransformCloud(const tf::Transform& transform, const std::vector<tf::Point> &in, std::vector<tf::Point> &out);
 
@@ -22,7 +24,7 @@ public:
     void ToPoints(const sensor_msgs::LaserScan &scan, const std::vector<bool> &scan_mask, std::vector<tf::Point> &points);
     void ToPoints(const sensor_msgs::LaserScan &scan, std::vector<tf::Point> &points);
 
-    inline bool InAngleRange(const float &a) const {return !(useAngleFilter &&  (a < angleFilterMin_ || a > angleFilterMax_) );  }
+    inline bool InAngleRange(const float &a) const {return !(useAngleFilter_ &&  (a < angleFilterMin_ || a > angleFilterMax_) );  }
 
     float tukey_k_;
     float threshold_w_;
