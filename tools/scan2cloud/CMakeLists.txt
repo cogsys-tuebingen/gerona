@@ -64,34 +64,40 @@ install(TARGETS ${PROJECT_NAME}_node
     RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 
 
-add_executable(single_scan2cloud_node
-    src/single_scan2cloud_node.cpp
+
+add_executable(simple_scan2cloud_node
+    src/simple_scan2cloud_node.cpp
     )
-
-## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
-# add_dependencies(scan2cloud_node scan2cloud_generate_messages_cpp)
-
-## Specify libraries to link a library or executable target against
-target_link_libraries(single_scan2cloud_node
+target_link_libraries(simple_scan2cloud_node
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
+    )
+
+install(TARGETS simple_scan2cloud_node
+    RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
+
+
+
+
+add_executable(single_scan2cloud_node
+    src/single_scan2cloud_node.cpp
+    src/${PROJECT_NAME}/scan_processor.cpp
+    )
+target_link_libraries(single_scan2cloud_node
+    ${catkin_LIBRARIES}
     )
 
 install(TARGETS single_scan2cloud_node
     RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 
 
+
+
 add_executable(multi_scan2cloud_node
     src/multi_scan2cloud_node.cpp
-    src/${PROJECT_NAME}/multi_scan2cloud.cpp
+    src/${PROJECT_NAME}/scan_processor.cpp
     )
 
-## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
-# add_dependencies(scan2cloud_node scan2cloud_generate_messages_cpp)
-
-## Specify libraries to link a library or executable target against
 target_link_libraries(multi_scan2cloud_node
     ${catkin_LIBRARIES}
     )

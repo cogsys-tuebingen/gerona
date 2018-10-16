@@ -22,6 +22,8 @@ public:
     void ToPoints(const sensor_msgs::LaserScan &scan, const std::vector<bool> &scan_mask, std::vector<tf::Point> &points);
     void ToPoints(const sensor_msgs::LaserScan &scan, std::vector<tf::Point> &points);
 
+    inline bool InAngleRange(const float &a) const {return !(useAngleFilter &&  (a < angleFilterMin_ || a > angleFilterMax_) );  }
+
     float tukey_k_;
     float threshold_w_;
     int windowSize_;
@@ -30,9 +32,12 @@ public:
     int minPoints_;
     float minSegmentSize_;
     bool always_use_latest_transform_obstacles_;
+    bool useMask_;
     std::string fixed_frame_;
     float tf_timeout_;
     float minRange_;
+    float angleFilterMin_,angleFilterMax_;
+    bool useAngleFilter_;
 private:
     std::vector<tf::Point> points1_;
     std::vector<tf::Point> points2_;
