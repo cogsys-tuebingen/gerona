@@ -15,6 +15,12 @@ public:
 
         proc_.SetParams(private_node_);
 
+        float affMin,affMax;
+        private_node_.param<float>("angleFilterFrontMin",affMin,-5.0f);
+        private_node_.param<float>("angleFilterFrontMax",affMax,5.0f);
+        angleFront_.setX(affMin);
+        angleFront_.setY(affMax);
+
 
         GetScanMask(private_node_,"mask",maskFront_);
 
@@ -46,7 +52,7 @@ public:
         lastStamp_ = scan_in->header.stamp;
 
         {
-            proc_.ProcessScan(*scan_in,maskFront_,front_points_);
+            proc_.ProcessScan(*scan_in,maskFront_,angleFront_,front_points_);
             cbScanfront_ = true;
         }
 
@@ -98,6 +104,7 @@ private:
 
     std::vector<bool> maskFront_;
 
+    tf::Point angleFront_;
 
 
 

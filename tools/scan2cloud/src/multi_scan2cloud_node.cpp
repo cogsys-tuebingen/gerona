@@ -14,6 +14,22 @@ public:
         private_node_.param<std::string>("fixedFrame",fixed_frame_,"base_link");
 
 
+        proc_.SetParams(private_node_);
+
+        float affMin,affMax;
+        private_node_.param<float>("angleFilterFrontMin",affMin,-5.0f);
+        private_node_.param<float>("angleFilterFrontMax",affMax,5.0f);
+        angleFront_.setX(affMin);
+        angleFront_.setY(affMax);
+
+        float afbMin,afbMax;
+        private_node_.param<float>("angleFilterBackMin",afbMin,-5.0f);
+        private_node_.param<float>("angleFilterBackMax",afbMax,5.0f);
+        angleBack_ .setX(afbMin);
+        angleBack_ .setY(afbMax);
+
+
+
         GetScanMask(private_node_,"maskFront",maskFront_);
         GetScanMask(private_node_,"maskBack",maskBack_);
 
@@ -47,10 +63,10 @@ public:
         lastStamp_ = scan_in->header.stamp;
 
         if (is_back) {
-            proc_.ProcessScan(*scan_in,maskBack_,back_points_);
+            proc_.ProcessScan(*scan_in,maskBack_,angleBack_,back_points_);
             cbScanback_ = true;
         } else {
-            proc_.ProcessScan(*scan_in,maskFront_,front_points_);
+            proc_.ProcessScan(*scan_in,maskFront_,angleFront_,front_points_);
             cbScanfront_ = true;
         }
 
@@ -107,6 +123,9 @@ private:
 
     std::vector<bool> maskFront_;
     std::vector<bool> maskBack_;
+    tf::Point angleFront_;
+    tf::Point angleBack_;
+
 
 
 
