@@ -130,6 +130,15 @@ ScanProcessor::ScanProcessor()
     minSegmentSize_ = 0.05;
     minRange_ = 0.03f;
     useMask_ = false;
+    useAngleFilter_ = false;
+
+    always_use_latest_transform_obstacles_ = false;
+
+
+    fixed_frame_ = "base_link";
+    tf_timeout_ = 0.05;
+
+
 }
 
 void ScanProcessor::ToPoints(const sensor_msgs::LaserScan &scan, const std::vector<bool> &scan_mask, std::vector<tf::Point> &points)
@@ -412,6 +421,7 @@ void ScanProcessor::SetParams(const ros::NodeHandle &private_node_)
     private_node_.param<float>("tfTimeout",tf_timeout_,0.05f);
     private_node_.param<int>("filterWindowSize",windowSize_,8);
     private_node_.param<float>("minRange",minRange_,0.03f);
+    private_node_.param<bool>("useMask",useMask_,false);
 
     private_node_.param<int>("filterType",filterType_,1);
     private_node_.param<int>("minPoints",minPoints_,15);
