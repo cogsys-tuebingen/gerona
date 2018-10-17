@@ -16,8 +16,8 @@ public:
         proc_.SetParams(private_node_);
 
         float affMin,affMax;
-        private_node_.param<float>("angleFilterFrontMin",affMin,-5.0f);
-        private_node_.param<float>("angleFilterFrontMax",affMax,5.0f);
+        private_node_.param<float>("angleFilterMin",affMin,-5.0f);
+        private_node_.param<float>("angleFilterMax",affMax,5.0f);
         angleFront_.setX(affMin);
         angleFront_.setY(affMax);
 
