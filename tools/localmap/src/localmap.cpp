@@ -323,12 +323,30 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
 
     }
 
+    /*
     tf::Vector3 planePointBase(testPlaneNormal_[0]*testPlaneDistance_,testPlaneNormal_[1]*testPlaneDistance_,testPlaneNormal_[2]*testPlaneDistance_);
     tf::Vector3 planeNormalBase(testPlaneNormal_[0],testPlaneNormal_[1],testPlaneNormal_[2]);
 
     tf::Vector3 planePointMap = base2map*planePointBase;
-    tf::Vector3 planeNormalMap = base2map*planeNormalBase;
+    tf::Transform base2mapRot;
+    base2mapRot.setIdentity();
+    base2mapRot.setRotation(base2map.getRotation());
+    tf::Vector3 planeNormalMap = base2mapRot*planeNormalBase;
     proc_.SetPlane(cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()),cv::Point3f(planeNormalMap.x(),planeNormalMap.y(),planeNormalMap.z()));
+
+    ROS_INFO_STREAM_THROTTLE(0.5,"Plane Normal: " << cv::Point3f(planeNormalMap.x(),planeNormalMap.y(),planeNormalMap.z()) << " Point: " << cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()));
+    */
+    tf::Vector3 planePointBase(testPlaneNormal_[0]*testPlaneDistance_,testPlaneNormal_[1]*testPlaneDistance_,testPlaneNormal_[2]*testPlaneDistance_);
+    tf::Vector3 robotPosBase(0,0,0);
+    tf::Vector3 planePointMap = base2map*planePointBase;
+    tf::Vector3 robotMap = base2map*robotPosBase;
+
+    tf::Vector3 diff = planePointMap-robotMap;
+
+    proc_.SetPlane(cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()),cv::Point3f(diff.x(),diff.y(),diff.z()));
+    cv::Point3f tDir(diff.x(),diff.y(),diff.z());
+    tDir = tDir* (1.0/sqrt(tDir.dot(tDir)));
+    ROS_INFO_STREAM_THROTTLE(0.5,"Plane Point: " << cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()) << " Normal: " << tDir);
 
 
     cv::Point2f robotPos;
