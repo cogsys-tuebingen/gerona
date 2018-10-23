@@ -46,7 +46,7 @@ public:
 
     void SetPlane(cv::Point3f p, cv::Point3f norm)
     {
-        cv::Point3f tnorm = norm * (1.0/(sqrt(norm.dot(norm))));
+        cv::Point3f tnorm = norm * (1.0f/(std::sqrt(norm.dot(norm))));
 
         d = -p.dot(tnorm);
         px = tnorm.x;

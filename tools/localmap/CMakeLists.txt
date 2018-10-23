@@ -23,7 +23,6 @@ find_package(catkin REQUIRED COMPONENTS
     cv_bridge
     image_transport
     sensor_msgs
-    pcl_ros
     )
 
 ## System dependencies are found with CMake's conventions
@@ -115,7 +114,6 @@ catkin_package(
 include_directories(include
     include/${PROJECT_NAME}
     ${catkin_INCLUDE_DIRS}
-    ${PCL_INCLUDE_DIRS}
 
     )
 
