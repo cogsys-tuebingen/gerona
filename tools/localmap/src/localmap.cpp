@@ -339,14 +339,15 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
     tf::Vector3 planePointBase(testPlaneNormal_[0]*testPlaneDistance_,testPlaneNormal_[1]*testPlaneDistance_,testPlaneNormal_[2]*testPlaneDistance_);
     tf::Vector3 robotPosBase(0,0,0);
     tf::Vector3 planePointMap = base2map*planePointBase;
-    tf::Vector3 robotMap = base2map*robotPosBase;
+    tf::Vector3 robotPosMap = base2map*robotPosBase;
 
-    tf::Vector3 diff = planePointMap-robotMap;
+    tf::Vector3 diff = planePointMap-robotPosMap;
 
     proc_.SetPlane(cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()),cv::Point3f(diff.x(),diff.y(),diff.z()));
     cv::Point3f tDir(diff.x(),diff.y(),diff.z());
     tDir = tDir* (1.0/sqrt(tDir.dot(tDir)));
-    ROS_INFO_STREAM_THROTTLE(0.5,"Plane Point: " << cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()) << " Normal: " << tDir);
+    //ROS_INFO_STREAM_THROTTLE(0.5,"Plane Point: " << cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()) << " Normal: " << tDir);
+    ROS_INFO_STREAM_THROTTLE(0.5,"planePointMap: " << cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()) << " robotPosMap: " <<  cv::Point3f(robotPosMap.x(),robotPosMap.y(),robotPosMap.z()) << " Normal: " << tDir);
 
 
     cv::Point2f robotPos;
@@ -494,6 +495,25 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
 
 
 #ifdef ELEVATION_CLOUD_DEBUG
+    /*
+    // for testing plane reject
+    std::vector<cv::Point3f> points;
+    for (int yl  = -100; yl < 100;yl++)
+    {
+        for (int xl  = -100; xl < 100;xl++)
+        {
+            cv::Point3f tp;
+
+            tp.x = robotPos.x + ((float)xl)*0.02;
+            tp.y = robotPos.y + ((float)yl)*0.02;
+            tp.z = 0.5f;
+
+            if (!proc_.TestPlane(tp.x, tp.y, tp.z)) points.push_back(tp);
+        }
+    }
+
+    if (imageCloud_pub_.getNumSubscribers() > 0) UtilsDem2PC::CreateCloud(points,mapFrame_,timeStamp,imageCloud_pub_);
+    */
     if (imageCloud_pub_.getNumSubscribers() > 0) UtilsDem2PC::PublishCloud(timeStamp,mapFrame_,blockMap_.currentMap_,imageCloud_pub_,blockMap_.origin_, blockMap_.pixelResolution_);
 #endif
 
