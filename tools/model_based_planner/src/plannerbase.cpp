@@ -148,7 +148,7 @@ cv::Mat PlannerBase::DrawDebugImage(float scalingFactor, bool drawRobot)
 
 
     dp.DrawGoal(sdp,goal_,curImgRobotPose_);
-    //dp.DrawPath(sdp,path_);
+    dp.DrawPath(sdp,path_);
 
 
     return sdp.GetImage();
