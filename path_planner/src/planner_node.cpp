@@ -51,6 +51,9 @@ Planner::Planner()
 
     nh_priv.param("grow_obstacles", grow_obstacles_, 0.0);
 
+    nh_priv.param("free_threshold", freeThreshold_, 50);
+    nh_priv.param("occ_threshold", occThreshold_, 70);
+
     nh_priv.param("use_cost_map", use_cost_map_, false);
     if(use_cost_map_ && !pre_process_) {
         use_cost_map_service_ = true;
@@ -220,8 +223,8 @@ void Planner::updateMap (const nav_msgs::OccupancyGrid &map, bool is_cost_map)
             }
         }
 
-        map_info->setLowerThreshold(50);
-        map_info->setUpperThreshold(70);
+        map_info->setLowerThreshold(freeThreshold_);
+        map_info->setUpperThreshold(occThreshold_);
         map_info->setNoInformationValue(-1);
     }
 

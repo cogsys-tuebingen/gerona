@@ -208,6 +208,9 @@ protected:
     double size_backward;
     double size_width;
 
+    int freeThreshold_;
+    int occThreshold_;
+
     ros::Subscriber goal_pose_sub;
     ros::Subscriber map_sub;
     ros::Subscriber sub_cloud;
