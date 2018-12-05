@@ -11,7 +11,8 @@ Chassis:
    chassisPosRobot: [ 0., 0. ]
    testChassis: 0
 Wheels:
-   wheelPosRobotX: 0.23
+   wheelPosRobotFrontX: 0.23
+   wheelPosRobotRearX: -0.23
    wheelPosRobotFrontY: 0.2
    wheelPosRobotRearY: 0.2
    wheelJointPosFront: [ 0., 0. ]
