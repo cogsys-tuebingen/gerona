@@ -16,7 +16,8 @@ struct WheelsConfig
 {
     WheelsConfig()
     {
-        wheelPosRobotX = 1.0;
+        wheelPosRobotFrontX = 1.0;
+        wheelPosRobotRearX = -1.0;
         wheelPosRobotRearY = 1.0;
         wheelPosRobotFrontY = 1.0;
         wheelJointPosRear = cv::Point2f(0,0);
@@ -33,7 +34,8 @@ struct WheelsConfig
 
     }
 
-    float wheelPosRobotX;
+    float wheelPosRobotFrontX;
+    float wheelPosRobotRearX;
     float wheelPosRobotRearY;
     float wheelPosRobotFrontY;
     cv::Point2f wheelJointPosRear;
@@ -137,7 +139,8 @@ struct ModelBasedPlannerConfig
     static void ReadWheelConf(cv::FileStorage &fs, WheelsConfig &wc)
     {
         cv::FileNode n = fs["Wheels"];                                // Read mappings from a sequence
-        wc.wheelPosRobotX = (float)(n["wheelPosRobotX"]);
+        wc.wheelPosRobotFrontX = (float)(n["wheelPosRobotFrontX"]);
+        wc.wheelPosRobotRearX = (float)(n["wheelPosRobotRearX"]);
         wc.wheelPosRobotFrontY = (float)(n["wheelPosRobotFrontY"]);
         wc.wheelPosRobotRearY = (float)(n["wheelPosRobotRearY"]);
         n["wheelJointPosFront"] >> wc.wheelJointPosFront;
@@ -249,9 +252,6 @@ struct ModelBasedPlannerConfig
         std::vector<WheelConfig> wheelConfs;
         WheelConfig wconf;// = wm1.GetConfig();
 
-        float wheelXpos = wheelsConfig_.wheelPosRobotX;
-        float wheelYPosR = wheelsConfig_.wheelPosRobotRearY;
-        float wheelYPosF = wheelsConfig_.wheelPosRobotFrontY;
 
         wconf.isTurnableWheel = false;
         wconf.rotTestSteps = 0;
@@ -264,14 +264,14 @@ struct ModelBasedPlannerConfig
         wconf.width = wheelsConfig_.wheelWidthRear;
 
 
-        wconf.wheelPosRobot.x = -wheelXpos;
-        wconf.wheelPosRobot.y = wheelYPosR;
+        wconf.wheelPosRobot.x = wheelsConfig_.wheelPosRobotRearX;
+        wconf.wheelPosRobot.y = wheelsConfig_.wheelPosRobotRearY;
 
         wheelConfs.push_back(wconf);
 
 
-        wconf.wheelPosRobot.x = -wheelXpos;
-        wconf.wheelPosRobot.y = -wheelYPosR;
+        wconf.wheelPosRobot.x = wheelsConfig_.wheelPosRobotRearX;
+        wconf.wheelPosRobot.y = -wheelsConfig_.wheelPosRobotRearY;
 
         wheelConfs.push_back(wconf);
 
@@ -287,13 +287,13 @@ struct ModelBasedPlannerConfig
         wconf.radius = wheelsConfig_.wheelRadiusFront;
         wconf.width = wheelsConfig_.wheelWidthFront;
 
-        wconf.wheelPosRobot.x = wheelXpos;
-        wconf.wheelPosRobot.y = -wheelYPosF;
+        wconf.wheelPosRobot.x = wheelsConfig_.wheelPosRobotFrontX;
+        wconf.wheelPosRobot.y = -wheelsConfig_.wheelPosRobotFrontY;
 
         wheelConfs.push_back(wconf);
 
-        wconf.wheelPosRobot.x = wheelXpos;
-        wconf.wheelPosRobot.y = wheelYPosF;
+        wconf.wheelPosRobot.x = wheelsConfig_.wheelPosRobotFrontX;
+        wconf.wheelPosRobot.y = wheelsConfig_.wheelPosRobotFrontY;
 
         wheelConfs.push_back(wconf);
 

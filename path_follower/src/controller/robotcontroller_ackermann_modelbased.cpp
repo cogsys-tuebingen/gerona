@@ -15,7 +15,7 @@ RobotController_Ackermann_ModelBased::RobotController_Ackermann_ModelBased():
 void RobotController_Ackermann_ModelBased::initialize()
 {
     RobotController_ModelBased::initialize();
-    wheelBaseLength_ = config.wheelsConfig_.wheelPosRobotX*2.0;
+    wheelBaseLength_ = config.wheelsConfig_.wheelPosRobotFrontX-config.wheelsConfig_.wheelPosRobotRearX;
 
 }
 
