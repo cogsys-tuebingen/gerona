@@ -69,6 +69,13 @@ public:
 
 
     /**
+     * @brief Set blocks around to a plane based on vehicle pose
+     */
+    void SetSafeAroundRobot();
+
+
+
+    /**
      * @brief Set current vehicle pose used for filling safe blocks
      */
     void SetPose(cv::Point3f normal, cv::Point3f pos);
