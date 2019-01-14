@@ -188,7 +188,7 @@ void DE_Localmap::mr_callback(const std_msgs::Int8ConstPtr& data)
     ros::Duration durWait(resetWaitTime_);
     durWait.sleep();
     blockMap_.SetMapTo(0);
-    blockMap_.SetSafeBlocksTo();
+    blockMap_.SetSafeAroundRobot();
 
     ROS_WARN_STREAM("Localmap: Resetting!");
 

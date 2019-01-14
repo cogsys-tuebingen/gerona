@@ -63,9 +63,43 @@ void BlockMap::SetSafeBlocksTo()
             mapPtr[x] = (startVal + dx1*(float)x + dy1*(float)y);
         }
     }
-
-
 }
+
+void BlockMap::SetSafeAroundRobot()
+{
+    //const float heightPixelRatio = heightScale/pixelSizeInv;
+    const float heightPixelRatio = heightScale_/pixelResolution_;
+    const float absZInv1 = curNormal_.z == 0 ? 0 : 1.0f/std::abs(curNormal_.z);
+
+    const float dx1 = (-curNormal_.x*absZInv1)*heightPixelRatio;
+    const float dy1 = ( curNormal_.y*absZInv1)*heightPixelRatio;
+
+    cv::Point2f mapPos = RobotPos2MapPos(cv::Point2f(curPos_.x,curPos_.y));
+
+    cv::Point2i safeBlockSize(safeBlocks_,safeBlocks_);
+
+    cv::Rect drawRect(mapPos.x - safeBlockSize.x*blockResolution_*0.5 ,mapPos.y - safeBlockSize.y*blockResolution_*0.5 ,safeBlockSize.x*blockResolution_,safeBlockSize.y*blockResolution_);
+
+
+    cv::Point2f wcPos1( (mapPos.x)-drawRect.x, (mapPos.y)-drawRect.y);
+
+    float startVal = (curPos_.z*heightScale_)- wcPos1.x*dx1 - wcPos1.y*dy1;
+
+    startVal += mapBaseLevel_;
+    cv::Mat tmat = currentMap_(drawRect);
+
+    float *mapPtr;
+
+    for (int y = 0; y < tmat.rows;++y)
+    {
+        mapPtr = tmat.ptr<float>(y);
+        for (int x = 0; x < tmat.cols;++x)
+        {
+            mapPtr[x] = (startVal + dx1*(float)x + dy1*(float)y);
+        }
+    }
+}
+
 
 /*
 void BlockMap::SetSafeBlocksTo(float val)
