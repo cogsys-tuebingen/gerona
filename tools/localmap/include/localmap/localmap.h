@@ -43,7 +43,7 @@ public:
     /**
      * @brief Fuse mode defines how the transformed image is fused with the map
      */
-    enum FUSE_MODE { FM_OVERWRITE,FM_MAX};
+    enum FUSE_MODE { FM_OVERWRITE,FM_MAX, FM_TEMPORAL};
 
     DE_Localmap();
 
@@ -75,6 +75,7 @@ public:
      */
     void UpdateLocalMapMax(cv::Mat &localMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax);
 
+    void UpdateLocalMapTemporal(cv::Mat &localMap, cv::Mat &localTempMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax, const cv::Point3f &planeP, const cv::Point3f &planeN);
 
 private:
     ros::NodeHandle nodeG_;
