@@ -233,6 +233,94 @@ void DE_Localmap::UpdateLocalMapOverwrite(cv::Mat &localMap, const cv::Mat & zIm
 
 }
 
+void DE_Localmap::UpdateLocalMapTemporal(cv::Mat &localMap, cv::Mat &localTempMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax, const cv::Point3f &planeP, const cv::Point3f &planeN)
+{
+    const float *zImageP;
+    float *localMapP;
+    const float *assignP;
+
+    float minVal = proc_.minAssignValue_;
+    int xl,yl;
+    float mapScaleF = mapScale_;
+    float mapOffsetF = mapOffset_;
+
+    //float zVal = 0
+    for (yl = minMax[1]; yl < minMax[3];++yl)
+    {
+        zImageP = zImage.ptr<float>(yl);
+        localMapP = localTempMap.ptr<float>(yl);
+        assignP = assignImage.ptr<float>(yl);
+
+        for (xl = minMax[0]; xl < minMax[2];++xl)
+        {
+            if (assignP[xl] >= minVal)
+            {
+                const float nval = (zImageP[xl]/(assignP[xl]))*mapScaleF+mapOffsetF;
+                if (nval > localMapP[xl]) localMapP[xl] = nval;
+
+            }
+
+        }
+    }
+
+    float px,py,pd;
+
+    float tppx,tppy,tppz;
+    proc_.ToMapCoord(planeP.x,planeP.y,planeP.z,tppx,tppy,tppz);
+
+    cv::Point3f tPlaneP(tppx,tppy,0);
+
+    cv::Point3f tnorm = planeN * (1.0f/(std::sqrt(planeN.dot(planeN))));
+
+    pd = -tPlaneP.dot(tnorm);
+    px = tnorm.x;
+    py = tnorm.y;
+
+    float x,y;
+    cv::Mat tempAssign;
+    float *tempAssignP;
+
+    assignImage.copyTo(tempAssign);
+
+    for (yl = minMax[1]; yl < minMax[3];++yl)
+    {
+        //zImageP = zImage.ptr<float>(yl);
+        //localMapP = localMap.ptr<float>(yl);
+        tempAssignP = tempAssign.ptr<float>(yl);
+
+        for (xl = minMax[0]; xl < minMax[2];++xl)
+        {
+            x = (float)xl;
+            y = (float)yl;
+            if (x*px+y*py+pd < 0)
+            {
+                tempAssignP[xl] = -1.0f;
+            }
+        }
+
+    }
+
+    for (yl = minMax[1]; yl < minMax[3];++yl)
+    {
+        zImageP = zImage.ptr<float>(yl);
+        localMapP = localMap.ptr<float>(yl);
+        assignP = tempAssign.ptr<float>(yl);
+
+        for (xl = minMax[0]; xl < minMax[2];++xl)
+        {
+            if (assignP[xl] >= minVal)
+            {
+                const float nval = (zImageP[xl]/(assignP[xl]))*mapScaleF+mapOffsetF;
+                if (nval > localMapP[xl]) localMapP[xl] = nval;
+
+            }
+
+        }
+    }
+
+}
+
+
 void DE_Localmap::UpdateLocalMapMax(cv::Mat &localMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax)
 {
     const float *zImageP;
@@ -343,7 +431,9 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
 
     tf::Vector3 diff = planePointMap-robotPosMap;
 
-    proc_.SetPlane(cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()),cv::Point3f(diff.x(),diff.y(),diff.z()));
+    cv::Point3f cvPlaneP(planePointMap.x(),planePointMap.y(),planePointMap.z());
+    cv::Point3f cvPlaneN(diff.x(),diff.y(),diff.z());
+    proc_.SetPlane(cvPlaneP,cvPlaneN);
     cv::Point3f tDir(diff.x(),diff.y(),diff.z());
     tDir = tDir* (1.0/sqrt(tDir.dot(tDir)));
     //ROS_INFO_STREAM_THROTTLE(0.5,"Plane Point: " << cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()) << " Normal: " << tDir);
@@ -422,12 +512,14 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
     default:proc_.ProcessDepthImage(cvDepth,cZImg_, cAssign_,minMax, mapScale_,mapOffset_,mapZeroLevel_);  break;
     }
 
+    cv::Mat resultImg;
+
     switch (fuseMode_) {
-    case FM_MAX: UpdateLocalMapMax(blockMap_.currentMap_,cZImg_, cAssign_,minMax);  break;
-    default: UpdateLocalMapOverwrite(blockMap_.currentMap_,cZImg_, cAssign_,minMax);  break;
+    case FM_TEMPORAL: {blockMap_.currentMap_.copyTo(resultImg); UpdateLocalMapTemporal(blockMap_.currentMap_,resultImg,cZImg_, cAssign_,minMax,cvPlaneP,cvPlaneN); resultImg = blockMap_.currentMap_;  break;}
+    case FM_MAX: {UpdateLocalMapMax(blockMap_.currentMap_,cZImg_, cAssign_,minMax); resultImg = blockMap_.currentMap_;  break;}
+    default: {UpdateLocalMapOverwrite(blockMap_.currentMap_,cZImg_, cAssign_,minMax); resultImg = blockMap_.currentMap_; break;}
     }
 
-    cv::Mat resultImg = blockMap_.currentMap_;
     std::string resultFrameID = localMapFrame_;
 
     if (transform2BaseLink_)
