@@ -19,11 +19,13 @@ Use the navigation goal from RViz to test GeRoNa interactively.
 
 ### Installation of requirements (Ubuntu)
 
+Remove the CATKIN_IGNORE file in gerona_examples
+
 Use rosdep to get all dependencies, or install them manually with
     sudo apt-get install ros-kinetic-turtlebot-stage
 
 To use rosdep, run the following
-    rosdep install --from-paths -i -y <path-to-src>
+    rosdep install --from-paths -i -r -y <path-to-src>
 
 
 ## Gazebo
@@ -35,8 +37,13 @@ Use rosdep to get all dependencies, or install them manually with
     sudo apt-get install ros-kinetic-summit-xl-sim
 
 Clone the latest version of the following repositories into your workspace:
+    git clone https://github.com/RobotnikAutomation/robotnik_msgs.git
+    git clone https://github.com/RobotnikAutomation/robotnik_sensors.git
     git clone https://github.com/RobotnikAutomation/summit_xl_sim.git
     git clone https://github.com/RobotnikAutomation/summit_xl_common.git
+    git clone https://github.com/rst-tu-dortmund/costmap_prohibition_layer
+    git clone https://github.com/ros-perception/slam_gmapping.git
+    git clone https://github.com/ros-perception/openslam_gmapping.git
     git clone https://github.com/Gastd/p3at_tutorial
 
 ! The first startup of gazebo might take a while as gazebo downloads missing models.
@@ -50,8 +57,8 @@ Summit XL simulation, shows how to remap topics, tf frames and groups.
 ! There is a problem with the summit simulation in older gazebo versions: friciton pyramid makes skid steering inhomogeneous.
 ! Depending on the absolute orientation of the robot, the skidding behaves differently.
 ! To test if your gazebo version has this problem, simply publish a static command to the robot:
-    
-    rostopic pub /cmd_vel geometry_msgs/Twist "linear:             
+
+    rostopic pub /cmd_vel geometry_msgs/Twist "linear:
           x: 0.3
           y: 0.0
           z: 0.0
@@ -65,4 +72,4 @@ Summit XL simulation, shows how to remap topics, tf frames and groups.
 
 2. gazebo_example_pioneer.launch
 
-Pioneer simulation, should work better in older gazebo versions. 
+Pioneer simulation, should work better in older gazebo versions.
