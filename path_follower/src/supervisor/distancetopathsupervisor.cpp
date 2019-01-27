@@ -1,7 +1,7 @@
 #include <path_follower/supervisor/distancetopathsupervisor.h>
 #include <path_msgs/FollowPathResult.h>
 #include <paths.h>
-#include <cslibs_utils/Line2d.h>
+#include <cslibs_navigation_utilities/Line2d.h>
 #include <Eigen/Core>
 
 using namespace Eigen;

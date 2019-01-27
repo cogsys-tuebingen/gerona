@@ -2,8 +2,8 @@
 #define ABSTRACT_LOCAL_PLANNER_H
 
 /// PROJECT
-#include <cslibs_utils/MathHelper.h>
-#include <cslibs_utils/Stopwatch.h>
+#include <cslibs_navigation_utilities/MathHelper.h>
+#include <cslibs_navigation_utilities/Stopwatch.h>
 #include <path_follower/utils/path.h>
 #include <path_follower/utils/path_interpolated.h>
 #include <path_follower/local_planner/constraint.h>

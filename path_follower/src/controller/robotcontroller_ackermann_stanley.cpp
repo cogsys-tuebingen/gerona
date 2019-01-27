@@ -6,7 +6,7 @@
 #include <ros/ros.h>
 #include <path_follower/utils/visualizer.h>
 
-#include <cslibs_utils/MathHelper.h>
+#include <cslibs_navigation_utilities/MathHelper.h>
 #include <deque>
 
 #include <limits>

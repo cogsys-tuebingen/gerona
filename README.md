@@ -15,7 +15,7 @@ First, install the dependencies. For example, from your workspace root directory
 
     cd src
     git clone https://github.com/cogsys-tuebingen/cslibs_path_planning
-    git clone https://github.com/cogsys-tuebingen/cslibs_utils
+    git clone https://github.com/cogsys-tuebingen/cslibs_navigation_utilities
     cd ..
 
     rosdep install --from-paths -i -r -y src

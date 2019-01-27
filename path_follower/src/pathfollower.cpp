@@ -4,7 +4,7 @@
 #include <path_follower/parameters/local_planner_parameters.h>
 /// SYSTEM
 #include <Eigen/Core>
-#include <cslibs_utils/MathHelper.h>
+#include <cslibs_navigation_utilities/MathHelper.h>
 #include <cmath>
 #include <boost/assign.hpp>
 
