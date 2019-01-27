@@ -15,11 +15,11 @@ First, install the dependencies. For example, from your workspace root directory
 
     cd src
     git clone https://github.com/cogsys-tuebingen/cslibs_path_planning
-    git clone https://github.com/cogsys-tuebingen/cslibs_utility
+    git clone https://github.com/cogsys-tuebingen/cslibs_utils
     cd ..
 
-    rosdep install --from-paths -i -y src
-    
+    rosdep install --from-paths -i -r -y src
+
 Then you can either use `catkin_make`, `catkin_make_isolated` or [catkin build](https://github.com/catkin/catkin_tools) to build the software.
 
 Quick Start
@@ -40,7 +40,7 @@ If you want to set goal poses manually using Rviz (e.g. for testing or demonstra
     roslaunch navigation_launch rviz_controlled.launch
 
 ### Select robot controller/model
-By default a controller for car-like robots is used (_ackermann_purepursuit_). To change this, simply set the environment variable `ROBOT_CONTROLLER` with the name of the controller you want to use.
+By default a controller for car-like robots is used (_ackermann_purepursuit_). To change this, simply set the environment variable `ROBOT_CONTROLLER` with the name of the contproller you want to use.
 For example, to use the omni-drive orthexp controller:
 
     export ROBOT_CONTROLLER=omni_orthexp
