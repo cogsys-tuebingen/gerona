@@ -22,9 +22,11 @@ Use the navigation goal from RViz to test GeRoNa interactively.
 Remove the CATKIN_IGNORE file in gerona_examples
 
 Use rosdep to get all dependencies, or install them manually with
+
     sudo apt-get install ros-kinetic-turtlebot-stage
 
 To use rosdep, run the following
+
     rosdep install --from-paths -i -r -y <path-to-src>
 
 
@@ -37,6 +39,7 @@ Use rosdep to get all dependencies, or install them manually with
     sudo apt-get install ros-kinetic-summit-xl-sim
 
 Clone the latest version of the following repositories into your workspace:
+
     git clone https://github.com/RobotnikAutomation/robotnik_msgs.git
     git clone https://github.com/RobotnikAutomation/robotnik_sensors.git
     git clone https://github.com/RobotnikAutomation/summit_xl_sim.git
@@ -46,7 +49,7 @@ Clone the latest version of the following repositories into your workspace:
     git clone https://github.com/ros-perception/openslam_gmapping.git
     git clone https://github.com/Gastd/p3at_tutorial
 
-! The first startup of gazebo might take a while as gazebo downloads missing models.
+> The first startup of gazebo might take a while as gazebo downloads missing models.
 
 ### Examples
 
@@ -54,9 +57,9 @@ Clone the latest version of the following repositories into your workspace:
 
 Summit XL simulation, shows how to remap topics, tf frames and groups.
 
-! There is a problem with the summit simulation in older gazebo versions: friciton pyramid makes skid steering inhomogeneous.
-! Depending on the absolute orientation of the robot, the skidding behaves differently.
-! To test if your gazebo version has this problem, simply publish a static command to the robot:
+> There is a problem with the summit simulation in older gazebo versions: friciton pyramid makes skid steering inhomogeneous.
+> Depending on the absolute orientation of the robot, the skidding behaves differently.
+> To test if your gazebo version has this problem, simply publish a static command to the robot:
 
     rostopic pub /cmd_vel geometry_msgs/Twist "linear:
           x: 0.3
@@ -67,7 +70,7 @@ Summit XL simulation, shows how to remap topics, tf frames and groups.
           y: 0.0
           z: 0.50" -r 10
 
-! If the robot is not moving in a circle, a useful behavior of GeRoNa cannot be expected.
+> If the robot is not moving in a circle, a useful behavior of GeRoNa cannot be expected.
 
 
 2. gazebo_example_pioneer.launch
