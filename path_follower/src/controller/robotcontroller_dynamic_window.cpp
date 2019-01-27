@@ -9,7 +9,7 @@
 #include <path_follower/utils/obstacle_cloud.h>
 #include <path_follower/parameters/path_follower_parameters.h>
 #include <path_follower/collision_avoidance/collision_avoider.h>
-#include <cslibs_utils/MathHelper.h>
+#include <cslibs_navigation_utilities/MathHelper.h>
 
 // SYSTEM
 #include <boost/algorithm/clamp.hpp>

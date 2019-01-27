@@ -4,7 +4,7 @@
 // PROJECT
 #include <path_follower/parameters/path_follower_parameters.h>
 #include <path_follower/utils/cubic_spline_interpolation.h>
-#include <cslibs_utils/MathHelper.h>
+#include <cslibs_navigation_utilities/MathHelper.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>
 

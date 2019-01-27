@@ -13,7 +13,7 @@
 #include <Eigen/Core>
 
 /// PROJECT
-#include <cslibs_utils/Line2d.h>
+#include <cslibs_navigation_utilities/Line2d.h>
 
 /**
  * @brief Provides functions to visualize things in Rviz (e.g. arrows, lines, ...)

@@ -9,7 +9,7 @@
 /// PROJECT
 #include <path_follower/controller/robotcontroller.h>
 #include <path_follower/utils/parameters.h>
-#include <cslibs_utils/MathHelper.h>
+#include <cslibs_navigation_utilities/MathHelper.h>
 
 // SYSTEM
 #include <boost/algorithm/clamp.hpp>

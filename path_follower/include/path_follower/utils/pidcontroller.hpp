@@ -2,7 +2,7 @@
 #define PIDCONTROLLER_H
 
 #include <Eigen/Core>
-#include <cslibs_utils/Stopwatch.h>
+#include <cslibs_navigation_utilities/Stopwatch.h>
 
 /**
  * @brief Multidimensional PID controller.

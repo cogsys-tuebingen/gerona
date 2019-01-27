@@ -2,7 +2,7 @@
 
 /// PROJECT
 #include <path_follower/pathfollower.h>
-#include <cslibs_utils/MathHelper.h>
+#include <cslibs_navigation_utilities/MathHelper.h>
 #include <path_follower/utils/path_exceptions.h>
 #include <path_follower/utils/pose_tracker.h>
 #include <path_follower/utils/visualizer.h>

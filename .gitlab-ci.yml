@@ -23,7 +23,7 @@ before_script:
   - ln -s $CI_PROJECT_DIR src/$CI_PROJECT_NAME
   - cd src
   - git clone gitlab@gitlab.cs.uni-tuebingen.de:libs/cslibs_path_planning
-  - git clone gitlab@gitlab.cs.uni-tuebingen.de:libs/cslibs_utils
+  - git clone gitlab@gitlab.cs.uni-tuebingen.de:libs/cslibs_navigation_utilities
   # install optional dependencies
   - git clone https://github.com/sbpl/sbpl
   - cd ..
