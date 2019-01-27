@@ -23,8 +23,8 @@
 
   <exec_depend>turtlebot_stage</exec_depend>
   <exec_depend>amcl</exec_depend>
-  <exec_depend>summit_xl_sim</exec_depend>
-  <exec_depend>summit_xl_common</exec_depend>
+  <exec_depend>summit_xl_gazebo</exec_depend>
+  <exec_depend>summit_xl_localization</exec_depend>
 
   <export>
   </export>
