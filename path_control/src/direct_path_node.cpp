@@ -378,7 +378,7 @@ private:
             ROS_ERROR("Lost connection to path follower.");
         }
 
-        ROS_INFO("Path execution finished.\n---------------------");
+        ROS_INFO_STREAM("Path execution finished. State: " << state.toString() << " Result: " << result->status);
 
         follow_path_final_state_ = state.state_;
         follow_path_result_ = result;
