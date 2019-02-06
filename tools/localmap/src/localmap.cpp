@@ -255,8 +255,7 @@ void DE_Localmap::UpdateLocalMapTemporal(cv::Mat &localMap, cv::Mat &localTempMa
         {
             if (assignP[xl] >= minVal)
             {
-                const float nval = (zImageP[xl]/(assignP[xl]))*mapScaleF+mapOffsetF;
-                if (nval > localMapP[xl]) localMapP[xl] = nval;
+                localMapP[xl] = (zImageP[xl]/(assignP[xl]))*mapScaleF+mapOffsetF;;
 
             }
 
@@ -277,11 +276,12 @@ void DE_Localmap::UpdateLocalMapTemporal(cv::Mat &localMap, cv::Mat &localTempMa
     py = tnorm.y;
 
     float x,y;
-    cv::Mat tempAssign;
-    float *tempAssignP;
+    //cv::Mat tempAssign;
+    //float *tempAssignP;
 
-    assignImage.copyTo(tempAssign);
+    //assignImage.copyTo(tempAssign);
 
+    /*
     for (yl = minMax[1]; yl < minMax[3];++yl)
     {
         //zImageP = zImage.ptr<float>(yl);
@@ -299,19 +299,22 @@ void DE_Localmap::UpdateLocalMapTemporal(cv::Mat &localMap, cv::Mat &localTempMa
         }
 
     }
+    */
 
     for (yl = minMax[1]; yl < minMax[3];++yl)
     {
         zImageP = zImage.ptr<float>(yl);
         localMapP = localMap.ptr<float>(yl);
-        assignP = tempAssign.ptr<float>(yl);
+        assignP = assignImage.ptr<float>(yl);
 
         for (xl = minMax[0]; xl < minMax[2];++xl)
         {
-            if (assignP[xl] >= minVal)
+            x = (float)xl;
+            y = (float)yl;
+
+            if (assignP[xl] >= minVal && x*px+y*py+pd > 0)
             {
-                const float nval = (zImageP[xl]/(assignP[xl]))*mapScaleF+mapOffsetF;
-                if (nval > localMapP[xl]) localMapP[xl] = nval;
+                localMapP[xl] = (zImageP[xl]/(assignP[xl]))*mapScaleF+mapOffsetF;
 
             }
 
@@ -437,7 +440,7 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
     cv::Point3f tDir(diff.x(),diff.y(),diff.z());
     tDir = tDir* (1.0/sqrt(tDir.dot(tDir)));
     //ROS_INFO_STREAM_THROTTLE(0.5,"Plane Point: " << cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()) << " Normal: " << tDir);
-    ROS_INFO_STREAM_THROTTLE(0.5,"planePointMap: " << cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()) << " robotPosMap: " <<  cv::Point3f(robotPosMap.x(),robotPosMap.y(),robotPosMap.z()) << " Normal: " << tDir);
+    //ROS_INFO_STREAM_THROTTLE(0.5,"planePointMap: " << cv::Point3f(planePointMap.x(),planePointMap.y(),planePointMap.z()) << " robotPosMap: " <<  cv::Point3f(robotPosMap.x(),robotPosMap.y(),robotPosMap.z()) << " Normal: " << tDir);
 
 
     cv::Point2f robotPos;
@@ -515,7 +518,7 @@ void DE_Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
     cv::Mat resultImg;
 
     switch (fuseMode_) {
-    case FM_TEMPORAL: {blockMap_.currentMap_.copyTo(resultImg); UpdateLocalMapTemporal(blockMap_.currentMap_,resultImg,cZImg_, cAssign_,minMax,cvPlaneP,cvPlaneN); resultImg = blockMap_.currentMap_;  break;}
+    case FM_TEMPORAL: {blockMap_.currentMap_.copyTo(resultImg); UpdateLocalMapTemporal(blockMap_.currentMap_,resultImg,cZImg_, cAssign_,minMax,cvPlaneP,cvPlaneN); /*resultImg = blockMap_.currentMap_;*/  break;}
     case FM_MAX: {UpdateLocalMapMax(blockMap_.currentMap_,cZImg_, cAssign_,minMax); resultImg = blockMap_.currentMap_;  break;}
     default: {UpdateLocalMapOverwrite(blockMap_.currentMap_,cZImg_, cAssign_,minMax); resultImg = blockMap_.currentMap_; break;}
     }
