@@ -12,6 +12,7 @@ class ScaledDrawProc
 public:
     ScaledDrawProc();
 
+    void SetMatNoScale(cv::Mat &image);
 
     void SetMat(cv::Mat &image);
 
