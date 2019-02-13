@@ -14,6 +14,12 @@ void ScaledDrawProc::SetMat(cv::Mat &image)
 
 }
 
+void ScaledDrawProc::SetMatNoScale(cv::Mat &image)
+{
+    image_ = image;
+}
+
+
 void ScaledDrawProc::DrawImage(cv::Mat &image, cv::Point2f pos)
 {
     cv::Mat tImg;
