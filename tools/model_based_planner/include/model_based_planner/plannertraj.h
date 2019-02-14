@@ -92,12 +92,26 @@ public:
         if (bestNode_ == nullptr) return;
 
         TrajNode* bestNodeParent = bestNode_->GetFirstNode();
+
+        SetWheelAnglesStart(bestNodeParent);
+
         if (bestNodeParent == nullptr) return;
 
         scorer_.SetLastCmdVel(bestNodeParent->startCmd_);
 
     }
 
+    void SetWheelAnglesStart(TrajNode *startNode)
+    {
+        cv::Vec4f wheelAnglesRobot = poseEstimator_.robotModel_.GetWheelAnglesRobot(startNode->startCmd_);
+        startNode->start_->SetWheelAnglesRobot(wheelAnglesRobot);
+        RobotModel* rModel = poseEstimator_.GetRobotModel();
+        rModel->SetWheelAngle(curImgRobotPose_.z,rModel->GetAngleIdx(curImgRobotPose_.z),rModel->GetWheel(0),startNode->start_->wheelEvalResults_[0]);
+        rModel->SetWheelAngle(curImgRobotPose_.z,rModel->GetAngleIdx(curImgRobotPose_.z),rModel->GetWheel(1),startNode->start_->wheelEvalResults_[1]);
+        rModel->SetWheelAngle(curImgRobotPose_.z,rModel->GetAngleIdx(curImgRobotPose_.z),rModel->GetWheel(2),startNode->start_->wheelEvalResults_[2]);
+        rModel->SetWheelAngle(curImgRobotPose_.z,rModel->GetAngleIdx(curImgRobotPose_.z),rModel->GetWheel(3),startNode->start_->wheelEvalResults_[3]);
+
+    }
 
 
     inline TrajNode* GetStartNode()
@@ -121,6 +135,7 @@ public:
         startNode->poseResults_[0].pose = curImgRobotPose_;
         startNode->start_ = &startNode->poseResults_[0];
         startNode->SetEnd(0);
+        //SetWheelAnglesStart(startNode);
         //startNode->Reset();
 
         scorer_.SetRobotPose(curImgRobotPose_,config_.procConfig_.pixelSizeInv* config_.expanderConfig_.maxLinVel*config_.plannerConfig_.lookAheadTime);

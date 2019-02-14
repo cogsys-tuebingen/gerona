@@ -126,19 +126,25 @@ cv::Mat PlannerBase::DrawDebugImage(float scalingFactor, bool drawRobot)
     std::vector<TrajNode*> trajectories_;
     iplanner->GetAllTrajectoryNodes(trajectories_);
 
-    if (trajectories_.size() > 0)
+    if (bestNode_ != nullptr)
+    {
+        TrajNode* curTraj = bestNode_->GetFirstNode();
+        result = *curTraj->start_;
+    }
+    else if (trajectories_.size() > 0)
     {
         TrajNode* curTraj = trajectories_[0];
         result = *curTraj->start_;
     }
 
 
+    /*
     result.SetWheelAnglesGlobal(result.pose.z);
     result.wheelEvalResults_[0].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
     result.wheelEvalResults_[1].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
     result.wheelEvalResults_[2].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
     result.wheelEvalResults_[3].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
-
+*/
 
 
     if (drawRobot) dp.DrawRobotScaled(sdp,*poseEstimator_.GetRobotModel(),result);
@@ -195,12 +201,13 @@ cv::Mat PlannerBase::DrawDebugImage(PoseEvalResults result, float scalingFactor,
 
     dp.SetupDrawProc(sdp,drawMat,scalingFactor);
 
+    /*
     result.SetWheelAnglesGlobal(result.pose.z);
     result.wheelEvalResults_[0].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
     result.wheelEvalResults_[1].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
     result.wheelEvalResults_[2].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
     result.wheelEvalResults_[3].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
-
+*/
 
 
     if (drawRobot) dp.DrawRobotScaled(sdp,*poseEstimator_.GetRobotModel(),result);

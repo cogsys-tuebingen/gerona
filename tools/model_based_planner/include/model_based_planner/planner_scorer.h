@@ -253,7 +253,7 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
     inline void ScoreNode(TrajNode &current)  const
     {
         float velDiff = 0;
-        if (current.parent_ != nullptr) velDiff = std::abs(current.endCmd_.y);
+        if (current.parent_ != nullptr) velDiff = std::abs(current.endCmd_.y-current.parent_->endCmd_.y);
         current.scores[7] += velDiff;
 
         /*
