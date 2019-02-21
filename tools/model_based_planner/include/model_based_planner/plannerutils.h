@@ -18,8 +18,8 @@ struct DriveModelDA
 
         if (std::abs(cmd.y) < COMMANDEPSILON)
         {
-            res.x = in.x+cos(in.z)*cmd.x;
-            res.y = in.y+sin(in.z)*cmd.x;
+            res.x = in.x+std::cos(in.z)*cmd.x;
+            res.y = in.y+std::sin(in.z)*cmd.x;
             res.z = in.z;
 
 
@@ -27,10 +27,31 @@ struct DriveModelDA
         else
         {
 
-            float r = cmd.x/cmd.y;
+            const float r = cmd.x/cmd.y;
 
-            res.x = in.x + r*(sin(in.z + cmd.y) - sin(in.z) );
-            res.y = in.y + r*(-cos(in.z + cmd.y) + cos(in.z) );
+            res.x = in.x + r*(std::sin(in.z + cmd.y) - std::sin(in.z) );
+            res.y = in.y + r*(-std::cos(in.z + cmd.y) + std::cos(in.z) );
+            res.z = in.z + cmd.y;
+        }
+
+    }
+
+    static void UpdatePose(const cv::Point3f &in, const cv::Point2f &cmd, const float &r, cv::Point3f &res){
+
+        if (std::abs(cmd.y) < COMMANDEPSILON)
+        {
+            res.x = in.x+std::cos(in.z)*cmd.x;
+            res.y = in.y+std::sin(in.z)*cmd.x;
+            res.z = in.z;
+
+
+        }
+        else
+        {
+
+
+            res.x = in.x + r*(std::sin(in.z + cmd.y) - std::sin(in.z) );
+            res.y = in.y + r*(-std::cos(in.z + cmd.y) + std::cos(in.z) );
             res.z = in.z + cmd.y;
         }
 
