@@ -40,6 +40,7 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   sensor_msgs
   model_based_planner
+  dt_planner
 )
 
 find_package(PCL REQUIRED)
@@ -153,6 +154,7 @@ add_library(${PROJECT_NAME} SHARED
     src/controller/robotcontroller_ekm.cpp
     src/controller/robotcontroller_ekm_TT.cpp
     src/controller/robotcontroller_velocity_TT.cpp
+    src/controller/robotcontroller_distance_transform.cpp
 
     src/local_planner/abstract_local_planner.cpp
     src/local_planner/local_planner_null.cpp
