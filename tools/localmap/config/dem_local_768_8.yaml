@@ -4,6 +4,7 @@ Proc:
    numAngleStep: 360
    heightScale: 1000.
    mapBaseHeight: 10000
+   notVisibleLevel: 1000
    wheelGroundLevel: 20000
    maxHeight: 30000
    pixelSize: 0.010416667
