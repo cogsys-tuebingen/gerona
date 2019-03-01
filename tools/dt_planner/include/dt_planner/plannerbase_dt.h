@@ -192,6 +192,8 @@ public:
     cv::Mat DrawDebugImage(float scalingFactor, bool drawRobot);
     cv::Mat DrawDebugImage(PoseEvalResultsDT results, float scalingFactor, bool drawRobot);
 
+    cv::Mat DrawMap(PoseEvalResultsDT &results);
+
 
 
     void GetAllTrajectoryNodes(std::vector<TrajNodeDT*> &trajectories)

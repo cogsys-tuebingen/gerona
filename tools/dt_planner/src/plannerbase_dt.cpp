@@ -77,70 +77,74 @@ TrajectoryDT* PlannerBaseDT::GetBLResultTrajectory()
 }
 
 
-
-
-cv::Mat PlannerBaseDT::DrawDebugImage(float scalingFactor, bool drawRobot)
+cv::Mat PlannerBaseDT::DrawMap(PoseEvalResultsDT &results)
 {
     DrawProc dp;
-    dp.conf = config_;
-    //dp.drawZMin_ = - config_.procConfig_.mapBaseHeight/20;
-    //dp.drawZMax_ =  config_.procConfig_.mapBaseHeight/20;
-
-
+    cv::Mat dmap = poseEstimator_.GetDMap();
     cv::Mat dem = poseEstimator_.GetDEM();
 
-    short minVal = 32000,maxVal = 0;
-    short *demPtr;
-    for (int y = 0; y < dem.rows;++y)
-    {
-        demPtr = dem.ptr<short>(y);
-        for (int x = 0; x < dem.cols;++x)
-        {
-            if (demPtr[x] > config_.procConfig_.notVisibleLevel)
-            {
-                if (demPtr[x] > maxVal) maxVal = demPtr[x];
-                if (demPtr[x] < minVal) minVal = demPtr[x];
+    cv::Mat drawMat = dp.D16SImageToRGB(dem,config_.procConfig_.mapBaseHeight- config_.procConfig_.heightScale,config_.procConfig_.mapBaseHeight+ config_.procConfig_.heightScale);
 
-            }
-        }
-    }
-    dp.drawZMin_ = minVal- config_.procConfig_.mapBaseHeight;
-    dp.drawZMax_ = maxVal- config_.procConfig_.mapBaseHeight;
+    //dp.DrawMapStates(dem,drawMat,config_.procConfig_);
 
-
-    cv::Mat drawMat = dp.D16SImageToRGB(dem,config_.procConfig_.mapBaseHeight+ dp.drawZMin_,config_.procConfig_.mapBaseHeight+dp.drawZMax_);
-
-    dp.DrawMapStates(dem,drawMat,config_.procConfig_);
-
-    cv::Mat dmap = poseEstimator_.GetDMap();
 
 
     float *dmapPtr;
     cv::Vec3b *dstPtr;
+    short *demPtr;
+
+    cv::Point2f rPos(results.pose.x,results.pose.y);
+    cv::Point2f pPos;
+    cv::Point2f diffPos;
+    float distP = 0;
+
     for (int y = 0; y < dmap.rows;++y)
     {
         dmapPtr = dmap.ptr<float>(y);
         dstPtr = drawMat.ptr<cv::Vec3b>(y);
+        demPtr = dem.ptr<short>(y);
         for (int x = 0; x < dmap.cols;++x)
         {
-            if (dmapPtr[x] < config_.scorerConfig_.distanceThreshold)
+            pPos.x = x;
+            pPos.y = y;
+            diffPos = pPos-rPos;
+            distP = std::sqrt(diffPos.dot(diffPos));
+
+            if (results.validState != PERSDT_NOTASSIGNED && demPtr[x] <= config_.procConfig_.notVisibleLevel && distP > config_.scorerConfig_.noWheelSupportNearThresholdImg)
             {
-                dstPtr[x][2] = 255;
+
+                    dstPtr[x][0] = 100;
+                    dstPtr[x][1] = 100;
 
             }
             else
             {
-                dstPtr[x][0] = dstPtr[x][1]+dmapPtr[x] < 255?dstPtr[x][1]+dmapPtr[x]:255 ;
+
+                float distNorm = dmapPtr[x] > config_.scorerConfig_.dontCareDistanceImg? 1.0f : dmapPtr[x]/config_.scorerConfig_.dontCareDistanceImg;
+
+                distNorm = 1.0f - distNorm;
+
+                float tCVal = dstPtr[x][0];
+
+                float resC = tCVal*(1.0f - (distNorm*0.5 ) );
+
+                dstPtr[x][1] = resC;
+                dstPtr[x][2] = resC;
+
 
             }
+
         }
     }
 
+    return drawMat;
+}
+
+cv::Mat PlannerBaseDT::DrawDebugImage(float scalingFactor, bool drawRobot)
+{
 
 
-    ScaledDrawProc sdp;
 
-    dp.SetupDrawProc(sdp,drawMat,scalingFactor);
 
     PoseEvalResultsDT result;
 
@@ -162,14 +166,16 @@ cv::Mat PlannerBaseDT::DrawDebugImage(float scalingFactor, bool drawRobot)
         result = *curTraj->start_;
     }
 
+    cv::Mat drawMat = DrawMap(result);
 
-    /*
-    result.SetWheelAnglesGlobal(result.pose.z);
-    result.wheelEvalResults_[0].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
-    result.wheelEvalResults_[1].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
-    result.wheelEvalResults_[2].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
-    result.wheelEvalResults_[3].wheelAngleIdx = poseEstimator_.GetRobotModel()->GetAngleIdx(result.pose.z);
-*/
+
+    ScaledDrawProc sdp;
+    DrawProc dp;
+    dp.conf = config_;
+
+
+    dp.SetupDrawProc(sdp,drawMat,scalingFactor);
+
 
 
     if (drawRobot) dp.DrawRobotScaled(sdp,*poseEstimator_.GetRobotModel(),result);
@@ -189,65 +195,13 @@ cv::Mat PlannerBaseDT::DrawDebugImage(float scalingFactor, bool drawRobot)
 
 cv::Mat PlannerBaseDT::DrawDebugImage(PoseEvalResultsDT result, float scalingFactor, bool drawRobot)
 {
-    DrawProc dp;
-    dp.conf = config_;
-
-    //dp.drawZMin_ = - config_.procConfig_.mapBaseHeight/20;
-    //dp.drawZMax_ =  config_.procConfig_.mapBaseHeight/20;
-
-
-
-    cv::Mat dem = poseEstimator_.GetDEM();
-
-    short minVal = 32000,maxVal = 0;
-    short *demPtr;
-    for (int y = 0; y < dem.rows;++y)
-    {
-        demPtr = dem.ptr<short>(y);
-        for (int x = 0; x < dem.cols;++x)
-        {
-            if (demPtr[x] > config_.procConfig_.notVisibleLevel)
-            {
-                if (demPtr[x] > maxVal) maxVal = demPtr[x];
-                if (demPtr[x] < minVal) minVal = demPtr[x];
-
-            }
-        }
-    }
-    dp.drawZMin_ = minVal- config_.procConfig_.mapBaseHeight;
-    dp.drawZMax_ = maxVal- config_.procConfig_.mapBaseHeight;
-
-
-    cv::Mat drawMat = dp.D16SImageToRGB(dem,config_.procConfig_.mapBaseHeight+ dp.drawZMin_,config_.procConfig_.mapBaseHeight+dp.drawZMax_);
-
-    dp.DrawMapStates(dem,drawMat,config_.procConfig_);
-
-    cv::Mat dmap = poseEstimator_.GetDMap();
-
-
-    float *dmapPtr;
-    cv::Vec3b *dstPtr;
-    for (int y = 0; y < dmap.rows;++y)
-    {
-        dmapPtr = dmap.ptr<float>(y);
-        dstPtr = drawMat.ptr<cv::Vec3b>(y);
-        for (int x = 0; x < dmap.cols;++x)
-        {
-            if (dmapPtr[x] < config_.scorerConfig_.distanceThreshold)
-            {
-                dstPtr[x][2] = 255;
-
-            }
-            else
-            {
-                dstPtr[x][1] = dstPtr[x][1]+dmapPtr[x] < 255?dstPtr[x][1]+dmapPtr[x]:255 ;
-
-            }
-        }
-    }
+    cv::Mat drawMat = DrawMap(result);
 
 
     ScaledDrawProc sdp;
+    DrawProc dp;
+    dp.conf = config_;
+
 
     dp.SetupDrawProc(sdp,drawMat,scalingFactor);
 

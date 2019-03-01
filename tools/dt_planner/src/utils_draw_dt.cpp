@@ -323,7 +323,14 @@ void DrawProc::DrawRobotScaled(ScaledDrawProc &drawProc, RobotModelDT &model, Po
         if (results.distances[i] <= 0) cColor = cv::Scalar(255,0,0);
 
         drawProc.DrawCircleScaled(curPos+rDesc.testPositionsImage_[i],tp.radiusImg,cColor,1);
-        if (results.distances[i] > 0 && results.distances[i] < 1000)drawProc.DrawCircleScaled(curPos+rDesc.testPositionsImage_[i],results.distances[i],cv::Scalar(0,255,128),1);
+        //if (results.distances[i] > 0 && results.distances[i] < 1000)drawProc.DrawCircleScaled(curPos+rDesc.testPositionsImage_[i],results.distances[i],cv::Scalar(0,255,128),1);
+        float limitDist = results.distances[i] > conf.scorerConfig_.dontCareDistanceImg ? conf.scorerConfig_.dontCareDistanceImg : results.distances[i];
+
+        float normDist = limitDist / conf.scorerConfig_.dontCareDistanceImg;
+
+        cv::Scalar cCol(255.0*(1.0-normDist),255.0*normDist,0);
+
+        drawProc.DrawCircleScaled(curPos+rDesc.testPositionsImage_[i],tp.radiusImg+limitDist,cCol,1);
 
     }
 

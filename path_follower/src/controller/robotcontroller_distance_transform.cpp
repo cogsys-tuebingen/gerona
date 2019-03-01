@@ -497,7 +497,7 @@ void RobotController_DT::imageCallback (const sensor_msgs::ImageConstPtr& image)
 
     if (result != nullptr && result->end_ != nullptr)
     {
-        ROS_INFO_STREAM("End State: " << result->end_->validState << " : " << PoseEvalResults::GetValidStateString(result->end_->validState));
+        ROS_INFO_STREAM("End State: " << result->end_->validState << " : " << PoseEvalResultsDT::GetValidStateString(result->end_->validState));
 
     }
 
@@ -532,7 +532,7 @@ void RobotController_DT::imageCallback (const sensor_msgs::ImageConstPtr& image)
 
     }
 
-    bool reachedGoal = result->end_->validState == PERS_GOALREACHED;
+    bool reachedGoal = result->end_->validState == PERSDT_GOALREACHED;
 
     if ((int)result->poseResults_.size() < opt_.min_traj_nodes_goal() && (reachedGoal) )
     {
