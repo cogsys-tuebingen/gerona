@@ -90,6 +90,9 @@ void PoseEstimatorDT::CreateMap(const cv::Point3f &rPose, const PlannerScorerCon
     cv::Point2f pixelPos;
     cv::Point2f diffPos;
 
+    const short notVisibleLevel = (short)procConfig_.notVisibleLevel;
+    const float wheelSupportFarThresholdSqr = wheelSupportFarThreshold*wheelSupportFarThreshold;
+
     for (unsigned int y = 0; y < orgDem_.rows;++y)
     {
         srcPtr = orgDem_.ptr<short>(y);
@@ -104,7 +107,7 @@ void PoseEstimatorDT::CreateMap(const cv::Point3f &rPose, const PlannerScorerCon
 
             if ((srcPtr[x] < lowerLimit ))
             {
-                if (!(srcPtr[x] <= procConfig_.notVisibleLevel && std::sqrt(diffPos.dot(diffPos)) > wheelSupportFarThreshold ))
+                if (!(srcPtr[x] <= notVisibleLevel && (diffPos.dot(diffPos)) > wheelSupportFarThresholdSqr ))
                     dstPtr[x] = 0;
             }
             if (srcPtr[x] > upperLimit)

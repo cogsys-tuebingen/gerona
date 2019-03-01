@@ -141,7 +141,9 @@ struct TrajNodeDT : public TrajectoryDT
         validState_ = TNDT_VS_NOTASSIGNED;
         numValid_ = 0;
 
-        for (unsigned int tl = 0; tl < poseResults_.size();++tl) poseResults_[tl].Reset();
+        memset(&poseResults_[0],0,sizeof(PoseEvalResultsDT)*poseResults_.size());
+
+        for (unsigned int tl = 0; tl < poseResults_.size();++tl) poseResults_[tl].validState = PERSDT_NOTASSIGNED;
 
     }
 
