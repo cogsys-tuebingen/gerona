@@ -8,6 +8,7 @@ RobotModelDT::RobotModelDT()
 {
     demRowsF_ = -1;
     demColsF_ = -1;
+    dontCareDist_ = 100000;
 }
 
 
@@ -41,13 +42,15 @@ int RobotModelDT::EvaluatePose(const cv::Mat &dem, PoseEvalResultsDT &results) c
         else
         {
             distanceToPoint = demPtr[(int)testPoint.y * dem.cols + (int)testPoint.x ];
-            distanceToCircle = distanceToPoint - testPoints_[i].radiusImg;
+            distanceToCircle = std::min(distanceToPoint - testPoints_[i].radiusImg, dontCareDist_);
             results.distances[i] = distanceToCircle;
             results.minDist= std::min(results.minDist,distanceToCircle);
             results.meanDist += distanceToCircle;
-            results.validState = distanceToCircle<0 ? PERSDT_COLLISION : results.validState;
+
         }
     }
+
+    if (results.minDist<0) results.validState = PERSDT_COLLISION;
 
     results.meanDist *= invNumTestPoints_;
 
@@ -62,6 +65,7 @@ void RobotModelDT::SetupRobot(DTPlannerConfig &config)
 
     config.procConfig_.Setup();
     SetupRobot(config.procConfig_,config.robotConfig_);
+    dontCareDist_ = config.scorerConfig_.dontCareDistanceImg;
 
 }
 
