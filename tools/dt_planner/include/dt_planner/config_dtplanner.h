@@ -19,7 +19,7 @@ struct PlannerScorerConfigDT
     {
 
         distanceThreshold = 0.0;
-        dontCareDistance = 0.8;
+        dontCareDistance = 0.4;
 
         targetGoalDistance = 0.1;
         minPoseTime = 0.8;
@@ -33,8 +33,8 @@ struct PlannerScorerConfigDT
         f_poseC = 0.0;
         f_aVelD = 0.0;
 
-        f_goalDistance = 1.0;
-        f_goalOrientation = -0.5;
+        f_goalDistance = 4.0;
+        f_goalOrientation = -1.0;
         f_pathDistance = -1.0;
         f_lastCmdVelDiff = -0.0;
 
