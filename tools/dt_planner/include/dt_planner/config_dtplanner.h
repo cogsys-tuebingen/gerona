@@ -328,7 +328,7 @@ struct DTPlannerConfig
         plannerConfig_.Setup();
         robotConfig_.Setup(procConfig_.pixelSize);
         scorerConfig_.Setup(procConfig_.pixelSize);
-
+/*
         plannerConfig_.lookAheadTime = 5.0;
         plannerConfig_.maxLevel = 4;
         plannerConfig_.maxSearchIterations = 10000;
@@ -347,6 +347,7 @@ struct DTPlannerConfig
         expanderConfig_.minLinVel = 0.1;
         expanderConfig_.maxLinVel = 0.5;
         expanderConfig_.maxAngVel = 3.14159265359;
+        */
 
     }
 
