@@ -34,7 +34,7 @@ struct PlannerScorerConfigDT
         f_aVelD = 0.0;
 
         f_goalDistance = 1.0;
-        f_goalOrientation = -2.0;
+        f_goalOrientation = -0.5;
         f_pathDistance = -1.0;
         f_lastCmdVelDiff = -0.0;
 
@@ -45,7 +45,7 @@ struct PlannerScorerConfigDT
         end_collision = -10000;
         targetGoalDistance = 0.2;
 
-        noWheelSupportNearThreshold = 1.0f;
+        noWheelSupportNearThreshold = 1.4f;
 
         maxUpStep = 0.05;
         maxDownStep = 0.05;
@@ -86,7 +86,7 @@ struct PlannerScorerConfigDT
 
     float distanceThresholdImg; // in pixel
     float dontCareDistanceImg;
-
+    float noWheelSupportNearThresholdImg;
 
     void Setup(float pixelSize)
     {
@@ -94,7 +94,7 @@ struct PlannerScorerConfigDT
         targetGoalDistanceImageSqr = targetGoalDistanceImage*targetGoalDistanceImage;
         distanceThresholdImg = distanceThreshold/pixelSize;
         dontCareDistanceImg = dontCareDistance/pixelSize;
-
+        noWheelSupportNearThresholdImg = noWheelSupportNearThreshold/pixelSize;
 
     }
 
