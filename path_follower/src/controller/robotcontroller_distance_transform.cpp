@@ -65,6 +65,82 @@ void RobotController_DT::stopMotion()
 
 }
 
+void ReadConfig(DTPlannerConfig &config)
+{
+
+    ros::NodeHandle nh("path_follower/dt_planner");
+
+    // Types
+    nh.param("model_planner_type", config.plannerType_,std::string("TreeDWA"));
+    nh.param("model_node_expander_type", config.nodeExpanderType_,std::string("angular_vel"));
+    nh.param("model_scorer_type", config.scorerType_,std::string("goal_scorer"));
+
+
+
+    //Planner
+    nh.param("look_ahead_time", config.plannerConfig_.lookAheadTime,5.0f);
+    nh.param("max_depth", config.plannerConfig_.maxLevel,4);
+    nh.param("max_num_nodes", config.plannerConfig_.maxSearchIterations,10000);
+    nh.param("min_number_nodes_for_replan", config.plannerConfig_.minNumberNodes,10);
+    nh.param("curve_segment_subdivisions", config.plannerConfig_.numSubSamples,40);
+    nh.param("replan_factor", config.plannerConfig_.replanFactor,-1);
+
+
+    // Expander
+    nh.param("number_of_splits", config.expanderConfig_.numSplits,9);
+    nh.param("delta_theta", config.expanderConfig_.deltaTheta,0.1f);
+
+    nh.param("first_level_splits", config.expanderConfig_.firstLevelSplits,-1);
+    nh.param("first_level_delta_theta", config.expanderConfig_.firstLevelDeltaTheta,0.1f);
+    nh.param("first_level_linear_splits", config.expanderConfig_.firstLevelLinearSplits,3);
+    nh.param("first_level_delta_linear", config.expanderConfig_.firstLevelDeltaLinear,0.1f);
+
+
+    nh.param("exp_min_lin_vel", config.expanderConfig_.minLinVel,0.1f);
+    nh.param("exp_max_lin_vel", config.expanderConfig_.maxLinVel,0.5f);
+    nh.param("exp_max_ang_vel", config.expanderConfig_.maxAngVel,3.14159265359f);
+
+
+    //Scorer
+    nh.param("distance_threshold", config.scorerConfig_.distanceThreshold,0.0f);
+    nh.param("dont_care_threshold", config.scorerConfig_.dontCareDistance,0.4f);
+
+    nh.param("target_goal_distance", config.scorerConfig_.targetGoalDistance,0.2f);
+    nh.param("min_pose_steps_penalty_threshold", config.scorerConfig_.minPoseTime,0.8f);
+
+
+    nh.param("score_mean_mean_dist", config.scorerConfig_.f_meanMeanDist,0.0f);
+    nh.param("score_mean_min_dist", config.scorerConfig_.f_meanMinDist,0.0f);
+    nh.param("score_min_mean_dist", config.scorerConfig_.f_minMeanDist,0.0f);
+    nh.param("score_min_min_dist", config.scorerConfig_.f_minMinDist,0.01f);
+
+
+    nh.param("score_weight_delta_curvature", config.scorerConfig_.f_aVelD,0.0f);
+    nh.param("score_weight_level", config.scorerConfig_.f_poseC,0.0f);
+
+    nh.param("score_weight_distance_to_goal", config.scorerConfig_.f_goalDistance,4.0f);
+    nh.param("score_weight_angle_to_goal", config.scorerConfig_.f_goalOrientation,-1.0f);
+    nh.param("score_weight_distance_to_path", config.scorerConfig_.f_pathDistance,-1.0f);
+    nh.param("score_weight_last_vel_diff", config.scorerConfig_.f_lastCmdVelDiff,0.0f);
+
+    nh.param("end_weight_out_of_image", config.scorerConfig_.end_outOfImage,0.0f);
+    nh.param("end_weight_valid", config.scorerConfig_.end_valid,0.0f);
+    nh.param("end_weight_goal_reached", config.scorerConfig_.end_goalReached,1000.0f);
+    nh.param("end_weight_low_pose_count_penalty", config.scorerConfig_.end_poseCountLowPenalty,-100.0f);
+    nh.param("end_weight_collision", config.scorerConfig_.end_collision,-1000.0f);
+
+    nh.param("target_goal_distance", config.scorerConfig_.targetGoalDistance,0.2f);
+
+    nh.param("no_wheel_support_near_threshold", config.scorerConfig_.noWheelSupportNearThreshold,1.4f);
+
+    nh.param("max_step_up", config.scorerConfig_.maxUpStep,0.05f);
+    nh.param("max_step_down", config.scorerConfig_.maxDownStep,0.05f);
+
+
+
+    ROS_INFO_STREAM("NS: " << nh.getNamespace() <<  " number_of_splits: " << config.expanderConfig_.numSplits);
+}
+
 
 void RobotController_DT::initialize()
 {
@@ -72,7 +148,7 @@ void RobotController_DT::initialize()
 
     transformer_ = &pose_tracker_->getTransformListener();
 
-    //m_opt_.AssignParams(config);
+    ReadConfig(config);
 
     config.expanderConfig_.minLinVel = opt_.min_linear_velocity();
     config.expanderConfig_.maxLinVel = opt_.max_linear_velocity();
@@ -95,8 +171,6 @@ void RobotController_DT::initialize()
             ROS_ERROR_STREAM_THROTTLE(1, "Error reading robot description: " << m_opt_.robot_config_file());
             return;
         }
-
-        //config.wheelsConfig_.wheelPosRobotRearY*2.0;
 
         dt_planner_ = IDTPlanner::Create(config);
         if (!dt_planner_)
@@ -128,8 +202,8 @@ void RobotController_DT::initialize()
 
 
     // desired velocity
-    //vn_ = std::min(PathFollowerParameters::getInstance()->max_velocity(), velocity_);
-    ROS_DEBUG_STREAM("Initialize ModelBased Controller...");
+
+    ROS_DEBUG_STREAM("Initialize DTBased Controller...");
 }
 
 
