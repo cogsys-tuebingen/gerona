@@ -297,5 +297,75 @@ struct NodeExpander_AVNI : public NodeExpander_Base
 };
 
 
+
+/**
+ * @brief Node expander with constant linear velocity, only angular velocity changes. Reduces linear velocity for larger angular velocities.
+ */
+struct NodeExpander_AVLR : public NodeExpander_Base
+{
+    typedef std::shared_ptr<NodeExpander_AVLR> Ptr;
+    static NodeExpander_AVLR::Ptr Create(){ return std::make_shared< NodeExpander_AVLR >() ; }
+
+    static constexpr const char* const NE_NAME = "angular_vel_lin_red";
+
+    NodeExpander_AVLR()
+    {
+
+    }
+
+
+    inline int Expand(int lvl, const cv::Point2f &curCmd, std::vector<cv::Point2f> &resCmds)
+    {
+        int numSplits;
+        float deltaT;
+        float splitsPerSide;
+
+        GetParamsAng(lvl,numSplits,deltaT,splitsPerSide);
+
+        cv::Point2f cmd = curCmd;
+
+        cmd.y = -deltaT*(float)splitsPerSide;
+        //cmd.y += -deltaT*(float)splitsPerSide;
+
+        const float maxAngVel  = std::abs(deltaT*(float)splitsPerSide);
+        const float avRange =   maxAngVel-maxAngVelImage_;
+
+        for (int tl = 0; tl < numSplits;++tl)
+        {
+            if (std::abs(cmd.y) < COMMANDEPSILON) cmd.y = 0;
+
+            const float aAbs = std::abs(cmd.y);
+
+            if (aAbs > maxAngVelImage_ && lvl <= 1)
+            {
+                const float diff = aAbs - maxAngVelImage_;
+                const float diffLinVel = maxLinVelImage_ - minLinVelImage_;
+                const float linVel = minLinVelImage_ + diffLinVel * (avRange-diff)/avRange;
+                cmd.x = linVel;
+            }
+            else cmd.x = curCmd.x;
+
+
+            resCmds[tl] = cmd;
+
+            cmd.y += deltaT;
+
+
+
+        }
+
+        return numSplits;
+
+    }
+
+
+};
+
+
+
+
+
+
+
 #endif // PLANNER_NODEEXPANDER_H
 

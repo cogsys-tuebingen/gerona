@@ -35,6 +35,11 @@ public:
             expander_ = NodeExpander_LAVT::Create();
             return;
         }
+        if (expanderName == NodeExpander_AVLR::NE_NAME)
+        {
+            expander_ = NodeExpander_AVLR::Create();
+            return;
+        }
 
         expander_ = NodeExpander_AVNI::Create();
 
