@@ -50,6 +50,8 @@ struct PlannerScorerConfigDT
         maxUpStep = 0.05;
         maxDownStep = 0.05;
 
+        heihgtLimitPowPerMeter = 1.25;
+
 
     }
 
@@ -87,6 +89,8 @@ struct PlannerScorerConfigDT
     float distanceThresholdImg; // in pixel
     float dontCareDistanceImg;
     float noWheelSupportNearThresholdImg;
+
+    float heihgtLimitPowPerMeter;
 
     void Setup(float pixelSize)
     {

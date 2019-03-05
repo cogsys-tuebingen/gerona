@@ -74,8 +74,8 @@ void PoseEstimatorDT::CreateMap(const cv::Point3f &rPose, const PlannerScorerCon
 
     cv::Point2f rPos(rPose.x,rPose.y);
 
-    short lowerLimit = (short)(procConfig_.mapBaseHeight - scoreConf.maxDownStep*procConfig_.heightScale);
-    short upperLimit = (short)(procConfig_.mapBaseHeight + scoreConf.maxUpStep*procConfig_.heightScale);
+    //short lowerLimit = (short)(procConfig_.mapBaseHeight - scoreConf.maxDownStep*procConfig_.heightScale);
+    //short upperLimit = (short)(procConfig_.mapBaseHeight + scoreConf.maxUpStep*procConfig_.heightScale);
 
     float wheelSupportFarThreshold = scoreConf.noWheelSupportNearThreshold * procConfig_.pixelSizeInv;
 
@@ -93,6 +93,9 @@ void PoseEstimatorDT::CreateMap(const cv::Point3f &rPose, const PlannerScorerCon
     const short notVisibleLevel = (short)procConfig_.notVisibleLevel;
     const float wheelSupportFarThresholdSqr = wheelSupportFarThreshold*wheelSupportFarThreshold;
 
+    float srcVal;
+
+
     for (unsigned int y = 0; y < orgDem_.rows;++y)
     {
         srcPtr = orgDem_.ptr<short>(y);
@@ -102,15 +105,26 @@ void PoseEstimatorDT::CreateMap(const cv::Point3f &rPose, const PlannerScorerCon
             pixelPos.x = x;
             pixelPos.y = y;
             diffPos = rPos-pixelPos;
+            srcVal = (float)srcPtr[x];
 
             dstPtr[x] = 1;
 
-            if ((srcPtr[x] < lowerLimit ))
+            const float distance = std::sqrt(diffPos.dot(diffPos));
+            const float distM = distance*procConfig_.pixelSize;
+            float limitScale = std::pow(scoreConf.heihgtLimitPowPerMeter,((distM-scoreConf.noWheelSupportNearThreshold)/scoreConf.noWheelSupportNearThreshold));
+            if (limitScale < 1.0f) limitScale = 1.0f;
+
+            const float lowerLimitF = procConfig_.mapBaseHeight - scoreConf.maxDownStep*procConfig_.heightScale*limitScale;
+            const float upperLimitF = procConfig_.mapBaseHeight + scoreConf.maxUpStep*  procConfig_.heightScale*limitScale;
+
+
+
+            if (srcVal < lowerLimitF)
             {
-                if (!(srcPtr[x] <= notVisibleLevel && (diffPos.dot(diffPos)) > wheelSupportFarThresholdSqr ))
+                if (!(srcPtr[x] <= notVisibleLevel && (distance > wheelSupportFarThreshold) ))
                     dstPtr[x] = 0;
             }
-            if (srcPtr[x] > upperLimit)
+            if (srcVal > upperLimitF)
             {
                 dstPtr[x] = 0;
             }

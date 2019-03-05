@@ -135,6 +135,7 @@ void ReadConfig(DTPlannerConfig &config)
 
     nh.param("max_step_up", config.scorerConfig_.maxUpStep,0.05f);
     nh.param("max_step_down", config.scorerConfig_.maxDownStep,0.05f);
+    nh.param("height_limit_exp_scale", config.scorerConfig_.heihgtLimitPowPerMeter,1.5f);
 
 
 
