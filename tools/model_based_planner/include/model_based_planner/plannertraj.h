@@ -93,9 +93,19 @@ public:
 
         TrajNode* bestNodeParent = bestNode_->GetFirstNode();
 
-        SetWheelAnglesStart(bestNodeParent);
+
+        TrajNode* bestNodeWithChilds = scorer_.CheckAllNodes(allNodes_, curNodeIdx_);
+        if (bestNodeWithChilds != nullptr)
+        {
+            bestNode_ = bestNodeWithChilds;
+            bestNodeParent = bestNodeWithChilds->GetFirstNode();
+
+        }
 
         if (bestNodeParent == nullptr) return;
+
+        SetWheelAnglesStart(bestNodeParent);
+
 
         scorer_.SetLastCmdVel(bestNodeParent->startCmd_);
 

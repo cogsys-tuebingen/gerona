@@ -141,6 +141,10 @@ struct TrajNodeDT : public TrajectoryDT
         validState_ = TNDT_VS_NOTASSIGNED;
         numValid_ = 0;
 
+        bestChildScore_ = -99999999;
+        validChildCount_ = 0;
+        bestChild_ = nullptr;
+
         memset(&poseResults_[0],0,sizeof(PoseEvalResultsDT)*poseResults_.size());
 
         for (unsigned int tl = 0; tl < poseResults_.size();++tl) poseResults_[tl].validState = PERSDT_NOTASSIGNED;
@@ -162,6 +166,9 @@ struct TrajNodeDT : public TrajectoryDT
     float fScore_;//,gScore_;
     int validState_;
 
+    float bestChildScore_;
+    int validChildCount_;
+    TrajNodeDT* bestChild_;
 
 
 };
