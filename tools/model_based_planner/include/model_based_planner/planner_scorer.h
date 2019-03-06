@@ -396,6 +396,43 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         current.finalScores[15] = lowPoseCountPenalty;
         //current.finalScores[15] = lastCmdVelDiff * config_.f_lastCmdVelDiff ;
 
+        TrajNode* parPtr = current.GetFirstNode();
+        //parPtr->bestChildScore_ = std::max(parPtr->bestChildScore_,current.fScore_);
+        if (current.fScore_ > parPtr->bestChildScore_)
+        {
+            parPtr->bestChildScore_ = current.fScore_;
+            parPtr->bestChild_ = &current;
+        }
+        if (current.validState_ >= PERS_LOWWHEELSUPPORT_FAR) parPtr->validChildCount_++;
+
+    }
+
+
+    inline TrajNode* CheckAllNodes(std::vector<TrajNode> &allNodes, int nodeCounter)
+    {
+
+        float bestScore = -99999999;
+        TrajNode* resPtr = nullptr;
+
+        if (config_.f_childCount <= 0) return resPtr;
+
+        for (int i = 0; i < nodeCounter;++i)
+        {
+            TrajNode* current = &allNodes[i];
+            if (current->level_ != 1) continue;
+
+            float tscore = current->bestChildScore_ + (float)current->validChildCount_*config_.f_childCount;
+
+            if (tscore > bestScore)
+            {
+                bestScore = tscore;
+                resPtr = current->bestChild_;
+            }
+
+
+        }
+
+        return resPtr;
 
     }
 

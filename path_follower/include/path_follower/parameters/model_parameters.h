@@ -69,6 +69,8 @@ public:
     P<double> score_weight_distance_to_path; // float f_pathDistance;
     P<double> score_weight_last_vel_diff; // float f_lastCmdVelDiff;
 
+    P<double> score_weight_valid_child_count; // float f_childCount;
+
 
     P<double> score_weight_end_out_of_image; // float end_outOfImage;
     P<double> score_weight_end_no_wheel_support; //float end_noWheelSupport;
@@ -144,6 +146,8 @@ public:
         config.scorerConfig_.f_pathDistance = score_weight_distance_to_path();
         config.scorerConfig_.f_lastCmdVelDiff = score_weight_last_vel_diff();
 
+        config.scorerConfig_.f_childCount = score_weight_valid_child_count();
+
         config.scorerConfig_.end_outOfImage = score_weight_end_out_of_image();
         config.scorerConfig_.end_noWheelSupport = score_weight_end_no_wheel_support();
         config.scorerConfig_.end_noWheelSupportFar = score_weight_end_no_wheel_support_far();
@@ -210,6 +214,7 @@ public:
         score_weight_angle_to_goal(this,"score_weight_angle_to_goal",-1.0,"Determines whether the third scorer is used or not. (Curvature of the point (P))"),
         score_weight_distance_to_path(this,"score_weight_distance_to_path",-1.0," (Distance to global path (P))"),
         score_weight_last_vel_diff(this,"score_weight_last_vel_diff",-1.0,"Difference to last command velocity"),
+        score_weight_valid_child_count(this,"score_weight_valid_child_count",-1.0,"Number of valid childs"),
         score_weight_end_out_of_image(this,"score_weight_end_out_of_image",-1.0,"score_weight_end_out_of_image"),
         score_weight_end_no_wheel_support(this,"score_weight_end_no_wheel_support",-100.0,"score_weight_end_no_wheel_support"),
         score_weight_end_no_wheel_support_far(this,"score_weight_end_no_wheel_support_far",-10.0,"score_weight_end_no_wheel_support"),

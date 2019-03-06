@@ -123,6 +123,8 @@ void ReadConfig(DTPlannerConfig &config)
     nh.param("score_weight_distance_to_path", config.scorerConfig_.f_pathDistance,-1.0f);
     nh.param("score_weight_last_vel_diff", config.scorerConfig_.f_lastCmdVelDiff,0.0f);
 
+    nh.param("score_weight_valid_child_count", config.scorerConfig_.f_childCount,0.0f);
+
     nh.param("end_weight_out_of_image", config.scorerConfig_.end_outOfImage,0.0f);
     nh.param("end_weight_valid", config.scorerConfig_.end_valid,0.0f);
     nh.param("end_weight_goal_reached", config.scorerConfig_.end_goalReached,1000.0f);

@@ -196,6 +196,11 @@ struct TrajNode : public Trajectory
         validState_ = TN_VS_NOTASSIGNED;
         numValid_ = 0;
 
+        bestChildScore_ = -99999999;
+        validChildCount_ = 0;
+        bestChild_ = nullptr;
+
+
         for (unsigned int tl = 0; tl < poseResults_.size();++tl) poseResults_[tl].Reset();
 
     }
@@ -215,6 +220,9 @@ struct TrajNode : public Trajectory
     float fScore_;//,gScore_;
     int validState_;
 
+    float bestChildScore_;
+    int validChildCount_;
+    TrajNode* bestChild_;
 
 
 };

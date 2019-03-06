@@ -38,6 +38,8 @@ struct PlannerScorerConfigDT
         f_pathDistance = -1.0;
         f_lastCmdVelDiff = -0.0;
 
+        f_childCount = 0;
+
         end_outOfImage = 0;
         end_valid = 0;
         end_goalReached = 10000;
@@ -72,6 +74,8 @@ struct PlannerScorerConfigDT
     float f_goalOrientation; // factor
     float f_lastCmdVelDiff; // factor
     float f_pathDistance; // factor
+
+    float f_childCount;
 
     float end_outOfImage; // offset
     float end_valid;// offset

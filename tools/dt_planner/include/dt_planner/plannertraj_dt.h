@@ -98,6 +98,13 @@ public:
 
         TrajNodeDT* bestNodeParent = bestNode_->GetFirstNode();
 
+        TrajNodeDT* bestNodeWithChilds = scorer_.CheckAllNodes(allNodes_, curNodeIdx_);
+        if (bestNodeWithChilds != nullptr)
+        {
+            bestNode_ = bestNodeWithChilds;
+            bestNodeParent = bestNodeWithChilds->GetFirstNode();
+
+        }
 
         if (bestNodeParent == nullptr) return;
 
