@@ -98,6 +98,8 @@ cv::Mat PlannerBaseDT::DrawMap(PoseEvalResultsDT &results)
     cv::Point2f diffPos;
     float distP = 0;
 
+    const float noWSSqr = config_.scorerConfig_.noWheelSupportNearThresholdImg*config_.scorerConfig_.noWheelSupportNearThresholdImg;
+
     for (int y = 0; y < dmap.rows;++y)
     {
         dmapPtr = dmap.ptr<float>(y);
@@ -108,9 +110,9 @@ cv::Mat PlannerBaseDT::DrawMap(PoseEvalResultsDT &results)
             pPos.x = x;
             pPos.y = y;
             diffPos = pPos-rPos;
-            distP = std::sqrt(diffPos.dot(diffPos));
+            distP = (diffPos.dot(diffPos));
 
-            if (results.validState != PERSDT_NOTASSIGNED && demPtr[x] <= config_.procConfig_.notVisibleLevel && distP > config_.scorerConfig_.noWheelSupportNearThresholdImg)
+            if (results.validState != PERSDT_NOTASSIGNED && demPtr[x] <= config_.procConfig_.notVisibleLevel && distP > noWSSqr)
             {
 
                     dstPtr[x][0] = 100;
@@ -120,13 +122,13 @@ cv::Mat PlannerBaseDT::DrawMap(PoseEvalResultsDT &results)
             else
             {
 
-                float distNorm = dmapPtr[x] > config_.scorerConfig_.dontCareDistanceImg? 1.0f : dmapPtr[x]/config_.scorerConfig_.dontCareDistanceImg;
+                const float distNorm = 1.0f -(dmapPtr[x] > config_.scorerConfig_.dontCareDistanceImg? 1.0f : dmapPtr[x]/config_.scorerConfig_.dontCareDistanceImg);
 
-                distNorm = 1.0f - distNorm;
+                //distNorm = 1.0f - distNorm;
 
-                float tCVal = dstPtr[x][0];
+                const float tCVal = dstPtr[x][0];
 
-                float resC = tCVal*(1.0f - (distNorm*0.5 ) );
+                const float resC = tCVal*(1.0f - (distNorm*0.5 ) );
 
                 dstPtr[x][1] = resC;
                 dstPtr[x][2] = resC;
