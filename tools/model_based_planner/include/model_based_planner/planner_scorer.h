@@ -372,7 +372,7 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
                 current.scores[10]*config_.f_numNotVisible +
                 current.scores[11]*config_.f_goalDistance+
                 current.scores[12]*config_.f_goalOrientation+
-                (current.scores[13])*config_.f_pathDistance+
+                (current.scores[13]*levelNorm)*config_.f_pathDistance+
                 lastCmdVelDiff * config_.f_lastCmdVelDiff +
                 lowPoseCountPenalty+
                 endFactor;
@@ -391,7 +391,7 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         current.finalScores[10] = current.scores[10];
         current.finalScores[11] = current.scores[11]*config_.f_goalDistance;
         current.finalScores[12] = current.scores[12]*config_.f_goalOrientation;
-        current.finalScores[13] = (current.scores[13])*config_.f_pathDistance;
+        current.finalScores[13] = (current.scores[13]*levelNorm)*config_.f_pathDistance;
         current.finalScores[14] = endFactor;
         current.finalScores[15] = lowPoseCountPenalty;
         //current.finalScores[15] = lastCmdVelDiff * config_.f_lastCmdVelDiff ;
@@ -407,7 +407,38 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
 
     }
 
+    TrajNode* CheckAllNodes(std::vector<TrajNode> &allNodes, int nodeCounter)
+    {
 
+        float bestScore = -99999999;
+        TrajNode* resPtr = nullptr;
+
+        if (config_.f_childCount <= 0) return resPtr;
+
+        for (int i = 0; i < nodeCounter;++i)
+        {
+            TrajNode* current = &allNodes[i];
+            if (current->level_ != 1) continue;
+
+            float tscore;
+            if (current->bestChild_->end_->validState != PERS_GOALREACHED) tscore = current->bestChildScore_ + (float)current->validChildCount_*config_.f_childCount;
+            else tscore = current->bestChildScore_;
+
+            if (tscore > bestScore)
+            {
+                bestScore = tscore;
+                resPtr = current->bestChild_;
+            }
+
+
+        }
+
+        return resPtr;
+
+    }
+
+
+    /*
     inline TrajNode* CheckAllNodes(std::vector<TrajNode> &allNodes, int nodeCounter)
     {
 
@@ -435,6 +466,7 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         return resPtr;
 
     }
+    */
 
 
 

@@ -77,7 +77,9 @@ void PoseEstimatorDT::CreateMap(const cv::Point3f &rPose, const PlannerScorerCon
     //short lowerLimit = (short)(procConfig_.mapBaseHeight - scoreConf.maxDownStep*procConfig_.heightScale);
     //short upperLimit = (short)(procConfig_.mapBaseHeight + scoreConf.maxUpStep*procConfig_.heightScale);
 
-    float wheelSupportFarThreshold = scoreConf.noWheelSupportNearThreshold * procConfig_.pixelSizeInv;
+    float wheelSupportFarThreshold = scoreConf.noWheelSupportNearThreshold;// * procConfig_.pixelSizeInv;
+    float wheelSupportFarThresholdImg = scoreConf.noWheelSupportNearThreshold * procConfig_.pixelSizeInv;
+    const float wheelSupportFarThresholdImgSqr = wheelSupportFarThresholdImg*wheelSupportFarThresholdImg;
 
     if (wheelSupportFarThreshold < 0) wheelSupportFarThreshold = 100000;
 
@@ -121,7 +123,7 @@ void PoseEstimatorDT::CreateMap(const cv::Point3f &rPose, const PlannerScorerCon
 
             if (srcVal < lowerLimitF)
             {
-                if (!(srcPtr[x] <= notVisibleLevel && (distanceSqr > wheelSupportFarThresholdSqr) ))
+                if (!(srcPtr[x] <= notVisibleLevel && (distanceSqr > wheelSupportFarThresholdImgSqr) ))
                     dstPtr[x] = 0;
             }
             if (srcVal > upperLimitF)
