@@ -216,9 +216,11 @@ protected:
 
     IDTPlanner::Ptr dt_planner_;
 
+    SpeedRamp linVelRamp_;
+
 #ifdef MODEL_CONTROLLER_DEBUG
     ros::Publisher dbgImgPub_;
-    PoseWriter writer_;
+    //PoseWriter writer_;
 #endif
 
 
