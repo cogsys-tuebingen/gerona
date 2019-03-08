@@ -327,7 +327,7 @@ struct NodeScorer_GoalDT : public NodeScorer_BaseDT
                 (current.scores[7]*levelNorm)*config_.f_aVelD +
                 current.scores[11]*config_.f_goalDistance+
                 current.scores[12]*config_.f_goalOrientation+
-                (current.scores[13])*config_.f_pathDistance+
+                (current.scores[13]*levelNorm)*config_.f_pathDistance+
                 lastCmdVelDiff * config_.f_lastCmdVelDiff +
                 lowPoseCountPenalty+
                 endFactor;
@@ -342,7 +342,7 @@ struct NodeScorer_GoalDT : public NodeScorer_BaseDT
         current.finalScores[10] = lastCmdVelDiff * config_.f_lastCmdVelDiff;
         current.finalScores[11] = current.scores[11]*config_.f_goalDistance;
         current.finalScores[12] = current.scores[12]*config_.f_goalOrientation;
-        current.finalScores[13] = (current.scores[13])*config_.f_pathDistance;
+        current.finalScores[13] = (current.scores[13]*levelNorm)*config_.f_pathDistance;
         current.finalScores[14] = endFactor;
         current.finalScores[15] = lowPoseCountPenalty;
         //current.finalScores[15] = lastCmdVelDiff * config_.f_lastCmdVelDiff ;
@@ -373,7 +373,9 @@ struct NodeScorer_GoalDT : public NodeScorer_BaseDT
             TrajNodeDT* current = &allNodes[i];
             if (current->level_ != 1) continue;
 
-            float tscore = current->bestChildScore_ + (float)current->validChildCount_*config_.f_childCount;
+            float tscore;
+            if (current->bestChild_->end_->validState != PERSDT_GOALREACHED) tscore = current->bestChildScore_ + (float)current->validChildCount_*config_.f_childCount;
+            else tscore = current->bestChildScore_;
 
             if (tscore > bestScore)
             {
