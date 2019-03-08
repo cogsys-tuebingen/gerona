@@ -61,6 +61,63 @@ struct DriveModelDA
 };
 
 
+class SpeedRamp
+{
+
+public:
+
+    SpeedRamp()
+    {
+        lastTime_ = 0;
+        currentSpeed_ = 0;
+        acceleration_ = 0.1;
+        deacceleration_ = 0.1;
+        minVel_ = 0.1;
+        maxVel_ = 0.5;
+    }
+
+    double RequestSpeed(const double &req, const double &time)
+    {
+        auto deltaT = time - lastTime_;
+        lastTime_ = time;
+
+        auto diffV = req - currentSpeed_;
+
+        if (diffV > 0.0)
+        {
+            auto maxVInc = acceleration_*deltaT;
+            auto velChange = std::min(maxVInc,diffV);
+            currentSpeed_ += velChange;
+            currentSpeed_ = std::min(currentSpeed_,maxVel_);
+
+        }
+        else if (diffV < 0.0)
+        {
+            auto maxVDec = deacceleration_*deltaT;
+            auto velChange = std::max(maxVDec,diffV);
+            currentSpeed_ += velChange;
+            currentSpeed_ = std::max(currentSpeed_,minVel_);
+        }
+
+        return currentSpeed_;
+    }
+
+    void SetCurrentSpeed(const double &speed){currentSpeed_ = speed;}
+
+    void SetCurrentTime(const double &time){lastTime_ = time;}
+
+
+    void Reset(const double &time) {currentSpeed_ = 0;lastTime_ = time;}
+
+
+    double currentSpeed_;
+    double lastTime_;
+
+    double acceleration_;
+    double deacceleration_;
+
+    double minVel_,maxVel_;
+};
 
 
 

@@ -248,6 +248,28 @@ struct NodeScorer_GoalDT : public NodeScorer_BaseDT
 
     }
 
+    inline void CalcGoalDistanceTest(TrajNodeDT &current) const
+    {
+
+        const cv::Point3f end = current.end_->pose;
+
+        const cv::Point3f diff = goal_ - end;
+        const cv::Point2f diffPos(diff.x,diff.y);
+        float dist = sqrt(diffPos.dot(diffPos));
+
+        if (dist > goalDistanceCutoff_) dist = goalDistanceCutoff_;
+
+        const float distVal = dist/goalDistanceCutoff_;
+
+        const float angleToGoal = atan2(diffPos.y,diffPos.x);
+        //const float angleDiff = std::abs(end.z -angleToGoal);
+        const float angleDiff = std::abs(GetAngleDifference(end.z ,angleToGoal));
+
+        current.scores[11] = distVal;
+        current.scores[12] = angleDiff;
+
+    }
+
     inline float GetLastCmdVelDiff(TrajNodeDT &current)  const
     {
         const TrajNodeDT* tnPtr = current.GetFirstNode();
@@ -305,7 +327,7 @@ struct NodeScorer_GoalDT : public NodeScorer_BaseDT
                 (current.scores[7]*levelNorm)*config_.f_aVelD +
                 current.scores[11]*config_.f_goalDistance+
                 current.scores[12]*config_.f_goalOrientation+
-                (current.scores[13]*levelNorm)*config_.f_pathDistance+
+                (current.scores[13])*config_.f_pathDistance+
                 lastCmdVelDiff * config_.f_lastCmdVelDiff +
                 lowPoseCountPenalty+
                 endFactor;
@@ -320,7 +342,7 @@ struct NodeScorer_GoalDT : public NodeScorer_BaseDT
         current.finalScores[10] = lastCmdVelDiff * config_.f_lastCmdVelDiff;
         current.finalScores[11] = current.scores[11]*config_.f_goalDistance;
         current.finalScores[12] = current.scores[12]*config_.f_goalOrientation;
-        current.finalScores[13] = (current.scores[13]*levelNorm)*config_.f_pathDistance;
+        current.finalScores[13] = (current.scores[13])*config_.f_pathDistance;
         current.finalScores[14] = endFactor;
         current.finalScores[15] = lowPoseCountPenalty;
         //current.finalScores[15] = lastCmdVelDiff * config_.f_lastCmdVelDiff ;

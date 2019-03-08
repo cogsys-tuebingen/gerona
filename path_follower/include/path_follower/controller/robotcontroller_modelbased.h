@@ -218,6 +218,7 @@ protected:
     ros::Subscriber subDEM_;
 
     IModelBasedPlanner::Ptr model_based_planner_;
+    SpeedRamp linVelRamp_;
 
 #ifdef MODEL_CONTROLLER_DEBUG
     ros::Publisher dbgImgPub_;

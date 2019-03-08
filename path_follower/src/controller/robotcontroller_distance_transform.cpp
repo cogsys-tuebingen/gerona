@@ -63,6 +63,8 @@ void RobotController_DT::stopMotion()
 
     doPlan_ = false;
 
+    linVelRamp_.Reset(ros::Time::now().toSec());
+
 }
 
 void ReadConfig(DTPlannerConfig &config)
@@ -96,9 +98,9 @@ void ReadConfig(DTPlannerConfig &config)
     nh.param("first_level_delta_linear", config.expanderConfig_.firstLevelDeltaLinear,0.1f);
 
 
-    nh.param("exp_min_lin_vel", config.expanderConfig_.minLinVel,0.1f);
-    nh.param("exp_max_lin_vel", config.expanderConfig_.maxLinVel,0.5f);
-    nh.param("exp_max_ang_vel", config.expanderConfig_.maxAngVel,3.14159265359f);
+    //nh.param("exp_min_lin_vel", config.expanderConfig_.minLinVel,0.1f);
+    //nh.param("exp_max_lin_vel", config.expanderConfig_.maxLinVel,0.5f);
+    //nh.param("exp_max_ang_vel", config.expanderConfig_.maxAngVel,3.14159265359f);
 
 
     //Scorer
@@ -197,6 +199,16 @@ void RobotController_DT::initialize()
     dt_planner_->SetPlannerParameters(config.plannerConfig_);
     dt_planner_->SetPlannerExpanderParameters(config.expanderConfig_);
     dt_planner_->SetPlannerScorerParameters(config.scorerConfig_);
+
+    //linVelRamp_.SetCurrentTime(ros::Time.now().toSec());
+
+    linVelRamp_.Reset(ros::Time::now().toSec());
+    linVelRamp_.acceleration_ = opt_.lin_acc_step();
+    linVelRamp_.deacceleration_ = -opt_.lin_acc_step();
+
+    linVelRamp_.maxVel_ = opt_.max_linear_velocity();
+    linVelRamp_.minVel_ = opt_.min_linear_velocity();
+
 
 
     doPlan_ = true;
@@ -495,7 +507,7 @@ void RobotController_DT::imageCallback (const sensor_msgs::ImageConstPtr& image)
         dt_planner_->SetRobotPose(pose);
 
     }
-
+    /*
     if (!opt_.use_lin_velocity() && !opt_.use_ang_velocity())
     {
         cv::Point2f vel(opt_.max_linear_velocity(),0);
@@ -536,6 +548,44 @@ void RobotController_DT::imageCallback (const sensor_msgs::ImageConstPtr& image)
 
         dt_planner_->SetVelocity(nvel);
     }
+    */
+
+    geometry_msgs::Twist gVel = pose_tracker_->getVelocity();
+    ros::Time now = ros::Time::now();
+    double dTime = now.toSec();
+    //if (opt_.use_lin_velocity()) nvel.x = gVel.linear.x;
+
+    if (opt_.use_lin_velocity()) linVelRamp_.SetCurrentSpeed(gVel.linear.x);
+
+    double requestedSpeed = opt_.max_linear_velocity();
+
+    if (opt_.k_g() > 0 && opt_.lin_acc_step() > 0)
+    {
+        double kg = opt_.k_g();
+
+        cv::Point3f tgoal = currentPath_.back();
+        cv::Point3f diff = tgoal-pose;
+        double distanceToGoal = std::sqrt( diff.x*diff.x + diff.y*diff.y);
+
+        if (distanceToGoal < kg)
+        {
+
+        double velRange = opt_.max_linear_velocity()-opt_.min_linear_velocity();
+
+        requestedSpeed = opt_.min_linear_velocity()+(distanceToGoal / kg)* velRange;
+        ROS_INFO_STREAM("requestedSpeed: " << requestedSpeed);
+
+        }
+    }
+
+    linVelRamp_.RequestSpeed(requestedSpeed,dTime);
+
+    cv::Point2f nvel(opt_.max_linear_velocity(),0);
+    if (opt_.use_ang_velocity()) nvel.y = gVel.angular.z;
+    if (opt_.lin_acc_step() > 0) nvel.x = linVelRamp_.currentSpeed_;
+
+
+    dt_planner_->SetVelocity(nvel);
 
     dt_planner_->UpdateDEM(inputImage);
 
@@ -550,7 +600,7 @@ void RobotController_DT::imageCallback (const sensor_msgs::ImageConstPtr& image)
     if (curMS > maxPlanningTime_)maxPlanningTime_ = curMS;
 
     //ROS_INFO_STREAM_THROTTLE(1,"Model based planner took " << totalPlanningTime_/(double)frameCounter_ << "ms");
-    ROS_INFO_STREAM_THROTTLE(1,"Model based planner took " << curMS << " Avg: " << totalPlanningTime_/(double)frameCounter_ << "ms" << " Frames: " << frameCounter_);
+    ROS_INFO_STREAM_THROTTLE(1,"Distance based planner took " << curMS << " Avg: " << totalPlanningTime_/(double)frameCounter_ << "ms" << " Frames: " << frameCounter_);
 
     TrajectoryDT *result = dt_planner_->GetBLResultTrajectory();
 

@@ -63,6 +63,8 @@ void RobotController_ModelBased::stopMotion()
 
     doPlan_ = false;
 
+    linVelRamp_.Reset(ros::Time::now().toSec());
+
 }
 
 
@@ -120,6 +122,14 @@ void RobotController_ModelBased::initialize()
     model_based_planner_->SetPlannerParameters(config.plannerConfig_);
     model_based_planner_->SetPlannerExpanderParameters(config.expanderConfig_);
     model_based_planner_->SetPlannerScorerParameters(config.scorerConfig_);
+
+    linVelRamp_.Reset(ros::Time::now().toSec());
+    linVelRamp_.acceleration_ = opt_.lin_acc_step();
+    linVelRamp_.deacceleration_ = -opt_.lin_acc_step();
+
+    linVelRamp_.maxVel_ = opt_.max_linear_velocity();
+    linVelRamp_.minVel_ = opt_.min_linear_velocity();
+
 
 
     doPlan_ = true;
@@ -419,46 +429,42 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
 
     }
 
-    if (!opt_.use_lin_velocity() && !opt_.use_ang_velocity())
+    geometry_msgs::Twist gVel = pose_tracker_->getVelocity();
+    ros::Time now = ros::Time::now();
+    double dTime = now.toSec();
+    //if (opt_.use_lin_velocity()) nvel.x = gVel.linear.x;
+
+    if (opt_.use_lin_velocity()) linVelRamp_.SetCurrentSpeed(gVel.linear.x);
+
+    double requestedSpeed = opt_.max_linear_velocity();
+
+    if (opt_.k_g() > 0 && opt_.lin_acc_step() > 0)
     {
-        cv::Point2f vel(opt_.max_linear_velocity(),0);
-        model_based_planner_->SetVelocity(vel);
-    }
-    else
-    {
-        geometry_msgs::Twist gVel = pose_tracker_->getVelocity();
-        cv::Point2f nvel(gVel.linear.x,gVel.angular.z);
-        if (!opt_.use_ang_velocity()) nvel.y = 0;
-        if (!opt_.use_lin_velocity()) nvel.x = opt_.max_linear_velocity();
+        double kg = opt_.k_g();
 
-        // Testing
+        cv::Point3f tgoal = currentPath_.back();
+        cv::Point3f diff = tgoal-pose;
+        double distanceToGoal = std::sqrt( diff.x*diff.x + diff.y*diff.y);
 
-        if (config.expanderConfig_.firstLevelLinearSplits == 0)
+        if (distanceToGoal < kg)
         {
-            nvel.x += opt_.lin_acc_step();
+
+        double velRange = opt_.max_linear_velocity()-opt_.min_linear_velocity();
+
+        requestedSpeed = opt_.min_linear_velocity()+(distanceToGoal / kg)* velRange;
+        ROS_INFO_STREAM("requestedSpeed: " << requestedSpeed);
+
         }
-
-
-        if (nvel.x > opt_.max_linear_velocity()) nvel.x = opt_.max_linear_velocity();
-
-        if (opt_.k_g() > 0 && opt_.lin_acc_step() > 0)
-        {
-            cv::Point3f tgoal = currentPath_.back();
-            cv::Point3f diff = tgoal-pose;
-            float distanceToGoal = sqrt( diff.x*diff.x + diff.y*diff.y);
-
-            if (distanceToGoal < opt_.k_g())
-            {
-                nvel.x -= opt_.lin_acc_step();
-            }
-
-            if (nvel.x < opt_.min_linear_velocity()) nvel.x = opt_.min_linear_velocity();
-        }
-
-        //
-
-        model_based_planner_->SetVelocity(nvel);
     }
+
+    linVelRamp_.RequestSpeed(requestedSpeed,dTime);
+
+    cv::Point2f nvel(opt_.max_linear_velocity(),0);
+    if (opt_.use_ang_velocity()) nvel.y = gVel.angular.z;
+    if (opt_.lin_acc_step() > 0) nvel.x = linVelRamp_.currentSpeed_;
+
+
+    model_based_planner_->SetVelocity(nvel);
 
     model_based_planner_->UpdateDEM(inputImage);
 

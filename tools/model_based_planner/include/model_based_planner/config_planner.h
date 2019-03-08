@@ -163,7 +163,7 @@ struct PlannerExpanderConfig
         firstLevelDeltaLinear = 0.1;
 
         minLinVel = 0.1;
-        maxLinVel = 1.0;
+        maxLinVel = 0.5;
 
         maxAngVel = 3.14159265359;
 
