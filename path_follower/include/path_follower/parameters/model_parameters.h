@@ -59,7 +59,7 @@ public:
     P<double> score_weight_max_tip_angle; // float f_maxTA;
     P<double> score_weight_mean_wheel_support; // float f_meanWS;
     P<double> score_weight_min_wheel_support; // float f_minWS;
-    P<double> score_weight_not_visible_pose_count; //float f_numNotVisible;
+    //P<double> score_weight_not_visible_pose_count; //float f_numNotVisible;
 
     P<double> score_weight_delta_curvature; //float f_aVelD;
     P<double> score_weight_level; //float f_poseC;
@@ -136,7 +136,7 @@ public:
         config.scorerConfig_.f_maxTA = score_weight_max_tip_angle();
         config.scorerConfig_.f_meanWS = score_weight_mean_wheel_support();
         config.scorerConfig_.f_minWS = score_weight_min_wheel_support();
-        config.scorerConfig_.f_numNotVisible = score_weight_not_visible_pose_count();
+        //config.scorerConfig_.f_numNotVisible = score_weight_not_visible_pose_count();
 
         config.scorerConfig_.f_aVelD = score_weight_delta_curvature();
         config.scorerConfig_.f_poseC = score_weight_level();
@@ -207,7 +207,7 @@ public:
         score_weight_max_tip_angle(this, "score_weight_max_tip_angle", -0.5, "Determines whether the max tipangle score is used or not. (Angle between robot and gravity)"),
         score_weight_mean_wheel_support(this, "score_weight_mean_wheel_support", 2.0, "Determines whether the mean wheel support score is used or not. (Angle between robot and gravity)"),
         score_weight_min_wheel_support(this, "score_weight_min_wheel_support", 2.0, "Determines whether the min wheel support score is used or not. (Angle between robot and gravity)"),
-        score_weight_not_visible_pose_count(this, "score_weight_not_visible_pose_count", 2.0, " min number poses for not applying penalty"),
+        //score_weight_not_visible_pose_count(this, "score_weight_not_visible_pose_count", 2.0, " min number poses for not applying penalty"),
         score_weight_delta_curvature(this,"score_weight_delta_curvature",0.0,"Determines whether the fouth scorer is used or not. (Curvature of the point (D))"),
         score_weight_level(this,"score_weight_level", 0.0, "Determines whether the fifth scorer is used or not. (Tree level reached)"),
         score_weight_distance_to_goal(this,"score_weight_distance_to_goal",-1.0,"Determines whether the first scorer is used or not. (Distance to global path (P))"),

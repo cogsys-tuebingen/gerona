@@ -144,11 +144,16 @@ struct NodeScorer_GoalDT : public NodeScorer_BaseDT
     inline void ScorePose(const PoseEvalResultsDT& results, std::array<float, NUMBERSCORES> &scores) const
     {
 
-        scores[0] += results.meanDist;
-        scores[1] += results.minDist;
+        const float meanD = (config_.dontCareDistanceImg - results.meanDist)*config_.dontCareDistanceImgInv;
+        const float meanDSqr = meanD*meanD;
+        const float minD = (config_.dontCareDistanceImg - results.minDist)*config_.dontCareDistanceImgInv;
+        const float minDSqr = minD*minD;
 
-        scores[2] = std::min(scores[2],results.meanDist);
-        scores[3] = std::min(scores[3],results.minDist);
+        scores[0] += meanDSqr;
+        scores[1] += minDSqr;
+
+        scores[2] = std::min(scores[2],meanDSqr);
+        scores[3] = std::min(scores[3],minDSqr);
 
         scores[6] += 1.0f;
 
@@ -339,7 +344,7 @@ struct NodeScorer_GoalDT : public NodeScorer_BaseDT
         current.finalScores[3] = current.scores[3]*config_.f_minMinDist;
         current.finalScores[6] = current.scores[6]*config_.f_poseC;
         current.finalScores[7] = current.scores[7]*config_.f_aVelD;
-        current.finalScores[10] = lastCmdVelDiff * config_.f_lastCmdVelDiff;
+        current.finalScores[9] = lastCmdVelDiff * config_.f_lastCmdVelDiff;
         current.finalScores[11] = current.scores[11]*config_.f_goalDistance;
         current.finalScores[12] = current.scores[12]*config_.f_goalOrientation;
         current.finalScores[13] = (current.scores[13]*levelNorm)*config_.f_pathDistance;
@@ -354,8 +359,14 @@ struct NodeScorer_GoalDT : public NodeScorer_BaseDT
         {
             parPtr->bestChildScore_ = current.fScore_;
             parPtr->bestChild_ = &current;
+            parPtr->fScore_ = current.fScore_;
         }
-        if (current.validState_ > PERSDT_COLLISION) parPtr->validChildCount_++;
+        if (current.validState_ > PERSDT_COLLISION)
+        {
+            parPtr->validChildCount_++;
+
+
+        }
 
     }
 
@@ -374,8 +385,21 @@ struct NodeScorer_GoalDT : public NodeScorer_BaseDT
             if (current->level_ != 1) continue;
 
             float tscore;
-            if (current->bestChild_->end_->validState != PERSDT_GOALREACHED) tscore = current->bestChildScore_ + (float)current->validChildCount_*config_.f_childCount;
-            else tscore = current->bestChildScore_;
+            if (current->bestChild_->end_->validState != PERSDT_GOALREACHED)
+            {
+                tscore = current->bestChildScore_ + (float)current->validChildCount_*config_.f_childCount;
+
+                current->scores[10] = (float)current->validChildCount_;
+                current->finalScores[10] = (float)current->validChildCount_*config_.f_childCount;
+                current->fScore_ = tscore;
+            }
+            else
+            {
+                tscore = current->bestChildScore_;
+                current->scores[10] = (float)current->validChildCount_;
+                current->finalScores[10] = -1.0;
+
+            }
 
             if (tscore > bestScore)
             {

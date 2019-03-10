@@ -204,6 +204,8 @@ protected:
 
     void TransformPath(tf::Transform trans);
 
+    void PrintOneScore(const TrajNodeDT* node, int idx, std::ostringstream &oss);
+    void PrintScore(TrajNodeDT* node);
 
 
     bool initialized_;

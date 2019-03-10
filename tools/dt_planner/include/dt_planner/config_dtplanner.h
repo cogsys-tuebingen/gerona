@@ -54,6 +54,10 @@ struct PlannerScorerConfigDT
 
         heihgtLimitPowPerMeter = 1.25;
 
+        noWheelSupportNearThresholdImg = 0;
+        dontCareDistanceImg = 0;
+        distanceThresholdImg = 0;
+        dontCareDistanceImgInv = 0;
 
     }
 
@@ -92,6 +96,7 @@ struct PlannerScorerConfigDT
 
     float distanceThresholdImg; // in pixel
     float dontCareDistanceImg;
+    float dontCareDistanceImgInv;
     float noWheelSupportNearThresholdImg;
 
     float heihgtLimitPowPerMeter;
@@ -103,7 +108,7 @@ struct PlannerScorerConfigDT
         distanceThresholdImg = distanceThreshold/pixelSize;
         dontCareDistanceImg = dontCareDistance/pixelSize;
         noWheelSupportNearThresholdImg = noWheelSupportNearThreshold/pixelSize;
-
+        dontCareDistanceImgInv = 1.0f/dontCareDistanceImg;
     }
 
 
