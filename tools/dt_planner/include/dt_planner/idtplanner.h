@@ -118,6 +118,7 @@ public:
      * @brief Get a debug image of the latest planning
      */
     virtual cv::Mat DrawDebugImage(float scalingFactor, bool drawRobot) = 0;
+    virtual cv::Mat DrawDebugImageFast(float scalingFactor, bool drawRobot) = 0;
 
 
     /**

@@ -150,6 +150,113 @@ void DrawProc::DrawTrajectories(ScaledDrawProc &sdp, const std::vector<TrajNodeD
     {
         TrajNodeDT* curT = trajectories[tl];
 
+
+        PoseEvalResultsDT* curRes;
+        PoseEvalResultsDT* curRes2;
+
+        for (unsigned int i = 0; i < curT->poseResults_.size();++i)
+        {
+            curRes = &curT->poseResults_[i];
+            if (curRes->validState == PERSDT_NOTASSIGNED) break;
+
+            float gAngle = (curRes->minDist / (conf.procConfig_.pixelSizeInv*0.5));
+
+            if (conf.scorerConfig_.distanceThreshold > 0) gAngle = (curRes->minDist / (conf.scorerConfig_.distanceThresholdImg*3.0));
+
+            float maxAngle = std::min(gAngle,1.0f);
+            float resAngle = maxAngle;
+
+
+            //cv::Scalar color(0 ,(int)(255- (resAngle/2.0)*255), (int)((resAngle/2.0)*255));
+            cv::Scalar color((int)(255.0- (resAngle)*255.0), (int)((resAngle)*255.0) , 0);
+
+            //float tgravAngle = (maxAngle-0.95)*(1.0/0.05);
+
+
+
+            if (curRes->validState >= 0)sdp.DrawCrossScaled(cv::Point2f(curRes->pose.x,curRes->pose.y),1,color);
+            else
+            {
+                sdp.DrawCrossScaled(cv::Point2f(curRes->pose.x,curRes->pose.y),1,cv::Scalar(0,255.0,255.0));
+            }
+
+            if (i +1 < curT->poseResults_.size())
+            {
+                curRes2 = &curT->poseResults_[i+1];
+                if (curRes2->validState != PERSDT_NOTASSIGNED)
+                {
+                    sdp.DrawLineScaled(cv::Point2f(curRes->pose.x,curRes->pose.y),cv::Point2f(curRes2->pose.x,curRes2->pose.y),color);
+
+                }
+            }
+
+        }
+
+
+        if (curT->start_ != nullptr && curT->poseResults_.size() > 0)
+        {
+            curRes = &curT->poseResults_[0];
+            if (curRes->validState >= 0 && curT->start_->validState >= 0) sdp.DrawLineScaled(cv::Point2f(curT->start_->pose.x,curT->start_->pose.y),cv::Point2f(curRes->pose.x,curRes->pose.y),cv::Scalar(0,255.0,0));
+            else sdp.DrawLineScaled(cv::Point2f(curT->start_->pose.x,curT->start_->pose.y),cv::Point2f(curRes->pose.x,curRes->pose.y),cv::Scalar(0,255.0,255.0));
+
+        }
+
+        /*
+        if (curT->poseResults_.size() > 1)
+        {
+
+
+
+            for (unsigned int i = 0; i < curT->poseResults_.size()-1;++i)
+            {
+                curRes = &curT->poseResults_[i];
+                if (curRes->validState < 0) break;
+
+                curRes2 = &curT->poseResults_[i+1];
+                if (curRes2->validState < 0) break;
+
+                float tgravAngle = std::abs(curRes->gravAngle-curRes2->gravAngle);
+                if (tgravAngle < 0) tgravAngle = 0;
+                if (curRes->validState >= 0 && curRes2->validState >= 0) sdp.DrawLineScaled(cv::Point2f(curRes->pose.x,curRes->pose.y),cv::Point2f(curRes2->pose.x,curRes2->pose.y),cv::Scalar(0,255.0*(1.0-tgravAngle),255.0*(tgravAngle)));
+                else sdp.DrawLineScaled(cv::Point2f(curRes->pose.x,curRes->pose.y),cv::Point2f(curRes2->pose.x,curRes2->pose.y),cv::Scalar(0,255.0,255.0));
+
+            }
+        }
+        */
+
+
+        if (curT->end_ != nullptr)sdp.DrawCircleScaled(cv::Point2f(curT->end_->pose.x,curT->end_->pose.y),3,GetEndStateColor(curT->end_->validState),2);
+
+
+
+    }
+
+    if (bestTraj_ != nullptr)
+    {
+        const PoseEvalResultsDT* curRes;
+
+        for (unsigned int i = 0; i < bestTraj_->poseResults_.size();++i)
+        {
+
+            curRes = &bestTraj_->poseResults_[i];
+            if (curRes->validState >= 0)sdp.DrawCircleScaled(cv::Point2f(curRes->pose.x,curRes->pose.y),2,cv::Scalar(255.0,0,255.0));
+
+        }
+
+    }
+
+
+}
+
+
+void DrawProc::DrawTrajectoriesFast(ScaledDrawProc &sdp, const std::vector<TrajNodeDT*> &trajectories, const TrajectoryDT* bestTraj_)
+{
+    if (trajectories.size() == 0) return;
+    for (unsigned int tl = 0; tl < trajectories.size();++tl)
+    {
+        TrajNodeDT* curT = trajectories[tl];
+
+        /*
         PoseEvalResultsDT* curRes;
         PoseEvalResultsDT* curRes2;
 

@@ -504,23 +504,23 @@ struct NodeScorer_Path_T : public NodeScorer_Goal_T
 
     inline float SqDistancePtSegment(const cv::Point2f &a, const cv::Point2f &b, const cv::Point2f &p ) const
     {
-        cv::Point2f n = b - a;
-        cv::Point2f pa = a - p;
+        const cv::Point2f n = b - a;
+        const cv::Point2f pa = a - p;
 
-        float c = n.dot( pa );
+        const float c = n.dot( pa );
 
         // Closest point is a
         if ( c > 0.0f )
             return pa.dot(  pa );
 
-        cv::Point2f bp = p - b;
+        const cv::Point2f bp = p - b;
 
         // Closest point is b
         if ( n.dot( bp ) > 0.0f )
             return bp.dot( bp );
 
         // Closest point is between a and b
-        cv::Point2f e = pa - n * (c / n.dot( n ));
+        const cv::Point2f e = pa - n * (c / n.dot( n ));
 
         return e.dot( e );
     }

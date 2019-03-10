@@ -89,16 +89,20 @@ cv::Mat PlannerBaseDT::DrawMap(PoseEvalResultsDT &results)
 
 
 
-    float *dmapPtr;
+    const float *dmapPtr;
     cv::Vec3b *dstPtr;
-    short *demPtr;
+    const short *demPtr;
 
     cv::Point2f rPos(results.pose.x,results.pose.y);
     cv::Point2f pPos;
     cv::Point2f diffPos;
     float distP = 0;
 
+    const short notvisibleLevelS = config_.procConfig_.notVisibleLevel;
+
     const float noWSSqr = config_.scorerConfig_.noWheelSupportNearThresholdImg*config_.scorerConfig_.noWheelSupportNearThresholdImg;
+
+    const float dontCareDistanceImgInv = 1.0f / config_.scorerConfig_.dontCareDistanceImg;
 
     for (int y = 0; y < dmap.rows;++y)
     {
@@ -112,7 +116,7 @@ cv::Mat PlannerBaseDT::DrawMap(PoseEvalResultsDT &results)
             diffPos = pPos-rPos;
             distP = (diffPos.dot(diffPos));
 
-            if (results.validState != PERSDT_NOTASSIGNED && demPtr[x] <= config_.procConfig_.notVisibleLevel && distP > noWSSqr)
+            if (results.validState != PERSDT_NOTASSIGNED && demPtr[x] <= notvisibleLevelS && distP > noWSSqr)
             {
 
                     dstPtr[x][0] = 100;
@@ -122,7 +126,7 @@ cv::Mat PlannerBaseDT::DrawMap(PoseEvalResultsDT &results)
             else
             {
 
-                const float distNorm = 1.0f -(dmapPtr[x] > config_.scorerConfig_.dontCareDistanceImg? 1.0f : dmapPtr[x]/config_.scorerConfig_.dontCareDistanceImg);
+                const float distNorm = 1.0f -(dmapPtr[x] > config_.scorerConfig_.dontCareDistanceImg? 1.0f : dmapPtr[x]*dontCareDistanceImgInv);
 
                 //distNorm = 1.0f - distNorm;
 
@@ -142,12 +146,61 @@ cv::Mat PlannerBaseDT::DrawMap(PoseEvalResultsDT &results)
     return drawMat;
 }
 
+cv::Mat PlannerBaseDT::DrawDebugImageFast(float scalingFactor, bool drawRobot)
+{
+    PoseEvalResultsDT result;
+
+    result.Reset();
+
+    IDTPlanner* iplanner = (IDTPlanner*)this;
+
+    std::vector<TrajNodeDT*> trajectories_;
+    iplanner->GetAllTrajectoryNodes(trajectories_);
+
+    if (bestNode_ != nullptr)
+    {
+        TrajNodeDT* curTraj = bestNode_->GetFirstNode();
+        result = *curTraj->start_;
+    }
+    else if (trajectories_.size() > 0)
+    {
+        TrajNodeDT* curTraj = trajectories_[0];
+        result = *curTraj->start_;
+    }
+
+    cv::Mat dem = poseEstimator_.GetDEM();
+
+
+
+    ScaledDrawProc sdp;
+    DrawProc dp;
+    dp.conf = config_;
+
+    cv::Mat drawMat = dp.D16SImageToRGB(dem,config_.procConfig_.mapBaseHeight- config_.procConfig_.heightScale,config_.procConfig_.mapBaseHeight+ config_.procConfig_.heightScale);
+
+
+    dp.SetupDrawProc(sdp,drawMat,scalingFactor);
+
+
+
+    if (drawRobot) dp.DrawRobotScaled(sdp,*poseEstimator_.GetRobotModel(),result);
+
+
+    dp.DrawTrajectoriesFast(sdp,trajectories_,iplanner->GetResultTrajectory());
+
+
+    dp.DrawGoal(sdp,goal_,curImgRobotPose_);
+    dp.DrawPath(sdp,path_);
+
+
+    return sdp.GetImage();
+
+
+}
+
+
 cv::Mat PlannerBaseDT::DrawDebugImage(float scalingFactor, bool drawRobot)
 {
-
-
-
-
     PoseEvalResultsDT result;
 
     result.Reset();

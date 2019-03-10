@@ -32,6 +32,8 @@ public:
 
 
     void DrawTrajectories(ScaledDrawProc &sdp, const std::vector<TrajNodeDT*> &trajectories, const TrajectoryDT* bestTraj_);
+    void DrawTrajectoriesFast(ScaledDrawProc &sdp, const std::vector<TrajNodeDT*> &trajectories, const TrajectoryDT* bestTraj_);
+
     void SetupDrawProc(ScaledDrawProc &drawProc,cv::Mat &img, float scaleFactor);
 
     //static void DrawRobot(ScaledDrawProc &drawProc,IModelBasedPlanner &planner);
