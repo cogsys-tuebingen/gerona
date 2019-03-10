@@ -192,6 +192,9 @@ public:
     cv::Mat DrawDebugImage(float scalingFactor, bool drawRobot);
     cv::Mat DrawDebugImage(PoseEvalResultsDT results, float scalingFactor, bool drawRobot);
 
+    cv::Mat DrawDebugImageFast(float scalingFactor, bool drawRobot);
+
+
     cv::Mat DrawMap(PoseEvalResultsDT &results);
 
 
