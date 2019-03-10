@@ -369,7 +369,7 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
                 (current.scores[7]*levelNorm)*config_.f_aVelD +
                 (current.scores[8]*normalize)*config_.f_meanWS +
                 current.scores[9]*config_.f_minWS +
-                current.scores[10]*config_.f_numNotVisible +
+                //current.scores[10]*config_.f_numNotVisible +
                 current.scores[11]*config_.f_goalDistance+
                 current.scores[12]*config_.f_goalOrientation+
                 (current.scores[13]*levelNorm)*config_.f_pathDistance+
@@ -388,7 +388,7 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         current.finalScores[7] = current.scores[7]*config_.f_aVelD;
         current.finalScores[8] = current.scores[8]*normalize*config_.f_meanWS;
         current.finalScores[9] = current.scores[9]*config_.f_minWS;
-        current.finalScores[10] = current.scores[10];
+        //current.finalScores[10] = current.scores[10];
         current.finalScores[11] = current.scores[11]*config_.f_goalDistance;
         current.finalScores[12] = current.scores[12]*config_.f_goalOrientation;
         current.finalScores[13] = (current.scores[13]*levelNorm)*config_.f_pathDistance;
@@ -402,6 +402,7 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         {
             parPtr->bestChildScore_ = current.fScore_;
             parPtr->bestChild_ = &current;
+            parPtr->fScore_ = current.fScore_;
         }
         if (current.validState_ >= PERS_LOWWHEELSUPPORT_FAR) parPtr->validChildCount_++;
 
@@ -421,8 +422,22 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
             if (current->level_ != 1) continue;
 
             float tscore;
-            if (current->bestChild_->end_->validState != PERS_GOALREACHED) tscore = current->bestChildScore_ + (float)current->validChildCount_*config_.f_childCount;
-            else tscore = current->bestChildScore_;
+            if (current->bestChild_->end_->validState != PERS_GOALREACHED)
+            {
+                tscore = current->bestChildScore_ + (float)current->validChildCount_*config_.f_childCount;
+
+                current->scores[10] = (float)current->validChildCount_;
+                current->finalScores[10] = (float)current->validChildCount_*config_.f_childCount;
+                current->fScore_ = tscore;
+
+            }
+            else
+            {
+                tscore = current->bestChildScore_;
+                current->scores[10] = (float)current->validChildCount_;
+                current->finalScores[10] = -1.0;
+
+            }
 
             if (tscore > bestScore)
             {

@@ -71,7 +71,7 @@ struct PlannerScorerConfig
         f_aVelD = -10.0;
         f_meanWS = 0.0;
         f_minWS = 10.0;
-        f_numNotVisible = -1.0;
+        //f_numNotVisible = -1.0;
 
         f_goalDistance = 1.0;
         f_goalOrientation = -2.0;
@@ -114,7 +114,7 @@ struct PlannerScorerConfig
     float f_aVelD;// factor
     float f_meanWS;// factor
     float f_minWS;// factor
-    float f_numNotVisible;// factor
+    //float f_numNotVisible;// factor
     float f_goalDistance; // factor
     float f_goalOrientation; // factor
     float f_lastCmdVelDiff; // factor

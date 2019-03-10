@@ -359,6 +359,35 @@ bool RobotController_ModelBased::targetTransform2base(ros::Time& now)
     return true;
 }
 
+void RobotController_ModelBased::PrintOneScore(const TrajNode* node, int idx, std::ostringstream &oss)
+{
+    oss << " " << TrajNode::GetScoreName(idx) << ": " << node->scores[idx] << " f " << node->finalScores[idx];
+
+}
+
+void RobotController_ModelBased::PrintScore(TrajNode* node)
+{
+    std::ostringstream oss;
+
+    oss << "l:" <<  node->level_ << " cmd: " << node->startCmd_.x << "|" << node->startCmd_.y << " fs: " << node->fScore_;
+    if (node->bestChild_ != nullptr)
+    {
+        if (node->bestChild_->end_ != nullptr) oss << " state: " <<  PoseEvalResults::GetValidStateString(node->bestChild_->end_->validState);
+        //PrintOneScore(node->bestChild_,0,oss);
+        //PrintOneScore(node->bestChild_,1,oss);
+        //PrintOneScore(node->bestChild_,2,oss);
+        //PrintOneScore(node->bestChild_,3,oss);
+        PrintOneScore(node,10,oss);
+        PrintOneScore(node->bestChild_,13,oss);
+        PrintOneScore(node->bestChild_,14,oss);
+
+    }
+
+
+    ROS_INFO_STREAM_THROTTLE(1, oss.str().c_str() );
+
+}
+
 
 
 void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr& image)
@@ -601,7 +630,15 @@ void RobotController_ModelBased::imageCallback (const sensor_msgs::ImageConstPtr
         return;
     }*/
 
+    {
+        TrajNode* bestNode = model_based_planner_->GetBestNode();
+        TrajNode* bestNodeParent = bestNode->GetFirstNode();
 
+        PrintScore(bestNodeParent);
+
+
+
+    }
 
 
     cv::Point2f resCmd = result->poseResults_[1].cmd;

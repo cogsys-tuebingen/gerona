@@ -262,6 +262,56 @@ struct TrajNode : public Trajectory
 
     }
 
+    /*
+        current.finalScores[0] = (current.scores[0]*normalize)*config_.f_meanGA;
+        current.finalScores[1] = current.scores[1]*config_.f_maxGA;
+        current.finalScores[2] = (current.scores[2]*normalize)*config_.f_meanAD;
+        current.finalScores[3] = current.scores[3]*config_.f_maxAD;
+        current.finalScores[4] = (current.scores[4]*normalize)*config_.f_meanTA;
+        current.finalScores[5] = current.scores[5]*config_.f_maxTA ;
+        current.finalScores[6] = current.scores[6]*config_.f_poseC;
+        current.finalScores[7] = current.scores[7]*config_.f_aVelD;
+        current.finalScores[8] = current.scores[8]*normalize*config_.f_meanWS;
+        current.finalScores[9] = current.scores[9]*config_.f_minWS;
+        //current.finalScores[10] = current.scores[10];
+        current.finalScores[11] = current.scores[11]*config_.f_goalDistance;
+        current.finalScores[12] = current.scores[12]*config_.f_goalOrientation;
+        current.finalScores[13] = (current.scores[13]*levelNorm)*config_.f_pathDistance;
+        current.finalScores[14] = endFactor;
+        current.finalScores[15] = lowPoseCountPenalty;
+
+       */
+    //                                                        0        1          2        3        4        5         6       7        8        9          10           11          12          13         14                15
+    //static const constexpr char * const scoreNames[] = { "meanGA", "maxGA", "_meanAD", "maxAD", "meanTA","maxTA", "poseC", "aVelD", "meanWS", "minWS", "vChildCnt", "goalDist", "goalOrien", "pathDist", "endFactor", "lowPoseCountPenalty" };
+
+    static std::string GetScoreName(int idx)
+    {
+
+        switch (idx)
+        {
+        case 0: return "meanGA";
+        case 1: return "maxGA";
+        case 2: return "meanAD";
+        case 3: return "maxAD";
+        case 4: return "meanTA";
+        case 5: return "maxTA";
+        case 6: return "poseC";
+        case 7: return "aVelD";
+        case 8: return "meanWS";
+        case 9: return "minWS";
+        case 10: return "vChildCnt";
+        case 11:return "goalDist";
+        case 12:return "goalOrien";
+        case 13:return "pathDist";
+        case 14:return "endFactor";
+        case 15:return "lowPoseCountPenalty";
+        default: return "unknown";
+
+        }
+    }
+
+
+
 
     TrajNode* parent_;
     int level_;

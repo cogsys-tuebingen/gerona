@@ -165,7 +165,7 @@ private:
 
     float invNumTestPoints_;
     float demRowsF_,demColsF_;
-    float dontCareDist_;
+    float dontCareDistImg_;
 
 
 

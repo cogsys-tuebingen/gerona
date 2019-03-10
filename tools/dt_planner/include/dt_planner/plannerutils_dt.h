@@ -152,6 +152,48 @@ struct TrajNodeDT : public TrajectoryDT
     }
 
 
+    /*
+        current.finalScores[0] = current.scores[0]*normalize*config_.f_meanMeanDist;
+        current.finalScores[1] = current.scores[1]*normalize*config_.f_meanMinDist;
+        current.finalScores[2] = current.scores[2]*config_.f_minMeanDist;
+        current.finalScores[3] = current.scores[3]*config_.f_minMinDist;
+        current.finalScores[6] = current.scores[6]*config_.f_poseC;
+        current.finalScores[7] = current.scores[7]*config_.f_aVelD;
+        current.finalScores[9] = lastCmdVelDiff * config_.f_lastCmdVelDiff;
+        current.finalScores[11] = current.scores[11]*config_.f_goalDistance;
+        current.finalScores[12] = current.scores[12]*config_.f_goalOrientation;
+        current.finalScores[13] = (current.scores[13]*levelNorm)*config_.f_pathDistance;
+        current.finalScores[14] = endFactor;
+        current.finalScores[15] = lowPoseCountPenalty;
+       */
+    //                                             0           1           2           3     4  5      6       7      8        9               10           11          12            13         14                15
+    //static const char * const scoreNames[] = { "meanMean", "meanMin", "minMean", "minMin", "","", "poseC", "aVelD", "", "lastCmdVelDiff", "vChildCnt", "goalDist", "goalOrien", "pathDist", "endFactor", "lowPoseCountPenalty" };
+
+    static std::string GetScoreName(int idx)
+    {
+
+        switch (idx)
+        {
+        case 0: return "meanMean";
+        case 1: return "meanMin";
+        case 2: return "minMean";
+        case 3: return "minMin";
+        case 6: return "poseC";
+        case 7: return "aVelD";
+        case 9: return "lastCmdVelDiff";
+        case 10: return "vChildCnt";
+        case 11:return "goalDist";
+        case 12:return "goalOrien";
+        case 13:return "pathDist";
+        case 14:return "endFactor";
+        case 15:return "lowPoseCountPenalty";
+        default: return "unknown";
+
+        }
+    }
+
+
+
     TrajNodeDT* parent_;
     int level_;
 
