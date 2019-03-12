@@ -1,18 +1,41 @@
 
-#include "localmap.h"
+#include "localmap_mc.h"
 
 
 
-Localmap::Localmap() :
+LocalmapMC::LocalmapMC() :
     nodeG_(),
     nodeP_("~")
 {
 
-    depthSub_ = nodeG_.subscribe ("/depth_image", 1, &Localmap::imageCallback, this);
 
-    cameraInfoSub_ = nodeG_.subscribe ("/camera_info", 1, &Localmap::ci_callback, this);
+    nodeP_.param("numCameras", numCameras_,1);
 
-    mapResetSub_ = nodeG_.subscribe ("/localmap_reset_trigger", 1, &Localmap::mr_callback, this);
+    for (int i = 0; i < numCameras_;i++)
+    {
+        //scan_sub_front_ = node_.subscribe<sensor_msgs::LaserScan>("scan/front/filtered", 1, boost::bind(&ScanConverter::scanCallback, this, _1, false));
+        std::ostringstream ossDepth;
+        ossDepth << "/depth_image" << i;
+        depthImageSubs_.push_back(std::move(nodeG_.subscribe<sensor_msgs::Image> (ossDepth.str().c_str(), numCameras_, boost::bind(&LocalmapMC::imageCallback, this, _1, i))));
+        std::ostringstream ossCamInfo;
+        ossCamInfo << "/camera_info" << i;
+        cameraInfoSubs_.push_back(std::move(nodeG_.subscribe<sensor_msgs::CameraInfo>(ossCamInfo.str().c_str(), numCameras_, boost::bind(&LocalmapMC::ci_callback, this, _1, i))));
+
+    }
+
+    hasCamInfos_.resize(numCameras_,false);
+    hasCam2Bases_.resize(numCameras_,false);
+    camInfos_.resize(numCameras_);
+    cam2Bases_.resize(numCameras_);
+
+
+    //depthSub_ = nodeG_.subscribe ("/depth_image", 1, &LocalmapMC::imageCallback, this);
+    //scan_sub_front_ = node_.subscribe<sensor_msgs::LaserScan>("scan/front/filtered", 1, boost::bind(&ScanConverter::scanCallback, this, _1, false));
+
+
+    //cameraInfoSub_ = nodeG_.subscribe ("/camera_info", 1, &LocalmapMC::ci_callback, this);
+
+    mapResetSub_ = nodeG_.subscribe ("/localmap_reset_trigger", 1, &LocalmapMC::mr_callback, this);
 
 #ifdef ELEVATION_CLOUD_DEBUG
     imageCloud_pub_ =    nodeG_.advertise<sensor_msgs::PointCloud2>("/elevation_cloud",1);
@@ -103,8 +126,8 @@ Localmap::Localmap() :
     numRegistered_ = 0;
     totalRegisterTime_ = 0;
 
-    hasCamInfo_ = false;
-    hasCam2Base_ = false;
+    //hasCamInfo_ = false;
+    //hasCam2Base_ = false;
 
     cAssign_ = cv::Mat(mapResolution_,mapResolution_,CV_32F);
     cZImg_ = cv::Mat(mapResolution_,mapResolution_,CV_32F);
@@ -127,7 +150,7 @@ Localmap::Localmap() :
 
 
 
-void Localmap::SetupMatrices(tf::Transform &transform)
+void LocalmapMC::SetupMatrices(tf::Transform &transform)
 {
     tf::Matrix3x3 rotMat(transform.getRotation());
 
@@ -151,14 +174,14 @@ void Localmap::SetupMatrices(tf::Transform &transform)
 }
 
 
-bool Localmap::GetTransform(ros::Time time,std::string targetFrame, std::string sourceFrame, tf::StampedTransform &trans)
+bool LocalmapMC::GetTransform(ros::Time time,std::string targetFrame, std::string sourceFrame, tf::StampedTransform &trans)
 {
     try{//Try to get the latest avaiable Transform
         tf_listener.lookupTransform(targetFrame, sourceFrame, time, trans);
     }catch(tf::TransformException ex){//if not available, then wait
         (void) ex;
         if(!tf_listener.waitForTransform(targetFrame, sourceFrame, time, ros::Duration(transformWaitTime_))){ //ros::Duration(0.05))){
-            ROS_WARN_STREAM_THROTTLE(0.5,"DE_Localmap: cannot lookup transform from: " << targetFrame << " to " << sourceFrame);
+            ROS_WARN_STREAM_THROTTLE(0.5,"LocalmapMC: cannot lookup transform from: " << targetFrame << " to " << sourceFrame);
             return false;
         }
         tf_listener.lookupTransform(targetFrame, sourceFrame, time, trans);
@@ -169,21 +192,20 @@ bool Localmap::GetTransform(ros::Time time,std::string targetFrame, std::string 
 
 }
 
-void Localmap::ci_callback(const sensor_msgs::CameraInfoConstPtr& info)
+void LocalmapMC::ci_callback(const sensor_msgs::CameraInfoConstPtr& info, int idx)
 {
-    if (hasCamInfo_) return;
+    if (hasCamInfos_[idx]) return;
     if (info->P.at(0) == 0) return;
-    camInfo_ = *info;
+    camInfos_[idx] = *info;
 
-    hasCamInfo_ = true;
+    hasCamInfos_[idx] = true;
 
-    proc_.SetupCam(camInfo_.P[0],camInfo_.P[5],camInfo_.P[2],camInfo_.P[6]);
 
     ROS_INFO_STREAM("Received camera info!");
 
 }
 
-void Localmap::mr_callback(const std_msgs::Int8ConstPtr& data)
+void LocalmapMC::mr_callback(const std_msgs::Int8ConstPtr& data)
 {
     ros::Duration durWait(resetWaitTime_);
     durWait.sleep();
@@ -196,14 +218,14 @@ void Localmap::mr_callback(const std_msgs::Int8ConstPtr& data)
 
 
 
-cv::Point2f Localmap::ConvertPoint(cv::Point2f &p)
+cv::Point2f LocalmapMC::ConvertPoint(cv::Point2f &p)
 {
     return cv::Point2f((p.x-proc_.minXVal_) * proc_.pixelResolution_,(p.y-proc_.minYVal_) * proc_.pixelResolution_);
 
 }
 
 
-void Localmap::UpdateLocalMapOverwrite(cv::Mat &localMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax)
+void LocalmapMC::UpdateLocalMapOverwrite(cv::Mat &localMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax)
 {
     const float *zImageP;
     float *localMapP;
@@ -233,7 +255,7 @@ void Localmap::UpdateLocalMapOverwrite(cv::Mat &localMap, const cv::Mat & zImage
 
 }
 
-void Localmap::UpdateLocalMapOverwriteMax(cv::Mat &localMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax)
+void LocalmapMC::UpdateLocalMapOverwriteMax(cv::Mat &localMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax)
 {
     const float *zImageP;
     float *localMapP;
@@ -263,7 +285,8 @@ void Localmap::UpdateLocalMapOverwriteMax(cv::Mat &localMap, const cv::Mat & zIm
 
 }
 
-void Localmap::UpdateLocalMapTemporal(cv::Mat &localMap, cv::Mat &localTempMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax, const cv::Point3f &planeP, const cv::Point3f &planeN)
+
+void LocalmapMC::UpdateLocalMapTemporal(cv::Mat &localMap, cv::Mat &localTempMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax, const cv::Point3f &planeP, const cv::Point3f &planeN)
 {
     const float *zImageP;
     float *localMapP;
@@ -354,7 +377,7 @@ void Localmap::UpdateLocalMapTemporal(cv::Mat &localMap, cv::Mat &localTempMap, 
 }
 
 
-void Localmap::UpdateLocalMapMax(cv::Mat &localMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax)
+void LocalmapMC::UpdateLocalMapMax(cv::Mat &localMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax)
 {
     const float *zImageP;
     float *localMapP;
@@ -389,27 +412,29 @@ void Localmap::UpdateLocalMapMax(cv::Mat &localMap, const cv::Mat & zImage, cons
 
 
 
-void Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
+void LocalmapMC::imageCallback(const sensor_msgs::ImageConstPtr& depth, int idx)
 {
 
 
-    if (!hasCamInfo_) return;
+    if (!hasCamInfos_[idx]) return;
+    sensor_msgs::CameraInfo camInfo = camInfos_[idx];
+    proc_.SetupCam(camInfo.P[0],camInfo.P[5],camInfo.P[2],camInfo.P[6]);
 
     std::string cameraFrame = depth->header.frame_id;
     ros::Time timeStamp = depth->header.stamp;
     if (useLatestTransform_ == 1) timeStamp = ros::Time::now();
     if (useLatestTransform_ == 2) timeStamp = ros::Time(0);
 
-    if (!hasCam2Base_)
+    if (!hasCam2Bases_[idx])
     {
 
-        if (!GetTransform(ros::Time(0),baseFrame_, cameraFrame, cam2Base_)) {
+        if (!GetTransform(ros::Time(0),baseFrame_, cameraFrame, cam2Bases_[idx])) {
             ROS_ERROR_STREAM("Error looking up Camera to Base transform: " << cameraFrame << " to " << baseFrame_);
 
             return;
 
         }
-        hasCam2Base_ = true;
+        hasCam2Bases_[idx] = true;
     }
 
 
@@ -491,7 +516,7 @@ void Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
 
 
     tf::Transform cam2map;
-    cam2map = base2map*cam2Base_;
+    cam2map = base2map*cam2Bases_[idx];
 
 
 
@@ -556,8 +581,8 @@ void Localmap::imageCallback(const sensor_msgs::ImageConstPtr& depth)
         else {UpdateLocalMapOverwriteMax(blockMap_.currentMap_,cZImg_, cAssign_,minMax); resultImg = blockMap_.currentMap_;}
         break;
     }
-
     }
+
 
     std::string resultFrameID = localMapFrame_;
 
@@ -686,7 +711,7 @@ int main(int argc, char **argv)
 {
 
     ros::init(argc, argv, "LocalMap_Node");
-    Localmap demNode;
+    LocalmapMC demNode;
 
     ros::Rate r(60);
     while(ros::ok())
