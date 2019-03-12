@@ -4,8 +4,15 @@ project(localmap)
 #set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_CXX_FLAGS "-std=c++11 -march=native ${CMAKE_CXX_FLAGS}")
 
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
 set(CMAKE_CXX_FLAGS "-std=c++11 -march=native -O3 -ffast-math ${CMAKE_CXX_FLAGS}")
+
+#set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_CXX_FLAGS "-std=c++11 -march=native -O3 -ffast-math ${CMAKE_CXX_FLAGS}")
+
+if(${CMAKE_BUILD_TYPE} STREQUAL RELWITHDEBINFO)
+    add_definitions(-fno-omit-frame-pointer)
+endif()
 
 #if(NOT ${CMAKE_BUILD_TYPE} STREQUAL Debug)
 #    add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function -Wno-deprecated-#register)
@@ -123,7 +130,8 @@ file(GLOB SOURCE src/*.cpp)
 
 
 add_executable(localmap_node
-    ${SOURCE}
+    src/blockmap.cpp
+    src/localmap.cpp
     ${HEADERS} # for qtcreator...
 
     )
@@ -133,6 +141,21 @@ target_link_libraries(localmap_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${Ope
 
 install(TARGETS localmap_node
     RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
+
+
+add_executable(localmap_mc_node
+    src/blockmap.cpp
+    src/localmap_mc.cpp
+    ${HEADERS} # for qtcreator...
+
+    )
+
+target_link_libraries(localmap_mc_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
+
+
+install(TARGETS localmap_mc_node
+    RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
+
 
 #target_link_libraries(utils_vision yaml-cpp ${Boost_LIBRARIES} ${OpenCV_LIBS} ${catkin_LIBRARIES})
 

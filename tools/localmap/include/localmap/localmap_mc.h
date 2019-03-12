@@ -1,5 +1,5 @@
-#ifndef DE_LOCALMAP_H
-#define DE_LOCALMAP_H
+#ifndef DE_LOCALMAP_MC_H
+#define DE_LOCALMAP_MC_H
 
 
 #include "ros/ros.h"
@@ -32,7 +32,7 @@
 /**
  * @brief The local map implementation
  */
-class Localmap {
+class LocalmapMC {
 
 public:
 
@@ -45,14 +45,15 @@ public:
      */
     enum FUSE_MODE { FM_OVERWRITE,FM_MAX, FM_TEMPORAL};
 
-    Localmap();
+    LocalmapMC();
 
-    void imageCallback(const sensor_msgs::ImageConstPtr& depth);
+    void imageCallback(const sensor_msgs::ImageConstPtr& depth, int idx);
+
     /**
      * @brief Convert a point from world to map coordinates
      */
     cv::Point2f ConvertPoint(cv::Point2f &p);
-    void ci_callback(const sensor_msgs::CameraInfoConstPtr& info);
+    void ci_callback(const sensor_msgs::CameraInfoConstPtr& info, int idx);
 
 
     void mr_callback(const std_msgs::Int8ConstPtr& data);
@@ -71,8 +72,6 @@ public:
      */
     void UpdateLocalMapOverwrite(cv::Mat &localMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax);
     void UpdateLocalMapOverwriteMax(cv::Mat &localMap, const cv::Mat & zImage, const cv::Mat &assignImage, const cv::Vec4i &minMax);
-
-
     /**
      * @brief Updates the local map with the current depth images, assigning the maximum of local map and current height values
      */
@@ -84,11 +83,13 @@ private:
     ros::NodeHandle nodeG_;
     ros::NodeHandle nodeP_;
 
+    std::vector<ros::Subscriber> depthImageSubs_;
+    std::vector<ros::Subscriber> cameraInfoSubs_;
+    std::vector<bool> hasCamInfos_;
+    std::vector<bool> hasCam2Bases_;
+    std::vector<sensor_msgs::CameraInfo> camInfos_;
+    std::vector<tf::StampedTransform> cam2Bases_;
 
-
-    ros::Subscriber depthSub_;
-
-    ros::Subscriber cameraInfoSub_;
 
     ros::Subscriber mapResetSub_;
 
@@ -101,12 +102,10 @@ private:
 
 #endif
 
+
     tf::TransformListener tf_listener;
 
 
-    sensor_msgs::CameraInfo camInfo_;
-    bool hasCamInfo_;
-    bool hasCam2Base_;
     int postProcessType_;
     int postProcessSize_;
 
@@ -114,7 +113,6 @@ private:
     std::string mapFrame_;
     std::string localMapFrame_;
 
-    tf::StampedTransform cam2Base_;
 
 
     int numRegistered_;
@@ -159,7 +157,7 @@ private:
     float testPlaneDistance_;
     std::vector<float> testPlaneNormal_;
 
-
+    int numCameras_;
 
 
 
