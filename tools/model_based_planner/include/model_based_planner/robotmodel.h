@@ -7,6 +7,7 @@
 #include "robotdescriptor.h"
 #include "poseevalresults.h"
 #include "utils_math_approx.h"
+#include "plannerutils.h"
 
 
 /**
@@ -45,7 +46,7 @@ public:
     inline float GetWheelAngle(const WheelModel &wheel,const cv::Point2f &cmd, const float &robotAngle) const
     {
         //if () return robotAngle;
-        if (!wheel.IsTurnable() || cmd.y == 0) return robotAngle;
+        if (!wheel.IsTurnable() || std::abs(cmd.y) < COMMANDEPSILON) return robotAngle;
         const float h = robotLengthHalf_*2.0f;
         const float r = (cmd.x*procConfig_.pixelSize)/cmd.y;
         const float modifier = r > 0? 1.0f:-1.0f;
@@ -59,7 +60,7 @@ public:
     inline float GetWheelAngleRobot(const WheelModel &wheel,const cv::Point2f &cmd) const
     {
         //if () return robotAngle;
-        if (!wheel.IsTurnable() || cmd.y == 0) return 0;
+        if (!wheel.IsTurnable() || std::abs(cmd.y) < COMMANDEPSILON) return 0;
         const float h = robotLengthHalf_*2.0f;
         const float r = (cmd.x*procConfig_.pixelSize)/cmd.y;
         const float modifier = r > 0? 1.0f:-1.0f;
@@ -73,7 +74,7 @@ public:
     inline float GetWheelAngleRobot(const int wheelIdx,const cv::Point2f &cmd) const
     {
         //if () return robotAngle;
-        if (!wheels_[wheelIdx].IsTurnable() || cmd.y == 0) return 0;
+        if (!wheels_[wheelIdx].IsTurnable() || std::abs(cmd.y) < COMMANDEPSILON) return 0;
         const float h = robotLengthHalf_*2.0f;
         const float r = (cmd.x*procConfig_.pixelSize)/cmd.y;
         const float modifier = r > 0? 1.0f:-1.0f;
