@@ -49,12 +49,30 @@ struct WheelConfig
     }
 
 
+    /**
+     * @brief wheel geometry parameters
+     */
     float radius,latRadius,width;
+    /**
+     * @brief pivot point position in wheel coordinates
+     */
     cv::Point2f jointPosWheel;
+    /**
+     * @brief wheel position in robot coordinates
+     */
     cv::Point2f wheelPosRobot;
 
+    /**
+     * @brief number of test steps for wheel test
+     */
     int rotTestSteps;
+    /**
+     * @brief rotation test step size
+     */
     int rotTestStepSize;
+    /**
+     * @brief can this wheel turn?
+     */
     bool isTurnableWheel;
 
 
@@ -82,15 +100,36 @@ struct ChassisConfig
     }
 
 
+    /**
+     * @brief file name of the chassis height image
+     */
     std::string chassisfileName;
 
+    /**
+     * @brief position of the chassis center in robot coordinates
+     */
     cv::Point2f chassisPosRobot;
+    /**
+     * @brief center of the chassis image in image coordinates. Defaults to image center. can be used to describe assymetric chassis
+     */
     cv::Point2f chassisImageCenter;
 
+    /**
+     * @brief height of the chassis model in meters. Used for scaling the chassis image
+     */
     float chassisModelYSize;
+    /**
+     * @brief factor for scaling the pixel values (height) of the chassis image
+     */
     float chassisImageValueScale;
+    /**
+     * @brief this offset is added to the scaled image values
+     */
     float chassisImageValueOffset;
 
+    /**
+     * @brief test for chassis collision?
+     */
     bool testChassis;
 
 };

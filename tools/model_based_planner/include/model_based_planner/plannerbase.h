@@ -82,24 +82,24 @@ public:
 
     cv::Point3f PoseToImgPose(const cv::Point3f &pose)
     {
-        return cv::Point3f((pose.x-config_.procConfig_.imagePosBLMinX)*config_.procConfig_.pixelSizeInv,(pose.y-config_.procConfig_.imagePosBLMinY)*config_.procConfig_.pixelSizeInv,pose.z );
+        return cv::Point3f((pose.x-poseEstimator_.imagePosBLMinX)*config_.procConfig_.pixelSizeInv,(pose.y-poseEstimator_.imagePosBLMinY)*config_.procConfig_.pixelSizeInv,pose.z );
     }
 
     cv::Point3f ImgPoseToPose(const cv::Point3f &pose)
     {
-        return cv::Point3f(pose.x*config_.procConfig_.pixelSize+config_.procConfig_.imagePosBLMinX,pose.y*config_.procConfig_.pixelSize+config_.procConfig_.imagePosBLMinY,pose.z );
+        return cv::Point3f(pose.x*config_.procConfig_.pixelSize+poseEstimator_.imagePosBLMinX,pose.y*config_.procConfig_.pixelSize+poseEstimator_.imagePosBLMinY,pose.z );
     }
 
     void SetDEMPos(const cv::Point2f &minPos)
     {
-        config_.procConfig_.imagePosBLMinX = minPos.x;
-        config_.procConfig_.imagePosBLMinY = minPos.y;
+        poseEstimator_.imagePosBLMinX = minPos.x;
+        poseEstimator_.imagePosBLMinY = minPos.y;
 
     }
 
     cv::Point2f GetDEMPos()
     {
-        return cv::Point2f(config_.procConfig_.imagePosBLMinX,config_.procConfig_.imagePosBLMinY);
+        return cv::Point2f(poseEstimator_.imagePosBLMinX,poseEstimator_.imagePosBLMinY);
     }
 
 

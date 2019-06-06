@@ -351,10 +351,7 @@ void WriteProcConf(std::string filename, const ProcConfig &pc,const std::string 
     fs << "wheelGroundLevel" << pc.wheelGroundLevel;
     fs << "maxHeight" << pc.maxHeight;
     fs << "pixelSize" << pc.pixelSize;
-    fs << "imagePosBLMinX" << pc.imagePosBLMinX;
-    fs << "imagePosBLMinY" << pc.imagePosBLMinY;
     fs << "validThresholdFactor" << pc.validThresholdFactor;
-    fs << "convertImage" << pc.convertImage;
     fs << "modelFile" << modelFile;
 
     fs << "}";

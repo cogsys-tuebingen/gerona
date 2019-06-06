@@ -16,6 +16,9 @@ public:
     typedef std::shared_ptr<PI_DWA<TS> > Ptr;
     static PI_DWA<TS>::Ptr Create(){ return std::make_shared< PI_DWA<TS>  >() ; }
 
+    /**
+     * @brief using for accessing the nondependent base members
+     */
     typedef PlannerTraj<TS> TB;
     using TB::config_;
     using TB::CreateTrajectory;
@@ -36,6 +39,9 @@ public:
 
     }
 
+    /**
+     * @brief Return max number of search iterations
+     */
     int GetNumberNodes()
     {
         return std::max(config_.expanderConfig_.firstLevelSplits,config_.expanderConfig_.numSplits)+1;

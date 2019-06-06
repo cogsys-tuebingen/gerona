@@ -5,6 +5,8 @@ PoseEstimator::PoseEstimator()
 {
     demPtr_ = nullptr;
 
+    imagePosBLMinX = 0;
+    imagePosBLMinY = 0;
     //poseCounter_ = 0;
     //saveXPos_ = 100;
 }

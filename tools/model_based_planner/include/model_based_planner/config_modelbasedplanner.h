@@ -10,7 +10,7 @@
 
 
 /**
- * @brief Wheel config for reading from yaml, the config is converted to four configs for each wheel
+ * @brief Wheel config for reading from yaml, the config is converted to four configs, one for each wheel
  */
 struct WheelsConfig
 {
@@ -34,21 +34,24 @@ struct WheelsConfig
 
     }
 
-    float wheelPosRobotFrontX;
-    float wheelPosRobotRearX;
-    float wheelPosRobotRearY;
-    float wheelPosRobotFrontY;
-    cv::Point2f wheelJointPosRear;
-    float wheelLatRadiusRear;
-    float wheelRadiusRear;
-    float wheelWidthRear;
-    cv::Point2f wheelJointPosFront;
-    float wheelLatRadiusFront;
-    float wheelRadiusFront;
-    float wheelWidthFront;
-    bool frontWheelsTurnable;
-    int wheelRotTestSteps;
-    int wheelRotTestStepSize;
+    // All positions are in the vehicle frame
+
+    float wheelPosRobotFrontX;      // x-position of the front wheels
+    float wheelPosRobotRearX;       // x-position of the rear wheels
+    float wheelPosRobotRearY;       // y-position of the rear wheels
+    float wheelPosRobotFrontY;      // y-position of the front wheels
+    cv::Point2f wheelJointPosRear;  // pivot point for the rear wheels
+    float wheelLatRadiusRear;       // lateral radius of the rear wheels
+    float wheelRadiusRear;          // radius of the rear wheels
+    float wheelWidthRear;           // width of the rear wheels
+    cv::Point2f wheelJointPosFront; // pivot point for the front wheels
+    float wheelLatRadiusFront;      // lateral radius of the front wheels
+    float wheelRadiusFront;         // radius of the front wheels
+    float wheelWidthFront;          // width of the front wheels
+    bool frontWheelsTurnable;       // are the front wheels turnable
+    bool rearWheelsTurnable;        // are the rear wheels turnable
+    int wheelRotTestSteps;          // number of test steps
+    int wheelRotTestStepSize;       // angle step size of tests
 
 
 };
@@ -102,9 +105,7 @@ struct ModelBasedPlannerConfig
         fs << "testChassis" << cc.testChassis;
         fs << "}";
     }
-    */
 
-    /*
     static void WriteProcConf(std::string filename, ProcConfig &pc)
     {
         cv::FileStorage fs;
@@ -129,16 +130,23 @@ struct ModelBasedPlannerConfig
     }
     */
 
+    /**
+     * @brief Read a robot config, see RobotConfig for parameter description
+     */
     static void ReadRobotConf(cv::FileStorage &fs, RobotConfig &rc)
     {
-        cv::FileNode n = fs["Robot"];                                // Read mappings from a sequence
-        n["baseLinkPosCoord"] >> rc.baseLinkPosCoord;
-        rc.chassisTestTipAngleThreshold = (float)(n["chassisTestTipAngleThreshold"]);
+        cv::FileNode n = fs["Robot"];
+        n["baseLinkPosCoord"] >> rc.baseLinkPosCoord; // position of the base link frame in the vehicle frame
+        rc.chassisTestTipAngleThreshold = (float)(n["chassisTestTipAngleThreshold"]); // if tip angle is above this threshold the chassis is tested for both configurations
 
     }
+    /**
+     * @brief Read the wheel config. See WheelsConfig for parameters description
+     */
     static void ReadWheelConf(cv::FileStorage &fs, WheelsConfig &wc)
     {
-        cv::FileNode n = fs["Wheels"];                                // Read mappings from a sequence
+        // See WheelsConfig for description
+        cv::FileNode n = fs["Wheels"];
         wc.wheelPosRobotFrontX = (float)(n["wheelPosRobotFrontX"]);
         wc.wheelPosRobotRearX = (float)(n["wheelPosRobotRearX"]);
         wc.wheelPosRobotFrontY = (float)(n["wheelPosRobotFrontY"]);
@@ -160,9 +168,12 @@ struct ModelBasedPlannerConfig
 
 
     }
+    /**
+     * @brief Read the chassis config. See ChassisConfig for parameter description
+     */
     static void ReadChassisConf(cv::FileStorage &fs, ChassisConfig &cc, std::string configFolder)
     {
-        cv::FileNode n = fs["Chassis"];                                // Read mappings from a sequence
+        cv::FileNode n = fs["Chassis"];
         cc.chassisfileName = configFolder+"/"+(std::string)(n["chassisfileName"]);
 
         n["chassisImageCenter"] >> cc.chassisImageCenter;
@@ -177,9 +188,12 @@ struct ModelBasedPlannerConfig
 
     }
 
+    /**
+     * @brief Read the processing config. See ProcConfig for parameter description
+     */
     static void ReadProcConf(cv::FileStorage &fs, ProcConfig &pc)
     {
-        cv::FileNode n = fs["Proc"];                                // Read mappings from a sequence
+        cv::FileNode n = fs["Proc"];
 
         pc.numAngleStep = (int)(n["numAngleStep"]);
         pc.heightScale = (float)(n["heightScale"]);
@@ -187,16 +201,16 @@ struct ModelBasedPlannerConfig
         pc.wheelGroundLevel = (int)(n["wheelGroundLevel"]);
         pc.maxHeight = (int)(n["maxHeight"]);
         pc.pixelSize = (float)(n["pixelSize"]);
-        pc.imagePosBLMinX = (float)(n["imagePosBLMinX"]);
-        pc.imagePosBLMinY = (float)(n["imagePosBLMinY"]);
         pc.validThresholdFactor = (float)(n["validThresholdFactor"]);
-        pc.convertImage = (int)(n["convertImage"]);
 
         pc.Setup();
 
 
     }
 
+    /**
+     * @brief Constructor
+     */
     ModelBasedPlannerConfig()
     {
         plannerType_ = "AStar";
@@ -205,6 +219,9 @@ struct ModelBasedPlannerConfig
 
     }
 
+    /**
+     * @brief calculate all values that can be pre-calculated.
+     */
     void Setup()
     {
         procConfig_.Setup();
@@ -215,6 +232,9 @@ struct ModelBasedPlannerConfig
 
 
 
+    /**
+     * @brief read the complete robot description
+     */
     bool ReadRobotDescription(std::string filename)
     {
         if (filename.length() < 2) return false;
@@ -232,6 +252,9 @@ struct ModelBasedPlannerConfig
         return true;
     }
 
+    /**
+     * @brief read processing parameters
+     */
     bool ReadMapDescription(std::string filename)
     {
         if (filename.length() < 2) return false;
@@ -246,6 +269,9 @@ struct ModelBasedPlannerConfig
 
     }
 
+    /**
+     * @brief convert the WheelsConfig into separate WheelConfigs, one for each wheel
+     */
     std::vector<WheelConfig> GetWheelConfigs() const
     {
 
@@ -300,6 +326,9 @@ struct ModelBasedPlannerConfig
         return wheelConfs;
     }
 
+    /**
+     * @brief The configurations
+     */
     ProcConfig procConfig_;
     RobotConfig robotConfig_;
     ChassisConfig chassisConfig_;
@@ -308,11 +337,17 @@ struct ModelBasedPlannerConfig
     PlannerExpanderConfig expanderConfig_;
     WheelsConfig wheelsConfig_;
 
+    /**
+     * @brief The types to use for planner, expander and scorer.
+     */
     std::string plannerType_;
     std::string nodeExpanderType_;
     std::string scorerType_;
 
 
+    /**
+     * @brief Get folder name of config files to read imges from there
+     */
     std::string getFolderName(const std::string &s);
 
 
