@@ -18,6 +18,10 @@ public:
     typedef std::shared_ptr<PI_AStar<TS> > Ptr;
     static PI_AStar<TS>::Ptr Create(){ return std::make_shared< PI_AStar<TS>  >() ; }
 
+
+    /**
+     * @brief using for accessing the nondependent base members
+     */
     typedef PlannerTraj< TS> TB;
     using TB::openSet_;
     using TB::config_;
@@ -43,11 +47,17 @@ public:
 
     }
 
+    /**
+     * @brief Return max number of search iterations
+     */
     int GetNumberNodes()
     {
         return config_.plannerConfig_.maxSearchIterations;
     }
 
+    /**
+     * @brief Main A* iteration loop
+     */
     void IterateStar(TrajNode* start)
     {
 
@@ -60,8 +70,6 @@ public:
             if (openSet_.empty()) break;
             TrajNode* curNode = openSet_.top();
             openSet_.pop();
-
-            //const int numSplits = expander_.GetNumberChildren(curNode->level_);
 
             const int numSplits = expander_->Expand(curNode->level_, curNode->endCmd_,tempCmds_);
 
@@ -102,6 +110,9 @@ public:
 
     }
 
+    /**
+     * @brief If plan failed replan is called when replanning is enabled
+     */
     void Replan()
     {
         Trajectory *result = GetBLResultTrajectory();
@@ -129,6 +140,10 @@ public:
         }
 
         if (!doReplan) return;
+
+        /*
+         * Create new configs with smaller stepSizes
+         */
 
         PlannerExpanderConfig curConfig = config_.expanderConfig_;
         PlannerExpanderConfig newConfig = config_.expanderConfig_;
@@ -162,6 +177,9 @@ public:
 
     }
 
+    /**
+     * @brief Main planning function
+     */
     cv::Point2f Plan()
     {
 

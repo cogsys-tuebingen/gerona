@@ -34,17 +34,19 @@ public:
     {
         ProcConfig &procConfig_ = robotModel_.GetProcConfig();
 
-        procConfig_.imagePosBLMinX = minPos.x;
-        procConfig_.imagePosBLMinY = minPos.y;
+        imagePosBLMinX = minPos.x;
+        imagePosBLMinY = minPos.y;
 
-        return cv::Point3f((pose.x-procConfig_.imagePosBLMinX)*procConfig_.pixelSizeInv,(pose.y-procConfig_.imagePosBLMinY)*procConfig_.pixelSizeInv,pose.z );
+        return cv::Point3f((pose.x-imagePosBLMinX)*procConfig_.pixelSizeInv,(pose.y-imagePosBLMinY)*procConfig_.pixelSizeInv,pose.z );
     }
 
     RobotModel robotModel_;
-
+    float imagePosBLMinX,imagePosBLMinY;
 private:
     CVAlignedMat::ptr demPtr_;
     cv::Mat dem_;
+
+
 
 };
 

@@ -19,22 +19,49 @@ struct PlannerConfig
         minNumberNodes = -1;
     }
 
+    /**
+     * @brief Pre-calculate fixed values
+     */
     void Setup()
     {
         trajectoryTimeStep = lookAheadTime/(float)maxLevel;
         subSampleTimeStep = trajectoryTimeStep/(float)numSubSamples;
     }
 
+    /**
+     * @brief Search terminates after maxSearchIterations
+     */
     int maxSearchIterations;
+    /**
+     * @brief Tree nodes are not expanded beyond this level
+     */
     int maxLevel;
+    /**
+     * @brief The numbers of pose checks for one sub trajectory
+     */
     int numSubSamples;
+    /**
+     * @brief time horizon for planning
+     */
     float lookAheadTime;
+    /**
+     * @brief if planning failed and this number is > 1 a new planning is initiated, alle search parameters are scaled by this factor. E.g. number of splits increases, angular veloctiy delta decreases
+     */
     int replanFactor;
+    /**
+     * @brief minimum number of valid poses
+     */
     int minNumberNodes;
 
 
     // calculated
+    /**
+     * @brief duration of for one sub trajectory
+     */
     float trajectoryTimeStep;
+    /**
+     * @brief delta time between two pose tests
+     */
     float subSampleTimeStep;
 
 
@@ -42,7 +69,7 @@ struct PlannerConfig
 
 
 /**
- * @brief Scoring parameters
+ * @brief Scoring parameters, The trajectory with the HIGHEST score is selected!!
  */
 struct PlannerScorerConfig
 {
@@ -71,7 +98,6 @@ struct PlannerScorerConfig
         f_aVelD = -10.0;
         f_meanWS = 0.0;
         f_minWS = 10.0;
-        //f_numNotVisible = -1.0;
 
         f_goalDistance = 1.0;
         f_goalOrientation = -2.0;
@@ -95,33 +121,37 @@ struct PlannerScorerConfig
 
     }
 
-    float gravAngleThreshold; // in rad
-    float deltaAngleThreshold; // in rad
-    float tipAngleThreshold; // in rad
-    float minWheelSupportThreshold; // in percent
-    bool allowNotVisible;
-    float noWheelSupportNearThreshold; // in sec
-    float noWheelSupportRotateThreshold; // in rad
-    float minPoseTime; // in sec
+    float gravAngleThreshold; // in rad, limit for angle between pose and gravity vector
+    float deltaAngleThreshold; // in rad, limit for angle between pose_t and pose_t-1
+    float tipAngleThreshold; // in rad, limit for angle between two configurations
+    float minWheelSupportThreshold; // in percent, the minimum percentage of wheel pixels close enough to the ground. A wheel is considered stable if this percentage is reached.
+    bool allowNotVisible; // If true the planner is allowed to plan over unseen areas. Defaults to false for safety reasons.
+    float noWheelSupportNearThreshold; // in sec, since the sometimes the environment is not visible from the current pose, if the unseen area is beyond this distance the planner can still plan there
+    float noWheelSupportRotateThreshold; // in rad, same as noWheelSupportNearThreshold but for rotations
+    float minPoseTime; // in sec, if a trajectory is shorter than this time it is considered not traversable
 
-    float f_meanGA; // factor
-    float f_maxGA;// factor
-    float f_meanAD;// factor
-    float f_maxAD;// factor
-    float f_meanTA;// factor
-    float f_maxTA;// factor
-    float f_poseC;// factor
-    float f_aVelD;// factor
-    float f_meanWS;// factor
-    float f_minWS;// factor
+    float f_meanGA; // weighting factor for mean gravity angle.
+    float f_maxGA;// weighting factor for max gravity angle
+    float f_meanAD;// weighting factor for mean delta angle
+    float f_maxAD;// weighting factor for mx delta angle
+    float f_meanTA;// weighting factor for mean tip angle
+    float f_maxTA;// weighting factor for max tip angle
+    float f_poseC;// weighting factor for the number of valid poses along a trajectory
+    float f_aVelD;// weighting factor angular velocity changes. Encourages driving straight
+    float f_meanWS;// weighting factor for mean wheel support. Higher wheel support is better
+    float f_minWS;// weighting factor for min wheel support. Higher wheel support is better
     //float f_numNotVisible;// factor
-    float f_goalDistance; // factor
-    float f_goalOrientation; // factor
-    float f_lastCmdVelDiff; // factor
-    float f_pathDistance; // factor
+    float f_goalDistance; // weighting factor for distance to goal. This should be minimized
+    float f_goalOrientation; // weighting factor for angle to goal. This should be minimized
+    float f_lastCmdVelDiff; // weighting factor for not switching velocities too fast.
+    float f_pathDistance; // weighting factor for distance to path. This should be minimized
 
-    float f_childCount; // factor
+    float f_childCount; // weighting factor for child count. Nodes with higher child counts are usually safer.
 
+
+    /**
+     * @brief End state weighting factors
+     */
     float end_outOfImage; // offset
     float end_noWheelSupport; // offset
     float end_noWheelSupportFar;// offset
@@ -132,6 +162,9 @@ struct PlannerScorerConfig
     float end_poseCountLowPenalty;// offset
     float end_chassisCollision;// offset
 
+    /**
+     * @brief Stop planning if within this range to goal
+     */
     float targetGoalDistance; // in m
 
     //Calculated
@@ -169,15 +202,39 @@ struct PlannerExpanderConfig
 
     }
 
+    /**
+     * @brief step size for angular velocity change
+     */
     float deltaTheta;
+    /**
+     * @brief number of angular velocity splits
+     */
     int numSplits;
+    /**
+     * @brief number of angular velocity splits on the first level of the tree
+     */
     int firstLevelSplits;
+    /**
+     * @brief number of linear velocity splits on the first level of the tree
+     */
     int firstLevelLinearSplits;
 
+    /**
+     * @brief step size for angular velocity change on the first level of the tree
+     */
     float firstLevelDeltaTheta;
+    /**
+     * @brief step size for linear velocity change on the first level of the tree
+     */
     float firstLevelDeltaLinear;
 
+    /**
+     * @brief minimum and maximum linear velocity
+     */
     float minLinVel,maxLinVel;
+    /**
+     * @brief maximum angular velocity
+     */
     float maxAngVel;
 
 };

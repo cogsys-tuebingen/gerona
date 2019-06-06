@@ -46,8 +46,11 @@ public:
 
 private:
     ChassisConfig config_;
+    /**
+     * @brief vector conaining all chassis descriptors for each orientation
+     */
     std::vector<ChassisDescriptor> descriptors_;
-    cv::Point2f centerPosImg_;
+
 
 };
 

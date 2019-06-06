@@ -41,6 +41,9 @@ public:
     }
 
 
+    /**
+     * @brief Return max number of search iterations
+     */
     int GetNumberNodes()
     {
         int nodeCount = 1;
