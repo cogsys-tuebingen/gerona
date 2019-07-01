@@ -18,6 +18,10 @@ public:
 
     //typedef std::shared_ptr<PlannerTraj> Ptr;
 
+
+    /**
+     * @brief Create node expander instance
+     */
     void CreateNodeExpander(std::string expanderName)
     {
         if (expanderName == NodeExpander_AVNI::NE_NAME)
@@ -40,6 +44,9 @@ public:
 
     }
 
+    /**
+     * @brief Additional initialization
+     */
     virtual void Initialize(ModelBasedPlannerConfig &config)
     {
         PlannerBase::Initialize(config);
@@ -49,29 +56,44 @@ public:
         scorer_.SetConfig(config_.scorerConfig_, config_.procConfig_.validThreshold,config_.procConfig_.notVisibleThreshold, config_.plannerConfig_.subSampleTimeStep);
     }
 
+    /**
+     * @brief set parameters
+     */
     void SetPlannerParameters(PlannerConfig &config)
     {
         config_.plannerConfig_ = config;
     }
 
+    /**
+     * @brief Update scorer parameters
+     */
     void SetPlannerScorerParameters(PlannerScorerConfig &config)
     {
         config_.scorerConfig_ = config;
         scorer_.SetConfig(config_.scorerConfig_);
     }
 
+    /**
+     * @brief Update expander parameters
+     */
     void SetPlannerExpanderParameters(PlannerExpanderConfig &config)
     {
         config_.expanderConfig_ = config;
         expander_->SetConfig(config_.expanderConfig_,config_.procConfig_.pixelSize);
     }
 
+    /**
+     * @brief Set the goal position in the map frame
+     */
     virtual void SetGoalMap(const cv::Point3f goal)
     {
         goal_ = PoseToImgPose(goal);
         scorer_.SetGoal(goal_);
     }
 
+    /**
+     * @brief Set path in map frame
+     */
     virtual void SetPathMap(const std::vector<cv::Point3f> &path)
     {
 
@@ -87,6 +109,9 @@ public:
 
     }
 
+    /**
+     * @brief This function is called when planning is finished.
+     */
     void FinishedPlanning()
     {
         if (bestNode_ == nullptr) return;
@@ -111,6 +136,9 @@ public:
 
     }
 
+    /**
+     * @brief Properly set wheel orinetation in the first node for visualization
+     */
     void SetWheelAnglesStart(TrajNode *startNode)
     {
         cv::Vec4f wheelAnglesRobot = poseEstimator_.robotModel_.GetWheelAnglesRobot(startNode->startCmd_);
@@ -124,6 +152,9 @@ public:
     }
 
 
+    /**
+     * @brief Create the root node for start expanding
+     */
     inline TrajNode* GetStartNode()
     {
         curNodeIdx_ = 0;
@@ -155,11 +186,17 @@ public:
     }
 
 
+    /**
+     * @brief Check if next preallocated node is available
+     */
     inline bool NextNodeAvailable() const
     {
         return (unsigned int)curNodeIdx_ < allNodes_.size();
     }
 
+    /**
+     * @brief Get next preallocated node
+     */
     inline TrajNode* GetNextNode()
     {
         if ((unsigned int)curNodeIdx_ >= allNodes_.size()) return nullptr;
@@ -170,6 +207,9 @@ public:
     }
 
 
+    /**
+     * @brief Create a Trajectory from the previous node and the current control command
+     */
     TrajNode* CreateTrajectory(TrajNode* prev, const cv::Point2f &cmd)
     {
 

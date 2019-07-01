@@ -16,7 +16,8 @@
 
 
 /**
- * @brief Base class for planners
+ * @brief Base class for planners. Contains functions used by several derived classes.
+ * See IModelBasedPlanner for function descriptions.
  */
 class PlannerBase : public IModelBasedPlanner
 {
@@ -36,6 +37,9 @@ public:
 
     virtual int GetNumberNodes() = 0;
 
+    /**
+     * @brief Get number of splits per node
+     */
     int GetNumberSplits()
     {
         const int angSplits = (config_.expanderConfig_.firstLevelSplits> config_.expanderConfig_.numSplits? config_.expanderConfig_.firstLevelSplits : config_.expanderConfig_.numSplits);
@@ -46,6 +50,9 @@ public:
 
 
 
+    /**
+     * @brief Base initialization
+     */
     virtual void Initialize(ModelBasedPlannerConfig &config)
     {
         config_ = config;
@@ -66,6 +73,7 @@ public:
     {
         poseEstimator_.SetDem(dem);
     }
+
     const cv::Mat GetDem()
     {
         return poseEstimator_.GetDEM();

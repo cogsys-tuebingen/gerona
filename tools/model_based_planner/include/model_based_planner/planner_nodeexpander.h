@@ -8,7 +8,7 @@
 #include <config_planner.h>
 
 /**
- * @brief Base class for different node expanders
+ * @brief Interface class for different node expanders. Node expanders create a new set of command velocities for a given input command velocity.
  */
 
 struct INodeExpander
@@ -21,6 +21,9 @@ struct INodeExpander
 
 };
 
+/**
+ * @brief Base class for node expandes
+ */
 struct NodeExpander_Base : INodeExpander
 {
     NodeExpander_Base()
@@ -28,6 +31,10 @@ struct NodeExpander_Base : INodeExpander
 
     }
 
+
+    /**
+     * @brief Get all required parameters from configuration
+     */
     void SetConfig(const PlannerExpanderConfig &config, const float pixelSize)
     {
         config_ = config;
@@ -48,6 +55,9 @@ struct NodeExpander_Base : INodeExpander
 
 
 
+    /**
+     * @brief Get angular velocity parameters
+     */
     inline void GetParamsAng(int &lvl, int &numSplits, float &deltaT, float &splitsPerSide)
     {
         numSplits = config_.numSplits;
@@ -92,71 +102,75 @@ struct NodeExpander_LAVT : public NodeExpander_Base
 
     }
 
-#define LINVELEPSILON 0.01f
+    #define LINVELEPSILON 0.01f
 
-
-
-void GetVels(const float curVel,const float minvel,const float maxvel, const float delta, const int stepsPerSide, std::vector<float> &linVels) const
-{
-
-    linVels.clear();
-
-    float clampedvel = curVel;
-
-    if (clampedvel <= minvel+LINVELEPSILON)
+    /**
+     * @brief Get new linear velocities, clamp if above or below thresholds
+     */
+    void GetVels(const float curVel,const float minvel,const float maxvel, const float delta, const int stepsPerSide, std::vector<float> &linVels) const
     {
-        clampedvel = minvel;
 
-    }
-    else
-    {
-        for (int tl = 1; tl < stepsPerSide+1;tl++)
+        linVels.clear();
+
+        float clampedvel = curVel;
+
+        if (clampedvel <= minvel+LINVELEPSILON)
         {
-            float tlVel = clampedvel - delta * (float)tl;
-
-            if (tlVel > minvel+LINVELEPSILON)
-            {
-                linVels.push_back(tlVel);
-            }
-            else
-            {
-                linVels.push_back(minvel);
-                break;
-            }
-
+            clampedvel = minvel;
 
         }
-    }
-    if (clampedvel >= maxvel-LINVELEPSILON)
-    {
-        clampedvel = maxvel;
-
-    }
-    else
-    {
-        for (int tl = 1; tl < stepsPerSide+1;tl++)
+        else
         {
-            float tlVel = clampedvel + delta * (float)tl;
+            for (int tl = 1; tl < stepsPerSide+1;tl++)
+            {
+                float tlVel = clampedvel - delta * (float)tl;
 
-            if (tlVel < maxvel-LINVELEPSILON)
-            {
-                linVels.push_back(tlVel);
-            }
-            else
-            {
-                linVels.push_back(maxvel);
-                break;
+                if (tlVel > minvel+LINVELEPSILON)
+                {
+                    linVels.push_back(tlVel);
+                }
+                else
+                {
+                    linVels.push_back(minvel);
+                    break;
+                }
+
+
             }
         }
+        if (clampedvel >= maxvel-LINVELEPSILON)
+        {
+            clampedvel = maxvel;
+
+        }
+        else
+        {
+            for (int tl = 1; tl < stepsPerSide+1;tl++)
+            {
+                float tlVel = clampedvel + delta * (float)tl;
+
+                if (tlVel < maxvel-LINVELEPSILON)
+                {
+                    linVels.push_back(tlVel);
+                }
+                else
+                {
+                    linVels.push_back(maxvel);
+                    break;
+                }
+            }
+        }
+
+        linVels.push_back(clampedvel);
+
+        std::sort(linVels.begin(),linVels.end());
+
     }
 
-    linVels.push_back(clampedvel);
 
-    std::sort(linVels.begin(),linVels.end());
-
-}
-
-
+    /**
+     * @brief Create set of command velocities
+     */
     inline int Expand(int lvl, const cv::Point2f &curCmd, std::vector<cv::Point2f> &resCmds)
     {
         int resSplites = 0;
@@ -222,6 +236,9 @@ struct NodeExpander_AVT : public NodeExpander_Base
     }
 
 
+    /**
+     * @brief Create set of command velocities
+     */
     inline int Expand(int lvl, const cv::Point2f &curCmd, std::vector<cv::Point2f> &resCmds)
     {
         int numSplits;
@@ -253,7 +270,7 @@ struct NodeExpander_AVT : public NodeExpander_Base
 
 
 /**
- * @brief Node expander with constant linear velocity, only angular velocity changes. The maximum angular velocity is deltaT.
+ * @brief Node expander with constant linear velocity, only angular velocity changes. The maximum angular velocity is deltaT*splitsPerSide.
  */
 struct NodeExpander_AVNI : public NodeExpander_Base
 {
@@ -268,6 +285,9 @@ struct NodeExpander_AVNI : public NodeExpander_Base
     }
 
 
+    /**
+     * @brief Create set of command velocities
+     */
     inline int Expand(int lvl, const cv::Point2f &curCmd, std::vector<cv::Point2f> &resCmds)
     {
         int numSplits;
@@ -314,6 +334,9 @@ struct NodeExpander_AVLR : public NodeExpander_Base
     }
 
 
+    /**
+     * @brief Create set of command velocities
+     */
     inline int Expand(int lvl, const cv::Point2f &curCmd, std::vector<cv::Point2f> &resCmds)
     {
         int numSplits;

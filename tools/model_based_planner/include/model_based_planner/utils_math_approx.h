@@ -3,7 +3,7 @@
 
 
 /**
- * @brief Approximate math functions (faster)
+ * @brief Math functions approximations (hopefully faster, not all are used currently).
  */
 
 

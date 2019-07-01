@@ -61,6 +61,9 @@ struct DriveModelDA
 };
 
 
+/**
+ * @brief class for creating a clamped set of velocities the
+ */
 class SpeedRamp
 {
 

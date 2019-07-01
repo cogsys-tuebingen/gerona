@@ -3,11 +3,14 @@
 
 
 /**
- * @brief SSE implementation of core functions
+ * @brief Implementation of core functions without SIMD
  */
 namespace Utils_DIFF
 {
 
+/**
+ * @brief Calculate the minimum and position of the difference between height map and height image of a wheel
+ */
 static int diffMinPos(const cv::Mat &input, const cv::Mat &temp, const int &tx, const int &ty, int &rxp, int &ryp)
 {
     const short *srcP = (input.ptr<short>(ty)+tx);
@@ -56,6 +59,9 @@ static int diffMinPos(const cv::Mat &input, const cv::Mat &temp, const int &tx, 
 }
 
 
+/**
+ * @brief Calculate the wheel support on the height map
+ */
 static int calcWheelSupport(const cv::Mat &input, const cv::Mat &temp, const int &tx, const int &ty, const int &wsThresh , const int &zval)
 {
     const short *srcP = (input.ptr<short>(ty)+tx);
@@ -102,6 +108,9 @@ static int calcWheelSupport(const cv::Mat &input, const cv::Mat &temp, const int
 }
 
 
+/**
+ * @brief Calculate the minimum value, position of the minimum and wheel support on the height map and the height image of a wheel
+ */
 static int ws_diffMinPos(const cv::Mat &input, const cv::Mat &temp, const int &tx, const int &ty, const int &wsThresh , int &rxp, int &ryp, int &wsRes)
 {
     const short *srcP = (input.ptr<short>(ty)+tx);
@@ -184,6 +193,10 @@ static int ws_diffMinPos(const cv::Mat &input, const cv::Mat &temp, const int &t
 }
 
 
+
+/**
+ * @brief Calculate the minimum value of the difference between height map and height image of a wheel
+ */
 static int np_diffMinPos(const cv::Mat &input, const cv::Mat &temp, const int &tx, const int &ty, int &rxp, int &ryp)
 {
     const short *srcP = (input.ptr<short>(ty)+tx);
@@ -224,7 +237,9 @@ static int np_diffMinPos(const cv::Mat &input, const cv::Mat &temp, const int &t
 
 }
 
-
+/**
+ * @brief Test for chassis collision with finding the contact position
+ */
 static int testChassis(const cv::Mat &input, const cv::Mat &temp, const float &sval, const float &dx, const float &dy , const int &tx, const int &ty, int &rxp, int &ryp)
 {
 
@@ -277,6 +292,9 @@ static int testChassis(const cv::Mat &input, const cv::Mat &temp, const float &s
 }
 
 
+/**
+ * @brief Test for chassis collision without finding the contact position. It only determines if a collision happened.
+ */
 static int np_testChassis(const cv::Mat &input, const cv::Mat &temp, const float &sval, const float &dx, const float &dy , const int &tx, const int &ty, int &rxp, int &ryp)
 {
 
@@ -327,6 +345,9 @@ static int np_testChassis(const cv::Mat &input, const cv::Mat &temp, const float
 }
 
 
+/**
+ * @brief Warp chassis according to pose estimate
+ */
 static void warpChassis(const cv::Mat &temp, cv::Mat &result, const float &sval, const float &dx, const float &dy)
 {
     float yStart = sval;
