@@ -62,6 +62,7 @@ float RobotModel::GetBaseLinkZ(const PoseEvalResults &results)
 
 int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
 {
+    /// Get robot descriptor for pose
     const cv::Point2f pos(results.pose.x,results.pose.y);
     const float angle = NormalizeAngle(results.pose.z);
     const int angleIdx = GetAngleIdxFast(angle);
@@ -69,12 +70,14 @@ int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
     const cv::Point2f robotCenter = pos-desc.baseLinkPosImage_;
 
 
+    /// Get wheel models
     const WheelModel &wm0 = wheels_[0];
     const WheelModel &wm1 = wheels_[1];
     const WheelModel &wm2 = wheels_[2];
     const WheelModel &wm3 = wheels_[3];
 
 
+    /// Set the current orienation of wheels
     SetWheelAngle(angle,angleIdx,wm0,results.wheelEvalResults_[0]);
     SetWheelAngle(angle,angleIdx,wm1,results.wheelEvalResults_[1]);
     SetWheelAngle(angle,angleIdx,wm2,results.wheelEvalResults_[2]);
@@ -82,17 +85,20 @@ int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
 
     //int iz0,iz1,iz2,iz3;
 
+    /// Evaluate all four wheels
     const int wr0 = wm0.Evaluate(dem,robotCenter+desc.wheelPositionsImage_[0],results.wheelEvalResults_[0]);
     const int wr1 = wm1.Evaluate(dem,robotCenter+desc.wheelPositionsImage_[1],results.wheelEvalResults_[1]);
     const int wr2 = wm2.Evaluate(dem,robotCenter+desc.wheelPositionsImage_[2],results.wheelEvalResults_[2]);
     const int wr3 = wm3.Evaluate(dem,robotCenter+desc.wheelPositionsImage_[3],results.wheelEvalResults_[3]);
 
+    /// if one wheel is invalid, return outofimage
     if (wr0 == -1 || wr1 == -1 || wr2 == -1 || wr3 == -1)
     {
         results.validState = PERS_OUTOFIMAGE;
         return PERS_OUTOFIMAGE;
     }
 
+    /// Get wheel z-positions
     const float z0 = -(float)(results.wheelEvalResults_[0].zValue-procConfig_.imapBaseHeight)*procConfig_.heightScaleInv;
     const float z1 = -(float)(results.wheelEvalResults_[1].zValue-procConfig_.imapBaseHeight)*procConfig_.heightScaleInv;
     const float z2 = -(float)(results.wheelEvalResults_[2].zValue-procConfig_.imapBaseHeight)*procConfig_.heightScaleInv;
@@ -117,6 +123,7 @@ int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
     int cw2 = 0;
 
 
+    /// Calc vehicle normals
     if (conf0 < 0)
     {// calc normal for wheel 0 & 2
         nAx = -w1_2*z3+w1mw2*z1+w1pw2*z0;
@@ -261,6 +268,7 @@ int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
 
     results.validState = PERS_VALID;
 
+    /// Get Test if chassis testing is required.
     if (chassisModel_.TestChassis())
     {        
 
@@ -276,6 +284,7 @@ int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
         //const float startValA = (results.wheelEvalResults_[cw1].zPos*procConfig_.heightScale)- wcPos1.x*dx1 - wcPos1.y*dy1;
         //const float startValB = (results.wheelEvalResults_[cw2].zPos*procConfig_.heightScale)- wcPos2.x*dx2 - wcPos2.y*dy2;
 
+        /// Get the start height for both configurations
         const float startValA = (results.wheelEvalResults_[cw1].zPos*procConfig_.heightScale)- wcPos1.x*dx1 - wcPos1.y*dy1;
         const float startValB = (results.wheelEvalResults_[cw2].zPos*procConfig_.heightScale)- wcPos2.x*dx2 - wcPos2.y*dy2;
 
@@ -344,6 +353,7 @@ int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
 
 
 
+        /// Test first configuration, the second one is only tested if the angle between both is larger than the threshold
         int chassisTestA = chassisModel_.EvaluateNP(dem,startValA,dx1,dy1,robotCenter+desc.chassisPosImage_,angleIdx,cx1,cy1);
 
         int cx2 = 0;
@@ -373,6 +383,7 @@ int RobotModel::EvaluatePose(const cv::Mat &dem, PoseEvalResults &results) const
     return 0;
 
 }
+
 
 /*
 int RobotModel::EvaluatePoseNP(const cv::Mat &dem, PoseEvalResults &results)

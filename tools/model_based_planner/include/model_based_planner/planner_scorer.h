@@ -14,6 +14,7 @@
  */
 struct NodeScorer_Base
 {
+
     void SetConfig(const PlannerScorerConfig &config, float validTresh, float visibleThresh, float poseTimeStep)
     {
         config_ = config;
@@ -78,18 +79,27 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         scores[15] = 0;
      */
 
+    /**
+     * @brief Set the current robot pose. Goal distances greater than GoalDistancecutoff will be clipped to max value
+     */
     void SetRobotPose(cv::Point3f robotPose, float goalDistanceCutoff)
     {
         curRobotPose_ = robotPose;
         goalDistanceCutoff_ = goalDistanceCutoff;
     }
 
+    /**
+     * @brief Set the current goal
+     */
     void SetGoal(const cv::Point3f goal)
     {
         goal_ = goal;
 
     }
 
+    /**
+     * @brief Set goal to last element in path
+     */
     void SetPath(const std::vector<cv::Point3f> &path)
     {
         if (path.empty())
@@ -109,6 +119,9 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
     }
 
 
+    /**
+     * @brief Check if goal is reached
+     */
     inline void CheckGoal(PoseEvalResults &results) const
     {
         const cv::Point2f goalDiff(goal_.x- results.pose.x,goal_.y- results.pose.y);
@@ -116,6 +129,9 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
 
     }
 
+    /**
+     * @brief reset all scores to start values
+     */
     inline void ResetScores(std::array<float, NUMBERSCORES> &scores) const
     {
 
@@ -143,6 +159,9 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
 
 
 
+    /**
+     * @brief Score a single pose
+     */
     inline void ScorePose(const PoseEvalResults& results, std::array<float, NUMBERSCORES> &scores) const
     {
 
@@ -168,6 +187,9 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
 
     }
 
+    /**
+     * @brief Check if a pose is valid,i.e. meets security criteria
+     */
     inline bool CheckPose(PoseEvalResults &results)
     {
 
@@ -250,6 +272,9 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
     }
 
 
+    /**
+     * @brief Scorer a node
+     */
     inline void ScoreNode(TrajNode &current)  const
     {
         float velDiff = 0;
@@ -272,6 +297,9 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         //return 0;
     }
 
+    /**
+     * @brief Normalized angle difference
+     */
     inline float GetAngleDifference(const float &a, const float &b) const
     {
         float res = a-b;
@@ -280,6 +308,9 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
         return std::abs(res);
     }
 
+    /**
+     * @brief Calculate the normalized distance to goal
+     */
     inline void CalcGoalDistance(TrajNode &current) const
     {
         const cv::Point2f rPos(curRobotPose_.x,curRobotPose_.y);
@@ -308,6 +339,9 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
 
     }
 
+    /**
+     * @brief Get difference between a node and the last used command velocity
+     */
     inline float GetLastCmdVelDiff(TrajNode &current)  const
     {
         const TrajNode* tnPtr = current.GetFirstNode();
@@ -320,6 +354,9 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
 
     }
 
+    /**
+     * @brief Calculate final score o a node
+     */
     inline void FinalNodeScore(TrajNode &current)  const
     {
         float endFactor = 1.0;
@@ -408,6 +445,9 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
 
     }
 
+    /**
+     * @brief Find the node at level 1 with the highest number of valid children.
+     */
     TrajNode* CheckAllNodes(std::vector<TrajNode> &allNodes, int nodeCounter)
     {
 
@@ -489,12 +529,18 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
 
 
 
+/**
+ * @brief Scorer that uses the path
+ */
 struct NodeScorer_Path_T : public NodeScorer_Goal_T
 {
 
     static constexpr const char* const NS_NAME = "path_scorer";
 
 
+    /**
+     * @brief Set the current path
+     */
     void SetPath(const std::vector<cv::Point3f> &path)
     {
         if (path.empty())
@@ -517,6 +563,9 @@ struct NodeScorer_Path_T : public NodeScorer_Goal_T
     }
 
 
+    /**
+     * @brief Calculate distance from a point to a path segment
+     */
     inline float SqDistancePtSegment(const cv::Point2f &a, const cv::Point2f &b, const cv::Point2f &p ) const
     {
         const cv::Point2f n = b - a;
@@ -540,6 +589,9 @@ struct NodeScorer_Path_T : public NodeScorer_Goal_T
         return e.dot( e );
     }
 
+    /**
+     * @brief Find the smalles distance to the current path
+     */
     inline float GetMinPathDistance(const cv::Point3f p3)const
     {
         if (path2_.empty()) return 0;
@@ -557,6 +609,9 @@ struct NodeScorer_Path_T : public NodeScorer_Goal_T
 
     }
 
+    /**
+     * @brief Score node
+     */
     inline void ScoreNode(TrajNode &current)  const
     {
         float velDiff = 0;
@@ -583,12 +638,18 @@ struct NodeScorer_Path_T : public NodeScorer_Goal_T
 
 };
 
+/**
+ * @brief Scorer that uses a path but does not include the last element of the path
+ */
 struct NodeScorer_PathNG_T : public NodeScorer_Path_T
 {
 
     static constexpr const char* const NS_NAME = "ngpath_scorer";
 
 
+    /**
+     * @brief Check if pose is valid
+     */
     inline bool CheckPose(PoseEvalResults &results)
     {
 
@@ -665,257 +726,7 @@ struct NodeScorer_PathNG_T : public NodeScorer_Path_T
 
 };
 
-/**
- * @brief Scorer without goal position, currently not supported
- */
 
-/*
-
-struct NodeScorer_Simple_T : public NodeScorer_Base
-{
-
-//     * Score[0] = sumGravAngle
-//     * Score[1] = maxGravAngle
-//     * Score[2] = sumAngleDiff
-//     * Score[3] = maxAngleDiff
-//     * Score[4] = sumTipAngle
-//     * Score[5] = maxTipAngle
-//     * Score[6] = poseCount
-//     * Score[7] = angularVelChange
-//     * Score[8] = meanWheelSupport
-//     * Score[9] = minWheelSupport
-//     *
-//     * scores[10] = 0; Not visible counter
-//        scores[11] = 0;
-//        scores[12] = 0;
-//        scores[13] = 0;
-//        scores[14] = 0;
-//        scores[15] = 0;
-
-
-
-
-    void SetGoal(const cv::Point3f &goal)
-    {
-
-    }
-
-    inline void CheckGoal(PoseEvalResults &results)  const
-    {
-
-    }
-
-    inline bool CheckPose(PoseEvalResults &results)
-    {
-
-        if (results.TestWheelZValues(validThreshold_))
-        {
-            results.validState = PERS_NOWHEELSUPPORT;
-
-            if (results.poseCounter > config_.noWheelSupportNearThreshold) results.validState = PERS_LOWWHEELSUPPORT_FAR;
-
-            return false;
-        }
-
-        if (results.TestWheelZValues(notVisibleThreshold_))
-        {
-            results.validState = PERS_NOTVISIBLE;
-            if (config_.allowNotVisible)
-            {
-                results.a1 = 0;
-                results.a2 = 0;
-
-                results.n1.x = 0;
-                results.n1.y = 0;
-                results.n1.z = 1;
-                results.n2.x = 0;
-                results.n2.y = 0;
-                results.n2.z = 1;
-                return true;
-            }
-            return false;
-
-        }
-
-
-        if (results.validState == PERS_OUTOFIMAGE)
-        {
-            return false;
-        }
-
-        if (results.GetMinWheelSupport() < config_.minWheelSupportThreshold)
-        {
-            results.validState = PERS_LOWWHEELSUPPORT;
-            if (results.poseCounter > config_.noWheelSupportNearThreshold) results.validState = PERS_LOWWHEELSUPPORT_FAR;
-
-            return false;
-        }
-
-        if (results.gravAngle > config_.gravAngleThreshold)
-        {
-            results.validState = PERS_EXCEEDGRAVANGLE;
-            return false;
-        }
-        if (results.tipAngle > config_.tipAngleThreshold)
-        {
-            results.validState = PERS_EXCEEDTIPANGLE;
-            return false;
-        }
-        if (results.deltaAngle > config_.deltaAngleThreshold)
-        {
-            results.validState = PERS_EXCEEDDELTAANGLE;
-            return false;
-        }
-
-        if (results.validState == PERS_CHASSISCOLLISION)
-        {
-            return false;
-        }
-
-        return true;
-
-    }
-
-    inline void ResetScores(std::array<float, NUMBERSCORES> &scores)  const
-    {
-#ifdef USE_REAL_ANGLE_SCORE
-        scores[0] = 0;
-        scores[1] = 0;
-        scores[2] = 0;
-        scores[3] = 0;
-        scores[4] = 0;
-        scores[5] = 0;
-#else
-        scores[0] = 0;
-        scores[1] = 1;
-        scores[2] = 0;
-        scores[3] = 1;
-        scores[4] = 0;
-        scores[5] = 1;
-
-
-#endif
-
-
-        scores[6] = 0;
-        scores[7] = 0;
-        scores[8] = 0;
-        scores[9] = 1;
-
-        scores[10] = 0;
-        scores[11] = 0;
-        scores[12] = 0;
-        scores[13] = 0;
-        scores[14] = 0;
-        scores[15] = 0;
-
-    }
-
-
-
-
-
-
-
-    inline void ScorePose(const PoseEvalResults& results, std::array<float, NUMBERSCORES> &scores) const
-    {
-
-        //const float gravAngle = acos(results.gravAngle);
-        //const float tipAngle = acos(results.tipAngle);
-        const float gravAngle = (results.gravAngle);
-        const float tipAngle = (results.tipAngle);
-        scores[0] += gravAngle;
-        scores[1] = std::max(scores[1],gravAngle);
-
-        scores[2] += results.deltaAngle;
-        scores[3] = std::max(scores[3], results.deltaAngle);
-        scores[4] += tipAngle;
-        scores[5] = std::max(scores[5], tipAngle);
-
-        scores[6] += 1.0f;
-
-        const float minWheelSupport = results.GetMinWheelSupport();
-        scores[8] += minWheelSupport;
-        scores[9] = std::min(scores[9], minWheelSupport);
-
-        scores[10] += results.validState == PERS_NOTVISIBLE ? 1.0f : 0.0f;
-
-    }
-
-    inline void ScoreNode(TrajNode &current)  const
-    {
-        float velDiff = 0;
-        if (current.parent_ != nullptr) velDiff = fabs(current.endCmd_.y);
-        current.scores[7] += velDiff;
-
-
-        //return 0;
-    }
-
-    inline void FinalNodeScore(TrajNode &current)  const
-    {
-        float endFactor = 1.0;
-
-        switch (current.end_->validState)
-        {
-            case PERS_OUTOFIMAGE: endFactor = config_.end_outOfImage; break;
-            case PERS_NOTVISIBLE: endFactor = config_.end_notVisible; break;
-            case PERS_NOWHEELSUPPORT: endFactor = config_.end_noWheelSupport; break;
-            case PERS_LOWWHEELSUPPORT: endFactor = config_.end_noWheelSupport; break;
-            case PERS_LOWWHEELSUPPORT_FAR: endFactor = config_.end_noWheelSupportFar; break;
-        case PERS_EXCEEDGRAVANGLE: endFactor = config_.end_exceedAngle; break;
-        case PERS_EXCEEDTIPANGLE: endFactor = config_.end_exceedAngle; break;
-        case PERS_CHASSISCOLLISION: endFactor = config_.end_chassisCollision; break;
-        case PERS_VALID: endFactor = config_.end_valid; break;
-
-        default: endFactor = config_.end_valid;
-
-        }
-
-
-        float normalize =  current.scores[6];
-        if (normalize == 0) normalize = 1.0;
-        else normalize = 1.0f/normalize;
-
-
-        current.fScore_ =
-                (current.scores[0]*normalize)*config_.f_meanGA +
-                current.scores[1]*config_.f_maxGA +
-                (current.scores[2]*normalize)*config_.f_meanAD +
-                current.scores[3]*config_.f_maxAD +
-                (current.scores[4]*normalize)*config_.f_meanTA +
-                current.scores[5]*config_.f_maxTA +
-                current.scores[6]*config_.f_poseC +
-                current.scores[7]*config_.f_aVelD +
-                (current.scores[8]*normalize)*config_.f_meanWS +
-                current.scores[9]*config_.f_minWS +
-                current.scores[10]*config_.f_numNotVisible +
-                endFactor;
-
-
-        current.finalScores[0] = (current.scores[0]*normalize)*config_.f_meanGA;
-        current.finalScores[1] = current.scores[1]*config_.f_maxGA;
-                current.finalScores[2] = (current.scores[2]*normalize)*config_.f_meanAD;
-                current.finalScores[3] = current.scores[3]*config_.f_maxAD;
-                current.finalScores[4] = (current.scores[4]*normalize)*config_.f_meanTA;
-                current.finalScores[5] = current.scores[5]*config_.f_maxTA ;
-                current.finalScores[6] = current.scores[6]*config_.f_poseC;
-                current.finalScores[7] = current.scores[7]*config_.f_aVelD;
-                current.finalScores[8] = current.scores[8]*normalize*config_.f_meanWS;
-                current.finalScores[9] = current.scores[9]*config_.f_minWS;
-                current.finalScores[10] = current.scores[10];
-                current.finalScores[11] = endFactor;
-                current.finalScores[12] = current.fScore_;
-
-
-    }
-
-
-
-
-};
-
-*/
 
 
 

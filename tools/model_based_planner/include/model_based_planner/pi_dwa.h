@@ -47,6 +47,9 @@ public:
         return std::max(config_.expanderConfig_.firstLevelSplits,config_.expanderConfig_.numSplits)+1;
     }
 
+    /**
+     * @brief Perform the planning. It creates a set of new command velocities and uses the one with the highest score.
+     */
     cv::Point2f Plan()
     {        
 

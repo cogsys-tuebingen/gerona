@@ -76,6 +76,9 @@ public:
 
 
 
+    /**
+     * @brief Recursive function for tree iteration
+     */
     void IterateTree(TrajNode* start)
     {
 
@@ -110,7 +113,9 @@ public:
 
     }
 
-
+    /**
+     * @brief Perform planning
+     */
     cv::Point2f Plan()
     {
 
