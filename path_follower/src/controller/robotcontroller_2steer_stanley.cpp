@@ -87,8 +87,9 @@ RobotController::MoveCommandStatus RobotController_2Steer_Stanley::computeMoveCo
     double theta_e = MathHelper::AngleDelta(pose[2], path_interpol.theta_p(proj_ind_));
 
     // if we drive backwards invert d and set theta_e to the complementary angle
-    if (getDirSign() < 0.)
-        theta_e = theta_e > 0.? -M_PI + theta_e : M_PI + theta_e;
+    if (getDirSign() < 0.){
+        theta_e = MathHelper::NormalizeAngle(M_PI + theta_e);
+    }
 
     const double k = getDirSign() > 0. ? params_.k_forward() : params_.k_backward();
     const double v = max(abs(velocity_measured.linear.x), 0.3);
@@ -102,7 +103,7 @@ RobotController::MoveCommandStatus RobotController_2Steer_Stanley::computeMoveCo
     phi = boost::algorithm::clamp(phi, -params_.max_steering_angle(), params_.max_steering_angle());
 
     double exp_factor = RobotController::exponentialSpeedControl();
-    move_cmd_.setDirection(getDirSign() * (float) phi);
+    move_cmd_.setDirection((float) phi);
     move_cmd_.setVelocity(getDirSign() * (float) velocity_ * exp_factor);
 
 #ifdef TEST_OUTPUT

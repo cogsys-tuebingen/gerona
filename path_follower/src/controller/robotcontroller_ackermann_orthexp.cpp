@@ -33,8 +33,7 @@ void RobotController_Ackermann_OrthogonalExponential::computeControl()
     // theta_e = theta_path - theta_vehicle
     double theta_e = MathHelper::AngleDelta(current_pose[2], path_interpol.theta_p(proj_ind_));
     if(getDirSign() < 0){
-        orth_proj_ *= -1.0;
-        theta_e = theta_e > 0.? M_PI - theta_e : -M_PI - theta_e;
+        theta_e = MathHelper::NormalizeAngle(M_PI + theta_e);
     }
 
     cmd_.direction_angle = atan(-opt_.k()*orth_proj_) + theta_e;

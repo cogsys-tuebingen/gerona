@@ -83,7 +83,11 @@ RobotController::MoveCommandStatus Robotcontroller_Ackermann_PurePursuit::comput
 	// angle between vehicle theta and the connection between the rear axis and the look ahead point
 	const double alpha = computeAlpha(lookahead_distance, pose);
 
-	const double delta = atan2(2. * params_.vehicle_length() * sin(alpha), lookahead_distance);
+    double delta = atan2(2. * params_.vehicle_length() * sin(alpha), lookahead_distance);
+
+    if(getDirSign() < 0.){
+        delta = MathHelper::NormalizeAngle(M_PI + delta);
+    }
 
     double exp_factor = RobotController::exponentialSpeedControl();
 	move_cmd_.setDirection(params_.factor_steering_angle() * (float) delta);

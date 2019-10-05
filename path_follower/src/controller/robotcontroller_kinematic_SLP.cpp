@@ -139,7 +139,7 @@ RobotController::MoveCommandStatus RobotController_Kinematic_SLP::computeMoveCom
 
     double delta_old = delta_;
 
-    delta_ = MathHelper::AngleClamp(-getDirSign()*opt_.theta_a()*tanh(ye_));
+    delta_ = MathHelper::AngleClamp(-opt_.theta_a()*tanh(ye_));
 
     double delta_prim = (delta_ - delta_old)/Ts_;
     ///***///

@@ -103,9 +103,8 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Inputscaling::compu
 
 	// if dir_sign is negative we drive backwards and set theta_e to the complementary angle
     if (getDirSign() < 0.) {
-        d = -d;
 		setTuningParameters(params_.k_backward());
-        theta_e = theta_e > 0.? M_PI - theta_e : -M_PI - theta_e;
+        theta_e = MathHelper::NormalizeAngle(M_PI + theta_e);
 	} else {
 		setTuningParameters(params_.k_forward());
 	}

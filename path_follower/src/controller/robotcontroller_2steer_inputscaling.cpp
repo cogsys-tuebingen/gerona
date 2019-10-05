@@ -120,7 +120,7 @@ RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeM
 
     // if dir_sign is negative we drive backwards and set theta_e to the complementary angle
     if (getDirSign() < 0.)
-        theta_e = theta_e > 0.? -M_PI + theta_e : M_PI + theta_e;
+        theta_e = MathHelper::NormalizeAngle(M_PI + theta_e);
 
     // curvature and first two derivations
     const double c = path_interpol.curvature(proj_ind_);
@@ -211,7 +211,7 @@ RobotController::MoveCommandStatus RobotController_2Steer_InputScaling::computeM
     phi_ = boost::algorithm::clamp(phi_, -params_.max_steering_angle(), params_.max_steering_angle());
 
     double exp_factor = RobotController::exponentialSpeedControl();
-    move_cmd_.setDirection(getDirSign() * (float) phi_);
+    move_cmd_.setDirection((float) phi_);
     move_cmd_.setVelocity(getDirSign() * (float) v1 * exp_factor);
     *cmd = move_cmd_;
 

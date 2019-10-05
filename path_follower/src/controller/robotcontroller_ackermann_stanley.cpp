@@ -79,8 +79,7 @@ RobotController::MoveCommandStatus RobotController_Ackermann_Stanley::computeMov
 
     // if we drive backwards invert d and set theta_e to the complementary angle
     if (getDirSign() < 0.) {
-        d = -d;
-        theta_e = theta_e > 0.? M_PI - theta_e : -M_PI - theta_e;
+        theta_e = MathHelper::NormalizeAngle(M_PI + theta_e);
     }
 
 	const double k = getDirSign() > 0. ? params_.k_forward() : params_.k_backward();

@@ -87,7 +87,11 @@ RobotController::MoveCommandStatus RobotController_2Steer_PurePursuit::computeMo
     // angle between vehicle theta and the connection between the reference point and the look ahead point
     const double alpha = computeAlpha(l_ah, pose);
 
-    const double phi = atan2(params_.vehicle_length() * sin(alpha), l_ah);
+    double phi = atan2(params_.vehicle_length() * sin(alpha), l_ah);
+
+    if(getDirSign() < 0.){
+        phi = MathHelper::NormalizeAngle(M_PI + phi);
+    }
 
     if (phi == NAN) {
         ROS_ERROR("Got NAN phi");
@@ -95,7 +99,7 @@ RobotController::MoveCommandStatus RobotController_2Steer_PurePursuit::computeMo
     }
 
     double exp_factor = RobotController::exponentialSpeedControl();
-    move_cmd_.setDirection(getDirSign() * (float) phi);
+    move_cmd_.setDirection((float) phi);
     move_cmd_.setVelocity(getDirSign() * (float) velocity_ * exp_factor);
 
     *cmd = move_cmd_;
@@ -140,10 +144,6 @@ double RobotController_2Steer_PurePursuit::computeAlpha(double& l_ah, const Eige
 
     // angle between the connection line and the vehicle orientation
     double alpha = MathHelper::AngleDelta(pose[2], atan2(dy, dx));
-
-    // when we drive backwards, set alpha to the complementary angle
-    if (getDirSign() < 0.)
-        alpha = alpha > 0.? -M_PI + alpha : M_PI + alpha;
 
     // set lookahead_distance to the actual distance
     l_ah = distance;
