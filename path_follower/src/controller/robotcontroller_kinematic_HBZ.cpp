@@ -155,6 +155,8 @@ RobotController::MoveCommandStatus RobotController_Kinematic_HBZ::computeMoveCom
     Eigen::Vector3d current_pose = pose_tracker_->getRobotPose();
 
     const geometry_msgs::Twist v_meas_twist = pose_tracker_->getVelocity();
+    //get the robot's current angular velocity
+    angular_vel_ = pose_tracker_->getVelocity().angular.z;
 
     double v_meas = getDirSign() * sqrt(v_meas_twist.linear.x * v_meas_twist.linear.x
             + v_meas_twist.linear.y * v_meas_twist.linear.y);
