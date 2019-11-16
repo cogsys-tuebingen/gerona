@@ -39,8 +39,8 @@ void Path::switchToNextSubPath()
     if (current_sub_path_ != endIter) {
         ++current_sub_path_;
         next_waypoint_idx_ = 0;
-        fireNextWaypointCallback();
         computeWaypointToEndDistances();
+        fireNextWaypointCallback();
     }
 }
 
@@ -117,7 +117,7 @@ size_t Path::getWaypointIndex() const
 
 float Path::getRemainingSubPathDistance() const
 {
-    return wp_distance_to_end_[next_waypoint_idx_];
+    return wp_distance_to_end_.at(next_waypoint_idx_);
 }
 
 void Path::fireNextWaypointCallback() const
@@ -134,10 +134,6 @@ void Path::computeWaypointToEndDistances()
         return;
     }
 
-    if(wp_distance_to_end_.empty()) {
-        return;
-    }
-
     //TODO: resize initializes every value. This is not necessary as they are overwritten anyway.
     //      Is there a more efficient way to do this?
     wp_distance_to_end_.resize(current_sub_path_->size());
@@ -147,7 +143,7 @@ void Path::computeWaypointToEndDistances()
     // iterate subpath in reversed order starting with the penultimate waypoint
     for (int i = current_sub_path_->size()-2; i >= 0; --i) {
         float dist_to_next_waypoint = (*current_sub_path_)[i].distanceTo((*current_sub_path_)[i+1]);
-        wp_distance_to_end_[i] = dist_to_next_waypoint + wp_distance_to_end_[i+1];
+        wp_distance_to_end_.at(i) = dist_to_next_waypoint + wp_distance_to_end_.at(i+1);
     }
 }
 
