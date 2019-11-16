@@ -1,0 +1,38 @@
+name: Build (ROS melodic)
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: [ubuntu-18.04]
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        path: ws/src/gerona
+    - name: configure_ros
+      run: |
+        sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+        sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+        sudo apt update
+        sudo apt-get -qq update -y && sudo apt-get -qq install build-essential openssh-client ccache ros-melodic-ros-base python-catkin-pkg -y
+        sudo rosdep init
+        rosdep update
+    - name: clone_dependencies
+      run: |
+        pwd
+        cd ..
+        git clone https://github.com/cogsys-tuebingen/cslibs_path_planning
+        git clone https://github.com/cogsys-tuebingen/cslibs_navigation_utilities
+        git clone https://github.com/sbpl/sbpl
+    - name: configure
+      run: |
+        source /opt/ros/$(ls /opt/ros/ | sort -r | head -n 1)/setup.bash
+        cd ../..
+        pwd
+        sudo apt-get install -y $(rosdep install --from-paths -i -y -s src | grep 'apt-get install' | rev | cut -f1 -d' ' | rev | paste -s)
+    - name: build
+      run: |
+        source /opt/ros/$(ls /opt/ros/ | sort -r | head -n 1)/setup.bash
+        cd ../..
+        pwd
+        catkin_make_isolated
