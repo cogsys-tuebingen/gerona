@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>odom2tf</name>
+  <version>1.0.0</version>
+  <description>The odom2tf package converts nav_msgs/Odometry to tf information</description>
+
+
+  <author email="mail@betwo.eu">Sebastian Buck</author>
+
+  <maintainer email="goran.huskic@uni-tuebingen.de">Goran Huskic</maintainer>
+  <maintainer email="mail@betwo.eu">Sebastian Buck</maintainer>
+  <maintainer email="julian.jordan@uni-tuebingen.de">Julian Jordan</maintainer>
+  <maintainer email="adrian.zwiener@uni-tuebingen.de">Adrian Zwiener</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>nav_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+
+  <export>
+  </export>
+</package>
