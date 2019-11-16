@@ -33,7 +33,7 @@ private:
     PathFollowerParameters():
 
         controller(this, "controller_type", "ackermann_purepursuit", "Defines which controller is used."),
-        collision_avoider(this, "collision_avoider", "", "Defines, which collisison avoider is used."),
+        collision_avoider(this, "collision_avoider_type", "", "Defines, which collision avoider is used."),
 
         world_frame(this, "world_frame",
                     nh.param("gerona/world_frame", std::string("map")),

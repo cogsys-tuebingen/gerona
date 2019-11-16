@@ -39,7 +39,7 @@
 
 
 	<group ns="path_follower" >
-	<!--param name="collision_avoider" value="default_collision_avoider" /-->
+	<!--param name="collision_avoider_type" value="default_collision_avoider" /-->
 
 	<group ns="model_based_planner" >
 		<param name="robot_config_file" value="$(find model_based_planner)/config/rollator_c.yaml" />
