@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- GeRoNa -->
+    <group ns="X1">
+        <remap from="cmd_vel" to="cmd_vel" />
+        <remap from="scan/front/filtered" to="front_scan" />
+        <remap from="odom" to="odom" />
+
+        <include file="$(find navigation_launch)/launch/rviz_controlled.launch">
+            <arg name="use_hector" value="false" />
+            <arg name="use_planner_default" value="true" />
+            <arg name="use_laser_obstacles" value="true" />
+        </include>
+
+        <!-- GeRoNa parameters for this stage robot -->
+        <include file="$(find gerona_examples)/launch/include/gerona_gazebo_params_x1.launch" />
+
+        <node pkg="tf" type="static_transform_publisher" name="odom_to_world_link" args="0 0 0 0 0 0 /map /world 10" />
+
+        <node name="cartographer_node" pkg="cartographer_ros"
+            type="cartographer_node" args="
+          -configuration_directory $(find gerona_examples)/cartographer
+          -configuration_basename subt_x.lua"
+            output="screen">
+            <remap from="scan" to="front_scan" />
+            <remap from="imu" to="imu/data" />
+        </node>
+
+        <node name="cartographer_occupancy_grid_node" pkg="cartographer_ros"
+            type="cartographer_occupancy_grid_node" args="-resolution 0.05" />
+    </group>
+
+    <!-- ing -->
+    <!-- ign launch -v 4 tunnel_circuit_practice.ign worldName:=tunnel_circuit_practice_01 robotName1:=X1 robotConfig1:=X1_SENSOR_CONFIG_1 -->
+
+    <!-- RViz -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gerona_examples)/rviz/subt_tunnel_cartographer.rviz"/>
+
+    <!-- Logging -->
+    <!--  <node name="rqt_console" pkg="rqt_console" type="rqt_console" /> -->
+
+</launch>

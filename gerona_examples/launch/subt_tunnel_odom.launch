@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- GeRoNa -->
+    <group ns="X1">
+        <remap from="cmd_vel" to="cmd_vel" />
+        <remap from="scan/front/filtered" to="front_scan" />
+        <remap from="odom" to="odom" />
+
+        <include file="$(find navigation_launch)/launch/rviz_controlled.launch">
+            <arg name="use_hector" value="false" />
+            <arg name="use_planner_default" value="true" />
+            <arg name="use_laser_obstacles" value="true" />
+        </include>
+
+        <!-- GeRoNa parameters for this stage robot -->
+        <include file="$(find gerona_examples)/launch/include/gerona_gazebo_params_x1.launch" />
+
+        <node name="odom2tf" pkg="odom2tf" type="odom2tf_node" output="screen">
+            <param name="base_link_frame" value="X1" />
+            <param name="odom_frame" value="X1/odom" />
+        </node>
+
+        <node pkg="tf" type="static_transform_publisher" name="odom_to_world_link" args="0 0 0 0 0 0 /X1/odom /world 10" />
+
+    </group>
+
+    <!-- subt challenge launch -->
+    <!-- ign launch -v 4 tunnel_circuit_practice.ign worldName:=tunnel_circuit_practice_01 robotName1:=X1 robotConfig1:=X1_SENSOR_CONFIG_1 -->
+
+    <!-- RViz -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gerona_examples)/rviz/subt_tunnel_odom.rviz"/>
+
+</launch>
