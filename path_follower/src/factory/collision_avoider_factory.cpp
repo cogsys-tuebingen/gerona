@@ -10,7 +10,7 @@ std::shared_ptr<CollisionAvoider> CollisionAvoiderFactory::makeObstacleAvoider(c
     if(name == "default_collision_avoider") {
         return std::make_shared<CollisionDetectorOmnidrive>();
     } else {
-        if (name == "omnidive") {
+        if (name == "omnidrive") {
             return std::make_shared<CollisionDetectorOmnidrive>();
         } else if (name == "ackermann") {
             return std::make_shared<CollisionDetectorAckermann>();
