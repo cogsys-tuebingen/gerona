@@ -44,7 +44,7 @@ struct NonHolonomicNeighborhoodNoEndOrientation :
 
 // MORE PRECISE END POSITION
 template <int distance, int steerangle, int moves = NonHolonomicNeighborhoodMoves::FORWARD_BACKWARD, bool reversed = false,
-          int straight_dir_switch = static_cast<int>(std::round(2.0 / (distance / 100.)))>
+          int straight_dir_switch = (tmpmath::round(2.0 / (distance / 100.)))>
 struct NonHolonomicNeighborhoodPrecise :
         public NonHolonomicNeighborhood<distance, steerangle, moves, reversed, straight_dir_switch> {
     typedef NonHolonomicNeighborhood<distance, steerangle, moves, reversed, straight_dir_switch> Parent;
