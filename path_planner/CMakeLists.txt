@@ -16,7 +16,7 @@ endif()
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS nav_msgs path_msgs cslibs_path_planning roscpp std_msgs tf roslib pcl_ros)
+find_package(catkin REQUIRED COMPONENTS nav_msgs path_msgs cslibs_path_planning cslibs_navigation_utilities roscpp std_msgs tf roslib pcl_ros)
 
 add_definitions(-W -Wall -Wno-unused-parameter -fno-strict-aliasing -Wno-unused-function)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
