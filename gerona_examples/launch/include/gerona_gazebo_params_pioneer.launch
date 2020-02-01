@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-        
-    <group ns="gerona" >
+
+    <group ns="gerona">
         <param name="world_frame" value="map" />
         <param name="odom_frame" value="odom" />
         <param name="robot_frame" value="base_link" />
@@ -24,18 +24,20 @@
         </group>
     </group>
 
-    <group ns="path_follower" >
+    <group ns="path_follower">
         <param name="controller_type" value="kinematic_hbz" />
-        <group ns="controller" >
-            <group ns="kinematic_hbz">                
-                <param name="k1" value="5.0" />
-                <param name="k2" value="10" />
+        <group ns="controller">
+            <group ns="kinematic_hbz">
+                <param name="k1" value="8.0" />
+                <param name="k2" value="40" />
 
+                <param name="k_curv" value="0.001" />
+
+                <param name="look_ahead_dist" value="2.5" />
                 <param name="lambda" value="1" />
                 <param name="theta_a" value="2.0*0.78539816339" />
 
-
-
+                <param name="epsilon" value="0.15" />
                 <param name="max_angular_velocity" value="1.5" />
             </group>
         </group>
@@ -44,18 +46,18 @@
             <param name="algorithm" value="NULL" />
         </group>
 
-        <group ns="supervisor" >
+        <group ns="supervisor">
             <param name="use_path_lookout" value="true" />
             <param name="use_waypoint_timeout" value="false" />
             <param name="use_distance_to_path" value="false" />
         </group>
     </group>
 
-    <group ns="path_planner" >
+    <group ns="path_planner">
         <param name="algorithm" value="generic" />
     </group>
 
-    <group ns="obstacle_cloud" >
+    <group ns="obstacle_cloud">
         <param name="baseFrame" value="base_link" />
     </group>
 

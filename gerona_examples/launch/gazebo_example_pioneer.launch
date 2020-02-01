@@ -2,7 +2,7 @@
 <launch>
     <!-- GeRoNa -->
     <remap from="scan/front/filtered" to="/hokuyo_scan" />
-    
+
     <include file="$(find navigation_launch)/launch/rviz_controlled.launch">
         <arg name="use_hector" value="false" />
         <arg name="use_planner_default" value="true" />
@@ -13,13 +13,13 @@
     <include file="$(find gerona_examples)/launch/include/gerona_gazebo_params_pioneer.launch" />
 
 
-    <!-- gazebo -->    
-    <include file="$(find gazebo_ros)/launch/empty_world.launch" >
-	    <arg name="world_name" default="$(find summit_xl_gazebo)/worlds/summit_xl_office.world"/>
-		<arg name="paused" value="false"/>
-		<arg name="use_sim_time" value="true"/>
-		<arg name="headless" value="false"/>
-		<arg name="gui" value="true"/>
+    <!-- gazebo -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" default="$(find summit_xl_gazebo)/worlds/summit_xl_office.world"/>
+        <arg name="paused" value="false"/>
+        <arg name="use_sim_time" value="true"/>
+        <arg name="headless" value="false"/>
+        <arg name="gui" value="true"/>
     </include>
 
     <include file="$(find p3at_tutorial)/launch/upload_pioneer3at.xml"/>
@@ -29,6 +29,8 @@
 
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+    <node name="tf2odom" pkg="tf2odom" type="tf2odom_node" output="screen" />
 
     <!-- amcl and map server base-->
     <include file="$(find summit_xl_localization)/launch/map_server.launch">
@@ -47,5 +49,5 @@
 
     <!-- RViz -->
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gerona_examples)/rviz/robot_navigation_gazebo_pioneer.rviz"/>
-    
+
 </launch>
