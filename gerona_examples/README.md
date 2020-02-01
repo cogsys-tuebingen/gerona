@@ -72,7 +72,11 @@ Summit XL simulation, shows how to remap topics, tf frames and groups.
 
 > If the robot is not moving in a circle, a useful behavior of GeRoNa cannot be expected.
 
-
 2. gazebo_example_pioneer.launch
 
-Pioneer simulation, should work better in older gazebo versions.
+Pioneer simulation and full GeRoNa stack demonstration.
+
+3. gazebo_example_pioneer_pioneer_follower_only.launch
+
+Pioneer simulation and demonstration where only the path follower is used.
+A secondary node (`follow_path_example.py`) is used to convert `nav_msgs/Path` from [`global_planner`](http://wiki.ros.org/global_planner) into `path_msgs/DirectionalPath`s.

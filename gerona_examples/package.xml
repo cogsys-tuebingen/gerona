@@ -15,12 +15,15 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <depend>rospy</depend>
+
   <exec_depend>path_msgs</exec_depend>
   <exec_depend>path_control</exec_depend>
   <exec_depend>path_planner</exec_depend>
   <exec_depend>path_follower</exec_depend>
   <exec_depend>path_rviz</exec_depend>
 
+  <exec_depend>global_planner</exec_depend>
   <exec_depend>turtlebot_stage</exec_depend>
   <exec_depend>amcl</exec_depend>
   <exec_depend>summit_xl_gazebo</exec_depend>
