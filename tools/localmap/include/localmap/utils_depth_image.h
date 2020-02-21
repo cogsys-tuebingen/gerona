@@ -2,7 +2,6 @@
 #define UTILS_DEPTH_IMAGE_H
 
 
-#include <mm_malloc.h>
 #include <memory>
 #include <opencv2/core/core.hpp>
 

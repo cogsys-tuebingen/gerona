@@ -1,8 +1,18 @@
 #ifndef CV_ALIGNED_MAT_H
 #define CV_ALIGNED_MAT_H
 
-
+// Workaround for compilers without mm_malloc
+// only include mm_alloc if SSE or AVX are available, otherwise its not required anyway.
+#if (defined(__SSE4_2__) || defined(__AVX2__))
 #include <mm_malloc.h>
+#define aligned_free(p) (_mm_free(p))
+#define aligned_malloc(a, b) (_mm_malloc(a,b))
+#else
+#include <stdlib.h>
+#define aligned_free(p) (free(p))
+#define aligned_malloc(a, b) (malloc(a))
+#endif
+
 #include <memory>
 #include <opencv2/core/core.hpp>
 
@@ -50,7 +60,7 @@ public:
         {
             allocateWidth += (CVAlignedMat_Alignment - (width*ByteSize)% CVAlignedMat_Alignment)/ByteSize;
         }
-        void* p =(void*) _mm_malloc (allocateWidth*height*ByteSize, CVAlignedMat_Alignment);
+        void* p =(void*) aligned_malloc (allocateWidth*height*ByteSize, CVAlignedMat_Alignment);
         memset(p,0,allocateWidth*height*ByteSize);
         cv::Mat resMat(cv::Size(width,height),cvType,p,allocateWidth*ByteSize);
         mat_ = resMat;
@@ -83,7 +93,7 @@ public:
 
 
     ~CVAlignedMat(){
-        _mm_free((void*)mat_.data);
+        aligned_free((void*)mat_.data);
         //std::cout << "destroyMat!!" << std::endl;
     }
     cv::Mat mat_;
