@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(scan2cloud)
 
-
-#set(CMAKE_BUILD_TYPE Debug)
-#set(CMAKE_CXX_FLAGS "-std=c++11 -march=native ${CMAKE_CXX_FLAGS}")
-
-set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_FLAGS "-std=c++11 -march=native -O3 -ffast-math ${CMAKE_CXX_FLAGS}")
-
+## Enforce that we use C++14
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-std=c++14" COMPILER_SUPPORTS_CXX14)
+if(COMPILER_SUPPORTS_CXX14)
+  add_definitions(-std=c++14)
+else()
+  message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++14 support. Please use a different C++ compiler.")
+endif()
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
