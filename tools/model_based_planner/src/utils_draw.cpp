@@ -22,7 +22,7 @@ cv::Mat DrawProc::D16SImageToRGB(cv::Mat image, int imin, int imax)
 
     image.convertTo(displayImg,CV_8U,256.0/(double)(imax-imin),-imin*256.0/(double)(imax-imin));
 
-    cv::cvtColor(displayImg,displayImg,CV_GRAY2BGR);
+    cv::cvtColor(displayImg,displayImg,cv::COLOR_GRAY2BGR);
 
     return displayImg;
 
@@ -112,7 +112,7 @@ void DrawProc::SetupDrawProc(ScaledDrawProc &drawProc,cv::Mat &img, float scaleF
     if (img.type() != CV_8UC3)
     {
         img.convertTo(tres,CV_8U);
-        cv::cvtColor(tres,resultsmall,CV_GRAY2BGR);
+        cv::cvtColor(tres,resultsmall,cv::COLOR_GRAY2BGR);
 
     }
     else
@@ -329,7 +329,7 @@ void DrawProc::DrawRobotWheelScaled(ScaledDrawProc &proc, WheelModel &model, cv:
 
     desc.image_->mat_.convertTo(wheelImage,CV_8U,1.0,-conf.procConfig_.wheelGroundLevel);
 
-    cv::cvtColor(wheelImage,colorImg,CV_GRAY2BGR);
+    cv::cvtColor(wheelImage,colorImg,cv::COLOR_GRAY2BGR);
 
 
     cv::Mat mask = GenerateMask(desc.image_->mat_);
@@ -405,7 +405,7 @@ void DrawProc::DrawChassis(ScaledDrawProc &proc, ProcConfig &procConfig, Chassis
 
     tempChassis->mat_.convertTo(chassisImage,CV_8U,1.0,-procConfig.wheelGroundLevel);
 
-    cv::cvtColor(chassisImage,colorImg,CV_GRAY2BGR);
+    cv::cvtColor(chassisImage,colorImg,cv::COLOR_GRAY2BGR);
 
 
 

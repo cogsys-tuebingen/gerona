@@ -1,6 +1,7 @@
 #include "chassismodel.h"
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc_c.h>
 
 #include "wheelrender.h"
 
@@ -24,11 +25,11 @@ void ChassisModel::SetupChassis(const ProcConfig& procConfig, const ChassisConfi
 
     if (orgImg.channels() == 3)
     {
-        cv::cvtColor(orgImg,orgImg,CV_BGR2GRAY);
+        cv::cvtColor(orgImg,orgImg,cv::COLOR_BGR2GRAY);
     }
     if (orgImg.channels() == 4)
     {
-        cv::cvtColor(orgImg,orgImg,CV_BGRA2GRAY);
+        cv::cvtColor(orgImg,orgImg,cv::COLOR_BGRA2GRAY);
     }
 
     cv::Mat imgConvF;
@@ -62,7 +63,7 @@ void ChassisModel::SetupChassis(const ProcConfig& procConfig, const ChassisConfi
 
     imgConvF.convertTo(colorImg,CV_8U,1.0,0);
 
-    cv::cvtColor(colorImg,colorImg,CV_GRAY2BGR);
+    cv::cvtColor(colorImg,colorImg,cv::COLOR_GRAY2BGR);
 
     ScaledDrawProc sd;
 
@@ -188,7 +189,7 @@ void ChassisModel::SetupChassis(const ProcConfig& procConfig, const ChassisConfi
 
         cropped.convertTo(colorImg,CV_8U,1.0/256.0,-procConfig.mapBaseHeight/256.0);
 
-        cv::cvtColor(colorImg,colorImg,CV_GRAY2BGR);
+        cv::cvtColor(colorImg,colorImg,cv::COLOR_GRAY2BGR);
 
         ScaledDrawProc sd;
 

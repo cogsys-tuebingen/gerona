@@ -1,6 +1,7 @@
 
 #include "blockmap.h"
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/imgproc/imgproc_c.h>
 #include "utils_depth_image.h"
 
 void BlockMap::Setup()

@@ -601,7 +601,7 @@ void Planner::preprocess(const path_msgs::PlanPathGoal& request)
         costmap = 100 - costmap;
 
         cv::Mat distance;
-        cv::distanceTransform(costmap, distance, CV_DIST_L2, CV_DIST_MASK_PRECISE);
+        cv::distanceTransform(costmap, distance, cv::DIST_L2, cv::DIST_MASK_PRECISE);
 
         double scale_  = 100.0;
         double max_distance_meters_ = 2.5;
@@ -1234,8 +1234,8 @@ void Planner::growObstacles(const path_msgs::PlanPathGoal& request, double radiu
 
     cv::Mat mask(working.rows, working.cols, CV_8UC1, cv::Scalar::all(255));
 
-    cv::circle(mask, cv::Point(from_map.x, from_map.y), r, cv::Scalar::all(0), CV_FILLED);
-    cv::circle(mask, cv::Point(to_map.x, to_map.y), r, cv::Scalar::all(0), CV_FILLED);
+    cv::circle(mask, cv::Point(from_map.x, from_map.y), r, cv::Scalar::all(0), cv::FILLED);
+    cv::circle(mask, cv::Point(to_map.x, to_map.y), r, cv::Scalar::all(0), cv::FILLED);
 
 
     working.copyTo(map, mask);
