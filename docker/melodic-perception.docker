@@ -1,0 +1,13 @@
+FROM ros:melodic-perception
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends build-essential openssh-client sudo
+
+RUN mkdir -p /build/ws/src/
+ADD ./ /build/ws/src/
+
+SHELL [ "bash", "-c" ]
+
+RUN rosdep update
+RUN rosdep install --from-paths -r -i -y /build/ws/src
+RUN source /opt/ros/$(ls /opt/ros/ | head -n 1)/setup.bash && cd /build/ws/ && catkin_make_isolated
