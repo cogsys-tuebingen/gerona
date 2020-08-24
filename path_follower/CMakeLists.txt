@@ -45,26 +45,40 @@ find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 
 if (${OpenCV_VERSION} MATCHES "3.3.1")
+    message(WARNING
+      "You are using OpenCV 3.3.1, which has a known bug. "
+      "(see https://github.com/ros-perception/vision_opencv/issues/193 .)\n"
+      "If you experience an error similar to \"No rule to make target 'opencv_core-NOTFOUND...\",\n"
+      "then please enable 'USE_WORKAROUND' in path_follower/CMakeLists.txt\n"
+      "(search for \"OpenCV 3.3.1 Bugfix\".)"
+    )
     #########################
     ## OpenCV 3.3.1 Bugfix ##
     #########################
-    message(STATUS "Applying OpenCV 3.3.1 Workaround")
-    foreach(__cvcomponent ${OpenCV_LIB_COMPONENTS})
-        set (__original_cvcomponent ${__cvcomponent})
-        if(NOT __cvcomponent MATCHES "^opencv_")
-            message(STATUS "Not patching ${__cvcomponent}")
-            set(__cvcomponent opencv_${__cvcomponent})
-        endif()
-        if (TARGET ${__cvcomponent})
-            message(STATUS "Patching ${__cvcomponent}")
-            set_target_properties(${__cvcomponent} PROPERTIES
-              MAP_IMPORTED_CONFIG_DEBUG ""
-              MAP_IMPORTED_CONFIG_RELEASE ""
-              MAP_IMPORTED_CONFIG_RELWITHDEBINFO ""
-              MAP_IMPORTED_CONFIG_MINSIZEREL ""
-            )
-        endif()
-    endforeach(__cvcomponent)
+    # See https://github.com/ros-perception/vision_opencv/issues/193
+    set(USE_WORKAROUND OFF)
+
+    if(${USE_WORKAROUND})
+      message(STATUS "Applying OpenCV 3.3.1 Workaround")
+      message(STATUS "OpenCV_DIR: ${OpenCV_DIR}")
+      message(STATUS "OpenCV_LIBRARIES: ${OpenCV_LIBRARIES}")
+      foreach(__cvcomponent ${OpenCV_LIB_COMPONENTS})
+          set (__original_cvcomponent ${__cvcomponent})
+          if(NOT __cvcomponent MATCHES "^opencv_")
+              message(STATUS "Not patching ${__cvcomponent}")
+              set(__cvcomponent opencv_${__cvcomponent})
+          endif()
+          if (TARGET ${__cvcomponent})
+              message(STATUS "Patching ${__cvcomponent}")
+              set_target_properties(${__cvcomponent} PROPERTIES
+                MAP_IMPORTED_CONFIG_DEBUG ""
+                MAP_IMPORTED_CONFIG_RELEASE ""
+                MAP_IMPORTED_CONFIG_RELWITHDEBINFO ""
+                MAP_IMPORTED_CONFIG_MINSIZEREL ""
+              )
+          endif()
+      endforeach(__cvcomponent)
+    endif()
 endif()
 
 catkin_package(
