@@ -1,33 +1,28 @@
 <?xml version="1.0" ?>
 <launch>
-        <!--
-        Arguments select the mapping / SLAM algorithm to use.
-        Only one launch file can be included, even if all paramters are set to true.
-        -->
-        <arg name="use_planner_cost" default="false" />
-        <arg name="use_planner_dynamic" default="false" />
-        <arg name="use_planner_static" default="false" />
-        <arg name="use_planner_goal" default="false" />
+  <!--
+  Arguments select the mapping / SLAM algorithm to use.
+  Only one launch file can be included, even if all paramters are set to true.
+  -->
+  <arg name="use_planner_cost" default="false" />
+  <arg name="use_planner_static" default="false" />
+  <arg name="use_planner_goal" default="false" />
 
-	<!-- default: must be checked last -->
-        <arg name="use_planner_default" default="true" />
+  <!-- default: must be checked last -->
+  <arg name="use_planner_default" default="true" />
 
 
-        <include file="$(find path_planner)/launch/goal_planner.launch" if="$(arg use_planner_goal)" />
-        <group unless="$(arg use_planner_goal)">
+  <include file="$(find path_planner)/launch/goal_planner.launch" if="$(arg use_planner_goal)" />
+  <group unless="$(arg use_planner_goal)">
 
-	<include file="$(find path_planner)/launch/static_path.launch" if="$(arg use_planner_static)" />
-	<group unless="$(arg use_planner_static)">
+    <include file="$(find path_planner)/launch/static_path.launch" if="$(arg use_planner_static)" />
+    <group unless="$(arg use_planner_static)">
 
-	  <include file="$(find path_planner)/launch/planner_cost.launch" if="$(arg use_planner_cost)" />
-	  <group unless="$(arg use_planner_cost)">
-	    
-	    <include file="$(find path_planner)/launch/dynplanner.launch" if="$(arg use_planner_dynamic)" />
-	    <group unless="$(arg use_planner_dynamic)">
+      <include file="$(find path_planner)/launch/planner_cost.launch" if="$(arg use_planner_cost)" />
+      <group unless="$(arg use_planner_cost)">
 
-	      <include file="$(find path_planner)/launch/planner.launch" if="$(arg use_planner_default)" />
-            </group>
-          </group>
-        </group>
-        </group>
+        <include file="$(find path_planner)/launch/planner.launch" if="$(arg use_planner_default)" />
+      </group>
+    </group>
+  </group>
 </launch>
