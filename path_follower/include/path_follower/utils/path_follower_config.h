@@ -2,6 +2,7 @@
 #define PATH_FOLLOWER_CONFIG_H
 
 #include <memory>
+#include <string>
 
 class RobotController;
 class AbstractLocalPlanner;
