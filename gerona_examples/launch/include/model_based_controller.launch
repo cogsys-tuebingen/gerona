@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<launch>
+<arg name="is_simulation" default="true" />
+
+<group ns="gerona" >
+	<param name="world_frame" value="robot_map" />
+	<param name="robot_frame" value="robot_base_footprint" />
+</group>
+
+<node pkg="path_control" type="highlevel_dummy" name="highlevel_dummy" output="screen" respawn="true">
+  <param name="target_speed" value="1.0" />
+  <param name="failure_mode" value="replan" />
+  <remap from="rviz_goal" to="/move_base_simple/goal" />
+</node>
+
+<include file="$(find path_planner)/launch/goal_planner.launch" />
+    
+<include file="$(find path_control)/launch/path_control.launch" />
+
+<node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen" respawn="true">
+        <param name="controller_type" value="$(optenv ROBOT_CONTROLLER modelbased)" />
+	<remap from="/cmd_vel" to="/robot/robotnik_base_control/cmd_vel" />
+</node>
+
+<group ns="path_follower" >
+	<group ns="model_based_planner" >
+		<param name="robot_config_file" value="$(find model_based_planner)/config/summit_c.yaml" />
+		<param name="elevation_map_config_file" value="$(find localmap)/config/dem_local_1024_10.yaml"/>
+		<param name="look_ahead_time" value="4.0" />
+		<param name="max_depth" value="3" />
+		<param name="curve_segment_subdivisions" value="20" />
+		<param name="target_goal_distance" value="0.2" />
+	    	<param name="score_weight_delta_curvature" value="0.00" />
+		<param name="no_wheel_support_near_threshold" value="1.0" />
+	    	<param name="score_weight_end_no_wheel_support_far" value="0.0" />
+		<param name="score_weight_mean_grav_angle" value="-0.1" />
+		<param name="score_weight_max_grav_angle" value="-0.1" />
+		<param name="score_weight_mean_tip_angle" value="-0.1" />
+           	<param name="score_weight_max_tip_angle" value="-0.1" />
+			
+		<param name="grav_angle_threshold" value="0.4" />
+		<param name="tip_angle_threshold" value="0.4" />
+		<param name="delta_angle_threshold" value="0.15" />
+  	    	<param name="min_wheel_support_threshold" value="0.5" />
+		<param name="replan_factor" value="3" />
+
+	    	<!-- General  -->
+		<param name="model_planner_type" value="AStar" />
+		<param name="model_node_expander_type" value="angular_vel" />
+		<param name="model_scorer_type" value="goal_scorer" />
+		<!-- Planner -->
+		<param name="max_num_nodes" value="1000" />
+		<param name="max_depth" value="3" />
+		<param name="curve_segment_subdivisions" value="30" />
+		<param name="look_ahead_time" value="4.0" />
+		<param name="number_of_splits" value="15" />
+		<param name="steering_angle_delta" value="0.13" />
+		<param name="number_of_splits_first_level" value="-1" />
+		<param name="steering_angle_delta_first_level" value="-0.06" />
+		<!-- Scorer -->
+		<param name="grav_angle_threshold" value="0.5" />
+		<param name="tip_angle_threshold" value="0.15" />
+		<param name="delta_angle_threshold" value="0.08" />
+  	    	<param name="min_wheel_support_threshold" value="0.5" />
+   	    	<param name="allow_not_visible" value="false" />
+
+	    	<param name="no_wheel_support_near_threshold" value="1.0" />
+	    	<param name="no_wheel_support_rotate_threshold" value="0.7" />
+	    	<param name="min_pose_steps_penalty_threshold" value="0.8" />
+
+		<param name="score_weight_mean_grav_angle" value="0.0" />
+		<param name="score_weight_max_grav_angle" value="0.0" />
+		<param name="score_weight_mean_angle_difference" value="0.0" />
+		<param name="score_weight_max_angle_difference" value="0.0" />
+		<param name="score_weight_mean_tip_angle" value="0.0" />
+		<param name="score_weight_max_tip_angle" value="0.0" />
+		<param name="score_weight_mean_wheel_support" value="0.0" />
+		<param name="score_weight_min_wheel_support" value="0.0" />
+
+		<param name="score_weight_delta_curvature" value="0.0" />
+		<param name="score_weight_level" value="0.0" />
+
+		<param name="score_weight_distance_to_goal" value="2.0" />
+		<param name="score_weight_angle_to_goal" value="-1.0" />
+	    	<param name="score_weight_last_vel_diff" value="0.0" />
+	    
+
+		<param name="score_weight_end_out_of_image" value="0.0" />
+		<param name="score_weight_end_no_wheel_support" value="-1000.0" />
+		<param name="score_weight_end_no_wheel_support_far" value="-1.0" />
+		<param name="score_weight_end_not_visible" value="0.0" />
+		<param name="score_weight_end_valid" value="0.0" />
+		<param name="score_weight_end_exceed_angle" value="-1000.0" />
+		<param name="score_weight_end_goal_reached" value="10000.0" />
+		<param name="score_weight_end_low_pose_count_penalty" value="-1000.0" />
+		<param name="score_weight_end_chassis_collision" value="-1000.0" />
+		<param name="target_goal_distance" value="0.2" />
+
+	</group><!-- model_based_planner /-->
+
+        <param name="controller_type" value="modelbased" />
+	<group ns="controller" >
+		<group ns="modelbased" >
+		    <param name="min_linear_velocity" value="0.8" />
+		    <param name="max_linear_velocity" value="0.8" />
+		    <param name="use_lin_velocity" value="false" />
+		    <param name="use_ang_velocity" value="false" />
+		    <param name="min_traj_nodes" value="15" />
+		    <param name="min_traj_nodes_goal" value="5" />
+		</group>
+	</group>
+
+	<group ns="local_planner">
+		<param name="algorithm" value="NULL" />
+	</group>
+</group>
+
+</launch>

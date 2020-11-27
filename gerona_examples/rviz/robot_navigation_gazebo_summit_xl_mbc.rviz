@@ -1,0 +1,517 @@
+Panels:
+  - Class: rviz/Displays
+    Help Height: 78
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /Status1
+      Splitter Ratio: 0.5
+    Tree Height: 449
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Expanded:
+      - /2D Pose Estimate1
+      - /2D Nav Goal1
+      - /Publish Point1
+    Name: Tool Properties
+    Splitter Ratio: 0.5886790156364441
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+  - Class: rviz/Time
+    Experimental: false
+    Name: Time
+    SyncMode: 0
+    SyncSource: LaserScan
+Preferences:
+  PromptSaveOnExit: true
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Class: rviz/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        local_map:
+          Value: true
+        robot_back_left_wheel:
+          Value: true
+        robot_back_right_wheel:
+          Value: true
+        robot_base_docking_contact_link:
+          Value: true
+        robot_base_footprint:
+          Value: true
+        robot_base_link:
+          Value: true
+        robot_front_laser_base_link:
+          Value: true
+        robot_front_laser_link:
+          Value: true
+        robot_front_left_wheel:
+          Value: true
+        robot_front_ptz_camera_base_link:
+          Value: true
+        robot_front_ptz_camera_frame_link:
+          Value: true
+        robot_front_ptz_camera_optical_frame_link:
+          Value: true
+        robot_front_ptz_camera_pan_link:
+          Value: true
+        robot_front_ptz_camera_tilt_link:
+          Value: true
+        robot_front_rgbd_camera_camera_depth_frame:
+          Value: true
+        robot_front_rgbd_camera_camera_depth_optical_frame:
+          Value: true
+        robot_front_rgbd_camera_camera_fisheye_frame:
+          Value: true
+        robot_front_rgbd_camera_camera_fisheye_optical_frame:
+          Value: true
+        robot_front_rgbd_camera_camera_left_ir_frame:
+          Value: true
+        robot_front_rgbd_camera_camera_left_ir_optical_frame:
+          Value: true
+        robot_front_rgbd_camera_camera_link:
+          Value: true
+        robot_front_rgbd_camera_camera_right_ir_frame:
+          Value: true
+        robot_front_rgbd_camera_camera_right_ir_optical_frame:
+          Value: true
+        robot_front_right_wheel:
+          Value: true
+        robot_gps_base_link:
+          Value: true
+        robot_imu_link:
+          Value: true
+        robot_map:
+          Value: true
+        robot_odom:
+          Value: true
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        robot_map:
+          local_map:
+            {}
+          robot_odom:
+            robot_base_footprint:
+              robot_base_link:
+                robot_back_left_wheel:
+                  {}
+                robot_back_right_wheel:
+                  {}
+                robot_base_docking_contact_link:
+                  {}
+                robot_front_laser_link:
+                  robot_front_laser_base_link:
+                    {}
+                robot_front_left_wheel:
+                  {}
+                robot_front_ptz_camera_base_link:
+                  robot_front_ptz_camera_pan_link:
+                    robot_front_ptz_camera_tilt_link:
+                      robot_front_ptz_camera_frame_link:
+                        robot_front_ptz_camera_optical_frame_link:
+                          {}
+                robot_front_rgbd_camera_camera_link:
+                  robot_front_rgbd_camera_camera_depth_frame:
+                    robot_front_rgbd_camera_camera_depth_optical_frame:
+                      {}
+                    robot_front_rgbd_camera_camera_fisheye_frame:
+                      robot_front_rgbd_camera_camera_fisheye_optical_frame:
+                        {}
+                    robot_front_rgbd_camera_camera_left_ir_frame:
+                      robot_front_rgbd_camera_camera_left_ir_optical_frame:
+                        {}
+                    robot_front_rgbd_camera_camera_right_ir_frame:
+                      robot_front_rgbd_camera_camera_right_ir_optical_frame:
+                        {}
+                robot_front_right_wheel:
+                  {}
+                robot_gps_base_link:
+                  {}
+                robot_imu_link:
+                  {}
+      Update Interval: 0
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/LaserScan
+      Color: 239; 41; 41
+      Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 1
+      Min Color: 0; 0; 0
+      Min Intensity: 1
+      Name: LaserScan
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Points
+      Topic: /robot/front_laser/scan
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.15000000596046448
+      Head Radius: 0.25
+      Name: Goal
+      Shaft Length: 0.25
+      Shaft Radius: 0.10000000149011612
+      Shape: Arrow
+      Topic: /move_base_simple/accepted_goal
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 2
+        Min Value: -2
+        Value: false
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 0; 0
+      Color Transformer: AxisColor
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: ElevationMap
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 1
+      Size (m): 0.10000000149011612
+      Style: Points
+      Topic: /elevation_cloud
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz/PoseWithCovariance
+      Color: 255; 25; 0
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: PoseWithCovariance
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic: /summit_xl_a/amcl_pose
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/PathSequence
+      Color Backward: 255; 25; 0
+      Color Forward: 25; 255; 0
+      Enabled: true
+      Line Style: Billboards
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Topic: /summit_xl_a/path
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        robot_back_left_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        robot_back_right_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        robot_base_docking_contact_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        robot_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        robot_front_laser_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        robot_front_laser_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_front_left_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        robot_front_ptz_camera_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        robot_front_ptz_camera_frame_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_front_ptz_camera_optical_frame_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_front_ptz_camera_pan_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_front_ptz_camera_tilt_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_front_rgbd_camera_camera_depth_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_front_rgbd_camera_camera_depth_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_front_rgbd_camera_camera_fisheye_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_front_rgbd_camera_camera_fisheye_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_front_rgbd_camera_camera_left_ir_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_front_rgbd_camera_camera_left_ir_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_front_rgbd_camera_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        robot_front_rgbd_camera_camera_right_ir_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_front_rgbd_camera_camera_right_ir_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        robot_front_right_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        robot_gps_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        robot_imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotModel
+      Robot Description: /robot/robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /summit_xl_a/visualization_marker
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /model_dbg_image
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Image
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/PathSequence
+      Color Backward: 255; 25; 0
+      Color Forward: 25; 255; 0
+      Enabled: true
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: PathSequence
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Topic: /path
+      Unreliable: false
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Default Light: true
+    Fixed Frame: robot_map
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+    - Class: rviz/SetInitialPose
+      Theta std deviation: 0.2617993950843811
+      Topic: /initialpose
+      X std deviation: 0.5
+      Y std deviation: 0.5
+    - Class: rviz/SetGoal
+      Topic: /move_base_simple/goal
+    - Class: rviz/PublishPoint
+      Single click: true
+      Topic: /clicked_point
+  Value: true
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 39.7900390625
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Focal Point:
+        X: 0.14858905971050262
+        Y: -1.3752626180648804
+        Z: -0.045303791761398315
+      Focal Shape Fixed Size: false
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 1.3397966623306274
+      Target Frame: <Fixed Frame>
+      Value: Orbit (rviz)
+      Yaw: 4.694694995880127
+    Saved: ~
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 1125
+  Hide Left Dock: false
+  Hide Right Dock: false
+  Image:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd0000000400000000000001cf000003c7fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d0000024c000000c900fffffffb0000000a0049006d006100670065010000028f000001750000001600fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f000003c7fc0200000004fb0000001e0054006f006f006c002000500072006f0070006500720074006900650073010000003d000000840000005c00fffffffb0000000a0056006900650077007301000000c70000033d000000a400fffffffb0000001e0054006f006f006c002000500072006f0070006500720074006900650073010000031f000000e40000000000000000fb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000006230000003efc0100000002fb0000000800540069006d0065010000000000000623000002eb00fffffffb0000000800540069006d0065010000000000000450000000000000000000000339000003c700000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Selection:
+    collapsed: false
+  Time:
+    collapsed: false
+  Tool Properties:
+    collapsed: false
+  Views:
+    collapsed: false
+  Width: 1571
+  X: 323
+  Y: 50

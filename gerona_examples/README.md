@@ -80,3 +80,10 @@ Pioneer simulation and full GeRoNa stack demonstration.
 
 Pioneer simulation and demonstration where only the path follower is used.
 A secondary node (`follow_path_example.py`) is used to convert `nav_msgs/Path` from [`global_planner`](http://wiki.ros.org/global_planner) into `path_msgs/DirectionalPath`s.
+
+4. gazebo_example_summit_mbc.launch
+
+Demonstrates the use of local planning on a elevation map only based only on the RGB-D sensor.
+In order to run the example the "summit_xl_rgbd_down.urdf.xacro" file from "gerona_examples/robots" needs to be copied to
+"summit_xl_description/robots" folder in the summit_xl_common package.
+

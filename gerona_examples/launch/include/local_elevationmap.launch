@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="localmap" type="localmap_node" pkg="localmap">
+        <remap from="/camera_info"       to="/robot/front_rgbd_camera/depth/camera_info"/>
+        <remap from="/depth_image"       to="/robot/front_rgbd_camera/depth/image_raw"/>
+        <param name="mapFrame" type="string" value="robot_map"/>
+        <param name="baseLinkFrame" type="string" value="robot_base_footprint"/>
+        <param name="mapResolution" type="int" value="1024"/>
+        <param name="mapSize" type="double" value="10.0"/>
+        <param name="numBlocks" type="int" value="8"/>
+        <param name="transform2BaseLink" type="bool" value="false"/>
+        <param name="fuseMode" type="int" value="0"/>
+        <param name="processMode" type="int" value="0"/>
+        <param name="transformWaitTime" type="double" value="0.2"/>
+        <param name="postProcess" type="int" value="1"/>
+        <param name="postProcessParam" type="int" value="5"/>
+    </node>
+</launch>

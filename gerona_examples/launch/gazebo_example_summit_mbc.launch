@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<launch>
+
+    <!-- gazebo -->
+    <include file="$(find summit_xl_gazebo)/launch/summit_xl_gazebo.launch">
+        <arg name="launch_rviz" value="false" />
+        <arg name="amcl_and_mapserver_a" value="false" />
+        <arg name="xacro_robot_a" value="summit_xl_rgbd_down.urdf.xacro" />
+        <arg name="ros_planar_move_plugin" value="true" />
+    </include>
+
+    <!-- Disable gazebo controller plugin tf publish -->
+    <node pkg="dynamic_reconfigure" type="dynparam" name="disable_odom_tf" args="set /robot/robotnik_base_control enable_odom_tf false" />
+    <!-- Publish model pose from gazebo state -->
+    <include file="$(find gerona_examples)/launch/include/gazebo2tf.launch"/>
+
+    <!-- Publish Map to Odom -->
+    <node pkg="tf" type="static_transform_publisher" name="map_to_odom_link" args="0 0 0 0 0 0 /robot_map /robot_odom 10" /> 
+    <!-- RViz -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gerona_examples)/rviz/robot_navigation_gazebo_summit_xl_mbc.rviz"/>
+    
+
+    <!-- Start elevation map node -->
+    <include file="$(find gerona_examples)/launch/include/local_elevationmap.launch"/>
+
+    <!-- Launch Gerona -->
+    <include file="$(find gerona_examples)/launch/include/model_based_controller.launch"/>
+
+
+</launch>

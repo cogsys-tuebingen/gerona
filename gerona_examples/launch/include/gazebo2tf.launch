@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="gerona_examples" type="gazebo2tf.py" name="gazebo2tf_node" output="screen">
+	<param name="modelName" value="robot" />
+	<param name="tfRobotFrame" value="robot_base_footprint" />
+	<param name="tfWorldFrame" value="robot_odom" />  
+  </node>
+</launch>
