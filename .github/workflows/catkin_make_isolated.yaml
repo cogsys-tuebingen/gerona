@@ -1,6 +1,10 @@
 name: catkin_make_isolated
 
-on: [push]
+on:
+  push:
+  schedule:
+    # build every night at 0:00
+    - cron:  '0 0 * * *'
 
 jobs:
   build-16-kinetic:
