@@ -1,13 +1,15 @@
 FROM ros:kinetic-perception
 
-RUN apt-get update -y && \
-    apt-get install -y --no-install-recommends build-essential openssh-client sudo
+RUN set -x; apt-get update -y && apt-get install -y software-properties-common wget gnupg apt-transport-https ca-certificates && \
+    ( wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null ) && \
+    apt-add-repository -y 'deb https://apt.kitware.com/ubuntu/ xenial main' && apt-get update -y && \
+    apt-get install -y --no-install-recommends build-essential openssh-client sudo cmake
 
 RUN mkdir -p /build/ws/src/
 ADD ./ /build/ws/src/
 
 SHELL [ "bash", "-c" ]
 
-RUN rosdep update
+RUN apt-get update -y && rosdep update --include-eol-distros
 RUN rosdep install --from-paths -r -i -y /build/ws/src
 RUN source /opt/ros/$(ls /opt/ros/ | head -n 1)/setup.bash && cd /build/ws/ && catkin_make_isolated
