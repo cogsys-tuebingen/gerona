@@ -1,8 +1,7 @@
 # GeRoNa: Generic Robot Navigation
 
 <p align="left">
-  <a href="https://github.com/cogsys-tuebingen/gerona"><img alt="Build status: catkin" src="https://github.com/cogsys-tuebingen/gerona/workflows/catkin_make_isolated/badge.svg"></a>
-  <a href="https://github.com/cogsys-tuebingen/gerona"><img alt="Build status: catkin_tools" src="https://github.com/cogsys-tuebingen/gerona/workflows/catkin_build/badge.svg"></a>
+  <a href="https://github.com/cogsys-tuebingen/gerona"><img alt="Build status: " src="https://github.com/cogsys-tuebingen/gerona/workflows/continuous_integration/badge.svg?branch=master"></a>
 </p>
 
 This project contains a set of [ROS](ros.org) packages which provide a navigation suite, including path planning on a given map, controlling of the robot to follow this path and obstacle avoidance while driving.

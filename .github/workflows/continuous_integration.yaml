@@ -1,0 +1,109 @@
+name: continuous_integration
+
+on:
+  push:
+  schedule:
+    # build every night at 0:00
+    - cron: "0 0 * * *"
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+        compiler:
+          [
+            "-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++",
+            "-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++",
+          ]
+        build-tool: ["catkin_tools", "catkin"]
+    steps:
+      - name: "determine_ros_version"
+        id: determine_ros_version
+        run:
+          if ${{ contains(matrix.os, '16.04') }} ; then
+            echo "kinetic" ;
+            echo "::set-output name=ros_version::kinetic" ;
+          elif ${{ contains(matrix.os, '18.04') }} ; then
+            echo "melodic" ;
+            echo "::set-output name=ros_version::melodic" ;
+          elif ${{ contains(matrix.os, '20.04') }} ; then
+            echo "noetic" ;
+            echo "::set-output name=ros_version::noetic" ;
+          else
+            echo "::set-output name=ros_version::undefined" ;
+            echo "::error::Unsupported Ubuntu / ROS version" ;
+          fi
+      - uses: actions/checkout@v1
+        with:
+          path: ws/src/gerona
+      - name: clone_dependencies
+        run: |
+          cd ..
+          git clone https://github.com/cogsys-tuebingen/cslibs_path_planning
+          git clone https://github.com/cogsys-tuebingen/cslibs_navigation_utilities
+          git clone https://github.com/sbpl/sbpl
+      - name: upgrade_compiler
+        if: ${{ contains(matrix.os, '18.04') && contains(matrix.compiler, 'clang') }}
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt-add-repository -y 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic main'
+          sudo apt-get update -y
+          apt list | grep clang
+          sudo apt-get install -y clang-13
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-13 50
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-13 50
+      - uses: betwo/github-setup-catkin@master
+        with:
+          ros-version: ${{ steps.determine_ros_version.outputs.ros_version }}
+          build-tool: ${{ matrix.build-tool }}
+          workspace: $HOME/work/gerona/ws
+      - name: build_catkin
+        if: ${{ matrix.build-tool == 'catkin' }}
+        run: |
+          cd $HOME/work/gerona/ws
+          catkin_make_isolated ${{ matrix.compiler }}
+      - name: build_catkin_tools
+        if: ${{ matrix.build-tool == 'catkin_tools' }}
+        run: |
+          cd $HOME/work/gerona/ws
+          catkin build --no-status --no-notify --summarize --continue-on-failure --cmake-args ${{ matrix.compiler }}
+
+  ##################
+  # PUBLISH DOCKER #
+  ##################
+
+  publish-docker:
+    needs: build
+    runs-on: ${{ matrix.os }}
+    if: ${{ github.ref == 'refs/heads/master' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: src/gerona
+      - uses: actions/checkout@v2
+        with:
+          repository: cogsys-tuebingen/cslibs_path_planning
+          path: src/cslibs_path_planning
+      - uses: actions/checkout@v2
+        with:
+          repository: cogsys-tuebingen/cslibs_navigation_utilities
+          path: src/cslibs_navigation_utilities
+      - uses: actions/checkout@v2
+        with:
+          repository: sbpl/sbpl
+          path: src/sbpl
+      - name: Publish to Registry
+        uses: elgohr/Publish-Docker-Github-Action@master
+        with:
+          name: cogsys-tuebingen/gerona/gerona_melodic
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: docker.pkg.github.com
+          dockerfile: src/gerona/docker/melodic-perception.docker
