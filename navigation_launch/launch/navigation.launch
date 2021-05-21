@@ -9,7 +9,6 @@ pointcloud that is used for obstacle detection.
     <arg name="use_laser_obstacles" default="false" />
 
     <arg name="use_planner_cost" default="false" />
-    <arg name="use_planner_dynamic" default="false" />
     <arg name="use_planner_static" default="false" />
     <arg name="use_planner_goal" default="false" />
     <arg name="use_planner_default" default="true" />
@@ -35,7 +34,6 @@ pointcloud that is used for obstacle detection.
 
     <include file="$(find path_planner)/launch/path_planner.launch">
         <arg name="use_planner_cost" value="$(arg use_planner_cost)" />
-        <arg name="use_planner_dynamic" value="$(arg use_planner_dynamic)" />
         <arg name="use_planner_static" value="$(arg use_planner_static)" />
         <arg name="use_planner_goal" value="$(arg use_planner_goal)" />
         <arg name="use_planner_default" value="$(arg use_planner_default)" />

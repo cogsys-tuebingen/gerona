@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <launch>    <arg name="use_planner_cost" default="false" />
-    <arg name="use_planner_dynamic" default="false" />
     <arg name="use_planner_static" default="false" />
     <arg name="use_planner_default" default="true" />
 
@@ -11,7 +10,6 @@
     <include file="$(find navigation_launch)/launch/rviz_controlled.launch">
       <arg name="use_laser_obstacles" value="true" />
       <arg name="use_planner_cost" value="$(arg use_planner_cost)" />
-      <arg name="use_planner_dynamic" value="$(arg use_planner_dynamic)" />
       <arg name="use_planner_static" value="$(arg use_planner_static)" />
       <arg name="use_planner_default" value="$(arg use_planner_default)" />
     </include>
