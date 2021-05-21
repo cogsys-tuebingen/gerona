@@ -28,6 +28,7 @@
   <exec_depend>amcl</exec_depend>
   <exec_depend>summit_xl_gazebo</exec_depend>
   <exec_depend>summit_xl_localization</exec_depend>
+  <exec_depend>pr2_common</exec_depend>
 
   <export>
   </export>
