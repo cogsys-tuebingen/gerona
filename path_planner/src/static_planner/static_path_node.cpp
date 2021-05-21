@@ -44,7 +44,7 @@ struct Curve : public Segment
         return radius >= 0.0;
     }
 
-    void add(tf::Transform& pose, path_msgs::PathSequence& path_seq)
+    void add(tf::Transform& pose, path_msgs::PathSequence& path_seq) override
     {
         double span = 0;
         double sign = angle > 0 ? 1.0 : -1.0;
@@ -85,7 +85,7 @@ struct Straight : public Segment
         return dir_ > 0;
     }
 
-    void add(tf::Transform& pose, path_msgs::PathSequence& path_seq)
+    void add(tf::Transform& pose, path_msgs::PathSequence& path_seq) override
     {
         path_msgs::DirectionalPath* path = &path_seq.paths.back();
 
@@ -113,7 +113,7 @@ struct StaticPathPlanner : public Planner
         return true;
     }
 
-    void execute(const path_msgs::PlanPathGoalConstPtr &goal)
+    void execute(const path_msgs::PlanPathGoalConstPtr &goal) override
     {
         if(!generatePath()) {
             path_msgs::PlanPathResult failure;
@@ -163,7 +163,7 @@ struct StaticPathPlanner : public Planner
 
     path_msgs::PathSequence plan (const path_msgs::PlanPathGoal &goal,
                                   const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-                                  const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
+                                  const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) override {
 
         throw std::logic_error("should not be called");
     }

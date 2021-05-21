@@ -61,7 +61,8 @@ double RobotController_Kinematic_HBZ_TT::computeSpeed()
         }
         mean_vel_ /= meas_num;
 
-        if(counter_ == meas_velocities_.size() - 1){
+        const int n = meas_velocities_.size();
+        if(counter_ == n - 1){
             counter_ = -1;
         }
         counter_++;

@@ -158,7 +158,7 @@ public:
     inline TrajNode* GetStartNode()
     {
         curNodeIdx_ = 0;
-        bestScore_ = -99999999;
+        bestScore_ = -99999999.f;
 
         //poseEstimator_.ResetPoseCounter();
 

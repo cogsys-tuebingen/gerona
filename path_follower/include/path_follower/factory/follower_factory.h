@@ -13,7 +13,7 @@ class LocalPlannerFactory;
 class CollisionAvoiderFactory;
 
 class PathFollower;
-class PathFollowerParameters;
+struct PathFollowerParameters;
 class PoseTracker;
 
 /**
@@ -46,7 +46,6 @@ public:
 private:
     const PathFollowerParameters& opt_;
 
-    PathFollower &follower_;
     PoseTracker& pose_tracker_;
 
     std::shared_ptr<ControllerFactory> controller_factory_;

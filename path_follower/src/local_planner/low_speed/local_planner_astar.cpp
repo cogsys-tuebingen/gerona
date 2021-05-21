@@ -485,7 +485,7 @@ Path::Ptr LocalPlannerAStar::calculateAvoidingPath(const std::string &frame)
     Stopwatch sw;
     sw.restart();
 
-    algo.setPathCandidateCallback([this](const typename PathPlanningAlgorithm::PathT& path) {
+    algo.setPathCandidateCallback([](const typename PathPlanningAlgorithm::PathT& path) {
         return false;
     });
 

@@ -256,7 +256,7 @@ struct TrajNode : public Trajectory
         validState_ = TN_VS_NOTASSIGNED;
         numValid_ = 0;
 
-        bestChildScore_ = -99999999;
+        bestChildScore_ = -99999999.0f;
         validChildCount_ = 0;
         bestChild_ = nullptr;
 

@@ -15,8 +15,12 @@ namespace pcl
 {
 struct PointXYZ;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 template <typename T>
 class PointCloud;
+#pragma GCC diagnostic pop
+
 }
 
 /**

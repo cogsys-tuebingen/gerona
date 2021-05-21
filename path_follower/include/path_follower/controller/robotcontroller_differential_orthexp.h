@@ -45,9 +45,6 @@ private:
         return opt_;
     }
 
-    double theta_des_;
-    double Ts_;
-
     double alpha_e_;
 };
 #endif // ROBOTCONTROLLER_DIFFERENTIAL_ORTHEXP_H

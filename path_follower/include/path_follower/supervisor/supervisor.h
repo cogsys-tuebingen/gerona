@@ -54,6 +54,8 @@ public:
         int8_t status;
     };
 
+    virtual ~Supervisor() = default;
+
     virtual void supervise(State &state, Result *out) = 0;
 
     virtual std::string getName() const = 0;

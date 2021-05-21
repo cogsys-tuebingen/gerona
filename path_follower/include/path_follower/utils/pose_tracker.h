@@ -6,7 +6,7 @@
 #include <nav_msgs/Odometry.h>
 #include <Eigen/Core>
 
-class PathFollowerParameters;
+struct PathFollowerParameters;
 
 /**
  * @brief The PoseTracker class simplifies access to lookup various transformations.

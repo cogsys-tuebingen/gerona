@@ -451,7 +451,7 @@ struct NodeScorer_Goal_T : public NodeScorer_Base
     TrajNode* CheckAllNodes(std::vector<TrajNode> &allNodes, int nodeCounter)
     {
 
-        float bestScore = -99999999;
+        float bestScore = -99999999.f;
         TrajNode* resPtr = nullptr;
 
         if (config_.f_childCount <= 0) return resPtr;

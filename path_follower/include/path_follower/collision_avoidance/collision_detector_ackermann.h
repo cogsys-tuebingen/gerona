@@ -15,7 +15,7 @@ public:
     virtual bool avoid(MoveCommand * const cmd, const CollisionAvoider::State &state) override;
 
 protected:
-    virtual PolygonWithTfFrame getPolygon(float width, float length, float course_angle, float curve_enlarge_factor) const;
+    PolygonWithTfFrame getPolygon(float width, float length, float course_angle, float curve_enlarge_factor) const override;
 
     float velocity_;
 };

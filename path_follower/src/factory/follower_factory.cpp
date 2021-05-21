@@ -17,7 +17,6 @@
 
 FollowerFactory::FollowerFactory(PathFollower &follower)
     : opt_(follower.getOptions()),
-      follower_(follower),
       pose_tracker_(follower.getPoseTracker()),
 
       controller_factory_(new ControllerFactory(*PathFollowerParameters::getInstance())),

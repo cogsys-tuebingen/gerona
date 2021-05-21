@@ -578,7 +578,7 @@ void Planner::preprocess(const path_msgs::PlanPathGoal& request)
         for(int y = 0, h = map_info->getHeight(); y < h; ++y) {
             for(int x = 0, w = map_info->getWidth(); x < w; ++x, ++data) {
 
-                *data = map_info->isFree(x,y) ? 255 : 0;
+                *data = map_info->isFree(x,y) ? -1 : 0;
             }
         }
         map_pub.publish(map_viz);

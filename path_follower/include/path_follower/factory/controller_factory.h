@@ -13,7 +13,7 @@ namespace ros {
 class Duration;
 }
 
-class PathFollowerParameters;
+struct PathFollowerParameters;
 
 class RobotController;
 class AbstractLocalPlanner;
@@ -73,8 +73,6 @@ public:
 
 
 private:
-    const PathFollowerParameters& opt_;
-
     pluginlib::ClassLoader<RobotController> controller_loader;
     static std::map<std::string, std::function<std::shared_ptr<RobotController>()>> controller_constructors_;
 

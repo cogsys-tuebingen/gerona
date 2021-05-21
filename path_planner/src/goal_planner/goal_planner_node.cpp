@@ -39,7 +39,7 @@ struct GoalPathPlanner : public Planner
 
     }
 
-    void execute(const path_msgs::PlanPathGoalConstPtr &goal)
+    void execute(const path_msgs::PlanPathGoalConstPtr &goal) override
     {
         geometry_msgs::PoseStamped start = lookupPose();
 
@@ -127,7 +127,7 @@ struct GoalPathPlanner : public Planner
 
     path_msgs::PathSequence plan (const path_msgs::PlanPathGoal &goal,
                                   const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-                                  const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
+                                  const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) override {
 
         throw std::logic_error("should not be called");
     }

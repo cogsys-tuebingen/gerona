@@ -22,8 +22,8 @@ class PoseTracker;
 class ObstacleCloud;
 class ElevationMap;
 
-class PathFollowerParameters;
-class LocalPlannerParameters;
+struct PathFollowerParameters;
+struct LocalPlannerParameters;
 
 class AbstractLocalPlanner
 {

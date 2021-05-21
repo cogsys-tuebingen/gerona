@@ -35,10 +35,6 @@ using namespace path_msgs;
 using namespace std;
 using namespace Eigen;
 
-// toelrances which define when two waypoints are assumed as identical
-const double WAYPOINT_POS_DIFF_TOL = 0.001;
-const double WAYPOINT_ANGLE_DIFF_TOL = 0.01*M_PI/180.0;
-
 PathFollower::PathFollower(ros::NodeHandle &nh):
     node_handle_(nh),
     pose_tracker_(new PoseTracker(*PathFollowerParameters::getInstance(), nh)),
@@ -480,8 +476,9 @@ void PathFollower::setGoal(const FollowPathGoal &goal)
 
     ROS_INFO_STREAM("Following path with " << goal.path.paths.size() << " segments.");
 
+    const auto& collision_avoider = *current_config_->collision_avoider_;
     ROS_INFO_STREAM("using follower configuration:\n- controller: " << config_name.controller <<
-                    "\n- avoider: " << typeid(*current_config_->collision_avoider_).name() <<
+                    "\n- avoider: " << typeid(collision_avoider).name() <<
                     "\n- local planner: " << config_name.local_planner);
 }
 

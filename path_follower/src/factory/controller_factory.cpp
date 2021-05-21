@@ -14,10 +14,8 @@
 std::map<std::string, std::function<std::shared_ptr<RobotController>()>> ControllerFactory::controller_constructors_;
 std::map<std::string, std::string> ControllerFactory::default_collision_detectors_;
 
-ControllerFactory::ControllerFactory(const PathFollowerParameters &opt)
-    : opt_(opt),
-
-      controller_loader("path_follower", "RobotController")
+ControllerFactory::ControllerFactory(const PathFollowerParameters &/* opt */)
+      : controller_loader("path_follower", "RobotController")
 {
 
 }

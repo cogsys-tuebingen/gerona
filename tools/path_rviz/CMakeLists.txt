@@ -18,7 +18,6 @@ find_package(catkin REQUIRED COMPONENTS
   rviz
 )
 
-include_directories(${catkin_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS})
 
 catkin_package()
@@ -45,7 +44,10 @@ add_definitions(-DQT_NO_KEYWORDS)
 add_library(${PROJECT_NAME}
     src/path_display.cpp
 )
-
+target_include_directories(${PROJECT_NAME}
+  SYSTEM PUBLIC
+    ${catkin_INCLUDE_DIRS}
+)
 target_link_libraries(${PROJECT_NAME} ${QT_LIBRARIES} ${catkin_LIBRARIES})
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 

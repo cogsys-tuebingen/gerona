@@ -504,7 +504,7 @@ struct PathPlanner : public Planner
     }
 
     path_msgs::PathSequence planWithoutTargetPose (const path_msgs::PlanPathGoal &request,
-                                                   const Pose2d &from_world, const Pose2d &from_map) {
+                                                   const Pose2d &from_world, const Pose2d &from_map) override {
 
         Algo algorithm = algo_to_use;
 
@@ -534,7 +534,7 @@ struct PathPlanner : public Planner
 
     path_msgs::PathSequence plan (const path_msgs::PlanPathGoal &goal,
                                   const lib_path::Pose2d& from_world, const lib_path::Pose2d& to_world,
-                                  const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) {
+                                  const lib_path::Pose2d& from_map, const lib_path::Pose2d& to_map) override {
         Algo algorithm = algo_to_use;
 
         if(!goal.goal.planning_algorithm.data.empty()) {

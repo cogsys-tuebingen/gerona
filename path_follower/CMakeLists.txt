@@ -39,7 +39,7 @@ find_package(catkin REQUIRED COMPONENTS
   model_based_planner
 )
 
-find_package(PCL REQUIRED)
+find_package(PCL REQUIRED REQUIRED COMPONENTS common)
 find_package(ALGLIB REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
@@ -84,7 +84,7 @@ endif()
 catkin_package(
     INCLUDE_DIRS include
     LIBRARIES ${PROJECT_NAME}
-    DEPENDS Eigen3 ALGLIB
+    DEPENDS ALGLIB
     CATKIN_DEPENDS path_msgs nav_msgs control_msgs cslibs_navigation_utilities
 )
 
@@ -96,14 +96,6 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include)
-include_directories(
-  ${ALGLIB_INCLUDES}
-  ${EIGEN3_INCLUDE_DIR}
-  ${catkin_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
-  ${PCL_INCLUDE_DIRS}
-)
 
 file(GLOB_RECURSE INCLUDE_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} FOLLOW_SYMLINKS include/*.hpp include/*.h)
 
@@ -208,6 +200,18 @@ add_library(${PROJECT_NAME} SHARED
     src/supervisor/waypointtimeout.cpp
     src/supervisor/distancetopathsupervisor.cpp
 )
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    include
+)
+target_include_directories(${PROJECT_NAME}
+  SYSTEM PUBLIC
+    ${ALGLIB_INCLUDES}
+    ${EIGEN3_INCLUDE_DIR}
+    ${catkin_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
+    ${PCL_INCLUDE_DIRS}
+)
 target_link_libraries(${PROJECT_NAME}
     ${ALGLIB_LIBRARIES} ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES} ${PCL_LIBRARIES}
 )
@@ -230,6 +234,14 @@ add_executable(pose_goal_remapper
 target_link_libraries(pose_goal_remapper
   ${catkin_LIBRARIES}
 )
+# target_include_directories(pose_goal_remapper
+#   PUBLIC
+#     include
+# )
+target_include_directories(pose_goal_remapper
+  SYSTEM PUBLIC
+    ${catkin_INCLUDE_DIRS}
+)
 
 add_executable(test_output_2_csv
   src/utils/test_output_2_csv.cpp
@@ -237,6 +249,14 @@ add_executable(test_output_2_csv
 
 target_link_libraries(test_output_2_csv
   ${catkin_LIBRARIES}
+)
+# target_include_directories(test_output_2_csv
+#   PUBLIC
+#     include
+# )
+target_include_directories(test_output_2_csv
+  SYSTEM PUBLIC
+    ${catkin_INCLUDE_DIRS}
 )
 
 

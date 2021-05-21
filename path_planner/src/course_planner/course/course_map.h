@@ -40,7 +40,6 @@ private:
     std::vector<Segment> segments_;
     std::vector<Eigen::Vector2d> intersections_;
 
-    ros::NodeHandle& nh_;
     ros::NodeHandle pnh_;
     ros::Publisher pub_viz_;
 

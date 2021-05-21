@@ -483,7 +483,9 @@ void RobotController_Velocity_TT::processPose(const geometry_msgs::PoseStamped &
     {
         targetPoses_.push_back(pose);
     }
-    while (targetPoses_.size() > opt_.number_target_poses())targetPoses_.pop_front();
+    std::size_t num_target_poses = opt_.number_target_poses();
+    while (targetPoses_.size() > num_target_poses)
+        targetPoses_.pop_front();
 
 
     if (!opt_.use_odom_twist())

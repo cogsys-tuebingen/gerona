@@ -95,22 +95,22 @@ double ang_continuos(double ang_past, double ang_now)
     double a = ang_now-ang_past;
     double n = 0;
 
-        if (std::abs(a) > 1.8*M_PI)
-        {
+    if (std::abs(a) > 1.8*M_PI)
+    {
 
-            n = (int)std::abs(1.1*a)/ (int)M_PI;
+        n = (int)std::abs(1.1*a)/ (int)M_PI;
 
-            if (a > 1.8*M_PI) return ang_now - n*M_PI;
+        if (a > 1.8*M_PI) return ang_now - n*M_PI;
 
-            if (a < 1.8*M_PI) return ang_now + n*M_PI;
-        }
-        else return ang_now;
+        if (a < 1.8*M_PI) return ang_now + n*M_PI;
+    }
+
+    return ang_now;
 }
 
 
 void RobotController_EKM::DerivePathInterp(double fact)
 {
-    const double ds = 0.01;
     const double zeroOff = 0.0001;
     const double ids = 1.0/0.01;
     phi_p_.clear();

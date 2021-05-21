@@ -39,8 +39,8 @@ class ElevationMap;
 class MoveCommand;
 
 class PoseTracker;
-class PathFollowerParameters;
-class LocalPlannerParameters;
+struct PathFollowerParameters;
+struct LocalPlannerParameters;
 
 /**
  * @brief The PathFollower class is a facade for the complete following subsystem.

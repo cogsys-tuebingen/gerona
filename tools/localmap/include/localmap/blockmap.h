@@ -50,18 +50,6 @@ public:
      */
     void SetMapTo(float val);
 
-
-    /*
-    /**
-     * @brief Set blocks around robot using current orientation
-     *//*
-    void SetSafeBlocksTo(const cv::Point3f &normal, const cv::Point3f &pos, const float &heightPixelRatio);
-    /**
-     * @brief Set center blocks to given value
-     *//*
-    void SetSafeBlocksTo(float val);
-    */
-
     /**
      * @brief Set center blocks to a plane based on vehicle pose
      */

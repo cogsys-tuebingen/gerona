@@ -86,7 +86,7 @@ int dumpParameters(PathFollower& pf, const std::string& filename)
     pf.getFollowerFactory().loadAll(controllers);
 
     std::vector<std::string> lines;
-    Parameters::visitParameters([&file, &lines](const Parameters::ParamInfo& info) {
+    Parameters::visitParameters([&lines](const Parameters::ParamInfo& info) {
         std::stringstream line;
         line<< "| " << info.name << "\t| " << info.type << "\t| " << info.default_value << "\t| " << info.description << " |";
         lines.push_back(line.str());

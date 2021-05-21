@@ -108,7 +108,6 @@ catkin_package(
     INCLUDE_DIRS include include/${PROJECT_NAME}
     #  LIBRARIES gpSlam
     #  CATKIN_DEPENDS roscpp tf
-    DEPENDS Eigen
     )
 
 ###########

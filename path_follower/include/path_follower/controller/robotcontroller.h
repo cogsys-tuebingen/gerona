@@ -25,7 +25,7 @@ class Visualizer;
 class CoursePredictor;
 class CollisionAvoider;
 
-class PathFollowerParameters;
+struct PathFollowerParameters;
 /**
  * @brief The RobotController class is the base class for other control algorithms
  */
