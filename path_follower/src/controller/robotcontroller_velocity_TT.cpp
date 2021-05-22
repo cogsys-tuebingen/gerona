@@ -231,7 +231,7 @@ RobotController::MoveCommandStatus RobotController_Velocity_TT::computeMoveComma
 
             processPose(pose);
         }
-        catch(tf::TransformException ex)
+        catch(const tf::TransformException& ex)
         {
             ROS_WARN_THROTTLE(1, "Velocity_TT: cannot lookup tf target!");
 

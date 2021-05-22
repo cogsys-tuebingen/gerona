@@ -41,7 +41,7 @@ bool LocalPlannerModel::GetTransform(ros::Time time,std::string targetFrame, std
 {
     try{//Try to get the latest avaiable Transform
         transformer_->lookupTransform(targetFrame, sourceFrame, time, trans);
-    }catch(tf::TransformException ex){//if not available, then wait
+    }catch(const tf::TransformException& ex){//if not available, then wait
         (void) ex;
         if(!transformer_->waitForTransform(targetFrame, sourceFrame, time, ros::Duration(0.05))){
             ROS_WARN_STREAM_THROTTLE_NAMED(1, "LocalPlannerModel", "cannot lookup transform from :" << targetFrame << " to " << sourceFrame);
@@ -476,7 +476,7 @@ bool LocalPlannerModel::transform2base(ros::Time& now)
 
     try{//Try to get the latest avaiable Transform
         transformer_->lookupTransform(world_frame, robot_frame, ros::Time(0), now_map_to_base);
-    }catch(tf::TransformException ex){//if not available, then wait
+    }catch(const tf::TransformException& ex){//if not available, then wait
         (void) ex;
         if(!transformer_->waitForTransform(world_frame, robot_frame, now, ros::Duration(0.1))){
             ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");
@@ -523,7 +523,7 @@ bool LocalPlannerModel::transformWPS(std::string source, std::string target, Sub
 
     try{//Try to get the latest avaiable Transform
         transformer_->lookupTransform(target, source, ros::Time(0), now_transform);
-    }catch(tf::TransformException ex){//if not available, then wait
+    }catch(const tf::TransformException& ex){//if not available, then wait
         (void) ex;
         if(!transformer_->waitForTransform(target, source, now, ros::Duration(0.1))){
             ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");

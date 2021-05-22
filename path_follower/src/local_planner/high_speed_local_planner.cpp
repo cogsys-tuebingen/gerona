@@ -27,7 +27,7 @@ bool HighSpeedLocalPlanner::transform2Odo(ros::Time& now)
 
     try{//Try to get the latest avaiable Transform
         transformer_->lookupTransform(world_frame, odom_frame, ros::Time(0), now_map_to_odom);
-    }catch(tf::TransformException ex){//if not available, then wait
+    }catch(const tf::TransformException& ex){//if not available, then wait
         (void) ex;
         if(!transformer_->waitForTransform(world_frame, odom_frame, now, ros::Duration(0.1))){
             ROS_WARN_THROTTLE_NAMED(1, "local_path", "cannot transform map to odom");

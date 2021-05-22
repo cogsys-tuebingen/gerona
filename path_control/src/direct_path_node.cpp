@@ -120,7 +120,7 @@ private:
     {
         try{//Try to get the latest avaiable Transform
             tfl_.lookupTransform(targetFrame, sourceFrame, time, trans);
-        }catch(tf::TransformException ex){//if not available, then wait
+        }catch(const tf::TransformException& ex){//if not available, then wait
             (void) ex;
             if(!tfl_.waitForTransform(targetFrame, sourceFrame, time, ros::Duration(0.5))){
                 ROS_WARN_STREAM_THROTTLE(1, "cannot lookup transform from :" << targetFrame << " to " << sourceFrame);
@@ -138,7 +138,7 @@ private:
     {
         try{//Try to get the latest avaiable Transform
             tfl_.transformPose(targetFrame,*pose,result);
-        }catch(tf::TransformException ex){//if not available, then wait
+        }catch(const tf::TransformException& ex){//if not available, then wait
             (void) ex;
             if(!tfl_.waitForTransform(targetFrame, pose->header.frame_id, pose->header.stamp, ros::Duration(0.5))){
                 ROS_WARN_STREAM_THROTTLE(1, "cannot lookup transform from: " << targetFrame << " to " << pose->header.frame_id);
@@ -172,7 +172,7 @@ private:
                 result.paths.push_back(dpath);
             }
 
-        }catch(tf::TransformException ex){//if not available, then wait
+        }catch(const tf::TransformException& ex){//if not available, then wait
             (void) ex;
             if(!tfl_.waitForTransform(targetFrame, path->header.frame_id, path->header.stamp, ros::Duration(1.0))){
                 ROS_WARN_STREAM_THROTTLE(1, "cannot lookup transform from :" << targetFrame << " to " << path->header.frame_id);

@@ -155,7 +155,7 @@ bool Localmap::GetTransform(ros::Time time,std::string targetFrame, std::string 
 {
     try{//Try to get the latest avaiable Transform
         tf_listener.lookupTransform(targetFrame, sourceFrame, time, trans);
-    }catch(tf::TransformException ex){//if not available, then wait
+    }catch(const tf::TransformException& ex){//if not available, then wait
         (void) ex;
         if(!tf_listener.waitForTransform(targetFrame, sourceFrame, time, ros::Duration(transformWaitTime_))){ //ros::Duration(0.05))){
             ROS_WARN_STREAM_THROTTLE(0.5,"DE_Localmap: cannot lookup transform from: " << targetFrame << " to " << sourceFrame);
