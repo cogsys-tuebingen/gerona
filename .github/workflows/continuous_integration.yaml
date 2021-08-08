@@ -24,17 +24,17 @@ jobs:
         id: determine_ros_version
         run:
           if ${{ contains(matrix.os, '16.04') }} ; then
-            echo "kinetic" ;
-            echo "::set-output name=ros_version::kinetic" ;
+          echo "kinetic" ;
+          echo "::set-output name=ros_version::kinetic" ;
           elif ${{ contains(matrix.os, '18.04') }} ; then
-            echo "melodic" ;
-            echo "::set-output name=ros_version::melodic" ;
+          echo "melodic" ;
+          echo "::set-output name=ros_version::melodic" ;
           elif ${{ contains(matrix.os, '20.04') }} ; then
-            echo "noetic" ;
-            echo "::set-output name=ros_version::noetic" ;
+          echo "noetic" ;
+          echo "::set-output name=ros_version::noetic" ;
           else
-            echo "::set-output name=ros_version::undefined" ;
-            echo "::error::Unsupported Ubuntu / ROS version" ;
+          echo "::set-output name=ros_version::undefined" ;
+          echo "::error::Unsupported Ubuntu / ROS version" ;
           fi
       - uses: actions/checkout@v1
         with:
@@ -52,9 +52,9 @@ jobs:
           sudo apt-add-repository -y 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic main'
           sudo apt-get update -y
           apt list | grep clang
-          sudo apt-get install -y clang-13
-          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-13 50
-          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-13 50
+          sudo apt-get install -y clang-14
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-14 50
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 50
       - uses: betwo/github-setup-catkin@master
         with:
           ros-version: ${{ steps.determine_ros_version.outputs.ros_version }}

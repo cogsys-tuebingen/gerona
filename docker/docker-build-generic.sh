@@ -9,4 +9,4 @@ DOCKERFILE=${SCRIPT_DIR}/${TYPE}.docker
 set -x
 cd $SCRIPT_DIR/../..
 pwd
-docker build -f ${DOCKERFILE} -t gerona-${TYPE} --network=host .
+docker build -f ${DOCKERFILE} -t gerona-${TYPE} --pull --network=host .
