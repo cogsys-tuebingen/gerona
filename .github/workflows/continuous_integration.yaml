@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+        os: [ubuntu-18.04, ubuntu-20.04]
         compiler:
           [
             "-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++",
@@ -23,10 +23,7 @@ jobs:
       - name: "determine_ros_version"
         id: determine_ros_version
         run:
-          if ${{ contains(matrix.os, '16.04') }} ; then
-          echo "kinetic" ;
-          echo "::set-output name=ros_version::kinetic" ;
-          elif ${{ contains(matrix.os, '18.04') }} ; then
+          if ${{ contains(matrix.os, '18.04') }} ; then
           echo "melodic" ;
           echo "::set-output name=ros_version::melodic" ;
           elif ${{ contains(matrix.os, '20.04') }} ; then
